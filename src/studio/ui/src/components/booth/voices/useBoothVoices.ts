@@ -6,7 +6,8 @@ import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { destinationFor, type ChapterLinkKind } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
-import { folderVoices, type Voice } from '../../engine/voices';
+import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
+import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 
@@ -43,8 +44,8 @@ export type BoothVoices = {
 };
 
 /**
- * The voices of the Booth's chapter (docs/prds/booth-voice-tracks.prd.md, phase 4): in a Voice folders project, a chapter linked to a
- * REAPER folder records on one of the folder's direct children. Choosing one asks the host (BoothVoiceSet), which accepts only a child
+ * The voices of the Booth's chapter (docs/prds/booth-voice-tracks.prd.md, phase 4): a chapter linked to a REAPER folder that holds
+ * tracks of its own (not other chapters' tracks) records on one of the folder's direct children, whatever the layout toggle says. Choosing one asks the host (BoothVoiceSet), which accepts only a child
  * of the chapter's linked folder and, during a take this app started, switches the take live; a refusal is a toast. Until the
  * narrator chooses, the chapter records on its Narrator voice, as the host does.
  */
@@ -74,6 +75,8 @@ export function useBoothVoices({
   const { setup, replace } = useVoiceSetup();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [link, setLink] = useState('');
+  // Every track some chapter is linked to: under Flat, a folder holding another chapter's track is nested chapters, not voices (as the host decides).
+  const [linkedTracks, setLinkedTracks] = useState<string[]>([]);
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
   // The voice the host records this chapter on (BoothVoiceGet), read with the tracks: never a voice the page assumed, so a choice made
   // before the Booth was left, or the voice a refused switch kept, is what the control shows.
@@ -84,54 +87,119 @@ export function useBoothVoices({
   const [revision, setRevision] = useState(0);
   const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
+  // Whether the last read failed, so the poll below toasts a run of failures once, not on every tick (as useLiveTracks does). A press of the
+  // toast's Retry always answers: it toasts again when the read fails again, or it clears the failure.
+  const failing = useRef(false);
+  const retryPressed = useRef(false);
+  // The newest read's number and whether it is still running: the poll and the window's focus never start a read over one in flight (as
+  // useLiveTracks does), so a press of Retry that started a read is not overtaken and forgotten.
+  const runId = useRef(0);
+  const inFlight = useRef(false);
+  const failed = useCallback(
+    (reason: unknown, pressed: boolean) => {
+      if (pressed || !failing.current)
+        notify(
+          describeApiError(reason),
+          'error',
+          retryAction(() => {
+            retryPressed.current = true;
+            setRevision((n) => n + 1);
+          }),
+        );
+      failing.current = true;
+    },
+    [notify],
+  );
+
   useEffect(() => {
-    if (!chapterId || setup.layout !== 'folders') return;
+    if (!chapterId) return;
     let live = true;
-    void Promise.all([
-      tracksPort.tracksList(),
-      links.chapterTrackMapList(),
-      storyBible.guideEntities(),
-      // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
-      voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-        if (live)
-          notify(
-            describeApiError(reason),
-            'error',
-            retryAction(() => setRevision((n) => n + 1)),
-          );
-        return undefined;
-      }),
-    ])
-      .then(([project, map, entities, voice]) => {
-        if (!live) return;
-        const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
-        setTracks(project.tracks);
-        setLink(mine.length === 1 ? mine[0].trackGuid : '');
-        setCharacters(entities.filter((entity) => entity.category === 'Character'));
-        setHostVoice({
-          chapterId,
-          guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
-          added: voice?.added ?? [],
-        });
-      })
-      .catch(
-        (reason: unknown) =>
-          live &&
-          notify(
-            describeApiError(reason),
-            'error',
-            retryAction(() => setRevision((n) => n + 1)),
-          ),
-      );
+    const pressed = retryPressed.current;
+    retryPressed.current = false;
+    const run = ++runId.current;
+    inFlight.current = true;
+    // One failure is reported for a run, whichever of its reads failed first.
+    let reported = false;
+    const report = (reason: unknown) => {
+      if (reported) return;
+      reported = true;
+      failed(reason, pressed);
+    };
+    const work = (async () => {
+      const map = await links.chapterTrackMapList();
+      if (!live) return;
+      const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
+      setLinkedTracks(map.mappings.map((mapping) => mapping.trackGuid.toLowerCase()));
+      // A chapter with no one link has no folder to read: the DAW is not asked (a project with no REAPER file has nothing to list).
+      if (mine.length !== 1) {
+        setLink('');
+        setTracks([]);
+        setHostVoice({ chapterId, guid: '', added: [] });
+        failing.current = false;
+        return;
+      }
+      let hostFailed = false;
+      const [project, entities, voice] = await Promise.all([
+        // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
+        tracksPort.tracksLive().then((answer) => answer.project),
+        storyBible.guideEntities(),
+        // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
+        voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
+          if (live) {
+            hostFailed = true;
+            report(reason);
+          }
+          return undefined;
+        }),
+      ]);
+      if (!live) return;
+      // The run only clears the failure when none of its reads failed (the voice read is caught above and the rest throw).
+      if (!hostFailed) failing.current = false;
+      setTracks(project.tracks);
+      setLink(mine[0].trackGuid);
+      setCharacters(entities.filter((entity) => entity.category === 'Character'));
+      setHostVoice({
+        chapterId,
+        guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
+        added: voice?.added ?? [],
+      });
+    })();
+    // A read that never answers must not hold every later read back (as useLiveTracks): after the limit the run fails, so the poll reads
+    // again and the narrator is told.
+    let timer = 0;
+    const limit = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
+    });
+    void Promise.race([work, limit])
+      .catch((reason: unknown) => live && report(reason))
+      .finally(() => {
+        window.clearTimeout(timer);
+        if (run === runId.current) inFlight.current = false;
+      });
     return () => {
       live = false;
     };
-  }, [chapterId, setup.layout, tracksPort, links, storyBible, voiceTracks, notify, revision]);
+  }, [chapterId, tracksPort, links, storyBible, voiceTracks, failed, revision]);
+
+  // The tracks change in the DAW while the Booth is open: read them again when the window gets focus and every few seconds while it is in
+  // front, as the Engine page does, so the voice keys and the voice shown never go stale (#3269).
+  useEffect(() => {
+    if (!chapterId) return;
+    const again = () => {
+      if (document.visibilityState === 'visible' && !inFlight.current) setRevision((n) => n + 1);
+    };
+    const timer = window.setInterval(again, LIVE_TRACKS_POLL_MS);
+    window.addEventListener('focus', again);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', again);
+    };
+  }, [chapterId]);
 
   // REAPER's arms, read on the voice the host records on (ReadAloudReaperState reads the chosen voice of a folder): again after a choice,
   // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
   useEffect(() => {
-    if (!chapterId || setup.layout !== 'folders') return;
+    if (!chapterId) return;
     let live = true;
     teleprompter
       .readAloudReaperState(chapterId)
@@ -140,13 +208,20 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, setup.layout, teleprompter, hostVoice.guid, recording, revision]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, revision]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
   const voices = useMemo(
-    () => (setup.layout === 'folders' && link ? folderVoices(withAddedVoices(tracks, link, added ?? []), link, characters, setup) : []),
-    [setup, link, tracks, characters, added],
+    // The linked folder's own children decide, not the layout toggle (#3269): the host records on them whatever the toggle says.
+    () => {
+      if (!link) return [];
+      const all = withAddedVoices(tracks, link, added ?? []);
+      // The host's rule (chapterVoicesIn): under Flat, a folder holding another chapter's track is nested chapters, not voices.
+      if (setup.layout !== 'folders' && folderChildren(all, link).some((child) => linkedTracks.includes(child.guid.toLowerCase()))) return [];
+      return folderVoices(all, link, characters, setup);
+    },
+    [setup, link, linkedTracks, tracks, characters, added],
   );
   // What the chapter's link points at, for the sentence a voice key gets when no voice is listed.
   const linkKind: ChapterLinkKind = useMemo(() => {

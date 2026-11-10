@@ -349,8 +349,8 @@ A cold read keeps listening until you stop it: press the button, which now reads
 
 ### Recording each voice on its own track
 
-In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
-one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
+In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), or whenever a chapter is linked to a REAPER folder
+that holds only tracks of its own (none another chapter is linked to), the chapter records on one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
 voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
 armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
 named **Narrator**.
