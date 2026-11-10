@@ -173,7 +173,7 @@ func rewriteKeepingTime(t *testing.T, path string, content []byte) {
 	}
 }
 
-// A repeat ask costs a stat: the file's bytes are changed behind the cache with its size and time kept, and the cache still answers what it read first.
+// A repeat ask costs a stat: the cache read the file once and answers the second ask from what it holds.
 func TestIdentityCacheAnswersAgainWithoutReadingTheFile(t *testing.T) {
 	folder := t.TempDir()
 	path := filepath.Join(folder, "take.wav")
@@ -184,13 +184,31 @@ func TestIdentityCacheAnswersAgainWithoutReadingTheFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rewriteKeepingTime(t, path, bytes.Repeat([]byte("b"), 1000))
-	if direct, _ := Identify(path, folder); direct.PartialHash == first.PartialHash {
-		t.Fatal("the rewrite did not change what a read sees; the test cannot tell a read from a stat")
-	}
 	again, err := cache.Identify(path, folder)
-	if err != nil || again != first {
-		t.Fatalf("again = %+v (%v), want the first answer %+v with no read", again, err, first)
+	if err != nil || again != first || cache.Reads() != 1 {
+		t.Fatalf("again = %+v (%v) after %d reads, want the first answer %+v and one read", again, err, cache.Reads(), first)
+	}
+}
+
+// A check run writes an identity down with Refresh: it sees a rewrite that kept the size and the time, and the cache then answers what the run
+// stored, so a lookup after the run agrees with the run (the chapter is not read stale after a fresh check).
+func TestRefreshSeesARewriteTheTimeHidesAndTheCacheAnswersWhatItStored(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	var cache IdentityCache
+	first, _ := cache.Identify(path, folder)
+
+	rewriteKeepingTime(t, path, bytes.Repeat([]byte("b"), 1000))
+	if hidden, _ := cache.Identify(path, folder); hidden != first {
+		t.Fatal("the test needs a rewrite the cache cannot see by size and time; it saw it")
+	}
+	refreshed, err := cache.Refresh(path, folder)
+	if err != nil || refreshed.PartialHash == first.PartialHash {
+		t.Fatalf("Refresh = %+v (%v), want the new bytes, not the first %+v", refreshed, err, first)
+	}
+	if got, _ := cache.Identify(path, folder); got != refreshed {
+		t.Fatalf("after Refresh the cache answers %+v, want what Refresh stored %+v", got, refreshed)
 	}
 }
 

@@ -417,8 +417,8 @@ func TestAlignmentOfATwoMinuteTrackSendsBothItemsPlaced(t *testing.T) {
 	}
 }
 
-// The lookup behind Start from here runs on every press, so it asks for each take's identity from the cache: a take rewritten behind the
-// cache with the same size and time is not read again (the chapter stays current), and a take that changed size is, and turns it stale (#3221).
+// The lookup behind Start from here runs on every press, so it asks the identity cache: a repeat lookup reads no take, and a take that changed
+// size is read again and turns the chapter stale (#3221).
 func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 	p := newTestProject(t)
 	service := p.service(&fakeSidecar{results: alignedResults})
@@ -426,6 +426,24 @@ func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
 		t.Fatalf("after a check the chapter is %q, want current", view.State)
 	}
+	before := service.identities.Reads()
+	if view := alignmentOf(t, service); view.State != evidence.StateCurrent || service.identities.Reads() != before {
+		t.Fatalf("a repeat lookup: chapter %q, %d takes read, want current and none", view.State, service.identities.Reads()-before)
+	}
+
+	p.writeFile("media/a.wav", "RIFF"+strings.Repeat("media/a.wav", 80))
+	if view := alignmentOf(t, service); view.State != evidence.StateStale || service.identities.Reads() == before {
+		t.Fatalf("a take that changed size: chapter %q after %d reads, want stale and a read", view.State, service.identities.Reads()-before)
+	}
+}
+
+// A check run writes the takes' identities down with a fresh read, and the lookup after it must agree with what the run stored: a take rewritten
+// with its size and time kept (which the cache alone cannot see) is current after a fresh check, not stale.
+func TestALookupAfterAFreshCheckAgreesWithTheCheckEvenForARewriteTheTimeHides(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: alignedResults})
+	run(t, service, testRequest())
+	alignmentOf(t, service) // the cache holds the take as the first check saw it
 
 	take := filepath.Join(p.dir, "media", "a.wav")
 	info, err := os.Stat(take)
@@ -436,12 +454,9 @@ func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 	if err := os.Chtimes(take, info.ModTime(), info.ModTime()); err != nil {
 		t.Fatal(err)
 	}
-	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
-		t.Fatalf("a take rewritten with its size and time kept made the chapter %q: the lookup read the file again instead of asking the cache", view.State)
-	}
+	run(t, service, testRequest())
 
-	p.writeFile("media/a.wav", "RIFF"+strings.Repeat("media/a.wav", 80))
-	if view := alignmentOf(t, service); view.State != evidence.StateStale {
-		t.Fatalf("a take that changed size left the chapter %q, want stale", view.State)
+	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
+		t.Fatalf("after a fresh check of the rewritten take the chapter is %q, want current", view.State)
 	}
 }

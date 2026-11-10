@@ -488,7 +488,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 	if err != nil {
 		return nil, err
 	}
-	planned, err := buildPlan(project, trackGUID, memoIdentify(s.config.Project))
+	planned, err := buildPlan(project, trackGUID, memoIdentify(s.config.Project, s.identities.Refresh))
 	if err != nil {
 		return nil, err
 	}
