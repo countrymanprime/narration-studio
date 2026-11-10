@@ -1489,7 +1489,6 @@
         "src/components/editing/voicesample/SampleMark.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/layout/Brand.tsx",
         "src/components/layout/JumpMenu.tsx",
         "src/components/primitives/ChapterStepper.tsx",
@@ -1590,7 +1589,6 @@
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ShowInDaw.tsx",
         "src/components/engine/SyncActivityLog.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/LoadError.tsx",
@@ -2432,7 +2430,6 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AddressGate.tsx",
         "src/components/layout/LoadError.tsx",
@@ -3086,7 +3083,6 @@
         "Clear Empties And Keeps Focus"
       ],
       "consumers": [
-        "src/components/engine/TrackList.tsx",
         "src/components/primitives/SearchList.tsx",
         "src/components/primitives/TreeSelect.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
@@ -3653,7 +3649,6 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ToolResult.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/audacityLinkText.ts",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/HistoryPanel.tsx",
@@ -3846,7 +3841,6 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
         "src/components/engine/LinkChaptersDialog.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/master/DeliveryProfilePanel.tsx",
         "src/components/master/DiagnosticsTables.tsx",
@@ -4354,7 +4348,6 @@
         "Rows"
       ],
       "consumers": [
-        "src/components/engine/TrackList.tsx",
         "src/components/primitives/TreeSelect.tsx"
       ],
       "a11yDebt": false

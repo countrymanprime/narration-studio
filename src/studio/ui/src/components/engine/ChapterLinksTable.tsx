@@ -221,13 +221,18 @@ function ChapterLinkRow({
   const [rechecking, setRechecking] = useState(false);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
-  // When the row last became linked: the check is replaced by Change in the same spot, so a fast second click would land on Change.
-  const linkedAt = useRef(0);
+  // When the row's buttons last swapped (a link appeared, Change, Cancel): the next control sits in the same spot, so a fast second click of a
+  // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
+  const swappedAt = useRef(0);
+  const settled = () => Date.now() - swappedAt.current >= CREATE_QUIET_MS;
+  const linkedGuidIfThere = linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '';
+  const first = useRef(true);
   useEffect(() => {
     setPicking(!hasLink);
     // The pick follows the link: a cleared row has none, and a new link starts the next Change from itself.
-    setChosen(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
-    if (hasLink) linkedAt.current = Date.now();
+    setChosen(linkedGuidIfThere);
+    if (!first.current) swappedAt.current = Date.now();
+    first.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tracks` only validates the link; a read of the tracks must not reset a pick in progress.
   }, [hasLink, linkedGuid]);
 
@@ -330,7 +335,9 @@ function ChapterLinkRow({
                   disabledReason={busy ? 'Saving the link' : undefined}
                   onClick={() => {
                     // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
-                    setChosen(linkedGuid ?? '');
+                    if (!settled()) return;
+                    setChosen(linkedGuidIfThere);
+                    swappedAt.current = Date.now();
                     setPicking(false);
                   }}
                 />
@@ -344,11 +351,20 @@ function ChapterLinkRow({
                 disabledReason={busy ? 'Saving the link' : undefined}
                 onClick={() => {
                   // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).
-                  if (Date.now() - linkedAt.current < CREATE_QUIET_MS) return;
+                  if (!settled()) return;
+                  swappedAt.current = Date.now();
                   setPicking(true);
                 }}
               />
-              <IconButton action="clearLink" label={`Clear the link for ${short}`} pending={busy} onClick={onClear} />
+              <IconButton
+                action="clearLink"
+                label={`Clear the link for ${short}`}
+                pending={busy}
+                onClick={() => {
+                  // A double click on Cancel lands its second press here: ignore it, a cleared link is not an undo.
+                  if (settled()) onClear();
+                }}
+              />
             </>
           ) : (
             createButton

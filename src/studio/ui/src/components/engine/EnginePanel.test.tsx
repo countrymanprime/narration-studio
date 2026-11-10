@@ -241,7 +241,6 @@ describe('EnginePanel for an Audacity project', () => {
     expect(within(panel).queryByRole('region', { name: 'REAPER project' })).toBeNull();
     expect(within(panel).queryByRole('toolbar', { name: 'REAPER tools' })).toBeNull();
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
-    expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     expect(within(panel).queryByText('Link a REAPER project file')).toBeNull();
   });
 
