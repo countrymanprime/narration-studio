@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
@@ -124,17 +124,60 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     [ask, doRoll],
   );
 
-  /** The host's answer for a phrase, or a refusal that says why there is none: a failed read and one that never comes back are both sentences. */
+  /**
+   * The host's answer for a phrase, or a refusal that says why there is none: a failed read and one that never comes back are both sentences.
+   * A second ask for a phrase whose answer is still out joins it: one host call per phrase, however many presses.
+   */
+  const inFlight = useRef(new Map<number, Promise<BoothPunch>>());
   const lookUp = useCallback((phrase: number): Promise<BoothPunch> => {
+    const joined = inFlight.current.get(phrase);
+    if (joined) return joined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const slow = new Promise<BoothPunch>((resolve) => {
       timer = setTimeout(() => resolve({ outcome: 'refused', reason: 'timeout', message: LOOKUP_SLOW }), LOOKUP_MS);
     });
     const asked = sessionRef.current.punchTarget(phrase).catch((): BoothPunch => ({ outcome: 'refused', reason: 'failed', message: LOOKUP_FAILED }));
-    return Promise.race([asked, slow]).finally(() => clearTimeout(timer));
+    const answer = Promise.race([asked, slow]).finally(() => {
+      clearTimeout(timer);
+      inFlight.current.delete(phrase);
+    });
+    inFlight.current.set(phrase, answer);
+    return answer;
   }, []);
-  /** Each start gets a number; an answer that comes back after a newer start (or after a take began) is dropped, so a slow lookup never starts a take. */
+  /** Each start gets a number; an answer that comes back after a newer start (or after a take began, or after the Booth was left) is dropped, so a slow lookup never starts a take. */
   const latestStart = useRef(0);
+  /** True while the newest start waits for the host's answer: Record shows it, so a slow lookup is never a button that does nothing. */
+  const [lookingUp, setLookingUp] = useState(false);
+  const alive = useRef(true);
+  /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
+  const cancelStart = useCallback(() => {
+    latestStart.current += 1;
+    inFlight.current.clear();
+    setLookingUp(false);
+  }, []);
+  useEffect(() => {
+    alive.current = true;
+    const lookups = inFlight.current;
+    return () => {
+      alive.current = false;
+      latestStart.current += 1;
+      lookups.clear();
+    };
+  }, []);
+  /** Looks `phrase` up for start number `mine`, showing the wait while `mine` is still the newest. */
+  const lookUpFor = useCallback(
+    async (mine: number, phrase: number): Promise<BoothPunch> => {
+      setLookingUp(true);
+      try {
+        return await lookUp(phrase);
+      } finally {
+        if (mine === latestStart.current && alive.current) setLookingUp(false);
+      }
+    },
+    [lookUp],
+  );
+  /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
+  const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
   const startFromHereRef = useRef<(unit: number) => Promise<void>>(async () => {});
@@ -154,9 +197,14 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const to = clampPhrase(unit, s.phraseCount);
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
-      if (!s.recording && plan.kind === 'refused' && (await lookUp(to)).outcome === 'found') {
-        actionsRef.current.notify(`${plan.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
-        return;
+      if (!s.recording && plan.kind === 'refused') {
+        const mine = ++latestStart.current;
+        const looked = await lookUpFor(mine, to);
+        if (outdated(mine)) return;
+        if (looked.outcome === 'found') {
+          actionsRef.current.notify(`${plan.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
+          return;
+        }
       }
       actionsRef.current.chooseStart(to, !s.recording);
       if (s.recording) return rollFrom(to);
@@ -165,7 +213,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
       return startTakeRef.current(to);
     },
-    [rollFrom, lookUp],
+    [rollFrom, lookUpFor],
   );
   startFromHereRef.current = startFromHere;
 
@@ -180,9 +228,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const at = from ?? s.punchAt;
       if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
       const mine = ++latestStart.current;
-      const target = await lookUp(at);
-      // A newer start was chosen meanwhile, or a take began (the Space key, the DAW's own Record): this answer is out of date.
-      if (mine !== latestStart.current || sessionRef.current.recording) return;
+      const target = await lookUpFor(mine, at);
+      if (outdated(mine)) return;
       if (target.outcome === 'never_recorded') {
         // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
         actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
@@ -202,15 +249,17 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         return actionsRef.current.beginTake();
       }
       if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
+      if (outdated(mine)) return;
       if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
+      if (outdated(mine)) return;
       // The narrator is told which track is recorded over before the take starts, never only after.
       actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
       return actionsRef.current.beginTake(target.start);
     },
-    [ask, lookUp],
+    [ask, lookUpFor],
   );
   startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
-  return { punchAndRoll, startFromHere, startTake, hold: hold.current };
+  return { punchAndRoll, startFromHere, startTake, cancelStart, lookingUp, hold: hold.current };
 }

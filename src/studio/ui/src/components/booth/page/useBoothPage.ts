@@ -408,6 +408,8 @@ export function useBoothPage(options: BoothPageOptions) {
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
   const starting = useRef<Promise<boolean> | null>(null);
+  // The same press as state, for Record's pending look: the model and project checks, the start tone and the DAW's answer.
+  const [beginning, setBeginning] = useState(false);
 
   const roll = useRoll(
     {
@@ -435,11 +437,13 @@ export function useBoothPage(options: BoothPageOptions) {
         if (starting.current) return;
         let kept = (_value: boolean) => {};
         starting.current = new Promise<boolean>((resolve) => (kept = resolve));
+        setBeginning(true);
         try {
           kept(await beginOnce(punch));
         } finally {
           starting.current = null;
           kept(false);
+          setBeginning(false);
         }
       },
       chooseVoice: async (trackGuid) => {
@@ -469,6 +473,11 @@ export function useBoothPage(options: BoothPageOptions) {
     { overlay },
   );
   const { hold } = roll;
+  // A start still waiting for the host's answer must not begin a take once the chapter has changed or the Booth is left (its cleanup).
+  const { cancelStart } = roll;
+  useEffect(() => cancelStart, [recordId, cancelStart]);
+  // Record shows a press at once: while the lookup of a chosen start waits, and while the checks, the start tone and the DAW's answer do.
+  const startPending = !recording && (roll.lookingUp || beginning);
 
   // A take started or ended: the timer, the listening session and the passage map's run follow the Record control.
   const was = useRef(recording);
@@ -493,6 +502,9 @@ export function useBoothPage(options: BoothPageOptions) {
       } else if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
+    // A start chosen with Start from here is for the take that just ended (the one-off the guide describes): the next Record press starts where
+    // the recording ends, and does not look the old spot up again or punch over it.
+    setPunchAt(null);
     if (unheard.current) {
       // A take whose listening failed (dropUnheardTake): it is not a take, so nothing is said, mapped or offered back.
       unheard.current = false;
@@ -817,6 +829,8 @@ export function useBoothPage(options: BoothPageOptions) {
     leave,
     toggleTake,
     pressMain,
+    /** A press is starting a take and nothing has answered yet: Record shows it. */
+    startPending,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,
