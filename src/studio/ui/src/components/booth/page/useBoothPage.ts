@@ -632,8 +632,10 @@ export function useBoothPage(options: BoothPageOptions) {
     }),
     [guard],
   );
-  const heldConfirm = useMemo<Pick<OverlayService, 'confirm'>>(
+  const heldConfirm = useMemo<Pick<OverlayService, 'confirm' | 'toast' | 'dismissTopic'>>(
     () => ({
+      toast: (text, toastOptions) => overlay.toast(text, toastOptions),
+      dismissTopic: (topic) => overlay.dismissTopic(topic),
       confirm: async (spec) => {
         const release = latest.current.takeOut ? hold() : null;
         try {
@@ -695,8 +697,9 @@ export function useBoothPage(options: BoothPageOptions) {
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
   const exit = useCallback(() => {
+    // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
-    if (!latest.current.recording && latest.current.coldRead) {
+    if (!latest.current.takeOut && latest.current.coldRead) {
       latest.current.session.stop();
       navigate(exitTo);
       return;
@@ -707,6 +710,11 @@ export function useBoothPage(options: BoothPageOptions) {
     }
     void overlay.confirm(STOP_READING).then((yes) => {
       if (!yes) return;
+      // A take may have begun while the question was open (the start was out, or the narrator pressed Record): it is read again now, and asked about.
+      if (latest.current.takeOut) {
+        void leave(exitTo, navigate);
+        return;
+      }
       latest.current.session.stop();
       navigate(exitTo);
     });

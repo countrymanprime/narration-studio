@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { DawResult } from '../../../api/contracts/daw';
-import { useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
+import { LEAVE_WAIT_MS, useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
 
 const ok: DawResult = { ok: true, changed: true, message: 'Stopped.', undoSteps: 0 };
 const setup = (over: Partial<BoothLeaveSession> = {}, stop: () => Promise<DawResult> = async () => ok) => {
@@ -323,5 +323,58 @@ describe('useBoothLeaveGuard', () => {
     await act(() => done);
     expect(b.stopRecording).not.toHaveBeenCalled();
     expect(b.go).toHaveBeenCalledWith('/script');
+  });
+
+  // An answer that never comes must not trap the narrator: each wait ends, in the refusal question (or, for the run, in leaving), and asking is cleared.
+  describe('an answer that never comes (fake timers)', () => {
+    const never = () => new Promise<never>(() => {});
+    const yesAndWait = async (over: Partial<BoothLeaveSession>, stop?: () => Promise<DawResult>) => {
+      vi.useFakeTimers();
+      const t = setup(over, stop);
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      // The narrator sees that the take is being stopped.
+      expect(t.overlay.getSnapshot().toasts.map((toast) => toast.text)).toContain('Stopping the take…');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 50);
+      });
+      return { ...t, done: () => done };
+    };
+    afterEach(() => vi.useRealTimers());
+
+    it('a stop that never answers ends in "Could not stop the take", with Leave anyway, and asking is cleared', async () => {
+      const t = await yesAndWait({}, never);
+      expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.dialog()?.spec.body).toContain('did not answer in time');
+      expect(t.overlay.getSnapshot().toasts.map((toast) => toast.text)).not.toContain('Stopping the take…');
+      act(() => t.dialog()!.answer(true));
+      await act(() => t.done());
+      expect(t.go).toHaveBeenCalledWith('/script');
+      // A later exit is not ignored.
+      const next = vi.fn();
+      act(() => void t.hook.result.current.leave('/proof', next));
+      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      act(() => t.dialog()!.answer(false));
+    });
+
+    it('a start that never lands ends the same way', async () => {
+      const t = await yesAndWait({ settle: never });
+      expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.stopRecording).not.toHaveBeenCalled();
+      act(() => t.dialog()!.answer(false));
+      await act(() => t.done());
+      expect(t.go).not.toHaveBeenCalled();
+    });
+
+    it('a run that never finishes writing does not hold the narrator: the stop landed, and they leave', async () => {
+      const t = await yesAndWait({ flush: never });
+      await act(() => t.done());
+      expect(t.go).toHaveBeenCalledWith('/script');
+      expect(t.dialog()).toBeUndefined();
+    });
   });
 });

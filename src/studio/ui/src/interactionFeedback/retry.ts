@@ -82,6 +82,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#1': no(ED),
   'src/components/booth/page/BoothNextPage.tsx#2': na(NA),
   'src/components/booth/page/BoothNextPage.tsx#3': no(ED),
+  'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),

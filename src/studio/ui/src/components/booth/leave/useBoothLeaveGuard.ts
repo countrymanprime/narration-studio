@@ -20,9 +20,27 @@ export type BoothLeaveSession = {
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
+/** How long the stop, the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order). */
+export const LEAVE_WAIT_MS = 8000;
+const STOPPING_TOPIC = 'booth-leave-stopping';
+const NO_ANSWER = 'The DAW did not answer in time.';
+
+/** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
+async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([work.then((value) => ({ value })), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 type Deps = {
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
-  overlay: Pick<OverlayService, 'confirm'>;
+  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'dismissTopic'>;
 };
 
 /**
@@ -61,22 +79,33 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           answered.current = true;
           return true;
         }
-        // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
-        if (sessionRef.current.settle && !(await sessionRef.current.settle())) {
-          answeredFor.current = mine;
-          answered.current = true;
-          return true;
+        // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS, in the refusal question when it does not.
+        overlay.toast('Stopping the take…', { topic: STOPPING_TOPIC });
+        let sentence: string;
+        try {
+          // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
+          const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
+          if (!landed) sentence = NO_ANSWER;
+          else if (!landed.value) {
+            answeredFor.current = mine;
+            answered.current = true;
+            return true;
+          } else {
+            const stopped = await within(sessionRef.current.stopRecording(), LEAVE_WAIT_MS);
+            if (!stopped) sentence = NO_ANSWER;
+            else if (stopped.value.ok) {
+              // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
+              await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
+              answeredFor.current = mine;
+              answered.current = true;
+              return true;
+            } else sentence = stopped.value.refused ?? (stopped.value.message || '');
+          }
+        } finally {
+          overlay.dismissTopic(STOPPING_TOPIC);
         }
-        const result = await sessionRef.current.stopRecording();
-        if (result.ok) {
-          await sessionRef.current.flush?.();
-          answeredFor.current = mine;
-          answered.current = true;
-          return true;
-        }
-        // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
+        // The stop was refused or never answered: nothing changed that this app knows of, so the take may still run. The question stays, now with a way out.
         refusedOnce = true;
-        const sentence = result.refused ?? (result.message || '');
         spec = {
           ...spec,
           title: 'Could not stop the take',

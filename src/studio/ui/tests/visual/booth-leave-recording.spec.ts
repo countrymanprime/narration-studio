@@ -339,6 +339,97 @@ test('a second exit while the first one is flushed leaves on the first exit once
   expect(await page.evaluate(() => window.history.state?.idx as number)).toBe(before + 1);
 });
 
+test('the start tone on, R, Escape inside the tone: the start lands behind "Stop reading?", and answering it still stops the take', async ({ page }) => {
+  test.setTimeout(40_000);
+  await page.addInitScript(() => localStorage.setItem('narration-ui-take-tone', 'on'));
+  await openBooth(page);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog').first()).toBeVisible();
+  // The tone is over and the host has the start by now, whatever the question says.
+  await expect.poll(() => dawRecording(page), { timeout: 6000 }).toBe(true);
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /^Stop and leave/ })
+    .click();
+  // The take that began while the question was open is asked about as any take is.
+  if (
+    await question(page)
+      .isVisible({ timeout: 1500 })
+      .catch(() => false)
+  )
+    await question(page)
+      .getByRole('button', { name: /^Stop and leave/ })
+      .click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+  expect(await page.evaluate(() => window.location.pathname)).toBe('/script');
+  await expect.poll(() => dawRecording(page), { timeout: 5000 }).toBe(false);
+  expect(await stops(page)).toBe(1);
+});
+
+// An answer that never comes must not trap the narrator: each wait ends in the refusal question, or (the run) in leaving.
+const hang = (name: 'readAloudRecordStart' | 'readAloudRecordStop' | 'passageMapRecordRun') => (page: Page) =>
+  page.addInitScript((method) => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = { ...(w.__NARRATION_MOCK_OVERRIDES__ ?? {}), [method]: () => new Promise(() => {}) };
+  }, name);
+
+test('a stop the host never answers: after about 8 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = { readAloudRecordStop: () => new Promise(() => {}) };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await record(page).click();
+  await expect.poll(() => dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 12_000 });
+  await refused.getByRole('button', { name: /Keep recording|Cancel/ }).click();
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(refused).toBeVisible({ timeout: 12_000 });
+  await page.waitForTimeout(500);
+  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+});
+
+test('a run that is never written does not hold the narrator in the Booth after the stop landed', async ({ page }) => {
+  test.setTimeout(60_000);
+  await hang('passageMapRecordRun')(page);
+  await openBooth(page);
+  await record(page).click();
+  await expect.poll(() => dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 14_000 });
+  expect(await dawRecording(page)).toBe(false);
+});
+
+test('a start the host never answers: Stop and leave ends in the refusal question, and Leave anyway leaves', async ({ page }) => {
+  test.setTimeout(60_000);
+  await hang('readAloudRecordStart')(page);
+  await openBooth(page);
+  await record(page).click();
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await page.waitForTimeout(500);
+  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+});
+
 test('Enter pressed twice on Stop and leave: a take the second press starts is stopped as the page goes', async ({ page }) => {
   await page.addInitScript(() => {
     (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {

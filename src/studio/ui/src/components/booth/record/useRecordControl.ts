@@ -1,3 +1,4 @@
+import { useOverlay } from '../../../overlay/OverlayProvider';
 import { logUi } from '../../../api/uiLog';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../../../api/contracts/daw';
@@ -151,6 +152,7 @@ export function useRecordControl({
   const [recording, setRecording] = useState(false);
   const [refused, setRefused] = useState<{ chapterId: string; sentence: string } | null>(null);
   const busy = useRef(false);
+  const overlay = useOverlay();
   const [starting, setStarting] = useState(false);
   // The press now out, so a leave can wait for it; and whether this control is still on a page (a start that lands after it is gone is stopped).
   const inflight = useRef<Promise<boolean> | null>(null);
@@ -483,9 +485,16 @@ export function useRecordControl({
           // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
           // only a start that nothing could wait for.)
           logUi('ui.record', 'A take started after the Booth was left; stopping it.');
+          // The page is gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
+          // bookkeeping, so a take it kept is not in Undo.)
+          const name = capabilitiesRef.current?.daw ?? 'the DAW';
+          const unstopped = (why: string) => {
+            logUi('ui.record', `The late take was not stopped: ${why}`);
+            overlay.toast(`A take started as you left the Booth and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
+          };
           void daw.recordStop().then(
-            (stopped) => (stopped.ok ? undefined : logUi('ui.record', `The late take was not stopped: ${stopped.refused ?? stopped.message}`)),
-            (error: unknown) => logUi('ui.record', `The late take was not stopped: ${apiErrorMessage(error)}`),
+            (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),
+            (error: unknown) => unstopped(apiErrorMessage(error)),
           );
           return false;
         }
@@ -524,7 +533,7 @@ export function useRecordControl({
       }
       return false;
     },
-    [daw, system, chapterId, notify],
+    [daw, system, chapterId, notify, overlay],
   );
 
   const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);

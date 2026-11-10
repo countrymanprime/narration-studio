@@ -1112,6 +1112,33 @@ describe('a refused stop keeps the take and the question', () => {
     expect(page.daw.recordStop).toHaveBeenCalledTimes(2);
   });
 
+  // Escape while the press is still before the host call (the start tone), with the session already listening: it asks "Stop reading?"; the start lands
+  // while that is open, and the answer is read again: the take is asked about and stopped, once, not left recording behind the page (QA round 5).
+  it('Stop reading? answered after the start landed asks about the take, stops it once and leaves once', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const running: TeleprompterState = { phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null };
+      const page = renderPage({ api: { teleprompterState: async () => running } });
+      await ready();
+      await space();
+      await settle();
+      await press('Escape');
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop reading?'));
+      release();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/, hidden: true })).toBeTruthy());
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      expect(page.navigate).not.toHaveBeenCalled();
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.navigate).toHaveBeenCalledTimes(1));
+      expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    } finally {
+      tone.gate = null;
+    }
+  });
+
   it('Escape stops the take once, and with a refusal then Leave anyway goes by navigate once with no further stop', async () => {
     const ok = renderPage();
     await record(ok);
