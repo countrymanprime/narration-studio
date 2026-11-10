@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -35,6 +36,21 @@ function checkGofmt(files) {
   if (result.stdout.trim()) {
     console.error(`Run gofmt on:\n${result.stdout.trim()}`);
     process.exit(1);
+  }
+}
+
+function checkBindingsFresh(dir) {
+  const committed = join(root, 'src/studio/ui/wailsjs');
+  const fresh = mkdtempSync(join(tmpdir(), 'wailsjs-'));
+  try {
+    run('wails3', ['generate', 'bindings', '-ts', '-noevents', '-noindex', '-silent', '-d', fresh, '.'], { cwd: join(root, dir) });
+    const diff = spawnSync('git', ['diff', '--no-index', '--stat', '--', committed, fresh], { cwd: root, encoding: 'utf8' });
+    if (diff.status !== 0) {
+      console.error(`src/studio/ui/wailsjs is stale; run \`pnpm --dir ${dir} run bindings\` and commit it:\n${diff.stdout}`);
+      process.exit(1);
+    }
+  } finally {
+    rmSync(fresh, { recursive: true, force: true });
   }
 }
 
@@ -169,6 +185,10 @@ if (mode === 'go-lint') {
   }
   checkGofmt([dir]);
   run('go', ['-C', dir, 'vet', './...']);
+  // The committed Host.* bindings must be what the generator renders from the Go source now (#3056): a Go struct or doc comment
+  // changed without `pnpm --dir src/studio/desktop run bindings` leaves the UI's models behind the host's JSON.
+  // shortcut: skipped on Windows, whose lint job installs no wails3 CLI; the output is the same on every OS and Linux lint runs it.
+  if (process.platform !== 'win32') checkBindingsFresh(dir);
   // golangci-lint v2 (config: <dir>/.golangci.yml): errcheck, govet, staticcheck, unused, ineffassign and gosec.
   run('golangci-lint', ['run', './...'], { cwd: join(root, dir) });
   // gVisor's checklocks: a field annotated `// +checklocks:mu` is only touched with mu held, and a field that is
