@@ -185,7 +185,7 @@ func TestTheManifestListsActiveTakesInPlayOrderWithPlayedRangesAndMutedItems(t *
 		t.Fatal(err)
 	}
 
-	planned, err := buildPlan(project, testTrack, memoIdentify(p.dir))
+	planned, err := buildPlan(project, testTrack, memoIdentify(p.dir, evidence.Identify))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -732,7 +732,7 @@ func TestThePlanOfAFolderOfVoicesCoversEveryTrackInsideIt(t *testing.T) {
 	project := saved
 	project.Tracks = []tracks.Track{{GUID: "{FOLDER}", Name: "Chapter 3", IsFolder: true}, veyra, narrator, after}
 
-	planned, err := buildPlan(project, "{FOLDER}", memoIdentify(p.dir))
+	planned, err := buildPlan(project, "{FOLDER}", memoIdentify(p.dir, evidence.Identify))
 	if err != nil {
 		t.Fatal(err)
 	}

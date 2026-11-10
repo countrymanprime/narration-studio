@@ -17,12 +17,17 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
  * (tracing.test.ts) fails if a method is neither traced nor listed there with a reason.
  */
 export function withTracing(api: NarrationApi): NarrationApi {
+  // One wrapper per method, made on first use: `api.mediaUrl` is the same function on every read, as it is on the unwrapped api. A hook that lists a
+  // method in an effect's dependencies (useTrackPlayback's `mediaUrl`) would otherwise re-run on every render, and re-render in turn (#3272).
+  const wrappers = new Map<string, unknown>();
   return new Proxy(api, {
     get(target, property, receiver) {
       const value: unknown = Reflect.get(target, property, receiver);
       if (typeof property !== 'string' || typeof value !== 'function' || UNTRACED(property)) return value;
+      const cached = wrappers.get(property);
+      if (cached) return cached;
       const name = traceId(property);
-      return (...args: unknown[]) => {
+      const wrapper = (...args: unknown[]) => {
         const started = performance.now();
         const done = (outcome: 'ok' | 'error'): void => {
           const fields: Record<string, string | number> = { name, dur: Math.round(performance.now() - started), outcome };
@@ -51,6 +56,8 @@ export function withTracing(api: NarrationApi): NarrationApi {
         done('ok');
         return result;
       };
+      wrappers.set(property, wrapper);
+      return wrapper;
     },
   });
 }
