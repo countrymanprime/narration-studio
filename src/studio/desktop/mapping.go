@@ -81,7 +81,8 @@ func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
 	if kind, ok := creditsid.Kind(chapterID); ok {
 		return creditsid.Title(kind), true, nil
 	}
-	chapters, err := svc.manuscript.Chapters()
+	// Unmeasured: a title needs no recorded length, and the measured list tokenizes the whole book and reads the project and the coverage results (#3272).
+	chapters, err := svc.manuscript.ChaptersUnmeasured()
 	if err != nil {
 		return "", false, err
 	}

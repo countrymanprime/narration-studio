@@ -1,0 +1,19 @@
+[
+  {
+    "id": "write-go-error-handling",
+    "prompt": "Write a Go function in src/studio/desktop/internal/recents that loads the recents file and returns a clear error if it is missing or corrupt. How should I structure it so it matches the repo's code standards?",
+    "expect": "trigger"
+  },
+  {
+    "id": "review-too-abstract",
+    "prompt": "A reviewer says my new TypeScript hook in src/studio/ui/src is over-engineered with three generic options nobody uses. Is that against our code quality standards, and what should it look like?",
+    "expect": "trigger"
+  },
+  {
+    "id": "python-helper-extraction",
+    "prompt": "In a Python sidecar I have a 90-line function. When is it right to split it into helpers, and how should I test the pieces?",
+    "expect": "trigger"
+  },
+  { "id": "docs-typo", "prompt": "Fix the typo in the first heading of docs/guides/using-the-app/getting-started.md.", "expect": "no-trigger" },
+  { "id": "ci-red-diagnosis", "prompt": "The Test (Linux) shard 3 job is red on my PR with a timeout. Help me find out why.", "expect": "no-trigger" }
+]

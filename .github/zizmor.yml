@@ -11,3 +11,8 @@ rules:
   dependabot-cooldown:
     config:
       days: 3
+  # dependabot-title.yml needs a write token on a Dependabot pull request, which `pull_request` withholds. It is safe because the job
+  # runs only for `dependabot[bot]`, checks out the base branch, executes nothing from the pull request and passes the title through env.
+  dangerous-triggers:
+    ignore:
+      - dependabot-title.yml
