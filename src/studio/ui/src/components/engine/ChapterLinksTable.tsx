@@ -23,6 +23,7 @@ import { useVoiceLayout } from './voiceLayout';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
 
@@ -178,10 +179,9 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
-/** How a track is named in a message: quoted and cut at a sensible length, or as unnamed (REAPER can give a track no name). */
-function quoted(name: string): string {
-  const text = name.trim();
-  if (text === '') return 'an unnamed track';
+/** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
+function quoted(name: string, index?: number): string {
+  const text = trackName(name, index);
   return `“${text.length > 60 ? `${text.slice(0, 59)}…` : text}”`;
 }
 
@@ -201,8 +201,10 @@ export function recheckSentence(
   const inside = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
   const unit = voiceFolders ? ['voice', 'voices'] : ['track', 'tracks'];
   const what = found.isFolder ? `a folder with ${inside} ${inside === 1 ? unit[0] : unit[1]}` : 'a single track';
-  if (was !== undefined && was !== found.name) return `The track for ${short} was renamed from ${quoted(was)} to ${quoted(found.name)} (${what}).`;
-  const linked = `${short} is linked to ${quoted(found.name)} (${what})`;
+  const place = tracks.indexOf(found);
+  if (was !== undefined && was !== found.name)
+    return `The track for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
+  const linked = `${short} is linked to ${quoted(found.name, place)} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }
@@ -275,7 +277,9 @@ function ChapterLinkRow({
   // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
   const folders = useVoiceLayout() === 'folders';
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
-  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
+  // A track REAPER gives no name reads as the one name every page gives it (trackName), here with its place in the project.
+  const shownName = trackName(row.trackName ?? '', linkedTrack ? tracks.indexOf(linkedTrack) : undefined);
+  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(shownName, folderChildren(tracks, linkedTrack.guid).length) : shownName;
   const short = chapterName(row.chapter, 'short');
   // The linked track, and the voices inside it when the link is a folder, each with items the app cannot play.
   const unplayable = linkedTrack
@@ -328,8 +332,8 @@ function ChapterLinkRow({
           </span>
         ) : row.state === 'linked' ? (
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate" title={linkedName || 'Unnamed track'}>
-              <bdi>{linkedName || 'Unnamed track'}</bdi>
+            <span className="min-w-0 truncate" title={linkedName}>
+              <bdi>{linkedName}</bdi>
             </span>
             {unplayable && (
               // A chapter is never silently linked to a track whose audio cannot play: a missing source file or an item that is not audio.

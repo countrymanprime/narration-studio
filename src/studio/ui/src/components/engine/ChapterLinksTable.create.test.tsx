@@ -536,7 +536,7 @@ describe('A pick whose track is gone', () => {
 
 // qa-breaker (#3281): REAPER can give a track no name; the row said its link was missing while the badge said Linked.
 describe('A linked track with no name', () => {
-  it('shows as an unnamed track, not as a missing one', async () => {
+  it('shows under the one name for a blank track, not as a missing one', async () => {
     const user = userEvent.setup();
     const unnamed = WIRE_TRACKS_PROJECT.tracks.map((track, index) => (index === 0 ? { ...track, name: '' } : track));
     renderTable({ tracks: unnamed });
@@ -544,7 +544,7 @@ describe('A linked track with no name', () => {
     await user.selectOptions(within(row).getByRole('combobox'), unnamed[0].guid);
     await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await within(row).findByText('Linked');
-    expect(within(row).getByText('Unnamed track')).toBeTruthy();
+    expect(within(row).getByText(/^Track \d+$/)).toBeTruthy();
     expect(within(row).queryByText(/Linked track is missing/)).toBeNull();
   });
 });

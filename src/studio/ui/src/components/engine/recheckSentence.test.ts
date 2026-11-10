@@ -29,8 +29,9 @@ describe('recheckSentence', () => {
     );
     expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'a', false, 'held')).toBe('Chapter 1 is linked to “Ch 1” (a single track).');
   });
-  it('names an empty track name as unnamed and cuts a very long one', () => {
-    expect(recheckSentence('Chapter 1', '', [track('a', '')], 'a')).toBe('Chapter 1 is linked to an unnamed track (a single track). Nothing changed.');
+  it('names a blank track name as every page does and cuts a very long one', () => {
+    // The one name every page gives a track with no name: "Track N" with its place in the project (the first track here is Track 1).
+    expect(recheckSentence('Chapter 1', '', [track('a', '')], 'a')).toBe('Chapter 1 is linked to “Track 1” (a single track). Nothing changed.');
     const long = 'x'.repeat(10_000);
     const said = recheckSentence('Chapter 1', long, [track('a', long)], 'a');
     expect(said.length).toBeLessThan(200);
