@@ -2665,3 +2665,166 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
 });
+
+describe('the listening claim: whoever holds the latest claim and ends without a take stops it; an older press never does (#3284)', () => {
+  /** A host whose one listening session outlives a Booth: a second Booth finds it running and joins it. */
+  const listeningHost = () => {
+    let phase: 'idle' | 'running' | 'stopped' = 'idle';
+    const states = new Set<(next: unknown) => void>();
+    const snapshot = () => ({ phase, message: '', engine: 'whisper', chapter: 'c1', paused: false, coldRead: false, script: null, position: null });
+    const publish = (next: typeof phase) => {
+      phase = next;
+      states.forEach((listener) => listener(snapshot()));
+    };
+    const teleprompterStart = vi.fn(async () => {
+      publish('running');
+      return { status: 'started' as const };
+    });
+    const teleprompterStop = vi.fn(async () => publish('stopped'));
+    const savedDevice = async () => ({
+      Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+    });
+    const api = {
+      teleprompterStart,
+      teleprompterStop,
+      settingsForScope: savedDevice,
+      teleprompterState: async () => snapshot(),
+      subscribeTeleprompterState: (listener: (next: unknown) => void) => {
+        states.add(listener);
+        return () => states.delete(listener);
+      },
+    } as never;
+    return { api, teleprompterStart, teleprompterStop, phase: () => phase, reset: () => publish('idle') };
+  };
+  const hold = () => {
+    let release = () => {};
+    const open = new Promise<void>((resolve) => (release = resolve));
+    return { open, release };
+  };
+  /** A page whose first record start is held until `gate.release`. */
+  const heldPage = (host: ReturnType<typeof listeningHost>, gate: ReturnType<typeof hold>) => {
+    const page = renderPage({ api: host.api });
+    const begin = page.daw.recordStart.getMockImplementation()!;
+    page.daw.recordStart.mockImplementationOnce(async (...args) => (await gate.open, begin(...args)));
+    return page;
+  };
+  const leave = (page: ReturnType<typeof renderPage>) => {
+    page.view.unmount();
+    cleanup();
+  };
+
+  for (const order of ['A first', 'B first'] as const) {
+    it(`two cancelled presses (A starts, B joins, both leave), released ${order}: one stop, and the host listens no more`, async () => {
+      const host = listeningHost();
+      const a = hold();
+      const b = hold();
+      const first = heldPage(host, a);
+      await ready();
+      await space();
+      await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+      leave(first);
+      const second = heldPage(host, b);
+      await ready();
+      await space();
+      await waitFor(() => expect(second.daw.recordStart).toHaveBeenCalledTimes(1));
+      expect(host.teleprompterStart).toHaveBeenCalledTimes(1);
+      leave(second);
+      for (const gate of order === 'A first' ? [a, b] : [b, a]) {
+        gate.release();
+        await settle();
+        await settle();
+      }
+      expect(host.teleprompterStop).toHaveBeenCalledTimes(1);
+      expect(host.phase()).toBe('stopped');
+    });
+  }
+
+  it('B joins and its record start is refused; A is cancelled later: the listening is stopped once', async () => {
+    const host = listeningHost();
+    const a = hold();
+    const first = heldPage(host, a);
+    await ready();
+    await space();
+    await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+    leave(first);
+    const second = renderPage({ api: host.api });
+    second.daw.recordStart.mockImplementationOnce((async () => ({
+      ok: false,
+      changed: false,
+      undoSteps: 0,
+      message: 'REAPER is not answering.',
+      refused: 'REAPER is not answering.',
+    })) as never);
+    await ready();
+    await space();
+    await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalledTimes(1));
+    a.release();
+    await settle();
+    await settle();
+    expect(host.teleprompterStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a cancelled press ending after a cold read started stops nothing', async () => {
+    const host = listeningHost();
+    const a = hold();
+    const first = heldPage(host, a);
+    await ready();
+    await space();
+    await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+    leave(first);
+    // The session A started has been stopped elsewhere since: the cold read below starts a new one.
+    host.reset();
+    const second = renderPage({ api: host.api });
+    await ready();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Cold read' })));
+    await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+    await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Main button' })).toBeNull());
+    await act(async () => void fireEvent.click(document.getElementById('brec')!));
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    host.teleprompterStop.mockClear();
+    a.release();
+    await settle();
+    await settle();
+    expect(host.teleprompterStop).not.toHaveBeenCalled();
+    expect(second.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('a voice refusal for a press that a newer start replaced says nothing', async () => {
+    const voice = hold();
+    const boothPunchTarget = vi.fn(async (_c: string, _p: string, from: number) => ({
+      outcome: 'found' as const,
+      trackGuid: from < 200 ? 'T' : undefined,
+      start: 100 + from,
+      end: 120,
+    }));
+    // Only the first (the replaced press's) voice question is refused; any later one is accepted.
+    let questions = 0;
+    const boothVoiceSet = vi.fn(async () => {
+      if (++questions > 1) return { outcome: 'selected' };
+      await voice.open;
+      return { outcome: 'refused', reason: 'stale', message: 'That voice is not on this chapter any more.' };
+    });
+    const page = renderPage({ api: { boothPunchTarget, boothVoiceSet } as never });
+    await ready();
+    const chooseUnit = async (unit: number) => {
+      const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+      await act(async () => void fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    };
+    await chooseUnit(3);
+    await waitFor(() => expect(boothVoiceSet).toHaveBeenCalledTimes(1));
+    await chooseUnit(7);
+    await settle();
+    voice.release();
+    await settle();
+    await settle();
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .filter((text) => /voice/i.test(text)),
+    ).toEqual([]);
+  });
+});

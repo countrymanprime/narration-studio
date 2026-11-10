@@ -104,8 +104,9 @@ export type BoothPageOptions = {
  * line, the keys (`useCommand`, none listened for here), the right-click menu, and every way out through `useBoothLeaveGuard`.
  */
 /**
- * Who last claimed the listening session. The session belongs to the host and outlives a Booth, so the claim is shared across mounts: every press
- * that starts or joins listening takes the next number, and a cancelled press stops the listening only while its number is still the latest.
+ * Who last claimed the listening session. The session belongs to the host and outlives a Booth, so the claim is shared across mounts, and every path
+ * that starts or joins listening takes the next number (a press, a cold read, a take that began some other way). One rule: whoever holds the latest
+ * claim and ends without a take (cancelled, refused) stops the listening, whether it started it or joined it; an older holder never stops it.
  */
 let listeningClaim = 0;
 
@@ -372,7 +373,6 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!(await latest.current.session.ensureModel())) return false;
     // Each wait can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
-    const claim = ++listeningClaim;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
     // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
     const micProblem = options.micProblem?.();
@@ -380,6 +380,8 @@ export function useBoothPage(options: BoothPageOptions) {
       overlay.toast(micProblem, { tone: 'error' });
       return false;
     }
+    // From here this press starts or joins listening: it takes the claim (a press turned away above holds none).
+    const claim = ++listeningClaim;
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
     // starts from the real cursor, never from the ghost. Its stop is not waited for before the DAW is asked: the sidecar can take
     // seconds to let go (up to its kill at 8 s), and the take's listening starts once it has (#3221).
@@ -405,7 +407,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
     if (!current()) {
       // The listening this press started (it answered ok) is let go, but only while no newer press, here or in a later Booth, has claimed it since.
-      if (listen && heard.ok && claim === listeningClaim) latest.current.session.stop();
+      if (heard.ok && claim === listeningClaim) latest.current.session.stop();
       return started;
     }
     if (!heard.ok) {
@@ -420,7 +422,7 @@ export function useBoothPage(options: BoothPageOptions) {
       );
       return false;
     }
-    if (!started && listen) latest.current.session.stop();
+    if (!started && heard.ok && claim === listeningClaim) latest.current.session.stop();
     return started;
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
@@ -467,11 +469,11 @@ export function useBoothPage(options: BoothPageOptions) {
           setBeginning(false);
         }
       },
-      chooseVoice: async (trackGuid) => {
+      chooseVoice: async (trackGuid, stillWanted) => {
         const token = pressToken.current;
         const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
         // The narrator has left (or changed chapter) since: the press is over, and a refusal is not said on whatever page they are on now.
-        if (token !== pressToken.current) return false;
+        if (token !== pressToken.current || (stillWanted && !stillWanted())) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
           notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
@@ -534,8 +536,12 @@ export function useBoothPage(options: BoothPageOptions) {
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
       if (now.coldRead) {
         const from = realWord();
+        listeningClaim += 1;
         void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
-      } else if (!now.session.active && now.session.canStart) void now.session.start();
+      } else if (!now.session.active && now.session.canStart) {
+        listeningClaim += 1;
+        void now.session.start();
+      }
       return;
     }
     if (unheard.current) {
@@ -712,6 +718,7 @@ export function useBoothPage(options: BoothPageOptions) {
     try {
       if (!(await now.session.ensureModel())) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
+      listeningClaim += 1;
       const started = await latest.current.session.start({ coldRead: true, startWord: realWord() });
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
