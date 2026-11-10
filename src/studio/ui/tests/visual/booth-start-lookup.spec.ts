@@ -6,6 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
+import { pastStartGuard } from './helpers/startGuard';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -49,8 +50,8 @@ async function openWithSlowLookup(page: Page, delay: number, modelCheckMs = 0): 
 }
 
 /** Right-click a phrase and choose Start from here: the start is marked and, with no take running, the press begins one (after the lookup). */
-async function startFromHere(page: Page): Promise<void> {
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+async function startFromHere(page: Page, word = 40): Promise<void> {
+  await page.locator('[data-booth-text] [data-word]').nth(word).click({ button: 'right' });
   await page
     .getByRole('menuitem', { name: /Start from here/ })
     .first()
@@ -146,3 +147,64 @@ for (const [width, height] of [
     expect(await measure()).toEqual(idle);
   });
 }
+
+// A second Start from here on another phrase while a take is starting is refused with a sentence before it changes anything (#3320): no second
+// lookup, the reading stays where the first press put it, and the take starts once, at the first press's spot. The next press works afterwards.
+for (const [name, modelCheckMs, lookupMs] of [
+  ['a slow model check', LOOKUP_DELAY_MS, 100],
+  ['a slow lookup', 0, LOOKUP_DELAY_MS],
+] as const) {
+  test(`a second Start from here on another phrase during ${name} is refused and changes nothing`, async ({ page }) => {
+    await openWithSlowLookup(page, lookupMs, modelCheckMs);
+    const reading = () => page.locator('[data-booth-text] [data-state="cur"]').first().getAttribute('data-unit');
+    await startFromHere(page, 40);
+    await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+    const first = await reading();
+    const lookupsBefore = await lookups(page);
+    await page.waitForTimeout(500);
+    await startFromHere(page, 160);
+    await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
+    expect(await lookups(page)).toBe(lookupsBefore);
+    expect(await reading()).toBe(first);
+    await expect(page.getByText(/Starting from/)).toHaveCount(1);
+    await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+    expect(await lookups(page)).toBe(lookupsBefore);
+    expect(await reading()).toBe(first);
+    // The take is over: a Start from here on the other phrase is an ordinary press again.
+    await pastStartGuard(page);
+    await stop(page).click();
+    await expect(record(page)).toBeEnabled();
+    await startFromHere(page, 160);
+    await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+    expect(await lookups(page)).toBe(lookupsBefore + 1);
+    expect(await reading()).not.toBe(first);
+  });
+}
+
+// The same for a plain Record press under way (no start chosen): a Start from here on any phrase meanwhile is refused and changes nothing.
+test('a Start from here during a plain press with a slow model check is refused and changes nothing', async ({ page }) => {
+  // Two takes, each behind a 2.5 s model check, plus the waits between: about 25 s on a loaded runner, over the default 30 s.
+  test.setTimeout(75_000);
+  await openWithSlowLookup(page, 100, LOOKUP_DELAY_MS);
+  const reading = () => page.locator('[data-booth-text] [data-state="cur"]').first().getAttribute('data-unit');
+  const first = await reading();
+  await page.keyboard.press('Space');
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await page.waitForTimeout(500);
+  await startFromHere(page, 160);
+  await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
+  expect(await lookups(page)).toBe(0);
+  expect(await reading()).toBe(first);
+  await expect(page.getByText(/Starting from/)).toHaveCount(0);
+  await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+  expect(await lookups(page)).toBe(0);
+  expect(await reading()).toBe(first);
+  await pastStartGuard(page);
+  await stop(page).click();
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await startFromHere(page, 40);
+  await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+  expect(await lookups(page)).toBe(1);
+  expect(await reading()).not.toBe(first);
+});

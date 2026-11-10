@@ -52,6 +52,9 @@ const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no 
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
+/** Said when a press (Start from here, R, Punch and roll, Space) is not the one already under way before a take; nothing is changed. */
+export const START_BUSY = 'A take is already starting, so that press was ignored.';
+
 /** How long after a roll went through another is ignored (milliseconds). */
 
 const ROLL_PAUSE_MS = 700;
@@ -157,7 +160,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   /** True from a start's press until its take is handed to the Booth, or it is refused or dropped: Record shows it. */
   const [lookingUp, setLookingUp] = useState(false);
   /** The start in flight (its number and phrase), from the press to its end: take handed over, refused, cancelled or past the lookup's limit. A press for the same phrase meanwhile is that press. */
-  const pressing = useRef<{ mine: number; at: number } | null>(null);
+  const pressing = useRef<{ mine: number; at: number | null } | null>(null);
   const alive = useRef(true);
   /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
   const cancelStart = useCallback(() => {
@@ -182,6 +185,23 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     if (mine !== latestStart.current || !alive.current) return;
     setLookingUp(false);
   }, []);
+  const punchable = useCallback(() => rollPlan(sessionRef.current.capabilities).kind !== 'refused', []);
+  /**
+   * True when a press is already under way before a take: the same phrase is that press (nothing is looked up, chosen or said twice); another
+   * phrase, or any phrase during a plain press (`at` null), is refused with a sentence, before it can look anything up, move the reading,
+   * choose a voice or say it starts there.
+   */
+  const joinsOrRefuses = useCallback(
+    (at: number) => {
+      if (sessionRef.current.recording || !pressing.current) return false;
+      if (pressing.current.at === at) return true;
+      // Only where the DAW can punch: there a different phrase is a different spot to record over. A DAW that cannot punch keeps its own way (#3329).
+      if (!punchable()) return false;
+      actionsRef.current.notify(START_BUSY);
+      return true;
+    },
+    [punchable],
+  );
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
@@ -201,8 +221,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
-      // The same press again (a second Space, R or click while it waits) is that press: nothing is looked up, chosen or said twice.
-      if (!s.recording && pressing.current?.at === to) return;
+      if (joinsOrRefuses(to)) return;
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
@@ -222,7 +241,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
       return startTakeRef.current(to);
     },
-    [rollFrom, lookUp, endWait],
+    [rollFrom, lookUp, endWait, joinsOrRefuses],
   );
   startFromHereRef.current = startFromHere;
 
@@ -235,8 +254,24 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (from?: number) => {
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
-      if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
-      if (!s.recording && pressing.current?.at === at) return;
+      if (at == null || at >= s.phraseCount) {
+        // A plain press is a press too: it joins another plain press (Space again), and a Start from here meanwhile is refused.
+        // A DAW that cannot punch keeps its own way (#3329): the press goes straight to the Booth's own one-at-a-time guard.
+        if (s.recording || !punchable()) return actionsRef.current.beginTake();
+        if (pressing.current) {
+          // Another plain press (Space again) is that press; a plain press during a press for a phrase is not, and is never dropped silently.
+          if (pressing.current.at !== null) actionsRef.current.notify(START_BUSY);
+          return;
+        }
+        const plain = ++latestStart.current;
+        pressing.current = { mine: plain, at: null };
+        try {
+          return await actionsRef.current.beginTake();
+        } finally {
+          endWait(plain);
+        }
+      }
+      if (joinsOrRefuses(at)) return;
       const mine = ++latestStart.current;
       pressing.current = { mine, at };
       setLookingUp(true);
@@ -273,7 +308,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         endWait(mine);
       }
     },
-    [ask, lookUp, endWait],
+    [ask, lookUp, endWait, joinsOrRefuses, punchable],
   );
   startTakeRef.current = startTake;
 
