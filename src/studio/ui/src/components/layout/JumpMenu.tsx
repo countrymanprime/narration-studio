@@ -233,7 +233,15 @@ function JumpMenu({
     const repeated = entry.disabledReason !== undefined && before?.group === entry.group && before.disabledReason === entry.disabledReason;
     return {
       id: entry.id,
-      label: entry.opens === 'back' ? <span className="font-normal text-[var(--text-muted)]">{entry.title}</span> : labelOf(entry),
+      label:
+        entry.opens === 'back' ? (
+          <span className="font-normal text-[var(--text-muted)]">{entry.title}</span>
+        ) : (
+          // A name wider than the row is cut with an ellipsis; the title keeps the whole name readable (#2961).
+          <span className="block truncate" title={entry.title}>
+            {labelOf(entry)}
+          </span>
+        ),
       description: repeated ? undefined : (entry.disabledReason ?? shownHint(entry)),
       hint: repeated ? entry.disabledReason : undefined,
       leading: entry.icon ? <Icon name={entry.icon} /> : undefined,

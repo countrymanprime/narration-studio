@@ -51,8 +51,9 @@ describe('jump menu on a 5000-chapter book', () => {
   it('clips a 10,000-character name to its row', () => {
     openMenu();
     type('go to xxxx');
-    const label = screen.getAllByRole('option')[0]!.querySelector('span.font-semibold')!;
-    expect(label.className).toContain('truncate');
+    const label = screen.getAllByRole('option')[0]!.querySelector('span.truncate')!;
+    expect(label).toBeTruthy();
+    expect(label.getAttribute('title')).toHaveLength(10_006);
   });
 
   it('types a term within budget (median of five runs)', () => {

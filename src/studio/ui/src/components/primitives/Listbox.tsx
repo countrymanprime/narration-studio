@@ -85,7 +85,7 @@ export function Listbox({
                 )}
                 {option.leading}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{option.label}</span>
+                  <span className="block text-sm font-semibold">{option.label}</span>
                   {option.description && <span className="block text-xs text-[var(--text-muted)]">{option.description}</span>}
                 </span>
                 {option.trailing && <span className="flex-none text-xs text-[var(--text-muted)]">{option.trailing}</span>}
