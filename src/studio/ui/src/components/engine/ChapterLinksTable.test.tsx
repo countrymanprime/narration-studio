@@ -182,6 +182,11 @@ describe('ChapterLinksTable', () => {
     await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
     await within(opening).findByRole('button', { name: /^Change the track for/ });
     expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
+    // The keyboard reaches it too, and the tooltip opens on focus.
+    const mark = within(opening).getByRole('img', { name: UNPLAYABLE });
+    expect(mark.tabIndex).toBe(0);
+    mark.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe(UNPLAYABLE);
 
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
