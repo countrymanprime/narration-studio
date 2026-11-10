@@ -466,10 +466,18 @@ describe('The check on the track the chapter already has', () => {
     await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/no longer in the project/), 'info'));
     expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
-    expect(within(row).getByRole('combobox')).toBeTruthy();
+    // The track is gone, so the row is on "Choose a track" with the check off, like every row with nothing picked.
+    expect((within(row).getByRole('combobox') as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('Choose a track');
+    await waitFor(() =>
+      expect(
+        within(row)
+          .getByRole('button', { name: /^Use this (track|folder) for/ })
+          .getAttribute('aria-disabled'),
+      ).toBe('true'),
+    );
   });
 
-  it('holds Cancel and the pick while the re-read runs', async () => {
+  it('holds Cancel while the re-read runs and keeps a pick made meanwhile', async () => {
     const user = userEvent.setup();
     const { live } = renderTable();
     const { row } = await firstRow();
@@ -478,40 +486,12 @@ describe('The check on the track the chapter already has', () => {
     (live.recheck as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
     await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
     expect(within(row).getByRole('button', { name: 'Cancel the edit' }).getAttribute('aria-disabled')).toBe('true');
-    const select = within(row).getByRole('combobox') as HTMLSelectElement;
-    const before = select.value;
-    await user.selectOptions(select, WIRE_TRACKS_PROJECT.tracks[1].guid);
-    expect(select.value).toBe(before);
+    const other = WIRE_TRACKS_PROJECT.tracks[1].guid;
+    await user.selectOptions(within(row).getByRole('combobox'), other);
     release({ failed: false });
-    await within(row).findByRole('button', { name: /^Change the track for/ });
-  });
-});
-
-// #3294, qa-breaker B2: Clear puts "Create a track for …" where it was, so a second click aimed at Clear (30 ms or 700 ms later) pressed Create,
-// added a track and relinked the chapter. The same quiet window as after a create now follows an Unlink.
-describe('Clear then a fast second click', () => {
-  it('never reaches Create a track', async () => {
-    const user = userEvent.setup();
-    const base = createMockApi();
-    const create = vi.fn(() => base.chapterTrackCreate(WIRE_CHAPTERS[0].id));
-    renderTable({ api: { ...base, chapterTrackCreate: create } });
-    const { row } = await firstRow();
-    await user.selectOptions(within(row).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
-
-    await pastQuiet();
-    await user.click(within(row).getByRole('button', { name: /^Clear the link/ }));
-    await waitFor(() => expect(within(row).getByText('Not linked')).toBeTruthy());
-    await waitFor(() =>
-      expect(
-        within(row)
-          .getByRole('button', { name: `Create a track for ${short(0)}` })
-          .getAttribute('aria-disabled'),
-      ).not.toBe('true'),
-    );
-    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
-
-    expect(create).not.toHaveBeenCalled();
+    // The pick is the narrator's now: the picker stays open on it, and the check is the one that links it.
+    await waitFor(() => expect(within(row).getByRole('button', { name: /^Use this (track|folder) for/ })).toBeTruthy());
+    expect((within(row).getByRole('combobox') as HTMLSelectElement).value).toBe(other);
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
   });
 });

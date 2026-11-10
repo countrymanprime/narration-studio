@@ -92,23 +92,23 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
     );
   };
 
-  // The check on the link the chapter already has: read the tracks from the DAW and the links again, then say what that found, so the press
-  // is never silent and doubles as the resync after a track was renamed in the DAW (#3275). Answers whether the picker may close: it stays
-  // open when the read failed or the track is gone, since the narrator's next step (retry, choose another track) is in it.
-  const recheck = async (row: ChapterTrackRow): Promise<boolean> => {
+  // The check on the link the chapter already has: read the tracks and the links again through the shared state, then say what that found, so
+  // the press is never silent and doubles as the resync after a track was renamed in the DAW (#3275). Answers what the row does next: 'found'
+  // closes the picker, 'gone' leaves it open with nothing picked, and 'failed' leaves it as it is (the failed read has its own toast).
+  const recheck = async (row: ChapterTrackRow): Promise<'found' | 'gone' | 'failed'> => {
     const short = chapterName(row.chapter, 'short');
     const guid = row.mapping?.trackGuid;
     const read = live ? await live.recheck() : { failed: false };
+    if (read.failed) return 'failed'; // the live read failed and its own toast says so
     try {
       await links.recheck();
     } catch (reason) {
       notify(`The link for ${short} could not be read again: ${apiErrorMessage(reason)}`, 'error');
-      return false;
+      return 'failed';
     }
-    if (read.failed) return false; // the live read failed and its own toast says so
     const now = read.project?.tracks ?? tracks;
     notify(recheckSentence(short, row.trackName, now, guid, folders), 'info');
-    return now.some((candidate) => candidate.guid === guid);
+    return now.some((candidate) => candidate.guid === guid) ? 'found' : 'gone';
   };
 
   return (
@@ -228,7 +228,7 @@ function ChapterLinkRow({
   onCreate: () => void;
   onConfirm: (trackGuid: string) => void;
   /** Confirm pressed on the track the chapter is already linked to: reads again and says what it found. */
-  onRecheck: () => Promise<boolean>;
+  onRecheck: () => Promise<'found' | 'gone' | 'failed'>;
   onClear: () => void;
   onEditingCheck: () => void;
 }) {
@@ -238,6 +238,9 @@ function ChapterLinkRow({
   const [picking, setPicking] = useState(!hasLink);
   const [rechecking, setRechecking] = useState(false);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
+  // The pick as it is now, for a re-read that ends after the narrator picked something else: their pick is kept, not snapped back.
+  const chosenNow = useRef(chosen);
+  chosenNow.current = chosen;
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
   // When the row's buttons last swapped (a link appeared, Change, Cancel): the next control sits in the same spot, so a fast second click of a
   // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
@@ -304,13 +307,7 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect
-            label={`${folders ? 'Folder' : 'Track'} for ${short}`}
-            choices={choices}
-            value={chosen}
-            onChange={(guid) => !rechecking && setChosen(guid)}
-            fullWidth
-          />
+          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link
@@ -350,10 +347,14 @@ function ChapterLinkRow({
                 onClick={() => {
                   if (chosen !== linkedGuid) return onConfirm(chosen);
                   // The same track again: not a change, so read it again and report, then leave the picker.
+                  const pressed = chosen;
                   setRechecking(true);
-                  void onRecheck().then((done) => {
+                  void onRecheck().then((result) => {
                     setRechecking(false);
-                    if (done) {
+                    // A pick made while it read stays as it is, in the picker.
+                    if (chosenNow.current !== pressed) return;
+                    if (result === 'gone') setChosen('');
+                    if (result === 'found') {
                       // Change takes the check's place: a double click's second press must not reopen the picker.
                       swappedAt.current = Date.now();
                       setPicking(false);
