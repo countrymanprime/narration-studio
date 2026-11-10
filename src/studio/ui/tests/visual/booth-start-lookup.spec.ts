@@ -85,6 +85,20 @@ test('leaving the Booth while the lookup is out starts no take', async ({ page }
   expect(await dawRecording(page)).toBe(false);
 });
 
+test('a lookup that never answers ends with a sentence within 9 s, and the next Space works', async ({ page }) => {
+  test.setTimeout(40_000);
+  await openWithSlowLookup(page, 0);
+  await startFromHere(page);
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByText(/did not come back in time/).first()).toBeVisible({ timeout: 9000 });
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  expect(await dawRecording(page)).toBe(false);
+  // Not stuck: the next press is a new press and records (from the end of the audio, the start having been let go).
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 5000 });
+  expect(await dawRecording(page)).toBe(true);
+});
+
 for (const [name, withStart] of [
   ['a plain press', false],
   ['a press with a start chosen', true],

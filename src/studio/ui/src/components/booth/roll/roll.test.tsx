@@ -625,4 +625,55 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
     await done;
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
+
+  it('repeated Start from here on the same phrase under a refused plan makes one lookup (the in-flight map alone)', async () => {
+    const late = gate();
+    const punchTarget = vi.fn(() => late.promise);
+    const { hook } = setup(SETUPS.reaperOff, { recording: false, punchTarget });
+    const presses: Promise<unknown>[] = [];
+    act(() => {
+      for (let i = 0; i < 3; i++) presses.push(hook.result.current.startFromHere(1));
+    });
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    late.resolve({ outcome: 'never_recorded' });
+    await act(() => Promise.all(presses));
+  });
+
+  it('a Start from here on another phrase under a refused plan does not leave the first press standing: the next press asks again', async () => {
+    const first = gate();
+    const punchTarget = vi.fn((p: number) => (p === 1 ? first.promise : Promise.resolve(found(p))));
+    const { hook } = setup(SETUPS.reaperOff, { recording: false, punchAt: 1, punchTarget });
+    let pressed: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pressed = hook.result.current.startTake();
+    });
+    await act(() => hook.result.current.startFromHere(2));
+    first.resolve(found(1));
+    await act(() => pressed);
+    const asked = punchTarget.mock.calls.length;
+    await act(() => hook.result.current.startTake());
+    expect(punchTarget.mock.calls.length).toBeGreaterThan(asked);
+  });
+
+  describe('a press stays one press until its take has been handed over (return await)', () => {
+    const handedOver = async (setupCaps: typeof SETUPS.reaper, punchTarget: RollSession['punchTarget'], over: Partial<RollSession> = {}) => {
+      const take = gate();
+      const spy = vi.fn(punchTarget);
+      const { hook, actions } = setup(setupCaps, { recording: false, punchAt: 1, punchTarget: spy, ...over });
+      actions.beginTake.mockImplementation(async () => {
+        await take.promise;
+      });
+      let first: Promise<unknown> = Promise.resolve();
+      act(() => {
+        first = hook.result.current.startTake();
+      });
+      await waitFor(() => expect(actions.beginTake).toHaveBeenCalledTimes(1));
+      await act(() => hook.result.current.startTake());
+      expect(spy).toHaveBeenCalledTimes(1);
+      take.resolve({ outcome: 'never_recorded' });
+      await act(() => first);
+    };
+    it('a passage nobody recorded', () => handedOver(SETUPS.reaper, async () => ({ outcome: 'never_recorded' })));
+    it('a punch the DAW cannot do', () => handedOver(SETUPS.reaperOff, async (p) => ({ outcome: 'found', trackGuid: 'T', start: p * 10, end: p * 10 + 5 })));
+  });
 });

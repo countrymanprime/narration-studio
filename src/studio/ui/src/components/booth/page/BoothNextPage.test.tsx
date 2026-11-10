@@ -2554,6 +2554,55 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       ));
   });
 
+  it('leaving after listening started stops that listening once, and the DAW does not record', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+      const savedDevice = async () => ({
+        Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+      });
+      const page = renderPage({ api: { teleprompterStart, settingsForScope: savedDevice } as never });
+      await ready();
+      await space();
+      await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+      await settle();
+      page.teleprompterStop.mockClear();
+      page.view.unmount();
+      release();
+      await settle();
+      await settle();
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+      expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
+    } finally {
+      tone.gate = null;
+    }
+  });
+
+  it('a second press while a cancelled press is still waiting starts no listening of its own, so nothing newer is stopped by the old press', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+      const savedDevice = async () => ({
+        Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+      });
+      const page = renderPage({ api: { teleprompterStart, settingsForScope: savedDevice } as never });
+      await ready();
+      await space();
+      await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+      await space();
+      await space();
+      await settle();
+      expect(teleprompterStart).toHaveBeenCalledTimes(1);
+      page.view.unmount();
+      release();
+      await settle();
+    } finally {
+      tone.gate = null;
+    }
+  });
+
   it('a take the DAW refuses spends nothing: the next Record uses the start again (as before)', async () => {
     const boothPunchTarget = vi.fn(async () => FOUND);
     const page = renderPage({ search: START, api: { boothPunchTarget } });

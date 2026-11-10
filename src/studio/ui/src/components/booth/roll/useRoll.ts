@@ -177,8 +177,9 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, []);
   /** Ends the wait of start `mine`, unless a newer start owns it now. */
   const endWait = useCallback((mine: number) => {
-    if (mine !== latestStart.current || !alive.current) return;
+    // The press's own entry ends with the press, whatever start was chosen meanwhile.
     if (pressing.current?.mine === mine) pressing.current = null;
+    if (mine !== latestStart.current || !alive.current) return;
     setLookingUp(false);
   }, []);
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */

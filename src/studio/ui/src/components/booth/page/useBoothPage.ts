@@ -396,7 +396,11 @@ export function useBoothPage(options: BoothPageOptions) {
         : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
-    if (!current()) return started;
+    if (!current()) {
+      // The listening this press started (it answered ok) is let go: no press can be under way beside it (`starting`), so it is this press's own.
+      if (listen && heard.ok) latest.current.session.stop();
+      return started;
+    }
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
