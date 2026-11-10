@@ -14,7 +14,7 @@ import { useTakesGate } from '../useTakesGate';
 import { HideOthersConfirmBody } from './HideOthersConfirm';
 import { HideButton } from './PrepControls';
 import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
-import { pluralWord } from '../../../../plural';
+import { pluralWord, plural } from '../../../../plural';
 
 const KEEP_FIRST = 'Keep a take first.';
 const NO_OTHERS = 'There are no other takes to hide.';
@@ -165,14 +165,7 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
         const others = l.othersOf(passage).length;
         if (passage.takes.length < 2 || others === 0) return null;
         const reason = reasonToHold(l.gate, l.kept[passage.id]);
-        return (
-          <HideButton
-            id={passage.id}
-            label={`Hide the other ${others} ${pluralWord(others, 'take')}`}
-            reason={reason}
-            onPress={() => void l.hideOthers(passage)}
-          />
-        );
+        return <HideButton id={passage.id} label={`Hide the other ${plural(others, 'take')}`} reason={reason} onPress={() => void l.hideOthers(passage)} />;
       },
     });
     const offLook = registerTakeControl({

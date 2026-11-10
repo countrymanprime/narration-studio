@@ -40,6 +40,7 @@ import {
   type EditingCandidateClass,
 } from './editingCheckText';
 import { addressPath } from '../../navigation/address';
+import { plural } from '../../plural';
 
 /** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
@@ -137,11 +138,7 @@ function resultRows(signals: StageSignal[] | undefined, candidates: Finding[]): 
   for (const cls of EDITING_CLASSES) {
     const signal = signals?.find((entry) => entry.id === EDITING_SIGNAL_ID[cls]);
     const count = candidates.filter((finding) => candidateClass(finding) === cls).length;
-    const text = signal
-      ? keepUnits(signal.reason)
-      : count > 0
-        ? `${count} candidate${count === 1 ? '' : 's'} from the last scan.`
-        : 'No candidates from the last scan.';
+    const text = signal ? keepUnits(signal.reason) : count > 0 ? `${plural(count, 'candidate')} from the last scan.` : 'No candidates from the last scan.';
     const same = rows.find((row) => row.count === 0 && count === 0 && row.text === text && row.signal?.state === signal?.state);
     if (same) same.classes.push(cls);
     else rows.push({ classes: [cls], signal, text, count });

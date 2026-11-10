@@ -71,7 +71,7 @@ export function PageHeader({
           // The pill carries the verdict's word and mark, so the date is told here by its colour and the days only (XPR1-13).
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <p className="text-[0.8125rem] text-[var(--text-muted)]">
-              {chapters} chapters · {num(words)} words
+              {plural(chapters, 'chapter')} · {num(words)} words
               {due && days && (
                 <>
                   {' '}

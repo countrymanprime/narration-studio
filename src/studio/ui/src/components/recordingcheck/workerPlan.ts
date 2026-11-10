@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import type { CoverageStartOptions, CoverageWorkerPlan } from '../../api/contracts/coverage';
 import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
+import { plural } from '../../plural';
 
 const gigabytes = (mb: number): string => `${(mb / 1024).toFixed(1)} GB`;
-const count = (value: number, one: string, many: string): string => `${value} ${value === 1 ? one : many}`;
-
 /**
  * What a recording check's worker plan means, in two sentences: how many transcriptions run at once and on how many of this computer's
  * processors, then what set the number. The host's plan is the count a start sends (CoverageWorkerPlan), so these words are what runs.
@@ -17,7 +16,7 @@ export function workerPlanSentences(plan: CoverageWorkerPlan): { summary: string
       ? `${used} of the ${plan.cpus} processors each chapter gets (${plan.chapters} chapters at once)`
       : `${used} of ${plan.computerCpus} processors`;
   const lead = plan.requested === 0 ? 'Automatic: ' : '';
-  const summary = `${lead}${count(plan.workers, 'transcription', 'transcriptions')} at once, using ${where} for the ${plan.modelLabel} model.`;
+  const summary = `${lead}${plural(plan.workers, 'transcription', 'transcriptions')} at once, using ${where} for the ${plan.modelLabel} model.`;
   return { summary, reason: reasonOf(plan) };
 }
 
@@ -31,8 +30,8 @@ function reasonOf(plan: CoverageWorkerPlan): string {
         : `Set by the memory: ${copy} and this computer has ${free}.`;
     case 'processors':
       return plan.requested > 0
-        ? `You chose ${plan.requested}; there are ${count(plan.cpus, 'processor', 'processors')} to share, so ${plan.workers} run at once.`
-        : `Set by the processors: half of them, so each transcription has ${count(plan.threadsEach, 'processor', 'processors')}.`;
+        ? `You chose ${plan.requested}; there are ${plural(plan.cpus, 'processor', 'processors')} to share, so ${plan.workers} run at once.`
+        : `Set by the processors: half of them, so each transcription has ${plural(plan.threadsEach, 'processor', 'processors')}.`;
     case 'model':
       return `This computer's free memory could not be read, so the ${plan.modelLabel} model's own limit of ${plan.workers} applies.`;
     case 'requested':

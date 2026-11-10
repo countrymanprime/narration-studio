@@ -4,6 +4,7 @@ import type { ManuscriptChapter } from '../../types';
 import { ALL_CHAPTERS } from '../primitives/ChapterStepper';
 import { CHECK_RECORDINGS_LABEL } from '../recordingcheck/CheckRecordingsButton';
 import { DECISIONS, press } from './useProofKeys';
+import { plural } from '../../plural';
 
 const DECIDE = [
   { id: 'note.pickup', label: DECISIONS.pickup, icon: 'record' },
@@ -46,7 +47,7 @@ export function useProofPageCommands(page: {
         id: `chapter.${chapter.id}`,
         label: headingName(chapter),
         group: 'Chapters',
-        hint: open === 1 ? '1 open note' : `${open} open notes`,
+        hint: plural(open, 'open note'),
         icon: 'goToChapter',
         disabledReason: page.scope === chapter.id ? 'Already showing this chapter.' : undefined,
         run: () => page.choose(chapter.id),

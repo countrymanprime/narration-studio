@@ -73,7 +73,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
-    text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
+    text: 'Your opening and closing credits need …. We filled in what the manuscript already says; check them and save.',
     class: 'overlay',
   },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Not set yet: nothing in the manuscript names the narrator.', class: 'overlay' },

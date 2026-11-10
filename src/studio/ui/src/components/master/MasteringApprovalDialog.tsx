@@ -207,7 +207,7 @@ export function MasteringApprovalDialog({
       }
     : {};
   const regions = plan.items.some((item) => item.region !== '');
-  const count = plan.items.length === 1 ? '1 file' : `${plan.items.length} files`;
+  const count = plural(plan.items.length, 'file');
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
   const approve = () => {
     if (!plan.needsMacro) {

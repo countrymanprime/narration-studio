@@ -5,7 +5,7 @@ import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { packageCounts, packageItems, profileName, type PackageItem } from './packageItems';
-import { plural } from '../../../plural';
+import { plural, formatCount } from '../../../plural';
 
 // A check not judged yet is a hollow circle, not the mock's "…", which read as a list still loading (R4MS1-5, R4TB-3).
 const BADGE = {
@@ -70,7 +70,7 @@ export function PackageChecks({
         {/* The button keeps its own width (a full-width bar was the loudest thing on the stacked page, R4MS1-13) and waits for what it
             summarises. The mock's caption under it ("0 failing and 14 not ready.") only repeated the rows above, so it is gone (R4MS2-4). */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {!loading && encoded && <StatusBadge tone="neutral" label={`${encoded.done} of ${encoded.total} encoded`} />}
+          {!loading && encoded && <StatusBadge tone="neutral" label={`${formatCount(encoded.done)} of ${formatCount(encoded.total)} encoded`} />}
           <Button onClick={onOpenDelivery} disabled={loading}>
             Open Delivery
           </Button>

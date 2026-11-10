@@ -28,7 +28,7 @@ import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 import { clock } from '../../clock';
-import { plural } from '../../plural';
+import { plural, pluralWord } from '../../plural';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
 const errorText = apiErrorMessage;
@@ -320,7 +320,7 @@ export function CompareRun({
     ? `Marker export is available only for results from this active ${dawName} session`
     : pendingMarkers === 0
       ? 'No new markers are ready to export'
-      : `Export ${pendingMarkers} new marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}`;
+      : `Export ${pendingMarkers} new ${pluralWord(pendingMarkers, 'marker')} to ${dawName}`;
   const exportBlocked = !canExportMarkers || pendingMarkers === 0;
   const gate = startCapability(dawFileLinked, reviewCapability, dawName === 'Audacity');
   const phase = showingResults ? 'results' : state.phase === 'need_chapter' ? 'chapter' : running ? 'running' : 'setup';
@@ -440,7 +440,7 @@ export function CompareRun({
                 </Button>
                 <span className="min-w-0 text-xs" style={{ color: 'var(--text-muted)' }}>
                   {lastCompleted.trackName || (dawName === 'Audacity' ? 'Selected Audacity track' : 'Selected REAPER audio')}
-                  {lastCompleted.audioItemCount ? ` · ${lastCompleted.audioItemCount} audio item${lastCompleted.audioItemCount === 1 ? '' : 's'}` : ''}
+                  {lastCompleted.audioItemCount ? ` · ${lastCompleted.audioItemCount} audio ${pluralWord(lastCompleted.audioItemCount, 'item')}` : ''}
                   {lastCompleted.completedAt ? <span className="whitespace-nowrap">{` · ${new Date(lastCompleted.completedAt).toLocaleString()}`}</span> : ''}
                 </span>
               </div>
@@ -556,14 +556,14 @@ export function CompareRun({
                   onClick={async () => {
                     try {
                       await api.transcriptExportMarkers();
-                      notify(`Exporting ${pendingMarkers} marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}…`);
+                      notify(`Exporting ${plural(pendingMarkers, 'marker')} to ${dawName}…`);
                     } catch (error) {
                       notify(describeApiError(error), 'error');
                     }
                   }}
                 >
                   <FontAwesomeIcon icon={faFileExport} />
-                  {exporting ? 'Exporting…' : `Export ${pendingMarkers} marker${pendingMarkers === 1 ? '' : 's'}`}
+                  {exporting ? 'Exporting…' : `Export ${plural(pendingMarkers, 'marker')}`}
                 </Button>
               </TooltipTarget>
               <TooltipTarget text="Return to setup for another comparison">

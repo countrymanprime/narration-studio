@@ -21,6 +21,7 @@ import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel } from './voices';
 import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
+import { plural } from '../../plural';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -245,7 +246,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             {running || stamped ? 'Close' : 'Cancel'}
           </Button>
           <Button onClick={approve} disabled={preview.length === 0 || reading} pending={running}>
-            {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
+            {`Stamp ${plural(preview.length, 'item')}`}
           </Button>
         </>
       }

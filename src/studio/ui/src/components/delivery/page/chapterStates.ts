@@ -6,7 +6,7 @@ import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { fileOf } from '../../master/chapterFile';
 import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
-import { plural, pluralWord } from '../../../plural';
+import { plural, pluralWord, formatCount } from '../../../plural';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -80,5 +80,7 @@ export function readinessCounts(states: readonly ChapterState[]): { bad: number;
 export function readiness(states: readonly ChapterState[]): { ready: boolean; text: string } {
   const { bad, wait } = readinessCounts(states);
   if (states.length === 0) return { ready: false, text: 'There are no chapters to check.' };
-  return bad + wait === 0 ? { ready: true, text: 'Every chapter passes.' } : { ready: false, text: `${bad} failing, ${wait} not ready` };
+  return bad + wait === 0
+    ? { ready: true, text: 'Every chapter passes.' }
+    : { ready: false, text: `${formatCount(bad)} failing, ${formatCount(wait)} not ready` };
 }

@@ -10,7 +10,7 @@ import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';
 import { dawNameOf } from './ShowInDaw';
-import { pluralWord } from '../../plural';
+import { pluralWord, plural } from '../../plural';
 
 /**
  * What an Add marker press is about (#2830): one Proof note, or the pickups of a session. A finding goes through `daw.addMarker`, pickups through
@@ -78,7 +78,7 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
   try {
     const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) return { message: result.message, failed: true, added: false };
-    const lines = skipped > 0 ? `${placed.length} of ${target.pickups.length} lines` : placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const lines = skipped > 0 ? `${placed.length} of ${target.pickups.length} lines` : plural(placed.length, 'line');
     const left =
       skipped > 0
         ? ` ${skipped} ${skipped === 1 ? 'line has' : 'lines have'} no place in the recording yet and ${skipped === 1 ? 'was' : 'were'} left out.`

@@ -41,7 +41,7 @@ export function exportedMessage(written: number, openLines: number | undefined):
 /** What the finished import says: how many pickups it added, how many were there already and how many rows were skipped. */
 export function importedMessage(report: { added: number; existing: number; invalid: number }, skippedRows: number): string {
   const parts = [`Added ${pickups(report.added)} from the proofer’s sheet`];
-  if (report.existing > 0) parts.push(`${plural(report.existing, 'was', 'were')} there already`);
+  if (report.existing > 0) parts.push(`${report.existing.toLocaleString('en-US')} ${report.existing === 1 ? 'was' : 'were'} there already`);
   const skipped = skippedRows + report.invalid;
   if (skipped > 0) parts.push(`${skipped} ${skipped === 1 ? 'row was' : 'rows were'} skipped`);
   return parts.join('; ') + '.';
