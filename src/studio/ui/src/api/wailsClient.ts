@@ -164,6 +164,7 @@ import {
   teleprompterStateSchema,
 } from './schemas/teleprompter';
 import type { TeleprompterStartOptions } from './contracts/teleprompter';
+import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
 import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
@@ -339,6 +340,9 @@ async function decodeObject<S extends StandardSchemaV1>(schema: S, payload: stri
 // This is intentionally an adapter, not a second component-facing API. The
 // TypeScript contracts and mock client remain stable while transport moves
 // from REST/SSE to Wails' generated Go binding and runtime events.
+/** The host's MasteringApproval always carries chainDigest (Go's zero value, "", for a row with no DAW chain); the page's type may omit it. */
+const hostExportRequest = (req: ExportRequest) => ({ ...req, approval: req.approval && { ...req.approval, chainDigest: req.approval.chainDigest ?? '' } });
+
 export const wailsClient: NarrationApi = {
   ready: () => decodeObject(readySchema, 'Ready', host.Ready()),
   bootstrap: () => decodeObject(bootstrapSchema, 'Bootstrap', host.Bootstrap()),
@@ -868,8 +872,8 @@ export const wailsClient: NarrationApi = {
   subscribeTeleprompterResumeFollow: (onEvent) => subscribeChecked('teleprompter_resume_follow', teleprompterResumeFollowEventSchema, onEvent),
   mediaUrl: (sourceFile) => `${mediaRoute}?path=${encodeURIComponent(sourceFile)}`,
   exportPickFiles: () => decode(measurePickResultSchema, 'ExportPickFiles', host.ExportPickFiles()),
-  exportPlan: (req) => decode(exportPlanSchema, 'ExportPlan', host.ExportPlan(req)),
-  exportStart: (req) => decode(exportJobSchema, 'ExportStart', host.ExportStart(req)),
+  exportPlan: (req) => decode(exportPlanSchema, 'ExportPlan', host.ExportPlan(hostExportRequest(req))),
+  exportStart: (req) => decode(exportJobSchema, 'ExportStart', host.ExportStart(hostExportRequest(req))),
   exportState: () => decode(exportJobSchema, 'ExportState', host.ExportState()),
   exportCancel: () => decode(exportJobSchema, 'ExportCancel', host.ExportCancel()),
   packageStart: (req) => decode(packageJobSchema, 'PackageStart', host.PackageStart(req)),
