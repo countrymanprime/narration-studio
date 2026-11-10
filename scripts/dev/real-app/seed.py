@@ -100,7 +100,7 @@ def write_large(args: argparse.Namespace, project: Path, app: Path, manuscript: 
     (app / "project.json").write_text(
         json.dumps(
             {
-                "marker": "narration-studio-project",
+                "marker": f"{APP}-project",
                 "name": "",
                 "createdAt": "2026-11-10T00:00:00Z",
                 "dawProjectFile": {"absolute": str(rpp), "relative": "Book.rpp"},
