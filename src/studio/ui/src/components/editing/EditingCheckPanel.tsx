@@ -91,12 +91,19 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
+          let taken: string;
           try {
-            const taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
-            if (taken) {
-              notify(taken, 'error');
-              return;
-            }
+            taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+          } catch (reason) {
+            notify(`The link could not be checked: ${describeApiError(reason)}`, 'error');
+            return;
+          }
+          if (taken) {
+            notify(taken, 'error');
+            return;
+          }
+          try {
             await api.chapterTrackMapConfirm(trackGuid, chapter.id);
             setError('');
             onLinked();

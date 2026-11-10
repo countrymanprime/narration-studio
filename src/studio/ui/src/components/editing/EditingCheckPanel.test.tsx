@@ -152,6 +152,22 @@ describe('EditingCheckPanel', () => {
     expect(within(dialog).getByText(/This chapter can.t be checked yet/)).toBeTruthy();
   });
 
+  it('a failed held-track check is a toast and leaves the picker (ux review)', async () => {
+    const user = userEvent.setup();
+    const { api, notify } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
+    const dialog = await panel();
+    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
+    vi.spyOn(api, 'chapterTrackMapList').mockRejectedValue(new Error('REAPER did not answer'));
+    await user.selectOptions(select, within(select).getAllByRole('option')[1] as HTMLOptionElement);
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The link could not be checked'), 'error'));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox', { name: `Track for ${chapter.title}` })).toBeTruthy();
+    expect(within(dialog).queryByText(/The REAPER tracks could not be listed/)).toBeNull();
+  });
+
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {
     const user = userEvent.setup();
     renderPanel({ editing: { hold: true } });

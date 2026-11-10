@@ -195,12 +195,19 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
+          let taken: string;
           try {
-            const taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
-            if (taken) {
-              overlay.toast(taken, { tone: 'error' });
-              return;
-            }
+            taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+          } catch (reason) {
+            overlay.toast(`The link could not be checked: ${describeApiError(reason)}`, { tone: 'error' });
+            return;
+          }
+          if (taken) {
+            overlay.toast(taken, { tone: 'error' });
+            return;
+          }
+          try {
             await trackMap.chapterTrackMapConfirm(trackGuid, chapter.id);
             setError('');
             await onLinked();
