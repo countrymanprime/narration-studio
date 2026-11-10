@@ -122,7 +122,12 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
             ]}
           />
           <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
-          <Button variant="secondary" disabled={!regionGuid} pending={mutation.isPending('approve')} onClick={() => void approve()}>
+          <Button
+            variant="secondary"
+            disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
+            pending={mutation.isPending('approve')}
+            onClick={() => void approve()}
+          >
             Approve as reference
           </Button>
         </div>

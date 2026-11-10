@@ -310,6 +310,14 @@ describe('previous and next word', () => {
     expect(state().cursor).toBe('p-1:1');
   });
 
+  it('say so when there is no word to move to, never nothing (#3276)', () => {
+    notify.mockClear();
+    mount();
+    dispatch({ type: 'place', key: 'p-1:0' });
+    fireEvent.click(screen.getByRole('button', { name: 'Go to the previous word' }));
+    expect(notify).toHaveBeenCalledWith('No earlier word with audio.');
+  });
+
   it('move the playing position while it plays', () => {
     mount();
     dispatch({ type: 'place', key: 'p-1:1' });

@@ -418,6 +418,7 @@ export function useScriptPlayback({
       const at = (key: string): number => document.index.get(key) ?? 0;
       const to = d > 0 ? heard.find((i) => at(i.key) > from) : [...heard].reverse().find((i) => at(i.key) < from);
       if (to) send({ type: 'place', key: to.key });
+      else live.current.notify(d > 0 ? 'No later word with audio.' : 'No earlier word with audio.');
     },
     [go],
   );

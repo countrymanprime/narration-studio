@@ -195,7 +195,7 @@ track what you've marked or approved and who a line of dialogue is attributed to
 
 **Reference clips** lists the REAPER regions you've approved as a voice reference for this
 character. Choose a region from the picker (the regions of the saved REAPER project), add an
-optional note such as "anchor take, chapter 1", and press **Approve as reference**. Approving the
+optional note such as "anchor take, chapter 1", and press **Approve as reference**, which is off, with its reason in the hint, until a region is chosen. Approving the
 same region again for the same character just updates its note in place. **Revoke** removes a
 reference outright. If the region's name or time range changed in REAPER since you approved it, the
 reference shows a **Changed since approval** badge - re-approve it once you're happy with the new
@@ -248,7 +248,7 @@ A row says what is wrong with it:
 | **Passage changed** | The words in that chapter are not the words the sample was marked on. The sample still plays. | **Open in Editing** goes to the chapter and tells you the marked words may have moved. |
 | **Chapter removed** | The chapter is no longer in the manuscript. The sample still plays. | Nothing; delete it when you no longer need it. |
 | **Audio file missing** or **Audio file changed** | The sample's audio in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or delete it: after **Edit** on the entry, or from **Voice data** on any entry, a locked one too. |
-| "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**. |
+| "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**, which then shows when it last read the list (**Checked 3:42:07 PM**), even if nothing changed. |
 
 An entry with none says "No voice samples yet" with **Open Editing**; its **?** tells how to mark one (in Editing, select words you voiced well and press V). **Check again** beside the heading looks at every sample's file
 again. The list also follows the project by itself: a sample marked in Editing, or deleted from another window, appears or goes without

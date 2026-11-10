@@ -26,7 +26,7 @@ describe('the report export', () => {
     const deliveryExportReport = vi.fn();
     mount({ measured: false }, { deliveryExportReport });
     const button = screen.getByRole('button', { name: 'Export report' });
-    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText(/Check some files first/)).toBeTruthy();
     await userEvent.click(button);
     expect(deliveryExportReport).not.toHaveBeenCalled();
@@ -51,7 +51,7 @@ describe('the report export', () => {
   it('stays off while a job runs, and says why beside it', () => {
     mount({ busy: true, measured: true });
     const button = screen.getByRole('button', { name: 'Export report' });
-    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby') && document.getElementById(button.getAttribute('aria-describedby')!)?.textContent).toBe(
       'Wait for the running check to end.',
     );
@@ -62,7 +62,8 @@ describe('the report export', () => {
     mount({ measured: false });
     const button = screen.getByRole('button', { name: 'Export report' });
     const reason = screen.getByText(/^Check some files first/);
-    expect(button.parentElement).toBe(reason.parentElement);
+    // The button sits in its tooltip's wrapper (disabledReason), which sits beside the reason.
+    expect(button.parentElement?.parentElement).toBe(reason.parentElement);
     expect(button.getAttribute('aria-describedby')).toBe(reason.id);
     expect(button.closest('[class*="border-b"]')).toBeNull();
     expect(screen.getByRole('checkbox', { name: /Include each file/ }).hasAttribute('data-disabled')).toBe(true);
@@ -71,10 +72,12 @@ describe('the report export', () => {
   it('tells a refused export as a toast, and the card keeps its shape (rule 7, #2632)', async () => {
     mount({ measured: true }, { deliveryExportReport: async () => Promise.reject(new Error('the folder is read-only')) });
     const card = screen.getByRole('button', { name: 'Export report' }).closest('section')!;
-    const before = card.innerHTML;
+    // The shape is what the narrator sees: the text and the elements. The button's tooltip wrapper also carries pointer and focus state attributes, which a press changes.
+    const shape = () => `${card.textContent}|${card.querySelectorAll('*').length}`;
+    const before = shape();
     await userEvent.click(screen.getByRole('button', { name: 'Export report' }));
     expect((await findToast('The report was not written: the folder is read-only')).tone).toBe('error');
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(card.innerHTML).toBe(before);
+    expect(shape()).toBe(before);
   });
 });
