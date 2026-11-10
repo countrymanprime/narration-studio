@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import itertools
 import time
+from pathlib import Path
 
 from scenario import Env, near, scenario
 from scenarios_playtrack import mix_tones, narrator_state, play_range, stop_by_hand
@@ -1134,11 +1135,11 @@ def record_on_nested_voice(env: Env) -> str:
         """
     )
     landed = {}
-    for voice in ("Narrator", "Main"):
-        env.lua("reaper.SetEditCurPos(0, false, false) return true")
+    for start, voice in ((0, "Narrator"), (10, "Main")):
+        env.lua(f"reaper.SetEditCurPos({start}, false, false) return true")
         env.ok("arm_only", g[voice], until="ARMED")
         env.ok("record_start", g[voice], until="RECORD_STARTED")
-        env.wait_for(lambda: position(env) > 1.2, timeout=8, what="the take to run over a second")
+        env.wait_for(lambda start=start: position(env) > start + 1.2, timeout=8, what="the take to run over a second")
         env.ok("record_stop", until="RECORD_STOPPED")
         env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
         before = sum(len(v) for v in landed.values())
@@ -1152,3 +1153,43 @@ def record_on_nested_voice(env: Env) -> str:
     if keep:
         shutil.copy(env.lua("return ci.rpp"), keep + ".recorded")
     return f"items per track after recording on the folder voice, then on the leaf: {landed}"
+
+
+@scenario(
+    "booth_voices",
+    "track_create, arm_only, record_start, record_stop, chapter_track_state",
+    "#3232: the narrator's flow without a save: the Booth adds a voice to the chapter folder, records a take on it, and opens Editing; "
+    "the saved .rpp (all the Editing read has) holds no item and REAPER reports unsaved changes, while the live folder read has the take; a save puts it in the file",
+    needs_audio=True,
+)
+def record_into_unsaved_voice(env: Env) -> str:
+    g = env.lua(
+        """
+        local names = { 'Book', 'Chapter 3', 'Narrator', 'After' }
+        local t = {}
+        for _, n in ipairs(names) do t[n] = ci.add_track(n) end
+        reaper.SetMediaTrackInfo_Value(t.Book, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(t['Chapter 3'], 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(t.Narrator, 'I_FOLDERDEPTH', -2)
+        ci.save_and_reload(ci.rpp)
+        return { folder = reaper.GetTrackGUID(ci.track_by_name('Chapter 3')) }
+        """
+    )
+    created = env.ok("track_create", "Veyra", g["folder"], until="TRACK_CREATED")
+    veyra = env.lua("return reaper.GetTrackGUID(ci.track_by_name('Veyra'))")
+    env.ok("arm_only", veyra, until="ARMED")
+    env.ok("record_start", veyra, until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 1.2, timeout=8, what="the take to run over a second")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    settled_items(env, 1)
+    rpp = env.lua("return ci.rpp")
+    saved = Path(rpp).read_text(encoding="utf-8")
+    assert "<ITEM" not in saved and "Veyra" not in saved, "the saved file already holds the take or the new voice"
+    assert env.lua("return reaper.IsProjectDirty(0)") != 0, "REAPER does not report unsaved changes after the take"
+    live = env.send("chapter_track_state", g["folder"], "children", until={"TRACK_STATE_END", "TRACK_STALE"})
+    rows = [e[10] for e in live if e[0] == "TRACK_ITEM"]
+    assert rows == [veyra], f"the live folder read {rows}"
+    env.lua("reaper.Main_SaveProject(0, false) return true")
+    assert "<ITEM" in Path(rpp).read_text(encoding="utf-8"), "a save did not write the take"
+    return f"voice {created[3:5]} added after the save; saved file has no item and no Veyra while REAPER is dirty; live read has 1 item on Veyra; after a save the file has the item"

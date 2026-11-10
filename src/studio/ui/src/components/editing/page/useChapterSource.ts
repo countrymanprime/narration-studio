@@ -54,6 +54,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const fxPort = usePort('editWordFx');
   const trackMap = usePort('chapterTrackMap');
   const tracks = usePort('tracks');
+  const daw = usePort('daw');
   const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null; details?: string }>({
     chapterId,
     read: null,
@@ -76,12 +77,20 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
         // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
         const found = chapterTrackOf(project.tracks, guid);
         const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
+        // Only a chapter with no items needs to know: the DAW's unsaved changes are where a take recorded since the last save is. A DAW that does not answer says no.
+        const unsaved =
+          found && found.items.length > 0
+            ? false
+            : await daw.projectState().then(
+                (state) => state.unsavedChanges,
+                () => false,
+              );
         return found
-          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link, folder: found.track.isFolder }
-          : { items: [], place: chapterName, link, folder: false };
+          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link, folder: found.track.isFolder, unsaved }
+          : { items: [], place: chapterName, link, folder: false, unsaved };
       } catch {
         // The saved project could not be read: the text still shows, and nothing plays.
-        return { items: [], place: chapterName, link: 'unknown' as const, folder: false };
+        return { items: [], place: chapterName, link: 'unknown' as const, folder: false, unsaved: false };
       }
     };
     Promise.all([
@@ -102,7 +111,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
           accepted: accepted.words.map((w) => w.key),
           items: track.items,
           place: track.place,
-          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length, track.folder),
+          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length, track.folder, track.unsaved),
         };
         setState({ chapterId, read, error: null });
       })
@@ -112,7 +121,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     return () => {
       live = false;
     };
-  }, [workspace, alignment, log, cutsPort, fxPort, trackMap, tracks, chapterId, chapterName, reads]);
+  }, [workspace, alignment, log, cutsPort, fxPort, trackMap, tracks, daw, chapterId, chapterName, reads]);
 
   const patch = useCallback((change: Partial<ChapterRead>) => setState((s) => (s.read ? { ...s, read: { ...s.read, ...change } } : s)), []);
   const setCuts = useCallback((cuts: EditCut[]) => patch({ cuts }), [patch]);
