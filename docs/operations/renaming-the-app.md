@@ -41,7 +41,7 @@ An installed copy keeps its old Start Menu and desktop shortcuts until it is rei
 - `scripts/ci/retired-names.json` keeps each retired name as its words. A name `rename-app` retires gets `"history": true`,
   so the brand file, the generated files, identity file names, the repository's addresses and the history allowlist may
   keep it; the first name has `"history": false` and no exception.
-- The `rename rehearsal` step of `quality / Test (Linux 1/5)` (`scripts/brand/rehearse-rename.mjs`) renames a throwaway worktree of each pull request's commit
+- The `rename rehearsal` step of `quality / Test (Linux 1/6)` (`scripts/brand/rehearse-rename.mjs`) renames a throwaway worktree of each pull request's commit
   to a made-up name (`REHEARSAL_NAME`, built from its words; a test that needs a made-up brand uses another name or builds
   it from its words too, so no literal matches it) and runs the sync, both guards and the tests that read the name, so anything that spells the name fails
   before a real rename needs it. main-health runs it with `--full`, which adds the UI typecheck and the built site with its

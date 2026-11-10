@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      # Fails unless quality (every job of _quality.yml) ended success or skipped, then, when the UI was affected, merges the five Vitest
+      # Fails unless quality (every job of _quality.yml) ended success or skipped, then, when the UI was affected, merges the six Vitest
       # blobs and checks every coverage floor over the whole run, and, in the full tier, judges every visual shard's capture records
       # together (src/studio/ui/tests/visual/whole-run.check.ts). A draft runs no visual suite, so it judges none. A step that fails
       # fails the check.
@@ -46,5 +46,5 @@ jobs:
         with:
           results: ${{ join(needs.*.result, ' ') }}
           expect: '1'
-          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}
-          visual-shards: ${{ github.event.pull_request.draft != true && needs.quality.outputs.ui-affected == 'true' && '5' || '0' }}
+          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '6' || '0' }}
+          visual-shards: ${{ github.event.pull_request.draft != true && needs.quality.outputs.ui-affected == 'true' && '6' || '0' }}
