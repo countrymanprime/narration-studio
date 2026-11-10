@@ -67,11 +67,15 @@ function shownHint(entry: Entry): string | undefined {
   return entry.title.toLowerCase().includes(hint) || entry.groupName.toLowerCase() === hint ? undefined : entry.hint;
 }
 
+/** The most rows the menu draws; the rest are reached by typing. */
+export const JUMP_MENU_MAX_ROWS = 100;
+
 const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
 
 /** What a screen reader hears as the list changes: the result count, and that more may come while a source is still searching. */
-const searchStatus = (entries: readonly Entry[]) => {
-  const count = resultCount(entries.filter((entry) => !entry.waiting).length);
+const searchStatus = (entries: readonly Entry[], drawn: number) => {
+  const total = entries.filter((entry) => !entry.waiting).length;
+  const count = total > drawn ? `${resultCount(total)}, showing the first ${drawn}` : resultCount(total);
   return entries.some((entry) => entry.waiting) ? `${count} so far. Still searching.` : count;
 };
 
@@ -161,7 +165,7 @@ function JumpMenu({
   );
   const slots = useJumpSearch(term, !commandsOnly, sayFailure);
 
-  const entries = useMemo<Entry[]>(() => {
+  const allEntries = useMemo<Entry[]>(() => {
     if (!term && !commandsOnly) {
       if (group) {
         const inGroup = (group.source === 'page' ? pageRows : commands).filter((entry) => entry.groupName === group.name);
@@ -195,6 +199,9 @@ function JumpMenu({
     return rankEntries({ page: pageRows, hits: hitEntries(slots), commands, term, pageOnly, commandsOnly });
   }, [commands, commandsOnly, group, pageOnly, pageRows, slots, term]);
 
+  // A long book lists thousands of chapters; drawing them all took seconds (#2961). Only the first rows are drawn and reachable by arrow;
+  // typing narrows the list, and the footer says how many are left out.
+  const entries = allEntries.slice(0, JUMP_MENU_MAX_ROWS);
   const found = active.id === null ? 0 : entries.findIndex((entry) => entry.id === active.id);
   const activeIndex = Math.min(found >= 0 ? found : active.index, Math.max(0, entries.length - 1));
   const setActive = (index: number) => setActiveRow({ id: index === 0 ? null : (entries[index]?.id ?? null), index });
@@ -227,7 +234,15 @@ function JumpMenu({
     const repeated = entry.disabledReason !== undefined && before?.group === entry.group && before.disabledReason === entry.disabledReason;
     return {
       id: entry.id,
-      label: entry.opens === 'back' ? <span className="font-normal text-[var(--text-muted)]">{entry.title}</span> : labelOf(entry),
+      label:
+        entry.opens === 'back' ? (
+          <span className="font-normal text-[var(--text-muted)]">{entry.title}</span>
+        ) : (
+          // A name wider than the row is cut with an ellipsis; the title keeps the whole name readable (#2961).
+          <span className="block truncate" title={entry.title}>
+            {labelOf(entry)}
+          </span>
+        ),
       description: repeated ? undefined : (entry.disabledReason ?? shownHint(entry)),
       hint: repeated ? entry.disabledReason : undefined,
       leading: entry.icon ? <Icon name={entry.icon} /> : undefined,
@@ -247,7 +262,7 @@ function JumpMenu({
     <>
       {/* The typed text starts 12 px in, where the group headings and the rows' labels do (alignment audit XSL-15): 4 px to the box,
           its 1 px border and 7 px inside it. */}
-      <div className="border-b border-[var(--border)] px-1 py-2">
+      <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-1 py-2">
         <TextField
           className="pl-[0.4375rem]!"
           label="Jump menu"
@@ -291,18 +306,26 @@ function JumpMenu({
           </span>
         ) : null}
         <span role="status" className="sr-only">
-          {searching ? searchStatus(entries) : ''}
+          {searching ? searchStatus(allEntries, entries.length) : ''}
         </span>
       </div>
-      <Listbox
-        id={listId}
-        label="Jump menu results"
-        options={options}
-        activeIndex={activeIndex}
-        onPick={(id) => choose(entries.find((entry) => entry.id === id))}
-        empty="Nothing matches"
-        flush
-      />
+      {/* The dialog scrolls, not the list, so the search field stays pinned and the arrow keys scroll a row to just below it (not under it). */}
+      <div className="[&_[role=option]]:scroll-mt-16">
+        <Listbox
+          id={listId}
+          label="Jump menu results"
+          options={options}
+          activeIndex={activeIndex}
+          onPick={(id) => choose(entries.find((entry) => entry.id === id))}
+          empty="Nothing matches"
+          footer={
+            allEntries.length > entries.length ? (
+              <p className="px-3 py-2 text-xs text-[var(--text-muted)]">{`Showing ${entries.length} of ${allEntries.length}`}</p>
+            ) : undefined
+          }
+          flush
+        />
+      </div>
       {/* The last row keeps an inset above the dialog's edge when the list scrolls (alignment audit XSL-16, R3SL-7). */}
       <div aria-hidden="true" data-jump-end className="h-2 flex-none" />
     </>
