@@ -58,7 +58,7 @@ kill -0 "$(cat "$WORK/jackd.pid")" 2>/dev/null || { echo "jackd did not start; s
 (
   cd "$REAPER_DIR"
   NS_SESSION="$SESSION" NS_REAPER_DIR="$REPO/src/studio/integrations/reaper" NS_CFG="$CFG" \
-    exec setsid xvfb-run -a ./reaper -nosplash -newinst -cfgfile "$CFG/reaper.ini" "$PROJECT/Book.rpp" "$HERE/launcher.lua"
+    exec setsid xvfb-run -a ./reaper -nosplash -newinst -cfgfile "$CFG/reaper.ini" "$PROJECT/Book.rpp" "$REPO/src/studio/integrations/reaper/spikes/real_app_rig_launcher.lua"
 ) > "$WORK/reaper.log" 2>&1 &
 echo $! > "$WORK/reaper.pid"
 for _ in $(seq 1 60); do [ -f "$SESSION/ready" ] && break; sleep 2; done
