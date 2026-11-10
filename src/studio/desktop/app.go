@@ -1597,6 +1597,9 @@ func (h *Host) Ready() map[string]any {
 }
 
 func (h *Host) Bootstrap() map[string]any {
+	// The Booth's press asks for this just before its start tone (useRecordControl.toggle), so "bootstrapped" is when the tone starts.
+	h.timeline.Note("bootstrap_call")
+	defer h.timeline.Note("bootstrapped")
 	// The first Bootstrap means the window loaded and the UI accepted this host: an update that was just installed has worked.
 	h.confirmUpdate.Do(h.confirmInstalledUpdate)
 	svc := h.services()

@@ -147,3 +147,44 @@ func TestAPressWaitsForAnAwaitedStepBeforeItsLineIsWritten(t *testing.T) {
 		t.Fatalf("a step after the press ended wrote %q", written)
 	}
 }
+
+// A press that starts with the Start from here lookup keeps it on its line: the model check joins the press instead of starting a new one,
+// and the project check between the model check and the start tone is stamped.
+func TestAPressJoinsItsLookupAndStampsTheProjectCheckBeforeTheTone(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Join("punch_lookup")
+	c.step(300 * time.Millisecond)
+	timeline.Mark("punch_looked_up")
+	timeline.Join("assets_list")
+	c.step(20 * time.Millisecond)
+	timeline.Note("bootstrap_call")
+	c.step(4 * time.Second)
+	timeline.Note("bootstrapped")
+	timeline.Finish("recording", "started")
+	want := "punch_lookup=0 punch_looked_up=300 assets_list=300 bootstrap_call=320 bootstrapped=4320 recording=4320"
+	if len(written) != 1 || !strings.Contains(written[0], want) {
+		t.Fatalf("line = %q, want it to hold %q", written, want)
+	}
+}
+
+// Join after a quiet gap starts a new press, and Note outside a press stamps nothing: a page that asks for the project all the time
+// leaves no marks between presses.
+func TestNoteBetweenPressesStampsNothingAndAStaleJoinStartsOver(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Note("bootstrapped")
+	if timeline.pending() != 0 {
+		t.Fatalf("a Note with no press under way kept %d marks", timeline.pending())
+	}
+	timeline.Join("punch_lookup")
+	c.step(leadGap + time.Second)
+	timeline.Note("bootstrapped")
+	if timeline.pending() != 1 {
+		t.Fatalf("a Note long after the last step joined the press: %d marks", timeline.pending())
+	}
+	timeline.Join("assets_list")
+	if timeline.pending() != 1 {
+		t.Fatalf("a Join long after the last step kept the old press: %d marks", timeline.pending())
+	}
+}

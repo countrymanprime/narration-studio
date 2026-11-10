@@ -54,6 +54,37 @@ func (t *Timeline) Begin(step string) {
 	t.awaited, t.ended = nil, ""
 }
 
+// Join starts a press at step, or joins the one under way when its last step was less than leadGap ago: a press whose first host call
+// came before the one that used to start it (the Start from here lookup before the model check) keeps that call on its line.
+func (t *Timeline) Join(step string) {
+	if t == nil || !t.on() {
+		return
+	}
+	at := t.now()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if n := len(t.marks); n > 0 && t.ended == "" && at.Sub(t.marks[n-1].at) <= leadGap {
+		t.marks = append(t.marks, mark{step, at})
+		return
+	}
+	t.marks = append(t.marks[:0], mark{step, at})
+	t.awaited, t.ended = nil, ""
+}
+
+// Note stamps step only in a press under way (its last step less than leadGap ago): a call the page makes all the time, such as the
+// project check, stamps nothing between presses and never grows the list.
+func (t *Timeline) Note(step string) {
+	if t == nil || !t.on() {
+		return
+	}
+	at := t.now()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if n := len(t.marks); n > 0 && t.ended == "" && at.Sub(t.marks[n-1].at) <= leadGap {
+		t.marks = append(t.marks, mark{step, at})
+	}
+}
+
 // Await says the press under way is not over until step is stamped: a Finish before it holds the line until then. Listening and the
 // recording start together, and either can answer first.
 func (t *Timeline) Await(step string) {
