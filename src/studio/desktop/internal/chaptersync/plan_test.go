@@ -1,6 +1,7 @@
 package chaptersync
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -282,5 +283,30 @@ func TestTheSnapshotRemembersWhenEachTrackLastChanged(t *testing.T) {
 		if state.GUID == "{1}" && (state.ChangedAt == nil || !state.ChangedAt.Equal(second)) {
 			t.Fatalf("an unchanged track keeps its change time, got %v", state.ChangedAt)
 		}
+	}
+}
+
+// #3272: planning a whole book resolves every chapter from one resolver, so a track's name is matched against the titles a bounded number of
+// times, not once per chapter. 44 chapters against 64 tracks was 2,816 matches (about 0.9 s) when each chapter built its own.
+func TestPlanningAWholeBookMatchesEachTrackNameAFixedNumberOfTimes(t *testing.T) {
+	var chapters []chaptermatch.Chapter
+	var list []tracks.Track
+	for i := range 44 {
+		title := fmt.Sprintf("Chapter %d", i+1)
+		chapters = append(chapters, chaptermatch.Chapter{ID: fmt.Sprintf("c-%04d", i+1), Title: title})
+		list = append(list, track(fmt.Sprintf("{T%d}", i+1), title))
+	}
+	for i := range 20 {
+		list = append(list, track(fmt.Sprintf("{X%d}", i+1), fmt.Sprintf("Extra %d", i+1)))
+	}
+	before := chaptermatch.TitleMatchCalls()
+	plan := Build(Input{Chapters: chapters, Project: project(list...)})
+	calls := chaptermatch.TitleMatchCalls() - before
+	if len(plan.AutoLink) != 44 {
+		t.Fatalf("AutoLink has %d links, want one per chapter", len(plan.AutoLink))
+	}
+	// One match per track name for the resolver, and a few for the mutual check of each link: far below chapters x tracks (2,816).
+	if limit := int64(4 * len(list)); calls > limit {
+		t.Fatalf("planning %d chapters against %d tracks ran %d title matches, want at most %d", len(chapters), len(list), calls, limit)
 	}
 }

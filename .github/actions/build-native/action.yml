@@ -47,6 +47,13 @@ runs:
     # pinned version. The build fails if makensis is missing or no installer came out, so a runner image change cannot silently drop it.
     # The first choice is the official NSIS zip from SourceForge, checked against a pinned SHA-256 (the digest SourceForge lists for the file);
     # Chocolatey is the fallback, because its community feed answered 503 to every request for four minutes on 2026-10-19 and failed the build.
+    # The verified zip is cached under its SHA-256, so once one run on main has fetched it a SourceForge outage no longer fails a pull request.
+    - name: Cache the NSIS zip
+      if: inputs.platform == 'windows-x64'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/nsis-cache
+        key: nsis-zip-c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1
     - name: Install NSIS (makensis) for the Windows setup program
       if: inputs.platform == 'windows-x64'
       shell: bash
@@ -58,9 +65,12 @@ runs:
       run: |
         install_dir="/c/Program Files (x86)/NSIS"
         install_from_zip() {
-          local zip="$RUNNER_TEMP/nsis.zip" unzipped="$RUNNER_TEMP/nsis-unzipped" attempt
+          local zip="$RUNNER_TEMP/nsis-cache/nsis.zip" unzipped="$RUNNER_TEMP/nsis-unzipped" attempt
+          mkdir -p "$RUNNER_TEMP/nsis-cache"
           for attempt in 1 2 3; do
-            if curl --fail --silent --show-error --location --max-time 180 --output "$zip" "$NSIS_ZIP_URL" \
+            # A cached zip is trusted only after the same SHA-256 check; a bad one is downloaded again.
+            if { echo "$NSIS_ZIP_SHA256  $zip" | sha256sum --check --status 2> /dev/null \
+              || curl --fail --silent --show-error --location --max-time 180 --output "$zip" "$NSIS_ZIP_URL"; } \
               && echo "$NSIS_ZIP_SHA256  $zip" | sha256sum --check --status; then
               rm -rf "$unzipped"
               powershell -NoProfile -Command "Expand-Archive -LiteralPath '$(cygpath -w "$zip")' -DestinationPath '$(cygpath -w "$unzipped")' -Force" || return 1
