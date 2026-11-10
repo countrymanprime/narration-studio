@@ -11,7 +11,7 @@ import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import { NoAudioBanner } from './NoAudioBanner';
-import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
+import { canSaveFromApp, SAVE_GIVES_UP_MS, useSaveInDaw } from './useSaveInDaw';
 
 // #3262: the Save in REAPER and read button. A click saves, then reads; a refusal is an error toast; two clicks are one save.
 
@@ -106,6 +106,54 @@ describe('useSaveInDaw, leaving and empty answers', () => {
     act(() => second.result.current.onSave());
     expect(save).toHaveBeenCalledTimes(1);
     await act(async () => finish(result({})));
+  });
+});
+
+describe('useSaveInDaw, blank answers, huge answers, silence and remounting', () => {
+  it.each(['   ', '\u202e', ' \u200f '])('a refusal of %j still says the project was not saved', async (blank) => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const { result: hook } = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(async () => refusal(blank))) });
+    act(() => hook.current.onSave());
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The project was not saved.', { tone: 'error' }));
+    toast.mockRestore();
+  });
+
+  it('cuts a huge answer so a toast cannot cover the header', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const { result: hook } = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(async () => refusal('x'.repeat(10_000)))) });
+    act(() => hook.current.onSave());
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect((toast.mock.calls[0][0] as string).length).toBeLessThanOrEqual(400);
+    toast.mockRestore();
+  });
+
+  it('a save the DAW never answers ends in a refusal and the button can be pressed again', async () => {
+    vi.useFakeTimers();
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const { result: hook } = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(() => new Promise<DawResult>(() => {}))) });
+    act(() => hook.current.onSave());
+    expect(hook.current.saving).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SAVE_GIVES_UP_MS + 10);
+    });
+    expect(toast).toHaveBeenCalledWith(expect.stringMatching(/did not answer the save/), { tone: 'error' });
+    expect(hook.current.saving).toBe(false);
+    toast.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('a page opened again while a save runs shows it as running and reads once it is done', async () => {
+    let finish: (r: DawResult) => void = () => {};
+    const save = vi.fn(() => new Promise<DawResult>((r) => (finish = r)));
+    const first = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(save)) });
+    act(() => first.result.current.onSave());
+    first.unmount();
+    const reread = vi.fn();
+    const second = renderHook(() => useSaveInDaw(reread), { wrapper: wrap(clientSaving(save)) });
+    expect(second.result.current.saving).toBe(true);
+    await act(async () => finish(result({})));
+    expect(second.result.current.saving).toBe(false);
+    expect(reread).toHaveBeenCalledTimes(1);
   });
 });
 
