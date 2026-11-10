@@ -345,6 +345,27 @@ describe("the Booth's voices", () => {
     expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
   });
 
+  // A read that never answers must not hold every later read back: after the limit it fails with a toast, and the next poll reads again.
+  // (It waits the real limit, 8 s.)
+  it('tells the narrator when a read never answers, and reads again after it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.tracksLive.bind(api);
+    let calls = 0;
+    api.tracksLive = async () => {
+      calls += 1;
+      if (calls === 1) return new Promise(() => {});
+      return real();
+    };
+    const { notify, hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 8500)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    expect(calls).toBeGreaterThan(1);
+  }, 20_000);
+
   // A run where both reads fail reports one failure, not two toasts.
   it('reports one failure for a run where both reads fail', async () => {
     const api = createMockApi({}, { voiceFolders: true });

@@ -7,7 +7,7 @@ import { usePort } from '../../../ports/usePort';
 import { destinationFor, type ChapterLinkKind } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
-import { LIVE_TRACKS_POLL_MS } from '../../engine/useLiveTracks';
+import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 
@@ -125,7 +125,7 @@ export function useBoothVoices({
       reported = true;
       failed(reason, pressed);
     };
-    void (async () => {
+    const work = (async () => {
       const map = await links.chapterTrackMapList();
       if (!live) return;
       const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
@@ -163,9 +163,17 @@ export function useBoothVoices({
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
         added: voice?.added ?? [],
       });
-    })()
+    })();
+    // A read that never answers must not hold every later read back (as useLiveTracks): after the limit the run fails, so the poll reads
+    // again and the narrator is told.
+    let timer = 0;
+    const limit = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
+    });
+    void Promise.race([work, limit])
       .catch((reason: unknown) => live && report(reason))
       .finally(() => {
+        window.clearTimeout(timer);
         if (run === runId.current) inFlight.current = false;
       });
     return () => {
