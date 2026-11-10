@@ -670,10 +670,7 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       'a Start from here press': (h: Hook) => h.hook.result.current.startFromHere(1),
     } as const;
     for (const [kind, first] of Object.entries(kinds)) {
-      for (const [where, caps] of [
-        ['a DAW that can punch', SETUPS.reaper],
-        ['a DAW that cannot punch', SETUPS.reaperOff],
-      ] as const) {
+      for (const [where, caps] of [['a DAW that can punch', SETUPS.reaper]] as const) {
         it(`${kind}, ${where}: the lookup is out`, async () => {
           const late = gate();
           const punchTarget = vi.fn((p: number) => (p === 1 ? late.promise : Promise.resolve(found(p))));
@@ -767,10 +764,25 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       });
     }
 
-    it('a plain press during a Start from here lookup on a DAW that cannot punch is told, once, and starts nothing', async () => {
+    it('a plain press during a Start from here lookup on a DAW that cannot punch is not refused: it starts the take once, as before (#3329 owns this path)', async () => {
       const late = gate();
       const punchTarget = vi.fn(() => late.promise);
       const h = setup(SETUPS.reaperOff, { recording: false, punchAt: null, punchTarget });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+      expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+      late.resolve(found(1));
+      await act(() => pressed);
+    });
+
+    it('a plain press during a Start from here lookup on a DAW that can punch is told, once, and starts nothing', async () => {
+      const late = gate();
+      const punchTarget = vi.fn(() => late.promise);
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: null, punchTarget });
       let pressed: Promise<unknown> = Promise.resolve();
       act(() => {
         pressed = h.hook.result.current.startFromHere(1);

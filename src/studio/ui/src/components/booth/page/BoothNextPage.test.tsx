@@ -2713,7 +2713,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('7');
     });
-    it('a plain Space during a Start from here lookup on a DAW that cannot punch says so and starts nothing', async () => {
+    it('a plain Space during a Start from here lookup on a DAW that cannot punch starts the take, as before (#3329 owns this path)', async () => {
       const lookup = slowLookup();
       const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
       await ready();
@@ -2721,10 +2721,15 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await settle();
       expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
       await space();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(said(page)).not.toContain(BUSY);
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+      await act(async () => lookup.answer(FOUND));
       await settle();
-      expect(said(page).filter((text) => text === BUSY)).toHaveLength(1);
-      expect(page.daw.recordStart).not.toHaveBeenCalled();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     });
+
     it('during a slow model check', () => refused('model check'));
     it('during a slow record start', () => refused('record start'));
   });
