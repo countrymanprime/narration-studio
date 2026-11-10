@@ -60,7 +60,7 @@ type Props = {
   /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: Medium, the Reader text default. */
   width?: string;
   viewRef?: Ref<BrowseView>;
-  /** Ids of the paragraphs that open a page after the first: each gets 2em above it and its marker sits 0.6 of the text size clear of the first line, so its page-break marker (`PageBreaks`) has room. */
+  /** Ids of the paragraphs that open a page after the first: each gets 2em above it and its marker sits 0.8 of the text size clear of the first line, so its page-break marker (`PageBreaks`) has room. */
   pageStarts?: ReadonlySet<string>;
   /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
   margin?: ReactNode;

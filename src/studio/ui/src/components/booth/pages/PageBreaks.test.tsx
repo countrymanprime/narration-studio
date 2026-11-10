@@ -20,7 +20,7 @@ describe('PageBreaks', () => {
     expect(marker.textContent).toBe('Page 2');
     expect(marker.dataset).toMatchObject({ pageBreak: '2', paragraphId: 'p1', offset: '4' });
     // The lift scales with the Booth text size, so the room below the rule grows with the room above the page.
-    expect(marker.style.marginTop).toBe('calc(var(--tsize) * -0.6)');
+    expect(marker.style.marginTop).toBe('calc(var(--tsize) * -0.8)');
     expect(container.querySelector('[data-page-breaks]')?.className).toContain('h-0');
   });
 
