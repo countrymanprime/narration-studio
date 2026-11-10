@@ -208,6 +208,33 @@ function Swap({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }
   );
 }
 
+describe('replacesPressed, a button that was already there', () => {
+  it("goes through when the click before it was on a different, vanished control (another row's Download)", () => {
+    vi.useFakeTimers();
+    try {
+      const second = vi.fn();
+      const Pair = () => {
+        const [first, setFirst] = useState(true);
+        return (
+          <>
+            {first && <button onClick={() => setFirst(false)}>First</button>}
+            <Button replacesPressed onClick={second}>
+              Second
+            </Button>
+          </>
+        );
+      };
+      render(<Pair />);
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      fireEvent.click(screen.getByRole('button', { name: 'First' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+      expect(second).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('replacesPressed', () => {
   it('ignores a press right after a click on a control that has since been replaced, and only that', () => {
     vi.useFakeTimers();

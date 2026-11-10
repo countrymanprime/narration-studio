@@ -99,15 +99,15 @@ export function BackgroundCheckStatus({
       {corner.kind === 'running' && <ProgressBar label={`Checking ${corner.title} in the background`} value={corner.state.percent} running size="thin" />}
       {(corner.kind === 'running' || corner.kind === 'queued') && (
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={onPause}>
+          <Button size="sm" variant="secondary" replacesPressed onClick={onPause}>
             Pause
           </Button>
           {corner.kind === 'running' && (
-            <Button size="sm" variant="ghost" onClick={onCancel}>
+            <Button size="sm" variant="ghost" replacesPressed onClick={onCancel}>
               Cancel
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="ml-auto" aria-expanded onClick={() => setCollapsed(true)}>
+          <Button size="sm" variant="ghost" className="ml-auto" aria-expanded replacesPressed onClick={() => setCollapsed(true)}>
             Hide
           </Button>
         </div>

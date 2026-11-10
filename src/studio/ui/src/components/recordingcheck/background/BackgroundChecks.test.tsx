@@ -167,6 +167,16 @@ describe('BackgroundChecks', () => {
     expect(screen.getByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();
   });
 
+  it('a double click on the chip does not cancel the check, and a double click on Resume does not pause again (class of #3034)', async () => {
+    const { coverageCancel } = mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
+    await outwaitEcho();
+    fireEvent.click(await screen.findByRole('button', { name: /Checking in the background · 42%/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(coverageCancel).not.toHaveBeenCalled();
+  });
+
   it('starts folded in the Booth, so it never covers the text being read', async () => {
     mount({ backgroundChecks: 'running' }, true);
     expect(await screen.findByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();

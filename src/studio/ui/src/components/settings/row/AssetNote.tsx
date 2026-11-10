@@ -61,7 +61,8 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
             {view.status === 'repair' ? 'Repair' : 'Download'}
           </Button>
         )}
-        <Button variant="link" size="sm" onClick={() => showCategory('models')}>
+        {/* Keyed by the state: the link slides under the pointer when Download shrinks to Cancel, so it is a new button each time and ignores that echo. */}
+        <Button key={busy ? 'models-busy' : 'models'} variant="link" size="sm" replacesPressed onClick={() => showCategory('models')}>
           Models &amp; downloads
         </Button>
       </div>

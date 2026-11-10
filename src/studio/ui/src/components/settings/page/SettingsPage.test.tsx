@@ -381,6 +381,21 @@ describe('Settings: row layout', () => {
     expect(cancelled).not.toHaveBeenCalled();
   });
 
+  it("a double click on the note's Download does not follow the Models & downloads link that slides under it (#3034)", async () => {
+    await renderPage();
+    pick('Voice & pronunciation');
+    const note = await waitFor(() => {
+      const found = row('voice.id').querySelector<HTMLElement>('[data-asset-note]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    fireEvent.click(within(note).getByRole('button', { name: 'Download LJ Speech (US English, high)' }));
+    await within(note).findByRole('button', { name: /^Cancel the download of LJ Speech/ });
+    fireEvent.click(within(note).getByRole('button', { name: 'Models & downloads' }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(screen.queryByRole('table', { name: 'Models, voices and tools' })).toBeNull();
+  });
+
   it("a double click on the note's Download starts the download and does not cancel it (#3034)", async () => {
     const api = createMockApi();
     const cancelled = vi.spyOn(api, 'assetsInstallCancel');
