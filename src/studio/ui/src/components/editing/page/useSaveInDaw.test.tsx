@@ -248,15 +248,19 @@ describe('useSaveShortcut', () => {
     toast.mockRestore();
   });
 
-  it('leaves Ctrl+S to a text field and does not save', () => {
+  it('saves from a text field too (no field here answers Ctrl+S) and keeps the browser from saving the page', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const save = vi.fn(async () => result({}));
     renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving(save)) });
-    const field = document.createElement('input');
+    const field = document.createElement('textarea');
     document.body.append(field);
     const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 's', code: 'KeyS', ctrlKey: true });
     act(() => void field.dispatchEvent(event));
-    expect(save).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
     field.remove();
+    toast.mockRestore();
   });
 
   it('an Editing page open during a Ctrl+S save shows it running and reads when it is done', async () => {
