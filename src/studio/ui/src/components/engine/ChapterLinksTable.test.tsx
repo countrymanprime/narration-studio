@@ -159,7 +159,9 @@ describe('ChapterLinksTable', () => {
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
-    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
+    await within(opening).findByRole('button', { name: /^Clear the link for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
     const select = (await within(opening).findByRole('combobox')) as HTMLSelectElement;
     expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
     expect(
