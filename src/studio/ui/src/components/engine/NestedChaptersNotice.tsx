@@ -5,6 +5,7 @@ import { IconButton } from '../primitives/IconButton';
 import { StatusBadge } from '../primitives/StatusBadge';
 import type { ChapterFolders } from '../../api/contracts/chapterTrackMap';
 import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 // A name in the title and the summary is cut to this many characters: a REAPER track name can be any length (qa-breaker B4).
 const NAME_MAX = 60;
@@ -85,7 +86,7 @@ export function NestedChaptersNotice({
             {shown.moves.map((move) => (
               <li key={move.trackGuid} className="line-clamp-3">
                 <strong>
-                  <bdi>{short(move.trackName) || 'Unnamed track'}</bdi>
+                  <bdi>{trackName(short(move.trackName))}</bdi>
                 </strong>
                 {': out of '}
                 <bdi>{folderOf(move.fromName)}</bdi>
