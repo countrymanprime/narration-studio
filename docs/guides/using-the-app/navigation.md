@@ -229,7 +229,7 @@ different chapter is left alone unless you tick **Overwrite items already stampe
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
 since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
-the button. This is not the same as the
+the button. A stamp does not fill the list: press **Read current stamps** to see what it wrote, and the list says "Nothing is stamped yet" only after a read that found nothing. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 

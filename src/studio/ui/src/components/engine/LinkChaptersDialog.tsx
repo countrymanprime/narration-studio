@@ -86,7 +86,19 @@ function LineStatusRow({ line }: { line: LineIdentityLine }) {
 
 /** Reads current stamped identity from REAPER and shows every row's status (ok, drift, stale-source, removed, unrecognized,
  * unknown), so a narrator can see what "Link chapters" would change before running it again. */
-function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityState; error: string; onRead: () => void; pending: boolean }) {
+function CurrentStamps({
+  state,
+  error,
+  onRead,
+  pending,
+  afterRead,
+}: {
+  state: LineIdentityState;
+  error: string;
+  onRead: () => void;
+  pending: boolean;
+  afterRead: boolean;
+}) {
   return (
     <section aria-labelledby="current-stamps-heading" className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
       {/* The heading and its button wrap as a pair at a narrow width rather than squeezing the button's label (R3EN2-17). */}
@@ -119,7 +131,8 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
           </TableBody>
         </Table>
       )}
-      {state.phase === 'success' && state.lines.length === 0 && (
+      {/* Only after Read: a Stamp finishes in 'success' with no lines read, and the host does not read them back, so "nothing" would be false (#3053). */}
+      {afterRead && state.phase === 'success' && state.lines.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Nothing is stamped yet.
         </p>
@@ -314,7 +327,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </Checkbox>
       </div>
 
-      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} />
+      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} afterRead={lastAction === 'read'} />
     </Dialog>
   );
 }

@@ -207,6 +207,13 @@ describe('LinkChaptersDialog', () => {
     expect(screen.getByText(/Already stamped with a different chapter/)).toBeTruthy();
   });
 
+  it('does not say nothing is stamped after a stamp, which reads no lines back (#3053)', async () => {
+    renderDialog({}, { lineIdentity: 'conflict' });
+
+    expect(await screen.findByText(/Stamped 1 item, 1 stale item, 1 conflict\./)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
   it('shows a REAPER error state', async () => {
     renderDialog({}, { lineIdentity: 'error' });
 
