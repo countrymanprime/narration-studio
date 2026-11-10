@@ -169,12 +169,12 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
 
 /** What a Confirm on an unchanged link found: the track as it is now, its voices in a folder, and whether its name moved. */
 export function recheckSentence(short: string, was: string | undefined, tracks: Track[], guid: string | undefined): string {
-  const track = tracks.find((candidate) => candidate.guid === guid);
-  if (!track) return `${short} is linked to a track that is no longer in the project. Choose another track or clear the link.`;
-  const voices = track.isFolder ? folderChildren(tracks, track.guid).length : 0;
-  const what = track.isFolder ? `${voices} ${voices === 1 ? 'voice' : 'voices'}` : 'a single track';
-  if (was !== undefined && was !== track.name) return `Updated: ${short}'s track was “${was}” and is now “${track.name}” (${what}).`;
-  return `${short} is linked to “${track.name}” (${what}). Nothing changed.`;
+  const found = tracks.find((candidate) => candidate.guid === guid);
+  if (!found) return `${short} is linked to a track that is no longer in the project. Choose another track or clear the link.`;
+  const voices = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
+  const what = found.isFolder ? `${voices} ${voices === 1 ? 'voice' : 'voices'}` : 'a single track';
+  if (was !== undefined && was !== found.name) return `Updated: ${short}'s track was “${was}” and is now “${found.name}” (${what}).`;
+  return `${short} is linked to “${found.name}” (${what}). Nothing changed.`;
 }
 
 /** The done toast: what the DAW made, named as it was given, and that it is not saved yet. */
