@@ -111,4 +111,20 @@ describe('the Editing page reads the chapter audio through the track it is linke
     const source = result.current.source;
     expect(source.status === 'ready' && source.read.items).toHaveLength(1);
   });
+
+  it('a book folder holding chapter folders whose voices are folders of takes: each chapter, and the book, has its audio', async () => {
+    const tracks = [
+      track('Book', 0, true),
+      track('Ch1', 1, true),
+      track('Narrator', 2, true),
+      track('N-take', 3, false, [item('n1')]),
+      track('Hero', 2, true),
+      track('H-take', 3, false),
+      track('Ch2', 1, true),
+      track('Narr2', 2, false, [item('x')]),
+    ];
+    expect(await audioOf(read(tracks, 'Ch1').result)).toBe('ready');
+    expect(await audioOf(read(tracks, 'Ch2').result)).toBe('ready');
+    expect(await audioOf(read(tracks, 'Book').result)).toBe('ready');
+  });
 });

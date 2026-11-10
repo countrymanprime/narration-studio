@@ -40,7 +40,7 @@
   "unlinked": {
     "outcome": "refused",
     "reason": "unlinked",
-    "message": "\"Chapter III: A Caucus-Race and a Long Tale\" has no linked track. Link it to its REAPER track in the audio engine panel."
+    "message": "\"Chapter III: A Caucus-Race and a Long Tale\" has no linked folder. Link it to its REAPER folder in the audio engine panel."
   },
   "unsupported": {
     "outcome": "refused",

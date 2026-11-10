@@ -409,7 +409,7 @@ describe('the not-linked dialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create a new track' }));
     await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
     expect(chapterTrackCreate).toHaveBeenCalledWith('c3');
-    expect(onLinked.mock.calls[0][1]).toEqual({ guid: '{NEW}', name: 'Chapter 3', index: 3 });
+    expect(onLinked.mock.calls[0][1]).toMatchObject({ outcome: 'created', track: { guid: '{NEW}', name: 'Chapter 3', index: 3 } });
   });
 
   it('offers to create a track beside the list, and a double press adds one track', async () => {
@@ -437,7 +437,8 @@ describe('the not-linked dialog', () => {
         </ApiProvider>,
       );
     const listed = folders(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match() });
-    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await screen.findByRole('combobox', { name: 'Folder for Chapter 3' });
+    expect(screen.getByRole('button', { name: 'Link folder' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create a new folder' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Create a new track' })).toBeNull();
     expect(screen.getByText(/Or have REAPER add a new folder for this chapter, named after it with a Narrator track in it, and link it:/)).toBeTruthy();

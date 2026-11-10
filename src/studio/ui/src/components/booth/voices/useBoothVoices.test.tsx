@@ -5,7 +5,8 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
-import { FLAT_VOICE_KEYS, useBoothVoices, type BoothVoices } from './useBoothVoices';
+import { destinationFor } from '../../engine/destination';
+import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
 afterEach(cleanup);
 
@@ -99,7 +100,32 @@ describe("the Booth's voices", () => {
     expect(hook.current.voices).toEqual([]);
     await act(async () => hook.current.byKey(1));
     await act(async () => hook.current.step(1));
-    expect(notify).toHaveBeenCalledWith(FLAT_VOICE_KEYS, 'info');
+    expect(notify).toHaveBeenCalledWith(destinationFor('flat').noVoiceKeys('none'), 'info');
+  });
+
+  // #3271: in a Voice folders project the voice keys never say a chapter records on one track; what they say follows what the chapter is linked to.
+  it.each([
+    ['a folder the saved project does not hold yet (just made)', [], 'unknown'],
+    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track'],
+    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
+  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
+    const api = createMockApi({
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', tracks: [] }),
+      chapterTrackMapList: async () => ({
+        documentId: 'd',
+        mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
+      }),
+      tracksList: async () => ({
+        path: 'a.rpp',
+        tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
+      }),
+    });
+    const { notify, hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    await act(async () => hook.current.byKey(1));
+    expect(hook.current.linkKind).toBe(kind);
+    expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
+    expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
   });
 
   it('a refused choice is a toast and keeps the voice', async () => {
