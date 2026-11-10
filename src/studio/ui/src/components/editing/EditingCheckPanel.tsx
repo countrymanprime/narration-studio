@@ -16,6 +16,7 @@ import type {
   StageUnknownCause,
   Track,
 } from '../../types';
+import { trackHeldByOther } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -65,6 +66,8 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
   const api = useApi();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
+  // A pick another chapter holds is refused here, beside the picker, so the picker stays and the panel's own error line keeps its meaning.
+  const [held, setHeld] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
@@ -84,23 +87,33 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
     );
   if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
   return (
-    <MappingConfirm
-      chapterTitle={chapterName(chapter, 'short')}
-      tracks={tracks}
-      busy={confirming.isBusy}
-      onConfirm={(trackGuid) =>
-        void confirming.run('confirm', async () => {
-          try {
-            await api.chapterTrackMapConfirm(trackGuid, chapter.id);
-            setError('');
-            onLinked();
-          } catch (reason) {
-            setError(describeApiError(reason));
-          }
-        })
-      }
-      onClear={() => {}}
-    />
+    <>
+      <MappingConfirm
+        chapterTitle={chapterName(chapter, 'short')}
+        tracks={tracks}
+        busy={confirming.isBusy}
+        onConfirm={(trackGuid) =>
+          void confirming.run('confirm', async () => {
+            try {
+              const taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+              setHeld(taken);
+              if (taken) return;
+              await api.chapterTrackMapConfirm(trackGuid, chapter.id);
+              setError('');
+              onLinked();
+            } catch (reason) {
+              setError(describeApiError(reason));
+            }
+          })
+        }
+        onClear={() => {}}
+      />
+      {held && (
+        <p role="alert" className="m-0 text-sm" style={{ color: 'var(--danger-text)' }}>
+          {held}
+        </p>
+      )}
+    </>
   );
 }
 

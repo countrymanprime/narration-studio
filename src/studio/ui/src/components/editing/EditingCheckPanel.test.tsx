@@ -131,6 +131,25 @@ describe('EditingCheckPanel', () => {
     await waitFor(() => expect(within(dialog).queryByText(/This chapter can.t be checked yet/)).toBeNull());
   });
 
+  it('refuses to link a track another chapter holds, and says which chapter (#3053)', async () => {
+    const user = userEvent.setup();
+    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
+    const dialog = await panel();
+    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
+    const option = within(select).getAllByRole('option')[1] as HTMLOptionElement;
+    vi.spyOn(api, 'chapterTrackMapList').mockResolvedValue({
+      documentId: 'doc',
+      mappings: [{ trackGuid: option.value, chapterId: 'other-chapter', chapterTitle: 'Chapter 9', confirmedAt: '2026-01-01T00:00:00Z' }],
+    });
+    await user.selectOptions(select, option);
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
+    expect(await within(dialog).findByText(/already linked to Chapter 9/)).toBeTruthy();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(within(dialog).getByText(/This chapter can.t be checked yet/)).toBeTruthy();
+  });
+
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {
     const user = userEvent.setup();
     renderPanel({ editing: { hold: true } });

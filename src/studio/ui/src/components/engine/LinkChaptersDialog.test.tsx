@@ -234,6 +234,18 @@ describe('LinkChaptersDialog', () => {
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
+  it('says so when a second stamp finds every item already stamped, and offers Close (#3053 review)', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    const stamp = () => user.click(screen.getByRole('button', { name: /^Stamp \d+ item/ }));
+    await stamp();
+    expect(await screen.findByText(/^Stamped \d+ items?\.$/)).toBeTruthy();
+    await stamp();
+    expect(await screen.findByText(/^Stamped 0 items, \d+ already stamped\.$/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
   it('shows a REAPER error state', async () => {
     renderDialog({}, { lineIdentity: 'error' });
 

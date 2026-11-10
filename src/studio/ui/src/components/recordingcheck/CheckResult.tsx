@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
+import { trackHeldByOther } from '../mapping/trackHeldBy';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -167,6 +168,8 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
   const trackMap = usePort('chapterTrackMap');
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
+  // A pick another chapter holds is refused here, beside the picker, so the picker stays and the panel's own error line keeps its meaning.
+  const [held, setHeld] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
@@ -186,22 +189,32 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
     );
   if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
   return (
-    <MappingConfirm
-      chapterTitle={chapterName(chapter, 'short')}
-      tracks={tracks}
-      busy={confirming.isBusy}
-      onConfirm={(trackGuid) =>
-        void confirming.run('confirm', async () => {
-          try {
-            await trackMap.chapterTrackMapConfirm(trackGuid, chapter.id);
-            setError('');
-            await onLinked();
-          } catch (reason) {
-            setError(describeApiError(reason));
-          }
-        })
-      }
-      onClear={() => {}}
-    />
+    <>
+      <MappingConfirm
+        chapterTitle={chapterName(chapter, 'short')}
+        tracks={tracks}
+        busy={confirming.isBusy}
+        onConfirm={(trackGuid) =>
+          void confirming.run('confirm', async () => {
+            try {
+              const taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+              setHeld(taken);
+              if (taken) return;
+              await trackMap.chapterTrackMapConfirm(trackGuid, chapter.id);
+              setError('');
+              await onLinked();
+            } catch (reason) {
+              setError(describeApiError(reason));
+            }
+          })
+        }
+        onClear={() => {}}
+      />
+      {held && (
+        <p role="alert" className="m-0 text-sm" style={{ color: 'var(--danger-text)' }}>
+          {held}
+        </p>
+      )}
+    </>
   );
 }

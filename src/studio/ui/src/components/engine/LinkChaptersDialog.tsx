@@ -180,6 +180,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const owned = useMemo(() => itemsOwnedByChapter(rows, tracks), [rows, tracks]);
   const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
+  // A stamp that ended says so even when every item was already stamped (applied 0, unchanged N); a Read ends in success with these all zero.
+  const stamped = state.phase === 'success' && state.stamp.applied + state.stamp.unchanged + state.stamp.missingCount + state.stamp.conflictsCount > 0;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
@@ -228,7 +230,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         <>
           {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
           <Button variant="secondary" onClick={onClose}>
-            {running || (state.phase === 'success' && state.stamp.applied > 0) ? 'Close' : 'Cancel'}
+            {running || stamped ? 'Close' : 'Cancel'}
           </Button>
           <Button onClick={approve} disabled={preview.length === 0} pending={running}>
             {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
@@ -265,7 +267,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           {state.message}
         </p>
       )}
-      {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
+      {stamped && (
         <div className="mb-3">
           <ToolResult tone={state.stamp.missing.length > 0 || state.stamp.conflicts.length > 0 ? 'warning' : 'success'} message={state.message}>
             {state.stamp.missing.length > 0 && <p className="mt-1">Stale items (their GUID no longer resolves in REAPER): {state.stamp.missing.join(', ')}</p>}
