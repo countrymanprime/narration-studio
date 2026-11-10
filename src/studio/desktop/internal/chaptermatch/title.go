@@ -2,6 +2,7 @@ package chaptermatch
 
 import (
 	"strings"
+	"sync/atomic"
 
 	"desktop/internal/compare"
 )
@@ -55,7 +56,14 @@ type TitleMatch struct {
 // MatchTitle is FindChapterByTrackName with the kind of match kept.
 // Both sides go through LabelTokens, the canonicalising pre-pass, so "Ch. 6", "Chapter VI" and
 // "Sixth Chapter" meet "Chapter 6" as an exact match.
+// titleMatchCalls counts MatchTitle calls: the work a caller that resolves many chapters does, which a test bounds (#3272).
+var titleMatchCalls atomic.Int64
+
+// TitleMatchCalls is how many times MatchTitle has run in this process.
+func TitleMatchCalls() int64 { return titleMatchCalls.Load() }
+
 func MatchTitle(titles []string, name string) TitleMatch {
+	titleMatchCalls.Add(1)
 	return MatchTitleWith(compare.Tokenizer{}, titles, name)
 }
 
