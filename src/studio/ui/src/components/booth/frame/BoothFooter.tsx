@@ -3,6 +3,7 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
+import { PENDING_ID } from '../record/RecordControl';
 import { HeaderChip } from '../../primitives/HeaderChip';
 import { SplitButton } from '../../primitives/SplitButton';
 import { KeyHints } from '../../primitives/KeyHints';
@@ -74,6 +75,7 @@ export function BoothFooter({
   seconds,
   recording,
   startsAt,
+  startPending = false,
   why,
   quietWhy = false,
   listenWhy,
@@ -92,6 +94,8 @@ export function BoothFooter({
   recording: boolean;
   /** Where the next take starts when the narrator chose a start ("Starts at ¶ 3"): a chip beside the timer, absent when none is chosen. */
   startsAt?: string;
+  /** A press is starting a take: said once in a polite status line, and the Record button is described by it. */
+  startPending?: boolean;
   why?: string;
   /**
    * A setup notice above says why already: the sentence stays for Record's description (`aria-describedby`) but is not drawn, so the
@@ -163,6 +167,9 @@ export function BoothFooter({
             {timerText(seconds)}
           </span>
           {startsAt ? <HeaderChip>{startsAt}</HeaderChip> : null}
+          <span id={PENDING_ID} role="status" className="sr-only">
+            {startPending ? 'Starting the take…' : ''}
+          </span>
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

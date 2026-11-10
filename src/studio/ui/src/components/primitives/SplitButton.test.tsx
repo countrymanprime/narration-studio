@@ -38,7 +38,7 @@ describe('SplitButton', () => {
     expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');
   });
 
-  it('pending says so as Button does: busy, a spinner, a press ignored, still focusable', async () => {
+  it('pending says so as Button does: busy, a spinner, a press ignored, still focusable, the label not dimmed', async () => {
     const onMain = vi.fn();
     render(
       <SplitButton label="Recording">
@@ -53,6 +53,7 @@ describe('SplitButton', () => {
     expect(main.getAttribute('aria-disabled')).toBe('true');
     expect(main.hasAttribute('disabled')).toBe(false);
     expect(main.querySelector('svg')).toBeTruthy();
+    expect(main.className).toContain('aria-busy:aria-disabled:opacity-100');
     await userEvent.click(main);
     expect(onMain).not.toHaveBeenCalled();
     cleanup();

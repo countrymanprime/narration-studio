@@ -214,7 +214,8 @@ describe('useRoll', () => {
     const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed since it was last checked.' };
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith(refused.message);
+    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining(refused.message ?? ''));
+    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('let go'));
     expect(actions.clearStart).toHaveBeenCalledTimes(1);
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
@@ -246,7 +247,7 @@ describe('useRoll', () => {
           await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('got no answer about where that passage was recorded'));
         expect(actions.clearStart).toHaveBeenCalledTimes(1);
         expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
@@ -343,6 +344,71 @@ describe('useRoll', () => {
       await act(() => done);
       expect(actions.beginTake).toHaveBeenCalledTimes(1);
       expect(hook.result.current.lookingUp).toBe(false);
+    });
+
+    it('a refused answer lets the start go and says so, so the next Record is never a silent surprise', async () => {
+      const { hook, actions } = setup(SETUPS.reaper, {
+        recording: false,
+        punchAt: 1,
+        punchTarget: async () => ({ outcome: 'refused', message: 'The recording check is out of date.' }),
+      });
+      await act(() => hook.result.current.startTake());
+      expect(actions.clearStart).toHaveBeenCalledTimes(1);
+      expect(actions.notify).toHaveBeenCalledWith(expect.stringMatching(/out of date\..*let go.*end of the recording.*Choose the phrase again/));
+      expect(actions.beginTake).not.toHaveBeenCalled();
+    });
+
+    it('takes the Recording over message back when beginTake refuses, and keeps the start chosen', async () => {
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+      actions.beginTake.mockImplementation(async () => false);
+      const retract = vi.fn();
+      (actions as unknown as { retract: () => void }).retract = retract;
+      await act(() => hook.result.current.startTake());
+      expect(retract).toHaveBeenCalledTimes(1);
+      expect(actions.clearStart).not.toHaveBeenCalled();
+    });
+
+    it('does not take it back when the take began', async () => {
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+      actions.beginTake.mockImplementation(async () => true);
+      const retract = vi.fn();
+      (actions as unknown as { retract: () => void }).retract = retract;
+      await act(() => hook.result.current.startTake());
+      expect(retract).not.toHaveBeenCalled();
+    });
+
+    it('a lookup that throws at once, or answers nothing, is a sentence and ends the wait', async () => {
+      for (const punchTarget of [
+        () => {
+          throw new Error('boom');
+        },
+        async () => undefined,
+        async () => ({}),
+      ]) {
+        const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: punchTarget as unknown as RollSession['punchTarget'] });
+        await act(() => hook.result.current.startTake());
+        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
+        expect(hook.result.current.lookingUp).toBe(false);
+        expect(actions.beginTake).not.toHaveBeenCalled();
+        hook.unmount();
+      }
+    });
+
+    it('a cancelled lookup does not delete the entry of a newer ask for the same phrase', async () => {
+      const first = gate();
+      const second = gate();
+      let calls = 0;
+      const punchTarget = vi.fn(() => (++calls === 1 ? first.promise : second.promise));
+      const { hook } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+      act(() => void hook.result.current.startTake());
+      act(() => hook.result.current.cancelStart());
+      act(() => void hook.result.current.startTake());
+      first.resolve(found(1));
+      await settle();
+      act(() => void hook.result.current.startTake());
+      expect(punchTarget).toHaveBeenCalledTimes(2);
+      second.resolve(found(1));
+      await settle();
     });
 
     it('a refused lookup ends the wait too', async () => {

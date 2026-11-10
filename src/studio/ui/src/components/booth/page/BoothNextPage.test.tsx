@@ -2353,6 +2353,23 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
+  it('pending Record is described and announced once: "Starting the take…" in the status line, and as its description', async () => {
+    const lookup = slowLookup();
+    renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget: lookup.boothPunchTarget } });
+    await ready();
+    const status = () => document.getElementById('brec-pending')!;
+    expect(status().getAttribute('role')).toBe('status');
+    expect(status().textContent).toBe('');
+    await space();
+    expect(recordButton().getAttribute('aria-describedby')).toBe('brec-pending');
+    expect(status().textContent).toBe('Starting the take…');
+    await space();
+    expect(status().textContent).toBe('Starting the take…');
+    await act(async () => lookup.answer(FOUND));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(status().textContent).toBe('');
+  });
+
   it('R (Punch and roll) before a take says where it starts, and the chip is gone once the take has ended', async () => {
     const lookup = slowLookup();
     const page = renderPage({ api: { boothPunchTarget: lookup.boothPunchTarget } });
@@ -2369,6 +2386,57 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
   });
 
+  describe('leaving the Booth during the waits after the lookup starts no take (the model check, the project check, the start tone)', () => {
+    const gated = <T,>(value: T) => {
+      let release!: () => void;
+      const open = new Promise<void>((resolve) => (release = resolve));
+      return { release, answer: async () => (await open, value) };
+    };
+    const leave = async (page: ReturnType<typeof renderPage>, release: () => void) => {
+      await settle();
+      expect(recordButton().getAttribute('aria-busy')).toBe('true');
+      page.view.unmount();
+      release();
+      await settle();
+      await settle();
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    };
+
+    for (const [name, search] of [
+      ['a plain press', ''],
+      ['a press with a start chosen', '?chapter=c1&para=p3&at=28'],
+    ] as const) {
+      it(`${name}: a slow model check`, async () => {
+        const slow = gated({ assets: [] });
+        const page = renderPage({ search, api: { assetsList: slow.answer } as unknown as Partial<NarrationApi> });
+        await ready();
+        await space();
+        await leave(page, slow.release);
+      });
+
+      it(`${name}: a slow project check`, async () => {
+        const slow = gated({ dawFileLinked: true, dawReachable: true, dawProjectMatches: true });
+        const page = renderPage({ search, api: { bootstrap: slow.answer } as unknown as Partial<NarrationApi> });
+        await ready();
+        await space();
+        await leave(page, slow.release);
+      });
+
+      it(`${name}: the start tone`, async () => {
+        let release = () => {};
+        tone.gate = new Promise<void>((resolve) => (release = resolve));
+        try {
+          const page = renderPage({ search });
+          await ready();
+          await space();
+          await leave(page, release);
+        } finally {
+          tone.gate = null;
+        }
+      });
+    }
+  });
+
   it('a refused lookup ends the wait with the reason and a Record that is pressable again', async () => {
     const boothPunchTarget = vi.fn(async () => ({ outcome: 'refused' as const, message: 'The recording check is out of date.' }));
     const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget } });
@@ -2383,9 +2451,22 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     const lookup = slowLookup();
     const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget: lookup.boothPunchTarget } });
     await ready();
-    await space();
+    await press('r', 'KeyR');
     expect(recordButton().getAttribute('aria-busy')).toBe('true');
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .join('|'),
+    ).toContain('Starting from');
     page.view.unmount();
+    // The message that names the start goes with the start: it does not follow the narrator to the next page.
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .join('|'),
+    ).not.toContain('Starting from');
     await act(async () => lookup.answer(FOUND));
     await settle();
     expect(page.daw.recordStart).not.toHaveBeenCalled();

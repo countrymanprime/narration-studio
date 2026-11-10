@@ -2,6 +2,9 @@ import { Icon } from '../../primitives/Icon';
 import { SplitMain } from '../../primitives/SplitButton';
 import type { RecordControlState } from './useRecordControl';
 
+/** The footer's polite status line that says a press is starting a take; Record is described by it while it waits. */
+export const PENDING_ID = 'brec-pending';
+
 /**
  * The Booth footer's Record / Stop button (the mock's `brec`), the main part of the footer's split button. The label is "Record" and "Stop" in every setup; which DAW records
  * is the setup chip's to say. While Record cannot start it looks off (`aria-disabled`) and is described by the reason, which the footer
@@ -34,10 +37,10 @@ export function RecordControl({
     <SplitMain
       id="brec"
       tone={coldMode ? 'cold' : 'primary'}
-      hint={coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
+      hint={pending ? 'Starting the take…' : coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
       pending={pending}
       {...(disabled && !pending ? { 'aria-disabled': true } : {})}
-      aria-describedby={reason ? describedBy : undefined}
+      aria-describedby={pending ? PENDING_ID : reason ? describedBy : undefined}
       onClick={() => void toggle()}
     >
       {pending ? null : <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />}

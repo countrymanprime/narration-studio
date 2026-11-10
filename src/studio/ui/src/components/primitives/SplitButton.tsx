@@ -1,7 +1,6 @@
-import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { Icon } from './Icon';
+import { PendingSpinner } from './PendingSpinner';
 import { TooltipTarget } from './Tooltip';
 
 // One control made of joined parts: a main action and a side button that opens a menu or popover (the Booth's Record and its Levels, where the
@@ -52,17 +51,19 @@ export function SplitMain({
   children,
   ...rest
 }: PartProps & { tone?: 'primary' | 'cold'; hint?: string; pending?: boolean }) {
-  // `pending` is `Button`'s pending state: busy (`aria-busy`, a spinner before the label, dimmed), a click ignored, still focusable.
+  // `pending` is `Button`'s pending state, drawn for a filled part: busy (`aria-busy`, a spinner before the label), a click ignored, still focusable.
+  // The label stays at full strength (a dimmed label over the accent fill measured 2.56:1 in light, and a take's wait can last seconds), so the
+  // spinner and a progress cursor say the wait; `hint` says what it waits for.
   const button = (
     <button
       type={type}
       aria-busy={pending || undefined}
       aria-disabled={pending || undefined}
       onClick={pending ? (event) => event.preventDefault() : onClick}
-      className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] aria-busy:opacity-60 ${className}`}
+      className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] aria-busy:cursor-progress aria-busy:aria-disabled:opacity-100 ${className}`}
       {...rest}
     >
-      {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />}
+      {pending && <PendingSpinner />}
       {children}
     </button>
   );

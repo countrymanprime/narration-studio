@@ -45,8 +45,8 @@ export type RecordControlState = {
   /** What stops a press now, or null when Record can start: the same precondition the press would be refused for. */
   gate: RecordBlock | null;
   disabled: boolean;
-  /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. A narrator's press within `START_GUARD_MS` of a start is ignored (a double click or key repeat is not a Stop); an `automatic` stop, the Booth's own, is never. */
-  toggle: (at?: number, how?: { automatic?: boolean }) => Promise<boolean>;
+  /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. A narrator's press within `START_GUARD_MS` of a start is ignored (a double click or key repeat is not a Stop); an `automatic` stop, the Booth's own, is never. A start whose `current()` has turned false (the Booth was left, the chapter changed) is dropped quietly at each wait: before the start tone and before the DAW is asked, so no cue sounds and no take begins. */
+  toggle: (at?: number, how?: { automatic?: boolean; current?: () => boolean }) => Promise<boolean>;
   /** Stops the take as a narrator's Stop press does (the start guard included) and answers whether no take runs afterwards: true when
    * it stopped or none was running, false when the stop was refused, failed or another press was being answered. */
   stop: () => Promise<boolean>;
@@ -428,7 +428,7 @@ export function useRecordControl({
   // Set by a stop the DAW accepted, so `stop` can say whether its press stopped the take.
   const stopAccepted = useRef(false);
   const toggle = useCallback(
-    async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
+    async (at?: number, how?: { automatic?: boolean; current?: () => boolean }): Promise<boolean> => {
       if (busy.current) return false;
       if (!recordingRef.current && gateRef.current) {
         block(gateRef.current);
@@ -445,6 +445,7 @@ export function useRecordControl({
         // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
         if (starting && capabilitiesRef.current) {
           const fresh = await system.bootstrap().catch(() => null);
+          if (how?.current && !how.current()) return false;
           if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
             setLink((last) => ({ ...last, open: 'different' }));
             const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
@@ -453,7 +454,9 @@ export function useRecordControl({
           }
         }
         // The start tone, if the narrator turned it on, ends before the take begins so it is not on the recording. A stop has none.
+        if (starting && how?.current && !how.current()) return false;
         if (starting) await playTakeTone();
+        if (starting && how?.current && !how.current()) return false;
         const result: DawRecordStart = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
         if (result.ok) {
           if (starting) startedRef.current?.(result);

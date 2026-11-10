@@ -30,8 +30,8 @@ export type RollSession = {
 /** What the Booth does when a command settles. */
 export type RollActions = TakeControls & {
   roll: RollFn;
-  /** Starts a take, at `punchAt` seconds when it is a punch. */
-  beginTake: (punchAt?: number) => void | Promise<void>;
+  /** Starts a take, at `punchAt` seconds when it is a punch. Answers false when the take did not start (a refusal, a cancelled press); the Booth then claims nothing about it. */
+  beginTake: (punchAt?: number) => void | boolean | Promise<void | boolean>;
   /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
   chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
@@ -43,13 +43,17 @@ export type RollActions = TakeControls & {
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
   notify: (sentence: string) => void;
+  /** Takes back what `notify` said about the start ("Starting from ¶ 3", "Recording over ¶ 3"): the take it announced was refused. */
+  retract?: () => void;
 };
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
 export const LOOKUP_MS = 8000;
 
-const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. Try again.';
-const LOOKUP_SLOW = 'Where this passage was recorded did not come back in time, so no take was started. Try again.';
+const LOOKUP_FAILED = 'Where that passage was recorded could not be read, so no take was started.';
+const LOOKUP_SLOW = 'The app got no answer about where that passage was recorded, so no take was started.';
+/** Said with every refusal of a lookup: the chosen start is let go, so the next Record is a plain one and nothing happens silently. */
+const START_LET_GO = 'The start is let go: Record now starts at the end of the recording. Choose the phrase again to retry.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
 
@@ -136,10 +140,21 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     const slow = new Promise<BoothPunch>((resolve) => {
       timer = setTimeout(() => resolve({ outcome: 'refused', reason: 'timeout', message: LOOKUP_SLOW }), LOOKUP_MS);
     });
-    const asked = sessionRef.current.punchTarget(phrase).catch((): BoothPunch => ({ outcome: 'refused', reason: 'failed', message: LOOKUP_FAILED }));
-    const answer = Promise.race([asked, slow]).finally(() => {
+    // An async wrapper: a `punchTarget` that throws at once is a failed read like any other, and the wait still ends.
+    const asked = (async () => {
+      const answer = await sessionRef.current.punchTarget(phrase);
+      // An answer with no outcome is no answer: a failed read, said as one.
+      if (!answer || !answer.outcome) throw new Error('empty lookup answer');
+      return answer;
+    })().catch((): BoothPunch => ({
+      outcome: 'refused',
+      reason: 'failed',
+      message: LOOKUP_FAILED,
+    }));
+    const answer: Promise<BoothPunch> = Promise.race([asked, slow]).finally(() => {
       clearTimeout(timer);
-      inFlight.current.delete(phrase);
+      // Only its own entry: a cancel may have cleared the map and a newer ask for this phrase may be there now.
+      if (inFlight.current.get(phrase) === answer) inFlight.current.delete(phrase);
     });
     inFlight.current.set(phrase, answer);
     return answer;
@@ -179,8 +194,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
-  const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
-  const startFromHereRef = useRef<(unit: number) => Promise<void>>(async () => {});
+  const startTakeRef = useRef<(from?: number) => Promise<unknown>>(async () => {});
+  const startFromHereRef = useRef<(unit: number) => Promise<unknown>>(async () => {});
 
   /** R: while a take runs, roll again from the phrase chosen with Start from here, otherwise from the current one; before one, start the take there in the same press. */
   const punchAndRoll = useCallback(async () => {
@@ -228,7 +243,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         return actionsRef.current.beginTake();
       }
       if (target.outcome !== 'found' || target.start === undefined) {
-        actionsRef.current.notify(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
+        actionsRef.current.notify(`${target.message ?? 'Where this passage was recorded is not known, so no take was started.'} ${START_LET_GO}`);
         actionsRef.current.clearStart?.();
         return;
       }
@@ -244,9 +259,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (outdated(mine)) return;
       if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
       if (outdated(mine)) return;
-      // The narrator is told which track is recorded over before the take starts, never only after.
-      actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
-      return actionsRef.current.beginTake(target.start);
+      // The narrator is told which track is recorded over before the take starts, never only after; a take that is then refused takes the claim back.
+      const recording = `Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`;
+      actionsRef.current.notify(recording);
+      const started = await actionsRef.current.beginTake(target.start);
+      if (started === false) actionsRef.current.retract?.();
+      return started;
     },
     [ask, lookUpFor],
   );
