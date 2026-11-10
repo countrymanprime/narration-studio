@@ -7,6 +7,7 @@ import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
 import { ResolveShell } from './ResolveShell';
+import { destinationFor } from '../engine/destination';
 import { useVoiceLayout } from '../engine/voiceLayout';
 
 type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; links: TrackMapping[]; at: number };
@@ -24,8 +25,8 @@ export type ChapterLinkDialogProps = {
   several?: boolean;
   /** Whether the DAW can add a track from here (its `track_create` capability); absent, the host's answer to the press decides. */
   create?: { available: boolean; message?: string };
-  /** The link was made, to a track the narrator chose or to one the DAW just added (`created`); the page reads the chapter again at once. */
-  onLinked: (result: ChapterTrackSetResult, created?: Extract<ChapterTrackCreateResult, { outcome: 'created' }>['track']) => void;
+  /** The link was made, to a track the narrator chose or to what the DAW just added (`created`: a folder with its Narrator, or a track); the page reads the chapter again at once. */
+  onLinked: (result: ChapterTrackSetResult, created?: Extract<ChapterTrackCreateResult, { outcome: 'created' }>) => void;
   /** Check again was pressed, so the page can read the chapter again too (the link may have been made elsewhere). */
   onCheckedAgain?: () => void;
   onClose: () => void;
@@ -56,7 +57,8 @@ export function ChapterLinkDialog({
   const [refused, setRefused] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   // In a Voice folders project the host makes a folder with a Narrator track for the chapter (ChapterTrackCreate), so the words say folder.
-  const folders = useVoiceLayout() === 'folders';
+  const dest = destinationFor(useVoiceLayout());
+  const folders = dest.folders;
 
   useEffect(() => {
     let live = true;
@@ -114,12 +116,12 @@ export function ChapterLinkDialog({
     trackMap.chapterTrackCreate(chapterId).then(
       (result) => {
         setCreating(false);
-        if (result.outcome === 'created') onLinked(result, result.track);
+        if (result.outcome === 'created') onLinked(result, result);
         else setRefused(result.message);
       },
       (error: unknown) => {
         setCreating(false);
-        setRefused(`The track could not be added: ${apiErrorMessage(error)}`);
+        setRefused(`The ${dest.noun} could not be added: ${apiErrorMessage(error)}`);
       },
     );
   };
@@ -127,22 +129,20 @@ export function ChapterLinkDialog({
   const noTracks = read.status === 'ready' && choices.length === 0;
   // Nothing to choose from (no tracks, or the saved project could not be read): adding a track is the fix, and the primary action.
   const createFirst = noTracks || read.status === 'failed';
-  const createLabel = folders ? 'Create a new folder' : 'Create a new track';
-  const createWhat = folders ? 'folder' : 'track';
+  const createLabel = `Create a new ${dest.noun}`;
+  const createWhat = dest.noun;
   const withNarrator = folders ? ', with a Narrator track in it,' : '';
   const createOff = create?.available === false;
   const createAction = { label: createLabel, onPress: createTrack, pending: creating, disabled: createOff || linking };
-  const title = missing
-    ? `${chapterName}’s track is not in the project`
-    : several
-      ? `${chapterName} is linked to more than one track`
-      : `${chapterName} is not linked to a track`;
+  const title = missing ? dest.missingTitle(chapterName) : several ? dest.severalTitle(chapterName) : dest.notLinkedTitle(chapterName);
   return (
     <ResolveShell
       title={title}
       description={sentence}
       onClose={onClose}
-      primary={createFirst ? createAction : { label: 'Link track', onPress: link, pending: linking, disabled: !chosen || read.status !== 'ready' || creating }}
+      primary={
+        createFirst ? createAction : { label: dest.linkButton, onPress: link, pending: linking, disabled: !chosen || read.status !== 'ready' || creating }
+      }
       secondary={{ label: 'Check again', onPress: checkAgain }}
     >
       {read.status === 'loading' && <p role="status">Reading the {dawName} tracks…</p>}
@@ -159,7 +159,7 @@ export function ChapterLinkDialog({
       )}
       {read.status === 'ready' && !noTracks && (
         <>
-          <TrackSelect label={`Track for ${chapterName}`} choices={choices} value={chosen ?? ''} onChange={setChosen} fullWidth />
+          <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={chosen ?? ''} onChange={setChosen} fullWidth />
           {held && (
             <p className="text-[var(--text-muted)]">
               {held.name} is linked to {held.heldBy}. Linking it here moves it.
@@ -182,7 +182,9 @@ export function ChapterLinkDialog({
         </>
       )}
       {createOff && (
-        <p className="text-[var(--text-muted)]">{create?.message || `${dawName} cannot add a track from this app. Add one in ${dawName}, then check again.`}</p>
+        <p className="text-[var(--text-muted)]">
+          {create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`}
+        </p>
       )}
       {refused && (
         <p role="alert" className="text-[var(--danger-text)]">

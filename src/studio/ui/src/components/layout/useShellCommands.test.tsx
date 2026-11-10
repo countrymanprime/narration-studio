@@ -9,6 +9,7 @@ import { useShellCommands, type ShellCommandsInput } from './useShellCommands';
 afterEach(cleanup);
 
 const base = (): ShellCommandsInput => ({
+  hasProject: true,
   hasManuscript: true,
   openSettings: vi.fn(),
   importManuscript: vi.fn(),
@@ -74,5 +75,11 @@ describe('useShellCommands (the jump menu rows the mock has and the app lacked)'
     renderHook(() => useShellCommands(input));
     find('Toggle dark theme')?.run();
     expect(input.toggleTheme).toHaveBeenCalledOnce();
+  });
+
+  it('turns both manuscript commands off with no project open, whatever the manuscript says', () => {
+    renderHook(() => useShellCommands({ ...base(), hasProject: false }));
+    expect(find('Import manuscript…')?.disabledReason).toBe('Open a project first');
+    expect(find('Replace manuscript…')?.disabledReason).toBe('Open a project first');
   });
 });

@@ -11,6 +11,7 @@ type Deps = Pick<
   | 'voiceTracksSetCharacters'
   | 'chapterTrackMapList'
   | 'tracksList'
+  | 'tracksLive'
   | 'readAloudRecordStart'
   | 'readAloudRecordStartAt'
   | 'readAloudRecordStop'
@@ -54,9 +55,17 @@ export function createBoothVoiceMock(api: Deps) {
 
   /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
   const voicesOf = async (chapterId: string) => {
-    const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
+    const [setup, map, savedProject] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    const saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    let project = savedProject;
+    let saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    // A folder the app just made (ChapterTrackCreate) is in REAPER's live list before the narrator saves: the host lists its Narrator from what
+    // it made (chapterVoices), so the mock reads the live list when the saved project lacks the chapter's folder (#3271).
+    if (saved === null && setup.layout === 'folders' && links.length === 1) {
+      const live = (await api.tracksLive()).project;
+      saved = childrenOf(live.tracks, links[0]);
+      if (saved) project = live;
+    }
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({
