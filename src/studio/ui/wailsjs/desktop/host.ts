@@ -1032,6 +1032,18 @@ export function DawRoll(chapterID: string, at: number, confirmed: boolean): $Can
 }
 
 /**
+ * DawSaveProject has the DAW save the project this app is linked to, on the narrator's click (#3262): Editing reads the saved file, so a
+ * take recorded since the last save is not there until the DAW saves. It answers a DawResult whose message says what was saved. The
+ * save_project capability's own sentence comes first when it refuses (an engine that cannot save from the app); no linked project
+ * file, no live adapter, the DAW not answering, a project that was never saved, another project open, a recording in progress and
+ * a file the DAW could not write are each refused in a sentence, with nothing written. The host sends the file it is linked to, never
+ * one the page names, and nothing else in the host calls it.
+ */
+export function DawSaveProject(): $CancellablePromise<string> {
+    return $Call.ByID(2162970624);
+}
+
+/**
  * DawSetFxRangeParam sets setting index of effect fx of the chain chainName on the words (both as DawFxRangeParams numbers them)
  * to value, in one undo step of the DAW's own; a setting already at the value answers changed false. The same refusals as
  * DawFxRangeParams, then a setting the effect does not have and a value outside its range, each with a sentence.

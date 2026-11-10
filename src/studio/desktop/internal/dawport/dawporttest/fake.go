@@ -82,6 +82,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapRangeGain:         rangeGainRole{r(dawport.CapRangeGain)},
 		dawport.CapClickRepair:       clickRepairRole{r(dawport.CapClickRepair)},
 		dawport.CapUndoLast:          undoLastRole{r(dawport.CapUndoLast)},
+		dawport.CapSaveProject:       saveProjectRole{r(dawport.CapSaveProject)},
 		dawport.CapMonitorLevel:      monitorLevelRole{r(dawport.CapMonitorLevel)},
 		dawport.CapFollowPosition:    placeRole{r(dawport.CapFollowPosition)},
 		dawport.CapTransportSync:     transportSyncRole{r(dawport.CapTransportSync)},
@@ -395,6 +396,12 @@ func (r undoLastRole) UndoLast(_ context.Context, kind dawport.ActionKind, _ int
 		return dawport.Result{}, dawport.ErrActionKind
 	}
 	return got.WithUndoSteps(0), nil
+}
+
+type saveProjectRole struct{ role }
+
+func (r saveProjectRole) SaveProject(_ context.Context, _ string) (dawport.Result, error) {
+	return r.result("SaveProject", "Saved the project.")
 }
 
 type placeRole struct{ role }

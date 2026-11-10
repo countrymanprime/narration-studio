@@ -398,6 +398,18 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Binding:** `DawLastAction(kind)` (`src/studio/desktop/bindings_daw_undo_last.go`) answers `"this"`, `"other"` or `"unknown"`, and `DawUndoLast(kind, steps)` a `DawResult`; the UI's API calls them as `dawLastAction` and `dawUndoLast`, and `DawClient.lastAction` and `DawClient.undoLast`. A capability refusal is `unknown` for `DawLastAction` and the capability's sentence for `DawUndoLast`.
 - **Checked:** harness (`undo_test.lua`). S0 saw REAPER 7.80's `Undo_CanUndo2` name a bridge block's label right after it closed and one Undo undo it ([S0](../../research/reaper-spike-s0-item-extension-data.md)). `record_take` ran in REAPER 7.82 on Linux with the JACK dummy device, 2026-10-24 ([note](../../research/reaper-recording-undo-2026-10-23.md)): a take left one point, one `undo_last` removed it and rejoined the item it split, a second undid nothing, and a later edit of the narrator's blocked it; a take with one roll left two points and one `undo_last` of two removed both passes. Not run: Windows, a real audio device, a REAPER language pack; row C17b is the owner's. Expected result is row C17 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-daw-commands-not-scripted-yet); the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) checks it.
 
+### `save_project`
+
+- **Intent:** write the engine's open project to its own file when the narrator clicks **Save in REAPER and read** on Editing. Editing reads the saved project, so a take recorded since the last save is not in it until the engine saves ([#3262](https://github.com/countrymanprime/narration-studio/issues/3262)). The app never saves on its own: no timer, no side effect of a read.
+- **Role:** `ProjectSaver`, synchronous. `SaveProject(ctx, projectFile)` takes the project file the app is linked to and answers a `DawResult`.
+- **Result:** ok, with `changed` false and no undo step, and a message saying how many tracks and items the saved project holds. The engine saves only the project it has open when that is `projectFile` (slashes and case folded), and never saves as.
+- **Refusals** (nothing written, the sentence shown where the click happened): the capability's own sentence; the app has no linked project file; the engine recording; a project that was never saved (a save would open the engine's file dialog and stop it answering, so the narrator saves once in the engine); another project open; the file could not be written (read-only, folder missing); an older script.
+- **REAPER:** `save_project`, Experimental (`narration_save_project.lua`): `Main_SaveProject(0, false)` after the checks above, then `IsProjectDirty(0)` to see the save took. It adds no undo point.
+- **Audacity:** not yet available. Its adapter does not send a save.
+- **Built-in recorder:** unsupported. It keeps no project file.
+- **Binding:** `DawSaveProject()` (`src/studio/desktop/bindings_daw_save_project.go`) answers a `DawResult`; the UI's API calls it as `dawSaveProject` and `DawClient.saveProject`. The host sends the project file it is linked to, never one the page names.
+- **Checked:** harness (`save_project_test.lua`, eight mutations). Real REAPER: see the record in [REAPER](reaper.md).
+
 ### `monitor_level`
 
 - **Intent:** let the narrator set, from the Booth, the level they hear the project at, without touching the level the delivery files are rendered at.

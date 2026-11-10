@@ -143,6 +143,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"repair_click":               dawport.CapClickRepair,
 	"last_action":                dawport.CapUndoLast,
 	"undo_last":                  dawport.CapUndoLast,
+	"save_project":               dawport.CapSaveProject,
 	"monitor_level":              dawport.CapMonitorLevel,
 	"read_place":                 dawport.CapFollowPosition,
 	"go_to":                      dawport.CapFollowPosition,
