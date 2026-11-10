@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
+import { useEffect, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -319,5 +321,251 @@ describe('a hint inside a dialog', () => {
     expect(onClose).not.toHaveBeenCalled();
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+// #3310: the Production table draws about 350 hints for a 17 h book, and mounting the Base UI tooltip for each cost about a
+// third of the page's JS. A hint now mounts it on the first hover or keyboard focus. The marker below is set by the library's
+// trigger on the element it controls, so counting it counts the tooltips the library has mounted.
+describe('TooltipTarget mounts the library lazily', () => {
+  const MOUNTED = '[data-base-ui-tooltip-trigger]';
+  const mountedCount = () => document.querySelectorAll(MOUNTED).length;
+
+  function Rows({ count }: { count: number }) {
+    return (
+      <>
+        {Array.from({ length: count }, (_, i) => (
+          <TooltipTarget key={i} text={`Hint ${i}`}>
+            <button aria-label={`Row ${i}`}>r</button>
+          </TooltipTarget>
+        ))}
+      </>
+    );
+  }
+
+  it('mounts no library tooltip for any number of rows until one is used, then exactly one', async () => {
+    const user = userEvent.setup();
+    const sizes = [1, 10, 100, 400];
+    for (const n of sizes) {
+      const { unmount } = render(<Rows count={n} />);
+      expect(mountedCount()).toBe(0);
+      unmount();
+    }
+    render(<Rows count={400} />);
+    await user.tab();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Hint 0');
+    expect(mountedCount()).toBe(1);
+    await user.tab();
+    await user.tab();
+    expect(mountedCount()).toBe(3);
+  });
+
+  it('draws a few hundred hints in a fraction of what mounting every tooltip took (median of runs, relative to the old cost)', () => {
+    // The same machine times both, so the ratio holds on a slow runner; the old cost is measured here by mounting the library
+    // for every row, which is what each hint used to do.
+    const eager = (n: number) => (
+      <>
+        {Array.from({ length: n }, (_, i) => (
+          <BaseTooltip.Root key={i}>
+            <BaseTooltip.Trigger delay={1000} render={<span />}>
+              <button aria-label={`Row ${i}`}>r</button>
+            </BaseTooltip.Trigger>
+            <BaseTooltip.Portal>
+              <BaseTooltip.Positioner>
+                <BaseTooltip.Popup>{`Hint ${i}`}</BaseTooltip.Popup>
+              </BaseTooltip.Positioner>
+            </BaseTooltip.Portal>
+          </BaseTooltip.Root>
+        ))}
+      </>
+    );
+    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] as number;
+    const time = (ui: ReactNode) => {
+      const start = performance.now();
+      const { unmount } = render(ui);
+      const ms = performance.now() - start;
+      unmount();
+      return ms;
+    };
+    time(eager(20));
+    time(<Rows count={20} />);
+    const old: number[] = [];
+    const lazy: number[] = [];
+    for (let run = 0; run < 7; run++) {
+      old.push(time(eager(350)));
+      lazy.push(time(<Rows count={350} />));
+    }
+    // Measured about 0.25; the bound leaves room for a noisy runner and still fails if every row mounts the library again.
+    expect(median(lazy)).toBeLessThan(median(old) * 0.6);
+  });
+
+  it('starts the one second delay on the first hover, even when the pointer then rests', async () => {
+    vi.useFakeTimers();
+    render(<Rows count={3} />);
+    const wrapper = screen.getByRole('button', { name: 'Row 1' }).parentElement as HTMLElement;
+    // A real pointer raises pointerenter, then mouseenter, then mousemove, and then rests.
+    fireEvent.pointerEnter(wrapper, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(wrapper);
+    fireEvent.mouseMove(wrapper);
+    expect(mountedCount()).toBe(1);
+    await act(() => vi.advanceTimersByTimeAsync(990));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    await act(() => vi.advanceTimersByTimeAsync(20));
+    expect(screen.getByRole('tooltip').textContent).toBe('Hint 1');
+    expect(danglingAriaReferences()).toEqual([]);
+  });
+
+  it('starts the delay when the first event is a pen or a mouse event with no pointer event before it', async () => {
+    vi.useFakeTimers();
+    render(<Rows count={2} />);
+    const pen = screen.getByRole('button', { name: 'Row 0' }).parentElement as HTMLElement;
+    fireEvent.pointerEnter(pen, { pointerType: 'pen' });
+    await act(() => vi.advanceTimersByTimeAsync(1010));
+    expect(screen.getByRole('tooltip').textContent).toBe('Hint 0');
+    fireEvent.mouseLeave(pen);
+    await act(() => vi.advanceTimersByTimeAsync(300));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    const plain = screen.getByRole('button', { name: 'Row 1' }).parentElement as HTMLElement;
+    fireEvent.mouseEnter(plain);
+    await act(() => vi.advanceTimersByTimeAsync(1010));
+    expect(screen.getByRole('tooltip').textContent).toBe('Hint 1');
+  });
+
+  it('shows nothing for a pointer that leaves before the second is up, on the first hover and on the next', async () => {
+    vi.useFakeTimers();
+    render(<Rows count={1} />);
+    const wrapper = screen.getByRole('button', { name: 'Row 0' }).parentElement as HTMLElement;
+    for (let pass = 0; pass < 2; pass++) {
+      fireEvent.pointerEnter(wrapper, { pointerType: 'mouse' });
+      fireEvent.mouseEnter(wrapper);
+      fireEvent.mouseMove(wrapper);
+      await act(() => vi.advanceTimersByTimeAsync(600));
+      fireEvent.mouseLeave(wrapper);
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      expect(screen.queryByRole('tooltip')).toBeNull();
+    }
+  });
+
+  it('never opens for a touch: not on the touch itself, nor on the mouse events a tap emulates after it', async () => {
+    vi.useFakeTimers();
+    render(<Rows count={1} />);
+    const wrapper = screen.getByRole('button', { name: 'Row 0' }).parentElement as HTMLElement;
+    fireEvent.pointerEnter(wrapper, { pointerType: 'touch' });
+    fireEvent.pointerDown(wrapper, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrapper);
+    fireEvent.mouseMove(wrapper);
+    fireEvent.click(wrapper);
+    await act(() => vi.advanceTimersByTimeAsync(3000));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(mountedCount()).toBe(0);
+  });
+
+  it('keeps the child, its focus and its state when the library mounts on keyboard focus', async () => {
+    const user = userEvent.setup();
+    let mounts = 0;
+    function Counter() {
+      useEffect(() => {
+        mounts += 1;
+      }, []);
+      return <button aria-label="Counter">c</button>;
+    }
+    render(
+      <TooltipTarget text="Counts">
+        <Counter />
+      </TooltipTarget>,
+    );
+    const button = screen.getByRole('button', { name: 'Counter' });
+    const wrapper = button.parentElement;
+    await user.tab();
+    expect(document.activeElement).toBe(button);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Counts');
+    // The same elements, not copies: nothing the narrator was doing in the control is lost.
+    expect(screen.getByRole('button', { name: 'Counter' })).toBe(button);
+    expect(button.parentElement).toBe(wrapper);
+    expect(document.activeElement).toBe(button);
+    expect(mounts).toBe(1);
+  });
+
+  it('keeps a typed value when the first hover mounts the library', () => {
+    render(
+      <TooltipTarget text="Name">
+        <input aria-label="Name field" />
+      </TooltipTarget>,
+    );
+    const input = screen.getByRole('textbox', { name: 'Name field' }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Alice' } });
+    fireEvent.pointerEnter(input.parentElement as HTMLElement, { pointerType: 'mouse' });
+    expect(mountedCount()).toBe(1);
+    expect(screen.getByRole('textbox', { name: 'Name field' })).toBe(input);
+    expect(input.value).toBe('Alice');
+  });
+
+  it('opens a hint whose wrapper is the tab stop (a disabled child) on the first Tab, like the library did', async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipTarget text="Why not">
+        <button disabled>No</button>
+      </TooltipTarget>,
+    );
+    expect(mountedCount()).toBe(0);
+    await user.tab();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Why not');
+  });
+
+  it('follows a change of text and of the delay after the library has mounted', async () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <TooltipTarget text="Before" hoverDelayMs={200}>
+        <button aria-label="Changing">c</button>
+      </TooltipTarget>,
+    );
+    const wrapper = screen.getByRole('button', { name: 'Changing' }).parentElement as HTMLElement;
+    fireEvent.pointerEnter(wrapper, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(wrapper);
+    fireEvent.mouseMove(wrapper);
+    await act(() => vi.advanceTimersByTimeAsync(250));
+    expect(screen.getByRole('tooltip').textContent).toBe('Before');
+    rerender(
+      <TooltipTarget text="After" hoverDelayMs={200}>
+        <button aria-label="Changing">c</button>
+      </TooltipTarget>,
+    );
+    expect(screen.getByRole('tooltip').textContent).toBe('After');
+  });
+
+  it('lets a hint inside a hint show only the inner one over the inner control', async () => {
+    vi.useFakeTimers();
+    render(
+      <TooltipTarget text="Outer">
+        <span>
+          <TooltipTarget text="Inner">
+            <button aria-label="Inner control">i</button>
+          </TooltipTarget>
+        </span>
+      </TooltipTarget>,
+    );
+    const inner = screen.getByRole('button', { name: 'Inner control' }).parentElement as HTMLElement;
+    fireEvent.pointerEnter(inner, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(inner);
+    fireEvent.mouseMove(inner);
+    await act(() => vi.advanceTimersByTimeAsync(1100));
+    const tips = screen.getAllByRole('tooltip').map((t) => t.textContent);
+    expect(tips).toEqual(['Inner']);
+  });
+
+  it('draws the same wrapper before and after the library mounts, so the page does not shift', () => {
+    render(
+      <TooltipTarget text="Same" className="px-1" style={{ minWidth: 4 }}>
+        <button aria-label="Same">s</button>
+      </TooltipTarget>,
+    );
+    const wrapper = screen.getByRole('button', { name: 'Same' }).parentElement as HTMLElement;
+    const before = wrapper.cloneNode(false) as HTMLElement;
+    fireEvent.pointerEnter(wrapper, { pointerType: 'mouse' });
+    const after = screen.getByRole('button', { name: 'Same' }).parentElement as HTMLElement;
+    expect(after).toBe(wrapper);
+    expect(after.className).toBe(before.className);
+    expect(after.getAttribute('style')).toBe(before.getAttribute('style'));
+    expect(after.tagName).toBe(before.tagName);
   });
 });
