@@ -2013,6 +2013,22 @@ describe('App shell mounts', () => {
       journal.setLeaveGuard(null);
     });
 
+    it("Switch project... is an exit: the page's own decision is asked first, false keeps the page, true opens the picker", async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      const decide = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      journal.setLeaveGuard(() => ({ ...asking, decide }));
+      await runFromJump('Switch project…');
+      await waitFor(() => expect(decide).toHaveBeenCalledTimes(1));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
+      await runFromJump('Switch project…');
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(decide).toHaveBeenCalledTimes(2);
+      journal.setLeaveGuard(null);
+    });
+
     it('a popstate that lands on the same route asks nothing', async () => {
       const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
       await toScript(journal);

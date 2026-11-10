@@ -60,6 +60,15 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   const take = useRef(0);
   const answeredFor = useRef(-1);
   const answered = useRef(false);
+  // The Booth is gone (it went some other way than this decision's own move): what is still waiting must not open a question over the page the narrator is
+  // on now, nor move them. Whatever it still has to stop, the page's unmount stop and a late start's own stop do.
+  const gone = useRef(false);
+  useEffect(() => {
+    gone.current = false;
+    return () => {
+      gone.current = true;
+    };
+  }, []);
   const { recording } = session;
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
@@ -73,7 +82,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       let spec = stopRecordingSpec(now.daw.name, startedByApp);
       let refusedOnce = false;
       for (;;) {
-        if (!(await overlay.confirm(spec))) return false;
+        if (gone.current || !(await overlay.confirm(spec)) || gone.current) return false;
         // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
         if (!startedByApp || refusedOnce) {
           answeredFor.current = mine;
@@ -87,21 +96,29 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         try {
           // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
           const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
+          if (gone.current) return false;
           if (!landed) sentence = NO_ANSWER;
           else if (!landed.value) {
             answeredFor.current = mine;
             answered.current = true;
             return true;
           } else {
+            // The yes is given and this decision is stopping the take: the page's unmount stop leaves it to this one.
+            answered.current = true;
+            answeredFor.current = mine;
             const stopped = await within(sessionRef.current.stopRecording(), LEAVE_WAIT_MS);
             if (!stopped) sentence = NO_ANSWER;
             else if (stopped.value.ok) {
               // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
               await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
-              answeredFor.current = mine;
-              answered.current = true;
-              return true;
+              return !gone.current;
             } else sentence = stopped.value.refused ?? (stopped.value.message || '');
+            // Not stopped: the take still runs, so it is not this decision's to call handled.
+            answeredFor.current = -1;
+            if (gone.current) {
+              overlay.toast(`The take could not be stopped: ${sentence} Stop it in ${now.daw.name}.`, { tone: 'error' });
+              return false;
+            }
           }
         } finally {
           overlay.dismissTopic(STOPPING_TOPIC);

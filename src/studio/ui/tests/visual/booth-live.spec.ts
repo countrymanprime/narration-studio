@@ -81,11 +81,25 @@ test.describe('Booth with a moving mock DAW', () => {
     expect((await dawState(page))?.recording).toBe(false);
   });
 
-  test("leaving the Booth with the mouse Back button mid-take: coming back finds the take still the Booth's to stop", async ({ page }) => {
+  // Back mid-take asks "Stop recording?" now (#3325). A take left running by the narrator's own choice (the DAW refused the stop and they chose Leave
+  // anyway) is still the Booth's to stop when they come back to it.
+  test("leaving the Booth by Back mid-take with the stop refused, then Leave anyway: coming back finds the take still the Booth's to stop", async ({
+    page,
+  }) => {
     await toRecordReady(page);
     await record(page).click();
     await expect(stop(page)).toBeVisible();
+    await pastStartGuard(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
     await page.goBack();
+    await page
+      .getByRole('alertdialog', { name: 'Stop recording?' })
+      .getByRole('button', { name: /^Stop and leave/ })
+      .click();
+    const refused = page.getByRole('alertdialog', { name: 'Could not stop the take' });
+    await expect(refused).toBeVisible();
+    await page.waitForTimeout(500);
+    await refused.getByRole('button', { name: 'Leave anyway' }).click();
     await expect(page.locator('[data-booth-text]')).toHaveCount(0);
     expect((await dawState(page))?.recording).toBe(true);
     await page.goForward();

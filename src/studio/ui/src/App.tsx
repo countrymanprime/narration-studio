@@ -591,6 +591,10 @@ function AppRoutes() {
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
+  // Opening the project picker draws it in place of the shell, which takes the page down: it is an exit like any other, so a page's leave guard asks
+  // first (the Booth while a take records or a start is out). Set below, where the guard's answer is read.
+  const guardedPickerRef = useRef<() => void>(() => {});
+  const openProjectPicker = () => guardedPickerRef.current();
   // A jump-menu move closes the project picker drawn over the project. When the address changes, the path effect below closes it once the move
   // has landed (closing first mounts the old page again, and the Booth rewrites its own address, undoing the move). When it stays the same (a
   // chapter is only a `#` change, and "Go to" the page under the picker changes nothing), nothing else would close it, so it closes here.
@@ -626,9 +630,9 @@ function AppRoutes() {
       registerCommandProvider(() =>
         noProject || projectPickerOpen
           ? []
-          : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) }],
+          : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => guardedPickerRef.current() }],
       ),
-    [setProjectPickerOpen, noProject, projectPickerOpen],
+    [noProject, projectPickerOpen],
   );
   // A move to another page (a "Go to" row, Ctrl+,) while the picker covers the project would land out of sight, so it closes the picker.
   useEffect(() => setProjectPickerOpen(false), [location.pathname, setProjectPickerOpen]);
@@ -872,6 +876,16 @@ function AppRoutes() {
     guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
   };
   guardedNavigateRef.current = guardedMove;
+  guardedPickerRef.current = () => {
+    const verdict = journal.checkLeave('');
+    if (verdict === 'allow') {
+      setProjectPickerOpen(true);
+      return;
+    }
+    void answerLeave(verdict).then((confirmed) => {
+      if (confirmed) setProjectPickerOpen(true);
+    });
+  };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
   const moveTo = (next: string, state?: unknown) => {
@@ -1030,7 +1044,7 @@ function AppRoutes() {
                     navCounts={navCounts}
                     onOpenJump={() => openJump()}
                     onOpenZoomMenu={() => openJump(undefined, 'Zoom')}
-                    onSwitchProject={() => setProjectPickerOpen(true)}
+                    onSwitchProject={openProjectPicker}
                     theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
                     contextMenu={contextMenu}
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}

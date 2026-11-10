@@ -415,6 +415,64 @@ test('a run that is never written does not hold the narrator in the Booth after 
   expect(await dawRecording(page)).toBe(false);
 });
 
+// "Switch project…" draws the project picker in place of the Booth: it is an exit like the rest (#3325, ux-reviewer).
+const switchProject = async (page: Page) => {
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Switch project');
+  await page.keyboard.press('Enter');
+};
+const picker = (page: Page) => page.getByRole('heading', { name: 'Choose your project' });
+
+test('Switch project during a take asks "Stop recording?", and Stop and leave stops the take once and opens the picker', async ({ page }) => {
+  await recording(page);
+  await switchProject(page);
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(picker(page)).toBeVisible();
+  await expect.poll(() => dawRecording(page)).toBe(false);
+  expect(await stops(page)).toBe(1);
+});
+
+// During the wait of a decided move a second exit is the same exit: it is ignored, and the first decision ends as it would have (the picker never
+// opens over a Booth that is going, and nothing is asked over it).
+test('Switch project one second into the wait for a stop the host never answers is ignored; the refusal then comes in the Booth', async ({ page }) => {
+  test.setTimeout(60_000);
+  await hang('readAloudRecordStop')(page);
+  await openBooth(page);
+  await record(page).click();
+  await expect.poll(() => dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await page.waitForTimeout(1000);
+  await switchProject(page);
+  await page.waitForTimeout(500);
+  await expect(picker(page)).toHaveCount(0);
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(page.locator('[data-booth-text]')).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+  await expect(picker(page)).toHaveCount(0);
+});
+
+test('Switch project one second into the wait for a run that is never written is ignored; the first exit then leaves', async ({ page }) => {
+  test.setTimeout(60_000);
+  await hang('passageMapRecordRun')(page);
+  await openBooth(page);
+  await record(page).click();
+  await expect.poll(() => dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await page.waitForTimeout(1000);
+  await switchProject(page);
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 14_000 });
+  await expect(picker(page)).toHaveCount(0);
+  expect(await page.evaluate(() => window.location.pathname)).toBe('/script');
+  expect(await dawRecording(page)).toBe(false);
+});
+
 test('a start the host never answers: Stop and leave ends in the refusal question, and Leave anyway leaves', async ({ page }) => {
   test.setTimeout(60_000);
   await hang('readAloudRecordStart')(page);

@@ -408,5 +408,49 @@ describe('useBoothLeaveGuard', () => {
       expect(t.go).toHaveBeenCalledWith('/script');
       expect(t.dialog()).toBeUndefined();
     });
+
+    // The Booth went some other way mid-wait (the project picker drawn in its place): what still waits must not open a question over the new page, move the
+    // narrator, or leave its message up (#3325, ux-reviewer).
+    describe('the Booth is gone mid-wait', () => {
+      const unmountedMidWait = async (over: Partial<BoothLeaveSession>, stop?: () => Promise<DawResult>) => {
+        vi.useFakeTimers();
+        const t = setup(over, stop);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+        t.hook.unmount();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2 * LEAVE_WAIT_MS + 500);
+        });
+        return t;
+      };
+      const quiet = (t: ReturnType<typeof setup>) => {
+        expect(t.go).not.toHaveBeenCalled();
+        expect(t.dialog()).toBeUndefined();
+        expect(screen.queryByText('Stopping the take…')).toBeNull();
+      };
+
+      it('a stop that never answers: no refusal over the new page, no move, the message gone, the failure said as an error', async () => {
+        const t = await unmountedMidWait({}, never);
+        quiet(t);
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(screen.getByText(/could not be stopped/)).toBeTruthy();
+      });
+
+      it('a run that is never written: no move', async () => {
+        const t = await unmountedMidWait({ flush: never });
+        quiet(t);
+      });
+
+      it('a start that answers after the Booth is gone: no move, and this decision stops nothing (the late start stops itself)', async () => {
+        const t = await unmountedMidWait({ settle: () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 3000)) });
+        quiet(t);
+        expect(t.stopRecording).not.toHaveBeenCalled();
+      });
+    });
   });
 });
