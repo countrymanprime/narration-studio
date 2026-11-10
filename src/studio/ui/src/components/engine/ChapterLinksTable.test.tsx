@@ -4,13 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
-import { useChapterLinks } from './useChapterLinks';
+import { CREATE_QUIET_MS, useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 
 afterEach(cleanup);
+
+// A narrator takes longer than this between linking and pressing Change; a double click does not (CREATE_QUIET_MS).
+const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 30));
 
 const notify = vi.fn();
 
@@ -134,6 +137,7 @@ describe('ChapterLinksTable', () => {
     await within(opening).findByRole('button', { name: /^Change the track for/ });
     expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
 
+    await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
@@ -141,11 +145,44 @@ describe('ChapterLinksTable', () => {
     expect(within(opening).queryByRole('img', { name: UNPLAYABLE })).toBeNull();
 
     // tracks[2] is Click Track, a MIDI item the app cannot play.
+    await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[2].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
     await within(opening).findByRole('button', { name: /^Change the track for/ });
     expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
+  });
+
+  // QA breaker B1: Change, pick, Cancel, Change again brought back the abandoned pick, and the check linked it in one press.
+  it('reopens Change on the linked track after a Cancel, not on the abandoned pick', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    expect((within(opening).getByRole('combobox') as HTMLSelectElement).value).toBe(WIRE_TRACKS_PROJECT.tracks[0].guid);
+  });
+
+  // QA breaker B2: a double click linked, then pressed the Change that took the check's place, and left the picker open on a Linked row.
+  it('links once on a double click and ends in the read view', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.dblClick(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(within(opening).queryByRole('combobox')).toBeNull();
+    expect(within(opening).getByRole('button', { name: /^Clear the link for/ })).toBeTruthy();
   });
 
   // ENX-1: the columns were sized by their content, so they moved between states and rows.
@@ -277,6 +314,7 @@ describe('ChapterLinksTable', () => {
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
