@@ -1,13 +1,13 @@
 module desktop
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/bogem/id3v2/v2 v2.1.4
-	github.com/giraffesyo/pdf v0.8.0
+	github.com/giraffesyo/pdf v0.9.0
 	github.com/wailsapp/wails/v3 v3.1.0
 	golang.org/x/net v0.62.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.43.0
 )
 

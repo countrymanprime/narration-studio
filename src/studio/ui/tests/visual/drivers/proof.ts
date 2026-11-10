@@ -1,4 +1,4 @@
-// How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
+// How to reach each `proof` state (the rebuilt Proof page) in STATE_CATALOG (see app.drivers.ts).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, closeDawDialogOnArrival, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
@@ -179,6 +179,13 @@ export const proofDrivers: Record<string, Driver> = {
     await openChapter(page, 'Chapter 1');
     await page.getByRole('button', { name: 'Compare with the script' }).click();
     await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+  },
+  'compare-odd-chunk': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed&mockSettings=odd-chunk');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+    await page.getByText(/is not one this panel offers; starting on 1m/).waitFor();
   },
   'compare-preview': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');

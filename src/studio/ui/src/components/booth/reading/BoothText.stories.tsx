@@ -6,7 +6,7 @@ import { sampleColour, sampleDecorations, sampleNotes, sampleParagraphs, sampleS
 import type { ReadingPosition } from './readingPosition';
 import type { BrowseView } from './useBrowseView';
 
-// The Studio Next Booth's teleprompter text (docs/research/mockups/studio-next/src/pages/booth/Teleprompter.tsx): the sentence being
+// The rebuilt Booth's teleprompter text (docs/research/mockups/research-mock/src/pages/booth/Teleprompter.tsx): the sentence being
 // read is lit, the ones read are dimmed, the word being read is marked, and a quoted phrase carries its speaker's chip.
 function Stage(args: Parameters<typeof BoothText>[0]) {
   const [position, setPosition] = useState<ReadingPosition | undefined>(args.position);

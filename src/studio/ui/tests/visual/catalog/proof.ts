@@ -1,4 +1,4 @@
-// The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
+// The `proof` rows of STATE_CATALOG: the rebuilt Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
 
@@ -43,7 +43,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'default',
     description:
-      "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",
+      "Proof, all chapters (research mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",
     ...REFLOW,
   },
   {
@@ -58,6 +58,13 @@ export const proofStates: StateEntry[] = [
     state: 'compare-open',
     description:
       'Proof, Chapter 1 linked, Compare with the script pressed beside Check recordings (#2822): the Compare panel under the check card with its Differences, Preview and Native takes tabs, on the comparison’s setup',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'compare-odd-chunk',
+    description:
+      'Proof, Chapter 1 linked, Compare opened with a hand-edited chunk length in Settings (?mockSettings=odd-chunk): the setup starts on 1m and a toast says the stored length is not one it offers',
     ...REFLOW,
   },
   {

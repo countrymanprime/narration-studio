@@ -72,7 +72,7 @@ export type DawPickupMarker = PickupMarker & { ref?: string };
 /** `readPickupMarkers`' answer: the result, and every pickup marker in time order (none when refused). */
 export type DawPickupMarkersRead = DawResult & { markers: DawPickupMarker[] };
 
-/** A cut of the words between two tokens of a chapter's stored alignment (the Studio Next mock's `DeleteRangeRequest`, narrowed to what
+/** A cut of the words between two tokens of a chapter's stored alignment (the research mock's `DeleteRangeRequest`, narrowed to what
  * the page may send: the host resolves the item, its times and the word count itself). `fadeMs` is the fade at each seam, 0 to 500.
  * `padMs` (0 to 500, none when left out) cuts that much less at each end; `roomTone` (mode `gap` only) fills the gap with the chapter's
  * room tone instead of silence, which a DAW with none refuses, cutting nothing. */
@@ -100,7 +100,7 @@ export type RangeTrimRequest = {
 const MAX_CUT_FADE_MS = 500;
 const MAX_CUT_PAD_MS = 500;
 
-/** One of the narrator's saved chains on the words between two tokens (the Studio Next mock's `FxRangeRequest`, narrowed as
+/** One of the narrator's saved chains on the words between two tokens (the research mock's `FxRangeRequest`, narrowed as
  * `DeleteRangeRequest` is). `chainName` is a name `fxChains()` listed; `fadeMs` is the fade at each new seam, 0 to 500. */
 export type FxRangeRequest = { chapterId: string; firstToken: number; lastToken: number; chainName: string; fadeMs: number };
 
@@ -126,7 +126,7 @@ export type FxChoice = { id: string; name: string };
 /** What the DAW offers for Add FX (the mock's `FxList`): where the list comes from, and the entries. */
 export type FxList = { source: string; choices: FxChoice[] };
 
-/** One take a stack (or un-stack) would move, as the plan the page shows has it (the Studio Next mock's `StackMove`). */
+/** One take a stack (or un-stack) would move, as the plan the page shows has it (the research mock's `StackMove`). */
 export type StackMove = { takeId: string; from: number; to: number; len: number };
 
 /** The takes of one passage a stack would move onto the first read's spot (the mock's `StackGroup`). */
@@ -136,7 +136,7 @@ export type StackGroup = { passageId: string; itemGuid: string; base: string; mo
  * it rebuilds the items, moves and shift itself (bindings_daw_stack.go), so the rest is the plan the page showed, for display. */
 export type StackRequest = { chapterId: string; groups: StackGroup[]; shift: number };
 
-/** A backup of the audio around a chapter's words before an edit (the Studio Next mock's backupAround, narrowed to what the page may
+/** A backup of the audio around a chapter's words before an edit (the research mock's backupAround, narrowed to what the page may
  * send: the host resolves the words' times and the chapter's track itself, and the DAW adds the narrator's window either side). `label`
  * is what the Backups list shows it was made for ("Roll at ¶ 3"). */
 /** Lower `stretches` (seconds into the take's own audio file) of `takeId`, a take of the chapter, by `reduceDb` (1 to 24): Clean up's

@@ -1,4 +1,4 @@
-// The pure side of the Proof recording check card (Studio Next mock: src/selectors/checkcard.ts): which of the four states the chapter's
+// The pure side of the Proof recording check card (research mock: src/selectors/checkcard.ts): which of the four states the chapter's
 // check is in, the recorded length against the script estimate, the counts by category, and the findings the card lists. Real data only:
 // the stored `CoverageResult`, the live `CoverageState`, the gap reviews and the audio analyzers' findings.
 import type { CoverageGap, CoverageGapReviews, CoverageReason, CoverageResult, CoverageState } from '../../../api/contracts/coverage';

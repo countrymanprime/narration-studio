@@ -1,4 +1,4 @@
-// The `editing` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Editing page (the Studio Next mock's
+// The `editing` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Editing page (the research mock's
 // `pages/Editing.tsx`) at `/editing`, which replaced Proof's chapter workspace (SN-E9). Chapter 1 is linked to its track with
 // `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the mock REAPER answers, so every edit it
 // builds is on.

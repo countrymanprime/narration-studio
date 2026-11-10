@@ -1,16 +1,16 @@
 # Public site demo against the real app
 
-**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-studio/pull/1825) differs from the real app and the Studio Next mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `src/studio/ui`, the Studio Next mock in `docs/research/mockups/studio-next/` and the guides in `docs/guides/using-the-app/`.
+**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-studio/pull/1825) differs from the real app and the research mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `src/studio/ui`, the research mock in `docs/research/mockups/research-mock/` and the guides in `docs/guides/using-the-app/`.
 
 ## How this was checked
 
 - **Real app, run.** The Playwright visual suite ran against the real UI on its mock host, light theme: `pnpm --dir src/studio/ui visual:page production proof pickups` (92 states, all passed), `delivery` (all passed) and a partial run of `storybible`, `shell` and `master`, which I stopped before its dark pass. I read the PNGs under `src/studio/ui/screenshots/targeted/light/` (gitignored, not committed) and drove the mock build (`vite build --mode mock`) with a script to test decisions, keys and counts. Findings from that script are marked **live**.
 - **Real Storybook, run.** `pnpm --dir src/studio/ui run build-storybook` built, and I opened the static build in a browser.
 - **Mockup, run.** I opened `index.html` in headless Chromium and drove every demo page, the Storybook view and the Ctrl+K search. Findings are marked **live**. Others come from reading the file and are cited by line.
-- **Studio Next mock, read** from source (`docs/research/mockups/studio-next/src/`). I installed its dependencies and started its dev server but compared source and the committed screenshots, not live states.
+- **research mock, read** from source (`docs/research/mockups/research-mock/src/`). I installed its dependencies and started its dev server but compared source and the committed screenshots, not live states.
 - **Not run:** the MkDocs build, the real desktop host, dark theme of the real pages, and a pixel comparison. See [What could not be verified](#what-could-not-be-verified).
 
-**Rules that applied.** [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec) says the Studio Next mock is the only spec for every page it covers and that nothing is built that it lacks. The ADRs 0585, 0740 and 0760 named in the brief are no longer in `docs/adr/`: the folder holds only 0001 (Go) and 0002 (local models), and their content moved to that design-system section and to [verification tooling](../operations/verification-tooling.md#mock-match) (`docs/research/docs-placement-audit.md`, rows 0585, 0740, 0760). So no change below conflicts with an Accepted ADR; the gate for every "Studio mock first" item is the design-system rule, and the way to open the gate is a change to the Studio mock.
+**Rules that applied.** [What a page builds to](../design/design-system.md#what-a-page-builds-to) says the research mock is the only spec for every page it covers and that nothing is built that it lacks. The ADRs 0585, 0740 and 0760 named in the brief are no longer in `docs/adr/`: the folder holds only 0001 (Go) and 0002 (local models), and their content moved to that design-system section and to [verification tooling](../operations/verification-tooling.md#mock-match) (`docs/research/docs-placement-audit.md`, rows 0585, 0740, 0760). So no change below conflicts with an Accepted ADR; the gate for every "Studio mock first" item is the design-system rule, and the way to open the gate is a change to the Studio mock.
 
 **Verdict codes.** **C** mock site should conform. **A** app should move toward the mock site. **S** Studio mock should be updated first. **F** fine either way or not comparable.
 
@@ -230,7 +230,7 @@ Ranked by what the narrator gains. None is built; no Accepted ADR is in the way 
 
 ## Studio mock should be updated first
 
-Proposals for the owner, not bugs. Each needs a change to the Studio mock before the app follows; none supersedes an Accepted ADR, since the rule lives in [`design-system.md`](../design/design-system.md#which-mocks-are-the-spec).
+Proposals for the owner, not bugs. Each needs a change to the Studio mock before the app follows; none supersedes an Accepted ADR, since the rule lives in [`design-system.md`](../design/design-system.md#what-a-page-builds-to).
 
 - **S1. Edit a pronunciation without entering Edit mode** (B1). One field per name, committed on Enter or on leaving the field, with the source tag beside it. Touches `EntryEditor.tsx` in the mock and `components/storybible/` in the app. Medium. Keep Mark reviewed separate (B2).
 - **S2. A labelled action in the Pickups empty state** (K2). Replace the icon-only arrow with a text button, "Open Proof". Touches `pages/Pickups.tsx` and `list/PickupsTable.tsx:299`. Small.
@@ -280,7 +280,7 @@ The real app already has a demo build: `VITE_DEMO=1` shows `DemoBanner`, and `cr
 
 - **MkDocs.** I did not build the docs site, so O2 (active heading in the contents list), O3 (whether an edit button needs `repo_url`) and O5 (previous and next) rest on `mkdocs.yml` and the Material features it lists, not on a page.
 - **Dark theme of the real pages.** The dark pass of the visual run was stopped. V1 and V5 compare token values, not drawn pages.
-- **Studio Next mock, live.** I read its source and the committed screenshots in `docs/images/ui/` but compared no live Studio state.
+- **research mock, live.** I read its source and the committed screenshots in `docs/images/ui/` but compared no live Studio state.
 - **Real desktop host.** K1 and X2 describe the mock host; with the Go host the guide says Proof notes marked Needs pickup appear on Pickups, and I did not run it.
 - **Row heights.** "86 px" is the mockup's measured note row; I did not measure the real table's rows, so R1 and V2 quote the real sizes only where I measured them live (button, h1, rail).
 - **Pipeline cell words (P2).** The in-progress cell in the real pipeline shows a percent in the Studio mock; I did not drive a real in-progress state.

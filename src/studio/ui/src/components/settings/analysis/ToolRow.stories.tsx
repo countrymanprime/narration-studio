@@ -34,7 +34,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// The section as Settings first shows it (docs/research/mockups/studio-next/src/pages/settings/AnalysisTools.tsx): three tools to
+// The section as Settings first shows it (docs/research/mockups/research-mock/src/pages/settings/AnalysisTools.tsx): three tools to
 // download. The mock's fourth row, the local model, is not built (docs/guides/using-the-app/settings.md).
 export const NotInstalled: Story = {
   args: {

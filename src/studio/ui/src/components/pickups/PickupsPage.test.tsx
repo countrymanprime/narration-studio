@@ -17,6 +17,7 @@ import { PortOverrides } from '../../ports/usePort';
 import { DawFileLinkedContext } from '../connection/dawFileLinked';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
+import { overlay } from '../../overlay/overlayService';
 import { onPickupListChanged } from './pickupListChanged';
 import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
 import { CHAPTERS, MIXED, pickup } from './list/pickupFixtures';
@@ -568,5 +569,19 @@ describe('coming-back-from-the-booth', () => {
     cleanup();
     renderPage();
     await waitFor(() => expect(document.activeElement?.textContent).toMatch(/^Open \d+ in Booth$/));
+  });
+});
+
+// #3228's review: nothing pressed a row's Show in REAPER on this page and read what it said (#3231).
+describe('a-pickup-row-shows-its-note-in-the-daw', () => {
+  it("moves the DAW to the line's note and says where", async () => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+    const goTo = vi.spyOn(api, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 74 } as never);
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => '' as never);
+    renderPage(api);
+    const buttons = await screen.findAllByRole('button', { name: 'Show in REAPER' });
+    await userEvent.setup().click(buttons[0]);
+    await waitFor(() => expect(goTo).toHaveBeenCalled());
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to .* in REAPER\.$/)));
   });
 });

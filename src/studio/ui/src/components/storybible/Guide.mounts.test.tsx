@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-B8: the Story Bible route mounts the Studio Next pieces built before it, and the old pronunciation query UI is gone.
+// SN-B8: the Story Bible route mounts the rebuilt pieces built before it, and the old pronunciation query UI is gone.
 // SN-X91: the page's Scan button reaches the first-scan prompt or the scan, over the mock host and the fake asset registry.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

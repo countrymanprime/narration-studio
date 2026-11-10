@@ -91,7 +91,7 @@ func (r *Reporter) ReadJSON(path, what string, class Class, decode func([]byte) 
 	// stale bytes must not move the fresh file a save wrote in between.
 	unlock := lockPath(path)
 	defer unlock()
-	bytes, err := os.ReadFile(path)
+	bytes, err := ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return Missing
 	}
@@ -120,7 +120,7 @@ func (r *Reporter) quarantine(path, what string) {
 		kept = fmt.Sprintf("%s.corrupt-%s-%d", path, r.stamp(), attempt)
 	}
 	r.log("persisted_corrupt", fmt.Sprintf("%s file %s is not valid JSON; keeping it as %s and starting a fresh one", what, filepath.Base(path), filepath.Base(kept)))
-	move := os.Rename
+	move := Rename
 	if r != nil && r.rename != nil {
 		move = r.rename
 	}
@@ -150,7 +150,7 @@ func lockPath(path string) func() {
 func CanOverwrite(path, what string) error {
 	unlock := lockPath(path)
 	defer unlock()
-	if _, err := os.ReadFile(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if _, err := ReadFile(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("your %s file could not be read, so nothing was saved: %w", what, err)
 	}
 	return nil

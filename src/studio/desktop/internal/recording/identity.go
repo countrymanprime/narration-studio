@@ -58,7 +58,7 @@ func identityPath(folder string) string { return filepath.Join(folder, identityF
 // whole take listing over an optional annotation - the same laissez-faire treatment listTakes already gives an
 // unreadable WAV header.
 func readIdentities(folder string) map[string]string {
-	raw, err := os.ReadFile(identityPath(folder))
+	raw, err := persist.ReadFile(identityPath(folder))
 	if err != nil {
 		return map[string]string{}
 	}

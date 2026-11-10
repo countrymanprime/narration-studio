@@ -62,7 +62,7 @@ test('validateCases: accepts a usable list and names each problem otherwise', ()
 });
 
 test('every evals.json in .claude/skills is a valid case list', () => {
-  const skills = ['change-impact-scan', 'wire-contract-change', 'reaper-command-add', 'full-verification-gate'];
+  const skills = ['change-impact-scan', 'wire-contract-change', 'reaper-command-add', 'full-verification-gate', 'code-standards'];
   for (const skill of skills) {
     const file = join(REPO_ROOT, '.claude', 'skills', skill, 'evals', 'evals.json');
     assert.ok(existsSync(file), `${skill} has no evals/evals.json`);

@@ -10,7 +10,7 @@ import (
 // How many chapters GLiNER reads at once in a Story Bible scan. The host plans the number from this computer's processors and
 // free memory and sends it to the sidecar (--workers), as a recording check does (coverage.PlanWorkers), so the number of
 // processes the Settings page names is the number that runs. Measured on 4 processors in
-// docs/research/studio-next-extraction-chunking-benchmark.md: torch already spreads one process over the cores, so two
+// docs/research/extraction-chunking-benchmark.md: torch already spreads one process over the cores, so two
 // workers get most of the gain and four add little at twice the memory.
 const (
 	// glinerWorkerMB is about what one GLiNER process takes (2.1 GB measured), rounded up.

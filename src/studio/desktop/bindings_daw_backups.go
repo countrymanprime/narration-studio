@@ -39,7 +39,7 @@ const (
 )
 
 // DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
-// (SN-D82, docs/reference/daw/audacity-3.md; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
+// (SN-D82, docs/reference/daw/audacity-3.md; the research mock's backupAround). The page sends a chapter id, two token indices and the label the
 // Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
 // stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
 // window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
@@ -60,7 +60,7 @@ func (h *Host) DawBackupAround(chapterID string, firstToken int, lastToken int, 
 // DawRestoreBackup puts the audio of the backup backupID back over the same window of the track it came from (the mock's
 // restoreBackup). The page sends the id DawBackups listed, nothing else. The same capability refusal first; an id the table does not
 // have is the DAW's refusal, changed false; a backup or source track that is gone is code stale. A restore is not undoable in the app
-// (docs/research/studio-next-undo-inverse-table.md row 1): it is one step in the DAW's own undo.
+// (docs/research/undo-inverse-table.md row 1): it is one step in the DAW's own undo.
 func (h *Host) DawRestoreBackup(backupID string) (string, error) {
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)

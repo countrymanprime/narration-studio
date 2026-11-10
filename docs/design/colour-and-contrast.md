@@ -43,7 +43,7 @@ Each speaker in the Script reader's attribution chip and the Booth's "Voices in 
 
 ## Line, button and focus tokens
 
-The Studio Next mock's `src/styles/app.css` (deleted from the tree) was the reference for token values ([Which mocks are the spec](design-system.md#which-mocks-are-the-spec)); `styles.css` is now the record. `:focus-visible` is a 2 px `--focus` outline at a 2 px offset. Four values differ from the mock because the mock's fail the guard: `--line-strong` (the mock's measure 1.93:1 and 1.96:1 on `--surface`), light `--accent-soft` (warn text on the mock's value was 4.49:1, so it is `#F2DECA`), and the derived `--<kind>-text` mix (43%, not 45%, because the mock's lighter dark violet drove review and event text nested in an organization tint to 4.43:1). The mock sets status text in the status colour itself, and each passes 4.5:1 on its own soft fill, so `--danger-text`, `--warn-text`, `--info-text` and `--ok-text` alias the status colour.
+The research mock's `src/styles/app.css` (deleted from the tree) was the reference for token values ([What a page builds to](design-system.md#what-a-page-builds-to)); `styles.css` is now the record. `:focus-visible` is a 2 px `--focus` outline at a 2 px offset. Four values differ from the mock because the mock's fail the guard: `--line-strong` (the mock's measure 1.93:1 and 1.96:1 on `--surface`), light `--accent-soft` (warn text on the mock's value was 4.49:1, so it is `#F2DECA`), and the derived `--<kind>-text` mix (43%, not 45%, because the mock's lighter dark violet drove review and event text nested in an organization tint to 4.43:1). The mock sets status text in the status colour itself, and each passes 4.5:1 on its own soft fill, so `--danger-text`, `--warn-text`, `--info-text` and `--ok-text` alias the status colour.
 
 | Token | Light | Dark | Pair and worst ratio (light / dark) |
 | --- | --- | --- | --- |
@@ -176,7 +176,7 @@ The `CD` numbers are this document's. They are not the agent-train D-numbers.
 
 ### Mock lines this supersedes
 
-The Studio Next mock stays frozen ([Which mocks are the spec](design-system.md#which-mocks-are-the-spec)). These are the places the decisions depart from it, per [UI spec and screenshots](../../.claude/rules/ui-spec-and-screenshots.md).
+The research mock stays frozen ([What a page builds to](design-system.md#what-a-page-builds-to)). These are the places the decisions depart from it, per [UI spec and screenshots](../../.claude/rules/ui-spec-and-screenshots.md).
 
 | Mock draws | Replaced by | Why |
 | --- | --- | --- |

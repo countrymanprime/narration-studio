@@ -26,6 +26,6 @@
 
 ## Pending
 
-- Windows REAPER and a real audio device: row C19 of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet), with the owner.
+- Windows REAPER and a real audio device: row C19 of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-daw-commands-not-scripted-yet), with the owner.
 - A tempo or time-signature change inside the pre-roll: the measure length is read at the cursor only.
 - Where REAPER's own window shows the length. This was not looked up; the menu names only the verified action text.

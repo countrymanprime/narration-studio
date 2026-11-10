@@ -44,7 +44,7 @@ type ChapterViewProps = {
 /**
  * Proof's chapter view, `/proof/:chapterId`: what the chapter page held besides the workspace, which the Editing page replaced (SN-E9,
  * docs/guides/using-the-app/editing.md). The recording check's state and Check again, the native takes, Transcript Compare's run against this chapter (CompareRun),
- * and the Preview and stage panels; none of them is in the Studio Next mock, so they stay as built (D98). One component per chapter
+ * and the Preview and stage panels; none of them is in the research mock, so they stay as built (D98). One component per chapter
  * (keyed by the id).
  */
 export function ProofChapterPage(props: ChapterViewProps) {

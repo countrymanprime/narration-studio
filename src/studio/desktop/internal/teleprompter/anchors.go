@@ -55,7 +55,7 @@ func anchorsFileName(chapterID string) string {
 // LoadAnchors returns chapterID's anchors, oldest word first, or none when there is no file, a corrupt one or one of
 // another version. Only an unreadable-but-present file is an error, as LoadReading does for a Reading.
 func LoadAnchors(project, chapterID string) ([]Anchor, error) {
-	raw, err := os.ReadFile(filepath.Join(AnchorsDir(project), anchorsFileName(chapterID)))
+	raw, err := persist.ReadFile(filepath.Join(AnchorsDir(project), anchorsFileName(chapterID)))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}

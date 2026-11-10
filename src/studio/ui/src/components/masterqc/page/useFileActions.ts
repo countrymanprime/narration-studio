@@ -14,7 +14,7 @@ function show(call: Promise<DawResult>, done: () => void): void {
 }
 
 /**
- * Master & QC's Play the quietest 5 s and Open in the DAW (the Studio Next mock's `#quiet` and `#openr`) over the DAW port. The file id
+ * Master & QC's Play the quietest 5 s and Open in the DAW (the research mock's `#quiet` and `#openr`) over the DAW port. The file id
  * is the row's, the path the host's last measurement answered; the host finds the stretch and refuses a file that is not in that run.
  */
 export function useFileActions(): Pick<FileActions, 'onPlayQuietest' | 'onOpenInDaw'> {

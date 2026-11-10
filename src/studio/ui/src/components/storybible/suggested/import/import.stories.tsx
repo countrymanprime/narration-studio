@@ -6,7 +6,7 @@ import { StudioProvider } from '../../../../studio/StudioProvider';
 import { ImportDialog } from './ImportDialog';
 
 // SN-X522: the body of "Import entries", drawn on the mock host, which plans a pasted text the way the real host does. The mock page is
-// pages/bible/ImportDialog.tsx in the Studio Next mock. The dialog shell (title, Close, focus) is the overlay's; the mount is SN-B8's.
+// pages/bible/ImportDialog.tsx in the research mock. The dialog shell (title, Close, focus) is the overlay's; the mount is SN-B8's.
 const meta = { title: 'Story Bible/Import dialog', component: ImportDialog, args: { onClose: fn() } } satisfies Meta<typeof ImportDialog>;
 export default meta;
 type Story = StoryObj<typeof meta>;

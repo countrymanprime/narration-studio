@@ -8,7 +8,7 @@
 
 A source that is not installed, a book that is not fetched and a book with no gold are each `not run` with a sentence; no
 figure is ever filled in. Output goes to ``data/out/`` (ignored). See README.md and
-docs/research/studio-next-extraction-calibration-protocol.md.
+docs/research/extraction-calibration-protocol.md.
 """
 
 from __future__ import annotations

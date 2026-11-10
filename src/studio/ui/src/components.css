@@ -10,7 +10,7 @@
   text-transform: uppercase;
   color: var(--text-muted);
 }
-/* The icon rail's group rule, drawn in place of each heading's text (the Studio Next mock's `.rail-c .grp::before`): 1 px, as wide as an item's highlight,
+/* The icon rail's group rule, drawn in place of each heading's text (the research mock's `.rail-c .grp::before`): 1 px, as wide as an item's highlight,
    centred in the space between the groups. The first group has no heading, so no rule (the brand block is above it); no rule while the rail is open
    over the page, where the heading shows. AppShell's rail panel carries `icon-rail`; its headings are `relative`. */
 @media (max-width: 1359px) {
@@ -50,7 +50,7 @@ label.field-label {
   font-weight: 500;
   color: var(--text-muted);
 }
-/* The mock's keyboard focus ring (Studio Next app.css): a 2 px outline in --focus, offset 2 px, on whatever takes focus. */
+/* The mock's keyboard focus ring (rebuilt app.css): a 2 px outline in --focus, offset 2 px, on whatever takes focus. */
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

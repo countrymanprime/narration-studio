@@ -1,5 +1,5 @@
-// The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Studio Next Booth
-// (docs/research/mockups/studio-next/src/pages/Booth.tsx), mounted at `/booth` by SN-O10, and the Companion, which has its own route.
+// The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the rebuilt Booth
+// (docs/research/mockups/research-mock/src/pages/Booth.tsx), mounted at `/booth` by SN-O10, and the Companion, which has its own route.
 import type { StateEntry } from '../lib/types';
 import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, SIDE_PANEL_DEPENDS_ON_WIDTH } from './shared';
 

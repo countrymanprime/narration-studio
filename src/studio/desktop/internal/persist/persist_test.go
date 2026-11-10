@@ -247,3 +247,13 @@ func TestTellWritesTheLogLineAndTellsTheNarratorAndIsSafeWithoutEither(t *testin
 	(*Reporter)(nil).Tell("kind", "message", "sentence")
 	(&Reporter{}).Tell("kind", "message", "sentence")
 }
+
+func TestWarnLogsAndIsSafeOnANilReporter(t *testing.T) {
+	var none *Reporter
+	none.Warn("kind", "message")
+	var got string
+	(&Reporter{Log: func(kind, message string) { got = kind + ": " + message }}).Warn("kind", "message")
+	if got != "kind: message" {
+		t.Errorf("logged %q", got)
+	}
+}

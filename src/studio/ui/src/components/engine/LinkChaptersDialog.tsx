@@ -19,6 +19,7 @@ import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -167,14 +168,30 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
+  const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
     { value: '', label: 'Not linked' },
     ...tracks.map((track) => {
       const name = track.name || `Track ${track.index + 1}`;
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
-      return { value: track.guid, label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length) : name };
+      return {
+        value: track.guid,
+        label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length, voiceFolders ? 'voice' : 'track') : name,
+      };
     }),
   ];
+  // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink); the sentence under
+  // the table says so once it is picked, where the closed picker's clipped label could not.
+  const linkedTo = new Map<string, string>();
+  for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
+  const sharesTrack = (chapterId: string, folderGuid: string) => {
+    const at = tracks.findIndex((track) => track.guid === folderGuid);
+    const folder = tracks[at];
+    if (!folder?.isFolder) return false;
+    const end = tracks.findIndex((track, i) => i > at && track.depth <= folder.depth);
+    return tracks.slice(at + 1, end < 0 ? undefined : end).some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
+  };
+  const sharing = rows.filter(({ chapter, mapping, state }) => mapping && state === 'linked' && sharesTrack(chapter.id, mapping.trackGuid));
 
   const approve = () => {
     setLastAction('stamp');
@@ -192,13 +209,13 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       dismissOnOutsidePress={false}
       title="Link chapters to REAPER"
       size="wide"
-      onClose={running ? undefined : onClose}
-      escapeCloses={!running}
+      onClose={onClose}
       description="Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={running}>
-            {state.phase === 'success' && state.stamp.applied > 0 ? 'Close' : 'Cancel'}
+          {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
+          <Button variant="secondary" onClick={onClose}>
+            {running || (state.phase === 'success' && state.stamp.applied > 0) ? 'Close' : 'Cancel'}
           </Button>
           <Button onClick={approve} disabled={preview.length === 0} pending={running}>
             {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
@@ -271,7 +288,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                     value={mapping?.trackGuid ?? ''}
                     onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}
-                    disabled={links.busyChapterId === chapter.id}
+                    disabled={links.busyChapterId === chapter.id || running}
                     fullWidth
                   />
                 </TableCell>
@@ -281,6 +298,15 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           })}
         </TableBody>
       </Table>
+
+      {sharing.length > 0 && (
+        <div className="mt-3">
+          <ToolResult
+            tone="warning"
+            message={`${sharing.map(({ chapter }) => chapterName(chapter, 'short')).join(', ')}: the folder also holds another chapter's linked track. That track's items stay with its own chapter.`}
+          />
+        </div>
+      )}
 
       <div className="mt-3">
         <Checkbox checked={overwrite} onChange={setOverwrite} disabled={running}>

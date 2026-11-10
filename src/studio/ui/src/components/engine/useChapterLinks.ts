@@ -98,7 +98,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // refreshKey has no meaning of its own: it only asks this effect to run again after a change made elsewhere (chapter sync's panel).
   }, [reload, refreshKey, enabled]);
 
-  const change = (chapterId: string, write: () => Promise<unknown>) => {
+  const change = (chapterId: string, write: () => Promise<unknown>, quietAfter = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusyChapterId(chapterId);
@@ -117,6 +117,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
+        // An Unlink puts "Create a track" where Clear was, so a fast second click would press it: same quiet window as after a create (#3272).
+        if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
       });
   };
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
@@ -125,7 +127,17 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
-  const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
+  // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
+  const unlink = (chapterId: string) =>
+    change(
+      chapterId,
+      async () => {
+        const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
+        setMappings(result.mappings);
+        return result;
+      },
+      true,
+    );
 
   // Mounted while a create from an earlier mount runs (the panel closed and opened again): busy until it ends, then read the links again.
   useEffect(() => {

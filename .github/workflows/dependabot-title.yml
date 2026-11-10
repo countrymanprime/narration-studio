@@ -1,0 +1,38 @@
+name: Dependabot title
+# Dependabot titles read `chore(deps): Bump ...` with a capital first word, which commitlint forbids, and the squash merge
+# commits the title as written (#3260). This rewrites only Dependabot's own title, in its exact shape, when the pull
+# request opens, so the commit on main is conventional and Dependabot copies the lowercase style next time. docs.yml
+# normalizes the same title in memory, because a title edit made with GITHUB_TOKEN does not re-run its check.
+#
+# pull_request_target gives the token write access for a pull request. That is safe here: the job runs only for
+# `dependabot[bot]`, checks out the base branch (never the pull request head), runs nothing from the pull request, and
+# passes the title through env.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+permissions: {}
+jobs:
+  title:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # The default ref of pull_request_target is the base branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Lowercase the first word
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          fixed="$(node scripts/ci/dependabot-title.mjs)"
+          if [ "$fixed" = "$PR_TITLE" ]; then echo "Title already conforms: $PR_TITLE"; exit 0; fi
+          gh api --method PATCH "repos/$GH_REPO/pulls/$PR_NUMBER" --raw-field title="$fixed" --silent
+          echo "Title: $PR_TITLE -> $fixed"

@@ -19,7 +19,7 @@ const BADGE = {
 const SKELETON_ROWS = 4;
 
 /**
- * The aside "Delivery package · <profile>" (the Studio Next mock's Master page): the profile's package checks, the files that fail,
+ * The aside "Delivery package · <profile>" (the research mock's Master page): the profile's package checks, the files that fail,
  * how many chapters are not ready (the count Delivery shows), and the way on to Delivery. The page decides where Delivery is (`onOpenDelivery`).
  */
 export function PackageChecks({

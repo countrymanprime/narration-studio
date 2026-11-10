@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { goToPage } from './drivers/shared';
 import { settlePage } from './helpers/settle';
 
-// The profile card's header keeps the title, the profile menu and the name box on one row, as the Studio Next mock does (its name box is
+// The profile card's header keeps the title, the profile menu and the name box on one row, as the research mock does (its name box is
 // 160 px); a full-width name box wrapped onto a second row and left the title floating between the rows. Geometry, so it needs a real browser.
 for (const [width, height] of [
   [1440, 900],

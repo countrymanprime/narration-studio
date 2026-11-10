@@ -22,7 +22,7 @@ A narrator is a string used to fill a credit. Nothing in the host or the UI know
 ### Voices, characters and the Story Bible
 
 - **Characters** are Story Bible entities (`ManuscriptGuide/manuscript_guide.json`, [data-files.md](../reference/data-files.md)). A type has a `speaks` flag; entries of a speaking type can have a speaker colour (`src/studio/desktop/internal/guide/types.go`, `SetTypeSpeaks`).
-- **Gender** is not a field. It exists as a free `Gender` property (`Female` or `Male`) that BookNLP extraction offers (`src/studio/desktop/internal/extractionport/booknlp/booknlp.go`, `GenderKey`, `GenderValues`). The [BookNLP spike](studio-next-booknlp-spike.md) says it ships behind "not yet available", so for now a gender is whatever the narrator types into an entry's properties.
+- **Gender** is not a field. It exists as a free `Gender` property (`Female` or `Male`) that BookNLP extraction offers (`src/studio/desktop/internal/extractionport/booknlp/booknlp.go`, `GenderKey`, `GenderValues`). The [BookNLP spike](booknlp-spike.md) says it ships behind "not yet available", so for now a gender is whatever the narrator types into an entry's properties.
 - **Dialogue cues** are the speaker data: each quoted span has `chapterId`, `paragraphId`, `quote_start`, `quote_end`, `speaker_entity_id`, `speaker_source` and `corrected` (`DialogueCue` in `src/studio/desktop/internal/guide/service.go`). A cue the narrator corrected survives a rebuild (`CorrectCue`). Three or more speakers in a scene, or no tag, stay `unknown` ([Story Bible guide](../guides/using-the-app/story-bible.md)).
 - **Voice samples** are clips of "how a character sounds", keyed by character id, with the reserved id `narration` for plain narration (`NarrationCharacterID` in `src/studio/desktop/internal/voicesample/voicesample.go`; 20 per character; `voice-samples/samples.json`). The Booth speaker picker plays them ([Booth guide](../guides/using-the-app/booth.md#voice-samples)).
 - **Approved references** are regions of the REAPER project approved as a character's reference, again with `narration` as a subject (`src/studio/desktop/internal/character/character.go`). Continuity baselines are built per subject (`src/studio/desktop/internal/continuity/analyze.go`, `SubjectStatus`).
@@ -186,7 +186,7 @@ Per [`.claude/rules/wire-contracts.md`](../../.claude/rules/wire-contracts.md) a
 
 ## 5. UI sketch: the Assignments screen
 
-A section of Production, opened from **Assign narrators** beside the pipeline. Words, not pixels; it would be mocked in the Studio Next style (which mocks are the spec) before any code.
+A section of Production, opened from **Assign narrators** beside the pipeline. Words, not pixels; it would be mocked in the rebuilt style (what a page builds to) before any code.
 
 ```text
 Narrators                                         [ + Add narrator ]

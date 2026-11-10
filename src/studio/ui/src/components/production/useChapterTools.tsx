@@ -12,6 +12,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
+import { showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -49,7 +50,7 @@ type Options = {
 };
 
 /**
- * The Production features the Studio Next mock has no equivalent for, kept as built (D98; the SN-P40 audit's "Old behaviour to new home"):
+ * The Production features the research mock has no equivalent for, kept as built (D98; the SN-P40 audit's "Old behaviour to new home"):
  * the chapter track slide-over with Remove from recording, the Restore list, the credits rows' panel and menu, the chapter status override and the
  * recording and editing checks. They hang off the mock's own row menu on the pipeline (the mock's `context.ts`) and two panels under it.
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync
@@ -187,7 +188,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const chapter = find(row.id);
         const missing = chapter ? undefined : 'The chapter list is still loading';
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
-        const trackGuid = links?.chapters.find((entry) => entry.chapterId === row.id)?.links[0]?.trackGuid;
+        const trackGuid = showableTrackGuid(links?.chapters.find((entry) => entry.chapterId === row.id));
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },

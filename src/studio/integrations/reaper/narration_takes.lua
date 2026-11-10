@@ -1,5 +1,5 @@
 -- Take housekeeping over the bridge: hide_takes mutes every take of an item but the one the narrator keeps ("Hide other
--- takes", PRD studio-next-daw-ports-and-capabilities SND-5a; DQ-8: never delete). Loaded by narration_ui_bridge.lua,
+-- takes", PRD daw-ports-and-capabilities SND-5a; DQ-8: never delete). Loaded by narration_ui_bridge.lua,
 -- which passes the shared helpers as the chunk argument.
 --
 -- ReaScript has no per-take mute, so a hidden take is a take whose volume (D_VOL) is 0, with the volume it had saved in

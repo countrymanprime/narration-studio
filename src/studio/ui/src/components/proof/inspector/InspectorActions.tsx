@@ -29,7 +29,7 @@ const REPAIRABLE_TYPES: ReadonlySet<string> = new Set(['mouth', 'plosive', 'brea
 export { dawNameOf };
 
 /**
- * The Studio Next Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, on a one-word
+ * The rebuilt Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, on a one-word
  * misread Treat these two words as the same in later checks (`TreatAsSame`, #2736), Open this chapter in Script, Open this chapter in Booth,
  * and Reopen once a decision is made. The two DAW actions follow `usePort('daw').capabilities()` (`navigate` and `markers`), which also
  * names the DAW, and the note itself; when one is off, the capability's own sentence is shown beside the row. The two links are the

@@ -55,7 +55,13 @@ jobs:
         env:
           # Read through env, never interpolated into the script.
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        # Dependabot's own titles are normalized first (dependabot-title.yml rewrites the real title, but its edit does not
+        # re-run this check); every other author's title is linted as written.
+        run: |
+          title="$PR_TITLE"
+          if [ "$PR_AUTHOR" = 'dependabot[bot]' ]; then title="$(node scripts/ci/dependabot-title.mjs)"; fi
+          printf '%s\n' "$title" | pnpm exec commitlint --verbose
       - name: Markdown lint (changed files)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node scripts/ci/lint-markdown-changed.mjs --summary
@@ -91,13 +97,24 @@ jobs:
       - name: Docs prose (a backticked path or pnpm script that no longer exists)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node scripts/ci/docs-references.mjs --strict --summary
+      # The action downloads the lychee binary from GitHub; a blip there failed pull requests (#3260). Offline mode is
+      # deterministic, so a failed first attempt is retried once after a pause and the second result decides.
       - name: Links (offline)
+        id: links-offline
         if: ${{ !cancelled() }}
+        continue-on-error: true
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           lycheeVersion: v0.24.2
           args: --config .lychee.toml --offline --no-progress .
           # Blocking: the baseline is clean (0 dead repository links) and offline mode is deterministic.
+          fail: true
+      - name: Links (offline, retry)
+        if: ${{ !cancelled() && steps.links-offline.outcome == 'failure' }}
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          args: --config .lychee.toml --offline --no-progress .
           fail: true
       # The public site, built and checked as pages.yml builds it, on a pull request that touches its sources (pages.yml's paths).
       - name: Site sources changed

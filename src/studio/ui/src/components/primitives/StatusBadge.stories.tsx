@@ -53,7 +53,7 @@ export const EveryShapeAndLook: Story = {
 };
 
 // The measured spec: a pill is 22 px tall and fully
-// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 52×24 (the Studio Next mock's `.cell`). Measured
+// rounded, a tag 16 px on the 3 px tag radius, the Booth's tag 26 px, the Production board's cell 52×24 (the research mock's `.cell`). Measured
 // at the default root size.
 export const MeasuredShapes: Story = {
   render: () => (

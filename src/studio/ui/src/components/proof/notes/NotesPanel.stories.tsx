@@ -5,7 +5,7 @@ import { NotesPanel } from './NotesPanel';
 import type { NoteSort } from './noteRows';
 import { notesFixture } from './testNotes';
 
-// The queue panel of the Studio Next Proof page: heading, filter chips with counts, the sort, find in notes, the Sources line and
+// The queue panel of the rebuilt Proof page: heading, filter chips with counts, the sort, find in notes, the Sources line and
 // the grouped table (D98). The host owns the sort, so the story only keeps the choice.
 function Panel(props: ComponentProps<typeof NotesPanel>) {
   const [sort, setSort] = useState<NoteSort>(props.sort);
