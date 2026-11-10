@@ -129,7 +129,11 @@ function VoiceDataContent({
             </p>
           ) : null}
           <div className="grid grid-cols-1 gap-2 @min-[24rem]:grid-cols-2">
-            <Button variant="danger" disabled={!list || list.totals.count === 0} onClick={() => setConfirming('samples')}>
+            <Button
+              variant="danger"
+              disabledReason={!list ? 'Still reading the voice samples.' : list.totals.count === 0 ? 'There are no voice samples to remove.' : ''}
+              onClick={() => setConfirming('samples')}
+            >
               Remove voice samples…
             </Button>
             <Button variant="danger" onClick={() => setConfirming('references')}>
