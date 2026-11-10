@@ -95,7 +95,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
       return;
     }
     if (read.failed) return; // the live read failed and its own toast says so
-    notify(recheckSentence(short, row.trackName, read.project?.tracks ?? tracks, guid), 'info');
+    notify(recheckSentence(short, row.trackName, read.project?.tracks ?? tracks, guid, folders), 'info');
   };
 
   return (
@@ -167,13 +167,14 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
-/** What a Confirm on an unchanged link found: the track as it is now, its voices in a folder, and whether its name moved. */
-export function recheckSentence(short: string, was: string | undefined, tracks: Track[], guid: string | undefined): string {
+/** What a Confirm on an unchanged link found: the track as it is now, what a folder holds, and whether its name moved. */
+export function recheckSentence(short: string, was: string | undefined, tracks: Track[], guid: string | undefined, voiceFolders = false): string {
   const found = tracks.find((candidate) => candidate.guid === guid);
   if (!found) return `${short} is linked to a track that is no longer in the project. Choose another track or clear the link.`;
-  const voices = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
-  const what = found.isFolder ? `${voices} ${voices === 1 ? 'voice' : 'voices'}` : 'a single track';
-  if (was !== undefined && was !== found.name) return `Updated: ${short}'s track was “${was}” and is now “${found.name}” (${what}).`;
+  const inside = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
+  const unit = voiceFolders ? ['voice', 'voices'] : ['track', 'tracks'];
+  const what = found.isFolder ? `a folder with ${inside} ${inside === 1 ? unit[0] : unit[1]}` : 'a single track';
+  if (was !== undefined && was !== found.name) return `${short}'s track was renamed in REAPER from “${was}” to “${found.name}” (${what}).`;
   return `${short} is linked to “${found.name}” (${what}). Nothing changed.`;
 }
 
@@ -328,6 +329,8 @@ function ChapterLinkRow({
                   setRechecking(true);
                   void onRecheck().finally(() => {
                     setRechecking(false);
+                    // Change takes the check's place: a double click's second press must not reopen the picker.
+                    swappedAt.current = Date.now();
                     setPicking(false);
                   });
                 }}

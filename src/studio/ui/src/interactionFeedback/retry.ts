@@ -181,7 +181,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterLinksTable.tsx#2': no(
     'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
   ),
-  'src/components/engine/ChapterLinksTable.tsx#3': no(BT),
+  'src/components/engine/ChapterLinksTable.tsx#3': no(
+    'Reads the link again and changes nothing, so it is safe to repeat; the row is back on Change, and Change then the check reads it again.',
+  ),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useChapterFolders.ts#1': no(
     'Moves tracks out of folders in REAPER (a DAW edit): a blind repeat could apply a move that half-happened again, and the folders are checked again after the failure, so Move them out is offered afresh from what REAPER holds now.',

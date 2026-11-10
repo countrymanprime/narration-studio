@@ -151,6 +151,27 @@ describe('ChapterLinksTable', () => {
     expect(await within(opening).findByRole('button', { name: /^Change the track for/ })).toBeTruthy();
   });
 
+  // UX review: the re-read closes the picker, so Change takes the check's place; a double click's second press must not reopen it.
+  it('ignores a fast second press on Change right after the check closed the picker', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet(); // a narrator takes longer than the quiet period between Change and the check
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    const change = await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await user.click(change);
+    expect(within(opening).queryByRole('combobox')).toBeNull();
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    expect(within(opening).getByRole('combobox')).toBeTruthy();
+  });
+
   // Narrator walkthrough: after Clear the select still held the old track and the check looked ready, one press from linking it again.
   it('opens a cleared row on "Choose a track" with the check off', async () => {
     const user = userEvent.setup();

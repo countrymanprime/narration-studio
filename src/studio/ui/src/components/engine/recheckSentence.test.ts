@@ -10,14 +10,15 @@ describe('recheckSentence', () => {
   it('says nothing changed for a single track', () => {
     expect(recheckSentence('Chapter 1', 'Ch 1', [track('a', 'Ch 1')], 'a')).toBe('Chapter 1 is linked to “Ch 1” (a single track). Nothing changed.');
   });
-  it('counts the voices of a folder, one and many', () => {
+  it('counts what a folder holds: voices in a Voice folders project, tracks in any other', () => {
     const folder = [track('f', 'Ch 1', 0, true), track('n', 'Narrator', 1)];
-    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(1 voice). Nothing changed.');
-    expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f')).toContain('(2 voices)');
+    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f', true)).toContain('(a folder with 1 voice). Nothing changed.');
+    expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f', true)).toContain('(a folder with 2 voices)');
+    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder with 1 track). Nothing changed.');
   });
-  it('says the track was renamed', () => {
+  it('says the track was renamed in REAPER', () => {
     expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(
-      "Updated: Chapter 1's track was “Old” and is now “New ‮evil” (a single track).",
+      "Chapter 1's track was renamed in REAPER from “Old” to “New ‮evil” (a single track).",
     );
   });
   it('says a track the project no longer has is gone', () => {
