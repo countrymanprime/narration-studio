@@ -114,7 +114,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 
 On a narrow window the chip drops the DAW's name and keeps the words ("Other project").
 
-- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
+- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#linking-chapters-to-tracks) read from Audacity.
 - **Built-in**: the project records in the app. Clicking this chip opens Settings > Recording & DAW, not the panel, since there is no DAW to link. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward
@@ -210,6 +210,8 @@ The panel lists the project's tracks once, in [Chapter links](#linking-chapters-
 every track of the project in a row's picker. There is no separate list of tracks to scroll, so the panel scrolls as one. To hear a
 chapter, open it on [Editing](editing.md).
 
+A linked track whose audio cannot play (a source file missing on disk, or an item that is not audio, such as MIDI) shows a warning triangle beside its name in Chapter links; hold the pointer on it for the reason. The panel no longer shows a track's mute state or how many of its items play.
+
 ### REAPER tools
 
 When the project has tracks, the REAPER tools sit in their own card under the project, one icon each; hold the pointer on one for its name. **Link chapters to tracks** and
@@ -271,7 +273,7 @@ Chapter links, below the REAPER tools and Chapter sync, shows every narration ch
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press the check icon (**Use this track**), which stays off until you
-have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and a pencil icon (**Change the track**) and an eraser icon (**Clear the link**). Change
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and an arrows icon (**Change the track**) and an eraser icon (**Clear the link**). Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
