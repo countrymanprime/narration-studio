@@ -104,8 +104,23 @@ runs:
       name: Install pinned checklocks
       shell: bash
       run: go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@v0.0.0-20260924014505-db6c1a7c24b4
+    # The action fetches the release list and the binary from GitHub; a blip there failed pull requests (#3260). The first
+    # attempt may fail; the second runs after a pause and fails the job if it fails too.
     - if: inputs.need-stylua == 'true'
+      id: stylua
       name: Install pinned standalone StyLua
+      continue-on-error: true
+      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      with:
+        token: ${{ github.token }}
+        version: v2.1.0
+        args: false
+    - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
+      name: Wait before the StyLua retry
+      shell: bash
+      run: sleep 30
+    - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
+      name: Install pinned standalone StyLua (retry)
       uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
       with:
         token: ${{ github.token }}
