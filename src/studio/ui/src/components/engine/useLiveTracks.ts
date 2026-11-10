@@ -119,6 +119,15 @@ export function useLiveTracks({
             stale: false,
             error: '',
           });
+          // A press answers even when nothing changed: only the header's "read N s ago" moved, in a line cut with an ellipsis (#3339).
+          if (pressed) {
+            const count = answer.project.tracks.length;
+            notifyRef.current(
+              answer.source === 'live'
+                ? `Read ${count === 1 ? '1 track' : `${count} tracks`} from REAPER.`
+                : answer.message || 'Read the tracks in the saved project.',
+            );
+          }
           return { project: answer.project, source: answer.source, failed: false };
         })
         .catch((reason: unknown) => {

@@ -8,6 +8,4 @@ export const DEAD_CONTROL_DEBT: Record<string, string> = {
 // Controls whose press is answered by a live timer as much as by the press (the track list re-reads itself every 5 s), so whether the guard
 // sees "nothing happened" depends on when the timer fires. They are never reported as dead while listed here, and a listed control that does act
 // is not a failure either. Owned by #3269; delete the line with its fix.
-export const DEAD_CONTROL_TIMER_DRIVEN: Record<string, string> = {
-  ' > button Read the tracks from REAPER again': '#3269',
-};
+export const DEAD_CONTROL_TIMER_DRIVEN: Record<string, string> = {};
