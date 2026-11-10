@@ -95,4 +95,17 @@ describe('MappingConfirm', () => {
 
     expect(screen.getByText('No REAPER tracks to link')).toBeTruthy();
   });
+
+  // QA breaker B1, in the shared component: Change, pick, Cancel, Change again reopened on the abandoned pick with Confirm live.
+  it('reopens Change on the linked track after a Cancel, not on the abandoned pick', async () => {
+    const user = userEvent.setup();
+    render(
+      <MappingConfirm chapterTitle="Chapter One" tracks={tracks} linkedTrackGuid="guid-1" linkedTrackName="Chapter 1" onConfirm={vi.fn()} onClear={vi.fn()} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Change' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Track for Chapter One' }), 'guid-2');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await user.click(screen.getByRole('button', { name: 'Change' }));
+    expect((screen.getByRole('combobox', { name: 'Track for Chapter One' }) as HTMLSelectElement).value).toBe('guid-1');
+  });
 });

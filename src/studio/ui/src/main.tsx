@@ -1,6 +1,7 @@
 import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName } from './api/audacityLinkMock';
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
 import { DAW_MOCK_SCRIPTS, type DawMockControl, type DawMockSeed } from './api/dawMock';
+import { bookOfHours } from './fixtures/bookSize';
 import { BOOTH_STRESS, MIC_STRESS, boothStressSeed, micStressDevices } from './fixtures/boothStress';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -10,6 +11,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
+import { withCallLog } from './api/withCallLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
@@ -72,7 +74,7 @@ const mockNoProject = mockParams.has('mockNoProject');
 const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 // `?mockNoRpp=1` seeds zero candidates: the project folder has no .rpp file.
 const mockNoRpp = mockParams.has('mockNoRpp');
-// `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
+// `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
 // `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
 // first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.
@@ -80,6 +82,8 @@ const mockLiveTracksParam = mockParams.get('mockLiveTracks');
 const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
+// `?mockEmptyTracks=1`: every track of the saved project holds no item (a chapter never recorded), so Editing's note says its track is empty.
+const mockEmptyTracks = mockParams.has('mockEmptyTracks');
 // `?mockNestedChapters=1`: Chapters 2 and 3's tracks sit inside Chapter 1's folder in REAPER (#2838), so the Chapter links panel offers the repair.
 const mockNestedChapters = mockParams.has('mockNestedChapters');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
@@ -173,6 +177,10 @@ const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((
 // 100,000-word chapter, 5000 chapters (`many-unbroken`: 200 whose titles may be 10,000 characters long), all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
 const mockBoothStress = BOOTH_STRESS.find((name) => name === mockParams.get('mockBooth'));
+// `?mockBookHours=17` replaces the manuscript with a synthetic book of that many hours of narration (fixtures/bookSize.ts), for the page
+// benchmark (scripts/dev/page-bench.mjs). `?mockCallLog=1` records every host call (name, ms, answer bytes) in `window.__hostCalls`.
+const mockBookHours = Number(mockParams.get('mockBookHours')) || undefined;
+const mockCallLog = mockParams.has('mockCallLog');
 const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMics'));
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
@@ -328,6 +336,9 @@ const mockLogFolderRefused = mockParams.get('mockLogFolder') === 'refused';
 const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
 // launcher action): every capability that needs the bridge answers 'standalone', and the Booth shows its REAPER connection steps.
+// `?mockDawUnsaved=1|never-saved`: REAPER holds changes its saved file lacks (`1`; with `?mockChapterLink=missing` Editing says a recording may be waiting
+// there and offers **Save in REAPER and read**), or a project that was never saved, whose save the host refuses (`never-saved`).
+const mockDawUnsaved = (['1', 'never-saved'] as const).find((seed) => seed === mockParams.get('mockDawUnsaved'));
 const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
 // `?mockRollReplaces=1` declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
@@ -584,6 +595,7 @@ const mockInitial = {
   ...(mockTeleprompter ? { teleprompter: mockTeleprompter } : {}),
   ...(mockNoDevices ? { teleprompterDevices: [] } : {}),
   ...(mockBoothStress ? boothStressSeed(mockBoothStress) : {}),
+  ...(mockBookHours ? bookOfHours(mockBookHours) : {}),
   ...(mockMicsStress
     ? {
         teleprompterDevices: micStressDevices(mockMicsStress),
@@ -611,6 +623,7 @@ const mockInitial = {
   ...(mockTrackFolders ? { trackFolders: true } : {}),
   ...(mockLiveTracks ? { liveTracks: mockLiveTracks } : {}),
   ...(mockVoiceFolders ? { voiceFolders: true } : {}),
+  ...(mockEmptyTracks ? { emptyTracks: true } : {}),
   ...(mockNestedChapters ? { nestedChapters: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
@@ -706,6 +719,7 @@ const mockInitial = {
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,
+    mockDawUnsaved ? { savedAt: '2026-11-10T09:00', unsavedChanges: true, neverSaved: mockDawUnsaved === 'never-saved' } : undefined,
     mockRollReplaces ? { depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
     Number.isFinite(mockDawPlayhead) ? { transport: { playing: true, recording: false, position: mockDawPlayhead } } : undefined,
@@ -719,7 +733,8 @@ if (hostApi === wailsClient) {
   installTracing(wailsClient);
 }
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
-const api = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
+const wrapped = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
+const api = mockCallLog ? withCallLog(wrapped) : wrapped;
 appExtension().start?.(api);
 
 createRoot(document.getElementById('root')!).render(

@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
+import { trackHeldByOther } from '../mapping/trackHeldBy';
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -165,6 +167,7 @@ export function ReasonBlock({
 function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapter; onLinked: () => Promise<void>; onNavigate?: () => void }) {
   const tracksPort = usePort('tracks');
   const trackMap = usePort('chapterTrackMap');
+  const overlay = useOverlay();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
   const confirming = usePendingAction();
@@ -192,6 +195,18 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
+          let taken: string;
+          try {
+            taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+          } catch (reason) {
+            overlay.toast(`The link could not be checked: ${describeApiError(reason)}`, { tone: 'error' });
+            return;
+          }
+          if (taken) {
+            overlay.toast(taken, { tone: 'error' });
+            return;
+          }
           try {
             await trackMap.chapterTrackMapConfirm(trackGuid, chapter.id);
             setError('');

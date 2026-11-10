@@ -126,6 +126,22 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(await screen.findByRole('button', { name: 'Unlink' })).toBeTruthy();
   });
 
+  it('says which chapter lost the track when linking takes it from another chapter (#3053)', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
+      documentId: 'doc',
+      link: { trackGuid: track.guid, chapterId: link.chapterId, chapterTitle: link.chapterTitle, confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: { chapterId: 'other', chapterTitle: 'Chapter 9', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
+      mappings: [],
+    });
+    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to Chapter 9, which is now unlinked.'));
+  });
+
   // #3272: the re-read of ChapterTrackLinks parses the whole saved project; the panel must not wait for it to show the chapter unlinked.
   it('shows the chapter unlinked as soon as Unlink answers, before the links are read again', async () => {
     const api = createMockApi();
@@ -175,6 +191,22 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
 
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('read only'), 'error'));
     expect(screen.getByRole('button', { name: 'Unlink' })).toBeTruthy();
+  });
+
+  it('names a plain phrase when the chapter that lost the track has no stored title (#3053)', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
+      documentId: 'doc',
+      link: { trackGuid: track.guid, chapterId: link.chapterId, chapterTitle: link.chapterTitle, confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: { chapterId: 'gone', chapterTitle: '', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
+      mappings: [],
+    });
+    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to a chapter no longer in the manuscript, which is now unlinked.'));
   });
 
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {

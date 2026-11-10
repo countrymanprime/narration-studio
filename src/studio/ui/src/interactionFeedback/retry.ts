@@ -38,6 +38,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/production/report/ReportDialog.tsx#1': yes(
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
+  'src/components/editing/page/useSaveInDaw.ts#1': no(BT),
+  'src/components/editing/page/useRereadFeedback.ts#1': no(BT),
   'src/components/script/page/data/useScriptData.ts#2': no(ED),
   'src/components/script/page/data/useScriptData.ts#3': no(ED),
   'src/components/settings/controls/ProjectBodies.tsx#1': no(
@@ -112,8 +114,12 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/editing/CleanupAction.tsx#1': no(BT),
   'src/components/editing/CleanupAction.tsx#2': no(BT),
   'src/components/editing/CleanupAction.tsx#3': no(ED),
-  'src/components/editing/EditingCheckPanel.tsx#1': yes('Starting the editing check again runs the same check; it only reads.'),
-  'src/components/editing/EditingCheckPanel.tsx#2': no(DS),
+  'src/components/editing/EditingCheckPanel.tsx#1': no(BT),
+  'src/components/editing/EditingCheckPanel.tsx#2': no(RF),
+  'src/components/editing/EditingCheckPanel.tsx#3': yes('Starting the editing check again runs the same check; it only reads.'),
+  'src/components/editing/EditingCheckPanel.tsx#4': no(DS),
+  'src/components/recordingcheck/CheckResult.tsx#1': no(BT),
+  'src/components/recordingcheck/CheckResult.tsx#2': no(RF),
   'src/components/editing/backups/useBackups.ts#1': yes("Reading the DAW's table of backups changes nothing; Retry reads it again (new in this change)."),
   'src/components/editing/backups/useBackups.ts#2': no(RF),
   'src/components/editing/cleanup/CleanupTab.tsx#1': no(RF),

@@ -2,9 +2,11 @@ import type { ChapterTrackCreateResult } from '../../../api/contracts/chapterTra
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
+import { destinationFor } from '../../engine/destination';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { NoticeChip } from './RecordSetup';
 
-type Created = Extract<ChapterTrackCreateResult, { outcome: 'created' }>['track'];
+export type Created = Extract<ChapterTrackCreateResult, { outcome: 'created' }>;
 
 /**
  * The Booth's chapter-not-linked notice: a chip above the footer and the dialog that links the chapter to a track or has the DAW add one.
@@ -37,12 +39,13 @@ export function ChapterLinkNotice({
   onLinked: (created?: Created) => void;
   onCheckAgain: () => void;
 }) {
+  const dest = destinationFor(useVoiceLayout());
   const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${several ? 'several' : 'none'}`, hold, { forgetOnUnmount: true });
   const { reopen } = dialog;
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <NoticeChip id="brec-link" label={several ? 'Linked to several tracks' : 'Not linked to a track'} onOpen={reopen} />
+      <NoticeChip id="brec-link" label={several ? dest.severalChip : dest.notLinkedChip} onOpen={reopen} />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}
@@ -50,11 +53,7 @@ export function ChapterLinkNotice({
           dawName={dawName}
           several={several}
           // The host's own sentence points at the audio engine panel; this dialog is that fix, so it says what Record waits for instead.
-          sentence={
-            several
-              ? `Record can't start: a take needs exactly one track for ${chapterName}. Linking one replaces the others.`
-              : `Record can't start until ${chapterName} has a track to record on.`
-          }
+          sentence={several ? dest.recordWaitsSeveral(chapterName) : dest.recordWaits(chapterName)}
           create={create ? { available: create.available, message: create.message } : undefined}
           onLinked={(_result, created) => {
             dialog.close();

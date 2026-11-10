@@ -17,6 +17,7 @@ import {
   faFilm,
   faPaperclip,
   faScrewdriverWrench,
+  faScrewdriver,
   faTag,
   faArrowRightArrowLeft,
   faBroom,
@@ -45,8 +46,7 @@ import {
   faCaretLeft,
   faCaretRight,
   faCheck,
-  faAnglesDown,
-  faAnglesUp,
+  faLightbulb,
   faChevronDown,
   faChevronRight,
   faChevronUp,
@@ -195,6 +195,7 @@ export const TOOLTIP_VERBS = [
   'Record',
   'Reject',
   'Remove',
+  'Repair',
   'Reopen',
   'Reset',
   'Retry',
@@ -299,20 +300,20 @@ export const CATALOG = {
   import: action(faFileImport, 'import', 'Import a file'),
   export: action(faFileExport, 'export', 'Export a file'),
   download: action(faDownload, 'download', 'Download'),
+  // A model or voice that is on disk but damaged: its own icon, so it is not read as another Download.
+  repairAsset: action(faScrewdriver, 'repair a download', 'Repair'),
   openFolder: action(faFolderOpen, 'open a folder', 'Open the folder'),
   // Master & QC's toolbar: the page's own words as the `label`, these as the hint.
   masterAllToSpec: action(faBullseye, 'master all files to spec', 'Master all files to spec'),
   checkFiles: action(faFileCircleCheck, 'check files', 'Check files'),
   recheckFiles: action(faMagnifyingGlassChart, 'check the files again', 'Check the files again'),
-  // REAPER's folder tracks in the Tracks card and the track picker.
+  // REAPER's folder tracks in the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
   // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
   createChapterTrack: action(faPlus, 'add', 'Create a track for this chapter'),
   createChapterFolder: action(faFolderPlus, 'add a folder of tracks', 'Create a folder for this chapter'),
   folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
-  openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
-  closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),
   undo: action(faRotateLeft, 'undo', 'Undo', 'Ctrl+Z'),
   history: action(faClockRotateLeft, 'undo history', 'Open the undo history', 'Ctrl+Shift+H'),
   retry: action(faRotate, 'try again', 'Retry'),
@@ -353,6 +354,9 @@ export const CATALOG = {
   // The mock draws accept as a check and reject, dismiss and cancel-a-download as an X (audit rule 4 asks for text on cancel; the mock wins, D98).
   accept: action(faCheck, 'accept', 'Accept this suggestion'),
   saveAndAccept: action(faCheck, 'accept', 'Save and accept'),
+  saveNote: action(faCheck, 'accept', 'Save the note'),
+  // The second press of a two-press remove: the check that answers the question the delete icon asked.
+  confirmRemove: action(faCheck, 'accept', 'Remove it with its uses'),
   markReviewed: action(faCircleCheckRegular, 'mark done', 'Mark reviewed'),
   reject: action(faXmark, 'close', 'Reject this suggestion'),
   dismiss: action(faXmark, 'close', 'Dismiss'),
@@ -395,6 +399,9 @@ export const CATALOG = {
   linkFile: action(faPaperclip, 'link a project file', 'Link a project file'),
   linkChapters: action(faDiagramProject, 'link chapters to tracks', 'Link chapters to tracks'),
   changeLink: action(faPenToSquare, 'change the linked file', 'Change the linked file'),
+  // The pick in a Chapter links row, the same check as every accept; its pair is `cancelEdit` and the row's Change is `changeTrack`, so a row never mixes a word with icons.
+  confirmTrack: action(faCheck, 'accept', 'Use this track'),
+  showTipsAgain: action(faLightbulb, 'show tips', 'Show tips again'),
   changeTrack: action(faArrowRightArrowLeft, 'change the track', 'Change the track'),
   unlink: action(faLinkSlash, 'unlink', 'Unlink'),
   clearLink: action(faEraser, 'clear', 'Clear the link'),

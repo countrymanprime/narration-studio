@@ -58,7 +58,8 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
 /**
  * AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
  * when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
- * The Booth's record press asks it first (the speech model check), so it begins a press on the record-press timeline.
+ * The Booth's record press asks it early (the speech model check), so it begins a press on the record-press timeline, or continues the one
+ * its Start from here lookup just began.
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);
@@ -1029,6 +1030,18 @@ export function DawRestoreReplacement(chapterID: string, replacementID: string):
  */
 export function DawRoll(chapterID: string, at: number, confirmed: boolean): $CancellablePromise<string> {
     return $Call.ByID(2752092233, chapterID, at, confirmed);
+}
+
+/**
+ * DawSaveProject has the DAW save the project this app is linked to, on the narrator's click (#3262): Editing reads the saved file, so a
+ * take recorded since the last save is not there until the DAW saves. It answers a DawResult whose message says what was saved. The
+ * save_project capability's own sentence comes first when it refuses (an engine that cannot save from the app); no linked project
+ * file, no live adapter, the DAW not answering, a project that was never saved, another project open, a recording in progress and
+ * a file the DAW could not write are each refused in a sentence, with nothing written. The host sends the file it is linked to, never
+ * one the page names, and nothing else in the host calls it.
+ */
+export function DawSaveProject(): $CancellablePromise<string> {
+    return $Call.ByID(2162970624);
 }
 
 /**

@@ -498,17 +498,10 @@
   },
   {
     "page": "engine",
-    "state": "folder-tracks",
-    "viewport": "desktop",
-    "docName": "engine-panel-folder-tracks",
-    "caption": "The audio engine panel - the Tracks card with REAPER folders drawn as a tree"
-  },
-  {
-    "page": "engine",
     "state": "voice-folders-sync",
     "viewport": "desktop",
     "docName": "engine-panel-voices-layout",
-    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Voices card"
   },
   {
     "page": "engine",
@@ -894,6 +887,13 @@
     "viewport": "desktop",
     "docName": "editing-default",
     "caption": "Editing - Chapter 1 linked to its track: the chapter step and the legend, the script with each line's takes chip and time, the bar and the key hints"
+  },
+  {
+    "page": "editing",
+    "state": "unsaved-take",
+    "viewport": "desktop",
+    "docName": "editing-unsaved-take",
+    "caption": "Editing - a chapter whose recording is still unsaved in REAPER: the note says so, with Save in REAPER and read beside Read again"
   },
   {
     "page": "editing",

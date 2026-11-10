@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "This REAPER project has never been saved, and saving it would open a file dialog in REAPER. Save it once in REAPER (File > Save project), then read again.",
+  "undoSteps": 0,
+  "refused": "This REAPER project has never been saved, and saving it would open a file dialog in REAPER. Save it once in REAPER (File > Save project), then read again."
+}
