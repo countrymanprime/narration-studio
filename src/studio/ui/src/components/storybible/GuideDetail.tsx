@@ -77,10 +77,11 @@ const draftOf = (entity: GuideEntity, speaks: boolean): Draft => ({
 
 const NO_TYPES: GuideType[] = [];
 
-/** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
- * so nothing speaks then, and `failed` says so for the entry to show. */
+/** Why a control waits while another change saves: its tooltip, a keyboard reaches it (#3339). */
 const BUSY_REASON = 'Another change is still saving.';
 
+/** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
+ * so nothing speaks then, and `failed` says so for the entry to show. */
 function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; failed: boolean; checkAgain: () => void } {
   const storyBible = usePort('storyBible');
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);

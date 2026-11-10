@@ -185,7 +185,7 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
         <Button
           onClick={() => void multi.start(chosen)}
           // Off, it says why in a tooltip a keyboard reaches and keeps focus, as the single build does (the shared `disabledReason`, #3339).
-          disabledReason={canBuild ? '' : (why ?? '')}
+          disabledReason={canBuild ? '' : (why ?? (multiPackageRunning ? '' : 'No delivery platforms are set up yet.'))}
           pending={multiPackageRunning || multi.starting}
           aria-describedby={why ? WHY_ID : undefined}
         >

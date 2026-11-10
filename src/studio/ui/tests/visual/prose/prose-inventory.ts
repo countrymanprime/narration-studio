@@ -703,6 +703,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Only if … cannot be used at all: takes already in … stay there and this app stops reading them.',
     class: 'overlay',
   },
+  {
+    file: 'components/settings/controls/EngineBody.tsx',
+    text: '… cannot record yet, but choosing it still switches this project to … and shows its connection card.',
+    class: 'overlay',
+  },
   { file: 'components/settings/controls/EngineBody.tsx', text: 'Audacity 3 was not found on this computer. Install it to record with it. ', class: 'state' },
   {
     file: 'components/settings/controls/EngineBody.tsx',

@@ -16,6 +16,9 @@ import { useAudacityLink } from '../../engine/useAudacityLink';
 import { HelpButton } from '../../primitives/HelpButton';
 import { useSettingsHost } from '../row/SettingsHost';
 
+/** What the "?" under a radio that cannot record yet says: the press still switches the project. */
+const choosingHelp = (daw: string) => `${daw} cannot record yet, but choosing it still switches this project to ${daw} and shows its connection card.`;
+
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
 function optionDescription(option: DawChoiceOption): ReactNode {
   const lines: ReactNode[] = [];
@@ -33,10 +36,9 @@ function optionDescription(option: DawChoiceOption): ReactNode {
   // The radio still switches the project (the link card and the other tools are behind it): a "?" says so, so the line is not instruction prose and does not go stale once chosen (#3339).
   if (!record.available && record.level === 'not_yet_available')
     lines.push(
-      <HelpButton
-        key="still"
-        label={`About choosing ${option.daw}`}
-      >{`${option.daw} cannot record yet, but choosing it still switches this project to ${option.daw} and shows its connection card.`}</HelpButton>,
+      <span key="still" className="ml-1">
+        <HelpButton label={`About choosing ${option.daw}`}>{choosingHelp(option.daw)}</HelpButton>
+      </span>,
     );
   return lines.length > 0 ? <>{lines}</> : undefined;
 }
