@@ -193,6 +193,23 @@ export const engineDrivers: Record<string, Driver> = {
     await firstRow.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
     await firstRow.getByRole('button', { name: 'Change the track' }).waitFor();
   },
+  'chapter-link-recheck': async (page) => {
+    // The state above, then Change: the picker reopens on the linked track, so the check is live and means "check this link again".
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    const firstRow = table.locator('tbody tr').first();
+    await firstRow.getByRole('combobox').selectOption({ index: 1 });
+    await firstRow.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
+    const change = firstRow.getByRole('button', { name: 'Change the track' });
+    await change.waitFor();
+    // A press right after the swap is ignored (CREATE_QUIET_MS), as a narrator's would be if it were a double click.
+    await page.waitForTimeout(700);
+    await change.click();
+    await firstRow.getByRole('button', { name: /^Check the link for/ }).waitFor();
+  },
   'chapter-track-created': async (page) => {
     await page.goto('/?mockChapterLink=none');
     await settlePage(page);

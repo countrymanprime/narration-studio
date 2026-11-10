@@ -71,6 +71,7 @@ function liveStub(): LiveTracks {
     stale: false,
     error: '',
     refresh: vi.fn(),
+    recheck: vi.fn(async () => ({ failed: false })),
     reread: vi.fn(),
     join: vi.fn(),
   };
@@ -415,31 +416,135 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 });
 
-// #3294, qa-breaker B2: Clear puts "Create a track for …" where it was, so a second click aimed at Clear (30 ms or 700 ms later) pressed Create,
-// added a track and relinked the chapter. The same quiet window as after a create now follows an Unlink.
-describe('Clear then a fast second click', () => {
-  it('never reaches Create a track', async () => {
-    const user = userEvent.setup();
-    const base = createMockApi();
-    const create = vi.fn(() => base.chapterTrackCreate(WIRE_CHAPTERS[0].id));
-    renderTable({ api: { ...base, chapterTrackCreate: create } });
-    const { row } = await firstRow();
+// #3275, intent review: the check on the track a chapter already has must always end in a message. Without a live read (an Audacity project) or
+// with one a newer read replaced it still says what it found; a failed read leaves the message to its own error toast.
+describe('The check on the track the chapter already has', () => {
+  async function linkAndReopen(live: Harness['live'], user: ReturnType<typeof userEvent.setup>, row: HTMLElement) {
     await user.selectOptions(within(row).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
-
+    await within(row).findByRole('button', { name: /^Change the track for/ });
     await pastQuiet();
-    await user.click(within(row).getByRole('button', { name: /^Clear the link/ }));
-    await waitFor(() => expect(within(row).getByText('Not linked')).toBeTruthy());
+    await user.click(within(row).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet(); // the check under a double click's second press is ignored, as Change is
+    (live.recheck as ReturnType<typeof vi.fn>).mockClear();
+  }
+
+  it('says what it found when no live read applies', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    // No read answered with a project, so it does not claim to have found nothing new: it says what the panel holds.
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/is linked to “.*” \(a single track\)\.$/), 'info'));
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/Nothing changed/), 'info');
+    expect(live.recheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds no message of its own when the live read failed', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    (live.recheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ failed: true });
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    await waitFor(() => expect(live.recheck).toHaveBeenCalledTimes(1));
+    // The read failed and said so itself: no message of ours, and the picker stays open so the next step is still in it.
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'info');
     await waitFor(() =>
       expect(
         within(row)
-          .getByRole('button', { name: `Create a track for ${short(0)}` })
-          .getAttribute('aria-disabled'),
+          .getByRole('button', { name: /^Check the link for/ })
+          .getAttribute('aria-busy'),
       ).not.toBe('true'),
     );
-    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
+  });
+  it('keeps the picker open when the track is gone, so another can be chosen', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    (live.recheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ project: { ...WIRE_TRACKS_PROJECT, tracks: [] }, failed: false });
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/no longer in the project/), 'info'));
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
+    // The track is gone, so the row is on "Choose a track" with the check off, like every row with nothing picked.
+    expect((within(row).getByRole('combobox') as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('Choose a track');
+    await waitFor(() =>
+      expect(
+        within(row)
+          .getByRole('button', { name: /^Use this (track|folder) for/ })
+          .getAttribute('aria-disabled'),
+      ).toBe('true'),
+    );
+  });
 
-    expect(create).not.toHaveBeenCalled();
+  it('holds Cancel while the re-read runs and keeps a pick made meanwhile', async () => {
+    const user = userEvent.setup();
+    const { live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    let release: (value: { failed: boolean }) => void = () => {};
+    (live.recheck as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    expect(within(row).getByRole('button', { name: 'Cancel the edit' }).getAttribute('aria-disabled')).toBe('true');
+    const other = WIRE_TRACKS_PROJECT.tracks[1].guid;
+    await user.selectOptions(within(row).getByRole('combobox'), other);
+    release({ failed: false });
+    // The pick is the narrator's now: the picker stays open on it, and the check is the one that links it.
+    await waitFor(() => expect(within(row).getByRole('button', { name: /^Use this (track|folder) for/ })).toBeTruthy());
+    expect((within(row).getByRole('combobox') as HTMLSelectElement).value).toBe(other);
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
+  });
+});
+
+// qa-breaker (#3281): a pick whose track left the list is no pick, however the list got shorter.
+describe('A pick whose track is gone', () => {
+  it('leaves the check off, and pressing it links nothing', async () => {
+    const user = userEvent.setup();
+    const { api, setTracks } = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const { row } = await firstRow();
+    const picked = WIRE_TRACKS_PROJECT.tracks[1];
+    await user.selectOptions(within(row).getByRole('combobox'), picked.guid);
+    expect(
+      within(row)
+        .getByRole('button', { name: /^Use this (track|folder) for/ })
+        .getAttribute('aria-disabled'),
+    ).toBeNull();
+    act(() =>
+      setTracks(
+        WIRE_TRACKS_PROJECT.tracks.filter((track) => track.guid !== picked.guid),
+        Date.now(),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        within(row)
+          .getByRole('button', { name: /^Use this (track|folder) for/ })
+          .getAttribute('aria-disabled'),
+      ).toBe('true'),
+    );
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    expect(set).not.toHaveBeenCalled();
+  });
+});
+
+// qa-breaker (#3281): REAPER can give a track no name; the row said its link was missing while the badge said Linked.
+describe('A linked track with no name', () => {
+  it('shows under the one name for a blank track, not as a missing one', async () => {
+    const user = userEvent.setup();
+    const unnamed = WIRE_TRACKS_PROJECT.tracks.map((track, index) => (index === 0 ? { ...track, name: '' } : track));
+    renderTable({ tracks: unnamed });
+    const { row } = await firstRow();
+    await user.selectOptions(within(row).getByRole('combobox'), unnamed[0].guid);
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await within(row).findByText('Linked');
+    expect(within(row).getByText(/^Track \d+$/)).toBeTruthy();
+    expect(within(row).queryByText(/Linked track is missing/)).toBeNull();
   });
 });

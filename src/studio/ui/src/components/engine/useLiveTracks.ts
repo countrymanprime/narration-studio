@@ -31,6 +31,8 @@ export type LiveTracks = {
   error: string;
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
+  /** Reads now like `refresh` and answers the project, or `failed` when the read failed (its own toast says so); neither when no live read applies (Audacity's project, or a newer read replaced this one). */
+  recheck: () => Promise<{ project?: TracksProject; source?: TracksSource; failed: boolean }>;
   /** Reads the tracks now as the timer does: not a press, so no spinner, and a failure is the run's one toast (a changed read key). */
   reread: () => void;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
@@ -69,7 +71,7 @@ export function useLiveTracks({
   onRetry?: () => void;
 }): LiveTracks {
   const tracks = usePort('tracks');
-  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'reread' | 'join' | 'busy' | 'refreshing'>>({
+  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'recheck' | 'reread' | 'join' | 'busy' | 'refreshing'>>({
     reason: '',
     message: '',
     readAt: null,
@@ -94,8 +96,8 @@ export function useLiveTracks({
   onRetryRef.current = onRetry;
 
   const read = useCallback(
-    (force: boolean, pressed: boolean) => {
-      if (!enabled || (!force && inFlight.current > 0)) return;
+    (force: boolean, pressed: boolean): Promise<{ project?: TracksProject; source?: TracksSource; failed: boolean }> => {
+      if (!enabled || (!force && inFlight.current > 0)) return Promise.resolve({ failed: false });
       const id = ++latest.current;
       inFlight.current += 1;
       setBusy(true);
@@ -103,9 +105,9 @@ export function useLiveTracks({
         pressedRead.current = id;
         setRefreshing(true);
       }
-      withinLimit(tracks.tracksLive())
+      return withinLimit(tracks.tracksLive())
         .then((answer) => {
-          if (!mounted.current || id !== latest.current) return;
+          if (!mounted.current || id !== latest.current) return { failed: false };
           failing.current = false;
           hasProject.current = true;
           setState({
@@ -117,9 +119,10 @@ export function useLiveTracks({
             stale: false,
             error: '',
           });
+          return { project: answer.project, source: answer.source, failed: false };
         })
         .catch((reason: unknown) => {
-          if (!mounted.current || id !== latest.current) return;
+          if (!mounted.current || id !== latest.current) return { failed: false };
           const text = describeApiError(reason);
           if (pressed || !failing.current)
             notifyRef.current(
@@ -129,6 +132,7 @@ export function useLiveTracks({
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
+          return { failed: true };
         })
         .finally(() => {
           inFlight.current -= 1;
@@ -148,11 +152,13 @@ export function useLiveTracks({
   }, []);
 
   // readKey has no meaning of its own: a change asks for a fresh read (another linked file, Check again).
-  useEffect(() => read(true, false), [read, readKey]);
+  useEffect(() => {
+    void read(true, false);
+  }, [read, readKey]);
 
   useEffect(() => {
     if (!enabled) return;
-    const auto = () => read(false, false);
+    const auto = () => void read(false, false);
     const onVisible = () => {
       if (document.visibilityState === 'visible') auto();
     };
@@ -166,10 +172,11 @@ export function useLiveTracks({
     };
   }, [enabled, read]);
 
-  const refresh = useCallback(() => read(true, true), [read]);
+  const refresh = useCallback(() => void read(true, true), [read]);
   refreshRef.current = refresh;
-  const reread = useCallback(() => read(true, false), [read]);
-  const join = useCallback(() => read(false, false), [read]);
+  const recheck = useCallback(() => read(true, true), [read]);
+  const reread = useCallback(() => void read(true, false), [read]);
+  const join = useCallback(() => void read(false, false), [read]);
   // One object while nothing changed, so a consumer that depends on it does not render on every render of this hook's owner.
-  return useMemo(() => ({ ...state, busy, refreshing, refresh, reread, join }), [state, busy, refreshing, refresh, reread, join]);
+  return useMemo(() => ({ ...state, busy, refreshing, refresh, recheck, reread, join }), [state, busy, refreshing, refresh, recheck, reread, join]);
 }

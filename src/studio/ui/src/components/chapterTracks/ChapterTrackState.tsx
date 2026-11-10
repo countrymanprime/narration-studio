@@ -46,6 +46,7 @@ const NO_LIVE: LiveTracks = {
   stale: false,
   error: '',
   refresh: () => {},
+  recheck: async () => ({ failed: false }),
   reread: () => {},
   join: () => {},
 };
@@ -98,6 +99,7 @@ export function ChapterTrackStateProvider({
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
   const refreshLive = live.refresh;
+  const recheckLive = live.recheck;
   const rereadLive = live.reread;
   // Whether the last links read failed: a run of failed reads is one toast, and a failed read marks everything shown as from `readAt`.
   const linksFailing = useRef(false);
@@ -161,6 +163,19 @@ export function ChapterTrackStateProvider({
     readLinks(true);
     refreshLive();
   }, [readLinks, refreshLive]);
+  // The check on a link the chapter already has is a press too: it reads the tracks and the links and answers what the tracks read found (the
+  // table says it), or `failed` when either read did, with that read's one toast.
+  const recheck = useCallback(async () => {
+    const linksRead = readLinks(true, 'throw').then(
+      () => true,
+      (reason: unknown) => {
+        notify(describeApiError(reason), 'error', retryAction(retryRef.current));
+        return false;
+      },
+    );
+    const read = await recheckLive();
+    return (await linksRead) ? read : { ...read, failed: true };
+  }, [readLinks, recheckLive, notify]);
   const reread = useCallback(() => {
     readLinks(true);
     rereadLive();
@@ -229,9 +244,9 @@ export function ChapterTrackStateProvider({
             applyMappings,
             refreshLinks,
             // The Engine panel's Refresh is a press: it reads the links with the tracks.
-            live: { ...live, refresh },
+            live: { ...live, refresh, recheck },
           },
-    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, reread, applyMappings, refreshLinks],
+    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks],
   );
   const value = useMemo(() => ({ state, watch, defaultWants: enabled }), [state, watch, enabled]);
   return <ChapterTrackStateContext.Provider value={value}>{children}</ChapterTrackStateContext.Provider>;
