@@ -20,6 +20,8 @@ export type PickupSessionOptions = {
   recording: boolean;
   /** Takes the page to a line: its chapter (when another) and its place in the text. */
   onJump: (line: PickupItem) => void;
+  /** True (having said why) while the reading may not move, a press being under way: nothing changes, the pickup card included. */
+  blocked?: () => boolean;
   /** The line the session was on before the page changed chapter under it; left out: the first line. */
   initialAt?: string | null;
 };
@@ -52,7 +54,7 @@ export type PickupSessionModel = {
  * host to its marker, a refusal being the answer. `N` and `Shift+N` are registered only while a session runs.
  */
 export function usePickupSession(options: PickupSessionOptions): PickupSessionModel {
-  const { ids, chapterId, units, recording, onJump, initialAt = null } = options;
+  const { ids, chapterId, units, recording, onJump, blocked, initialAt = null } = options;
   const pickups = usePort('pickups');
   const overlay = useOverlay();
   const journal = useJournalOrOwn();
@@ -80,8 +82,8 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   const at = active ? (lines.find((item) => item.id === picked)?.id ?? lines[0]?.id ?? null) : null;
   const bars = useMemo(() => pickupBars(lines, chapterId), [lines, chapterId]);
 
-  const latest = useRef({ lines, at, units, chapterId, recording, onJump });
-  latest.current = { lines, at, units, chapterId, recording, onJump };
+  const latest = useRef({ lines, at, units, chapterId, recording, onJump, blocked });
+  latest.current = { lines, at, units, chapterId, recording, onJump, blocked };
 
   const take = useCallback((answer: PickupList) => setList(answer.pickups), []);
 
@@ -93,6 +95,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         overlay.toast('Stop recording first.');
         return;
       }
+      if (now.blocked?.()) return;
       setPicked(line.id);
       now.onJump(line);
     },
