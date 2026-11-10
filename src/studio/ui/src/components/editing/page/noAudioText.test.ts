@@ -21,4 +21,15 @@ describe('noAudioText', () => {
     expect(text.headline.length).toBeLessThanOrEqual(80);
     expect(text.next).toBe('A recording may be waiting there. Save the project in REAPER, then read again.');
   });
+  it('a link to a track the saved project lacks says the track is not in it, not that a recording is waiting', () => {
+    const text = noAudioText({ kind: 'empty', unsaved: true, missing: true }, 'Chapter 1', 'REAPER');
+    expect(text.headline).toBe('Chapter 1’s track is not in the saved project, and REAPER has unsaved changes.');
+    expect(text.headline.length).toBeLessThanOrEqual(80);
+    expect(text.next).toBe('It may have been added since the last save. Save the project in REAPER, then read again.');
+  });
+  it('a DAW that could not say whether it has unsaved changes is asked to be saved, never told to record again', () => {
+    const text = noAudioText({ kind: 'empty', unsaved: 'unknown' }, 'Chapter 1', 'REAPER');
+    expect(text.headline).toBe('Chapter 1 has no saved audio, and REAPER did not say if it has unsaved changes.');
+    expect(text.next).toBe('Save the project in REAPER, then read again.');
+  });
 });

@@ -29,6 +29,16 @@ export function noAudioText(audio: Exclude<ChapterAudio, { kind: 'ready' }>, cha
         next: 'The script is shown without what was heard.',
       };
     case 'empty':
+      if (audio.unsaved === 'unknown')
+        return {
+          headline: `${chapter} has no saved audio, and ${daw} did not say if it has unsaved changes.`,
+          next: `Save the project in ${daw}, then read again.`,
+        };
+      if (audio.unsaved && audio.missing)
+        return {
+          headline: `${chapter}’s track is not in the saved project, and ${daw} has unsaved changes.`,
+          next: `It may have been added since the last save. Save the project in ${daw}, then read again.`,
+        };
       if (audio.unsaved)
         return {
           headline: `${chapter} has no saved audio, and ${daw} has unsaved changes.`,
