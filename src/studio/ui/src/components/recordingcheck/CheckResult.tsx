@@ -194,6 +194,7 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
         chapterTitle={chapterName(chapter, 'short')}
         tracks={tracks}
         busy={confirming.isBusy}
+        onChoose={() => setHeld('')}
         onConfirm={(trackGuid) =>
           void confirming.run('confirm', async () => {
             try {

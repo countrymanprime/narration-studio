@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { useChapterLinks } from './useChapterLinks';
@@ -287,6 +288,61 @@ describe('LinkChaptersDialog', () => {
     await user_selectFirstTrack();
     const stamp = await screen.findByRole('button', { name: /^Stamp \d+ item/ });
     await waitFor(() => expect(stamp.getAttribute('aria-disabled') === 'true' || (stamp as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it("does not repeat the last session's takeover warning when the dialog opens again (qa-breaker 3)", async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    function Reopen() {
+      const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen((v) => !v)}>toggle</button>
+          {open && <LinkChaptersDialog links={links} onClose={() => setOpen(false)} />}
+        </>
+      );
+    }
+    render(
+      <ApiProvider api={api}>
+        <Reopen />
+      </ApiProvider>,
+    );
+    const [first, second] = WIRE_CHAPTERS;
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), track);
+    await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe(track));
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
+    expect(await screen.findByText(/is now not linked/)).toBeTruthy();
+    await user.click(screen.getAllByRole('button', { name: 'Close' })[0]);
+    await user.click(screen.getByRole('button', { name: 'toggle' }));
+    await screen.findByRole('combobox', { name: `Track for ${first.title}` });
+    expect(screen.queryByText(/is now not linked/)).toBeNull();
+  });
+
+  it('hides the previous empty-read line when the next Read is refused (qa-breaker 4)', async () => {
+    const user = userEvent.setup();
+    let push: (state: LineIdentityState) => void = () => {};
+    renderDialog({
+      subscribeLineIdentity: (onUpdate) => {
+        push = onUpdate;
+        return () => {};
+      },
+      lineIdentityRead: async () => Promise.reject(new Error('refused')),
+    });
+    const empty: LineIdentityState = {
+      runId: 'r',
+      phase: 'success',
+      message: 'Read 0 stamped items.',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    };
+    act(() => push(empty));
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    expect(await screen.findByText(/refused/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
   it('shows a REAPER error state', async () => {

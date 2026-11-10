@@ -89,6 +89,41 @@ describe('ChapterLinksTable', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Opening credits was linked to that track and is now not linked.', 'info'));
   });
 
+  // qa-breaker: an ignored Confirm of the pair already linked ends no change, so the flag stayed up and a later takeover made elsewhere (the dialog)
+  // came as a toast beside its own warning.
+  it('does not toast a takeover made elsewhere after an ignored Confirm of the already linked track', async () => {
+    const user = userEvent.setup();
+    notify.mockClear();
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    function Harness() {
+      const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      return (
+        <>
+          <ChapterLinksTable links={links} notify={notify} />
+          <button onClick={() => links.set(WIRE_CHAPTERS[1].id, track)}>elsewhere</button>
+        </>
+      );
+    }
+    render(
+      <ApiProvider api={createMockApi()}>
+        <MemoryRouter initialEntries={['/production']}>
+          <Harness />
+        </MemoryRouter>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
+    const opening = () => chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening()).getByRole('combobox'), track);
+    await user.click(within(opening()).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(opening()).getByText('Linked')).toBeTruthy());
+    await user.click(within(opening()).getByRole('button', { name: /^Change the track for/ }));
+    await user.click(within(opening()).getByRole('button', { name: 'Confirm' }));
+    await user.click(screen.getByRole('button', { name: 'elsewhere' }));
+    await waitFor(() => expect(within(opening()).queryByText('Linked')).toBeNull());
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
+  });
+
   // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
   it('links once when Confirm is pressed twice in a row', async () => {
     const user = userEvent.setup();

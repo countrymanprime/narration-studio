@@ -19,6 +19,8 @@ export type ChapterLinks = {
   error: string;
   /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
   notice: string;
+  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
+  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -190,5 +192,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, unlink, create };
+  const clearNotice = () => setNotice('');
+  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
 }

@@ -177,6 +177,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     return unsubscribe;
   }, [api]);
 
+  // The notice is the last takeover's, kept by the shared reader: a dialog opening anew starts without it, so it is never repeated for a change this session did not make.
+  const { clearNotice } = links;
+  useEffect(() => clearNotice(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const failure = requestError || (state.phase === 'error' ? state.message : '');
   const stampError = lastAction === 'stamp' ? failure : '';
   const readError = lastAction === 'read' ? failure : '';
@@ -189,7 +193,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const reading = state.phase === 'reading';
   // A Read ends in success with no stamp counts; a Stamp's success has some, so the empty-read line follows the state, not the last button pressed
   // (a Read refused after a Stamp, or a dialog reopened while a Read ran, keep the state's own meaning).
-  const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped;
+  const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped && !failure;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [

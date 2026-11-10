@@ -92,6 +92,7 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
         chapterTitle={chapterName(chapter, 'short')}
         tracks={tracks}
         busy={confirming.isBusy}
+        onChoose={() => setHeld('')}
         onConfirm={(trackGuid) =>
           void confirming.run('confirm', async () => {
             try {

@@ -127,10 +127,10 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     const { link, track } = await confirmedFixture(api);
     vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
       documentId: 'doc',
-      link: link.track!,
-      displaced: { chapterId: 'other', chapterTitle: 'Chapter 9', trackGuid: track.guid },
+      link: { trackGuid: track.guid, chapterId: link.chapterId, chapterTitle: link.chapterTitle, confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: { chapterId: 'other', chapterTitle: 'Chapter 9', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
       mappings: [],
-    } as Awaited<ReturnType<NarrationApi['chapterTrackSet']>>);
+    });
     const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     await user.click(screen.getByRole('button', { name: 'Confirm' }));

@@ -127,7 +127,8 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
                 createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
                 onCreate={() => create(row.chapter)}
                 onConfirm={(trackGuid) => {
-                  pickedHere.current = true;
+                  // set() ignores the pair already linked, so no change ends and clears the flag: it is raised only for a real change.
+                  pickedHere.current = !mappings.some((mapping) => mapping.chapterId === row.chapter.id && mapping.trackGuid === trackGuid);
                   links.set(row.chapter.id, trackGuid);
                 }}
                 onClear={() => links.unlink(row.chapter.id)}
