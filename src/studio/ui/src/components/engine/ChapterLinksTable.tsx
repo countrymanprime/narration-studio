@@ -37,7 +37,7 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }>
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status badge, the track (its
 // name, or the picker) and the row's actions at fixed widths, so a link, a Change or a missing track never moves a column. The actions
-// column holds the widest pair (Confirm and Cancel) and the More actions button on one line.
+// column holds the widest pair (the check and Cancel) and the More actions button on one line.
 const COLUMNS = ['auto', '6.75rem', '10.5rem', '12.5rem'] as const;
 
 // Below this width (the panel at a phone width or 400% zoom) a row is two lines instead: the chapter and its status, then the track
@@ -185,7 +185,7 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
 }
 
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
-// The select opens on "Choose a track" and Confirm waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
+// The select opens on "Choose a track" and the check waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
 // the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
 function ChapterLinkRow({
   row,
@@ -257,7 +257,10 @@ function ChapterLinkRow({
       label={`Create a ${folders ? 'folder' : 'track'} for ${short}`}
       pending={creating}
       disabledReason={createLocked ? 'Wait for the track being added' : busy && !creating ? 'Wait for the change in progress' : undefined}
-      onClick={onCreate}
+      onClick={() => {
+        // A double click on Clear lands its second press here, where Create now is: ignore it, Create adds a track in REAPER.
+        if (settled()) onCreate();
+      }}
     />
   );
   const menu: MenuItem[] = [
@@ -296,7 +299,8 @@ function ChapterLinkRow({
             {unplayable && (
               // A chapter is never silently linked to a track whose audio cannot play: a missing source file or an item that is not audio.
               <TooltipTarget text={UNPLAYABLE}>
-                <span role="img" aria-label={UNPLAYABLE} className="flex-none" style={{ color: 'var(--warn-text)' }}>
+                {/* tabIndex: TooltipTarget only makes a disabled child focusable, and the reason must reach the keyboard too. */}
+                <span role="img" aria-label={UNPLAYABLE} tabIndex={0} className="flex-none" style={{ color: 'var(--warn-text)' }}>
                   <Icon name="problem" />
                 </span>
               </TooltipTarget>

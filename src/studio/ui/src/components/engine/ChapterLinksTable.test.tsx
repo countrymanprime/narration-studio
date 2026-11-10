@@ -217,23 +217,26 @@ describe('ChapterLinksTable', () => {
     expect((within(opening).getByRole('combobox') as HTMLSelectElement).value).toBe(WIRE_TRACKS_PROJECT.tracks[0].guid);
   });
 
-  // QA breaker B2: a double click linked, then pressed the Change that took the check's place, and left the picker open on a Linked row.
-  it('links once on a double click and ends in the read view', async () => {
+  // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.
+  it("ignores a press on the Change that takes the check's place right after a link", async () => {
     const user = userEvent.setup();
     const api = renderTable();
     const set = vi.spyOn(api, 'chapterTrackSet');
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.dblClick(within(opening).getByRole('button', { name: /^Use this track for/ }));
-    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
     expect(set).toHaveBeenCalledTimes(1);
     expect(within(opening).queryByRole('combobox')).toBeNull();
-    expect(within(opening).getByRole('button', { name: /^Clear the link for/ })).toBeTruthy();
+    // A narrator's own press, after the quiet time, still opens the picker.
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    expect(within(opening).getByRole('combobox')).toBeTruthy();
   });
 
-  // Intent review M3: Cancel returns the row to Change and Clear, so the second press of a double click on Cancel landed on Clear and unlinked it.
-  it('keeps the link when Cancel is double clicked', async () => {
+  // Intent review M3: the second press of a double click on Cancel lands on the Clear that takes its place.
+  it("ignores a press on the Clear that takes Cancel's place right after a Cancel", async () => {
     const user = userEvent.setup();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -244,10 +247,57 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     await pastQuiet();
-    await user.dblClick(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
-    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
     expect(within(opening).getByText('Linked')).toBeTruthy();
-    expect(within(opening).getByRole('button', { name: /^Clear the link for/ })).toBeTruthy();
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    await waitFor(() => expect(within(opening).getByText('Not linked')).toBeTruthy());
+  });
+
+  // The second press of a double click on Clear lands on the Create that takes its place, which would add a track in REAPER.
+  it("ignores a press on the Create that takes Clear's place right after a Clear", async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const create = vi.spyOn(api, 'chapterTrackCreate');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Create a track for/ }));
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  // Intent review: Change, Cancel, Change on a row whose track is gone restored a pick that does not exist and left the check ready.
+  it('reopens a Track missing row on "Choose a track" with the check off after a Cancel', async () => {
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
+    render(
+      <ApiProvider api={api}>
+        <MemoryRouter>
+          <Table />
+        </MemoryRouter>
+      </ApiProvider>,
+    );
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByText('Track missing')).toBeTruthy());
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Cancel the edit/ }));
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track for/ }));
+    expect((within(firstRow).getByRole('combobox') as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('Choose a track');
+    expect(
+      within(firstRow)
+        .getByRole('button', { name: /^Use this track for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
   });
 
   // ENX-1: the columns were sized by their content, so they moved between states and rows.
