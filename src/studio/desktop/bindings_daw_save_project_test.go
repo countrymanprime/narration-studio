@@ -108,6 +108,8 @@ func TestDawSaveProjectNeverAsksTheDawToSaveAFileItCannotWrite(t *testing.T) {
 	if err := os.WriteFile(locked, []byte("x"), 0o444); err != nil {
 		t.Fatal(err)
 	}
+	// Windows cannot remove a read-only file, so the temp folder's cleanup needs it writable again.
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o644) })
 	cases := map[string]string{"a folder, not a file": dir, "gone": filepath.Join(dir, "Gone.rpp")}
 	if os.Geteuid() != 0 { // root writes through a read-only mode
 		cases["read-only"] = locked
