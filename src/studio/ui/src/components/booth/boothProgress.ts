@@ -1,6 +1,7 @@
 import { estimateFinishedHours } from '../../state';
 import { splitWords, type ReaderMark, type ReaderRow } from './readerModel';
 import type { GuideEntity, GuidePronunciation } from '../../types';
+import { clock } from '../../clock';
 
 /**
  * The Booth status line's progress (mock 03, audit BO5): "¶ 38 of 71 · 41% · ~8:10 of audio left". The paragraph is the
@@ -23,17 +24,8 @@ export function boothProgress(rows: ReaderRow[], cursor: number, tokens: number)
   };
 }
 
-/** Seconds as the mocks write a duration: m:ss (or, with `minuteDigits` 2, the REC badge's 06:42), h:mm:ss from an hour. */
-export function clockText(seconds: number, minuteDigits: 1 | 2 = 1): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(whole / 3600);
-  const m = Math.floor((whole % 3600) / 60);
-  const s = String(whole % 60).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${String(m).padStart(minuteDigits, '0')}:${s}`;
-}
-
 export const progressText = ({ paragraph, paragraphs, percent, secondsLeft }: BoothProgress): string =>
-  `¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()} · ${percent}% · ~${clockText(secondsLeft)} of audio left`;
+  `¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()} · ${percent}% · ~${clock(secondsLeft)} of audio left`;
 
 /** One name ahead of the reading position with a pronunciation to say it by (mock 03's "Coming up", audit BO8). */
 export type ComingUpName = { key: string; text: string; entity: GuideEntity; pronunciation: GuidePronunciation };

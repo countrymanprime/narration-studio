@@ -87,38 +87,45 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 	for _, added := range unsavedVoices(svc, *project, link) {
 		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
 	}
+	// A track some chapter is linked to is that chapter's own track (nested chapters), never a voice of this one, whatever the layout says:
+	// a record start of this chapter must not arm another chapter's track (qa-breaker N3 on #3290). The chapter row's members
+	// (chapterMember.IsVoice) apply the same rule through linkedTrackSet.
+	voices = withoutLinkedElsewhere(svc, voices)
 	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
 	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
 	// voice folder only when the narrator switched Voice folders on, so a flat project's empty folder still records on itself.
 	if len(voices) == 0 && setup.Layout != voicetracks.LayoutFolders {
 		return nil, false, nil
 	}
-	// A folder whose children are other chapters' tracks (nested chapters) is not a folder of voices, unless the narrator switched Voice
-	// folders on: under the toggle's Flat the structure alone must not turn a chapter's folder into its voices.
-	if setup.Layout != voicetracks.LayoutFolders && childIsLinkedElsewhere(svc, voices) {
-		return nil, false, nil
-	}
 	return voices, true, nil
 }
 
-// childIsLinkedElsewhere is whether any of voices is a track some chapter is linked to.
-func childIsLinkedElsewhere(svc hostServices, voices []tracks.Track) bool {
+// withoutLinkedElsewhere is voices less the tracks some chapter is linked to.
+func withoutLinkedElsewhere(svc hostServices, voices []tracks.Track) []tracks.Track {
+	linked := linkedTrackGUIDs(svc)
+	if len(linked) == 0 {
+		return voices
+	}
+	kept := voices[:0:0]
+	for _, voice := range voices {
+		if !linked[strings.ToLower(voice.GUID)] {
+			kept = append(kept, voice)
+		}
+	}
+	return kept
+}
+
+// linkedTrackGUIDs is the set of every track some chapter is linked to (linkedTrackSet); empty when the links cannot be read.
+func linkedTrackGUIDs(svc hostServices) map[string]bool {
 	documentID, store, err := mappingContext(svc)
 	if err != nil {
-		return false
+		return nil
 	}
 	mappings, err := store.List(documentID)
 	if err != nil {
-		return false
+		return nil
 	}
-	for _, mapping := range mappings {
-		for _, voice := range voices {
-			if strings.EqualFold(mapping.TrackGUID, voice.GUID) {
-				return true
-			}
-		}
-	}
-	return false
+	return linkedTrackSet(mappings)
 }
 
 // unsavedVoices is the voices the Booth added to the folder link this session (BoothVoiceAdd) that project, as saved, does not hold:

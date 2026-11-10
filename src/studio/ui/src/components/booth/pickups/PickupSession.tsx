@@ -7,16 +7,10 @@ import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { registerBoothSection } from '../side/sections';
 import { DIM_CLASS, SideSection } from '../side/SideSection';
 import type { PickupSessionModel } from './usePickupSession';
-
-/** Seconds into the chapter as m:ss, or nothing when the source gave no time. */
-const clock = (seconds: number | null): string => {
-  if (seconds === null) return '';
-  const whole = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-};
+import { clock } from '../../../clock';
 
 const rowLabel = (line: PickupItem, chapterLabel: (chapterId: string) => string): string =>
-  [chapterLabel(line.chapterId), clock(line.time)].filter(Boolean).join(' · ');
+  [chapterLabel(line.chapterId), line.time === null ? '' : clock(line.time)].filter(Boolean).join(' · ');
 
 /**
  * One pickup as a card, as the Pickups page and the site show them: its status chip (Open or Recorded, the page's own tones), the chapter and

@@ -1,5 +1,5 @@
 import { useEffect, type KeyboardEvent, type ReactNode } from 'react';
-import { clockText } from '../../booth/boothProgress';
+import { clock } from '../../../clock';
 import { overlay } from '../../../overlay/overlayService';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
@@ -45,7 +45,7 @@ interface Shape {
 }
 
 function Confidence({ it, score }: { it: DocItem; score: WordScore }) {
-  const heard = `heard at ${clockText(it.t0 ?? 0)}`;
+  const heard = `heard at ${clock(it.t0 ?? 0)}`;
   return (
     <p className="m-0 flex gap-2 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
       <span className="tracking-wide uppercase">Confidence</span>
@@ -164,7 +164,7 @@ export function FlagCard({ doc, chapterId, dp, flag, score = { conf: null, reaso
       </div>
       {isDup ? (
         <p className="m-0 text-[var(--text-muted)]">
-          {dp.take?.id ?? 'The recording'} reads the line twice. The second read starts at {clockText(dupItems[0]?.t0 ?? 0)}.
+          {dp.take?.id ?? 'The recording'} reads the line twice. The second read starts at {clock(dupItems[0]?.t0 ?? 0)}.
         </p>
       ) : null}
       {it && it.st !== 'miss' ? <Confidence it={it} score={score} /> : null}

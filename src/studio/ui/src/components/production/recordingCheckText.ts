@@ -3,6 +3,7 @@
 // out as. Pure functions, so the dialog only lays them out.
 import type { CoverageJudgement, CoverageReason, CoverageRegion, CoverageRegionKind, CoverageReport, CoverageState, ManuscriptChapter } from '../../types';
 import type { CreditsKind } from '../credits/useCreditsRows';
+import { clock } from '../../clock';
 
 /**
  * One plain sentence per reason. The host also sends its own message with a refusal, but that one is written for a log
@@ -80,15 +81,6 @@ export const REGION_LABEL: Record<CoverageRegionKind, string> = {
 
 export const plural = (count: number, one: string, many = `${one}s`) => `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
-/** "0:07", "3:05", "1:02:09": a position in an audio file. */
-export function formatAudioTime(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(whole / 3600);
-  const minutes = Math.floor((whole % 3600) / 60);
-  const rest = String(whole % 60).padStart(2, '0');
-  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
-}
-
 /**
  * The report's headline. With a judgement it leads with the host's
  * pass/fail, the same rule the stage signal uses, so the dialog and the stage engine never disagree: a passing
@@ -164,7 +156,7 @@ export function describeRegion(region: CoverageRegion, refs: ParagraphRef[]): st
 /** Where the gap sits in the audio: "Item 2 of the track, at 3:05 in its audio file". */
 export function describePosition(region: CoverageRegion): string | undefined {
   if (!region.position) return undefined;
-  return `Item ${region.position.itemIndex + 1} of the track, at ${formatAudioTime(region.position.sourceTime)} in its audio file`;
+  return `Item ${region.position.itemIndex + 1} of the track, at ${clock(region.position.sourceTime)} in its audio file`;
 }
 
 /** "Checked 21 Sep 2026, 10:00" in the narrator's locale; the raw value when it is not a date. */

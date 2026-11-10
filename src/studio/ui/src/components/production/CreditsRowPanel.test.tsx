@@ -35,10 +35,10 @@ describe('CreditsRowPanel', () => {
     expect(screen.getByRole('link', { name: 'Fill in under Settings > Credits' }).getAttribute('href')).toBe('/settings#credits');
   });
 
-  it('keeps "about 3s" on one line and puts Open in Script beside Recording check, apart from the status select (XPR1-25)', async () => {
+  it('keeps "about 0:03" on one line and puts Open in Script beside Recording check, apart from the status select (XPR1-25)', async () => {
     panel();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
-    expect(screen.getByText('about 3s').className).toContain('whitespace-nowrap');
+    expect(screen.getByText('about 0:03').className).toContain('whitespace-nowrap');
     const script = screen.getByRole('link', { name: 'Open in Script' });
     // The icon button sits in its tooltip target: the row that holds the link holds the button too.
     expect(script.parentElement!.contains(screen.getByRole('button', { name: 'Check recordings' }))).toBe(true);

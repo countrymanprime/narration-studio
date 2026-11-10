@@ -12,12 +12,6 @@ export function formatClock(amount: number, unit: 'hours' | 'seconds'): string {
   return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
-/** A chapter's length as m:ss, to the nearest second. */
-export function formatLength(seconds: number): string {
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-}
-
 /** Hours worked per finished hour, to one decimal. */
 export const formatPfh = (pfh: number | null) => (pfh === null ? DASH : pfh.toFixed(1));
 

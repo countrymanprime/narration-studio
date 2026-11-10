@@ -8,7 +8,7 @@
   - text: Chapter 1 Track 1 Linked
   - region /As of last save Sep \d+, \d+, \d+:\d+ AM/:
     - heading /As of last save Sep \d+, \d+, \d+:\d+ AM/ [level=3]
-    - text: /Items 1 playable of 1 Span 0:\d+ to \d+:\d+ Found through Confirmed link Recorded length [\d,.]+[bkmBKM]+ Linked Sep 1, \d+, \d+:\d+ PM, by you/
+    - text: /Items 1 playable of 1 Span 0:\d+ to \d+:\d+ Found through Confirmed link Recorded length \d+:\d\d(?::\d\d)? Linked Sep 1, \d+, \d+:\d+ PM, by you/
   - region "Link":
     - heading "Link" [level=3]
     - text: Chapter 1

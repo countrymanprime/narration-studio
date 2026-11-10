@@ -253,19 +253,18 @@ describe("the Booth's voices", () => {
     expect(hook.current.voices.some((voice) => voice.name === 'Narrator')).toBe(true);
   });
 
-  // The host's rule (chapterVoicesIn): under Flat, a folder holding another chapter's linked track is nested chapters, not voices, so the page
-  // must not draw voice keys the host refuses. Under Voice folders the same project is a folder of voices.
-  it("lists no voices for a folder holding another chapter's track under Flat, and lists them under Voice folders", async () => {
+  // The host's rule (chapterVoicesIn): a track another chapter is linked to is that chapter's own, never a voice of this one, in either layout,
+  // so the page must not draw a voice key the host refuses (qa-breaker N3 on #3290: chapter 1 armed chapter 2's track).
+  it('leaves out a track another chapter is linked to, under Flat and under Voice folders', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     await api.chapterTrackSet(WIRE_CHAPTERS[1].id, '{V01CE-RABB1T}');
-    await api.voiceTracksSetLayout('flat');
-    const { hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 30)));
-    expect(hook.current.voices).toHaveLength(0);
-    cleanup();
-    await api.voiceTracksSetLayout('folders');
-    const folders = await mount({}, false, api);
-    await waitFor(() => expect(folders.hook.current.voices.length).toBeGreaterThan(0));
+    for (const layout of ['flat', 'folders'] as const) {
+      await api.voiceTracksSetLayout(layout);
+      const { hook } = await mount({}, false, api);
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(hook.current.voices.map((voice) => voice.guid)).not.toContain('{V01CE-RABB1T}');
+      cleanup();
+    }
   });
 
   // A chapter with no one link has no folder to read, so the DAW is not asked: a project with no REAPER file would only get an error.
