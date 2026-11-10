@@ -401,6 +401,7 @@ function BoothSession({
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
   const wordsPerPage = useWordsPerPage();
   const breaks = useMemo(() => (chapter ? pageBreaks(paragraphs, units, wordsPerPage) : []), [chapter, paragraphs, units, wordsPerPage]);
+  const pageStarts = useMemo(() => new Set(breaks.map((pageBreak) => pageBreak.paragraphId)), [breaks]);
 
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
   const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
@@ -767,6 +768,7 @@ function BoothSession({
                   font={page.text.fontFamily}
                   width={page.text.column}
                   viewRef={page.view}
+                  pageStarts={pageStarts}
                   margin={
                     chapter ? (
                       <>

@@ -5,7 +5,7 @@ import type { PageBreak } from './pageBreakLayout';
 
 /**
  * The chapter's page breaks over the Booth's text: a `BoundaryMarker` across the column above the line that holds each break's first word.
- * It is drawn over the text and takes no room, so the text never moves for it; each line carries its "Page N" in the chapter-end marker's format (`BoundaryMarker`) and the right-click spot for "Read to here". Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
+ * It is drawn over the text and takes no room; the room above it is the page's first paragraph's own margin (`BoothText` `pageStarts`); each line carries its "Page N" in the chapter-end marker's format (`BoundaryMarker`) and the right-click spot for "Read to here". Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
  * measures again when the column is resized (text size, window).
  */
 export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
@@ -42,7 +42,7 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
         const top = tops[pageBreak.page];
         if (top === undefined) return null;
         return (
-          // The marker sits in the leading above the break word's line, so it crosses no letters; it takes no room. Its left padding keeps the rule clear of a bookmark's triangle above the break word.
+          // The marker sits 0.8 of the text size above the break word's line (`--tsize`, set on the column), in the page's first paragraph's margin, so it crosses no letters and clears the reading cue; it takes no room. Its left padding keeps the rule clear of a bookmark's triangle above the break word.
           <BoundaryMarker
             key={pageBreak.page}
             variant="page"
@@ -51,7 +51,7 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
             data-paragraph-id={pageBreak.paragraphId}
             data-offset={pageBreak.offset}
             className="pointer-events-auto absolute inset-x-0 -translate-y-full pl-10 leading-none"
-            style={{ top }}
+            style={{ top, marginTop: 'calc(var(--tsize) * -0.8)' }}
           >
             Page {pageBreak.page.toLocaleString()}
           </BoundaryMarker>
