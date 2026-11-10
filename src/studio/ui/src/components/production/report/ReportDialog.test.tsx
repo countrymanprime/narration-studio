@@ -10,6 +10,7 @@ import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { openReportDialog } from './openReportDialog';
 import { ReportDialog } from './ReportDialog';
 import { brand } from '../../../brand.gen';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 afterEach(cleanup);
 
@@ -44,6 +45,22 @@ function mount(overrides: Record<string, unknown> = {}, plan: ProductionPlan = P
 }
 
 describe('ReportDialog', () => {
+  it('a double click on Export leaves the dialog open showing the written line (issue 2947)', async () => {
+    const { onClose, write } = mount();
+    await screen.findByTitle('Preview of the report');
+    const exportButton = screen.getByRole('button', { name: 'Export' });
+    await waitFor(() => expect(exportButton.getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(exportButton);
+    // The second click lands on Done, which has taken Export's place.
+    fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
+    expect(write).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(/Wrote/)).toBeTruthy();
+    await new Promise((done) => setTimeout(done, 520));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('preview-is-what-the-host-answers', async () => {
     const { preview } = mount();
     const frame = (await screen.findByTitle('Preview of the report')) as HTMLIFrameElement;
@@ -123,6 +140,7 @@ describe('ReportDialog', () => {
     );
     expect(screen.getByText('The contracted amount and effective rate are left out.')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
+    await new Promise((done) => setTimeout(done, 520));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(write).toHaveBeenCalledTimes(1);
@@ -238,6 +256,7 @@ describe('openReportDialog', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
     await screen.findByRole('dialog', { name: 'Export status report' });
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

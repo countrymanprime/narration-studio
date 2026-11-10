@@ -2,6 +2,7 @@ import { PendingSpinner } from './PendingSpinner';
 import type { ComponentProps } from 'react';
 import { HIT_AREA } from './hitArea';
 import { TooltipTarget } from './Tooltip';
+import { useEchoGuard } from './echoGuard';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
@@ -58,6 +59,8 @@ type Props = ComponentProps<'button'> & {
   // The button cannot act now, and this says why. It is `aria-disabled` rather than `disabled`, so it keeps its place in the tab order and
   // its reason is a tooltip a keyboard reaches; a press does nothing. A button that is sometimes off passes `''` while it is on, so the tooltip wrapper stays and focus is not lost when the reason comes and goes. A button that is off with no reason is a button that "does nothing" (#3276).
   disabledReason?: string;
+  // This button takes the place of the one just pressed: it ignores a press that comes right after a click on a control that has since left the page (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`.
+  replacesPressed?: boolean;
 };
 
 // The look lives here and nowhere else: a caller's `className` is for layout (margin, width, flex, visibility), never for padding,
@@ -69,10 +72,12 @@ export function Button({
   type = 'button',
   pending = false,
   disabledReason,
+  replacesPressed,
   onClick,
   children,
   ...rest
 }: Props) {
+  const echo = useEchoGuard(replacesPressed);
   const gated = pending || Boolean(disabledReason);
   const button = (
     <button
@@ -80,7 +85,7 @@ export function Button({
       aria-busy={pending || undefined}
       aria-disabled={gated || undefined}
       // A press does nothing while pending, and it does not submit a form either (`preventDefault` stops the native submit).
-      onClick={gated ? (event) => event.preventDefault() : onClick}
+      onClick={gated ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
       // Inside its tooltip's wrapper the button grows to the wrapper, so a button the layout stretches (a grid cell, a column) still fills its cell.
       className={`${buttonClasses(variant, size)} ${disabledReason === undefined ? '' : 'grow'} ${className}`}
       {...rest}

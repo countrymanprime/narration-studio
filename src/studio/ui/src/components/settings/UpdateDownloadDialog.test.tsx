@@ -75,11 +75,12 @@ describe('UpdateDownloadDialog', () => {
   it('cancels the download, then shows it as cancelled and offers Close', async () => {
     const { api, close } = renderDialog('available');
     const spy = vi.spyOn(api, 'updateJobCancel');
-    await advance(700);
+    await advance(1300);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await advance(1000);
     expect(spy).toHaveBeenCalledWith('mock-update');
     expect(screen.getAllByText('The update download was cancelled.').length).toBeGreaterThan(0);
+    await advance(600);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(close).toHaveBeenCalledWith('cancelled');
   });
@@ -121,6 +122,7 @@ describe('UpdateDownloadDialog', () => {
     });
     await advance(100);
     expect(screen.getByRole('alert').textContent).toContain('already running');
+    await advance(600);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(close).toHaveBeenCalledWith('error');
   });
