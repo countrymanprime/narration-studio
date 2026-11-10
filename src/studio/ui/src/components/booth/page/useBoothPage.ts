@@ -497,7 +497,10 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [pressUnderway, notify]);
   const moveReading = useCallback(
     (next: UnitPosition) => {
-      if (!moveBlocked()) moveTo(next);
+      if (moveBlocked()) return;
+      // A narrator's move replaces the chosen start (Record from here, Start from here), so the cursor, the chip and Space agree.
+      setPunchAt(null);
+      moveTo(next);
     },
     [moveBlocked, moveTo],
   );
