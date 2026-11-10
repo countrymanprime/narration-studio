@@ -20,8 +20,8 @@ const DIRECT_READERS = new Set([
   'components/production/useChapterTools.tsx',
   'components/proof/useChapterTimeline.ts',
   'components/pickups/list/usePlayOriginal.ts',
+  // Reads the links together with the chapter's match as one snapshot (the dialog's check: its match and its links must be one moment).
   'components/connection/ChapterLinkDialog.tsx',
-  'components/engine/useChapterLinks.ts',
   'components/proof/ProofChapterPage.tsx',
   // The state itself: the one reader every screen above is meant to move onto.
   'components/chapterTracks/ChapterTrackState.tsx',

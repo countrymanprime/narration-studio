@@ -1,6 +1,7 @@
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { keptTitle } from '../mapping/trackHeldBy';
@@ -72,7 +73,11 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const manuscript = usePort('manuscript');
   const chapterTrackMap = usePort('chapterTrackMap');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [mappings, setMappings] = useState<TrackMapping[]>([]);
+  // The links are the shared state's (#3269): read once for every screen, so the table, the dialog and the Booth cannot disagree. This hook
+  // wants only the links; the tracks are the caller's.
+  const trackState = useChapterTrackState({ enabled, tracks: false });
+  const mappings: TrackMapping[] = trackState.mappings;
+  const { applyMappings, refreshLinks } = trackState;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
@@ -84,10 +89,9 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const inFlight = useRef(false);
 
   const reload = useCallback(async () => {
-    const [nextChapters, mapping] = await Promise.all([manuscript.manuscriptChapters(), chapterTrackMap.chapterTrackMapList()]);
+    const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
     setChapters(nextChapters);
-    setMappings(mapping.mappings);
-  }, [manuscript, chapterTrackMap]);
+  }, [manuscript, refreshLinks]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -140,7 +144,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       chapterId,
       async () => {
         const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
-        setMappings(result.mappings);
+        applyMappings(result.mappings);
         return result;
       },
       true,
