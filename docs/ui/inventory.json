@@ -2515,6 +2515,20 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/PendingSpinner",
+      "name": "PendingSpinner",
+      "source": "src/components/primitives/PendingSpinner.tsx",
+      "stories": [
+        "Default"
+      ],
+      "consumers": [
+        "src/components/primitives/Button.tsx",
+        "src/components/primitives/IconButton.tsx",
+        "src/components/primitives/SplitButton.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Booth/PickupSession",
       "name": "PickupSession",
       "source": "src/components/booth/pickups/PickupSession.tsx",
@@ -3490,7 +3504,8 @@
       "stories": [
         "Default",
         "Cold Read",
-        "Stopping"
+        "Stopping",
+        "Pending"
       ],
       "consumers": [
         "src/components/booth/frame/BoothFooter.tsx",
