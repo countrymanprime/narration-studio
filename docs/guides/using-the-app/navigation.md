@@ -59,7 +59,7 @@ There are no Back and Forward, Undo or History buttons, folder icon or always-vi
 ### Jump to or run
 
 Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
-closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
+closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it. The menu draws the first 100 matches and says "Showing 100 of 5000" below them when a long book has more; type more of the name to narrow the list. A name too long for its row is cut at the row's edge. With no project open the menu offers Settings and no page or chapter, and the commands that need a project (Import and Replace manuscript, Open Companion) are off with the reason "Open a project first". Over the project picker, choosing a page, a chapter or Settings closes the picker and opens it:
 
 | Command | Key | Off when |
 | --- | --- | --- |
