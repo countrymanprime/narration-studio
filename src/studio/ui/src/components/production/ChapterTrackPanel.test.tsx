@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -106,6 +106,19 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     expect((await screen.findByRole('button', { name: /Show in REAPER/ })).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('offers no Unlink for a track that is only suggested, and Unlink for a confirmed one (#3231)', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    expect(screen.queryByRole('button', { name: 'Unlink' })).toBeNull();
+    // The picker opens on the suggestion, so one Confirm links it.
+    expect((screen.getByRole('combobox', { name: /^Track for/ }) as HTMLSelectElement).value).toBe(link.track!.trackGuid);
+    cleanup();
+    renderPanel(api, link, track);
+    expect(await screen.findByRole('button', { name: 'Unlink' })).toBeTruthy();
   });
 
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {

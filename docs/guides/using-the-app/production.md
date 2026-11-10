@@ -147,7 +147,7 @@ the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Chapter track…** opens what the saved project knows about the chapter's track (its items, span,
 recorded length, how the link was found and when, and whether you or chapter sync made it), and
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
-A suggested track says it is not linked yet; a chapter two tracks look like says so and lists
+A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
 track no longer in the saved project says it may have been deleted or the project saved elsewhere,
 shows its figures as last known and offers no playback.

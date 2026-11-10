@@ -241,7 +241,23 @@ export function createMockApi(
   } = createCoverageMock({
     chapters: () => s.chapters,
     assetRequired: assets.whisperAssetRequired,
-    engines: assets.coverageEngines,
+    // The dialog starts from the narrator's Settings, as the host's does (#3231), not from the shipped defaults.
+    engines: () => {
+      const engines = assets.coverageEngines();
+      const effective = (key: string) => Number(settings.settings.global.RecordingCoverage?.find((field) => field.key === key)?.effectiveValue);
+      const from = (key: string, fallback: number) => (Number.isFinite(effective(key)) ? effective(key) : fallback);
+      const { defaults } = engines;
+      return {
+        ...engines,
+        defaults: {
+          ...defaults,
+          chunkSeconds: from('chunk_seconds', defaults.chunkSeconds),
+          overlapSeconds: from('chunk_overlap_seconds', defaults.overlapSeconds),
+          workers: from('parallel_workers', defaults.workers),
+          chapters: from('parallel_chapters', defaults.chapters),
+        },
+      };
+    },
     saveFinding: (finding) => saveFinding(finding),
     paragraphText: (id) => s.paragraphs.find((paragraph) => paragraph.id === id)?.text,
     // A finished check changes its chapter's status row, so chaptersync:state goes out again.

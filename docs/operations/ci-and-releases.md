@@ -103,7 +103,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `pages.yml` (`Pages`) | push to `main` that touches the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on `main` | not a pull request check: `Docs checks` builds and checks the site on a pull request |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on each open `agent-train` issue whose `Last pass:` line is over two hours old | not a pull request check |
-| `main-health.yml` (`Main health`) | scheduled every three hours (minute 37), observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
+| `main-health.yml` (`Main health`) | push to `main` (one run at a time, none cancelled, at most one waiting); scheduled every three hours (minute 37) as a backstop, observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips a scheduled run when the last finished run was on the same commit; a push or a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
 The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / Test (Linux 1/5)`. Nothing runs on a schedule except
@@ -737,6 +737,13 @@ The `test` target of `desktop` (Go statements), `ui` (Vitest v8 lines),
 floor in `scripts/ci/coverage-floors.json`. A directory below its floor, or one with no data because it was renamed or
 removed, fails the run.
 
+- **Scope on a pull request (#3149):** two merges that each passed can leave a floor missed on `main`, and the next unrelated pull
+  request used to go red. On a pull request (`GITHUB_EVENT_NAME=pull_request`) a directory below its floor now fails only when the
+  change touches it: a changed file under its path, or a changed test file in its project (deleting a test lowers the coverage of
+  lines it never edited). Another directory below its floor is a `::warning::` annotation. Every other run is strict: `main-health`,
+  a push and a local `pnpm check` fail on any directory below its floor, so a floor missed on `main` still turns `main-health` red. "No coverage data" fails everywhere.
+  The rule is in `scripts/ci/pr-scope.mjs`. It gates a touched directory's whole floor, not only the changed lines; line-level
+  patch coverage would need per-line data from three tools and is not built.
 - **Adding a logic directory:** add an entry at 80 or above. A lower floor needs a written `reason`; the gate's test
   (`scripts/ci/coverage-gate.test.mjs`) rejects one without.
 - **After adding tests:** run `node scripts/ci/coverage-gate.mjs <go|vitest|pytest> <projectRoot> --update` (the same
@@ -864,12 +871,15 @@ run before it; the cost is the pushes. Rules for whoever pushes:
 - **Open as a draft** and mark ready when the targeted checks pass ([Draft and ready tiers](#draft-and-ready-tiers)).
 
 `main-health` catches what a pull request run cannot: two pull requests that are each green alone and break together once both are merged
-(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It is scheduled to run the full tier on `main` every three hours,
-only when `main` has moved since the last finished run, so a quiet day costs nothing. GitHub ran the schedule 2 to 3 times a day from 2026-11-04 to
-11-06, often an hour or two late, so a semantic conflict can sit on `main` for up to about ten hours before this run finds it. The checks a pull request
-leaves to `main` also run on each push that touches them (`post-merge.yml`), within about 20 minutes. Running
-CI on every push to `main` (with `cancel-in-progress`, so a burst of merges is one run) would find it within about 20 minutes of the merge, at
-~90 job-minutes per settled burst; it is not turned on. Adding it is a `push: branches: [main]` trigger on `main-health.yml` with `cancel-in-progress: true`.
+(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It runs the full tier on `main` after each push and, as a backstop, every three hours, so a quiet day costs nothing: a scheduled run is skipped when `main` has not moved since the last
+finished run. The schedule alone was too slow: GitHub ran it 2 to 3 times a day from 2026-11-04 to 11-06, often an hour or two late, so a semantic conflict could sit on `main` for up to about ten hours
+([#3131](https://github.com/countrymanprime/narration-studio/issues/3131)). The checks a pull request leaves to `main` also run on each push that touches them (`post-merge.yml`), within about 20 minutes.
+
+The push trigger does not cancel the run in progress. A cancelled run judges nothing, and 38 merges landed on 2026-11-07, as little as 1 to 60 minutes apart, so a cancelling group would
+have produced no verdict through a busy afternoon. The group runs one at a time and keeps at most one newer run waiting (GitHub replaces an older waiting run), so a burst costs the run in
+progress plus one. A run takes about 35 minutes and 165 job-minutes (run 42628881648, 2026-11-09; the critical path is `Test (Windows 2/2)`), so a regression shows 35 to 70 minutes after the merge that
+causes it and the cost is bounded by one run per 35 minutes while merges keep landing. A red run on an older commit can tick `HOLD` after a later merge has already fixed it; clear it as usual once `main` is green.
+Run 42628881648 was not queued: every job started within 2 seconds, and its 35 minutes were the run itself.
 
 ### Merge queue
 

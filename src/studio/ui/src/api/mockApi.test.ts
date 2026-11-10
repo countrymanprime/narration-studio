@@ -270,3 +270,23 @@ describe('?mockNoManuscript=1 import (#2656)', () => {
     expect(manuscript).toMatchObject({ sourceName: 'Alice.docx', format: 'docx' });
   });
 });
+
+describe('the mock Check recordings defaults follow Settings (#3231)', () => {
+  it('starts from the chunk length the narrator saved, not the shipped one', async () => {
+    const api = createMockApi();
+    expect((await api.coverageEngines()).defaults.chunkSeconds).toBe(60);
+    await api.saveSettings('RecordingCoverage', 'global', { chunk_seconds: '120', chunk_overlap_seconds: '9' });
+    const { defaults } = await api.coverageEngines();
+    expect([defaults.chunkSeconds, defaults.overlapSeconds]).toEqual([120, 9]);
+  });
+});
+
+describe('the mock selects only tracks that are in the project (#3231)', () => {
+  it('selects a track the project holds and refuses one it does not', async () => {
+    const api = createMockApi();
+    const { tracks } = await api.tracksList();
+    expect((await api.trackSelectInReaper(tracks[0].guid)).outcome).toBe('selected');
+    const refused = await api.trackSelectInReaper('{NOT-IN-PROJECT}');
+    expect([refused.outcome, refused.reason]).toEqual(['refused', 'track_missing']);
+  });
+});

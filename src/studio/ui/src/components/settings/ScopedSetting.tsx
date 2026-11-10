@@ -215,6 +215,7 @@ export function ScopedSetting({
   change: (value: string) => void;
   onClearOverride: () => void;
 }) {
+  // Spaces alone are no value in a text box: they would save as "  ", read "Not set" and still be marked Changed (#3231).
   const effective = value || field.effectiveValue;
   const resetButton = scope === 'project' && field.isSet && (
     <Button variant="link" className="ml-auto flex-none text-[0.75rem] text-[var(--accent)]" onClick={onClearOverride}>
@@ -277,7 +278,7 @@ export function ScopedSetting({
             />
           </>
         ) : isText ? (
-          <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={change} />
+          <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />
         ) : (
           <TooltipTarget text={optionTip(field, effective)} className={GROWING_CONTROL_CLASSES}>
             <Select

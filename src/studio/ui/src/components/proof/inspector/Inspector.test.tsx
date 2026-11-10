@@ -44,8 +44,6 @@ describe('decision-buttons-stay-at-the-panel-bottom', () => {
     const band = document.querySelector('[data-decision-band]') as HTMLElement;
     expect(band.className).toMatch(/\bsticky\b/);
     expect(band.className).toContain('bottom-[calc(var(--page-gutter)*-1)]');
-    // Not pinned in a window under 360 px tall, where the band fills most of the scroller (#3158).
-    expect(band.className).toContain('[@media(max-height:359px)]:static');
     expect(within(band).getByText('Decision')).toBeTruthy();
     expect(within(band).getAllByRole('button')).toHaveLength(4);
   });
@@ -77,6 +75,23 @@ describe('toasts-clear-the-decision-band-when-the-panel-is-stacked', () => {
     stub(true);
     setup();
     expect(clear()).toBe('');
+  });
+});
+
+// #3158, #3231: a band over 40% of the window (360x500 with 2x text is about 321 px) is not pinned, so Tab to "Previous note" is not left behind it.
+describe('a-band-too-tall-for-the-window-is-not-pinned', () => {
+  afterEach(() => vi.restoreAllMocks());
+  it.each([
+    [140, true],
+    [321, false],
+  ])('with a %i px band at 500 px tall, pinned is %s', (height, pinned) => {
+    vi.stubGlobal('innerHeight', 500);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height } as DOMRect);
+    setup();
+    const band = document.querySelector('[data-decision-band]') as HTMLElement;
+    expect(/\bsticky\b/.test(band.className)).toBe(pinned);
+    expect(document.querySelector('aside')!.className.includes('scroll-mb-40')).toBe(pinned);
+    vi.unstubAllGlobals();
   });
 });
 

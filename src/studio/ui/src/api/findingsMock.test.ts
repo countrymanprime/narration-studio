@@ -237,3 +237,13 @@ describe("the browser mock's REAPER adds an approved marker as the host does", (
     }
   });
 });
+
+// The Pickups mock lists `sample-noise`, which the findings store does not hold: `find()` answers it through a special case. This pins that Go to note
+// and Fine, not a pickup keep resolving it (#3231); the Proof list does not show it, so seeding it there is a separate change.
+describe('the sample noise note the Pickups mock lists', () => {
+  it('is answered by findingsGet although the list does not hold it', async () => {
+    const api = createFindingsMock(WIRE_FINDINGS);
+    expect((await api.findingsGet('sample-noise')).id).toBe('sample-noise');
+    expect((await api.findingsList({})).findings.map((finding) => finding.id)).not.toContain('sample-noise');
+  });
+});

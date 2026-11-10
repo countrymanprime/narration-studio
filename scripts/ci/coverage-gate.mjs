@@ -27,11 +27,18 @@
  * `nonWindowsFloor`, lower than `floor`, with a `nonWindowsReason`: off Windows that one applies instead, and `--update`
  * raises whichever applies on the host.
  * UI, glue and sidecar-launch code are not listed and so are not gated.
+ *
+ * Scope (#3149). Two merges that each passed can leave a floor missed on `main`, and then the next unrelated pull request goes red.
+ * So on a pull request (GITHUB_EVENT_NAME=pull_request) a directory below its floor fails only when the change touches it: a changed
+ * file under the entry's path, or a changed test file anywhere in its project (deleting a test lowers coverage of lines it never edited).
+ * Any other directory below its floor is printed as a warning. Every other run (main-health, a push, `pnpm check`) is strict as
+ * before, so a floor missed on `main` turns main-health red. A directory with no coverage data always fails: that is a rename, not a drift.
  */
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { changedFiles, modeFor, under } from './pr-scope.mjs';
 
 export const TARGET = 80;
 /** A floor is only suggested for raising once coverage clears it by this many points. */
@@ -168,10 +175,19 @@ export function validateFloors(doc) {
   return problems;
 }
 
+const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$|_test\.go$|(^|\/)(test_[^/]*|conftest)\.py$/;
+
+/** Whether the changed files reach `entry`: a file under its path, or a test file under its project. */
+export function touches(entry, files) {
+  const location = entry.tool === 'pytest' ? entry.path : [entry.project, entry.path].filter((part) => part !== '.').join('/');
+  return files.some((file) => under(file, location) || (under(file, entry.project) && TEST_FILE.test(file)));
+}
+
 /** `measure(entry)` returns the current percentage or null when there is no data. */
-export function evaluate(entries, measure, platform = process.platform) {
+export function evaluate(entries, measure, platform = process.platform, { mode = 'strict', files = null } = {}) {
   const failures = [];
   const notes = [];
+  const warnings = [];
   for (const entry of entries) {
     const pct = measure(entry);
     const floor = floorFor(entry, platform);
@@ -179,12 +195,15 @@ export function evaluate(entries, measure, platform = process.platform) {
     if (pct === null || pct === undefined) {
       failures.push(`${label(entry)}: no coverage data. If it was renamed or removed, edit scripts/ci/coverage-floors.json in the same change.`);
     } else if (pct + 1e-9 < floor) {
-      failures.push(`${label(entry)}: ${pct.toFixed(1)}% is below the ${which}floor ${floor}%. Add tests; do not lower the floor to pass.`);
+      const message = `${label(entry)}: ${pct.toFixed(1)}% is below the ${which}floor ${floor}%. Add tests; do not lower the floor to pass.`;
+      const gated = mode === 'strict' || (mode === 'scoped' && (files === null || touches(entry, files)));
+      if (gated) failures.push(message);
+      else warnings.push(`${message} (not gated here: this pull request does not touch it)`);
     } else if (pct >= floor + RAISE_MARGIN) {
       notes.push(`${label(entry)}: ${pct.toFixed(1)}% clears the ${floor}% ${which}floor; raise it to ${Math.floor(pct)} (run with --update).`);
     }
   }
-  return { failures, notes };
+  return { failures, notes, warnings };
 }
 
 /**
@@ -220,8 +239,9 @@ function readFloors() {
 }
 
 /** Prints the verdict and returns the exit code; writes raised floors to `floorsPath` when `update` is set. */
-export function report(doc, entries, measure, { update = false, floorsPath = FLOORS_PATH, log = console.log, error = console.error, platform = process.platform } = {}) {
-  const { failures, notes } = evaluate(entries, measure, platform);
+export function report(doc, entries, measure, { update = false, floorsPath = FLOORS_PATH, log = console.log, error = console.error, platform = process.platform, mode = modeFor(), files = mode === 'scoped' ? changedFiles() : null } = {}) {
+  const { failures, notes, warnings } = evaluate(entries, measure, platform, { mode, files });
+  for (const warning of warnings) log(`::warning::coverage: ${warning}`);
   for (const note of notes) log(`coverage: ${note}`);
   if (update) {
     const next = raiseFloors(doc, (entry) => (entries.includes(entry) ? measure(entry) : floorFor(entry, platform)), platform);
