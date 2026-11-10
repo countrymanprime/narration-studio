@@ -125,6 +125,8 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 30));
+
 describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   it('puts one create button on each unlinked row, and none on a linked or missing-track row', async () => {
     const api = createMockApi();
@@ -146,7 +148,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     renderTable({ tracks: [] });
     const { row } = await firstRow();
     expect(within(row).getByText('No REAPER tracks to link')).toBeTruthy();
-    expect(within(row).queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(within(row).queryByRole('button', { name: /^Use this (track|folder) for/ })).toBeNull();
     expect(within(row).getByRole('button', { name: `Create a track for ${short(0)}` })).toBeTruthy();
   });
 
@@ -191,7 +193,11 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const button = within(row).getByRole('button', { name: `Create a track for ${short(0)}` });
     await user.click(button);
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect((within(row).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      within(row)
+        .getByRole('button', { name: /^Use this (track|folder) for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
     await user.click(button);
     // Every other row's create button is off while one runs, and a press on it does nothing (walkthrough F1).
     const others = within(table)
@@ -405,9 +411,10 @@ describe('Clear then a fast second click', () => {
     renderTable({ api: { ...base, chapterTrackCreate: create } });
     const { row } = await firstRow();
     await user.selectOptions(within(row).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(row).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
 
+    await pastQuiet();
     await user.click(within(row).getByRole('button', { name: /^Clear the link/ }));
     await waitFor(() => expect(within(row).getByText('Not linked')).toBeTruthy());
     await waitFor(() =>

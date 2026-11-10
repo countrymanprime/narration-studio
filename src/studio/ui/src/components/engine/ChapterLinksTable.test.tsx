@@ -3,14 +3,17 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ChapterLinksTable } from './ChapterLinksTable';
-import { useChapterLinks } from './useChapterLinks';
+import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
+import { CREATE_QUIET_MS, useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 
 afterEach(cleanup);
+
+// A narrator takes longer than this between linking and pressing Change; a double click does not (CREATE_QUIET_MS).
+const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 30));
 
 const notify = vi.fn();
 
@@ -64,7 +67,7 @@ describe('ChapterLinksTable', () => {
 
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(opening).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
   });
@@ -77,7 +80,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    const confirm = within(opening).getByRole('button', { name: 'Confirm' });
+    const confirm = within(opening).getByRole('button', { name: /^Use this (track|folder) for/ });
     await user.dblClick(confirm);
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
     expect(set).toHaveBeenCalledTimes(1);
@@ -90,7 +93,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(opening).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(opening).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
 
     await user.click(within(chapterRow(table, 'Opening credits')).getByRole('button', { name: /^More actions for / }));
@@ -115,11 +118,145 @@ describe('ChapterLinksTable', () => {
     const secondRow = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     const select = within(secondRow).getByRole('combobox') as HTMLSelectElement;
     expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
-    const confirm = within(secondRow).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement;
-    expect(confirm.disabled).toBe(true);
+    const confirm = within(secondRow).getByRole('button', { name: /^Use this (track|folder) for/ });
+    expect(confirm.getAttribute('aria-disabled')).toBe('true');
 
     await user.selectOptions(select, WIRE_TRACKS_PROJECT.tracks[1].guid);
-    expect(confirm.disabled).toBe(false);
+    expect(confirm.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  // The removed Tracks card flagged a track with a missing or unsupported item; a chapter must never be silently linked to one that cannot play.
+  it('warns on a linked track whose audio cannot play, and only on that one', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    // tracks[1] is Chapter 2's: its source file is missing on disk.
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
+    // The keyboard reaches it too, and the tooltip opens on focus.
+    const mark = within(opening).getByRole('img', { name: UNPLAYABLE });
+    expect(mark.tabIndex).toBe(0);
+    mark.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe(UNPLAYABLE);
+
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).queryByRole('img', { name: UNPLAYABLE })).toBeNull();
+
+    // tracks[2] is Click Track, a MIDI item the app cannot play.
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[2].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
+  });
+
+  // QA breaker B1: Change, pick, Cancel, Change again brought back the abandoned pick, and the check linked it in one press.
+  it('reopens Change on the linked track after a Cancel, not on the abandoned pick', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    expect((within(opening).getByRole('combobox') as HTMLSelectElement).value).toBe(WIRE_TRACKS_PROJECT.tracks[0].guid);
+  });
+
+  // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.
+  it("ignores a press on the Change that takes the check's place right after a link", async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(within(opening).queryByRole('combobox')).toBeNull();
+    // A narrator's own press, after the quiet time, still opens the picker.
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    expect(within(opening).getByRole('combobox')).toBeTruthy();
+  });
+
+  // Intent review M3: the second press of a double click on Cancel lands on the Clear that takes its place.
+  it("ignores a press on the Clear that takes Cancel's place right after a Cancel", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
+    expect(within(opening).getByText('Linked')).toBeTruthy();
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    await waitFor(() => expect(within(opening).getByText('Not linked')).toBeTruthy());
+  });
+
+  // The second press of a double click on Clear lands on the Create that takes its place, which would add a track in REAPER.
+  it("ignores a press on the Create that takes Clear's place right after a Clear", async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    const create = vi.spyOn(api, 'chapterTrackCreate');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Create a track for/ }));
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  // Intent review: Change, Cancel, Change on a row whose track is gone restored a pick that does not exist and left the check ready.
+  it('reopens a Track missing row on "Choose a track" with the check off after a Cancel', async () => {
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
+    render(
+      <ApiProvider api={api}>
+        <MemoryRouter>
+          <Table />
+        </MemoryRouter>
+      </ApiProvider>,
+    );
+    const user = userEvent.setup();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByText('Track missing')).toBeTruthy());
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Cancel the edit/ }));
+    await pastQuiet();
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track for/ }));
+    expect((within(firstRow).getByRole('combobox') as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('Choose a track');
+    expect(
+      within(firstRow)
+        .getByRole('button', { name: /^Use this track for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
   });
 
   // ENX-1: the columns were sized by their content, so they moved between states and rows.
@@ -163,7 +300,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^More actions for / }));
@@ -186,14 +323,14 @@ describe('ChapterLinksTable', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Editing check: / })).toBeNull());
   });
 
-  it('tells the panel when a link changes, so the Tracks card re-reads it', async () => {
+  it('tells the panel when a link changes, so the panel re-reads it', async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
     renderTable(onChanged);
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
 
     await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
   });
@@ -205,7 +342,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
 
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
     expect(within(firstRow).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
@@ -217,9 +354,10 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
@@ -241,10 +379,11 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     hold = true;
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
@@ -257,7 +396,7 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
     const more = within(firstRow)
       .getByRole('button', { name: /^More actions for / })
@@ -273,12 +412,13 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
 
     await waitFor(() => expect(within(firstRow).getAllByText(WIRE_TRACKS_PROJECT.tracks[1].name).length).toBeGreaterThan(0));
     const { mappings } = await api.chapterTrackMapList();

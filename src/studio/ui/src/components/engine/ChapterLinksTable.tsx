@@ -1,19 +1,20 @@
 import { headingName } from '../../chapterHeading';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
-import { Button } from '../primitives/Button';
+import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
+import { TooltipTarget } from '../primitives/Tooltip';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
 import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
-import type { ChapterLinks } from './useChapterLinks';
+import { CREATE_QUIET_MS, type ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -25,6 +26,9 @@ import { folderChildren, folderLinkLabel } from './voices';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
 
+/** The warning on a linked track whose audio cannot play (the removed Tracks card's per-track flag, kept where the link is made). */
+export const UNPLAYABLE = "This track has an item that can't be played";
+
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
   unlinked: { label: 'Not linked', tone: 'neutral' },
@@ -33,7 +37,7 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }>
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status badge, the track (its
 // name, or the picker) and the row's actions at fixed widths, so a link, a Change or a missing track never moves a column. The actions
-// column holds the widest pair (Confirm and Cancel) and the More actions button on one line.
+// column holds the widest pair (the check and Cancel) and the More actions button on one line.
 const COLUMNS = ['auto', '6.75rem', '10.5rem', '12.5rem'] as const;
 
 // Below this width (the panel at a phone width or 400% zoom) a row is two lines instead: the chapter and its status, then the track
@@ -47,7 +51,7 @@ const NARROW_ROW =
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
-// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7). With `live` (a
+// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the panel share (R3EN1-7). With `live` (a
 // REAPER project) its header says whose tracks these are and when they were read, with the Refresh that reads them again (#2840).
 // A chapter with no link has a create button: the DAW adds a track named after it (a folder holding a Narrator track with Voice folders,
 // as the host decides at the press) and the chapter is linked to it. A refusal or a failure is a toast and leaves the row as it was; on
@@ -154,7 +158,7 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
 }
 
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
-// The select opens on "Choose a track" and Confirm waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
+// The select opens on "Choose a track" and the check waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
 // the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
 function ChapterLinkRow({
   row,
@@ -186,8 +190,19 @@ function ChapterLinkRow({
   const [picking, setPicking] = useState(!hasLink);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
+  // When the row's buttons last swapped (a link appeared, Change, Cancel): the next control sits in the same spot, so a fast second click of a
+  // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
+  const swappedAt = useRef(0);
+  const settled = () => Date.now() - swappedAt.current >= CREATE_QUIET_MS;
+  const linkedGuidIfThere = linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '';
+  const first = useRef(true);
   useEffect(() => {
     setPicking(!hasLink);
+    // The pick follows the link: a cleared row has none, and a new link starts the next Change from itself.
+    setChosen(linkedGuidIfThere);
+    if (!first.current) swappedAt.current = Date.now();
+    first.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tracks` only validates the link; a read of the tracks must not reset a pick in progress.
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
@@ -196,6 +211,10 @@ function ChapterLinkRow({
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
   const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
   const short = chapterName(row.chapter, 'short');
+  // The linked track, and the voices inside it when the link is a folder, each with items the app cannot play.
+  const unplayable = linkedTrack
+    ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
+    : false;
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
   const showPicker = picking && choices.length > 0;
@@ -207,7 +226,10 @@ function ChapterLinkRow({
       label={`Create a ${folders ? 'folder' : 'track'} for ${short}`}
       pending={creating}
       disabledReason={createLocked ? 'Wait for the track being added' : busy && !creating ? 'Wait for the change in progress' : undefined}
-      onClick={onCreate}
+      onClick={() => {
+        // A double click on Clear lands its second press here, where Create now is: ignore it, Create adds a track in REAPER.
+        if (settled()) onCreate();
+      }}
     />
   );
   const menu: MenuItem[] = [
@@ -239,8 +261,19 @@ function ChapterLinkRow({
             No REAPER tracks to link
           </span>
         ) : row.trackName ? (
-          <span className="block truncate" title={linkedName}>
-            <bdi>{linkedName}</bdi>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate" title={linkedName}>
+              <bdi>{linkedName}</bdi>
+            </span>
+            {unplayable && (
+              // A chapter is never silently linked to a track whose audio cannot play: a missing source file or an item that is not audio.
+              <TooltipTarget text={UNPLAYABLE}>
+                {/* tabIndex: TooltipTarget only makes a disabled child focusable, and the reason must reach the keyboard too. */}
+                <span role="img" aria-label={UNPLAYABLE} tabIndex={0} className="flex-none" style={{ color: 'var(--warn-text)' }}>
+                  <Icon name="problem" />
+                </span>
+              </TooltipTarget>
+            )}
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>
@@ -252,11 +285,29 @@ function ChapterLinkRow({
         <span className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
-              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen || creating} pending={busy && !creating} onClick={() => onConfirm(chosen)}>
-                Confirm
-              </Button>
+              <IconButton
+                action="confirmTrack"
+                label={`Use this ${folders ? 'folder' : 'track'} for ${short}`}
+                variant={chosen ? 'primary' : 'default'}
+                disabledReason={!chosen ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
+                pending={busy && !creating}
+                onClick={() => onConfirm(chosen)}
+              />
               {createButton}
-              {hasLink && <IconButton action="cancelEdit" disabledReason={busy ? 'Saving the link' : undefined} onClick={() => setPicking(false)} />}
+              {hasLink && (
+                <IconButton
+                  action="cancelEdit"
+                  disabledReason={busy ? 'Saving the link' : undefined}
+                  onClick={() => {
+                    // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
+                    if (settled()) {
+                      setChosen(linkedGuidIfThere);
+                      swappedAt.current = Date.now();
+                      setPicking(false);
+                    }
+                  }}
+                />
+              )}
             </>
           ) : hasLink ? (
             <>
@@ -264,9 +315,23 @@ function ChapterLinkRow({
                 action="changeTrack"
                 label={`Change the track for ${short}`}
                 disabledReason={busy ? 'Saving the link' : undefined}
-                onClick={() => setPicking(true)}
+                onClick={() => {
+                  // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).
+                  if (settled()) {
+                    swappedAt.current = Date.now();
+                    setPicking(true);
+                  }
+                }}
               />
-              <IconButton action="clearLink" label={`Clear the link for ${short}`} pending={busy} onClick={onClear} />
+              <IconButton
+                action="clearLink"
+                label={`Clear the link for ${short}`}
+                pending={busy}
+                onClick={() => {
+                  // A double click on Cancel lands its second press here: ignore it, a cleared link is not an undo.
+                  if (settled()) onClear();
+                }}
+              />
             </>
           ) : (
             createButton
