@@ -91,13 +91,15 @@ Switched on in REAPER with the bridge timing switch ([owner steps](reaper-bridge
 
 | Step | Stamped when |
 | --- | --- |
-| `assets_list`, `assets_listed` | The model check's `AssetsList` begins and answers. A press starts here; an asset listing more than 5 s before the next step (another page's) is left off |
+| `punch_lookup`, `punch_looked_up` | A press that starts from a chosen phrase (Start from here, Punch and roll) asks `BoothPunchTarget` first: the alignment and the saved project are read. Only such a press has them; it starts here, and `assets_list` continues it only if it follows within 2 s |
+| `assets_list`, `assets_listed` | The model check's `AssetsList` begins and answers. A press with no lookup starts here; an asset listing more than 5 s before the next step (another page's) is left off |
+| `bootstrap_call`, `bootstrapped` | The project check (`Bootstrap`) just before the start tone. The tone sounds when `bootstrapped` is stamped, so that step is when the narrator hears the app start. Stamped only within 5 s of the press's last step of its own; the page asks for this all the time, and those calls never chain one press to the next |
 | `listen_call`, `model_checked` | `TeleprompterStart` begins; the model is verified (`liveModelDir`) |
 | `sidecar_spawned`, `sidecar_first_line`, `listening` | The sidecar process started; printed its first line; printed its first event other than `script` |
 | `listen_answered` | `TeleprompterStart` answers the Booth. When the record start answers first, the line waits for this step |
 | `record_call`, `track_state`, `armed`, `punched`, `recording`, `answered` | `ReadAloudRecordStart(At)` begins; each bridge step answers; the start answers |
 
-A press with listening already running has no listening steps. The press itself, in the WebView, is before `assets_list` by one Wails call; that gap is not stamped.
+A press with listening already running has no listening steps. The click itself, in the WebView, is before the line's first step by one Wails call; that gap is not stamped.
 
 ## Method
 
