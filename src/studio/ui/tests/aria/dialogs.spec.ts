@@ -77,7 +77,7 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'dialog-shortcut-sheet.aria.yml',
   },
   {
-    name: 'the engine panel is a modal slide-over named Audio engine, with its REAPER project, REAPER tools toolbar, Chapter sync, Tracks and Chapter links regions',
+    name: 'the engine panel is a modal slide-over named Audio engine, with its REAPER project, REAPER tools toolbar, Chapter sync and Chapter links regions',
     state: ['engine', 'default'],
     snapshot: 'slide-over-engine-panel.aria.yml',
   },

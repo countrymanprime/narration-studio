@@ -195,6 +195,12 @@
       "message": "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.",
       "reason": "standalone"
     },
+    "save_project": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Save the project is not available with Audacity yet.",
+      "reason": "not_yet"
+    },
     "stack_takes": {
       "available": false,
       "level": "experimental",

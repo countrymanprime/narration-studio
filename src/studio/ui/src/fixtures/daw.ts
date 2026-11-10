@@ -70,6 +70,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   range_gain: 'experimental',
   click_repair: 'experimental',
   undo_last: 'experimental',
+  save_project: 'experimental',
   monitor_level: 'experimental',
   input_level: 'unsupported',
   punch_preroll: 'supported',
@@ -302,6 +303,11 @@ export const DAW_ANSWERS = {
   fileNothingPlaying: 'Nothing was playing.',
   fileNotPicked: 'Pick the file to measure again: only a file picked in this session can be played or shown.',
   fileBadStretch: 'The stretch to play is not a usable number of seconds (up to 60).',
+  /** src/studio/desktop/bindings_daw_save_project_test.go (#3262): what REAPER's save_project answers once it saved a project of 3 tracks and 12 items. */
+  projectSaved: 'Saved the project in REAPER: 3 tracks and 12 items.',
+  /** src/studio/desktop/bindings_daw_save_project_test.go (#3262): REAPER's script refuses to save a project that was never saved. */
+  projectNeverSaved:
+    'This REAPER project has never been saved, and saving it would open a file dialog in REAPER. Save it once in REAPER (File > Save project), then read again.',
   /** src/studio/desktop/bindings_master_files.go (SN-M97): a file id that is not a file of the last measurement (code stale). */
   masterNotInRun: 'That file is not in the last measurement. Check the files again, then try again.',
   noTrack: 'The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.',

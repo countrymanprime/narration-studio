@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The state matrix (definition of done, rule 3) for the engine panel's live track list (#2840): the tracks Chapter links, the Link chapters
-// dialog and the Tracks card draw from, re-read from REAPER so a track added there shows before the project is saved. The controls are the
+// dialog and the Chapter links table draw from, re-read from REAPER so a track added there shows before the project is saved. The controls are the
 // Refresh button and the source line beside it (ChapterLinksTable.test.tsx and LinkChaptersDialog.test.tsx draw them); here is the reader.
 //
 //   loading                                    'the first read is busy and shows nothing until REAPER answers'

@@ -41,6 +41,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/EngineChipButton.tsx`
 - `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/VoicesCard.tsx`
@@ -49,6 +50,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
 - `src/components/primitives/ActivityPanel.tsx`
+- `src/components/primitives/Button.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
 - `src/components/primitives/ContextMenu.tsx`

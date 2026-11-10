@@ -164,7 +164,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
           {downloading && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
           {status === 'repair' && (
             <>
-              <IconButton action="retry" label={`Repair ${name}`} onClick={install} />
+              <IconButton action="repairAsset" label={`Repair ${name}`} onClick={install} />
               <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />
             </>
           )}

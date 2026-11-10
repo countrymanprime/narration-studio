@@ -287,6 +287,24 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'unsaved-take',
+    description:
+      'Editing on Chapter 1 whose track is not in the saved project while REAPER holds unsaved changes (?mockChapterLink=missing&mockDawUnsaved=1) - the note says a recording may be waiting in REAPER and offers Save in REAPER and read beside Read again; the script reads plain',
+  },
+  {
+    page: 'editing',
+    state: 'empty-folder',
+    description:
+      'Editing on Chapter 1 linked to a folder of voice tracks, none holding audio (?mockEmptyTracks=1&mockVoiceFolders=1) - nothing is unsaved and no voice track holds audio: the note keeps its record instruction and offers Save in REAPER and read beside Read again',
+  },
+  {
+    page: 'editing',
+    state: 'unsaved-take-refused',
+    description:
+      'The same note after Save in REAPER and read was clicked on a project that was never saved (?mockDawUnsaved=never-saved) - an error toast gives the refusal sentence and the note keeps its button, ready again; nothing was saved',
+  },
+  {
+    page: 'editing',
     state: 'unlinked-closed',
     description:
       'Editing on Chapter 1 with no track linked, after the dialog was closed with its X - the quiet "Not linked to a track" mark stands where the banner stood and reopens it',
