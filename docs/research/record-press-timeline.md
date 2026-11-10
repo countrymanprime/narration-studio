@@ -68,6 +68,17 @@ Refs #3221: the owner measured about 10 s from Record to REAPER's pre-roll. Meas
 
 None of these comes near 10 s. The one wait before `record_start` that can is `endColdRead` in `beginOnce`: a press during a cold read waited for that session to end before asking the DAW to record. The sidecar notices its stop file only when it reads the next audio chunk, then decodes what it still holds; one that has fallen behind real time ends at the host's kill after 8 s, and the Booth gave up waiting after 9 s (`STOP_WAIT_MS`). A press now asks the DAW at once, its pre-roll runs while the cold read ends, and the take's listening starts from the real cursor once it has ended. A listening start that then fails drops the take as in Fix 1. Not measured: the real sidecar's stop time on the owner's machine, and the Start from here lookup (`BoothPunchTarget`), which runs before the press's first timeline step and is not on its line.
 
+## Fix 3: the Start from here lookup reads each take once
+
+Refs #3221. A press with a start chosen (Start from here, Record from here, Punch and roll) asks `BoothPunchTarget` first, and the start stays chosen after a take. The lookup compares the chapter's stored check with the audio it was made from, so it opened every item on the chapter's track and read three 64 KiB blocks of each (`evidence.Identify`), on every press. That cost grows with the takes already recorded. Measured 2026-11-10 on a Linux VM with real files (60 MB each, one chapter track, page cache dropped before the first lookup):
+
+| Takes on the track | First lookup | Before: every lookup | After: repeat lookup |
+| --- | --- | --- | --- |
+| 500 | 158 ms | 120 ms | 10 ms |
+| 5,000 | 1.34 s | 1.09 s | 72 to 78 ms |
+
+At 0.26 ms per take this machine needs tens of thousands of takes to reach 10 s. Windows (antivirus scanning each open, a slower disk) is not measured, and this was not shown to be the owner's 10 s: it is a measured cost that scales with takes. `evidence.IdentityCache` now answers a repeat ask with one `stat`: an identity holds while the file's size and modification time are the ones it was read with. The first lookup after launch still reads every take. The lookup stays before the cue and the DAW command: the punch position comes from it, and a refused lookup (the check is stale, several voices) starts no take, so a cue sounded before it would announce a recording that never begins.
+
 ## REAPER while the app works with it
 
 The same scenario wraps REAPER's defer loop with the probe of [the bridge note](reaper-bridge-performance.md#method) and sends what the host sends: the Booth's idle read (`chapter_track_state` every 15 s, `READY_POLL_MS` in [`useRecordControl.ts`](../../src/studio/ui/src/components/booth/record/useRecordControl.ts)), then five record presses. It sends the host's commands from the harness; the Go host itself was not running. 4050 items, 62 tracks, 120 FX, 2026-11-01:

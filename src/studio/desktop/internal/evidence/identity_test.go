@@ -159,3 +159,103 @@ func TestFullHashOnADirectoryReturnsError(t *testing.T) {
 		t.Fatal("FullHash on a directory: want an error, got nil")
 	}
 }
+
+// rewriteKeepingTime changes path's bytes (same length) and puts its modification time back, so only a read can tell it changed.
+func rewriteKeepingTime(t *testing.T, path string, content []byte) {
+	t.Helper()
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeSourceFile(t, path, content)
+	if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A repeat ask costs a stat: the file's bytes are changed behind the cache with its size and time kept, and the cache still answers what it read first.
+func TestIdentityCacheAnswersAgainWithoutReadingTheFile(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	var cache IdentityCache
+
+	first, err := cache.Identify(path, folder)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rewriteKeepingTime(t, path, bytes.Repeat([]byte("b"), 1000))
+	if direct, _ := Identify(path, folder); direct.PartialHash == first.PartialHash {
+		t.Fatal("the rewrite did not change what a read sees; the test cannot tell a read from a stat")
+	}
+	again, err := cache.Identify(path, folder)
+	if err != nil || again != first {
+		t.Fatalf("again = %+v (%v), want the first answer %+v with no read", again, err, first)
+	}
+}
+
+func TestIdentityCacheReadsAgainWhenTheSizeTheTimeOrTheFileChanges(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	var cache IdentityCache
+	first, _ := cache.Identify(path, folder)
+
+	cases := map[string]func(){
+		"a longer file": func() { writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1500)) },
+		"a new time": func() {
+			writeSourceFile(t, path, bytes.Repeat([]byte("c"), 1500))
+			later := time.Now().Add(time.Hour)
+			if err := os.Chtimes(path, later, later); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"a replaced file": func() {
+			replacement := filepath.Join(folder, "new.wav")
+			writeSourceFile(t, replacement, bytes.Repeat([]byte("d"), 700))
+			if err := os.Rename(replacement, path); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for _, name := range []string{"a longer file", "a new time", "a replaced file"} {
+		cases[name]()
+		got, err := cache.Identify(path, folder)
+		want, _ := Identify(path, folder)
+		if err != nil || got != want || got == first {
+			t.Fatalf("%s: got %+v (%v), want a fresh read %+v, not the first %+v", name, got, err, want, first)
+		}
+		first = got
+	}
+}
+
+func TestIdentityCacheDoesNotRememberAFileThatCannotBeRead(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	var cache IdentityCache
+	if _, err := cache.Identify(path, folder); err == nil {
+		t.Fatal("a missing file was identified")
+	}
+	writeSourceFile(t, path, []byte("now there"))
+	if got, err := cache.Identify(path, folder); err != nil || got.Size != 9 {
+		t.Fatalf("got %+v (%v), want the file that now exists", got, err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cache.Identify(path, folder); err == nil {
+		t.Fatal("a removed file was answered from the cache")
+	}
+}
+
+func TestANilIdentityCacheIdentifiesLikeIdentify(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, []byte("audio"))
+	var cache *IdentityCache
+	got, err := cache.Identify(path, folder)
+	want, _ := Identify(path, folder)
+	if err != nil || got != want {
+		t.Fatalf("got %+v (%v), want %+v", got, err, want)
+	}
+}

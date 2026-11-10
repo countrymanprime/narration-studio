@@ -131,6 +131,8 @@ type ChapterEvaluationRequest struct {
 	AnalyzerID      string
 	AnalyzerVersion string
 	ParamHash       string
+	// Identify, when set, resolves a source file's identity in place of Identify: a caller that asks often passes a cache's.
+	Identify func(path, projectFolder string) (SourceIdentity, error)
 }
 
 // ComputeChapterFingerprint computes a chapter's LedgerFingerprint (including
@@ -407,6 +409,9 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 	identify := func(sourceFile string) (SourceIdentity, error) {
 		if sourceFile == "" {
 			return SourceIdentity{}, fmt.Errorf("item has no source file")
+		}
+		if req.Identify != nil {
+			return req.Identify(sourceFile, req.ProjectFolder)
 		}
 		return Identify(sourceFile, req.ProjectFolder)
 	}

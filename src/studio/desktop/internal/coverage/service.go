@@ -217,6 +217,9 @@ type Service struct {
 	cache   *evidence.CacheStore
 	mapping *evidence.MappingStore
 	results resultStore
+	// identities remembers each take file's identity, so a lookup that asks again (the Booth's Start from here, on every press) stats the
+	// takes and does not open and read each one (#3221).
+	identities *evidence.IdentityCache
 
 	mu sync.Mutex
 	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
@@ -246,7 +249,7 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	}
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
-		ledger: ledger, cache: cache, mapping: mapping,
+		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
 		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter},
 		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
 		jobs:    map[string]*job{}, preparing: map[string]bool{},

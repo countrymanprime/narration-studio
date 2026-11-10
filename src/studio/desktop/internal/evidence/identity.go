@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -124,4 +125,43 @@ func identityPath(path, projectFolder string) string {
 		return filepath.Clean(path)
 	}
 	return filepath.ToSlash(relative)
+}
+
+// IdentityCache remembers the identity of each source file it has read, so asking again costs one stat and no read. An entry holds while the
+// file's size and modification time are the ones it was read with; a file that changed either (a replaced or re-recorded file) is read again.
+// shortcut: a file rewritten with the same size and the same modification time is not noticed, which the narrator's own tools do not do;
+// upgrade to FullHash if a tool that keeps the time turns up.
+// One cache serves one project folder, the one every Identify call through it passes.
+type IdentityCache struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	entries map[string]SourceIdentity
+}
+
+// Identify is the package's Identify through the cache. A file that cannot be read is an error and is not remembered.
+func (c *IdentityCache) Identify(path, projectFolder string) (SourceIdentity, error) {
+	if c == nil {
+		return Identify(path, projectFolder)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return SourceIdentity{}, err
+	}
+	c.mu.Lock()
+	known, ok := c.entries[path]
+	c.mu.Unlock()
+	if ok && known.Size == info.Size() && known.ModTime.Equal(info.ModTime()) {
+		return known, nil
+	}
+	identity, err := Identify(path, projectFolder)
+	if err != nil {
+		return SourceIdentity{}, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.entries == nil {
+		c.entries = map[string]SourceIdentity{}
+	}
+	c.entries[path] = identity
+	return identity, nil
 }
