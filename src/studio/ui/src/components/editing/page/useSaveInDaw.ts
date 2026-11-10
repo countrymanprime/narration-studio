@@ -42,7 +42,8 @@ function startSave(daw: DawClient): void {
   const silent = new Promise<DawResult>((resolve) => {
     timer = setTimeout(() => resolve({ ok: false, changed: false, message: NO_ANSWER, undoSteps: 0, refused: NO_ANSWER }), SAVE_GIVES_UP_MS);
   });
-  const running = Promise.race([daw.saveProject(), silent])
+  // The async wrapper makes a synchronous throw from the port an error toast like any refusal, not an exception out of the key handler.
+  const running = Promise.race([(async () => daw.saveProject())(), silent])
     .catch((): DawResult => ({ ok: false, changed: false, message: NO_ANSWER, undoSteps: 0, refused: NO_ANSWER }))
     .then((result) => {
       clearTimeout(timer);

@@ -263,6 +263,22 @@ describe('useSaveShortcut', () => {
     toast.mockRestore();
   });
 
+  it('a port that throws at once is an error toast, and the next press saves again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const save = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('boom');
+      })
+      .mockResolvedValueOnce(result({}));
+    renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving(save)) });
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('did not answer'), { tone: 'error' }));
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    toast.mockRestore();
+  });
+
   it('an Editing page open during a Ctrl+S save shows it running and reads when it is done', async () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const onReread = vi.fn();
