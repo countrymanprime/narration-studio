@@ -98,7 +98,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/editing/EditingCheckPanel.tsx', text: 'Another chapter is being checked. Check this one when it finishes.', class: 'overlay' },
   {
     file: 'components/editing/EditingCheckPanel.tsx',
-    text: 'Stopped after … of … items. The items already checked are kept for the next check.',
+    text: 'Stopped after … of …. The items already checked are kept for the next check.',
     class: 'overlay',
   },
   { file: 'components/editing/EditingPage.tsx', text: 'Import a manuscript with at least one narration chapter first.', class: 'empty' },
@@ -298,7 +298,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.',
     class: 'overlay',
   },
-  { file: 'components/production/ChapterTrackPanel.tsx', text: 'tracks look like this chapter. Link the one it is recorded on.', class: 'overlay' },
+  { file: 'components/production/ChapterTrackPanel.tsx', text: 'look like this chapter. Link the one it is recorded on.', class: 'overlay' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
     text: 'This track&rsquo;s audio couldn&rsquo;t be played. Check that its source files are still where the project expects them.',

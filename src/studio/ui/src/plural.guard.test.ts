@@ -25,7 +25,7 @@ const TERNARY = new RegExp(String.raw`(${EXPR})\s*(===?|!==?|>=?|<=?)\s*1\s*\?\s
 const YODA = new RegExp(String.raw`1\s*(===?|!==?)\s*(${EXPR})\s*\?\s*${ARM}\s*:\s*${ARM}`, 'g');
 // A count expression (length, count, total, n) followed by a literal plural noun ("${rows.length} rules"): it never reads "1 rules" and prints no separator.
 const COUNT_LITERAL_NOUN =
-  /(?:\$\{|(?<![\w$])\{)(?!plural\(|formatCount\()([^{}`]*?(?:length|count|Count|total|Total|\bn\b|\.n\b)[^{}`]*)\} (?:[a-z]+ )?([a-z]{3,}(?:s|ies))\b(?![=}])(?![^{}`]*\})/g;
+  /(?:\$\{|(?<![\w$])\{)(?!plural\(|formatCount\()([^{}`]*?(?:length|count|Count|total|Total|\bn\b|\.n\b)[^{}`]*)\} (?:[a-z]+ )?([a-z]{3,}(?:s|ies))\b(?![=}])(?![^{}`<\n]*\})/g;
 const NOT_A_NOUN = new Set([
   'markers',
   'this',
@@ -63,14 +63,15 @@ const isCountTernary = (count: string, a: string, b: string, negated: boolean): 
   return (withCount.test(x) && bareNoun(y)) || (withCount.test(y) && bareNoun(x));
 };
 
-const ownPluralIn = (text: string): string[] => {
+const ownPluralIn = (text: string, allowCountBeforeNoun = false): string[] => {
   const found: string[] = [];
   if (OWN_HELPER.test(text)) found.push('defines its own plural helper');
   for (const m of text.matchAll(TERNARY)) if (isCountTernary(m[1]!, m[3]!, m[4]!, /^(!==?|>=?)$/.test(m[2]!))) found.push(`writes ${m[0]}`);
   for (const m of text.matchAll(YODA)) if (isCountTernary(m[2]!, m[3]!, m[4]!, m[1] === '!==' || m[1] === '!=')) found.push(`writes ${m[0]}`);
-  for (const m of text.matchAll(COUNT_LITERAL_NOUN))
-    if (!NOT_A_NOUN.has(m[2]!) && !m[2]!.endsWith('ss') && !m[1]!.includes('toLocaleString'))
-      found.push(`writes a count before a literal plural noun: ${m[0]}`);
+  if (!allowCountBeforeNoun)
+    for (const m of text.matchAll(COUNT_LITERAL_NOUN))
+      if (!NOT_A_NOUN.has(m[2]!) && !m[2]!.endsWith('ss') && !m[1]!.includes('toLocaleString') && !m[1]!.includes(' ? '))
+        found.push(`writes a count before a literal plural noun: ${m[0]}`);
   if (COUNT_THEN_WORD.test(text)) found.push('writes a bare count before pluralWord: use plural(count, noun) or formatCount(count)');
   return found;
 };

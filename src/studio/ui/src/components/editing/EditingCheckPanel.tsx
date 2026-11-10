@@ -40,7 +40,7 @@ import {
   type EditingCandidateClass,
 } from './editingCheckText';
 import { addressPath } from '../../navigation/address';
-import { plural } from '../../plural';
+import { plural, formatCount } from '../../plural';
 
 /** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
@@ -446,7 +446,7 @@ export function EditingCheckPanel({
             )}
             {stopped && job && (
               <p role="status" style={{ color: 'var(--text-muted)' }}>
-                Stopped after {job.itemsDone} of {job.itemsTotal} items. The items already checked are kept for the next check.
+                Stopped after {formatCount(job.itemsDone)} of {plural(job.itemsTotal, 'item')}. The items already checked are kept for the next check.
               </p>
             )}
 

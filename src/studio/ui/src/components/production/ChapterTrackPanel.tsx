@@ -163,7 +163,7 @@ export function ChapterTrackPanel({
           {state?.kind === 'suggested' && <p>Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.</p>}
           {link.status === 'ambiguous' && link.links.length <= 1 && link.candidates.length > 1 && (
             <InsetCard as="p" tone="warn">
-              {link.candidates.length} tracks look like this chapter. Link the one it is recorded on.
+              {plural(link.candidates.length, 'track')} look like this chapter. Link the one it is recorded on.
             </InsetCard>
           )}
           {trackSummary && (
