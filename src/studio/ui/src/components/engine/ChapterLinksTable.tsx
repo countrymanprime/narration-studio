@@ -5,6 +5,7 @@ import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
+import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -23,6 +24,9 @@ import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel } from './voices';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
+
+/** The warning on a linked track whose audio cannot play (the removed Tracks card's per-track flag, kept where the link is made). */
+export const UNPLAYABLE = "This track has an item that can't be played";
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -195,6 +199,10 @@ function ChapterLinkRow({
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
   const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
   const short = chapterName(row.chapter, 'short');
+  // The linked track, and the voices inside it when the link is a folder, each with items the app cannot play.
+  const unplayable = linkedTrack
+    ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
+    : false;
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
   const showPicker = picking && choices.length > 0;
@@ -238,8 +246,18 @@ function ChapterLinkRow({
             No REAPER tracks to link
           </span>
         ) : row.trackName ? (
-          <span className="block truncate" title={linkedName}>
-            <bdi>{linkedName}</bdi>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate" title={linkedName}>
+              <bdi>{linkedName}</bdi>
+            </span>
+            {unplayable && (
+              // A chapter is never silently linked to a track whose audio cannot play: a missing source file or an item that is not audio.
+              <span title={UNPLAYABLE} style={{ color: 'var(--danger-text)' }} className="flex-none">
+                <span role="img" aria-label={UNPLAYABLE}>
+                  <Icon name="problem" />
+                </span>
+              </span>
+            )}
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>
