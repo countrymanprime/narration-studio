@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ChapterLinksTable } from './ChapterLinksTable';
+import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
 import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -162,6 +162,32 @@ describe('ChapterLinksTable', () => {
         .getByRole('button', { name: /^Use this track for/ })
         .getAttribute('aria-disabled'),
     ).toBe('true');
+  });
+
+  // The removed Tracks card flagged a track with a missing or unsupported item; a chapter must never be silently linked to one that cannot play.
+  it('warns on a linked track whose audio cannot play, and only on that one', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    // tracks[1] is Chapter 2's: its source file is missing on disk.
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
+
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).queryByRole('img', { name: UNPLAYABLE })).toBeNull();
+
+    // tracks[2] is Click Track, a MIDI item the app cannot play.
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[2].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(within(opening).getByRole('img', { name: UNPLAYABLE })).toBeTruthy();
   });
 
   // ENX-1: the columns were sized by their content, so they moved between states and rows.
