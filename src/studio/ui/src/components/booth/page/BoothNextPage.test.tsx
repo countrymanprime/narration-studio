@@ -2757,3 +2757,126 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     it('during a slow record start', () => refused('record start'));
   });
 });
+
+describe('while a press is under way the reading stays where the press chose, so the take records where the text shows (#3338)', () => {
+  const BUSY_MOVE = 'A take is already starting, so the reading stays where it is.';
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+  const gate = () => {
+    let release = () => {};
+    const open = new Promise<void>((resolve) => (release = resolve));
+    return { release, open };
+  };
+  const startFrom = async (unit: number) => {
+    const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+  };
+  const menuItem = async (name: string) => {
+    const word = document.querySelector('[data-unit="5"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name }));
+  };
+  const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+  const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
+
+  /** Starts from phrase 0 with one part of the start held; `release` lets it go. */
+  const pressing = async (slowPart: 'lookup' | 'model check' | 'record start') => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => {
+      if (slowPart === 'lookup') await hold.open;
+      return FOUND;
+    });
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+    const assetsList = async () => {
+      await hold.open;
+      return { assets: [] };
+    };
+    const page = renderPage({
+      api: { boothPunchTarget, boothVoiceSet, teleprompterLocate: async () => LOCATED, ...(slowPart === 'model check' ? { assetsList } : {}) } as never,
+    });
+    if (slowPart === 'record start') {
+      page.daw.recordStart.mockImplementationOnce(async () => {
+        await hold.open;
+        return { ok: true, changed: true, message: '', undoSteps: 1 };
+      });
+    }
+    await ready();
+    await startFrom(0);
+    await settle();
+    expect(current()).toBe('0');
+    return { page, release: hold.release, boothPunchTarget };
+  };
+
+  const controls: Record<string, () => void | Promise<void>> = {
+    ArrowDown: () => press('ArrowDown'),
+    ArrowUp: () => press('ArrowUp'),
+    ArrowRight: () => press('ArrowRight'),
+    ArrowLeft: () => press('ArrowLeft'),
+    'Next phrase': () => menuItem('Next phrase'),
+    'Back one phrase': () => menuItem('Back one phrase'),
+    'a word click': async () => {
+      act(() => void screen.getByText('walked').click());
+    },
+    'the Resume at chip': async () => {
+      await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶/ }));
+    },
+  };
+
+  for (const slowPart of ['lookup', 'model check', 'record start'] as const) {
+    for (const [control, use] of Object.entries(controls)) {
+      it(`${control} during a slow ${slowPart}: the reading stays, one sentence, and the take records at the chosen spot`, async () => {
+        const { page, release } = await pressing(slowPart);
+        const before = said(page).length;
+        await use();
+        await use();
+        await settle();
+        expect(current()).toBe('0');
+        expect(
+          said(page)
+            .slice(before)
+            .filter((text) => text === BUSY_MOVE),
+        ).toHaveLength(1);
+        release();
+        await waitFor(() => expect(stopButton()).toBeTruthy());
+        expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+        expect(current()).toBe('0');
+        expect(said(page)).not.toContain('Recording over ¶ 1.');
+      });
+    }
+  }
+
+  it('after the take is handed over the reading follows the voice again: the keys move it', async () => {
+    const { page, release } = await pressing('lookup');
+    release();
+    await waitFor(() => expect(stopButton()).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    await press('ArrowDown');
+    expect(current()).not.toBe('0');
+    expect(said(page)).not.toContain(BUSY_MOVE);
+  });
+
+  it('after a refused lookup the press is over: the keys and the chip move the reading again', async () => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => {
+      await hold.open;
+      return { outcome: 'refused' as const, message: 'The recording check is out of date.' };
+    });
+    const page = renderPage({ api: { boothPunchTarget, teleprompterLocate: async () => LOCATED } as never });
+    await ready();
+    await startFrom(0);
+    await settle();
+    await press('ArrowDown');
+    expect(current()).toBe('0');
+    hold.release();
+    await waitFor(() => expect(recordIdle()).toBe(true));
+    await press('ArrowDown');
+    expect(current()).not.toBe('0');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  const recordIdle = () => screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy') === null;
+});

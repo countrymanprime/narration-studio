@@ -55,6 +55,9 @@ const LOOKUP_SLOW =
 /** Said when a press (Start from here, R, Punch and roll, Space) is not the one already under way before a take; nothing is changed. */
 export const START_BUSY = 'A take is already starting, so that press was ignored.';
 
+/** Said when the narrator tries to move the reading (Resume at, the arrow keys, Next or Back one phrase, a word) while a press is under way: the take records where the press chose, so the reading stays there. */
+export const START_BUSY_MOVE = 'A take is already starting, so the reading stays where it is.';
+
 /** How long after a roll went through another is ignored (milliseconds). */
 
 const ROLL_PAUSE_MS = 700;
@@ -202,6 +205,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     },
     [punchable],
   );
+  /**
+   * True while a press is under way before a take and the DAW can punch: the reading must stay on the spot the press chose, because the take
+   * records there. Controls that move the reading or the chosen start ask this before they change anything. During a take the reading follows
+   * the voice and this is false; a DAW that cannot punch keeps its own way (#3329), as `joinsOrRefuses` does.
+   */
+  const pressUnderway = useCallback(() => !sessionRef.current.recording && pressing.current !== null && punchable(), [punchable]);
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
@@ -313,5 +322,5 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
-  return { punchAndRoll, startFromHere, startTake, cancelStart, lookingUp, hold: hold.current };
+  return { punchAndRoll, startFromHere, startTake, cancelStart, pressUnderway, lookingUp, hold: hold.current };
 }
