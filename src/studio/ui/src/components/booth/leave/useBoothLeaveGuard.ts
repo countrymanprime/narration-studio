@@ -11,6 +11,8 @@ export type BoothLeaveSession = {
   startedByApp?: boolean;
   daw: { name: string };
   stopRecording: () => Promise<DawResult>;
+  /** Resolves when a start that is still out lands or fails, with whether a take is running then. The narrator's yes waits for it, so what it stops is a take. */
+  settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
   flush?: () => Promise<void>;
 };
@@ -59,6 +61,12 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           answered.current = true;
           return true;
         }
+        // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
+        if (sessionRef.current.settle && !(await sessionRef.current.settle())) {
+          answeredFor.current = mine;
+          answered.current = true;
+          return true;
+        }
         const result = await sessionRef.current.stopRecording();
         if (result.ok) {
           await sessionRef.current.flush?.();
@@ -90,18 +98,24 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     if (recording) take.current += 1;
   }, [recording]);
 
+  // Registered while the Booth is up, not only while a take records: from the narrator's yes until the move happens (the stop, then the passage map's
+  // run) the question is still answered, so a second exit in that time asks nothing new and moves nowhere.
   useEffect(() => {
-    if (!recording) {
-      guard.setLeaveGuard(null);
-      return;
-    }
-    const { daw, startedByApp = true } = sessionRef.current;
-    guard.setLeaveGuard(() => ({ ask: stopRecordingSpec(daw.name, startedByApp), decide }));
+    guard.setLeaveGuard(() => {
+      const now = sessionRef.current;
+      if (!now.recording && !asking.current) return 'allow';
+      return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true), decide };
+    });
     return () => guard.setLeaveGuard(null);
-  }, [recording, guard, decide]);
+  }, [guard, decide]);
 
   const leave = useCallback(
     async (next: string, go: (next: string) => void): Promise<void> => {
+      // A move already decided is on its way (the question is open, or the stop and the run are being written): this exit is the same one, and does not go twice.
+      if (asking.current) {
+        await asking.current;
+        return;
+      }
       if (!sessionRef.current.recording) {
         go(next);
         return;

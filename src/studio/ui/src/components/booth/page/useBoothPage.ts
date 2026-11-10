@@ -242,9 +242,25 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    takeOut: recording,
     elapsed: takeClock.read,
   });
-  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
+  latest.current = {
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    takeOut: recording || control.starting,
+    elapsed: takeClock.read,
+  };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -619,7 +635,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const heldConfirm = useMemo<Pick<OverlayService, 'confirm'>>(
     () => ({
       confirm: async (spec) => {
-        const release = latest.current.recording ? hold() : null;
+        const release = latest.current.takeOut ? hold() : null;
         try {
           return await overlay.confirm(spec);
         } finally {
@@ -636,7 +652,14 @@ export function useBoothPage(options: BoothPageOptions) {
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
   const { leave, handled, leaving } = useBoothLeaveGuard(
-    { recording, startedByApp: control.startedByApp, daw: { name: dawName }, stopRecording, flush: writer.flush },
+    {
+      recording: recording || control.starting,
+      startedByApp: control.startedByApp,
+      daw: { name: dawName },
+      stopRecording,
+      settle: control.settle,
+      flush: writer.flush,
+    },
     { guard: shellGuard, overlay: heldConfirm },
   );
 
@@ -678,7 +701,7 @@ export function useBoothPage(options: BoothPageOptions) {
       navigate(exitTo);
       return;
     }
-    if (latest.current.recording || !latest.current.session.active) {
+    if (latest.current.takeOut || !latest.current.session.active) {
       void leave(exitTo, navigate);
       return;
     }

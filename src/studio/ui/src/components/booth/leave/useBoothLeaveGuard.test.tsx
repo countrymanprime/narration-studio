@@ -262,4 +262,66 @@ describe('useBoothLeaveGuard', () => {
     expect(dialog()?.spec.title).toBe('Could not stop the take');
     expect((dialog()!.spec as { armAfterMs?: number }).armAfterMs).toBeGreaterThan(0);
   });
+
+  it('a second exit while the first one is being flushed asks nothing and moves nowhere', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { store, hook, dialog, go, session } = setup({ flush: () => gate });
+    let first: Promise<void> = Promise.resolve();
+    act(() => {
+      first = hook.result.current.leave('/script', go);
+    });
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    // The stop landed (the Booth reads no take) and the run is still being written.
+    hook.rerender({ ...session, recording: false });
+    const second = vi.fn();
+    let secondDone: Promise<void> = Promise.resolve();
+    act(() => {
+      secondDone = hook.result.current.leave('/settings', second);
+    });
+    expect(second).not.toHaveBeenCalled();
+    const verdict = store.checkLeave('/settings');
+    expect(verdict).not.toBe('allow');
+    let shellMoved: boolean | undefined;
+    let shellDone: Promise<void> = Promise.resolve();
+    if (verdict !== 'allow')
+      act(() => {
+        shellDone = verdict.decide!().then((value) => void (shellMoved = value));
+      });
+    expect(go).not.toHaveBeenCalled();
+    release();
+    await act(() => first);
+    await act(() => Promise.all([secondDone, shellDone]));
+    expect(shellMoved).toBe(false);
+    expect(second).not.toHaveBeenCalled();
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(go).toHaveBeenCalledWith('/script');
+  });
+
+  it('a start still out when the question is answered is waited for, and stopped once it landed; one that did not start a take stops nothing', async () => {
+    let landed!: (took: boolean) => void;
+    const settle = vi.fn(() => new Promise<boolean>((resolve) => (landed = resolve)));
+    const a = setup({ settle });
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = a.hook.result.current.leave('/script', a.go);
+    });
+    act(() => a.dialog()!.answer(true));
+    await flush();
+    expect(a.stopRecording).not.toHaveBeenCalled();
+    landed(true);
+    await act(() => done);
+    expect(a.stopRecording).toHaveBeenCalledTimes(1);
+
+    const b = setup({ settle: async () => false });
+    act(() => {
+      done = b.hook.result.current.leave('/script', b.go);
+    });
+    act(() => b.dialog()!.answer(true));
+    await act(() => done);
+    expect(b.stopRecording).not.toHaveBeenCalled();
+    expect(b.go).toHaveBeenCalledWith('/script');
+  });
 });

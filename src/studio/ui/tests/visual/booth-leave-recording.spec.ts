@@ -237,6 +237,108 @@ for (const exit of EXITS.filter((item) => ['Escape', 'Back', 'Ctrl+Alt+C (the Co
   });
 }
 
+// A start the host still has (a bootstrap, the start tone, the host call) when the narrator leaves: no take yet, and one about to land. The leave asks,
+// waits for the start and stops that take; a start that lands with nobody left to ask is stopped as well. The slow start is the mock's override.
+const slowStart = (ms: number) =>
+  `(() => {
+    const w = window;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      ...(w.__NARRATION_MOCK_OVERRIDES__ ?? {}),
+      readAloudRecordStart: () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            w.__NARRATION_MOCK_DAW__.record('start');
+            resolve({ outcome: 'started', trackGuid: 'x', position: 0 });
+          }, ${ms}),
+        ),
+    };
+  })();`;
+const openBooth = async (page: Page): Promise<void> => {
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+};
+
+const STARTS = [
+  ['Record', (page: Page) => record(page).click()],
+  ['R', (page: Page) => page.keyboard.press('r')],
+] as const;
+for (const exit of EXITS.filter((item) => ['Back', 'Ctrl+,', 'Ctrl+Alt+C (the Companion)', 'the jump menu'].includes(item.name))) {
+  for (const [startName, start] of STARTS) {
+    test(`${startName} with the host still starting, then ${exit.name}: it asks, and the take that lands is stopped once`, async ({ page }) => {
+      await page.addInitScript(slowStart(1500));
+      await openBooth(page);
+      await start(page);
+      await page.waitForTimeout(400);
+      await exit.go(page);
+      await question(page).getByRole('button', { name: /^Stop/ }).click();
+      await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+      await expect.poll(() => dawRecording(page), { timeout: 5000 }).toBe(false);
+      expect(await stops(page)).toBe(1);
+    });
+  }
+}
+
+test('the start tone on, R, then Ctrl+, a moment later: the DAW is not left recording on Settings', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('narration-ui-take-tone', 'on'));
+  await openBooth(page);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Control+Comma');
+  // Either the press was still the Booth's to cancel (nothing started), or the host had it and the leave asked.
+  const asked = await question(page)
+    .getByRole('button', { name: /^Stop/ })
+    .click({ timeout: 1500 })
+    .then(
+      () => true,
+      () => false,
+    );
+  await page.waitForTimeout(2500);
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+  expect(await dawRecording(page), asked ? 'asked, stopped' : 'cancelled before the host had it').toBe(false);
+});
+
+test('a Record pressed while the stop of an earlier take is flushed starts a take the page going stops (slow run, slow start)', async ({ page }) => {
+  test.setTimeout(40_000);
+  await page.addInitScript(slowStart(1500));
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__.passageMapRecordRun = () => new Promise((resolve) => setTimeout(() => resolve([]), 3000));
+  });
+  await openBooth(page);
+  await record(page).click();
+  await expect.poll(() => dawRecording(page), { timeout: 6000 }).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(record(page)).toBeVisible();
+  await page.waitForTimeout(1200);
+  await record(page).click();
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 10_000 });
+  await expect.poll(() => dawRecording(page), { timeout: 6000 }).toBe(false);
+});
+
+test('a second exit while the first one is flushed leaves on the first exit once', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      passageMapRecordRun: () => new Promise((resolve) => setTimeout(() => resolve([]), 2500)),
+    };
+  });
+  await recording(page);
+  const before = await page.evaluate(() => window.history.state?.idx as number);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(record(page)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+Comma');
+  await page.evaluate(() => window.history.back());
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.location.pathname)).toBe('/script');
+  expect(await page.evaluate(() => window.history.state?.idx as number)).toBe(before + 1);
+});
+
 test('Enter pressed twice on Stop and leave: a take the second press starts is stopped as the page goes', async ({ page }) => {
   await page.addInitScript(() => {
     (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {

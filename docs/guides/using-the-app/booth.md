@@ -35,7 +35,7 @@ Before you start: a manuscript is imported, and the project records with REAPER,
 6. **Fix a mistake as you go.** Punch and roll is the narrator's retake: the DAW plays a moment of what you read before
    and records again from a chosen word. **R** does it from the word you are on: the DAW's cursor goes there and
    recording starts. Click a word, or use **Start from here**, to choose where.
-7. **Leave** with Escape, which goes to Script. During a take the app started, these ways out ask **Stop recording?** first: Escape, a chapter opened from another page, the jump menu (Ctrl+K), Ctrl+, and the other shortcuts that open a page, and the Back and Forward of the browser, the mouse buttons and Alt+Left. (A take REAPER started itself asks **Leave the Booth?** and is left running.) **Keep recording** stays in the Booth with the take still running, and a Back pressed while a question or dialog is open does nothing more. If the DAW refuses the stop, the Booth stays and says **Could not stop the take** with the DAW's words; **Leave anyway** then leaves with the take possibly still recording, the same way from each of those exits. Changing chapter inside the Booth during a take is refused ("Stop recording first."). Closing the window, reloading it, and a Back from the first page the window opened on are not asked: the take keeps recording, and Stop in the Booth still stops it after a reload.
+7. **Leave** with Escape, which goes to Script. During a take the app started, these ways out ask **Stop recording?** first: Escape, a chapter opened from another page, the jump menu (Ctrl+K), Ctrl+, and the other shortcuts that open a page, and the Back and Forward of the browser, the mouse buttons and Alt+Left. A take REAPER started itself is not the app's: leaving asks nothing and does not stop it. **Keep recording** stays in the Booth with the take still running, and a Back pressed while a question or dialog is open does nothing more. If the DAW refuses the stop, the Booth stays and says **Could not stop the take** with the DAW's words; **Leave anyway** then leaves with the take possibly still recording, the same way from each of those exits. Changing chapter inside the Booth during a take is refused ("Stop recording first."). Closing the window, reloading it, and a Back from the first page the window opened on are not asked, and the take keeps recording. After a reload the Booth treats REAPER's take as one it did not start, so stop it in REAPER.
 
 [Recording](#recording) has the detail of each step, [Undoing a take](#undoing-a-take) what Undo can take back, and
 [A cold read](#a-cold-read) how to read a passage through without recording it. Recording from the Booth is not
@@ -586,10 +586,9 @@ press **Check recordings** chapter by chapter.
 
 ## Leaving the Booth
 
-Escape (when nothing is open on top of the Booth) takes you to Script. A [cold read](#a-cold-read) ends without a question. While a take is recording, every way out asks first
-(Escape, Back, Forward, the setup chip, a link to another chapter): "Stop recording?" says the DAW is recording and leaving
+Escape (when nothing is open on top of the Booth) takes you to Script. A [cold read](#a-cold-read) ends without a question. While a take the app started is recording, the ways out that go through the app ask first (Escape, Back, Forward, the jump menu and the shortcuts that open a page, the setup chip, a link to another chapter); closing or reloading the window and a Back from the first page the window opened on do not. "Stop recording?" says the DAW is recording and leaving
 stops it. The take is held while the question is open. Focus opens on **Keep recording**, so Enter stays; **Stop and leave** stops the recording and then leaves. When the question closes, focus is where it was before it opened, so Enter never moves you to another chapter mid-take. If the DAW was already recording
-when you came in, the Booth did not start that take and does not stop it, and the question says so.
+when you came in, the Booth did not start that take and does not stop it, and leaving asks nothing.
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)
 
