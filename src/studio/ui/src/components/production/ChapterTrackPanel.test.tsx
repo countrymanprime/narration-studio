@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi, ChapterTrackLink, ChapterTrackSummary } from '../../types';
 import { withoutCredits } from '../../chapterKinds';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 
 // Confirms the first chapter to the first track (mirroring wireContracts.test.ts's own chapterTrackSet fixtures),
@@ -32,18 +33,20 @@ function renderPanel(
   const notify = vi.fn();
   render(
     <ApiProvider api={api}>
-      <ChapterTrackPanel
-        open
-        chapterId={link.chapterId}
-        chapterTitle={link.chapterTitle}
-        link={link}
-        trackSummary={track}
-        savedAt="2026-09-24T10:00:00Z"
-        notify={notify}
-        onClose={vi.fn()}
-        onChanged={onChanged}
-        onRemoveFromRecording={vi.fn().mockResolvedValue(undefined)}
-      />
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+        <ChapterTrackPanel
+          open
+          chapterId={link.chapterId}
+          chapterTitle={link.chapterTitle}
+          link={link}
+          trackSummary={track}
+          savedAt="2026-09-24T10:00:00Z"
+          notify={notify}
+          onClose={vi.fn()}
+          onChanged={onChanged}
+          onRemoveFromRecording={vi.fn().mockResolvedValue(undefined)}
+        />
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return { notify };
@@ -111,6 +114,18 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     expect((await screen.findByRole('button', { name: /Show in REAPER/ })).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it("lists REAPER's tracks as they are now, a renamed one by its new name and a deleted one not at all (#3269)", async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const live = await api.tracksLive();
+    const [first, second] = live.project.tracks;
+    vi.spyOn(api, 'tracksLive').mockResolvedValue({ ...live, project: { ...live.project, tracks: [{ ...first, name: 'Renamed Lead' }] } });
+    renderPanel(api, { ...link, status: 'matched' }, track);
+    const picker = (await screen.findByRole('combobox', { name: /^Track for/ })) as HTMLSelectElement;
+    await waitFor(() => expect([...picker.options].map((option) => option.text).join('|')).toContain('Renamed Lead'));
+    expect([...picker.options].some((option) => option.text.includes(second.name))).toBe(false);
   });
 
   it('offers no Unlink for a track that is only suggested, and Unlink for a confirmed one (#3231)', async () => {

@@ -24,6 +24,18 @@ describe('MappingConfirm', () => {
     expect(onConfirm).toHaveBeenCalledWith('guid-2');
   });
 
+  // #3269 (qa-breaker B4): a track deleted in the DAW after it was picked left Confirm on, linking a track that is gone.
+  it('drops a pick whose track left the list, and keeps Confirm off', async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const { rerender } = render(<MappingConfirm chapterTitle="Chapter One" tracks={tracks} onConfirm={onConfirm} onClear={vi.fn()} />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Track for Chapter One' }), 'guid-2');
+    expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(false);
+    rerender(<MappingConfirm chapterTitle="Chapter One" tracks={[tracks[0]]} onConfirm={onConfirm} onClear={vi.fn()} />);
+    expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   // Alignment audit R3EN2-1: a select that opened on the first track made one press of Confirm link that track to every chapter.
   it('starts on "Choose a track" with Confirm off until a track is picked', async () => {
     const user = userEvent.setup();
