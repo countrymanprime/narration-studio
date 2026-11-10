@@ -17,8 +17,8 @@ function* sources(dir: string): Generator<string> {
   }
 }
 
-const UNNAMED = /['"`]Unnamed track['"`]/;
-const TRACK_N = /`Track \$\{[^}]*\+\s*1\s*\}`|['"]Track ['"]\s*\+\s*\(?[^)]*\+\s*1/;
+const UNNAMED = /unnamed\s+track|untitled\s+track/i;
+const TRACK_N = /`Track\s*#?\s*\$\{[^}]*(?:\+\s*1|1\s*\+|index|\+\+)[^}]*\}|['"]Track\s*#?['"]\s*\+\s*\(?[^)]*(?:\+\s*1|1\s*\+)|\|\|\s*['"]Track['"]/;
 const ownFallbackIn = (text: string): string[] => [
   ...(UNNAMED.test(text) ? ['writes "Unnamed track"'] : []),
   ...(TRACK_N.test(text) ? ['writes its own "Track N" fallback'] : []),
