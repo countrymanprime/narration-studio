@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { ShowInDawButton } from '../engine/ShowInDaw';
+import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBackward, faForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { chapterName, context } from '../../chapterName';
@@ -19,6 +21,8 @@ import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButton
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 const noop = () => {};
 
@@ -64,8 +68,10 @@ export function ChapterTrackPanel({
   onRemoveFromRecording: (kind: ManuscriptContentKind) => Promise<void>;
 }) {
   const api = useApi();
-  const [tracks, setTracks] = useState<Track[]>();
-  const [tracksError, setTracksError] = useState('');
+  // The tracks are the shared state's, the same ones the Engine list and the Booth show (REAPER's now, the saved file's when it is not open).
+  const trackState = useChapterTrackState({ when: open });
+  const tracks: Track[] | undefined = trackState.project?.tracks;
+  const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   // Unlink's answer is certain, so the panel shows the chapter unlinked at once, from the link it held; the re-read of ChapterTrackLinks that follows
@@ -74,18 +80,6 @@ export function ChapterTrackPanel({
   const unlinked = unlinkedFrom !== undefined && unlinkedFrom === linkRead;
   const link = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
   const trackSummary = unlinked ? undefined : trackSummaryRead;
-
-  useEffect(() => {
-    if (!open) return;
-    let active = true;
-    api
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
-      .catch((error) => active && setTracksError(describeApiError(error)));
-    return () => {
-      active = false;
-    };
-  }, [api, open]);
 
   // Playback: the track the slide-over already knows from `link.track`, played through the same
   // useTrackPlayback the Tracks page uses (docs/architecture/threat-model.md's /media route). trackIndex stays -1 until `tracks` (this panel's
@@ -162,7 +156,7 @@ export function ChapterTrackPanel({
           {state?.kind === 'suggested' && <p>Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.</p>}
           {link.status === 'ambiguous' && link.links.length <= 1 && link.candidates.length > 1 && (
             <InsetCard as="p" tone="warn">
-              {link.candidates.length} tracks look like this chapter. Link the one it is recorded on.
+              {plural(link.candidates.length, 'track')} look like this chapter. Link the one it is recorded on.
             </InsetCard>
           )}
           {trackSummary && (
@@ -227,7 +221,7 @@ export function ChapterTrackPanel({
           {conflict && (
             <section aria-labelledby="chapter-track-conflict" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-conflict">
-                Linked to {link.links.length} tracks
+                Linked to {plural(link.links.length, 'track')}
               </SectionLabel>
               <p style={{ color: 'var(--text-muted)' }}>Keep one link; the others will be cleared.</p>
               <ul className="space-y-2">
@@ -235,7 +229,7 @@ export function ChapterTrackPanel({
                   const summary = tracks?.find((track) => track.guid === mapping.trackGuid);
                   return (
                     <InsetCard as="li" key={mapping.trackGuid} className="flex items-center justify-between gap-2">
-                      <span>{summary?.name || 'Track'}</span>
+                      <span>{summary ? trackName(summary.name, summary.index) : 'Track'}</span>
                       <Button variant="secondary" disabled={busy} pending={busy} onClick={() => void link_(mapping.trackGuid)}>
                         Keep this one
                       </Button>
@@ -274,7 +268,15 @@ export function ChapterTrackPanel({
               {tracksError ? (
                 <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
               ) : !tracks ? (
-                <p role="status">Reading the REAPER tracks…</p>
+                <p role="status">
+                  {trackState.reading ? (
+                    'Reading the REAPER tracks…'
+                  ) : (
+                    <>
+                      No REAPER project is linked, so there are no tracks to choose from. <EnginePanelLink onOpen={onClose} />
+                    </>
+                  )}
+                </p>
               ) : (
                 <MappingConfirm
                   chapterTitle={shortName}

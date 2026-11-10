@@ -5,6 +5,7 @@ import { useOverlay } from '../../overlay/OverlayProvider';
 import { IconButton } from '../primitives/IconButton';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePickupsState } from '../pickups/usePickupsState';
+import { plural } from '../../plural';
 
 // Triggers a browser "Save As" for the proofer's sheet without a native file dialog: the WebView2 host handles a download the way a
 // browser does.
@@ -21,7 +22,7 @@ function downloadCSV(csv: string, name: string): void {
 }
 
 /** "2 pickups", "1 pickup". */
-const pickups = (n: number) => `${n} ${n === 1 ? 'pickup' : 'pickups'}`;
+const pickups = (n: number) => `${plural(n, 'pickup')}`;
 
 /** The rows of the exported CSV, its header not counted. */
 const exportedRows = (csv: string) => csv.split(/\r?\n/).filter((line) => line.trim() !== '').length - 1;
@@ -40,7 +41,7 @@ export function exportedMessage(written: number, openLines: number | undefined):
 /** What the finished import says: how many pickups it added, how many were there already and how many rows were skipped. */
 export function importedMessage(report: { added: number; existing: number; invalid: number }, skippedRows: number): string {
   const parts = [`Added ${pickups(report.added)} from the proofer’s sheet`];
-  if (report.existing > 0) parts.push(`${report.existing} ${report.existing === 1 ? 'was' : 'were'} there already`);
+  if (report.existing > 0) parts.push(`${report.existing.toLocaleString('en-US')} ${report.existing === 1 ? 'was' : 'were'} there already`);
   const skipped = skippedRows + report.invalid;
   if (skipped > 0) parts.push(`${skipped} ${skipped === 1 ? 'row was' : 'rows were'} skipped`);
   return parts.join('; ') + '.';

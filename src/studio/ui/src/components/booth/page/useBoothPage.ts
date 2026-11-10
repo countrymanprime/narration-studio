@@ -27,7 +27,7 @@ import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
-import { useRoll } from '../roll/useRoll';
+import { START_BUSY_MOVE, useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, suspectedFrom, wordRangeOf } from './readingSource';
 import type { BoothStart } from './boothQuery';
@@ -242,9 +242,25 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    takeOut: recording,
     elapsed: takeClock.read,
   });
-  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
+  latest.current = {
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    takeOut: recording || control.starting,
+    elapsed: takeClock.read,
+  };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -309,14 +325,6 @@ export function useBoothPage(options: BoothPageOptions) {
   const result = located?.id === recordId ? located.result : null;
   const recordedEnd = result && 'recordedEnd' in result ? (result.recordedEnd?.projectTime ?? 0) : 0;
   const resume = resumeOfferFor({ spans, recording, kept, result, opened });
-  const chooseResume = useCallback(
-    (target: ResumeTarget) => {
-      const unit = unitAtPosition(latest.current.paragraphs, latest.current.units, { paragraphId: target.paragraphId, word: target.word });
-      if (unit) moveTo(unit);
-    },
-    [moveTo],
-  );
-
   // The passage map's run follows the take.
   const writer = usePassageMapWriter({
     chapterId: recordId,
@@ -491,6 +499,31 @@ export function useBoothPage(options: BoothPageOptions) {
     { overlay },
   );
   const { hold } = roll;
+  /**
+   * The one way a narrator's control moves the reading: Resume at, the arrow keys, Next and Back one phrase, a word click, a find jump and the
+   * toolbar. While a press is under way (the lookup, the checks, the record start) the take is about to record at the spot the press chose, so
+   * the reading stays there and one sentence says why; the overlay merges a repeated message, so a held key is one toast. A take's own moves (`roll.moveTo`, the voice
+   * following) use `moveTo` and are not asked.
+   */
+  const { pressUnderway } = roll;
+  const moveBlocked = useCallback((): boolean => {
+    if (!pressUnderway()) return false;
+    notify(START_BUSY_MOVE);
+    return true;
+  }, [pressUnderway, notify]);
+  const moveReading = useCallback(
+    (next: UnitPosition) => {
+      if (!moveBlocked()) moveTo(next);
+    },
+    [moveBlocked, moveTo],
+  );
+  const chooseResume = useCallback(
+    (target: ResumeTarget) => {
+      const unit = unitAtPosition(latest.current.paragraphs, latest.current.units, { paragraphId: target.paragraphId, word: target.word });
+      if (unit) moveReading(unit);
+    },
+    [moveReading],
+  );
   // A start still waiting for the host or a check must not begin a take once the chapter has changed or the Booth is left.
   const { cancelStart } = roll;
   useEffect(
@@ -616,10 +649,12 @@ export function useBoothPage(options: BoothPageOptions) {
     }),
     [guard],
   );
-  const heldConfirm = useMemo<Pick<OverlayService, 'confirm'>>(
+  const heldConfirm = useMemo<Pick<OverlayService, 'confirm' | 'toast' | 'dismissTopic'>>(
     () => ({
+      toast: (text, toastOptions) => overlay.toast(text, toastOptions),
+      dismissTopic: (topic) => overlay.dismissTopic(topic),
       confirm: async (spec) => {
-        const release = latest.current.recording ? hold() : null;
+        const release = latest.current.takeOut ? hold() : null;
         try {
           return await overlay.confirm(spec);
         } finally {
@@ -635,8 +670,15 @@ export function useBoothPage(options: BoothPageOptions) {
     : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
-  const { leave } = useBoothLeaveGuard(
-    { recording, startedByApp: control.startedByApp, daw: { name: dawName }, stopRecording, flush: writer.flush },
+  const { leave, handled, leaving } = useBoothLeaveGuard(
+    {
+      recording: recording || control.starting,
+      startedByApp: control.startedByApp,
+      daw: { name: dawName },
+      stopRecording,
+      settle: control.settle,
+      flush: writer.flush,
+    },
     { guard: shellGuard, overlay: heldConfirm },
   );
 
@@ -660,27 +702,36 @@ export function useBoothPage(options: BoothPageOptions) {
   onGone.current = { stopRecording, flush: writer.flush };
   useEffect(
     () => () => {
-      if (!latest.current.recording || !askedByShell.current) return;
+      // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
+      // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
+      if (!latest.current.recording || handled()) return;
+      if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },
-    [],
+    [handled, leaving],
   );
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
   const exit = useCallback(() => {
+    // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
-    if (!latest.current.recording && latest.current.coldRead) {
+    if (!latest.current.takeOut && latest.current.coldRead) {
       latest.current.session.stop();
       navigate(exitTo);
       return;
     }
-    if (latest.current.recording || !latest.current.session.active) {
+    if (latest.current.takeOut || !latest.current.session.active) {
       void leave(exitTo, navigate);
       return;
     }
     void overlay.confirm(STOP_READING).then((yes) => {
       if (!yes) return;
+      // A take may have begun while the question was open (the start was out, or the narrator pressed Record): it is read again now, and asked about.
+      if (latest.current.takeOut) {
+        void leave(exitTo, navigate);
+        return;
+      }
       latest.current.session.stop();
       navigate(exitTo);
     });
@@ -767,10 +818,10 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [control.gate, roll, blocked]);
   useCommand('reading.toggle', () => void pressMain());
   usePedalSpace(pressMain);
-  useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
-  useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
-  useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
-  useCommand('booth.word.prev', () => moveTo(stepWord(latest.current.units, latest.current.at, -1)));
+  useCommand('booth.phrase.next', () => moveReading(nextPhrase(latest.current.units, latest.current.at)));
+  useCommand('booth.phrase.prev', () => moveReading(backPhrase(latest.current.at)));
+  useCommand('booth.word.next', () => moveReading(stepWord(latest.current.units, latest.current.at, 1)));
+  useCommand('booth.word.prev', () => moveReading(stepWord(latest.current.units, latest.current.at, -1)));
   useCommand('booth.roll', punchAndRoll);
   useCommand('booth.view.down', () => view.current?.down(0.8));
   useCommand('booth.view.up', () => view.current?.up(0.8));
@@ -805,8 +856,8 @@ export function useBoothPage(options: BoothPageOptions) {
         return [
           ...(phrase === null ? [] : [{ key: 'start', label: 'Start from here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
           ...more,
-          { key: 'next', label: 'Next phrase', onSelect: run(() => moveTo(nextPhrase(latest.current.units, latest.current.at))) },
-          { key: 'back', label: 'Back one phrase', onSelect: run(() => moveTo(backPhrase(latest.current.at))) },
+          { key: 'next', label: 'Next phrase', onSelect: run(() => moveReading(nextPhrase(latest.current.units, latest.current.at))) },
+          { key: 'back', label: 'Back one phrase', onSelect: run(() => moveReading(backPhrase(latest.current.at))) },
           { key: 'roll', label: 'Punch and roll', onSelect: run(punchAndRoll) },
           { key: 'larger', label: 'Larger text', onSelect: run(larger) },
           { key: 'smaller', label: 'Smaller text', onSelect: run(smaller) },
@@ -814,7 +865,7 @@ export function useBoothPage(options: BoothPageOptions) {
         ];
       },
     }),
-    [hold, roll, punchAndRoll, moveTo, exit, setSize],
+    [hold, roll, punchAndRoll, moveReading, exit, setSize],
   );
   useContextProvider(menu);
 
@@ -855,8 +906,12 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
-      if (unit) moveTo(unit);
+      if (unit) moveReading(unit);
     },
+    /** True (and says why, once) while a press is under way: a control that would move the reading or the chosen place asks this first and changes nothing. */
+    moveBlocked,
+    /** True while a press is under way, without a word: the find jump scrolls to a hit and leaves the reading. */
+    readingHeld: pressUnderway,
     exit,
     goTo,
     leave,
@@ -868,7 +923,7 @@ export function useBoothPage(options: BoothPageOptions) {
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,
     /** Moves the reading one phrase on or back, as the Down and Up keys do. */
-    movePhrase: (direction: 1 | -1) => moveTo(direction === 1 ? nextPhrase(latest.current.units, latest.current.at) : backPhrase(latest.current.at)),
+    movePhrase: (direction: 1 | -1) => moveReading(direction === 1 ? nextPhrase(latest.current.units, latest.current.at) : backPhrase(latest.current.at)),
   };
 }
 

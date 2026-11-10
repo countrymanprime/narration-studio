@@ -25,6 +25,8 @@ import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
+import { currentPageContext } from '../../../input/pageCommands';
+import { searchAll } from '../../../registries/search';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import type { MeasurementsPort } from '../../../ports/measurements';
@@ -361,7 +363,8 @@ describe('every-way-out-asks-while-recording', () => {
     const page = renderPage();
     expect(page.journal.checkLeave('/proof')).toBe('allow');
     await record(page);
-    for (const path of ['/proof', '/script']) expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }) });
+    for (const path of ['/proof', '/script'])
+      expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) });
     // The shell asked and the narrator said yes: the shell moves and the page goes.
     page.view.unmount();
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
@@ -955,6 +958,199 @@ describe('a refused stop keeps the take and the question', () => {
     expect(page.dialog()?.spec.confirmLabel).toBe('Leave anyway');
     expect(page.navigate).not.toHaveBeenCalled();
   });
+
+  // The shell's exits (the nav, Back, Forward, a route change) answer through the verdict's `decide`: the same question, stop and refusal as Escape (#3325).
+  it('the shell exits stop the take through the verdict, keep the Booth on a refusal, and let go on Leave anyway', async () => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    const page = renderPage();
+    page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    act(() => void verdict.decide!().then((value) => (outcome = value)));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(page.dialog()?.spec.body).toContain('Not now.');
+    expect(outcome).toBeUndefined();
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(outcome).toBe(true));
+    // Escape's own exit asks the same question and goes by the page's navigate, once.
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
+
+  // One stop per leave (#3325): the shell moves and the page unmounts the moment `decide` answers, and that unmount must not stop the take again.
+  const decideAndGo = async (page: ReturnType<typeof renderPage>, refuseFirst: boolean) => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    if (refuseFirst) page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    // The shell moves the moment `decide` answers, before the page has drawn that the take is over.
+    act(
+      () =>
+        void verdict.decide!().then((value) => {
+          outcome = value;
+          page.view.unmount();
+        }),
+    );
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    if (refuseFirst) {
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+      await act(async () => page.dialog()!.answer(true));
+    }
+    await waitFor(() => expect(outcome).toBe(true));
+    await settle();
+  };
+
+  it('a shell exit whose stop succeeded stops the take once, not again as the page goes', async () => {
+    const page = renderPage();
+    await decideAndGo(page, false);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a shell exit that chose Leave anyway after a refusal does not stop again as the page goes, as Escape does not', async () => {
+    const page = renderPage();
+    await decideAndGo(page, true);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a take that starts after the stop and before the page goes is stopped as the page goes', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const page = renderPage({ api: { passageMapRecordRun: vi.fn(() => gate) } as never });
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    act(
+      () =>
+        void verdict.decide!().then((value) => {
+          outcome = value;
+          page.view.unmount();
+        }),
+    );
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    // The stop landed and the run is still being written: Record is back, and the narrator starts a second take.
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
+    release();
+    await waitFor(() => expect(outcome).toBe(true));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(2);
+  });
+
+  // A start the host still has when the narrator leaves (#3325, QA round 4): the leave asks, waits for the start to land and stops that take once; a start
+  // that lands with nobody left to ask is stopped once as well.
+  const heldStart = (page: ReturnType<typeof renderPage>) => {
+    const real = page.daw.recordStart.getMockImplementation()!;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    page.daw.recordStart.mockImplementation(async (...args: Parameters<typeof real>) => {
+      await gate;
+      return real(...args);
+    });
+    return release;
+  };
+  for (const [how, press] of [
+    ['Record', () => userEvent.click(screen.getByRole('button', { name: /^Record$/ }))],
+    ['R', () => userEvent.keyboard('r')],
+  ] as const) {
+    it(`a start the host still has (${how}) is a take for the leave: it asks, waits for the start, and stops it once`, async () => {
+      const page = renderPage();
+      await ready();
+      const release = heldStart(page);
+      await press();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(page.journal.checkLeave('/proof')).not.toBe('allow'));
+      const verdict = page.journal.checkLeave('/proof');
+      if (verdict === 'allow' || !verdict.decide) throw new Error('a start the host has asks with a decision');
+      let outcome: boolean | undefined;
+      act(() => void verdict.decide!().then((value) => (outcome = value)));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      await act(async () => page.dialog()!.answer(true));
+      await settle();
+      expect(page.daw.recordStop).not.toHaveBeenCalled();
+      await act(async () => release());
+      await waitFor(() => expect(outcome).toBe(true));
+      expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('a start that lands after the Booth is gone is stopped once', async () => {
+    const page = renderPage();
+    await ready();
+    const release = heldStart(page);
+    await userEvent.click(screen.getByRole('button', { name: /^Record$/ }));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    await act(async () => release());
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+  });
+
+  it('Escape, then a take started while the run is written: the page going stops it though the shell never asked', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const page = renderPage({ api: { passageMapRecordRun: vi.fn(() => gate) } as never });
+    await record(page);
+    page.navigate.mockImplementation(() => page.view.unmount());
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => release());
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(2);
+  });
+
+  // Escape while the press is still before the host call (the start tone), with the session already listening: it asks "Stop reading?"; the start lands
+  // while that is open, and the answer is read again: the take is asked about and stopped, once, not left recording behind the page (QA round 5).
+  it('Stop reading? answered after the start landed asks about the take, stops it once and leaves once', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const running: TeleprompterState = { phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null };
+      const page = renderPage({ api: { teleprompterState: async () => running } });
+      await ready();
+      await space();
+      await settle();
+      await press('Escape');
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop reading?'));
+      release();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/, hidden: true })).toBeTruthy());
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      expect(page.navigate).not.toHaveBeenCalled();
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.navigate).toHaveBeenCalledTimes(1));
+      expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    } finally {
+      tone.gate = null;
+    }
+  });
+
+  it('Escape stops the take once, and with a refusal then Leave anyway goes by navigate once with no further stop', async () => {
+    const ok = renderPage();
+    await record(ok);
+    await press('Escape');
+    await act(async () => ok.dialog()!.answer(true));
+    await waitFor(() => expect(ok.navigate).toHaveBeenCalledTimes(1));
+    ok.view.unmount();
+    await settle();
+    expect(ok.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
 });
 
 // SN-O103: the bookmarks (SN-O81) and the pickup session (SN-O82) on the page.
@@ -1194,7 +1390,10 @@ describe('every way out of the page asks while a take records', () => {
     // Back and Forward buttons (the shell asks with no destination), the rail, and a project switch (the start page).
     const exits = { palette: '/proof', toast: '/pickups', mouseButtons: '', rail: '/production', projectSwitch: '/' };
     for (const [exit, path] of Object.entries(exits))
-      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({ exit, verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }) } });
+      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({
+        exit,
+        verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) },
+      });
     // Asking stops nothing: only the narrator's Stop and leave does.
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
@@ -2634,4 +2833,382 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
+  describe('a second Start from here on another phrase while a take is starting is refused, not half-done (#3320)', () => {
+    const BUSY = 'A take is already starting, so that press was ignored.';
+    const startFrom = async (unit: number) => {
+      const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+      await act(async () => {
+        fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+      });
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    };
+    const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+    const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
+
+    const refused = async (slowPart: 'model check' | 'record start') => {
+      const boothPunchTarget = vi.fn(async () => ({ ...FOUND, trackGuid: 'T', trackName: 'Narrator' }));
+      const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+      const slow = gated({ assets: [] });
+      const page = renderPage({ api: { boothPunchTarget, boothVoiceSet, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+      const holder = { release: slow.release };
+      if (slowPart === 'record start') {
+        page.daw.recordStart.mockImplementationOnce(async () => {
+          await new Promise<void>((resolve) => (holder.release = resolve));
+          return { ok: true, changed: true, message: '', undoSteps: 1 };
+        });
+      }
+      await ready();
+      boothPunchTarget.mockClear();
+      await startFrom(3);
+      await settle();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      const toastsBefore = said(page).length;
+      await startFrom(7);
+      await settle();
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(boothVoiceSet).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
+      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
+      holder.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+      expect(current()).toBe('3');
+      // After the take, the next press works as usual.
+      await space();
+      await waitFor(() => expect(recordButton()).toBeTruthy());
+      await startFrom(7);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(boothPunchTarget).toHaveBeenCalledTimes(2);
+      expect(current()).toBe('7');
+    };
+    it('a plain press under way, then Start from here on a phrase: refused, the reading stays and the take starts at the end of the chapter', async () => {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const slow = gated({ assets: [] });
+      const page = renderPage({ api: { boothPunchTarget, assetsList: slow.answer } as never });
+      await ready();
+      boothPunchTarget.mockClear();
+      const before = current();
+      await space();
+      await settle();
+      expect(recordButton().getAttribute('aria-busy')).toBe('true');
+      await startFrom(7);
+      await settle();
+      expect(boothPunchTarget).not.toHaveBeenCalled();
+      expect(current()).toBe(before);
+      expect(said(page)).toEqual([BUSY]);
+      slow.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+      expect(current()).toBe(before);
+      await space();
+      await waitFor(() => expect(recordButton()).toBeTruthy());
+      await startFrom(7);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('7');
+    });
+    it('a plain Space during a Start from here lookup on a DAW that cannot punch starts the take, as before (#3329 owns this path)', async () => {
+      const lookup = slowLookup();
+      const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
+      await ready();
+      await startFrom(3);
+      await settle();
+      expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
+      await space();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(said(page)).not.toContain(BUSY);
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+      await act(async () => lookup.answer(FOUND));
+      await settle();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    });
+
+    for (const slowPart of ['lookup', 'model check'] as const) {
+      it(`Space and a Record click during a Start from here with a slow ${slowPart} join it: one lookup, no sentence, the take at the chosen spot`, async () => {
+        const lookup = slowLookup();
+        const slow = gated({ assets: [] });
+        const boothPunchTarget = slowPart === 'lookup' ? lookup.boothPunchTarget : vi.fn(async () => FOUND);
+        const page = renderPage({ api: { boothPunchTarget, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+        await ready();
+        boothPunchTarget.mockClear();
+        await startFrom(3);
+        await settle();
+        await space();
+        await userEvent.click(recordButton());
+        await settle();
+        expect(said(page)).not.toContain(BUSY);
+        if (slowPart === 'lookup') await act(async () => lookup.answer(FOUND));
+        else slow.release();
+        await waitFor(() => expect(stopButton()).toBeTruthy());
+        expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+        expect(said(page)).not.toContain(BUSY);
+      });
+    }
+    it('during a slow model check', () => refused('model check'));
+    it('during a slow record start', () => refused('record start'));
+  });
+});
+
+describe('while a press is under way the reading stays where the press chose, so the take records where the text shows (#3338)', () => {
+  const BUSY_MOVE = 'A take is already starting, so the reading stays where it is.';
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+  const gate = () => {
+    let release = () => {};
+    const open = new Promise<void>((resolve) => (release = resolve));
+    return { release, open };
+  };
+  const startFrom = async (unit: number) => {
+    const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+  };
+  const menuItem = async (name: string) => {
+    const word = document.querySelector('[data-unit="5"] [data-word]')!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name }));
+  };
+  const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+  const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
+  const runPageItem = (id: string) =>
+    act(
+      () =>
+        void currentPageContext()
+          ?.items.find((item) => item.id === id)
+          ?.run(),
+    );
+  /** What a blocked move leaves: the reading and the chosen start in the footer where the press put them, and no bookmark flash. */
+  const untouched = () => {
+    expect(current()).toBe('0');
+    expect(document.body.textContent).toContain('Next roll starts from ¶ 1');
+    expect(document.querySelector('[data-just-changed]')).toBeNull();
+  };
+
+  /** Starts from phrase 0 with one part of the start held; `release` lets it go. */
+  const pressing = async (slowPart: 'lookup' | 'model check' | 'record start') => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => {
+      if (slowPart === 'lookup') await hold.open;
+      return FOUND;
+    });
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+    const assetsList = async () => {
+      await hold.open;
+      return { assets: [] };
+    };
+    const page = renderPage({
+      api: {
+        boothPunchTarget,
+        boothVoiceSet,
+        teleprompterLocate: async () => LOCATED,
+        bookmarksList: async () => [held({})],
+        ...(slowPart === 'model check' ? { assetsList } : {}),
+      } as never,
+    });
+    if (slowPart === 'record start') {
+      page.daw.recordStart.mockImplementationOnce(async () => {
+        await hold.open;
+        return { ok: true, changed: true, message: '', undoSteps: 1 };
+      });
+    }
+    await ready();
+    await startFrom(0);
+    await settle();
+    expect(current()).toBe('0');
+    return { page, release: hold.release, boothPunchTarget };
+  };
+
+  const controls: Record<string, () => void | Promise<void>> = {
+    ArrowDown: () => press('ArrowDown'),
+    ArrowUp: () => press('ArrowUp'),
+    ArrowRight: () => press('ArrowRight'),
+    ArrowLeft: () => press('ArrowLeft'),
+    'Next phrase': () => menuItem('Next phrase'),
+    'Back one phrase': () => menuItem('Back one phrase'),
+    // The page's own items (the palette and the toolbar), and the jumps that go to a place: a bookmark.
+    'palette Next phrase': () => runPageItem('transport.next'),
+    'palette Back one phrase': () => runPageItem('transport.prev'),
+    'a bookmark jump (Alt+])': () => press(']', 'BracketRight', { altKey: true }),
+    'a word click': async () => {
+      act(() => void screen.getByText('walked').click());
+    },
+    'the Resume at chip': async () => {
+      await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶/ }));
+    },
+  };
+
+  for (const slowPart of ['lookup', 'model check', 'record start'] as const) {
+    for (const [control, use] of Object.entries(controls)) {
+      it(`${control} during a slow ${slowPart}: the reading stays, one sentence, and the take records at the chosen spot`, async () => {
+        const { page, release } = await pressing(slowPart);
+        const before = said(page).length;
+        await use();
+        await use();
+        await settle();
+        untouched();
+        expect(
+          said(page)
+            .slice(before)
+            .filter((text) => text === BUSY_MOVE),
+        ).toHaveLength(1);
+        release();
+        await waitFor(() => expect(stopButton()).toBeTruthy());
+        expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+        untouched();
+        expect(said(page)).toContain('Recording over ¶ 1 on Narrator.');
+      });
+    }
+  }
+
+  it('a find jump during a press only scrolls to the hit: the view moves, the reading, the footer and the sentence do not', async () => {
+    // jsdom lays nothing out: give the hit's paragraph a place far down, so a scroll to it is a transform that can be seen.
+    const box = { offsetTop: 'offsetTop', clientHeight: 'clientHeight', offsetHeight: 'offsetHeight' } as const;
+    const saved = Object.fromEntries(Object.values(box).map((key) => [key, Object.getOwnPropertyDescriptor(HTMLElement.prototype, key)]));
+    const sizes: Record<string, (el: HTMLElement) => number> = {
+      offsetTop: (el) => (el.dataset.paragraph === 'p3' ? 900 : 0),
+      clientHeight: () => 300,
+      offsetHeight: () => 3000,
+    };
+    for (const key of Object.values(box))
+      Object.defineProperty(HTMLElement.prototype, key, {
+        configurable: true,
+        get: function (this: HTMLElement) {
+          return sizes[key](this);
+        },
+      });
+    try {
+      const { page, release } = await pressing('lookup');
+      const moved = () => [...document.querySelectorAll<HTMLElement>('[data-booth-text] *')].some((el) => /translateY\(-?[1-9]/.test(el.style.transform));
+      expect(moved()).toBe(false);
+      act(() => searchAll('walked')[0]?.run());
+      await settle();
+      expect(moved()).toBe(true);
+      untouched();
+      expect(said(page)).not.toContain(BUSY_MOVE);
+      release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+    } finally {
+      for (const [key, descriptor] of Object.entries(saved)) {
+        if (descriptor) Object.defineProperty(HTMLElement.prototype, key, descriptor);
+        else delete (HTMLElement.prototype as unknown as Record<string, unknown>)[key];
+      }
+    }
+  });
+
+  it('a bookmark in another chapter during a press does not leave the chapter, which would drop the press', async () => {
+    const hold = gate();
+    const page = renderPage({
+      api: {
+        boothPunchTarget: async () => (await hold.open, FOUND),
+        boothVoiceSet: async () => ({ outcome: 'selected' }),
+        bookmarksList: async () => [held({ id: 'b2', chapterId: 'c2', paragraphId: 'q1', paragraph: 0, offset: 2 })],
+      } as never,
+    });
+    await ready();
+    await startFrom(0);
+    await settle();
+    await press(']', 'BracketRight', { altKey: true });
+    await settle();
+    expect(driver.search()).toContain('chapter=c1');
+    untouched();
+    expect(said(page).filter((text) => text === BUSY_MOVE)).toHaveLength(1);
+    hold.release();
+    await waitFor(() => expect(stopButton()).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+  });
+
+  it('after the take is handed over the reading follows the voice again: the keys move it', async () => {
+    const { page, release } = await pressing('lookup');
+    release();
+    await waitFor(() => expect(stopButton()).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    await press('ArrowDown');
+    expect(current()).not.toBe('0');
+    expect(said(page)).not.toContain(BUSY_MOVE);
+  });
+
+  it('after a refused lookup the press is over: the keys and the chip move the reading again', async () => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => {
+      await hold.open;
+      return { outcome: 'refused' as const, message: 'The recording check is out of date.' };
+    });
+    const page = renderPage({ api: { boothPunchTarget, teleprompterLocate: async () => LOCATED } as never });
+    await ready();
+    await startFrom(0);
+    await settle();
+    await press('ArrowDown');
+    expect(current()).toBe('0');
+    hold.release();
+    await waitFor(() => expect(recordIdle()).toBe(true));
+    await press('ArrowDown');
+    expect(current()).not.toBe('0');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  describe('Next pickup (N) during a press changes neither the reading, nor the chosen start, nor the current pickup', () => {
+    const lines = [pickup('k1', 'c1', 'p1', 'The Garden was quiet.'), pickup('k3', 'c1', 'p2', 'Off with her head,')];
+    const host = (lookup: () => Promise<unknown>) => ({
+      pickupsList: vi.fn(async () => ({ pickups: lines.map((item) => ({ ...item })), leftOut: [] })),
+      boothPunchTarget: vi.fn(lookup),
+      boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })),
+    });
+    const card = (name: RegExp) => screen.getByRole('button', { name }).getAttribute('aria-current');
+    const footer = () => /Next roll starts from ¶ \d+/.exec(document.body.textContent ?? '')?.[0];
+
+    it('held lookup: N twice does nothing but say the sentence once; the take records at the chosen spot', async () => {
+      const hold = gate();
+      const api = host(async () => (await hold.open, FOUND));
+      const page = renderPage({ search: '?chapter=c1&pickups=k1,k3', api: api as never });
+      await ready();
+      await screen.findAllByText('Pickups · 2 open');
+      await startFrom(1);
+      await settle();
+      const [reading, chosen] = [current(), footer()];
+      expect(card(/The Garden was quiet/)).toBe('true');
+      await press('n', 'KeyN');
+      // At once, not after the page settles: the card is the first thing a refused jump must not have moved.
+      expect(card(/Off with her head/)).not.toBe('true');
+      await press('n', 'KeyN');
+      await settle();
+      expect(current()).toBe(reading);
+      expect(footer()).toBe(chosen);
+      expect(card(/The Garden was quiet/)).toBe('true');
+      expect(card(/Off with her head/)).not.toBe('true');
+      expect(said(page).filter((text) => text === BUSY_MOVE)).toHaveLength(1);
+      hold.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+    });
+
+    it('after a refused lookup the press is over: N steps to the next pickup', async () => {
+      const hold = gate();
+      const api = host(async () => (await hold.open, { outcome: 'refused' as const, message: 'The recording check is out of date.' }));
+      renderPage({ search: '?chapter=c1&pickups=k1,k3', api: api as never });
+      await ready();
+      await screen.findAllByText('Pickups · 2 open');
+      await startFrom(1);
+      await settle();
+      await press('n', 'KeyN');
+      expect(card(/Off with her head/)).not.toBe('true');
+      hold.release();
+      await waitFor(() => expect(recordIdle()).toBe(true));
+      await press('n', 'KeyN');
+      await waitFor(() => expect(card(/Off with her head/)).toBe('true'));
+    });
+  });
+
+  const recordIdle = () => screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy') === null;
 });

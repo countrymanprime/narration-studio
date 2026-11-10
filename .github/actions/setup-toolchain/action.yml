@@ -36,10 +36,33 @@ inputs:
 runs:
   using: composite
   steps:
+    # The ~170 .debs of this install come from azure.archive.ubuntu.com, which sometimes serves them minutes apart: the install took 7 to 14 min
+    # on Test (Linux 1/5) in 9 of 40 runs on 2026-11-10 against about 1 min otherwise (#3327). The downloaded .debs are cached per runner
+    # image, so a slow mirror is paid once, and a miss or a changed package still downloads what is missing.
+    - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
+      id: apt-image
+      shell: bash
+      run: echo "image=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+    - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
+      id: apt-cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/apt-archives
+        key: apt-native-deps-${{ runner.os }}-${{ runner.arch }}-${{ steps.apt-image.outputs.image }}-${{ hashFiles('.github/actions/setup-toolchain/action.yml') }}
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
       shell: bash
       # Wails v3 links GTK 4 and WebKitGTK 6.0 through cgo on Linux; v2 used GTK 3 and WebKit2GTK 4.1.
-      run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf
+      run: |
+        mkdir -p ~/apt-archives/partial
+        sudo apt-get update
+        sudo apt-get -o Dir::Cache::archives="$HOME/apt-archives" install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf
+        sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
+        rm -f ~/apt-archives/lock
+    - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true' && steps.apt-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/apt-archives
+        key: ${{ steps.apt-cache.outputs.cache-primary-key }}
     - if: inputs.need-pnpm == 'true'
       uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       with: { version: 11.27.0 }
@@ -58,7 +81,7 @@ runs:
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with: { python-version: '3.12' }
     - if: inputs.need-python == 'true'
-      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
         version: 0.12.15
         enable-cache: true
@@ -110,7 +133,7 @@ runs:
       id: stylua
       name: Install pinned standalone StyLua
       continue-on-error: true
-      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
       with:
         token: ${{ github.token }}
         version: v2.1.0
@@ -121,7 +144,7 @@ runs:
       run: sleep 30
     - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
       name: Install pinned standalone StyLua (retry)
-      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
       with:
         token: ${{ github.token }}
         version: v2.1.0

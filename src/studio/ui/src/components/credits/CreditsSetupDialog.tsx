@@ -7,6 +7,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import type { Notify } from '../primitives/Toast';
+import { plural } from '../../plural';
 
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), matching CreditsPanel's
 // own map (detectedToken there goes the other way, lowerCamelCase to this form).
@@ -103,7 +104,7 @@ export function CreditsSetupDialog({
     <Dialog
       dismissOnOutsidePress={false}
       title="Set up the credits"
-      description={`Your opening and closing credits need ${fieldCount} value${fieldCount === 1 ? '' : 's'}. We filled in what the manuscript already says; check them and save.`}
+      description={`Your opening and closing credits need ${plural(fieldCount, 'value')}. We filled in what the manuscript already says; check them and save.`}
       onClose={() => void notNow()}
       actions={
         <>

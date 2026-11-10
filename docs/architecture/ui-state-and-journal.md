@@ -37,7 +37,7 @@ The Go host stays the source of truth. The store is a cache that can be thrown a
 | Copy-on-write identity and prototype safety | `studio/store/copyOnWrite.test.ts` |
 | No `immer`, Redux, Zustand or Redux Toolkit in either `package.json` or `pnpm-lock.yaml` | `studio/store/noStateLibrary.test.ts` |
 | `src/studio/` imports no component, `App.tsx` or `main.tsx` | dependency-cruiser rule `studio-does-not-import-components` |
-| A selector imports only types and other selectors | dependency-cruiser rule `selectors-import-types-and-selectors-only` |
+| A selector imports only types, other selectors and the pure text helper `plural.ts` | dependency-cruiser rule `selectors-import-types-and-selectors-only` |
 | `src/studio/`, `src/ports/`, `src/fixtures/` and `src/overlay/` never import `src/api/wailsClient` | dependency-cruiser rule `bridge-only-at-the-composition-root` |
 
 The dependency-cruiser rules are in `src/studio/ui/.dependency-cruiser.mjs` and run as the `architecture` script of `src/studio/ui` ([Verification and code-health tooling](../operations/verification-tooling.md)).

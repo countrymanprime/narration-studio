@@ -1,6 +1,5 @@
 import { LEVEL_TARGET_DB, STEP_TEXT, isTrim, type PrepStepId } from './prepSteps';
-
-const plural = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`;
+import { plural } from '../../../../plural';
 
 /** What a prep step asks the narrator before it runs: what changes, where the audio goes and how it is taken back. */
 export function PrepConfirmBody({ step, dawName, cuts = 0, items = 0 }: { step: PrepStepId; dawName: string; cuts?: number; items?: number }) {

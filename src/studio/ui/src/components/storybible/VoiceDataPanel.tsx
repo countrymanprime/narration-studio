@@ -15,6 +15,7 @@ import { useVoiceSamples } from '../voicesamples/useVoiceSamples';
 import { VoiceSamplesSection } from './voicesamples/VoiceSamplesSection';
 import { mebibytes, moveChoices, orphanSamples } from './voicesamples/voiceSampleModel';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
+import { plural } from '../../plural';
 
 export const ORPHAN_HEADING = 'Samples for a character that is no longer in the Story Bible';
 
@@ -129,7 +130,11 @@ function VoiceDataContent({
             </p>
           ) : null}
           <div className="grid grid-cols-1 gap-2 @min-[24rem]:grid-cols-2">
-            <Button variant="danger" disabled={!list || list.totals.count === 0} onClick={() => setConfirming('samples')}>
+            <Button
+              variant="danger"
+              disabledReason={!list ? 'Still reading the voice samples.' : list.totals.count === 0 ? 'There are no voice samples to remove.' : ''}
+              onClick={() => setConfirming('samples')}
+            >
               Remove voice samples…
             </Button>
             <Button variant="danger" onClick={() => setConfirming('references')}>
@@ -152,7 +157,7 @@ function VoiceDataContent({
       {confirming === 'samples' && (
         <ConfirmDialog
           title="Remove voice samples"
-          body={`Delete every voice sample in this project${list ? ` (${list.totals.count === 1 ? 'one sample' : `${list.totals.count} samples`}, ${mebibytes(list.totals.bytes)})` : ''}, for every character and for Narration, with their audio? This cannot be undone; the recordings they were copied from are not touched.`}
+          body={`Delete every voice sample in this project${list ? ` (${list.totals.count === 1 ? 'one sample' : plural(list.totals.count, 'sample')}, ${mebibytes(list.totals.bytes)})` : ''}, for every character and for Narration, with their audio? This cannot be undone; the recordings they were copied from are not touched.`}
           confirmLabel="Remove voice samples"
           confirmVariant="danger"
           pending={mutation.isPending('remove-samples')}

@@ -147,7 +147,11 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         const command = commandsForGesture(catalogRef.current, keymapRef.current, scope, event.gesture).find((row) => handlers.current.has(row.id));
         if (!command) continue;
         // A held key runs only a command that steps through text; any other is press-only, so its repeats are left alone as they always were.
-        if (event.repeat && !command.repeats) return;
+        // A repeat of a Ctrl, Alt or Meta chord still stops the webview's own action (Ctrl+S would otherwise save the page on every repeat).
+        if (event.repeat && !command.repeats) {
+          if (event.gesture.modifiers.some((modifier) => modifier !== 'Shift')) event.preventDefault();
+          return;
+        }
         // A text field's own gesture (its undo): the field answers it, so nothing is consumed and nothing runs.
         if (command.fieldsKeep && event.target instanceof Element && event.target.closest(EDITABLE)) return;
         const handler = handlers.current.get(command.id)!;

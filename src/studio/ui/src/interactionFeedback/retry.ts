@@ -50,10 +50,13 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/controls/DiagnosticsSection.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#2': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
-    'The tracks are read again every time the window is focused, so the next focus repeats the read; the narrator is in REAPER when it matters.',
+    'The chapter list is read when the row opens; the narrator is in Settings and opens the row again when it matters.',
   ),
-  'src/components/settings/controls/VoicesBody.tsx#2': no(
-    'The chapter links are read again every time the window is focused (the same refresh counter as the tracks), so the next focus repeats the read.',
+  'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
+    'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
+  ),
+  'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
+    'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
   ),
   'src/components/storybible/source/NamePronunciation.tsx#1': yes(
     'The pronunciation sources list read changes nothing; Retry reads it again (added by the pronunciation rework).',
@@ -82,6 +85,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#1': no(ED),
   'src/components/booth/page/BoothNextPage.tsx#2': na(NA),
   'src/components/booth/page/BoothNextPage.tsx#3': no(ED),
+  'src/components/booth/leave/useBoothLeaveGuard.ts#1': no(RC),
+  'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
@@ -100,7 +105,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/suspected/SuspectedLines.tsx#2': no(RF),
   'src/components/booth/suspected/useSuspectedPickups.ts#1': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#1': yes(
-    'The Booth voices and tracks read changes nothing; Retry reads them again (one toast for a run of failed reads).',
+    "The host's voice read changes nothing; Retry reads it again with the shared tracks (one toast for a run of failed reads).",
   ),
   'src/components/booth/voices/useBoothVoices.ts#2': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#3': no(ED),

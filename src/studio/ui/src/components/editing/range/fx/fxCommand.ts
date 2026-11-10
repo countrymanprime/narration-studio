@@ -8,6 +8,7 @@ import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
 import { appliedSpan, subWordNote } from '../common/spanRequest';
 import type { Span } from '../../ribbon/rangeMath';
+import { plural } from '../../../../plural';
 
 /** The fade at each new split, in milliseconds (the mock's FX_FADE_MS). */
 export const FX_FADE_MS = 8;
@@ -32,7 +33,6 @@ export interface BeforeFxStep {
 /** The steps a DAW that changes the audio itself runs before an effect. The backup slice appends its backup here; with none, such an effect is refused. */
 export const beforeFx: BeforeFxStep[] = [];
 
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const refusal = (code: string, reason: string): Result<never> => ({ ok: false, refusal: { code, reason } });
 const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message: why(e), undoSteps: 0, refused: why(e) });

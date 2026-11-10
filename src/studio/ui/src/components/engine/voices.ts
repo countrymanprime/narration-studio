@@ -4,6 +4,7 @@
 import type { Track } from '../../api/contracts/tracks';
 import type { GuideEntity } from '../../api/contracts/storyBible';
 import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
+import { plural } from '../../plural';
 
 type VoiceCharacter = { id: string; name: string; source: 'assigned' | 'name' | 'alias' };
 
@@ -23,7 +24,7 @@ const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim()
 /** A chapter folder as the link pickers name it: "Ch 8 · 5 voices" in a Voice folders project, where its children are voices, and "· N tracks" in
  * any other project, as the Tracks list counts them. */
 export function folderLinkLabel(name: string, count: number, unit: 'voice' | 'track' = 'voice'): string {
-  return `${name} · ${count === 1 ? `1 ${unit}` : `${count} ${unit}s`}`;
+  return `${name} · ${plural(count, unit)}`;
 }
 
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {

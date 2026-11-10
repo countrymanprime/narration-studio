@@ -3,6 +3,7 @@ import type { ChapterFolders } from '../../api/contracts/chapterTrackMap';
 import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Notify } from '../primitives/Toast';
+import { plural } from '../../plural';
 
 /**
  * Whether a linked chapter's track sits inside another linked chapter's folder in the DAW (#2838), and the repair that moves it out.
@@ -56,7 +57,7 @@ export function useChapterFolders({ revision, notify }: { revision: unknown; not
           if (answer.outcome === 'repaired' && answer.expected.length > 0) {
             const count = answer.expected.length;
             notify(
-              `Moved ${count} ${count === 1 ? 'chapter' : 'chapters'} out of ${folders} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`,
+              `Moved ${plural(count, 'chapter')} out of ${folders} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`,
               'info',
             );
           } else if (answer.outcome === 'repaired') {

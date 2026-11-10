@@ -7,6 +7,7 @@ import type { GuideDialogueCue, GuideEntity, GuidePronunciation, GuideType } fro
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
 import { cueSpeakerState, type CueSpeakerState } from '../../../manuscript/dialogueCues.selectors';
+import { plural } from '../../../../plural';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
 export const wordKey = (text: string): string => text.trim().toLowerCase();
@@ -92,8 +93,6 @@ export function chapterWords(entries: readonly GuideEntity[], paragraphs: readon
   }
   return rows;
 }
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 export type ChapterFactsInput = {
   types: readonly MarkType[];

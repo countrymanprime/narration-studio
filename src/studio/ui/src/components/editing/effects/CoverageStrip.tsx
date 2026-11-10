@@ -6,6 +6,7 @@ import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { clock } from '../../../clock';
 import type { CutSpan } from '../model';
 import { FX_CAP_LABEL, FX_CAP_MAX, FX_CAP_MIN, FX_CAP_PCT, capState, coverageOf, fmtPct, liveEffects, spanOf, type CapState } from './effectsMath';
+import { plural } from '../../../plural';
 
 const CAP_PILL: Record<CapState, [StatusTone, string]> = {
   within: ['success', 'Within the cap'],
@@ -81,7 +82,7 @@ export function CoverageStrip({
       >
         {cov.segs.map((s) => {
           const top = topAt((s.start + s.end) / 2);
-          const label = `${s.n} ${s.n > 1 ? 'effects' : 'effect'} from ${clock(s.start)} to ${clock(s.end)}`;
+          const label = `${plural(s.n, 'effect')} from ${clock(s.start)} to ${clock(s.end)}`;
           return (
             // native-control-ok: a bar placed by time on the strip; Button's padded uppercase chrome cannot draw it.
             <button

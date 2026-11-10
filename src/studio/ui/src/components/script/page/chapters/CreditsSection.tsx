@@ -11,6 +11,7 @@ import { SectionLabel } from '../../../primitives/SectionLabel';
 import { useChapterFacts } from '../data/useScriptData';
 import { CardFacts, EndOf, cardFacts, type Ended } from './ChapterCard';
 import { PrepSegment } from './PrepSegment';
+import { plural } from '../../../../plural';
 
 // The mock lists the credits as chapters (`fixtures/alice.ts`), so the reader draws them as one: the end of the chapter before, a card
 // labelled "Credits" with Record in Booth, the title, the facts and "My prep", then the text the template renders. The section is a
@@ -66,7 +67,7 @@ export function CreditsSection({
             {preview && preview.unresolved.length > 0 && !bannerShown && (
               <div className="flex items-center gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn-text)]">
                 <span className="flex-1">
-                  {preview.unresolved.length} unresolved token{preview.unresolved.length === 1 ? '' : 's'}: {preview.unresolved.join(', ')}
+                  {plural(preview.unresolved.length, 'unresolved token')}: {preview.unresolved.join(', ')}
                 </span>
                 {onFillIn && (
                   <Button size="sm" variant="secondary" onClick={onFillIn}>

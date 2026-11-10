@@ -4,6 +4,7 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { ProjectFxState } from './useProjectFx';
+import { trackName } from '../../tracks/trackName';
 
 export const NO_PROJECT_FX = 'has no FX on its tracks or its master track.';
 export const READING_PROJECT_FX = 'Reading the FX in the DAW…';
@@ -16,7 +17,7 @@ type Row = { key: string; where: string; slot: ProjectFxSlot };
 
 /** The DAW's own chains as rows, tracks in the DAW's order and then the master track. */
 export function projectFxRows(chain: NonNullable<ProjectFxState['chain']>): Row[] {
-  const rows = chain.tracks.flatMap((track) => track.fx.map((slot, at) => ({ key: `${track.trackGuid}:${at}`, where: track.name || 'Unnamed track', slot })));
+  const rows = chain.tracks.flatMap((track) => track.fx.map((slot, at) => ({ key: `${track.trackGuid}:${at}`, where: trackName(track.name), slot })));
   return [...rows, ...chain.master.map((slot, at) => ({ key: `master:${at}`, where: 'Master', slot }))];
 }
 

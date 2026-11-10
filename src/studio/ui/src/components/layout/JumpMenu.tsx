@@ -13,6 +13,7 @@ import { Listbox, listboxOptionId, type ListboxOption } from '../primitives/List
 import { TextField } from '../primitives/TextField';
 import { useJumpSearch, type SearchFailure } from './useJumpSearch';
 import { COMMANDS_HEADING, PAGE_HEADING, hitEntries, pageEntries, pageGroupRows, pageHeading, rankEntries, type Entry, type GroupRef } from './jumpMenuModel';
+import { plural } from '../../plural';
 
 // A resolved gesture's `code` is the physical key, so this reads "Slash" where the key cap should say "/".
 const NAMED_CODES: Record<string, string> = { Equal: '=', Minus: '-', BracketLeft: '[', BracketRight: ']', Slash: '/', Comma: ',', Period: '.' };
@@ -70,7 +71,7 @@ function shownHint(entry: Entry): string | undefined {
 /** The most rows the menu draws; the rest are reached by typing. */
 export const JUMP_MENU_MAX_ROWS = 100;
 
-const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
+const resultCount = (count: number) => (count === 0 ? 'No results' : `${plural(count, 'result')}`);
 
 /** What a screen reader hears as the list changes: the result count, and that more may come while a source is still searching. */
 const searchStatus = (entries: readonly Entry[], drawn: number) => {

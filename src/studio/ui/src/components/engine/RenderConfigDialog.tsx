@@ -7,6 +7,7 @@ import { Field } from '../primitives/Field';
 import { ToolResult } from './ToolResult';
 import { Kbd } from '../primitives/Kbd';
 import type { RenderConfigState } from '../../types';
+import { plural } from '../../plural';
 
 const IDLE: RenderConfigState = { phase: 'idle', message: '', folder: '', targets: [], count: 0 };
 
@@ -70,7 +71,7 @@ export function RenderConfigDialog({ onClose, onCreateRegions }: { onClose: () =
             tone="success"
             message={
               <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <span>Render is configured for {state.count === 1 ? '1 chapter file' : `${state.count} chapter files`}. Press Render in REAPER</span>
+                <span>Render is configured for {plural(state.count, 'chapter file')}. Press Render in REAPER</span>
                 <Kbd keys={['Ctrl', 'Alt', 'R']} />
                 <span>or File &gt; Render to create them.</span>
               </span>

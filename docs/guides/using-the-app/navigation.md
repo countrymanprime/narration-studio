@@ -65,6 +65,7 @@ closes it, and focus returns to where it was. The menu is a list box: a screen r
 | --- | --- | --- |
 | Back, Forward | `Alt+Left`, `Alt+Right`, or the mouse's back and forward buttons | there is no earlier or later page |
 | Undo: <the last change>, named | `Ctrl+Z` (not in a text box, which keeps its own undo) | the journal has nothing to undo (it reads plain Undo) |
+| Save the DAW project | `Ctrl+S` (`Cmd+S` on macOS), also in a text box | never: the toast says why a save was refused (no DAW linked, a DAW that cannot save from the app, REAPER recording) |
 | Open the undo history | `Ctrl+Shift+H` | never |
 | Zoom in, Zoom out, Reset zoom to 100% | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`; also Ctrl+scroll | already at the largest or smallest size, or already at 100% |
 | Switch project… | none | never |
@@ -275,12 +276,14 @@ below, an evidence view) don't guess by name. Each row is the chapter, its statu
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press the check icon (**Use this track**), which stays off until you
 have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and an arrows icon (**Change the track**) and an eraser icon (**Clear the link**). Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
-linked to another chapter moves to this one. Clear removes every link the chapter has. If the
+linked to another chapter moves to this one. Clear removes every link the chapter has. Clearing a link leaves the row on **Choose a track** with the check off. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
 missing** until it's relinked or cleared. The list starts with **Opening credits** and ends with **Closing credits** (when the Script page has them), which link, change and clear the same way; their menu is a chapter's (**Open in Editing**, **Open in Proof**, **Editing check…**). These links are kept in the app's own project data and never
 change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
+
+To check a link again, press Change and then the check on the track it already has; the check is named **Check the link … again** there, and nothing is written. The app reads the tracks and the link again and says what it found: "Chapter 1 is linked to “Ch 1” (a single track). Nothing changed.", what a folder holds, that the track was renamed, or that it is no longer in the project (the row then shows **Track missing**, and the picker stays open on **Choose a track**). When REAPER does not answer, the message says it is going by the saved project, and "Nothing changed" is only said after a read of REAPER's own tracks. If a read fails, a message says so and the picker stays open. After you rename a track in REAPER, this also reads the link again. A track you delete in REAPER shows **Track missing** by itself. In an Audacity project the tracks come from the saved project, so only the link is read again.
 
 To add a track for a chapter that has none, press the **+** button on its row (**Create a track for this chapter**). REAPER adds a track
 named after the chapter after every other track, the chapter is linked to it, and a message says what was made. Nothing else in the
@@ -350,7 +353,7 @@ whether to use it), the Voices card carries the same switch. **Flat**, the defau
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 
-The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
+A chapter linked to a track REAPER no longer has gets one message in either layout (the track is not in the project; link the chapter again in the panel). The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
 
 ![Chapter sync's Layout row on Voice folders, above Chapter links](../../images/ui/engine-panel-voices-layout.webp)
 

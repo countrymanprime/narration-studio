@@ -14,10 +14,11 @@ import { StackDialog, stackTitle, type StackDirection } from './StackDialog';
 import { cleanUpCommand, stackCommand, unstackCommand, type StackDone } from './stackCommand';
 import { BUILT_IN, isRecorder, planStack, type StackActing, type StackHow } from './stackPlan';
 import { canCleanUp, keptReason, otherReads, stackModeOf } from './stackedLine';
-import { CHECKING, KEPT_UNSTACK, NO_ANSWER, NO_RETRIES, NO_STACKED, STACK_TEXT, plural } from './stackText';
+import { CHECKING, KEPT_UNSTACK, NO_ANSWER, NO_RETRIES, NO_STACKED, STACK_TEXT } from './stackText';
 import type { StackLine } from './types';
 import { returnToScript } from '../script/returnToScript';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
+import { plural } from '../../../plural';
 
 export interface StackOptions {
   journal: Pick<Journal, 'act' | 'undo'>;

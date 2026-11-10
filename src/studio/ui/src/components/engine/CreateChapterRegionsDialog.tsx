@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ToolResult } from './ToolResult';
 import type { ChapterRegionPlan, ChapterRegionState, ChapterRegionsCreated, Track } from '../../types';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
   new: 'New region',
@@ -98,7 +100,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
     };
   }, [api, openingTrackGuid, closingTrackGuid]);
 
-  const trackOptions = [{ value: '', label: 'None' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
+  const trackOptions = [{ value: '', label: 'None' }, ...tracks.map((track) => ({ value: track.guid, label: trackName(track.name, track.index) }))];
   const rows = plan?.rows ?? [];
   const canCreate = plan !== null && plan.project === 'ready' && rows.length > 0 && !creating;
 
@@ -136,7 +138,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           <CapabilityGate capability={regionsCapability}>
             {/* After a run Close is the next step, so the primary goes quiet until the plan changes (ENX-28). */}
             <Button variant={created ? 'secondary' : 'primary'} onClick={create} disabled={!canCreate} pending={creating}>
-              {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}`}
+              {`Create ${plural(rows.length, 'region')}`}
             </Button>
           </CapabilityGate>
         </>

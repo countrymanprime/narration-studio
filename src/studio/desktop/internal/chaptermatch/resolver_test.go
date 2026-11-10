@@ -69,12 +69,13 @@ func TestResolverMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
 	}
 }
 
-// The time guard of #3272: 44 chapters against 64 tracks took about 0.9 s before the Resolver (ForChapter once per chapter) and takes a few
-// tens of milliseconds with it. The median of five runs against a bound 10 times the measured one, so a slow runner passes and the old cost does not.
+// The speed guard of #3272, as a ratio so a slow runner cannot fail it: the Resolver against the package-level ForChapter called once per chapter
+// (the cost before the Resolver), both timed on this machine, alternating over three rounds. A quiet machine measures 37x to 44x for 44 chapters
+// against 64 tracks, and 30x with every CPU oversubscribed 2x; the old cost is 1x, so 5x tells them apart whatever the runner's speed.
 func TestResolvingAWholeBookStaysFast(t *testing.T) {
 	chapters, project := bookProject(44, 20)
-	var runs []time.Duration
-	for range 5 {
+	var resolverRuns, perChapterRuns []time.Duration
+	for range 3 {
 		start := time.Now()
 		resolver := NewResolver(chapters, project)
 		for _, chapter := range chapters {
@@ -82,10 +83,20 @@ func TestResolvingAWholeBookStaysFast(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		runs = append(runs, time.Since(start))
+		resolverRuns = append(resolverRuns, time.Since(start))
+
+		start = time.Now()
+		for _, chapter := range chapters {
+			if _, err := ForChapter(chapter.ID, chapters, project, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		perChapterRuns = append(perChapterRuns, time.Since(start))
 	}
-	slices.Sort(runs)
-	if median := runs[len(runs)/2]; median > 300*time.Millisecond {
-		t.Fatalf("resolving 44 chapters against 64 tracks took %v (median of %v), budget 300ms", median, runs)
+	slices.Sort(resolverRuns)
+	slices.Sort(perChapterRuns)
+	resolver, perChapter := resolverRuns[1], perChapterRuns[1]
+	if ratio := float64(perChapter) / float64(resolver); ratio < 5 {
+		t.Fatalf("resolving 44 chapters against 64 tracks: Resolver median %v (%v), ForChapter per chapter median %v (%v), only %.1fx faster, want at least 5x", resolver, resolverRuns, perChapter, perChapterRuns, ratio)
 	}
 }

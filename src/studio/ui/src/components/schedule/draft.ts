@@ -1,6 +1,7 @@
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
+import { plural, formatCount } from '../../plural';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N". */
 export type MilestoneDraft = { name: string; date: string; measure: string; chapters: number; minutes: number; note: string; done: boolean };
@@ -63,7 +64,7 @@ export function milestoneFromDraft(
 ): { milestone: ProductionMilestone } | { refusal: string } {
   const name = draft.name.trim();
   if (!name) return { refusal: MISSING_NAME };
-  if ([...name].length > MAX_NAME) return { refusal: `The name is ${[...name].length} characters; the most is ${MAX_NAME}.` };
+  if ([...name].length > MAX_NAME) return { refusal: `The name is ${plural([...name].length, 'character')}; the most is ${formatCount(MAX_NAME)}.` };
   const date = draft.date.trim();
   if (!isIsoDate(date)) return { refusal: badDate(date) };
   const far = farDateProblem(date);
@@ -71,7 +72,7 @@ export function milestoneFromDraft(
   const measure = storedMeasure(draft, bounds);
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;
   const note = draft.note.trim();
-  if ([...note].length > MAX_NOTE) return { refusal: `The note is ${[...note].length} characters; the most is ${MAX_NOTE}.` };
+  if ([...note].length > MAX_NOTE) return { refusal: `The note is ${plural([...note].length, 'character')}; the most is ${formatCount(MAX_NOTE)}.` };
   return {
     milestone: {
       name,

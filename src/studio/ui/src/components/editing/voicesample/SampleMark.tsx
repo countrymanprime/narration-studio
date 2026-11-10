@@ -9,6 +9,7 @@ import { clipProblem, passageBadge, sampleLength, sampleName } from '../../story
 import { SamplePlayButton } from '../../voicesamples/SamplePlayButton';
 import { markName, markState, type MarkState } from './sampleMarks';
 import { useSampleMarksValue, useSamplePlayerHandle } from './sampleMarksContext';
+import { plural } from '../../../plural';
 
 const RING: Record<MarkState, string> = {
   ok: '',
@@ -33,7 +34,7 @@ export function SampleMark({ samples }: { samples: readonly VoiceSample[] }) {
       side="bottom"
       align="start"
       fitToWindow
-      label={many ? `${samples.length} voice samples` : name}
+      label={many ? `${plural(samples.length, 'voice sample')}` : name}
       trigger={
         // native-control-ok: a 9 px ring or count drawn inline in the script's text; Button and IconButton are far larger.
         <button
@@ -138,7 +139,7 @@ export function MovedSampleMarks() {
   if (moved.length === 0) return null;
   return (
     <div className="flex items-center gap-1 px-4 pt-2 text-sm text-[var(--text-muted)]" data-moved-samples>
-      <span>{moved.length === 1 ? 'A voice sample whose words moved' : `${moved.length} voice samples whose words moved`}</span>
+      <span>{moved.length === 1 ? 'A voice sample whose words moved' : `${plural(moved.length, 'voice sample')} whose words moved`}</span>
       <SampleMark samples={moved} />
     </div>
   );

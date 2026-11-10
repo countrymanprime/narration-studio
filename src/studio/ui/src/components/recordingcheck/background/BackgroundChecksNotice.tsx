@@ -2,6 +2,7 @@ import type { ChapterSyncBackground } from '../../../api/contracts/chapterSync';
 import { Button } from '../../primitives/Button';
 import { Dialog } from '../../primitives/Dialog';
 import { modelPairText } from './backgroundCheckText';
+import { plural } from '../../../plural';
 
 /**
  * "Check recordings in the background?" shown once, the first time the host has a changed chapter it would check on its own
@@ -20,7 +21,7 @@ export function BackgroundChecksNotice({
   onNotNow: () => void;
 }) {
   const models = modelPairText(background);
-  const chapters = `${background.queued} chapter${background.queued === 1 ? '' : 's'}`;
+  const chapters = `${plural(background.queued, 'chapter')}`;
   return (
     <Dialog
       dismissOnOutsidePress={false}

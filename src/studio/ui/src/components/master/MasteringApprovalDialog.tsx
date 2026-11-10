@@ -9,6 +9,7 @@ import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { Tooltip } from '../primitives/Tooltip';
 import { fileName } from './useExportJobs';
+import { plural } from '../../plural';
 
 const CHAIN_LABEL = 'FX chain this render runs';
 const MUTED = { color: 'var(--text-muted)' };
@@ -22,10 +23,10 @@ function chainCount(chain: ExportPlan['chain']): string {
   if (effects === 0) return 'Signal order: no effects';
   const tracks = chain.filter((track) => !track.master && (track.fx ?? []).length > 0).length;
   const master = chain.some((track) => track.master && (track.fx ?? []).length > 0);
-  const on = [tracks > 0 ? `${tracks} ${tracks === 1 ? 'track' : 'tracks'}` : '', master ? 'the master' : ''].filter(Boolean).join(' and ');
+  const on = [tracks > 0 ? `${plural(tracks, 'track')}` : '', master ? 'the master' : ''].filter(Boolean).join(' and ');
   // A bypassed effect far down a long list is counted here, where it is seen first (round 2 walkthrough on #2932).
   const off = chain.reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
-  return `Signal order: ${effects} ${effects === 1 ? 'effect' : 'effects'} on ${on}${off > 0 ? `, ${off} switched off` : ''}`;
+  return `Signal order: ${plural(effects, 'effect')} on ${on}${off > 0 ? `, ${off} switched off` : ''}`;
 }
 
 /** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
@@ -201,14 +202,12 @@ export function MasteringApprovalDialog({
   const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
     ? {
         secondaryLabel:
-          effects === 0
-            ? 'See the chain above: no effects'
-            : `See the ${effects} ${effects === 1 ? 'effect' : 'effects'} above${off > 0 ? `, ${off} switched off` : ''}`,
+          effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`,
         secondary: showChain,
       }
     : {};
   const regions = plan.items.some((item) => item.region !== '');
-  const count = plan.items.length === 1 ? '1 file' : `${plan.items.length} files`;
+  const count = plural(plan.items.length, 'file');
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
   const approve = () => {
     if (!plan.needsMacro) {

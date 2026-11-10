@@ -38,6 +38,29 @@ type BoothVoice struct {
 	Added []BoothVoiceTrack `json:"added,omitempty"`
 }
 
+// linkGoneSentence is the one sentence a vanished link gets, in either layout, from the host, the Booth page (destination.ts) and the mock
+// (boothVoiceMock.ts): the three must read the same.
+const linkGoneSentence = "The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel."
+
+// linkGoneRefusal is the refusal for a voice key or a voice read when the chapter's one link names a track the project no longer holds (as
+// REAPER has it now), in either layout: one sentence, as the Engine panel's "Track missing" says it, not "records on one track" or "not
+// linked to a folder". A folder this session made that the project does not hold yet is not gone (svc.boothVoices has its voices). Nil
+// when the link is there.
+func linkGoneRefusal(svc hostServices, link string, project *tracks.Project) *BoothVoice {
+	if project == nil {
+		read, err := liveSelectedProject(svc)
+		if err != nil {
+			return nil
+		}
+		project = &read
+	}
+	if _, ok := project.WithDescendants(link); ok || len(svc.boothVoices.addedTo(link)) > 0 {
+		return nil
+	}
+	refused := boothVoiceRefused(readAloudTrackMissing, linkGoneSentence)
+	return &refused
+}
+
 // noFolderForVoiceKeys is the refusal for a voice key in a Voice folders project whose chapter is not linked to a folder of voices.
 const noFolderForVoiceKeys = "This chapter is not linked to a folder of voices, so there is no voice to choose. Link or create its folder first."
 
@@ -273,11 +296,19 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	if refused != nil {
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
-	voices, folder, err := chapterVoices(svc, link)
+	// One read of REAPER's list serves the voices and the vanished-link check, so they see one snapshot and one wait.
+	project, err := liveSelectedProject(svc)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	voices, folder, err := chapterVoicesIn(svc, link, &project)
 	if err != nil {
 		return BoothVoice{}, err
 	}
 	if !folder {
+		if gone := linkGoneRefusal(svc, link, &project); gone != nil {
+			return *gone, nil
+		}
 		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc,
 			"This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).",
 			noFolderForVoiceKeys)), nil
@@ -351,6 +382,9 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 		return BoothVoice{}, err
 	}
 	if !folder {
+		if gone := linkGoneRefusal(svc, link, &project); gone != nil {
+			return *gone, nil
+		}
 		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc, "This chapter records on one track.", noFolderForVoiceKeys)), nil
 	}
 	added := unsavedVoices(svc, project, link)

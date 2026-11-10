@@ -4,7 +4,8 @@ import type { DawClient, StackGroup } from '../../../ports/daw';
 import type { Command, Result } from '../../../studio/journal/createJournal';
 import type { StackPlan } from '../model/stacking';
 import type { StackActing } from './stackPlan';
-import { NO_BACKUP, plural } from './stackText';
+import { NO_BACKUP } from './stackText';
+import { plural } from '../../../plural';
 
 type PlanGroup = StackPlan['groups'][number];
 

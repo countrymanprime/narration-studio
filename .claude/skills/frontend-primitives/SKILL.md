@@ -13,6 +13,21 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 2. Two screens drawing the same thing is the signal to extract one primitive, with a `<Name>.stories.tsx` and a test, in the same PR. Do not copy markup between pages.
 3. Read the primitive's table row in [the design system](../../../docs/design/design-system.md#primitive-components) and the mock for the page ([ui-spec-and-screenshots](../../rules/ui-spec-and-screenshots.md)).
 
+## Before writing text or logic a page already has
+
+Anything more than one page shows or computes is one component, hook or function, used by every page ([#3277](https://github.com/countrymanprime/narration-studio/issues/3277): "reusable interfaces and components across pages"). Before you format a number, name a track or pick a label, find the one that exists. A scanning test fails a page that writes its own.
+
+| You are writing | Use | Guard that fails a copy |
+| --- | --- | --- |
+| a duration or a time position ("7:05", "1:02:05", "2:14.6") | `clock`, `clockTenths` in `src/studio/ui/src/clock.ts` | `clock.guard.test.ts` |
+| a count with its noun ("1 take", "2 takes", "1,234 words"), a bare count ("5,002") | `plural`, `pluralWord`, `formatCount` in `src/studio/ui/src/plural.ts` | `plural.guard.test.ts` |
+| the name of a DAW track that may be blank | `trackName` in `src/studio/ui/src/components/tracks/trackName.ts` | `trackName.guard.test.ts` |
+| a chapter's name | `headingName` in `src/studio/ui/src/chapterHeading.ts` | none yet (the chapter-name unit tests only) |
+
+When the one that exists falls short, change it so every page gets the change (a prop, an option) and say so in the PR; do not write a second one beside it. When the same text or logic is on two pages and no shared piece exists, extract it in the same PR with a test and a guard like the three above (a scanning test over `src/studio/ui/src`, with a short allowlist that only shrinks and a reason on each entry).
+
+A guard written for one spelling is bypassed by the next. Search for the whole class (every way a page can write that thing: a suffix form, a template, a differently named helper, a count in a branch), not the instance a reviewer pointed at, and give the guard a self-test that feeds it each spelling.
+
 ## The rules
 
 | #   | Rule                                                                                                                                                                                                                                                                                                                  | Use                                                                                                                              |
@@ -59,5 +74,6 @@ All in `src/studio/ui/src/components/primitives/`. Read the file for props.
 ## Done means
 
 - The PR names the primitive it used for each new element, or the one it extracted.
+- The PR names the existing component, hook or function it reused for each piece of text or logic it wrote, and the duplicate it removed; or says what it extracted and which guard stops a copy.
 - A new primitive has a story, a test and a row in the design system table.
 - The `ux-reviewer` agent returned `pass` on the branch with screenshots ([CLAUDE.md](../../../CLAUDE.md) feature workflow).

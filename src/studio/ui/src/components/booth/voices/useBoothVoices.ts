@@ -7,7 +7,8 @@ import { usePort } from '../../../ports/usePort';
 import { destinationFor, type ChapterLinkKind } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
-import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
+import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
+import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 
@@ -67,16 +68,13 @@ export function useBoothVoices({
   /** The page's "Who is in Num N?" is open: a voice key does nothing until it closes. */
   asking?: boolean;
 }): BoothVoices {
-  const tracksPort = usePort('tracks');
   const teleprompter = usePort('teleprompter');
-  const links = usePort('chapterTrackMap');
   const storyBible = usePort('storyBible');
   const voiceTracks = usePort('voiceTracks');
   const { setup, replace } = useVoiceSetup();
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [link, setLink] = useState('');
-  // Every track some chapter is linked to: such a track is that chapter's own, never a voice of this one (as the host decides).
-  const [linkedTracks, setLinkedTracks] = useState<string[]>([]);
+  // The tracks and the links every screen shares (#3269): REAPER's live list over the saved file, read on window focus and every few seconds
+  // while a screen watches, so a voice renamed, added or deleted in REAPER is seen before a save and the Booth never disagrees with the Engine.
+  const trackState = useChapterTrackState();
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
   // The voice the host records this chapter on (BoothVoiceGet), read with the tracks: never a voice the page assumed, so a choice made
   // before the Booth was left, or the voice a refused switch kept, is what the control shows.
@@ -87,14 +85,24 @@ export function useBoothVoices({
   const [revision, setRevision] = useState(0);
   const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
-  // Whether the last read failed, so the poll below toasts a run of failures once, not on every tick (as useLiveTracks does). A press of the
+  // The chapter's one link, once the shared state has answered: a chapter with no one link has no folder to read.
+  const answered = trackState.readAt !== null;
+  const mine = trackState.mappings.filter((mapping) => mapping.chapterId === chapterId);
+  const link = answered && mine.length === 1 ? mine[0].trackGuid : '';
+  const tracks: Track[] = useMemo(() => (link ? (trackState.project?.tracks ?? []) : []), [link, trackState.project]);
+  // Every track some chapter is linked to: such a track is that chapter's own, never a voice of this one (as the host decides).
+  const linkedTracks = useMemo(() => trackState.mappings.map((mapping) => mapping.trackGuid.toLowerCase()), [trackState.mappings]);
+
+  // Whether the last host-voice read failed, so a run of failures toasts once, not on every tick (as useLiveTracks does). A press of the
   // toast's Retry always answers: it toasts again when the read fails again, or it clears the failure.
   const failing = useRef(false);
+  // A change made here, or a refusal that says the tracks moved: read the shared tracks and the host's voice again.
+  const refreshTracks = trackState.refresh;
+  const refreshAll = useCallback(() => {
+    refreshTracks();
+    setRevision((n) => n + 1);
+  }, [refreshTracks]);
   const retryPressed = useRef(false);
-  // The newest read's number and whether it is still running: the poll and the window's focus never start a read over one in flight (as
-  // useLiveTracks does), so a press of Retry that started a read is not overtaken and forgotten.
-  const runId = useRef(0);
-  const inFlight = useRef(false);
   const failed = useCallback(
     (reason: unknown, pressed: boolean) => {
       if (pressed || !failing.current)
@@ -111,61 +119,45 @@ export function useBoothVoices({
     [notify],
   );
 
+  // The characters and the voice the host records on, read again whenever the shared tracks are (`readAt`) and after a change made here.
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
     const pressed = retryPressed.current;
     retryPressed.current = false;
-    const run = ++runId.current;
-    inFlight.current = true;
-    // One failure is reported for a run, whichever of its reads failed first.
+    if (!link) {
+      setHostVoice({ chapterId, guid: '', added: [] });
+      failing.current = false;
+      return;
+    }
     let reported = false;
     const report = (reason: unknown) => {
       if (reported) return;
       reported = true;
       failed(reason, pressed);
     };
-    const work = (async () => {
-      const map = await links.chapterTrackMapList();
+    let hostFailed = false;
+    const work = Promise.all([
+      storyBible.guideEntities(),
+      // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
+      voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
+        if (live) {
+          hostFailed = true;
+          report(reason);
+        }
+        return undefined;
+      }),
+    ]).then(([entities, voice]) => {
       if (!live) return;
-      const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
-      setLinkedTracks(map.mappings.map((mapping) => mapping.trackGuid.toLowerCase()));
-      // A chapter with no one link has no folder to read: the DAW is not asked (a project with no REAPER file has nothing to list).
-      if (mine.length !== 1) {
-        setLink('');
-        setTracks([]);
-        setHostVoice({ chapterId, guid: '', added: [] });
-        failing.current = false;
-        return;
-      }
-      let hostFailed = false;
-      const [project, entities, voice] = await Promise.all([
-        // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
-        tracksPort.tracksLive().then((answer) => answer.project),
-        storyBible.guideEntities(),
-        // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
-        voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-          if (live) {
-            hostFailed = true;
-            report(reason);
-          }
-          return undefined;
-        }),
-      ]);
-      if (!live) return;
-      // The run only clears the failure when none of its reads failed (the voice read is caught above and the rest throw).
       if (!hostFailed) failing.current = false;
-      setTracks(project.tracks);
-      setLink(mine[0].trackGuid);
       setCharacters(entities.filter((entity) => entity.category === 'Character'));
       setHostVoice({
         chapterId,
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
         added: voice?.added ?? [],
       });
-    })();
-    // A read that never answers must not hold every later read back (as useLiveTracks): after the limit the run fails, so the poll reads
-    // again and the narrator is told.
+    });
+    // A read that never answers must not hold the page: after the limit the run fails, and the next read of the shared tracks starts another.
     let timer = 0;
     const limit = new Promise<never>((_, reject) => {
       timer = window.setTimeout(() => reject(new Error('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
@@ -174,27 +166,11 @@ export function useBoothVoices({
       .catch((reason: unknown) => live && report(reason))
       .finally(() => {
         window.clearTimeout(timer);
-        if (run === runId.current) inFlight.current = false;
       });
     return () => {
       live = false;
     };
-  }, [chapterId, tracksPort, links, storyBible, voiceTracks, failed, revision]);
-
-  // The tracks change in the DAW while the Booth is open: read them again when the window gets focus and every few seconds while it is in
-  // front, as the Engine page does, so the voice keys and the voice shown never go stale (#3269).
-  useEffect(() => {
-    if (!chapterId) return;
-    const again = () => {
-      if (document.visibilityState === 'visible' && !inFlight.current) setRevision((n) => n + 1);
-    };
-    const timer = window.setInterval(again, LIVE_TRACKS_POLL_MS);
-    window.addEventListener('focus', again);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener('focus', again);
-    };
-  }, [chapterId]);
+  }, [chapterId, link, trackState.readAt, storyBible, voiceTracks, failed, revision]);
 
   // REAPER's arms, read on the voice the host records on (ReadAloudReaperState reads the chosen voice of a folder): again after a choice,
   // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
@@ -208,7 +184,7 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, teleprompter, hostVoice.guid, recording, revision]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, revision, trackState.readAt]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
@@ -234,10 +210,10 @@ export function useBoothVoices({
   );
   // What the chapter's link points at, for the sentence a voice key gets when no voice is listed.
   const linkKind: ChapterLinkKind = useMemo(() => {
-    if (!link) return 'none';
+    if (!link) return trackState.reading && !answered && chapterId ? 'unread' : 'none';
     const linked = tracks.find((track) => track.guid.toLowerCase() === link.toLowerCase());
     return !linked ? 'unknown' : linked.isFolder ? 'empty' : 'track';
-  }, [link, tracks]);
+  }, [link, tracks, trackState.reading, answered, chapterId]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];
@@ -257,7 +233,7 @@ export function useBoothVoices({
           if (answer.outcome === 'refused') {
             notify(answer.message ?? 'The voice was not changed.', 'error');
             // The voices this page lists are not the saved project's any more: read them again.
-            if (answer.reason === 'not_a_voice' || answer.reason === 'track_missing') setRevision((n) => n + 1);
+            if (answer.reason === 'not_a_voice' || answer.reason === 'track_missing') refreshAll();
           } else if (answer.trackGuid) {
             const guid = answer.trackGuid;
             setHostVoice((last) => ({ chapterId, guid, added: last.chapterId === chapterId ? last.added : [] }));
@@ -272,7 +248,7 @@ export function useBoothVoices({
           else setChoosing(false);
         });
     },
-    [voiceTracks, chapterId, notify],
+    [voiceTracks, chapterId, notify, refreshAll],
   );
 
   const choose = useCallback(
@@ -365,14 +341,14 @@ export function useBoothVoices({
               ),
             );
         await readBack();
-        setRevision((count) => count + 1);
+        refreshAll();
         return true;
       } catch (reason: unknown) {
         notify(describeApiError(reason), 'error');
         return false;
       }
     },
-    [voiceTracks, chapterId, notify, replace, setup.tracks, characters],
+    [voiceTracks, chapterId, notify, replace, setup.tracks, characters, refreshAll],
   );
 
   const use = useCallback(
@@ -428,7 +404,7 @@ export function useBoothVoices({
     [voices, current, choose, notify, linkKind, setup.layout],
   );
 
-  const reload = useCallback(() => setRevision((n) => n + 1), []);
+  const reload = refreshAll;
   const read = reaper?.chapterId === chapterId ? reaper : null;
   // During this app's take the voice it records on is armed: the start and every switch answer say so, and the state read then only says REAPER records.
   const arm: BoothVoices['arm'] = recording

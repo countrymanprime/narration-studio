@@ -25,6 +25,7 @@ import { StartupScreen, type StartupState } from './components/layout/StartupScr
 import type { ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
+import { ProjectTrackProviders } from './components/chapterTracks/ChapterTrackState';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
 import { useChapterSync } from './hooks/useChapterSync';
 import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
@@ -59,7 +60,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
-import { VoiceLayoutContext, VoiceSetupProvider } from './components/engine/voiceLayout';
+import { VoiceLayoutContext } from './components/engine/voiceLayout';
 import { DawFileLinkedContext } from './components/connection/dawFileLinked';
 import { LinkDawFileContext, linkOutcome, type LinkOutcome } from './components/connection/linkDawFile';
 import { useAudacityLink } from './components/engine/useAudacityLink';
@@ -83,6 +84,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
 import { apiErrorMessage, describeApiError } from './api/errorMessage';
 import { useCommand } from './input/useCommand';
+import { useSaveShortcut } from './components/editing/page/useSaveInDaw';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
 // The kept Settings categories another page can open Settings at, by URL anchor (`#cleanup` is Master's Silence cleanup link).
@@ -118,17 +120,24 @@ const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role
 const hashRouting = (): boolean => appExtension().hashRouting === true;
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
-// A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it: once
-// the route changed, Settings would unmount and its edits be gone before any prompt. History is put back where it was and the same
-// "Unsaved settings" prompt asks. The listener is added when this module loads, ahead of the router's own, which React Router adds
-// when it mounts: listeners of one event run in the order they were added.
+// A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
+// the router sees it: once the route changed, the page would unmount and its edits be gone (dirty Settings), or its take left recording with no Stop
+// (the Booth's leave guard, #3325), before any prompt. History is put back where it was and the same prompt the nav asks is shown. Two things hold a
+// page: dirty Settings ("Unsaved settings") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
+// router's own, which React Router adds when it mounts: listeners of one event run in the order they were added.
 const popGuard = {
   dirty: false,
   pathname: '',
+  /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
+  route: '',
   idx: 0,
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
+  /** True while a page's leave guard asks before leaving. */
+  leaveHeld: (): boolean => false,
+  /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
+  askLeave: null as ((direction: 1 | -1) => void) | null,
 };
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
@@ -139,7 +148,10 @@ if (typeof window !== 'undefined') {
       return;
     }
     const next = historyIdx();
-    if (!popGuard.ask || popGuard.isOwnPop() || !popGuard.dirty || popGuard.pathname !== '/settings' || routePath().endsWith('/settings')) {
+    const settingsHolds = popGuard.dirty && popGuard.pathname === '/settings' && !routePath().endsWith('/settings');
+    const leaveHolds = !settingsHolds && routePath() !== popGuard.route && popGuard.leaveHeld();
+    const ask = settingsHolds ? popGuard.ask : popGuard.askLeave;
+    if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
       popGuard.idx = next;
       return;
     }
@@ -147,7 +159,7 @@ if (typeof window !== 'undefined') {
     const delta = next - popGuard.idx;
     popGuard.swallow = true;
     window.history.go(-delta);
-    popGuard.ask(delta < 0 ? -1 : 1);
+    ask(delta < 0 ? -1 : 1);
   });
 }
 
@@ -202,6 +214,7 @@ function AppRoutes() {
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
+  const attemptDeltaRef = useRef<(direction: 1 | -1, fromPop?: boolean) => void>(() => {});
   const guardedForwardRef = useRef<() => void>(() => {});
   const prevPathnameRef = useRef(location.pathname);
   // The page the last move left. `unexpectedPop` is set one render after the location changes, by which time
@@ -567,6 +580,7 @@ function AppRoutes() {
   // The "?" shortcut sheet: a `global` command mounted here, alongside
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
+  const saveProject = useSaveShortcut();
 
   // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>". The chapters are the store's `chapters` slot:
   // loaded when a manuscript arrives or the project changes, stale on `job:ended`, and a failed read keeps the last list ("a failure never
@@ -579,6 +593,10 @@ function AppRoutes() {
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
+  // Opening the project picker draws it in place of the shell, which takes the page down: it is an exit like any other, so a page's leave guard asks
+  // first (the Booth while a take records or a start is out). Set below, where the guard's answer is read.
+  const guardedPickerRef = useRef<() => void>(() => {});
+  const openProjectPicker = () => guardedPickerRef.current();
   // A jump-menu move closes the project picker drawn over the project. When the address changes, the path effect below closes it once the move
   // has landed (closing first mounts the old page again, and the Booth rewrites its own address, undoing the move). When it stays the same (a
   // chapter is only a `#` change, and "Go to" the page under the picker changes nothing), nothing else would close it, so it closes here.
@@ -614,9 +632,9 @@ function AppRoutes() {
       registerCommandProvider(() =>
         noProject || projectPickerOpen
           ? []
-          : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) }],
+          : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => guardedPickerRef.current() }],
       ),
-    [setProjectPickerOpen, noProject, projectPickerOpen],
+    [noProject, projectPickerOpen],
   );
   // A move to another page (a "Go to" row, Ctrl+,) while the picker covers the project would land out of sight, so it closes the picker.
   useEffect(() => setProjectPickerOpen(false), [location.pathname, setProjectPickerOpen]);
@@ -637,6 +655,7 @@ function AppRoutes() {
     'zoom.out': () => void zoom.zoomOut(),
     'zoom.reset': () => void zoom.reset(),
     'help.shortcuts': () => setShortcutsOpen(true),
+    'project.save': saveProject,
     'history.open': openHistory,
     'undo.last': () => void undoLast(),
     'companion.open': () => jumpTo('/companion'),
@@ -759,14 +778,19 @@ function AppRoutes() {
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
+    popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
     return () => {
       popGuard.ask = null;
+      popGuard.askLeave = null;
+      popGuard.leaveHeld = () => false;
       popGuard.dirty = false;
     };
-  }, []);
+  }, [journal]);
   useEffect(() => {
     popGuard.idx = historyIdx();
+    popGuard.route = routePath();
   }, [location.key]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
@@ -834,6 +858,8 @@ function AppRoutes() {
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
+  // The page's own question when it has one (the Booth's stops the take and keeps the narrator in the Booth when the DAW refuses), else the plain confirm.
+  const answerLeave = (verdict: Exclude<ReturnType<typeof journal.checkLeave>, 'allow'>) => (verdict.decide ? verdict.decide() : overlay.confirm(verdict.ask));
   const guardedMove = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
@@ -841,7 +867,7 @@ function AppRoutes() {
       moveTo(next, state);
       return;
     }
-    void overlay.confirm(verdict.ask).then((confirmed) => {
+    void answerLeave(verdict).then((confirmed) => {
       if (confirmed) moveTo(next, state);
     });
   };
@@ -853,6 +879,16 @@ function AppRoutes() {
     guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
   };
   guardedNavigateRef.current = guardedMove;
+  guardedPickerRef.current = () => {
+    const verdict = journal.checkLeave('');
+    if (verdict === 'allow') {
+      setProjectPickerOpen(true);
+      return;
+    }
+    void answerLeave(verdict).then((confirmed) => {
+      if (confirmed) setProjectPickerOpen(true);
+    });
+  };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
   const moveTo = (next: string, state?: unknown) => {
@@ -869,11 +905,13 @@ function AppRoutes() {
   // a Proof chapter view with a run resets the run. Each moves exactly one page, and does nothing where `useAppHistory` already
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).
-  const attemptDelta = (direction: 1 | -1) => {
+  const attemptDelta = (direction: 1 | -1, fromPop = false) => {
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
     const verdict = journal.checkLeave('');
     if (verdict !== 'allow') {
-      void overlay.confirm(verdict.ask).then((confirmed) => {
+      // A browser Back pressed while a question or any dialog is open (the shortcut sheet, Record options) neither stacks another nor moves, as for Alt+Left.
+      if (fromPop && isModalOpen()) return;
+      void answerLeave(verdict).then((confirmed) => {
         if (confirmed) moveByDelta(direction);
       });
       return;
@@ -895,6 +933,7 @@ function AppRoutes() {
   const guardedForward = () => {
     if (history.canGoForward) attemptDelta(1);
   };
+  attemptDeltaRef.current = attemptDelta;
   guardedBackRef.current = guardedBack;
   guardedForwardRef.current = guardedForward;
 
@@ -989,7 +1028,7 @@ function AppRoutes() {
       <DawFileLinkedContext.Provider value={data.dawFileLinked}>
         <LinkDawFileContext.Provider value={linkDawFileOutcome}>
           <EnginePanelProvider value={openEnginePanel} openRecordingSettings={openRecordingSettings}>
-            <VoiceSetupProvider projectFolder={data.projectFolder}>
+            <ProjectTrackProviders projectFolder={data.projectFolder} enabled={dawKind !== 'Audacity' && data.dawFileLinked} notify={setNotice}>
               {/* Audacity has no folder tracks: a Voice folders project there is flat for every sentence and picker, as in the Engine panel (#3271). */}
               <VoiceLayoutContext.Provider value={dawKind === 'Audacity' ? 'flat' : null}>
                 <TooltipProvider>
@@ -1008,7 +1047,7 @@ function AppRoutes() {
                     navCounts={navCounts}
                     onOpenJump={() => openJump()}
                     onOpenZoomMenu={() => openJump(undefined, 'Zoom')}
-                    onSwitchProject={() => setProjectPickerOpen(true)}
+                    onSwitchProject={openProjectPicker}
                     theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
                     contextMenu={contextMenu}
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
@@ -1113,7 +1152,8 @@ function AppRoutes() {
                             'booth',
                             <BoothNextPage
                               hasManuscript={Boolean(data.manuscript)}
-                              navigate={guardedNavigate}
+                              // The Booth asks its own leave question (`useBoothLeaveGuard`) before it calls this, so it does not ask again after "Leave anyway".
+                              navigate={(next) => moveTo(next)}
                               onImport={() => guardedNavigate('/')}
                               projectFolder={data.projectFolder}
                             />,
@@ -1234,7 +1274,7 @@ function AppRoutes() {
                   </AppShell>
                 </TooltipProvider>
               </VoiceLayoutContext.Provider>
-            </VoiceSetupProvider>
+            </ProjectTrackProviders>
           </EnginePanelProvider>
         </LinkDawFileContext.Provider>
       </DawFileLinkedContext.Provider>

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,7 +17,9 @@ function renderButton(overrides: Partial<NarrationApi> = {}, initial: Parameters
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <DawToolsButton groups={['structure']} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <DawToolsButton groups={['structure']} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -62,14 +65,14 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
 
   it('says the project has no tracks when it has none', async () => {
     const user = userEvent.setup();
-    renderButton({ tracksList: async () => ({ tracks: [] }) as never });
+    renderButton({ tracksLive: async () => ({ source: 'saved', reason: '', message: '', readAt: '2026-11-10T00:00:00Z', project: { tracks: [] } }) as never });
     await open(user);
     await waitFor(() => expect(screen.getAllByText('This REAPER project has no tracks yet.')).toHaveLength(2));
   });
 
   it('says the project could not be read when the read fails, so the entries are never silently live', async () => {
     const user = userEvent.setup();
-    renderButton({ tracksList: async () => Promise.reject(new Error('disk gone')) });
+    renderButton({ tracksLive: async () => Promise.reject(new Error('disk gone')) });
     await open(user);
     await waitFor(() => expect(screen.getAllByText(/The REAPER project could not be read/)).toHaveLength(2));
   });
@@ -95,7 +98,7 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
   it('makes no host call for the menu until it is first opened, so a page that never opens it pays nothing', async () => {
     const user = userEvent.setup();
     const api = renderButton();
-    const tracksList = vi.spyOn(api, 'tracksList');
+    const tracksList = vi.spyOn(api, 'tracksLive');
     const chapterTrackMapList = vi.spyOn(api, 'chapterTrackMapList');
     const audacityLink = vi.spyOn(api, 'audacityLink');
     await screen.findByRole('button', { name: 'DAW tools' });
@@ -132,7 +135,7 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
   it('reads the project again each time the menu is opened, so a failed read is retried', async () => {
     const user = userEvent.setup();
     const api = renderButton();
-    const tracksList = vi.spyOn(api, 'tracksList');
+    const tracksList = vi.spyOn(api, 'tracksLive');
     await open(user);
     await waitFor(() => expect(tracksList).toHaveBeenCalledTimes(1));
     await user.keyboard('{Escape}');
@@ -177,7 +180,7 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
   // QA break B7 of #2821: the project read's failure went into the menu whole.
   it('caps a long failure of the project read, as the other reads do', async () => {
     const user = userEvent.setup();
-    renderButton({ tracksList: async () => Promise.reject(new Error('x'.repeat(20000))) });
+    renderButton({ tracksLive: async () => Promise.reject(new Error('x'.repeat(20000))) });
     await open(user);
     const found = await screen.findAllByText(/The REAPER project could not be read/);
     for (const node of found) expect((node.textContent ?? '').length).toBeLessThan(400);

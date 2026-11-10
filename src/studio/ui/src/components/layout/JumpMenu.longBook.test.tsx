@@ -49,7 +49,7 @@ describe('jump menu on a 5000-chapter book', () => {
         .getAllByRole('status')
         .map((el) => el.textContent)
         .join(' '),
-    ).toMatch(/5\d{3} results, showing the first 100/);
+    ).toMatch(/5,\d{3} results, showing the first 100/);
     type('go to chapter 4999');
     expect(screen.getAllByRole('option')[0]!.textContent).toContain('Chapter 4999');
     expect(screen.queryByText(/^Showing/)).toBeNull();
