@@ -170,13 +170,13 @@ export function TooltipTarget({
     call('onMouseMove', first.enter);
   };
 
-  // Replays the focus that mounted the library, if focus is still in the wrapper (the library then decides, as it would have
-  // from the start, whether the focus is keyboard focus that shows the hint).
+  // Replays the focus that mounted the library. The library decides, as it would have from the start, whether the target is
+  // still keyboard-focused (`:focus-visible`) and so shows the hint, so a focus that has moved on in the meantime shows nothing.
   useEffect(() => {
     const focus = pendingFocus.current;
     if (!armed || !focus || bridged.handlers.length === 0) return;
     pendingFocus.current = null;
-    if (host.current?.contains(document.activeElement)) call('onFocus', focus);
+    call('onFocus', focus);
   });
 
   const forwarded = useMemo(() => {
