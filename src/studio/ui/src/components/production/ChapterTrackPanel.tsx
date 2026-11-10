@@ -20,6 +20,7 @@ import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
 import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 const noop = () => {};
 
@@ -236,7 +237,7 @@ export function ChapterTrackPanel({
                   const summary = tracks?.find((track) => track.guid === mapping.trackGuid);
                   return (
                     <InsetCard as="li" key={mapping.trackGuid} className="flex items-center justify-between gap-2">
-                      <span>{summary?.name || 'Track'}</span>
+                      <span>{summary ? trackName(summary.name, summary.index) : 'Track'}</span>
                       <Button variant="secondary" disabled={busy} pending={busy} onClick={() => void link_(mapping.trackGuid)}>
                         Keep this one
                       </Button>

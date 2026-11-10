@@ -5,17 +5,18 @@ import { IconButton } from '../primitives/IconButton';
 import { StatusBadge } from '../primitives/StatusBadge';
 import type { ChapterFolders } from '../../api/contracts/chapterTrackMap';
 import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 // A name in the title and the summary is cut to this many characters: a REAPER track name can be any length (qa-breaker B4).
 const NAME_MAX = 60;
 const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1)}…` : name);
-const folderOf = (name: string) => (name ? `${short(name)}’s folder` : 'the top level');
+const folderOf = (name: string) => (name.trim() ? `${short(name.trim())}’s folder` : 'the top level');
 
 /** The sentence that says which chapters sit inside which folders. */
 function nestingSentence(check: ChapterFolders): string {
   const chapters = check.moves.filter((move) => move.chapterId);
   const folders = [...new Set(chapters.map((move) => move.fromName))];
-  const named = chapters.map((move) => short(move.trackName));
+  const named = chapters.map((move) => short(trackName(move.trackName)));
   const who = named.length <= 2 ? named.join(' and ') : `${named.slice(0, 2).join(', ')} and ${named.length - 2} more`;
   return `In REAPER, ${who} ${named.length === 1 ? 'sits' : 'sit'} inside ${folders.map(folderOf).join(' and ')}, so ${
     named.length === 1 ? 'it is' : 'they are'
@@ -85,7 +86,7 @@ export function NestedChaptersNotice({
             {shown.moves.map((move) => (
               <li key={move.trackGuid} className="line-clamp-3">
                 <strong>
-                  <bdi>{short(move.trackName) || 'Unnamed track'}</bdi>
+                  <bdi>{short(trackName(move.trackName))}</bdi>
                 </strong>
                 {': out of '}
                 <bdi>{folderOf(move.fromName)}</bdi>

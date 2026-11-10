@@ -23,7 +23,7 @@ The sidebar on the left is grouped by production stage: **Production** (Producti
 2. Type to find a page, a chapter or a command. Type `>` to list commands only.
 3. Choose the result. Escape closes the menu.
 
-The header has no other buttons, so Back and Forward (`Alt+Left`, `Alt+Right`), Undo (`Ctrl+Z`), the undo history (`Ctrl+Shift+H`) and zoom (`Ctrl+=`, `Ctrl+-`, `Ctrl+0`) are commands in the menu, with their keys beside them. A command that cannot run now stays listed, off, with the reason under it.
+The header has no other buttons, so Back and Forward (`Alt+Left`, `Alt+Right`), Undo (`Ctrl+Z`), Save the DAW project (`Ctrl+S`), the undo history (`Ctrl+Shift+H`) and zoom (`Ctrl+=`, `Ctrl+-`, `Ctrl+0`) are commands in the menu, with their keys beside them. A command that cannot run now stays listed, off, with the reason under it.
 
 ![The jump menu open over the page](../../../docs/images/ui/nav-jump-menu.webp "The jump menu")
 
