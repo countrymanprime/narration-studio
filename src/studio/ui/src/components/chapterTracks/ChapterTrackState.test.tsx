@@ -143,4 +143,140 @@ describe('the shared chapter-track state', () => {
     view.rerender(tree(true));
     await waitFor(() => expect(notify).toHaveBeenCalledTimes(2));
   });
+
+  it('reads while any screen wants it, and a screen that does not want it sees nothing', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const live = vi.spyOn(api, 'tracksLive');
+    const wanting: { current?: ChapterTrackState } = {};
+    const idle: { current?: ChapterTrackState } = {};
+    function Wanting() {
+      wanting.current = useChapterTrackState({ enabled: true });
+      return null;
+    }
+    function Idle() {
+      idle.current = useChapterTrackState({ enabled: false });
+      return null;
+    }
+    const tree = (wants: boolean) => (
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={vi.fn()}>
+          <Idle />
+          {wants && <Wanting />}
+        </ChapterTrackStateProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(false));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(live).not.toHaveBeenCalled();
+    view.rerender(tree(true));
+    await waitFor(() => expect(wanting.current?.readAt).not.toBeNull());
+    expect(live).toHaveBeenCalled();
+    // The whole live read is there for the Engine panel's status line and Refresh.
+    expect(wanting.current?.live.project?.tracks.length).toBeGreaterThan(0);
+    expect(idle.current?.project).toBeUndefined();
+    expect(idle.current?.readAt).toBeNull();
+  });
+
+  it('a links read that hangs while the tracks keep answering still fails after the limit', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = createMockApi({}, { voiceFolders: true });
+      api.chapterTrackMapList = () => new Promise(() => {});
+      const { notify } = mount(api);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LIVE_TRACKS_TIMEOUT_MS + 1500);
+      });
+      expect(notify).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('two screens that want it share one read of the tracks and one toast for a failure', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const live = vi.spyOn(api, 'tracksLive');
+    const notify = vi.fn();
+    function A() {
+      useChapterTrackState();
+      return null;
+    }
+    function B() {
+      useChapterTrackState({ enabled: true });
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+          <A />
+          <B />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(live).toHaveBeenCalledTimes(1);
+    cleanup();
+    const failing = createMockApi({}, { voiceFolders: true });
+    failing.tracksLive = async () => {
+      throw new Error('down');
+    };
+    const failNotify = vi.fn();
+    render(
+      <ApiProvider api={failing}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={failNotify}>
+          <A />
+          <B />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(failNotify).toHaveBeenCalled());
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(failNotify.mock.calls.filter((call) => call[1] === 'error').length).toBe(1);
+  });
+
+  it('a quiet re-read (a changed read key) does not spin or add a toast, and a press does', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('down');
+    };
+    const { notify, seen } = mount(api);
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+    await act(async () => seen.current?.reread());
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(seen.current?.live.refreshing).toBe(false);
+    await act(async () => seen.current?.refresh());
+    await waitFor(() => expect(notify.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("a toast's Retry still reads after the last screen left", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const live = vi.spyOn(api, 'tracksLive');
+    let failing = true;
+    const real = api.tracksLive.bind(api);
+    api.tracksLive = async () => {
+      live();
+      if (failing) throw new Error('down');
+      return real();
+    };
+    const notify = vi.fn();
+    const tree = (watch: boolean) => (
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+          {watch && <Probe />}
+        </ChapterTrackStateProvider>
+      </ApiProvider>
+    );
+    function Probe() {
+      useChapterTrackState();
+      return null;
+    }
+    const view = render(tree(true));
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+    view.rerender(tree(false));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    const before = live.mock.calls.length;
+    failing = false;
+    await act(async () => notify.mock.calls[0][2].onAction());
+    await waitFor(() => expect(live.mock.calls.length).toBeGreaterThan(before));
+  });
 });
