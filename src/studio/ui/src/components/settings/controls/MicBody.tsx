@@ -1,3 +1,4 @@
+import { CheckedStamp, useCheckedAt } from '../../primitives/CheckedStamp';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingEngine } from '../../../api/contracts/recording';
 import type { TeleprompterReaperInput } from '../../../api/contracts/teleprompter';
@@ -60,15 +61,20 @@ function DawMic() {
   const { global } = store.fieldsOf(row);
   const overridden = store.fieldsOf(source).global?.effectiveValue === 'chosen';
 
-  const ask = useCallback(() => {
+  const [checkedAt, markChecked] = useCheckedAt();
+  const read = useCallback(() => {
     setAnswer(null);
-    teleprompter.teleprompterReaperInput('').then(setAnswer, () => setAnswer('failed'));
-    teleprompter.teleprompterDevices().then(
+    const input = teleprompter.teleprompterReaperInput('').then(setAnswer, () => setAnswer('failed'));
+    const devicesRead = teleprompter.teleprompterDevices().then(
       (result) => setDevices(result.devices.map((device) => device.name)),
       () => setDevices([]),
     );
+    return Promise.all([input, devicesRead]);
   }, [teleprompter]);
-  useEffect(ask, [ask]);
+  // The narrator's own press stamps when both reads have answered, so the same answer as last time still shows that it was asked; the read
+  // the row makes when it opens does not, there is nothing yet to compare it with.
+  const ask = () => void read().then(markChecked);
+  useEffect(() => void read(), [read]);
 
   // Settings that cannot be read leave the row its picker, off like the rest of the page (alignment audit R3SE2-19).
   if (!global) return <ManualMic />;
@@ -98,10 +104,11 @@ function DawMic() {
     </span>
   );
   const checkAgain = (
-    <span>
+    <span className="inline-flex flex-wrap items-center gap-2">
       <Button variant="secondary" size="sm" onClick={ask}>
         {`Ask ${dawName} again`}
       </Button>
+      <CheckedStamp at={checkedAt} />
     </span>
   );
   const records = resolved.dawInput ? <span className={NOTE_CLASS}>{`${dawName} records from ${resolved.dawInput}.`}</span> : null;

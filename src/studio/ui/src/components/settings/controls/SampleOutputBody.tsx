@@ -96,11 +96,14 @@ export function SampleOutputBody() {
     setSampleOutput(next);
     void store.write(row, 'project', next === '' ? null : next);
   };
+  const [sounding, setSounding] = useState(false);
   const test = () => {
-    void playTestSound(engine === 'builtin' ? value : '').then((problem) => problem && overlay.toast(problem));
+    setSounding(true);
+    void playTestSound(engine === 'builtin' ? value : '', () => setSounding(false)).then((problem) => problem && overlay.toast(problem));
   };
+  // The tone is the result, and it is half a second of sound: the button shows it is sounding for as long as it lasts, so a press never looks dead.
   const testButton = (
-    <Button variant="secondary" onClick={test}>
+    <Button variant="secondary" pending={sounding} onClick={test}>
       Test sound
     </Button>
   );

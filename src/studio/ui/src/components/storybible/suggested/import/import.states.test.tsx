@@ -105,7 +105,7 @@ describe('nothing chosen, empty and blank files', () => {
     expect(alerts()).toEqual([]);
     expect(textbox().value).toBe('');
     expect(preview).not.toHaveBeenCalled();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
     expect(addButton().textContent).toBe('Add to the Story Bible');
   });
 
@@ -116,7 +116,7 @@ describe('nothing chosen, empty and blank files', () => {
     expect(alerts()).toEqual(['That file is empty.']);
     expect(screen.queryByText('empty.csv')).toBeNull();
     expect(preview).not.toHaveBeenCalled();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a whitespace-only file says so in its own sentence', async () => {
@@ -126,7 +126,7 @@ describe('nothing chosen, empty and blank files', () => {
     expect(alerts()).toEqual(['That file has only blank space in it.']);
     await settle(300);
     expect(preview).not.toHaveBeenCalled();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('whitespace pasted in the box is not sent to the host', async () => {
@@ -136,7 +136,7 @@ describe('nothing chosen, empty and blank files', () => {
     await settle(300);
     expect(preview).not.toHaveBeenCalled();
     expect(screen.queryByText(/Checking/)).toBeNull();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 });
 
@@ -147,7 +147,7 @@ describe('how many rows', () => {
     expect(await screen.findByText('There are no entries in this file to add.')).toBeTruthy();
     expect(screen.getByText('0 to add')).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('one row: singular wording, one table row, Add 1', async () => {
@@ -186,7 +186,7 @@ describe('how many rows', () => {
     paste('x');
     const table = await screen.findByRole('table', { name: 'Rows with errors' });
     expect(within(table).getByText(reason)).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 });
 
@@ -223,7 +223,7 @@ describe('a huge file', () => {
     expect(alerts()).toEqual([tooBigSentence(IMPORT_MAX_BYTES)]);
     await settle(300);
     expect(preview).not.toHaveBeenCalled();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 });
 
@@ -233,7 +233,7 @@ describe('files that are not what they say', () => {
     await choose(new File(['{"entries": [{"name": '], 'broken.json'));
     const table = await screen.findByRole('table', { name: 'Rows with errors' });
     expect(within(table).getByText('The file is not valid JSON.')).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('malformed CSV (an unterminated quote): whatever sentence the host gives is drawn, and Add stays off', async () => {
@@ -243,7 +243,7 @@ describe('files that are not what they say', () => {
     await choose(new File(['record,name\nentry,"The Hatter\n'], 'quote.csv'));
     expect(await screen.findByText(reason)).toBeTruthy();
     expect(preview).toHaveBeenCalledWith('record,name\nentry,"The Hatter\n', 'csv');
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a binary file renamed .csv is read as UTF-8 text (bad bytes become U+FFFD) and the host refuses it in words', async () => {
@@ -252,14 +252,14 @@ describe('files that are not what they say', () => {
     await choose(new File([bytes], 'photo.csv'));
     const table = await screen.findByRole('table', { name: 'Rows with errors' });
     expect(within(table).getByText(/not valid UTF-8|NUL byte/)).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a NUL byte in pasted text is refused by the host with a sentence', async () => {
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     paste('record,name\nentry,a\u0000b');
     expect(await screen.findByText('The file contains a NUL byte, so it is not a text file.')).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('an unknown extension sends no hint; the host works the format out', async () => {
@@ -277,7 +277,7 @@ describe('files that are not what they say', () => {
     const table = await screen.findByRole('table', { name: 'Rows with errors' });
     expect(preview).toHaveBeenCalledWith(PRETTY, 'csv');
     expect(within(table).getAllByRole('row').length).toBeGreaterThan(1);
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a missing required column shows the host sentence in the errors table', async () => {
@@ -288,7 +288,7 @@ describe('files that are not what they say', () => {
     const table = await screen.findByRole('table', { name: 'Rows with errors' });
     expect(within(table).getByText(reason)).toBeTruthy();
     expect(within(table).getByText('header')).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a file name with a right-to-left override is drawn without it, so it cannot read as another extension', async () => {
@@ -312,7 +312,7 @@ describe('cells that look like formulas, and odd text', () => {
       .map((r) => within(r).getAllByRole('cell')[1]!.textContent);
     expect(labels).toEqual(names.map((n) => `${n} · Item`));
     expect(table.querySelector('a, [href], form')).toBeNull();
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(addButton());
     await waitFor(() => expect(open).not.toHaveBeenCalled());
     const stored = (await api.extractionList()).filter((s) => s.source === 'imported').map((s) => (s.payload.kind === 'entry' ? s.payload.name : ''));
@@ -341,7 +341,7 @@ describe('the host is slow, silent or late', () => {
     render(wrap(<ImportDialog onClose={close} />));
     paste(VALID);
     expect(await screen.findByText('Checking the text with the host…')).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(close).toHaveBeenCalledTimes(1);
   });
@@ -408,10 +408,10 @@ describe('the host is slow, silent or late', () => {
     preview.mockReturnValueOnce(second.promise);
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     paste('one');
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     paste('two');
     await settle(300);
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
 });
 
@@ -426,7 +426,7 @@ describe('a preview that fails is a sentence, never silence or "Error: ..."', ()
 
   it('shows the host sentence', async () => {
     expect(await failWith(new Error('The host is busy.'))).toBe('The preview could not be made: The host is busy.');
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
   });
   it('strips a raw "Error: " prefix', async () => {
     expect(await failWith(new Error('Error: Error: socket closed'))).toBe('The preview could not be made: socket closed');
@@ -450,7 +450,7 @@ describe('Add', () => {
     render(wrap(<ImportDialog onClose={close} />));
     paste(VALID);
     await screen.findByRole('table', { name: 'What will be added' });
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
   };
   let close = vi.fn();
   beforeEach(() => {
@@ -465,7 +465,7 @@ describe('Add', () => {
     expect(await screen.findByText('Nothing was added: The store is full.')).toBeTruthy();
     expect(close).not.toHaveBeenCalled();
     expect(await journal.entries()).toHaveLength(0);
-    expect(addButton().disabled).toBe(false);
+    expect(addButton().getAttribute('aria-disabled')).toBeNull();
     await userEvent.click(addButton());
     await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
     expect(commit).toHaveBeenCalledTimes(2);
@@ -487,7 +487,7 @@ describe('Add', () => {
     await userEvent.click(addButton());
     const text = await screen.findByText(/The import may not have finished \(listener broke\)/);
     expect(text.textContent).toContain('Check the Story Bible before adding again.');
-    expect(addButton().disabled).toBe(false);
+    expect(addButton().getAttribute('aria-disabled')).toBeNull();
     expect(close).not.toHaveBeenCalled();
   });
 
@@ -525,7 +525,7 @@ describe('Add', () => {
     await u.click(screen.getByRole('button', { name: 'Open import' }));
     await screen.findByRole('dialog', { name: 'Import entries' });
     paste(VALID);
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await u.click(addButton());
     await u.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -544,7 +544,7 @@ describe('Add', () => {
     const view = render(wrap(<ImportDialog onClose={close} />));
     paste(VALID);
     await screen.findByRole('table', { name: 'What will be added' });
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(addButton());
     view.unmount();
     await act(async () => slow.reject(new Error('The entry is locked.')));
@@ -574,12 +574,12 @@ describe('Add', () => {
     const first = render(wrap(<ImportDialog onClose={close} />));
     paste(VALID);
     await screen.findByRole('table', { name: 'What will be added' });
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(addButton());
     first.unmount();
     render(wrap(<ImportDialog onClose={close} />));
     expect(textbox().value).toBe('');
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
     await act(async () => slow.resolve(MADE));
     expect(close).not.toHaveBeenCalled();
   });
@@ -592,7 +592,7 @@ describe('Undo', () => {
     render(wrap(<ImportDialog onClose={close} onChanged={changed} />));
     paste(VALID);
     await screen.findByRole('table', { name: 'What will be added' });
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(addButton());
     await waitFor(() => expect(close).toHaveBeenCalled());
     const [entry] = await journal.entries();

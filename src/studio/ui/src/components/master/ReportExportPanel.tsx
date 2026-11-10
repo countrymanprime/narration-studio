@@ -55,7 +55,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
       }
     >
       <div className="mt-3">
-        <Checkbox checked={includePaths} onChange={setIncludePaths} disabled={off}>
+        <Checkbox checked={includePaths} onChange={setIncludePaths} disabled={off} aria-describedby={reason ? reasonId : undefined}>
           Include each file’s full location
         </Checkbox>
       </div>

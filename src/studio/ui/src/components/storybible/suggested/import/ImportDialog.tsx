@@ -168,6 +168,16 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
   const { plan, waiting, problem } = useImportPreview(oversize ? '' : text, hint);
   const env = useMemo(() => ({ journal, port, changed: onChanged }), [journal, port, onChanged]);
   const offered = !oversize && text.trim() && plan ? plan.offered : 0;
+  // Why Add is off, as its tooltip: the button never sits dim with nothing to say (#3276).
+  const addWhy = waiting
+    ? 'Reading your text.'
+    : offered
+      ? ''
+      : oversize
+        ? 'This text is too long to import.'
+        : text.trim()
+          ? 'Nothing in this text can be added.'
+          : 'Paste or open the entries to import first.';
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -341,7 +351,7 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <Button variant="primary" onClick={() => void add()} pending={adding} disabled={!offered || waiting}>
+          <Button variant="primary" onClick={() => void add()} pending={adding} disabledReason={addWhy}>
             {addLabel(offered)}
           </Button>
         </div>

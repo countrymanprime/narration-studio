@@ -120,7 +120,7 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone**, the one the Booth listens to. With a DAW it shows the DAW's own input read-only (**Same as REAPER:**
 and the device, with what REAPER records from and plays on) and needs nothing set; **Choose a different one** keeps another
-microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each.
+microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each. **Ask REAPER again** asks once more and then shows when it last got an answer ("Checked 3:42:07 PM"), even when the answer is the same. **Test sound** is busy for the half second the tone plays.
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
 for Audacity or the built-in recorder); and, under Advanced for any recorder,
