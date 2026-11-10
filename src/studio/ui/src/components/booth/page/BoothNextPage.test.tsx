@@ -2352,7 +2352,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
-  it('pending Record is announced once: "Starting the take…" in the status line, and not again as a description', async () => {
+  it('pending Record is described and announced: "Starting the take…" in the status line, and as its description', async () => {
     const lookup = slowLookup();
     renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget: lookup.boothPunchTarget } });
     await ready();
@@ -2360,7 +2360,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(status().getAttribute('role')).toBe('status');
     expect(status().textContent).toBe('');
     await space();
-    expect(recordButton().getAttribute('aria-describedby')).toBeNull();
+    expect(recordButton().getAttribute('aria-describedby')).toBe('brec-pending');
     expect(status().textContent).toBe('Starting the take…');
     await space();
     expect(status().textContent).toBe('Starting the take…');
