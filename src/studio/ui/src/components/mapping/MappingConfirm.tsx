@@ -48,7 +48,9 @@ export function MappingConfirm({
   // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
   // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
   const initial = linkedTrackGuid ?? suggestedTrackGuid;
-  const [chosen, setChosen] = useState(initial && tracks.some((track) => track.guid === initial) ? initial : '');
+  const [picked, setChosen] = useState(initial && tracks.some((track) => track.guid === initial) ? initial : '');
+  // A pick whose track has left the list (deleted in the DAW) is no pick: the select shows its placeholder, so Confirm must wait too.
+  const chosen = tracks.some((track) => track.guid === picked) ? picked : '';
 
   // A confirm or clear call comes back through the caller's own state, as a new `linkedTrackGuid` prop, not through
   // this component's local `picking` intent: once the caller reports a link (a fresh confirm, or a Change followed

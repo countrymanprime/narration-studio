@@ -16,7 +16,7 @@ const DIRECT_READERS = new Set([
   // The state's own reader of the live track list (the Engine panel no longer has a second instance).
   'components/engine/useLiveTracks.ts',
   'components/engine/EnginePanel.tsx',
-  // The Production board's per-chapter link read (status, suggestions, warnings): not the mapping list the state holds, so it stays until the state carries those.
+  // The Production board's per-chapter link read (status, suggestions, warnings): not the mapping list the state holds, so it stays until the state carries those (tracked in #3355).
   'components/production/useChapterTools.tsx',
   'components/proof/useChapterTimeline.ts',
   'components/pickups/list/usePlayOriginal.ts',
