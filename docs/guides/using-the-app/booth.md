@@ -362,7 +362,7 @@ and one undo point, and about a twentieth of a second at the switch is recorded 
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
 control shows the voice the app will record on, also after you leave the Booth and come back. In a
-chapter that records on one track, or that is not linked to a folder of voices yet in a Voice folders project, the voice keys say which it is and why they do nothing, and **=** and **-** still change the text size.
+chapter that records on one track, or that is not linked to a folder of voices yet in a Voice folders project, the voice keys say which it is and why they do nothing, and **=** and **-** still change the text size. If the chapter is linked to a track REAPER no longer has (deleted there), the keys say so in either layout, and the Engine panel shows it as **Track missing**. The Booth reads the tracks from REAPER as they are now, as the Engine panel does, not from the last save, so a voice you rename, add or delete in REAPER shows within a few seconds.
 
 ![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
 

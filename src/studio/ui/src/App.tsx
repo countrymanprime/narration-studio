@@ -25,6 +25,7 @@ import { StartupScreen, type StartupState } from './components/layout/StartupScr
 import type { ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
+import { ProjectTrackProviders } from './components/chapterTracks/ChapterTrackState';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
 import { useChapterSync } from './hooks/useChapterSync';
 import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
@@ -59,7 +60,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
-import { VoiceLayoutContext, VoiceSetupProvider } from './components/engine/voiceLayout';
+import { VoiceLayoutContext } from './components/engine/voiceLayout';
 import { DawFileLinkedContext } from './components/connection/dawFileLinked';
 import { LinkDawFileContext, linkOutcome, type LinkOutcome } from './components/connection/linkDawFile';
 import { useAudacityLink } from './components/engine/useAudacityLink';
@@ -1010,7 +1011,7 @@ function AppRoutes() {
       <DawFileLinkedContext.Provider value={data.dawFileLinked}>
         <LinkDawFileContext.Provider value={linkDawFileOutcome}>
           <EnginePanelProvider value={openEnginePanel} openRecordingSettings={openRecordingSettings}>
-            <VoiceSetupProvider projectFolder={data.projectFolder}>
+            <ProjectTrackProviders projectFolder={data.projectFolder} enabled={dawKind !== 'Audacity' && data.dawFileLinked} notify={setNotice}>
               {/* Audacity has no folder tracks: a Voice folders project there is flat for every sentence and picker, as in the Engine panel (#3271). */}
               <VoiceLayoutContext.Provider value={dawKind === 'Audacity' ? 'flat' : null}>
                 <TooltipProvider>
@@ -1256,7 +1257,7 @@ function AppRoutes() {
                   </AppShell>
                 </TooltipProvider>
               </VoiceLayoutContext.Provider>
-            </VoiceSetupProvider>
+            </ProjectTrackProviders>
           </EnginePanelProvider>
         </LinkDawFileContext.Provider>
       </DawFileLinkedContext.Provider>
