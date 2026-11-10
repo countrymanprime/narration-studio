@@ -11,6 +11,7 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { Notify } from '../primitives/Toast';
 import { GuideDetail } from './GuideDetail';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 afterEach(() => {
   cleanup();
@@ -184,8 +185,10 @@ describe('Story Bible local TTS preview', () => {
     expect(await screen.findByText(/of 109 MB/)).toBeTruthy();
     await waitFor(() => expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('39'));
     expect(screen.getByText(/44 of 109 MB/)).toBeTruthy();
+    await outwaitEcho();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect((await screen.findAllByText('Voice download cancelled.')).length).toBeGreaterThan(0);
+    await outwaitEcho();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

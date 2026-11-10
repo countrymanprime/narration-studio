@@ -3,6 +3,7 @@ import type { ComponentPropsWithRef } from 'react';
 import { nameFor, tooltipFor, CATALOG, type CatalogRow, type IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
+import { useEchoGuard } from './echoGuard';
 
 // `ghost` has no border or fill until hovered: a quiet control inside another control's box (the clear button inside a SearchField).
 type IconButtonVariant = 'default' | 'primary' | 'danger' | 'ghost';
@@ -33,6 +34,8 @@ type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   // The action this button started is running: the icon becomes a spinner, the button is marked busy and ignores a press, and it
   // stays focusable so a keyboard user keeps their place.
   pending?: boolean;
+  // This button takes the place of the one just pressed: it ignores a press that comes right after a click on another element (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`, so the old button is gone.
+  replacesPressed?: boolean;
   // Disables the button while keeping it focusable and hoverable, unlike the native `disabled` attribute (D6, WCAG 1.4.13): a native
   // `disabled` button takes no focus, so its explanation needs a wrapper workaround (see `TooltipTarget`'s `disabledChild` case). Pass
   // the reason here instead and pair it with a plain `<TooltipTarget text={disabledReason}>`; the tooltip is reachable because the
@@ -65,11 +68,13 @@ export function IconButton({
   className = '',
   type = 'button',
   pending = false,
+  replacesPressed,
   disabledReason,
   onClick,
   children,
   ...rest
 }: Props) {
+  const echo = useEchoGuard(replacesPressed);
   const gated = pending || Boolean(disabledReason);
   const name = label ?? (action === undefined ? undefined : nameFor(action));
   const button = (
@@ -80,7 +85,7 @@ export function IconButton({
       aria-busy={pending || undefined}
       aria-disabled={gated || undefined}
       // A press does nothing while pending or gated, and it does not submit a form either (`preventDefault` stops the native submit).
-      onClick={gated ? (event) => event.preventDefault() : onClick}
+      onClick={gated ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
       // `display` has no specificity here, so a caller can hide it (`hidden max-md:inline-flex`) without a class fight.
       className={`${SIZE_CLASSES[size]} items-center justify-center rounded-[var(--radius-button)] border disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55 [:where(&)]:inline-flex [:where(&)]:flex-none ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}

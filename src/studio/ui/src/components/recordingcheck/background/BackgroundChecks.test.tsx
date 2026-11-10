@@ -9,6 +9,7 @@ import { overlay } from '../../../overlay/overlayService';
 import type { CoverageState } from '../../../api/contracts/coverage';
 import type { NarrationApi } from '../../../types';
 import { BackgroundChecks } from './BackgroundChecks';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 afterEach(() => {
   cleanup();
@@ -101,6 +102,7 @@ describe('BackgroundChecks', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('paused'), expect.objectContaining({ action: expect.anything() })));
     const status = await screen.findByRole('region', { name: 'Background recording check' });
     await waitFor(() => expect(status.textContent).toContain('Background checks paused'));
+    await outwaitEcho();
     fireEvent.click(within(status).getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: null }));
     // Resumed, the chapter still waiting shows again, with why it has not started.
@@ -117,6 +119,7 @@ describe('BackgroundChecks', () => {
     expect(await overrideSet()).toBe(false);
     await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(false));
     await waitFor(async () => expect((await region()).textContent).toContain('Background checks paused'));
+    await outwaitEcho();
     fireEvent.click(within(await region()).getByRole('button', { name: 'Resume' }));
     await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(true));
   });
@@ -143,8 +146,35 @@ describe('BackgroundChecks', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
     const chip = await screen.findByRole('button', { name: /Checking in the background · 42%/ });
     expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    await outwaitEcho();
     fireEvent.click(chip);
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
+  });
+
+  it('a double click on Pause does not resume, and a double click on Hide does not reopen the card (class of #3034)', async () => {
+    const { saveSettings } = mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: 'false' }));
+    expect(saveSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('a double click on Hide does not open the chip it folds to (class of #3034)', async () => {
+    mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Checking in the background · 42%/ }));
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();
+  });
+
+  it('a double click on the chip does not cancel the check, and a double click on Resume does not pause again (class of #3034)', async () => {
+    const { coverageCancel } = mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
+    await outwaitEcho();
+    fireEvent.click(await screen.findByRole('button', { name: /Checking in the background · 42%/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(coverageCancel).not.toHaveBeenCalled();
   });
 
   it('starts folded in the Booth, so it never covers the text being read', async () => {

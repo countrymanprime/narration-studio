@@ -428,7 +428,7 @@ export function EditingCheckPanel({
                   <p role="status" className="min-w-0 flex-1">
                     {job.message}
                   </p>
-                  <Button variant="secondary" size="sm" onClick={cancel} pending={action.isPending('cancel')}>
+                  <Button variant="secondary" size="sm" replacesPressed onClick={cancel} pending={action.isPending('cancel')}>
                     Cancel
                   </Button>
                 </div>
