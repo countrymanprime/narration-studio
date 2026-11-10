@@ -52,7 +52,7 @@ describe('previews-a-valid-blob-and-adds-it-in-one-go', () => {
     expect(preview).toHaveBeenCalledTimes(1);
     expect(screen.getByText('2 to add')).toBeTruthy();
     expect(within(screen.getByRole('table', { name: 'What will be added' })).getAllByRole('row')).toHaveLength(3);
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     expect(addButton().textContent).toBe('Add 2 to the Story Bible');
     await userEvent.click(addButton());
     await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
@@ -116,7 +116,7 @@ describe('shows-each-bad-row-and-keeps-add-off', () => {
     expect(rows.map((r) => within(r).getAllByRole('cell')[0]!.textContent)).toEqual(['1', '2']);
     expect(rows.map((r) => within(r).getAllByRole('cell')[1]!.textContent)).toEqual(['row 2', 'row 3']);
     expect(screen.getByText('2 errors')).toBeTruthy();
-    expect(addButton().disabled).toBe(true);
+    expect(addButton().getAttribute('aria-disabled')).toBe('true');
     expect(addButton().textContent).toBe('Add to the Story Bible');
   });
 });
@@ -183,7 +183,7 @@ describe('no-path-ever-leaves-the-page', () => {
       await new Promise((r) => setTimeout(r, 30));
     });
     await screen.findByRole('table', { name: 'What will be added' });
-    await waitFor(() => expect(addButton().disabled).toBe(false));
+    await waitFor(() => expect(addButton().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(addButton());
     await waitFor(() => expect(calls.some((c) => c.length === 2 && c[0] === VALID && c[1] === 'json')).toBe(true));
     expect(JSON.stringify(calls)).not.toMatch(/secret|hatter\.json/);

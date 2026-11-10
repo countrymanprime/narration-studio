@@ -2,11 +2,14 @@
 
 Storybook title: `Primitives/SplitButton`. Source: `src/components/primitives/SplitButton.tsx`.
 
+![SplitButton, Default, light theme](../images/splitbutton.webp)
+
 ## Stories
 
 - Default
 - Cold Read
 - Stopping
+- Pending
 
 ## Used by
 

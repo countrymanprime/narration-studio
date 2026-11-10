@@ -6507,7 +6507,7 @@ describe('the voice tracks bindings', () => {
     expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [] });
   });
 
-  it("the Booth's voice choice: a flat project refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {
+  it("the Booth's voice choice: an unlinked chapter refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {
     const chapterId = WIRE_CHAPTERS[0].id;
     const unlinked = await createMockApi().boothVoiceSet(chapterId, '{V01CE-RABB1T}');
     expectMatches(boothVoiceSchema, unlinked, 'mock booth voice (unlinked)');
@@ -6515,9 +6515,10 @@ describe('the voice tracks bindings', () => {
 
     const api = createMockApi({}, { voiceFolders: true });
     await api.voiceTracksSetLayout('flat');
+    // The linked folder's own children decide, not the layout toggle (#3269): a folder with voices chooses a child under Flat too.
     const flat = await api.boothVoiceSet(chapterId, '{V01CE-RABB1T}');
-    expectMatches(boothVoiceSchema, flat, 'mock booth voice (flat)');
-    expect(flat.reason).toBe('flat');
+    expectMatches(boothVoiceSchema, flat, 'mock booth voice (flat toggle, folder with voices)');
+    expect(flat.outcome).toBe('selected');
     await api.voiceTracksSetLayout('folders');
     expect((await api.boothVoiceSet(chapterId, '{F0LD-V01CE}')).reason).toBe('not_a_voice');
     const selected = await api.boothVoiceSet(chapterId, '{v01ce-rabb1t}');

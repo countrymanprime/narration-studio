@@ -346,7 +346,7 @@ read.
 ### Voice folders
 
 Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. While Chapter sync shows nothing (before you have answered
-whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
+whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter; a chapter linked to a REAPER folder that holds only tracks of its own, none another chapter is linked to, still records on one of them. **Voice folders** makes
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 

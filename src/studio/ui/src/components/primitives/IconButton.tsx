@@ -1,5 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
+import { PendingSpinner } from './PendingSpinner';
 import type { ComponentPropsWithRef } from 'react';
 import { nameFor, tooltipFor, CATALOG, type CatalogRow, type IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
@@ -92,7 +91,7 @@ export function IconButton({
       {...rest}
     >
       {pending ? (
-        <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />
+        <PendingSpinner />
       ) : (
         (children ??
         (action === undefined ? null : (

@@ -161,6 +161,7 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
                   checked={selected.has(profile.id)}
                   onChange={(checked) => toggle(profile.id, checked)}
                   disabled={multiPackageRunning || multi.encoded === 0}
+                  aria-describedby={why && !canBuild ? WHY_ID : undefined}
                 >
                   <span dir="auto" className="[overflow-wrap:anywhere]">
                     {platformNameFor(profile)}

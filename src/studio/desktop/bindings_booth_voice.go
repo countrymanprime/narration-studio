@@ -13,11 +13,11 @@ import (
 	"desktop/internal/voicetracks"
 )
 
-// The Booth's voices (docs/prds/booth-voice-tracks.prd.md, phase 4): in a Voice folders project a chapter is linked to a REAPER
-// folder whose direct children are its voices. Record arms the voice the Booth chose (the Narrator child until one is chosen), never
+// The Booth's voices (docs/prds/booth-voice-tracks.prd.md, phase 4): a chapter linked to a REAPER folder whose direct children are
+// its voices (whatever the layout toggle says, #3269). Record arms the voice the Booth chose (the Narrator child until one is chosen), never
 // the folder, and BoothVoiceSet chooses another, switching a take this app started live (switch_voice). The page names a voice by
-// its track GUID, which the host accepts only when it is a direct child of the chapter's one linked folder in the saved project
-// (threat-model row 5k).
+// its track GUID, which the host accepts only when it is a direct child of the chapter's one linked folder in the project as REAPER has it
+// now, or the saved one when REAPER is not answering (threat-model row 5k).
 
 const (
 	boothVoiceFlat      = "flat"        // the project is flat, or the chapter is linked to a plain track
@@ -46,18 +46,24 @@ func boothVoiceRefused(reason, message string) BoothVoice {
 }
 
 // chapterVoices is the voices of the chapter linked to link: the direct children of the folder link names, in REAPER's order, when
-// the project's layout is Voice folders and link is a folder in the saved project; nil (record on link itself) otherwise.
+// link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise.
 func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) {
+	return chapterVoicesIn(svc, link, nil)
+}
+
+// chapterVoicesIn is chapterVoices over project, one read of the live list a caller shares between its steps so they see one snapshot;
+// nil reads it (liveSelectedProject).
+func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]tracks.Track, bool, error) {
 	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if err != nil {
 		return nil, false, err
 	}
-	if setup.Layout != voicetracks.LayoutFolders {
-		return nil, false, nil
-	}
-	project, err := selectedProject(svc)
-	if err != nil {
-		return nil, false, err
+	if project == nil {
+		read, err := liveSelectedProject(svc)
+		if err != nil {
+			return nil, false, err
+		}
+		project = &read
 	}
 	members, ok := project.WithDescendants(link)
 	if !ok {
@@ -78,10 +84,41 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 			voices = append(voices, member)
 		}
 	}
-	for _, added := range unsavedVoices(svc, project, link) {
+	for _, added := range unsavedVoices(svc, *project, link) {
 		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
 	}
+	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
+	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
+	// voice folder only when the narrator switched Voice folders on, so a flat project's empty folder still records on itself.
+	if len(voices) == 0 && setup.Layout != voicetracks.LayoutFolders {
+		return nil, false, nil
+	}
+	// A folder whose children are other chapters' tracks (nested chapters) is not a folder of voices, unless the narrator switched Voice
+	// folders on: under the toggle's Flat the structure alone must not turn a chapter's folder into its voices.
+	if setup.Layout != voicetracks.LayoutFolders && childIsLinkedElsewhere(svc, voices) {
+		return nil, false, nil
+	}
 	return voices, true, nil
+}
+
+// childIsLinkedElsewhere is whether any of voices is a track some chapter is linked to.
+func childIsLinkedElsewhere(svc hostServices, voices []tracks.Track) bool {
+	documentID, store, err := mappingContext(svc)
+	if err != nil {
+		return false
+	}
+	mappings, err := store.List(documentID)
+	if err != nil {
+		return false
+	}
+	for _, mapping := range mappings {
+		for _, voice := range voices {
+			if strings.EqualFold(mapping.TrackGUID, voice.GUID) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // unsavedVoices is the voices the Booth added to the folder link this session (BoothVoiceAdd) that project, as saved, does not hold:
@@ -115,7 +152,12 @@ func voiceFor(voices []tracks.Track, chosen string) string {
 // recordTarget is the track a record start for chapterID arms: its one linked track, or in a Voice folders chapter the Booth's voice
 // (svc.boothVoices) among the folder's children. A folder with no children is refused before anything is armed.
 func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudRecording, error) {
-	voices, folder, err := chapterVoices(svc, link)
+	return recordTargetIn(svc, chapterID, link, nil)
+}
+
+// recordTargetIn is recordTarget over project (see chapterVoicesIn).
+func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Project) (string, *ReadAloudRecording, error) {
+	voices, folder, err := chapterVoicesIn(svc, link, project)
 	if err != nil {
 		return "", nil, err
 	}
@@ -230,7 +272,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	}
 	if !folder {
 		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc,
-			"This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel).",
+			"This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).",
 			noFolderForVoiceKeys)), nil
 	}
 	target := ""
@@ -240,7 +282,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		}
 	}
 	if target == "" {
-		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project."), nil
+		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW."), nil
 	}
 	if !h.readAloudRecordingFor(chapterID) {
 		svc.boothVoices.choose(chapterID, target)
@@ -276,7 +318,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 // the Booth's voice list.
 func (h *Host) BoothVoiceSet(chapterID, trackGUID string) (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceSetIn(ctx, svc, recorderFrom(svc), chapterID, trackGUID))
 }
@@ -292,19 +334,20 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 	if refused != nil {
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
-	_, folder, err := chapterVoices(svc, link)
+	// One read of REAPER's list serves all three steps, so they see one snapshot and one wait.
+	project, err := liveSelectedProject(svc)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	_, folder, err := chapterVoicesIn(svc, link, &project)
 	if err != nil {
 		return BoothVoice{}, err
 	}
 	if !folder {
 		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc, "This chapter records on one track.", noFolderForVoiceKeys)), nil
 	}
-	project, err := selectedProject(svc)
-	if err != nil {
-		return BoothVoice{}, err
-	}
 	added := unsavedVoices(svc, project, link)
-	guid, refusedStart, err := recordTarget(svc, chapterID, link)
+	guid, refusedStart, err := recordTargetIn(svc, chapterID, link, &project)
 	if err != nil {
 		return BoothVoice{}, err
 	}

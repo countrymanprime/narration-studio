@@ -120,7 +120,7 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone**, the one the Booth listens to. With a DAW it shows the DAW's own input read-only (**Same as REAPER:**
 and the device, with what REAPER records from and plays on) and needs nothing set; **Choose a different one** keeps another
-microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each.
+microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each. **Ask REAPER again** asks once more and then shows when it last got an answer ("Checked 3:42:07 PM"), even when the answer is the same. **Test sound** is busy for the half second the tone plays.
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
 for Audacity or the built-in recorder); and, under Advanced for any recorder,
@@ -128,7 +128,7 @@ for Audacity or the built-in recorder); and, under Advanced for any recorder,
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
-track; Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
+track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them); Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
 [audio engine panel](navigation.md#the-audio-engine-panel): change it in either place and the other shows it at once. The **?** beside it says what each means.
 
 ![Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders](../../images/ui/settings-chapter-layout.webp)

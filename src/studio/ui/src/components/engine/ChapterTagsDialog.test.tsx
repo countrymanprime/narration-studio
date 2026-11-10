@@ -25,7 +25,7 @@ describe('ChapterTagsDialog', () => {
   it('says to prepare a chapter render first when none is configured', async () => {
     renderDialog();
     expect(await screen.findByText(/No chapter render is configured yet/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Embed chapter tags' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Embed chapter tags' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('lists the known chapters and requires a destination and the confirm checkbox before embedding', async () => {
@@ -35,13 +35,13 @@ describe('ChapterTagsDialog', () => {
     expect(await screen.findByText('Chapter 1')).toBeTruthy();
     expect(screen.getByText('Chapter 2')).toBeTruthy();
     const embedButton = screen.getByRole('button', { name: 'Embed chapter tags' }) as HTMLButtonElement;
-    expect(embedButton.disabled).toBe(true);
+    expect(embedButton.getAttribute('aria-disabled')).toBe('true');
 
     await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice\\Alice.mp3');
-    expect(embedButton.disabled).toBe(true); // still unconfirmed
+    expect(embedButton.getAttribute('aria-disabled')).toBe('true'); // still unconfirmed
 
     await user.click(screen.getByText(/I understand this writes a new file/));
-    expect(embedButton.disabled).toBe(false);
+    expect(embedButton.getAttribute('aria-disabled')).toBeNull();
   });
 
   it('embeds and reports the new file path', async () => {
@@ -62,7 +62,7 @@ describe('ChapterTagsDialog', () => {
     renderDialog({}, { chapterTags: 'not-rendered' });
     expect(await screen.findByText('Not rendered yet')).toBeTruthy();
     expect(screen.getByText(/Press Render in REAPER first/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Embed chapter tags' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Embed chapter tags' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('shows an error from a failed embed', async () => {
