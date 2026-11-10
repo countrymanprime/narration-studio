@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Button } from './Button';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from './outwaitEcho';
 import { Dialog } from './Dialog';
 import { Field } from './Field';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';

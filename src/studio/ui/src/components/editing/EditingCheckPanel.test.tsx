@@ -7,7 +7,7 @@ import { EditingCheckPanel } from './EditingCheckPanel';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 afterEach(cleanup);
 

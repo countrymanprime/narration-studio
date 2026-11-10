@@ -9,7 +9,7 @@ import { overlay } from '../../../../../overlay/overlayService';
 import type { NarrationApi } from '../../../../../types';
 import { Host } from './harness';
 import { KEEP_ONE, MarksDialog } from './MarksDialog';
-import { outwaitEcho } from '../../../../../outwaitEcho';
+import { outwaitEcho } from '../../../../primitives/outwaitEcho';
 
 let api: NarrationApi;
 let toast: MockInstance<typeof overlay.toast>;

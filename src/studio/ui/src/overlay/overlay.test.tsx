@@ -8,7 +8,7 @@ import { TOAST_INFO_MS } from '../components/primitives/Toast';
 import { OverlayHost } from './OverlayHost';
 import { OverlayProvider, useOverlay } from './OverlayProvider';
 import { createOverlayService, type OverlayService } from './overlayService';
-import { outwaitEcho } from '../outwaitEcho';
+import { outwaitEcho } from '../components/primitives/outwaitEcho';
 
 let service: OverlayService;
 beforeEach(() => {

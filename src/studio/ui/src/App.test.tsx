@@ -23,7 +23,7 @@ import { passing, profile as acxProfile } from './components/masterqc/files/test
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
 import { claimAttachRefusal } from './components/connection/attachRefusal';
-import { outwaitEcho } from './outwaitEcho';
+import { outwaitEcho } from './components/primitives/outwaitEcho';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test

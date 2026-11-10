@@ -10,7 +10,7 @@ import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { openReportDialog } from './openReportDialog';
 import { ReportDialog } from './ReportDialog';
 import { brand } from '../../../brand.gen';
-import { outwaitEcho } from '../../../outwaitEcho';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 afterEach(cleanup);
 

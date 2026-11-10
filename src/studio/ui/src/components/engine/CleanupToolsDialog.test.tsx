@@ -6,7 +6,7 @@ import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 afterEach(cleanup);
 

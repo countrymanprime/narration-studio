@@ -8,7 +8,7 @@ import { Dialog, DIALOG_WIDTHS } from './Dialog';
 import { Popover } from './Popover';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from './outwaitEcho';
 
 afterEach(cleanup);
 

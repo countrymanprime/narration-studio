@@ -11,7 +11,7 @@ import { commandsFor } from '../../input/surfaces';
 import type { NarrationApi, ScopedSettingField } from '../../types';
 import { CommandRouter } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 afterEach(cleanup);
 

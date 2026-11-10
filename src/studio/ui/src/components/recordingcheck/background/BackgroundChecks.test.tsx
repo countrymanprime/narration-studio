@@ -9,7 +9,7 @@ import { overlay } from '../../../overlay/overlayService';
 import type { CoverageState } from '../../../api/contracts/coverage';
 import type { NarrationApi } from '../../../types';
 import { BackgroundChecks } from './BackgroundChecks';
-import { outwaitEcho } from '../../../outwaitEcho';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 afterEach(() => {
   cleanup();

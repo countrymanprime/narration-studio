@@ -10,7 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { SettingsPage } from '../page/SettingsPage';
 import { AnalysisToolsSection } from './AnalysisToolsSection';
 import { ANALYSIS_TOOLS, createFakeTools, type FakeInstall } from './fixtures';
-import { outwaitEcho } from '../../../outwaitEcho';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 let toast: MockInstance<typeof overlay.toast>;
 beforeEach(() => {

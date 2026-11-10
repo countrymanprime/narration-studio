@@ -9,7 +9,7 @@ import type { MockApiSeed } from '../../../api/mockHost/state';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
-import { outwaitEcho } from '../../../outwaitEcho';
+import { outwaitEcho } from '../../primitives/outwaitEcho';
 
 afterEach(() => {
   cleanup();

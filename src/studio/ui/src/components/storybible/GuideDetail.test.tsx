@@ -11,7 +11,7 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { Notify } from '../primitives/Toast';
 import { GuideDetail } from './GuideDetail';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 afterEach(() => {
   cleanup();

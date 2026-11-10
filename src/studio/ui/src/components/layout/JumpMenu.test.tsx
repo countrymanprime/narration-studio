@@ -10,7 +10,7 @@ import { defaultKeymap } from '../../input/keymap';
 import { registerSearchSource } from '../../registries/search';
 import { openJumpMenu } from './JumpMenu';
 import { useGoToCommands } from './useGoToCommands';
-import { outwaitEcho } from '../../outwaitEcho';
+import { outwaitEcho } from '../primitives/outwaitEcho';
 
 let service: OverlayService;
 let cleanups: Array<() => void> = [];
