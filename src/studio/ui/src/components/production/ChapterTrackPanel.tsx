@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { ShowInDawButton } from '../engine/ShowInDaw';
+import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBackward, faForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { chapterName, context } from '../../chapterName';
@@ -266,7 +267,15 @@ export function ChapterTrackPanel({
               {tracksError ? (
                 <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
               ) : !tracks ? (
-                <p role="status">{trackState.reading ? 'Reading the REAPER tracks…' : 'No REAPER project is linked, so there are no tracks to choose from.'}</p>
+                <p role="status">
+                  {trackState.reading ? (
+                    'Reading the REAPER tracks…'
+                  ) : (
+                    <>
+                      No REAPER project is linked, so there are no tracks to choose from. <EnginePanelLink onOpen={onClose} />
+                    </>
+                  )}
+                </p>
               ) : (
                 <MappingConfirm
                   chapterTitle={shortName}
