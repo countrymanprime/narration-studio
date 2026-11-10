@@ -6,9 +6,9 @@ import { sampleSpeakers } from './speakers';
 // words an hour; a chapter is about 3,500 words and a paragraph about 90, which is what the imports of real novels produce. Pure and
 // deterministic: no clock, no random value.
 
-export const WORDS_PER_HOUR = 9000;
-export const WORDS_PER_CHAPTER = 3500;
-export const WORDS_PER_PARAGRAPH = 90;
+const WORDS_PER_HOUR = 9000;
+const WORDS_PER_CHAPTER = 3500;
+const WORDS_PER_PARAGRAPH = 90;
 
 export function bookOfHours(hours: number): { chapters: ManuscriptChapter[]; paragraphs: ManuscriptParagraph[] } {
   const chapterCount = Math.max(1, Math.round((hours * WORDS_PER_HOUR) / WORDS_PER_CHAPTER));

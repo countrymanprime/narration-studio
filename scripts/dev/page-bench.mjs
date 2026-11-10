@@ -11,10 +11,10 @@
 // Each cell is the median of --runs runs (default 5). Usage:
 //   node scripts/dev/page-bench.mjs [--hours 1,5,17,40] [--runs 5] [--pages Production,Script] [--out table.md] [--json out.json]
 // Build first: `pnpm --dir src/studio/ui run build:mock`. Serves node_modules/.cache/mock-build on UI_APP_PORT (default 4391).
-import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 
 const ui = join(import.meta.dirname, '../../src/studio/ui');
 const { chromium } = createRequire(join(ui, 'package.json'))('@playwright/test');
@@ -95,7 +95,15 @@ async function measureWarm(browser, hours, name) {
   return result;
 }
 
-const server = spawn('pnpm', ['exec', 'vite', 'preview', '--outDir', 'node_modules/.cache/mock-build', '--port', String(PORT), '--strictPort'], { cwd: ui, stdio: 'ignore' });
+// The mock build is static files: serve them here (an unknown path gets index.html, as `vite preview` does) rather than start another tool.
+const root = join(ui, 'node_modules/.cache/mock-build');
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.wav': 'audio/wav', '.png': 'image/png' };
+const server = createServer((request, response) => {
+  const path = join(root, decodeURIComponent(new URL(request.url, ORIGIN).pathname));
+  const file = path.startsWith(root) && existsSync(path) && statSync(path).isFile() ? path : join(root, 'index.html');
+  response.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' });
+  response.end(readFileSync(file));
+}).listen(PORT);
 try {
   for (let i = 0; i < 100; i++) {
     if (await fetch(ORIGIN).then((r) => r.ok, () => false)) break;
@@ -131,5 +139,5 @@ try {
   if (args.json) writeFileSync(args.json, JSON.stringify(rows, null, 1));
   console.log('\n' + lines.join('\n'));
 } finally {
-  server.kill();
+  server.close();
 }
