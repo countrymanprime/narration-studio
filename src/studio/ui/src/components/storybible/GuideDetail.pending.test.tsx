@@ -89,9 +89,14 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     edit();
     const add = screen.getByRole('button', { name: 'Add name' });
     expect(add.getAttribute('aria-disabled')).toBe('true');
-    act(() => add.focus());
     fireEvent.click(add);
     expect(guideEdit).not.toHaveBeenCalled();
+    // The tooltip opens on focus once the page is in keyboard modality.
+    fireEvent.keyDown(document.body, { key: 'Shift' });
+    act(() => add.blur());
+    act(() => add.focus());
+    act(() => void vi.advanceTimersByTime(1500));
+    expect(screen.getByRole('tooltip').textContent).toBe('Type a name to add first.');
   });
 
   it('keeps an alias the narrator typed while another action was running, instead of clearing it and adding nothing', () => {

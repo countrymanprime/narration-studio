@@ -107,7 +107,7 @@ anything is measured, it says "Nothing is measured yet. Use Check files… above
 beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
-its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
+its description. Hover or focus it to see the same reason as a tooltip. Pressing it builds nothing.
 
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 
