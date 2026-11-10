@@ -2603,6 +2603,55 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     }
   });
 
+  it('a cancelled press ending after a newer take began stops no listening', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const teleprompterStop = vi.fn(async () => {});
+    const savedDevice = async () => ({
+      Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+    });
+    const api = { teleprompterStart, teleprompterStop, settingsForScope: savedDevice } as never;
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const first = renderPage({ api });
+    const begin = first.daw.recordStart.getMockImplementation()!;
+    first.daw.recordStart.mockImplementationOnce(async (...args) => (await gate, begin(...args)));
+    await ready();
+    await space();
+    await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+    first.view.unmount();
+    cleanup();
+    // The narrator is back (the same host, the same listening) and starts a take of their own while the old press's record is still out.
+    const second = renderPage({ api });
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    teleprompterStop.mockClear();
+    release();
+    await settle();
+    await settle();
+    expect(teleprompterStop).not.toHaveBeenCalled();
+    expect(second.daw.recordStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('a voice refusal that lands after the Booth was left says nothing', async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const boothPunchTarget = vi.fn(async () => ({ outcome: 'found' as const, trackGuid: 'T', start: 12, end: 20 }));
+    const boothVoiceSet = vi.fn(async () => {
+      await gate;
+      return { outcome: 'refused', reason: 'stale', message: 'That voice is not on this chapter any more.' };
+    });
+    const page = renderPage({ search: START, api: { boothPunchTarget, boothVoiceSet } as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(boothVoiceSet).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    release();
+    await settle();
+    await settle();
+    expect(page.overlay.getSnapshot().toasts).toHaveLength(0);
+  });
+
   it('a take the DAW refuses spends nothing: the next Record uses the start again (as before)', async () => {
     const boothPunchTarget = vi.fn(async () => FOUND);
     const page = renderPage({ search: START, api: { boothPunchTarget } });

@@ -103,6 +103,12 @@ export type BoothPageOptions = {
  * (the Record control starts and stops it; the listening session, the timer and the passage map's run follow it), the roll, the resume
  * line, the keys (`useCommand`, none listened for here), the right-click menu, and every way out through `useBoothLeaveGuard`.
  */
+/**
+ * Who last claimed the listening session. The session belongs to the host and outlives a Booth, so the claim is shared across mounts: every press
+ * that starts or joins listening takes the next number, and a cancelled press stops the listening only while its number is still the latest.
+ */
+let listeningClaim = 0;
+
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
   const extras = useRef({
@@ -366,6 +372,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!(await latest.current.session.ensureModel())) return false;
     // Each wait can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
+    const claim = ++listeningClaim;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
     // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
     const micProblem = options.micProblem?.();
@@ -397,8 +404,8 @@ export function useBoothPage(options: BoothPageOptions) {
     ).finally(() => (listenStarting.current = false));
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
     if (!current()) {
-      // The listening this press started (it answered ok) is let go: no press can be under way beside it (`starting`), so it is this press's own.
-      if (listen && heard.ok) latest.current.session.stop();
+      // The listening this press started (it answered ok) is let go, but only while no newer press, here or in a later Booth, has claimed it since.
+      if (listen && heard.ok && claim === listeningClaim) latest.current.session.stop();
       return started;
     }
     if (!heard.ok) {
@@ -461,7 +468,10 @@ export function useBoothPage(options: BoothPageOptions) {
         }
       },
       chooseVoice: async (trackGuid) => {
+        const token = pressToken.current;
         const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
+        // The narrator has left (or changed chapter) since: the press is over, and a refusal is not said on whatever page they are on now.
+        if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
           notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
