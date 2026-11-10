@@ -91,6 +91,10 @@ export function useBoothVoices({
   // toast's Retry always answers: it toasts again when the read fails again, or it clears the failure.
   const failing = useRef(false);
   const retryPressed = useRef(false);
+  // The newest read's number and whether it is still running: the poll and the window's focus never start a read over one in flight (as
+  // useLiveTracks does), so a press of Retry that started a read is not overtaken and forgotten.
+  const runId = useRef(0);
+  const inFlight = useRef(false);
   const failed = useCallback(
     (reason: unknown, pressed: boolean) => {
       if (pressed || !failing.current)
@@ -112,6 +116,15 @@ export function useBoothVoices({
     let live = true;
     const pressed = retryPressed.current;
     retryPressed.current = false;
+    const run = ++runId.current;
+    inFlight.current = true;
+    // One failure is reported for a run, whichever of its reads failed first.
+    let reported = false;
+    const report = (reason: unknown) => {
+      if (reported) return;
+      reported = true;
+      failed(reason, pressed);
+    };
     void (async () => {
       const map = await links.chapterTrackMapList();
       if (!live) return;
@@ -134,7 +147,7 @@ export function useBoothVoices({
         voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
           if (live) {
             hostFailed = true;
-            failed(reason, pressed);
+            report(reason);
           }
           return undefined;
         }),
@@ -150,7 +163,11 @@ export function useBoothVoices({
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
         added: voice?.added ?? [],
       });
-    })().catch((reason: unknown) => live && failed(reason, pressed));
+    })()
+      .catch((reason: unknown) => live && report(reason))
+      .finally(() => {
+        if (run === runId.current) inFlight.current = false;
+      });
     return () => {
       live = false;
     };
@@ -161,7 +178,7 @@ export function useBoothVoices({
   useEffect(() => {
     if (!chapterId) return;
     const again = () => {
-      if (document.visibilityState === 'visible') setRevision((n) => n + 1);
+      if (document.visibilityState === 'visible' && !inFlight.current) setRevision((n) => n + 1);
     };
     const timer = window.setInterval(again, LIVE_TRACKS_POLL_MS);
     window.addEventListener('focus', again);

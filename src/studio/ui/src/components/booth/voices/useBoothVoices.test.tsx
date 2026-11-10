@@ -326,6 +326,39 @@ describe("the Booth's voices", () => {
     expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
   });
 
+  // The poll and the window's focus never start a read over one in flight: a Retry press that started a read is not overtaken and forgotten.
+  it('answers a Retry press that a focus event arrives during', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      await new Promise((r) => setTimeout(r, 60));
+      throw new Error('The tracks are locked.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 120)));
+    const first = notify.mock.calls.find((call) => call[1] === 'error')!;
+    await act(async () => first[2].onAction());
+    // A focus event while the retried read is still running.
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 200)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
+  });
+
+  // A run where both reads fail reports one failure, not two toasts.
+  it('reports one failure for a run where both reads fail', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    api.boothVoiceGet = async () => {
+      throw new Error('The host did not answer.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
   // #3269: a voice renamed or deleted in the DAW while the Booth stays open is read again on window focus, so its keys never go stale.
   it('reads the voices again when the window gets focus', async () => {
     const api = createMockApi({}, { voiceFolders: true });
