@@ -2,6 +2,8 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/manuscript"
+	"desktop/internal/recordedthrough"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -227,5 +229,38 @@ func TestChapterTrackLinksRefusesWithoutAManuscript(t *testing.T) {
 	host.config.projectFolder = t.TempDir()
 	if _, err := host.ChapterTrackLinks(); err == nil {
 		t.Fatal("ChapterTrackLinks without a manuscript succeeded")
+	}
+}
+
+// #3272: linking, unlinking and matching a chapter need its title, never its recorded length. The measured chapter list tokenizes the whole
+// book and reads the project and the coverage results, so none of these may take it. Work done, not time: the providers it calls are counted.
+func TestLinkingAndUnlinkingAChapterNeverTakesAMeasuredRead(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	var fractions, lengths, throughs int
+	host.manuscript.SetRecordedFractions(func() map[string]float64 { fractions++; return nil })
+	host.manuscript.SetRecordedLengths(func() map[string]manuscript.RecordedLength { lengths++; return nil })
+	host.manuscript.SetRecordedThrough(func([]string, map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
+		throughs++
+		return nil
+	})
+	measured := func() int { return fractions + lengths + throughs }
+
+	if _, err := host.manuscript.Chapters(); err != nil || measured() == 0 {
+		t.Fatalf("the measured list did not call its providers (%d): the counters cannot see a measured read", measured())
+	}
+	before := measured()
+	steps := map[string]func() error{
+		"ChapterTrackMapConfirm": func() error { _, err := host.ChapterTrackMapConfirm(chapterLinksTrackII, ids[1]); return err },
+		"ChapterTrackSet":        func() error { _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackIJ); return err },
+		"ChapterTrackUnlink":     func() error { _, err := host.ChapterTrackUnlink(ids[1]); return err },
+		"ChapterTrackMatch":      func() error { _, err := host.ChapterTrackMatch(ids[0]); return err },
+	}
+	for _, name := range []string{"ChapterTrackMapConfirm", "ChapterTrackSet", "ChapterTrackUnlink", "ChapterTrackMatch"} {
+		if err := steps[name](); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if measured() != before {
+			t.Fatalf("%s took a measured read of the chapter list (providers called %d times, want %d)", name, measured(), before)
+		}
 	}
 }
