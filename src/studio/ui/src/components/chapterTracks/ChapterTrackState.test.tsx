@@ -330,4 +330,40 @@ describe('the shared chapter-track state', () => {
     await expect(seen.current!.refreshLinks()).rejects.toThrow('locked');
     expect(notify).not.toHaveBeenCalled();
   });
+
+  it('a read a newer one superseded never rejects its caller, even when it hangs', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = createMockApi({}, { voiceFolders: true });
+      const real = api.chapterTrackMapList.bind(api);
+      let calls = 0;
+      api.chapterTrackMapList = () => (++calls === 1 ? new Promise(() => {}) : real());
+      const seen: { current?: ChapterTrackState } = {};
+      function LinksOnly() {
+        seen.current = useChapterTrackState({ enabled: true, tracks: false });
+        return null;
+      }
+      render(
+        <ApiProvider api={api}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled={false} notify={vi.fn()}>
+            <LinksOnly />
+          </ChapterTrackStateProvider>
+        </ApiProvider>,
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      const first = seen.current!.refreshLinks();
+      const second = seen.current!.refreshLinks();
+      const settled = vi.fn();
+      void first.then(settled, settled);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LIVE_TRACKS_TIMEOUT_MS + 100);
+      });
+      await expect(second).resolves.toBeDefined();
+      expect(settled).toHaveBeenCalledWith(expect.any(Array));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

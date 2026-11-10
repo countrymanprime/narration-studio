@@ -107,22 +107,25 @@ export function ChapterTrackStateProvider({
   // its limit is its own and a hung read fails after LIVE_TRACKS_TIMEOUT_MS however often the tracks answer.
   const linksRun = useRef(0);
   const mappingsRef = useRef<TrackMapping[]>([]);
+  // The newest links read's promise: a read it superseded settles with it, so a caller that waited on the older one (a change's re-read) is
+  // answered with the links as of the newest read, never with the old ones, and a hung older read never fails its caller after the fact.
+  const newestLinks = useRef<Promise<TrackMapping[]>>(Promise.resolve([]));
   const linksBusy = useRef(false);
 
   const readLinks = useCallback(
     (force: boolean, mode: 'toast' | 'throw' = 'toast') => {
-      if (linksBusy.current && !force) return Promise.resolve(mappingsRef.current);
+      if (linksBusy.current && !force) return newestLinks.current;
       const run = ++linksRun.current;
       linksBusy.current = true;
       const pressed = retryPressed.current;
       retryPressed.current = false;
       let timer = 0;
       const limit = new Promise<never>((_, reject) => {
-        timer = window.setTimeout(() => reject(new Error('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
+        timer = window.setTimeout(() => reject(new Error('The chapter links were not read in time.')), LIVE_TRACKS_TIMEOUT_MS);
       });
-      return Promise.race([trackMap.chapterTrackMapList(), limit])
+      const read = Promise.race([trackMap.chapterTrackMapList(), limit])
         .then((answer) => {
-          if (run !== linksRun.current) return mappingsRef.current;
+          if (run !== linksRun.current) return newestLinks.current;
           linksFailing.current = false;
           setLinksStale(false);
           mappingsRef.current = answer.mappings;
@@ -131,12 +134,13 @@ export function ChapterTrackStateProvider({
           return answer.mappings;
         })
         .catch((reason: unknown) => {
-          if (run === linksRun.current) {
-            setLinksStale(true);
-            // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
-            if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
-            linksFailing.current = true;
-          }
+          // A read a newer one superseded is silent whatever its caller asked: its answer is not the current one, so a failure of it is no
+          // news (a hung read's limit firing after the change that replaced it worked).
+          if (run !== linksRun.current) return newestLinks.current;
+          setLinksStale(true);
+          // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
+          if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
+          linksFailing.current = true;
           // The state's own reads end here (the toast said it); a caller that asked to show the failure gets it.
           if (mode === 'throw') throw reason;
           return mappingsRef.current;
@@ -145,6 +149,8 @@ export function ChapterTrackStateProvider({
           window.clearTimeout(timer);
           if (run === linksRun.current) linksBusy.current = false;
         });
+      newestLinks.current = read;
+      return read;
     },
     [trackMap, notify],
   );

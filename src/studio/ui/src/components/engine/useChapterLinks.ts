@@ -96,9 +96,15 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    reload().catch((reason) => {
-      if (active) setError(apiErrorMessage(reason));
-    });
+    reload().then(
+      () => {
+        // A later read that answers takes the failure of an earlier one away (a host that recovered).
+        if (active) setError('');
+      },
+      (reason) => {
+        if (active) setError(apiErrorMessage(reason));
+      },
+    );
     return () => {
       active = false;
     };
