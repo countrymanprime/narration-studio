@@ -67,6 +67,9 @@ function shownHint(entry: Entry): string | undefined {
   return entry.title.toLowerCase().includes(hint) || entry.groupName.toLowerCase() === hint ? undefined : entry.hint;
 }
 
+/** The most rows the menu draws; the rest are reached by typing. */
+export const JUMP_MENU_MAX_ROWS = 100;
+
 const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
 
 /** What a screen reader hears as the list changes: the result count, and that more may come while a source is still searching. */
@@ -161,7 +164,7 @@ function JumpMenu({
   );
   const slots = useJumpSearch(term, !commandsOnly, sayFailure);
 
-  const entries = useMemo<Entry[]>(() => {
+  const allEntries = useMemo<Entry[]>(() => {
     if (!term && !commandsOnly) {
       if (group) {
         const inGroup = (group.source === 'page' ? pageRows : commands).filter((entry) => entry.groupName === group.name);
@@ -195,6 +198,9 @@ function JumpMenu({
     return rankEntries({ page: pageRows, hits: hitEntries(slots), commands, term, pageOnly, commandsOnly });
   }, [commands, commandsOnly, group, pageOnly, pageRows, slots, term]);
 
+  // A long book lists thousands of chapters; drawing them all took seconds (#2961). Only the first rows are drawn and reachable by arrow;
+  // typing narrows the list, and the footer says how many are left out.
+  const entries = allEntries.slice(0, JUMP_MENU_MAX_ROWS);
   const found = active.id === null ? 0 : entries.findIndex((entry) => entry.id === active.id);
   const activeIndex = Math.min(found >= 0 ? found : active.index, Math.max(0, entries.length - 1));
   const setActive = (index: number) => setActiveRow({ id: index === 0 ? null : (entries[index]?.id ?? null), index });
@@ -291,7 +297,7 @@ function JumpMenu({
           </span>
         ) : null}
         <span role="status" className="sr-only">
-          {searching ? searchStatus(entries) : ''}
+          {searching ? searchStatus(allEntries) : ''}
         </span>
       </div>
       <Listbox
@@ -301,6 +307,11 @@ function JumpMenu({
         activeIndex={activeIndex}
         onPick={(id) => choose(entries.find((entry) => entry.id === id))}
         empty="Nothing matches"
+        footer={
+          allEntries.length > entries.length ? (
+            <p className="px-3 py-2 text-xs text-[var(--text-muted)]">{`Showing ${entries.length} of ${allEntries.length}`}</p>
+          ) : undefined
+        }
         flush
       />
       {/* The last row keeps an inset above the dialog's edge when the list scrolls (alignment audit XSL-16, R3SL-7). */}

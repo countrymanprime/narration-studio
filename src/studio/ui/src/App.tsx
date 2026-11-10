@@ -588,18 +588,23 @@ function AppRoutes() {
   });
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({
-    pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }),
+    // With no project only Settings works: every other page, and "Switch project…", would lead nowhere the picker is not already.
+    pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).filter((page) => !noProject || page.id === '/settings'),
     chapters,
     go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
   });
   // "Switch project…" has no key, so it is a provided command, not a catalogue row: it opens the same picker as the header's project name.
   useEffect(
     () =>
-      registerCommandProvider(() => [
-        { id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) },
-      ]),
-    [setProjectPickerOpen],
+      registerCommandProvider(() =>
+        noProject
+          ? []
+          : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) }],
+      ),
+    [setProjectPickerOpen, noProject],
   );
+  // A move to another page (a "Go to" row, Ctrl+,) while the picker covers the project would land out of sight, so it closes the picker.
+  useEffect(() => setProjectPickerOpen(false), [location.pathname, setProjectPickerOpen]);
   const dawName = () => (dawKind ? dawShortName(dawKind) : 'the DAW');
   const openHistory = () => void openHistoryPanel(overlay, journal, dawName);
   const undoLast = async () => {
