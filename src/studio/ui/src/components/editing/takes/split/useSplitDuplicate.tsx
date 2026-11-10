@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { overlay } from '../../../../overlay/overlayService';
 import type { Journal } from '../../../../studio/journal/createJournal';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { registerFlagAction } from '../../flags/flagActions';
 import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { registerTakeControl } from '../takeControls';

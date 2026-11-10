@@ -6,9 +6,9 @@ import { HIT_AREA } from '../primitives/hitArea';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
-import { formatLength } from './productionFormat';
 import type { CreditsRow } from '../credits/useCreditsRows';
 import { addressPath } from '../../navigation/address';
+import { clock } from '../../clock';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -75,9 +75,7 @@ export function CreditsRowPanel({
             onChange={(value) => onStatus(value as ChapterStatus)}
           />
         </div>
-        <p style={MUTED}>
-          Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : formatLength(row.recordedSeconds)}
-        </p>
+        <p style={MUTED}>Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : clock(row.recordedSeconds)}</p>
         {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

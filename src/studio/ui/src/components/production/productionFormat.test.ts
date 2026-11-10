@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatLength, formatPfh, formatRate, stageHoursHint } from './productionFormat';
+import { formatClock, formatPfh, formatRate, stageHoursHint } from './productionFormat';
+import { clock } from '../../clock';
 
 describe('production figures', () => {
   it('writes hours and seconds as h:mm, rounding to the minute', () => {
@@ -7,7 +8,7 @@ describe('production figures', () => {
     expect(formatClock(0.999, 'hours')).toBe('1:00');
     expect(formatClock(6720, 'seconds')).toBe('1:52');
     expect(formatClock(0, 'seconds')).toBe('0:00');
-    expect(formatLength(708.4)).toBe('11:48');
+    expect(clock(708.4)).toBe('11:48');
   });
 
   it('shows an undefined PFH or rate as a dash, never 0', () => {

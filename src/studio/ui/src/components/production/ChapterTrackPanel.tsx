@@ -7,7 +7,7 @@ import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
-import { formatAudioTime, formatWhen } from './recordingCheckText';
+import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -17,6 +17,7 @@ import type { Notify } from '../primitives/Toast';
 import { chapterTrackButtonState } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
+import { clock } from '../../clock';
 
 const noop = () => {};
 
@@ -164,7 +165,7 @@ export function ChapterTrackPanel({
               </SectionLabel>
               <Fact label="Items" value={`${trackSummary.playableCount} playable of ${trackSummary.itemCount}`} />
               {trackSummary.missingSourceCount > 0 && <Fact label="Missing sources" value={String(trackSummary.missingSourceCount)} />}
-              {trackSummary.span && <Fact label="Span" value={`${formatAudioTime(trackSummary.span.start)} to ${formatAudioTime(trackSummary.span.end)}`} />}
+              {trackSummary.span && <Fact label="Span" value={`${clock(trackSummary.span.start)} to ${clock(trackSummary.span.end)}`} />}
               {link.track && (
                 <Fact
                   label="Found through"
@@ -205,7 +206,7 @@ export function ChapterTrackPanel({
                 </Button>
                 {canPlay && (
                   <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {formatAudioTime(player.currentTime)} / {formatAudioTime(player.duration)}
+                    {clock(player.currentTime)} / {clock(player.duration)}
                   </span>
                 )}
               </div>

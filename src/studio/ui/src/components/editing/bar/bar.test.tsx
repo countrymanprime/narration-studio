@@ -12,7 +12,7 @@ import { EditingPageProvider, useEditingPage } from '../script/EditingPageState'
 import { marksDoc } from '../script/scriptFixtures';
 import { MIN_TAIL_SECONDS } from '../model';
 import { HEADING_PARAGRAPH } from '../../../ports/alignment';
-import { clock } from './clock';
+import { clock } from '../../../clock';
 import { SelectionActionButton } from './SelectionActionButton';
 import { SelectionBar } from './SelectionBar';
 import { SelToolbar, toolbarPlace } from './SelToolbar';

@@ -2,7 +2,7 @@
 // evidence (internal/measure/diagnosticfindings.go), including the threshold that raised it, so what is shown is what the
 // host measured against; a kind or key this page does not know is said to be undescribed rather than guessed at.
 import type { DiagnosticsCleanupThresholds, DiagnosticsSourceKind, DiagnosticsThresholds, Finding } from '../../types';
-import { formatTime } from '../proof/findingFormat';
+import { clockTenths } from '../../clock';
 import { formatLevel } from './deliveryFormat';
 
 const UNDESCRIBED = 'Not described here';
@@ -102,7 +102,7 @@ export function thresholdText(finding: Finding): string {
 export function timeRangeText(finding: Finding): string {
   const range = finding.time_range;
   if (!range) return 'No time';
-  const [start, end] = [formatTime(range.start), formatTime(range.end)];
+  const [start, end] = [clockTenths(range.start), clockTenths(range.end)];
   if (start !== end) return `${start} – ${end}`;
   return `${start} (${Math.round((range.end - range.start) * 1000)} ms)`;
 }

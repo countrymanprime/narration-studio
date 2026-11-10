@@ -16,6 +16,7 @@ import { useRibbonView } from './useRibbonView';
 import { useScrollGestures } from './useScrollGestures';
 import { useWaveSwell } from './useWaveSwell';
 import { placeholderColumns } from './waveSwell';
+import { clockTenths } from '../../../clock';
 
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
@@ -30,8 +31,6 @@ const FALLBACK_WIDTH = 640;
 
 /** The waveform's gestures, behind the "?" in the row above it: never a line on the page, which would take the waveform's room (#2251). */
 const GESTURES = 'Drag: select. Right-drag, wheel or two fingers: scroll. Right-click: menu.';
-
-const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 
 /** What makes the waveform a place to choose a range: the words, the range now, and what to do when it changes or is tapped. Without it the waveform only shows. */
 interface RibbonRange {
@@ -317,7 +316,7 @@ export function RibbonView({
           <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
             <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
             <span>
-              {head.take ? 'active take' : 'recording'} · {clock(layout.t0)} to {clock(layout.t1)}
+              {head.take ? 'active take' : 'recording'} · {clockTenths(layout.t0)} to {clockTenths(layout.t1)}
             </span>
           </div>
         ) : null}

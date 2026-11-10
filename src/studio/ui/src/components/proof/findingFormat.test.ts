@@ -2,17 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WIRE_FINDINGS, WIRE_TAKE_REVIEW_FINDINGS } from '../../api/mockFixtures';
 import { FINDING_CATEGORIES, shownFindingNoteType } from '../../api/contracts/findings';
 import type { Finding } from '../../types';
-import {
-  analyzerLabel,
-  categoryLabel,
-  chapterLabel,
-  confidenceLabel,
-  evidenceRows,
-  findingSummary,
-  formatDecidedAt,
-  formatTime,
-  repeatOf,
-} from './findingFormat';
+import { analyzerLabel, categoryLabel, chapterLabel, confidenceLabel, evidenceRows, findingSummary, formatDecidedAt, repeatOf } from './findingFormat';
 
 /** A delivery finding as the host saves it for the Review page (tests/fixtures/contracts/findings-list-delivery-qc.json). */
 const deliveryFinding = (evidence: Record<string, unknown>): Finding => ({
@@ -42,13 +32,6 @@ describe('findingFormat', () => {
     expect(confidenceLabel(0.9)).toBe('90%');
     expect(confidenceLabel(0)).toBe('0%');
     expect(confidenceLabel(null)).toBe('No score');
-  });
-
-  it('formats project time as minutes and tenths of a second', () => {
-    expect(formatTime(0)).toBe('0:00.0');
-    expect(formatTime(12.44)).toBe('0:12.4');
-    expect(formatTime(59.96)).toBe('1:00.0');
-    expect(formatTime(754.25)).toBe('12:34.3');
   });
 
   it('sums up a finding by what was expected and what was heard', () => {

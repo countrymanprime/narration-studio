@@ -4,9 +4,10 @@
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, ManuscriptChapter, MeasureFileResult, MeasureReport } from '../../../types';
 import { chapterForFile, fileOf } from '../../master/chapterFile';
-import { formatLength, formatLevel } from '../../master/deliveryFormat';
+import { formatLevel } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
+import { clock } from '../../../clock';
 
 /** One value in a cell: its text (a dash when it could not be measured) and whether the profile's rule on it was not met. */
 export type Cell = { text: string; missed: boolean; unchecked?: true };
@@ -131,7 +132,7 @@ function measuredRow(
     id: file.path,
     name: file.name,
     verdict: fileVerdict(file),
-    length: formatLength(report.duration_seconds),
+    length: clock(report.duration_seconds),
     rms: cell(report.rms_dbfs, resultFor(file, profile, ['rms_dbfs']), formatLevel),
     peak: peakCell(report, file, profile),
     noiseFloor: cell(report.noise_floor_dbfs, resultFor(file, profile, ['noise_floor_dbfs']), formatLevel),

@@ -27,16 +27,11 @@ import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
+import { clock } from '../../clock';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
 const errorText = apiErrorMessage;
 
-const seconds = (value: number) =>
-  `${Math.floor(value / 60)
-    .toString()
-    .padStart(2, '0')}:${Math.floor(value % 60)
-    .toString()
-    .padStart(2, '0')}`;
 type ModelOption = { value: string; label: string; caption: string };
 const MODEL_OPTIONS: ModelOption[] = [
   { value: 'tiny', label: 'Tiny', caption: 'Fastest · rough accuracy · ~1 GB RAM' },
@@ -483,10 +478,10 @@ export function CompareRun({
           <div className="flex justify-between text-sm">
             <span>{state.message}</span>
             <span>
-              {state.percent}% · {seconds(state.elapsed)}
+              {state.percent}% · {clock(state.elapsed)}
             </span>
           </div>
-          <ProgressBar className="mt-3" label="Comparison progress" value={state.percent} running valueText={`${state.percent}% · ${seconds(state.elapsed)}`} />
+          <ProgressBar className="mt-3" label="Comparison progress" value={state.percent} running valueText={`${state.percent}% · ${clock(state.elapsed)}`} />
           <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
             <div className="mb-2 flex items-center justify-between">
               <SectionLabel>Live activity</SectionLabel>

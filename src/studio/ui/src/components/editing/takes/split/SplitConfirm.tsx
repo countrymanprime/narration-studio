@@ -1,4 +1,4 @@
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import type { SplitTarget } from './splitCommand';
 import type { SplitPlan } from './splitPlan';
 

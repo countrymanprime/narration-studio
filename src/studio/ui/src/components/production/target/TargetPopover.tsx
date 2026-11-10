@@ -3,8 +3,8 @@ import type { Measured } from '../../../api/schemas/base';
 import { hm, num } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
-import { formatLength } from '../productionFormat';
 import type { OwnRate } from './pace.selectors';
+import { clock } from '../../../clock';
 
 const DASH = '—';
 
@@ -53,7 +53,7 @@ export function TargetPopover({
       </div>
       <p className="text-xs text-[var(--text-muted)]">
         {own.ok
-          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${formatLength(own.value.seconds)}.`
+          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${clock(own.value.seconds)}.`
           : `Your rate is not measured yet. ${own.reason}`}
       </p>
       <div className="flex items-center justify-between gap-2">

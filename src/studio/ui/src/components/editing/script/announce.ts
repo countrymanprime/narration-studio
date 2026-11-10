@@ -1,4 +1,4 @@
-import { clockText } from '../../booth/boothProgress';
+import { clock } from '../../../clock';
 import { selKeys, summarize, type ChapterDoc, type Sel } from '../model';
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -7,7 +7,7 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 export function announceSel(doc: ChapterDoc, sel: Sel | null): string {
   if (!sel) return '';
   const sum = summarize(doc, selKeys(doc, sel), [], (s) => s);
-  const span = sum.audible.length ? `, ${clockText(sum.start)} to ${clockText(sum.end)}` : '';
+  const span = sum.audible.length ? `, ${clock(sum.start)} to ${clock(sum.end)}` : '';
   return `${plural(sum.items.length, 'word', 'words')} selected${span}${sum.allExtra ? ', not in the script' : ''}`;
 }
 
