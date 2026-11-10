@@ -19,6 +19,8 @@ export function RecordControl({
     toggle: () => Promise<unknown>;
     /** A press is starting a take (the Start from here lookup, the model and project checks, the start tone, the DAW command): Record shows it at once. */
     pending?: boolean;
+    /** What the pending Record says: its tip. */
+    pendingText?: string;
   };
   /** The side menu picked Cold read: the button reads it and starts one (`on` while it listens: Stop); Record's own reasons do not apply. */
   cold?: { mode: boolean; on: boolean };
@@ -37,7 +39,15 @@ export function RecordControl({
     <SplitMain
       id="brec"
       tone={coldMode ? 'cold' : 'primary'}
-      hint={pending ? 'Starting the take…' : coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
+      hint={
+        pending
+          ? (control.pendingText ?? 'Starting the take…')
+          : coldMode
+            ? stop
+              ? 'Stop the cold read (Space)'
+              : 'Start a cold read (Space). Nothing is recorded.'
+            : undefined
+      }
       pending={pending}
       {...(disabled && !pending ? { 'aria-disabled': true } : {})}
       aria-describedby={pending ? PENDING_ID : reason ? describedBy : undefined}

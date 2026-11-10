@@ -5,6 +5,7 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
+import { HOST_WAIT_MS } from '../waits';
 import { createTakeHold, type TakeControls } from './takeHold';
 
 /** The roll itself, typed here until `DawClient.roll` exists (SN-D6x). `confirmed` is true when the narrator answered the question. */
@@ -43,17 +44,17 @@ export type RollActions = TakeControls & {
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
   notify: (sentence: string) => void;
-  /** Takes back what `notify` said about the start ("Starting from ¶ 3", "Recording over ¶ 3"): the take it announced was refused. */
-  retract?: () => void;
+  /** True while a press is starting a take (the Booth's `beginTake` is out): any press then is the same press and starts nothing more. */
+  isStarting?: () => boolean;
 };
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
-export const LOOKUP_MS = 8000;
+export const LOOKUP_MS = HOST_WAIT_MS;
 
 const LOOKUP_FAILED = 'Where that passage was recorded could not be read, so no take was started.';
 const LOOKUP_SLOW = 'The app got no answer about where that passage was recorded, so no take was started.';
-/** Said with every refusal of a lookup: the chosen start is let go, so the next Record is a plain one and nothing happens silently. */
-const START_LET_GO = 'The start is let go: Record now starts at the end of the recording. Choose the phrase again to retry.';
+/** Said with every refusal of a lookup: the chosen start is dropped, so the next Record is a plain one and nothing happens silently. */
+const START_LET_GO = 'No start is chosen now: Record starts at the end of the recording. Choose the phrase again to retry.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
 
@@ -163,12 +164,21 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const latestStart = useRef(0);
   /** True while the newest start waits for the host's answer: Record shows it, so a slow lookup is never a button that does nothing. */
   const [lookingUp, setLookingUp] = useState(false);
+  /** True only while the host's answer itself is out (the wait above lasts on through the checks and the voice choice): the chip says so. */
+  const [hostAnswering, setAsking] = useState(false);
+  /** What the take will record over ("Recording over ¶ 3 on Narrator."), from the lookup's answer until the take has begun or been refused: Record says it while it waits. */
+  const [startNote, setStartNote] = useState('');
+  /** The start in flight: its number and phrase. A press for the same phrase meanwhile is that press, and starts nothing more. */
+  const pressing = useRef<{ mine: number; at: number } | null>(null);
   const alive = useRef(true);
   /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
   const cancelStart = useCallback(() => {
     latestStart.current += 1;
     inFlight.current.clear();
+    pressing.current = null;
     setLookingUp(false);
+    setAsking(false);
+    setStartNote('');
   }, []);
   useEffect(() => {
     alive.current = true;
@@ -181,15 +191,22 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, []);
   /** Looks `phrase` up for start number `mine`; the wait shows until `endWait(mine)`, which the start calls once nothing is left to await for it. */
   const lookUpFor = useCallback(
-    (_mine: number, phrase: number): Promise<BoothPunch> => {
+    (mine: number, phrase: number): Promise<BoothPunch> => {
       setLookingUp(true);
-      return lookUp(phrase);
+      setAsking(true);
+      return lookUp(phrase).finally(() => {
+        if (mine === latestStart.current && alive.current) setAsking(false);
+      });
     },
     [lookUp],
   );
   /** Ends the wait for start `mine`, unless a newer start owns it now. */
   const endWait = useCallback((mine: number) => {
-    if (mine === latestStart.current && alive.current) setLookingUp(false);
+    if (mine !== latestStart.current || !alive.current) return;
+    if (pressing.current?.mine === mine) pressing.current = null;
+    setLookingUp(false);
+    setAsking(false);
+    setStartNote('');
   }, []);
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
@@ -210,6 +227,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
+      // The same press again (a second Space, R or pedal tap while it waits) is that press: nothing is chosen, looked up or said twice.
+      if (!s.recording && (actionsRef.current.isStarting?.() || pressing.current?.at === to)) return;
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
@@ -224,8 +243,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.chooseStart(to, !s.recording);
       if (s.recording) return rollFrom(to);
       // Not recording yet: the text moves to the phrase (chooseStart), and the take starts there now, with the DAW moved to that spot first,
-      // so the narrator never has to find the place and click in the DAW with a live microphone.
-      actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
+      // so the narrator never has to find the place and click in the DAW with a live microphone. The chip beside Record says where, so no message does.
       return startTakeRef.current(to);
     },
     [rollFrom, lookUpFor, endWait],
@@ -259,12 +277,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (outdated(mine)) return;
       if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
       if (outdated(mine)) return;
-      // The narrator is told which track is recorded over before the take starts, never only after; a take that is then refused takes the claim back.
-      const recording = `Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`;
-      actionsRef.current.notify(recording);
-      const started = await actionsRef.current.beginTake(target.start);
-      if (started === false) actionsRef.current.retract?.();
-      return started;
+      // The narrator is told which track is recorded over before the take starts, in the pending Record's own words (a message would say the start
+      // twice beside the chip); it is gone with the press, so a refused take leaves no claim.
+      setStartNote(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
+      return actionsRef.current.beginTake(target.start);
     },
     [ask, lookUpFor],
   );
@@ -279,7 +295,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
       if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
+      // The same press again while it waits: nothing more is asked or started.
+      if (!s.recording && (actionsRef.current.isStarting?.() || pressing.current?.at === at)) return;
       const mine = ++latestStart.current;
+      pressing.current = { mine, at };
       try {
         return await startAt(mine, at, s);
       } finally {
@@ -291,5 +310,5 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
-  return { punchAndRoll, startFromHere, startTake, cancelStart, lookingUp, hold: hold.current };
+  return { punchAndRoll, startFromHere, startTake, cancelStart, lookingUp, asking: hostAnswering, startNote, hold: hold.current };
 }

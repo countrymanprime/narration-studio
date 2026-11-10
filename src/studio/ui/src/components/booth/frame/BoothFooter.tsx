@@ -76,6 +76,7 @@ export function BoothFooter({
   recording,
   startsAt,
   startPending = false,
+  pendingText = 'Starting the take…',
   why,
   quietWhy = false,
   listenWhy,
@@ -96,6 +97,8 @@ export function BoothFooter({
   startsAt?: string;
   /** A press is starting a take: said once in a polite status line, and the Record button is described by it. */
   startPending?: boolean;
+  /** What the status line says while it is pending. */
+  pendingText?: string;
   why?: string;
   /**
    * A setup notice above says why already: the sentence stays for Record's description (`aria-describedby`) but is not drawn, so the
@@ -168,7 +171,7 @@ export function BoothFooter({
           </span>
           {startsAt ? <HeaderChip>{startsAt}</HeaderChip> : null}
           <span id={PENDING_ID} role="status" className="sr-only">
-            {startPending ? 'Starting the take…' : ''}
+            {startPending ? pendingText : ''}
           </span>
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">

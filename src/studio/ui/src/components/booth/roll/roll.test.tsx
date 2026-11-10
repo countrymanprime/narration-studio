@@ -153,7 +153,7 @@ describe('useRoll', () => {
     const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false });
     await act(() => hook.result.current.startFromHere(4));
     expect(actions.chooseStart).toHaveBeenCalledWith(4, true);
-    expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3');
+    expect(actions.notify).not.toHaveBeenCalledWith(expect.stringContaining('Starting from'));
     expect(dialog()).toBeUndefined();
     expect(actions.roll).not.toHaveBeenCalled();
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
@@ -191,8 +191,7 @@ describe('useRoll', () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
     await act(() => hook.result.current.startTake());
     expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T');
-    expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.');
-    expect(actions.notify.mock.invocationCallOrder[0]).toBeLessThan(actions.beginTake.mock.invocationCallOrder[0]);
+    expect(actions.notify).not.toHaveBeenCalledWith(expect.stringContaining('Recording over'));
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
 
@@ -215,7 +214,7 @@ describe('useRoll', () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
     await act(() => hook.result.current.startTake());
     expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining(refused.message ?? ''));
-    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('let go'));
+    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('No start is chosen now'));
     expect(actions.clearStart).toHaveBeenCalledTimes(1);
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
@@ -354,27 +353,43 @@ describe('useRoll', () => {
       });
       await act(() => hook.result.current.startTake());
       expect(actions.clearStart).toHaveBeenCalledTimes(1);
-      expect(actions.notify).toHaveBeenCalledWith(expect.stringMatching(/out of date\..*let go.*end of the recording.*Choose the phrase again/));
+      expect(actions.notify).toHaveBeenCalledWith(
+        expect.stringMatching(/out of date\..*No start is chosen now.*end of the recording.*Choose the phrase again/),
+      );
       expect(actions.beginTake).not.toHaveBeenCalled();
     });
 
-    it('takes the Recording over message back when beginTake refuses, and keeps the start chosen', async () => {
+    it('says what it records over in the pending Record, not in a message, until the take has begun or been refused', async () => {
+      const take = gate();
       const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
-      actions.beginTake.mockImplementation(async () => false);
-      const retract = vi.fn();
-      (actions as unknown as { retract: () => void }).retract = retract;
-      await act(() => hook.result.current.startTake());
-      expect(retract).toHaveBeenCalledTimes(1);
+      actions.beginTake.mockImplementation(async () => {
+        await take.promise;
+        return false;
+      });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.startTake();
+      });
+      await waitFor(() => expect(hook.result.current.startNote).toBe('Recording over ¶ 1 on Voice 1.'));
+      expect(actions.notify).not.toHaveBeenCalled();
+      take.resolve(found(1));
+      await act(() => done);
+      expect(hook.result.current.startNote).toBe('');
       expect(actions.clearStart).not.toHaveBeenCalled();
     });
 
-    it('does not take it back when the take began', async () => {
-      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
-      actions.beginTake.mockImplementation(async () => true);
-      const retract = vi.fn();
-      (actions as unknown as { retract: () => void }).retract = retract;
-      await act(() => hook.result.current.startTake());
-      expect(retract).not.toHaveBeenCalled();
+    it('a press while one is starting (the model check, the project check, the tone) is that press: no lookup, no start chosen, nothing said', async () => {
+      const punchTarget = vi.fn(async (p: number) => found(p));
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+      let starting = true;
+      (actions as unknown as { isStarting: () => boolean }).isStarting = () => starting;
+      await act(async () => {
+        await Promise.all([hook.result.current.startTake(), hook.result.current.punchAndRoll(), hook.result.current.startFromHere(2)]);
+      });
+      expect(punchTarget).not.toHaveBeenCalled();
+      expect(actions.chooseStart).not.toHaveBeenCalled();
+      expect(actions.beginTake).not.toHaveBeenCalled();
+      starting = false;
     });
 
     it('a lookup that throws at once, or answers nothing, is a sentence and ends the wait', async () => {

@@ -1,3 +1,4 @@
+import { within } from '../waits';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
@@ -444,7 +445,10 @@ export function useRecordControl({
         // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
         // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
         if (starting && capabilitiesRef.current) {
-          const fresh = await system.bootstrap().catch(() => null);
+          const fresh = await within(
+            system.bootstrap().catch(() => null),
+            null,
+          );
           if (how?.current && !how.current()) return false;
           if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
             setLink((last) => ({ ...last, open: 'different' }));

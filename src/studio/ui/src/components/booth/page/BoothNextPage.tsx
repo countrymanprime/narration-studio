@@ -638,6 +638,8 @@ function BoothSession({
   const coldMode = page.coldRead.mode && !control.recording;
   const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
   const footerWhy = coldMode ? '' : recordWhy;
+  // What a pending Record says (its hint, its description, the status line): the take is starting, and over what when the lookup said.
+  const pendingText = ['Starting the take…', page.startNote].filter(Boolean).join(' ');
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -838,7 +840,7 @@ function BoothSession({
           <BoothFooter
             record={
               <RecordControl
-                control={{ ...control, reason: footerWhy, toggle: page.pressMain, pending: page.startPending }}
+                control={{ ...control, reason: footerWhy, toggle: page.pressMain, pending: page.startPending, pendingText }}
                 cold={{ mode: page.coldRead.mode, on: page.coldRead.on }}
               />
             }
@@ -846,6 +848,7 @@ function BoothSession({
             recording={control.recording}
             startsAt={page.startsAt}
             startPending={page.startPending && !coldMode}
+            pendingText={pendingText}
             why={footerWhy || undefined}
             // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time.
             quietWhy={noticeShown}

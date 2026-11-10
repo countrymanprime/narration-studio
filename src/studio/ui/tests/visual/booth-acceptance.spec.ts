@@ -363,7 +363,13 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
 });
 
 // Punch has no switch since #2251: with REAPER linked and answering, Start from here sets the next roll at once.
-test('row 31: Start from here starts the take from that phrase', async ({ page }) => {
+test('row 31: Start from here starts the take from that phrase, and the chip says where while it looks the spot up', async ({ page }) => {
+  // A lookup that takes a moment, so the chip beside Record can be read before the take begins (it is gone once the take runs).
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
+      boothPunchTarget: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'found', start: 12, end: 20 }), 1200)),
+    };
+  });
   await open(page);
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
@@ -371,6 +377,7 @@ test('row 31: Start from here starts the take from that phrase', async ({ page }
     .getByRole('menuitem', { name: /Start from here/ })
     .first()
     .click();
+  await expect(page.getByText(/^(Looking up|Starts at) ¶ \d+/)).toBeVisible();
   await expect(page.getByText(/The next take starts from the end of what is already there, not from ¶/)).toHaveCount(0);
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();

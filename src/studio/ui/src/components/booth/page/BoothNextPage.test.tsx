@@ -720,7 +720,7 @@ describe('start-from-here-and-record-from-here', () => {
     });
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
     await waitFor(() => expect(current()).toBe('3'));
-    expect(screen.getByText('Starts at ¶ 2')).toBeTruthy();
+    expect(screen.getByText('Looking up ¶ 2…')).toBeTruthy();
   });
 
   it('opening the Booth at a paragraph and offset from Script starts there', async () => {
@@ -2336,8 +2336,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     const lookup = slowLookup();
     const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget: lookup.boothPunchTarget } });
     await ready();
-    // Opening the Booth at a line reads where it was recorded too (useMoveTarget); the press's own calls are counted from here.
-    lookup.boothPunchTarget.mockClear();
+    // Opening the Booth at a line asks where it was recorded (useMoveTarget); a press joins that call while it is out: one call in all.
     await space();
     // Pending right after the press, before any answer: the narrator sees the press was heard.
     expect(recordButton().getAttribute('aria-busy')).toBe('true');
@@ -2406,10 +2405,10 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     await ready();
     expect(screen.queryByText(/^Starts at /)).toBeNull();
     await press('r', 'KeyR');
-    expect(screen.getByText(/^Starts at ¶ \d+$/)).toBeTruthy();
+    expect(screen.getByText(/^Looking up ¶ \d+…$/)).toBeTruthy();
     await act(async () => lookup.answer(FOUND));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
-    expect(screen.queryByText(/^Starts at /)).toBeNull();
+    expect(screen.queryByText(/^(Starts at|Looking up) /)).toBeNull();
     await space();
     await waitFor(() => expect(recordButton()).toBeTruthy());
     expect(screen.queryByText(/^Starts at /)).toBeNull();
@@ -2483,20 +2482,16 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     await ready();
     await press('r', 'KeyR');
     expect(recordButton().getAttribute('aria-busy')).toBe('true');
+    // One place per fact: the chip names the start, so no message does, here or on the next page.
+    expect(screen.getByText(/^Looking up ¶ \d+…$/)).toBeTruthy();
     expect(
       page.overlay
         .getSnapshot()
         .toasts.map((t) => t.text)
         .join('|'),
-    ).toContain('Starting from');
+    ).not.toMatch(/Starting from|Recording over/);
     page.view.unmount();
-    // The message that names the start goes with the start: it does not follow the narrator to the next page.
-    expect(
-      page.overlay
-        .getSnapshot()
-        .toasts.map((t) => t.text)
-        .join('|'),
-    ).not.toContain('Starting from');
+    expect(page.overlay.getSnapshot().toasts).toHaveLength(0);
     await act(async () => lookup.answer(FOUND));
     await settle();
     expect(page.daw.recordStart).not.toHaveBeenCalled();
@@ -2519,5 +2514,190 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', undefined);
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('every wait of a press is one press: joined, bounded, and dropped with the Booth (#3284, round 2)', () => {
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20 };
+  const gate = () => {
+    let release!: () => void;
+    const open = new Promise<void>((resolve) => (release = resolve));
+    return { release, open };
+  };
+  const toastText = (page: ReturnType<typeof renderPage>) =>
+    page.overlay
+      .getSnapshot()
+      .toasts.map((t) => t.text)
+      .join('|');
+  const START = '?chapter=c1&para=p3&at=28';
+  const recordButton = () => screen.getByRole('button', { name: /^Record$/ });
+  const savedDevice = (name: string) => async () => ({
+    Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: name, effectiveValue: name, isSet: true }],
+  });
+
+  /** Presses Space, R and Space again (a pedal tap) in the middle of a wait: none may ask the host again or say anything. */
+  const pressMore = async () => {
+    await space();
+    await press('r', 'KeyR');
+    await space();
+    await settle();
+  };
+
+  const waits: [string, (hold: ReturnType<typeof gate>, page?: undefined) => Partial<NarrationApi>][] = [
+    ['the model check', (hold) => ({ assetsList: (async () => (await hold.open, { assets: [] })) as never })],
+    [
+      'the project check',
+      (hold) => ({ bootstrap: (async () => (await hold.open, { dawFileLinked: true, dawReachable: true, dawProjectMatches: true })) as never }),
+    ],
+  ];
+  for (const [name, api] of waits) {
+    it(`more presses during ${name} ask the host nothing more and say nothing, and one take starts`, async () => {
+      const hold = gate();
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const page = renderPage({ search: START, api: { boothPunchTarget, ...api(hold) } });
+      await ready();
+      boothPunchTarget.mockClear();
+      await space();
+      await settle();
+      const asked = boothPunchTarget.mock.calls.length;
+      await pressMore();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(asked);
+      expect(toastText(page)).toBe('');
+      hold.release();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('more presses during the start tone and during the DAW call ask the host nothing more and say nothing', async () => {
+    const tone_ = gate();
+    tone.gate = tone_.open;
+    try {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const page = renderPage({ search: START, api: { boothPunchTarget } });
+      await ready();
+      boothPunchTarget.mockClear();
+      await space();
+      await settle();
+      const asked = boothPunchTarget.mock.calls.length;
+      await pressMore();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(asked);
+      const dawCall = gate();
+      const begin = page.daw.recordStart.getMockImplementation()!;
+      page.daw.recordStart.mockImplementation(async (...args) => (await dawCall.open, begin(...args)));
+      tone_.release();
+      await settle();
+      await pressMore();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(asked);
+      expect(toastText(page)).toBe('');
+      dawCall.release();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    } finally {
+      tone.gate = null;
+    }
+  });
+
+  it('arriving with Record from here, a press while the opening lookup is out joins it: one host call', async () => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => (await hold.open, FOUND));
+    renderPage({ search: START, api: { boothPunchTarget } });
+    await ready();
+    await space();
+    await settle();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    hold.release();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaving the Booth while the DAW is being asked stops the take it then starts, and takes it back', async () => {
+    const dawCall = gate();
+    const page = renderPage({ search: START, api: { boothPunchTarget: async () => FOUND } });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+    const begin = page.daw.recordStart.getMockImplementation()!;
+    page.daw.recordStart.mockImplementation(async (...args) => (await dawCall.open, begin(...args)));
+    await ready();
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    dawCall.release();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
+  });
+
+  describe('a wait that never answers ends after the host limit and the press goes on or says so', () => {
+    const never = () => new Promise<never>(() => {});
+    const limit = async () => {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8100);
+      });
+    };
+    for (const [name, api, takes] of [
+      ['the model check', { assetsList: never }, true],
+      ['the project check', { bootstrap: never }, true],
+      ['the voice choice', { boothPunchTarget: async () => ({ ...FOUND, trackGuid: 'T' }), boothVoiceSet: never }, false],
+    ] as const) {
+      it(name, async () => {
+        const page = renderPage({ search: START, api: { boothPunchTarget: async () => FOUND, ...(api as object) } as never });
+        await ready();
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        try {
+          await space();
+          expect(recordButton().getAttribute('aria-busy')).toBe('true');
+          await limit();
+          await vi.advanceTimersByTimeAsync(400);
+        } finally {
+          vi.useRealTimers();
+        }
+        if (!takes) await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
+        if (takes) await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+        else expect(page.daw.recordStart).not.toHaveBeenCalled();
+      });
+    }
+  });
+
+  describe('a take dropped because the text cannot follow the voice', () => {
+    const failing = () => {
+      let fail = (_reason: Error) => {};
+      const teleprompterStart = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = reject)));
+      return { teleprompterStart, fail: (reason: Error) => fail(reason) };
+    };
+    const toastRetry = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.find((t) => t.action)?.action;
+
+    it('does not spend the chosen start: the chip stays and Retry records from it again', async () => {
+      const host = failing();
+      const page = renderPage({
+        search: START,
+        api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart: host.teleprompterStart, boothPunchTarget: async () => FOUND } as never,
+      });
+      page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+      await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.getByText('Starts at ¶ 3')).toBeTruthy());
+      await waitFor(() => expect(toastRetry(page)).toBeTruthy());
+    });
+
+    it('a Retry on that message after the Booth was left starts nothing', async () => {
+      const host = failing();
+      const page = renderPage({
+        search: START,
+        api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart: host.teleprompterStart, boothPunchTarget: async () => FOUND } as never,
+      });
+      page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+      await waitFor(() => expect(toastRetry(page)).toBeTruthy());
+      const retry = toastRetry(page)!;
+      page.view.unmount();
+      await act(async () => void retry.onAction());
+      await settle();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    });
   });
 });

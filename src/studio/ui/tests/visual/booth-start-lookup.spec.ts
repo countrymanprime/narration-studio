@@ -53,7 +53,7 @@ test('a slow lookup shows Record busy within 100 ms of the press, and five press
     page
       .locator('#btimer')
       .locator('xpath=..')
-      .getByText(/^Starts at ¶ \d+$/),
+      .getByText(/^Looking up ¶ \d+…$/),
   ).toBeVisible();
   const before = await lookups(page);
   for (let i = 0; i < 5; i++) {
@@ -65,12 +65,12 @@ test('a slow lookup shows Record busy within 100 ms of the press, and five press
   expect(await dawRecording(page)).toBe(false);
   await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
   await expect(record(page)).toHaveCount(0);
-  await expect(page.getByText(/^Starts at ¶ /)).toHaveCount(0);
+  await expect(page.getByText(/^(Starts at|Looking up) ¶ /)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
   await pastStartGuard(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible();
-  await expect(page.getByText(/^Starts at ¶ /)).toHaveCount(0);
+  await expect(page.getByText(/^(Starts at|Looking up) ¶ /)).toHaveCount(0);
 });
 
 test('leaving the Booth while the lookup is out starts no take', async ({ page }) => {
@@ -131,7 +131,7 @@ for (const [name, withStart] of [
   });
 }
 
-test('after a refused lookup the start is let go and the sentence says so', async ({ page }) => {
+test('after a refused lookup the start is dropped and the sentence says so', async ({ page }) => {
   await page.addInitScript(() => {
     (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
       boothPunchTarget: async () => ({ outcome: 'refused', message: 'The recording check is out of date.' }),
@@ -143,8 +143,8 @@ test('after a refused lookup the start is let go and the sentence says so', asyn
   await expect(record(page)).toBeEnabled();
   await showChapterTop(page);
   await startFromHere(page);
-  await expect(page.getByText(/out of date\. The start is let go: Record now starts at the end of the recording/)).toBeVisible();
-  await expect(page.getByText(/^Starts at ¶ /)).toHaveCount(0);
+  await expect(page.getByText(/out of date\. No start is chosen now: Record starts at the end of the recording/)).toBeVisible();
+  await expect(page.getByText(/^(Starts at|Looking up) ¶ /)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(false);
 });
 
@@ -184,7 +184,7 @@ test('a take the DAW refuses after the lookup keeps the start and its chip, and 
   test.setTimeout(40_000);
   await openWithSlowLookup(page, 1500);
   await startFromHere(page);
-  const chip = page.getByText(/^Starts at ¶ \d+$/);
+  const chip = page.getByText(/^(Starts at|Looking up) ¶ \d+/);
   await expect(chip).toBeVisible();
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('REAPER is not answering.', 'start'));
@@ -204,4 +204,41 @@ test('a take the DAW refuses after the lookup keeps the start and its chip, and 
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible();
   await expect(chip).toHaveCount(0);
+});
+
+test('presses after the lookup, during a slow model check, ask the host nothing more and put no message up', async ({ page }) => {
+  await page.addInitScript((ms) => {
+    const w = window as unknown as { __lookups: number; __NARRATION_MOCK_OVERRIDES__: unknown };
+    w.__lookups = 0;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      boothPunchTarget: async () => {
+        w.__lookups += 1;
+        return { outcome: 'found', start: 12, end: 20 };
+      },
+      assetsList: () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () => resolve({ cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] }),
+            ms,
+          ),
+        ),
+    };
+  }, LOOKUP_DELAY_MS);
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await startFromHere(page);
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  const before = await lookups(page);
+  for (const key of ['Space', 'r', 'Space', 'r']) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(150);
+  }
+  expect(await lookups(page)).toBe(before);
+  // The start is said once, by the chip beside Record; no message repeats it.
+  await expect(page.locator('[data-tone]').filter({ hasText: /Starting from|Recording over/ })).toHaveCount(0);
+  await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+  expect(await lookups(page)).toBe(before);
 });

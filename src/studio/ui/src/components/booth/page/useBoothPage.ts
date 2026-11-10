@@ -27,7 +27,9 @@ import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
-import { LOOKUP_MS, useRoll } from '../roll/useRoll';
+import { punchTargetOnce } from './punchLookups';
+import { useRoll } from '../roll/useRoll';
+import { within } from '../waits';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, suspectedFrom, wordRangeOf } from './readingSource';
 import type { BoothStart } from './boothQuery';
@@ -366,7 +368,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
-    if (!(await latest.current.session.ensureModel())) return false;
+    // An answer that never comes is no reason to hold the press: the check claims nothing, as when it fails, and the take goes on.
+    if (!(await within(latest.current.session.ensureModel(), true))) return false;
     // Each wait below can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
@@ -401,9 +404,11 @@ export function useBoothPage(options: BoothPageOptions) {
         : hearing.then(async (answer) => [answer, answer.ok && (await pressed())] as const)
     ).finally(() => (listenStarting.current = false));
     if (!current()) {
-      // Cancelled while it waited: whatever listening it started is let go, and nothing is said.
-      if (!started) latest.current.session.stop();
-      return started;
+      // Cancelled while it waited: whatever listening it started is let go, and nothing is said. A take the DAW had already accepted by then is
+      // stopped and taken back at once, as one whose listening failed is: the narrator has left, and nothing may keep recording behind them.
+      latest.current.session.stop();
+      if (started) await dropUnheardTake();
+      return false;
     }
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
@@ -441,7 +446,7 @@ export function useBoothPage(options: BoothPageOptions) {
         const unit = latest.current.units[phrase];
         const range = unit && wordRangeOf(latest.current.paragraphs, unit);
         if (!range) return Promise.resolve({ outcome: 'refused' as const, message: 'That phrase is not in the chapter.' });
-        return voiceTracks.boothPunchTarget(recordId, range.paragraphId, range.from, range.to);
+        return punchTargetOnce(voiceTracks, recordId, range.paragraphId, range.from, range.to);
       },
       takeSeconds: seconds,
     },
@@ -469,9 +474,10 @@ export function useBoothPage(options: BoothPageOptions) {
       },
       chooseVoice: async (trackGuid) => {
         // A host that never answers must not leave Record spinning: the lookup's own wait applies, and no take starts over a voice nobody chose.
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const slow = new Promise<null>((resolve) => (timer = setTimeout(() => resolve(null), LOOKUP_MS)));
-        const answer = await Promise.race([voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null), slow]).finally(() => clearTimeout(timer));
+        const answer = await within(
+          voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null),
+          null,
+        );
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
           notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
@@ -494,8 +500,8 @@ export function useBoothPage(options: BoothPageOptions) {
       logPunch: (punch) => setPunches((list) => [...list, punch]),
       // One topic for what a start says ("Starting from ¶ 3", "Recording over ¶ 3", a refusal): leaving the Booth takes it away, so no message
       // names a start that was cancelled.
+      isStarting: () => starting.current !== null,
       notify: (sentence) => notify(sentence, START_TOPIC),
-      retract: () => overlay.dismissTopic(START_TOPIC),
     },
     { overlay },
   );
@@ -542,17 +548,18 @@ export function useBoothPage(options: BoothPageOptions) {
       } else if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
-    // A start chosen with Start from here is for the take that just ended (the one-off the guide describes): the next Record press starts where
-    // the recording ends, and does not look the old spot up again or punch over it.
-    setPunchAt(null);
     if (unheard.current) {
-      // A take whose listening failed (dropUnheardTake): it is not a take, so nothing is said, mapped or offered back.
+      // A take whose listening failed (dropUnheardTake): it is not a take, so nothing is said, mapped or offered back, and the chosen start is not
+      // spent: the Retry on its message records from it again.
       unheard.current = false;
       takeBegan.current = null;
       takeEntry.current = null;
       if (now.session.active) now.session.stop();
       return;
     }
+    // A start chosen with Start from here is for the take that just ended (the one-off the guide describes): the next Record press starts where
+    // the recording ends, and does not look the old spot up again or punch over it.
+    setPunchAt(null);
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
@@ -871,8 +878,13 @@ export function useBoothPage(options: BoothPageOptions) {
     pressMain,
     /** A press is starting a take and nothing has answered yet: Record shows it. */
     startPending,
-    /** "Starts at ¶ 3" while a start is chosen (Start from here, Record from here, Punch and roll) and no take runs; absent otherwise. */
-    startsAt: punchAt !== null && !recording && units[punchAt] ? `Starts at ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
+    /** "Starts at ¶ 3" while a start is chosen (Start from here, Record from here, Punch and roll) and no take runs, "Looking up ¶ 3…" while the host answers; absent otherwise. */
+    startsAt:
+      punchAt !== null && !recording && units[punchAt]
+        ? `${roll.asking ? 'Looking up' : 'Starts at'} ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}${roll.asking ? '…' : ''}`
+        : undefined,
+    /** What the take will record over, said by the pending Record before the take begins; '' when nothing is pending or nothing is known. */
+    startNote: roll.startNote,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,

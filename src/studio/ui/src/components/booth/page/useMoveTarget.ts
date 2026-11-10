@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import { unitAtPosition } from '../reading/readingPosition';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
+import { punchTargetOnce } from './punchLookups';
 import { positionAtOffset, secondsBefore, wordRangeOf } from './readingSource';
 
 /** Where the DAW goes when the Booth opens (useMoveDawOnOpen): the end of the chapter's audio, or a time in it. */
@@ -45,8 +46,7 @@ export function useMoveTarget({
     const asked = rangeRef.current;
     if (empty || !asked) return;
     let live = true;
-    voiceTracks
-      .boothPunchTarget(chapterId, asked.paragraphId, asked.from, asked.to)
+    punchTargetOnce(voiceTracks, chapterId, asked.paragraphId, asked.from, asked.to)
       .then((punch): MoveTarget => {
         if (punch.outcome === 'found' && punch.start !== undefined) return { where: 'at', seconds: punch.start };
         if (punch.outcome === 'never_recorded') return { where: 'end' };
