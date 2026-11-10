@@ -57,7 +57,16 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 		return nil, false, err
 	}
 	members, ok := project.WithDescendants(link)
-	if !ok || !members[0].IsFolder {
+	if !ok {
+		// A folder this session made (ChapterTrackCreate) is not in the saved project until the narrator saves; its voices are the ones the app
+		// added to it. Nothing added is a link to a track the project no longer has.
+		var voices []tracks.Track
+		for _, added := range svc.boothVoices.addedTo(link) {
+			voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: 1})
+		}
+		return voices, len(voices) > 0, nil
+	}
+	if !members[0].IsFolder {
 		return nil, false, nil
 	}
 	var voices []tracks.Track

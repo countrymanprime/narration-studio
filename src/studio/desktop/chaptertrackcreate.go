@@ -200,6 +200,11 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return trackCreateError(name, title, err), nil
 	}
 	chapterTrackCreates.made[guidKey(created.GUID)] = created.Name
+	if voice != nil {
+		// The folder and its Narrator are in the engine but not in the saved project until the narrator saves: the Booth records on the voice
+		// and lists it from what the app made (chapterVoices), not from the saved file alone, or the press would arm the folder itself (#3271).
+		svc.boothVoices.add(created.GUID, BoothVoiceTrack{GUID: voice.GUID, Name: voice.Name})
+	}
 	set, err := setChapterLink(store, documentID, chapterID, storedTitle, created.GUID)
 	if err != nil {
 		why := strings.TrimRight(strings.TrimSpace(err.Error()), ".")
