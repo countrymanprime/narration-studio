@@ -417,6 +417,15 @@ export const editingDrivers: Record<string, Driver> = {
     await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
     await page.locator('#noaudio').getByRole('button', { name: 'Read again' }).waitFor();
   },
+  // A folder of voice tracks holds nothing and nothing is unsaved: the record instruction stays and the save is still offered.
+  'empty-folder': async (page) => {
+    await openEditingNoAudio(page, '?mockEmptyTracks=1&mockVoiceFolders=1');
+    await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
+    await page
+      .locator('#noaudio')
+      .getByText(/has no audio on any of its voice tracks/)
+      .waitFor();
+  },
   // The click on a project that was never saved: the host refuses, and the refusal is an error toast; the button is ready again.
   'unsaved-take-refused': async (page) => {
     await openEditingNoAudio(page, '?mockChapterLink=missing&mockDawUnsaved=never-saved');
