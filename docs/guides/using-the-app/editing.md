@@ -493,7 +493,7 @@ word as not read, and the dialog described above lists the tracks to link.
 
 A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
 
-The page reads the saved project, so a take recorded since the last save is not in it yet. When the chapter has no audio there and the DAW has changes it has not saved, the note says so: **Save the project in REAPER, then read again.** Saving in the DAW and pressing **Read again** brings the recording in.
+The page reads the saved project, so a take recorded since the last save is not in it yet. When the chapter has no audio there and the DAW has changes it has not saved, the note says so ("has no saved audio, and REAPER has unsaved changes. A recording may be waiting there. Save the project in REAPER, then read again."). Saving in the DAW and pressing **Read again** brings the recording in.
 
 In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
 

@@ -90,6 +90,18 @@ describe('a chapter with nothing in the saved project while the DAW has unsaved 
     expect(await audioOf(read(nested(), 'F', 'refused').result)).toEqual({ kind: 'empty', folder: true });
   });
 
+  it('a flat chapter track is the same: empty with unsaved set when the DAW holds unsaved changes', async () => {
+    expect(await audioOf(read([track('F', 0, false)], 'F', true).result)).toEqual({ kind: 'empty', unsaved: true });
+    expect(await audioOf(read([track('F', 0, false)], 'F', false).result)).toEqual({ kind: 'empty' });
+  });
+
+  // A link the saved project lacks may be a track made since the last save, so with unsaved changes the note says to save; the relink dialog
+  // is back once the project is saved and the track is still missing. A deleted track plus an unrelated edit takes that one extra step.
+  it('a link to a track the saved project lacks, while the DAW has unsaved changes, asks for a save before it asks for a relink', async () => {
+    expect((await audioOf(read([track('A', 0, false, [item('a1')])], '{GONE}', true).result)).kind).toBe('empty');
+    expect((await audioOf(read([track('A', 0, false, [item('a1')])], '{GONE}', false).result)).kind).toBe('missing');
+  });
+
   it('saved audio on a leaf is ready whatever the DAW holds', async () => {
     const tracks = [track('F', 0, true), track('Narrator', 1, true), track('Main', 2, false, [item('m1')])];
     expect((await audioOf(read(tracks, 'F', true).result)).kind).toBe('ready');

@@ -31,8 +31,8 @@ export function noAudioText(audio: Exclude<ChapterAudio, { kind: 'ready' }>, cha
     case 'empty':
       if (audio.unsaved)
         return {
-          headline: `${chapter} has no audio in the saved project, and ${daw} has changes that are not saved, so a recording may be waiting there.`,
-          next: `Save the project in ${daw}, then read again.`,
+          headline: `${chapter} has no saved audio, and ${daw} has unsaved changes.`,
+          next: `A recording may be waiting there. Save the project in ${daw}, then read again.`,
         };
       if (audio.folder)
         return {

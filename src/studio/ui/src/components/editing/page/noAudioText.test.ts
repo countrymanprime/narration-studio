@@ -15,9 +15,10 @@ describe('noAudioText', () => {
       'Nothing is recorded for Chapter 1 yet, so there is no audio to edit.',
     );
   });
-  it('unsaved changes in the DAW say to save, not to record', () => {
+  it('unsaved changes in the DAW say to save, not to record, in a headline short enough for Play’s hint', () => {
     const text = noAudioText({ kind: 'empty', folder: true, unsaved: true }, 'Chapter 1', 'REAPER');
-    expect(text.headline).toBe('Chapter 1 has no audio in the saved project, and REAPER has changes that are not saved, so a recording may be waiting there.');
-    expect(text.next).toBe('Save the project in REAPER, then read again.');
+    expect(text.headline).toBe('Chapter 1 has no saved audio, and REAPER has unsaved changes.');
+    expect(text.headline.length).toBeLessThanOrEqual(80);
+    expect(text.next).toBe('A recording may be waiting there. Save the project in REAPER, then read again.');
   });
 });
