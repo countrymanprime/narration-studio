@@ -7,11 +7,10 @@ import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { describeCheck, profileCounts, requirementOwner } from './deliveryProfile';
 import { LISTEN_ICON, Mark, ResultIcon, VerificationMark } from './RuleBadges';
+import { plural } from '../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
-
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
 /** The requirement as recorded: in quotation marks only when it is the platform's own words. */
 export function Requirement({ rule }: { rule: DeliveryRule }) {

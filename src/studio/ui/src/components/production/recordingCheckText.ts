@@ -4,6 +4,7 @@
 import type { CoverageJudgement, CoverageReason, CoverageRegion, CoverageRegionKind, CoverageReport, CoverageState, ManuscriptChapter } from '../../types';
 import type { CreditsKind } from '../credits/useCreditsRows';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 /**
  * One plain sentence per reason. The host also sends its own message with a refusal, but that one is written for a log
@@ -78,8 +79,6 @@ export const REGION_LABEL: Record<CoverageRegionKind, string> = {
   short_read: 'Read short',
   different_text: 'Different text read',
 };
-
-export const plural = (count: number, one: string, many = `${one}s`) => `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
 /**
  * The report's headline. With a judgement it leads with the host's

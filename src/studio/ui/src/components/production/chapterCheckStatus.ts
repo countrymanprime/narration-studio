@@ -5,6 +5,7 @@
 // `ChapterSyncState.chapters[]` (already computed on the host, docs/guides/using-the-app/navigation.md#chapter-sync-0211; reading it never starts a check).
 import type { ChapterSyncChapter, ChapterTrackLink } from '../../types';
 import { chapterTrackButtonState } from './chapterTrackButtonState';
+import { plural } from '../../plural';
 
 export type ChapterCheckStatus =
   | { kind: 'checking'; percent?: number; background?: boolean }
@@ -82,7 +83,7 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   const hours = Math.round(diffMs / 3_600_000);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(diffMs / 86_400_000);
-  return days === 1 ? 'yesterday' : `${days} days ago`;
+  return days === 1 ? 'yesterday' : `${plural(days, 'day')} ago`;
 }
 
 /** The row's bold label and its small muted line under it (04-row-check-status-replaces-check.webp), and the
@@ -108,7 +109,7 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
       return { label: 'Never checked', detail, name: `Recording check for ${chapterTitle}: never checked${detail ? `, ${detail}` : ''}` };
     }
     case 'needs_track': {
-      const detail = `${status.count} possible tracks`;
+      const detail = `${plural(status.count, 'possible track')}`;
       return { label: 'Needs a track', detail, name: `Recording check for ${chapterTitle}: needs a track, ${detail}` };
     }
     case 'suggested': {

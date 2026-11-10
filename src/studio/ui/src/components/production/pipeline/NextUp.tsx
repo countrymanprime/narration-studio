@@ -6,6 +6,7 @@ import { toneColors } from '../../primitives/StatusBadge';
 import { hm } from '../../schedule/dates';
 import { rankNextUp, type NextItem, type NextUpInputs } from './nextUpRanking';
 import type { GoTarget } from './pipelineRows';
+import { plural } from '../../../plural';
 
 type Props = {
   inputs: NextUpInputs;
@@ -80,12 +81,7 @@ function Rendered({ item, onGo, timer }: Omit<Props, 'inputs'> & { item: NextIte
       );
     case 'fail':
       return (
-        <Item
-          icon="◠"
-          status="fail"
-          title={`${item.tag} fails ${item.fails.length} ACX ${item.fails.length > 1 ? 'checks' : 'check'}`}
-          sub={item.fails.join(' · ')}
-        >
+        <Item icon="◠" status="fail" title={`${item.tag} fails ${plural(item.fails.length, 'ACX check')}`} sub={item.fails.join(' · ')}>
           <Button variant="secondary" size="sm" onClick={() => onGo('master', item.chapterId)}>
             Inspect failed check
           </Button>

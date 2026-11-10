@@ -1,5 +1,6 @@
 import { kindMarkStyle } from '../../../kinds/markStyle';
 import type { WordPart } from './diff';
+import { plural } from '../../../plural';
 
 /** A run of this many words left out is shortened to its first two and a count. */
 const LONG_RUN = 5;
@@ -27,7 +28,7 @@ export function Diff({ parts }: { parts: readonly WordPart[] }) {
         const full = run.words.join(' ');
         const gap = i > 0 ? ' ' : '';
         if (run.k === 'del') {
-          const text = run.words.length > LONG_RUN ? `${run.words.slice(0, 2).join(' ')} … (${run.words.length} words)` : full;
+          const text = run.words.length > LONG_RUN ? `${run.words.slice(0, 2).join(' ')} … (${plural(run.words.length, 'word')})` : full;
           return (
             <span key={i}>
               {gap}

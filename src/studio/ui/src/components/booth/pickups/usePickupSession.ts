@@ -9,6 +9,7 @@ import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import type { BoothUnit } from '../reading/boothUnits';
 import { nextLine, openCount, pickupBars, ranOver, sessionLines } from './pickupBars';
+import { plural } from '../../../plural';
 
 export type PickupSessionOptions = {
   /** The pickups the narrator opened the Booth on, in order. Empty: no session, and nothing here draws or listens. */
@@ -123,7 +124,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
       if (targets.length === 0) return 0;
       // The marks are one journal entry, so Ctrl+Z and History take them back as the toast's Undo does.
       const marked = await journal.act<null>({
-        label: `${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`,
+        label: `${plural(targets.length, 'pickup')} marked recorded`,
         touches: ['pickups'],
         run: async () => {
           const refused = await setDone(targets, true);
@@ -139,7 +140,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         return 0;
       }
       if (!quiet) {
-        const text = `Take saved · ${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`;
+        const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
         const marks = marked.value.id;
         const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
           // The take goes first: while the DAW keeps it, its pickups stay recorded.

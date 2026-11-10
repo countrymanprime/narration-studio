@@ -279,4 +279,91 @@ describe('the shared chapter-track state', () => {
     await act(async () => notify.mock.calls[0][2].onAction());
     await waitFor(() => expect(live.mock.calls.length).toBeGreaterThan(before));
   });
+
+  it('a screen that wants only the links reads them and no tracks, and a change shows at once', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const live = vi.spyOn(api, 'tracksLive');
+    const seen: { current?: ChapterTrackState } = {};
+    function LinksOnly() {
+      seen.current = useChapterTrackState({ enabled: true, tracks: false });
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled={false} notify={vi.fn()}>
+          <LinksOnly />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.current?.mappings.length).toBeGreaterThan(0));
+    expect(live).not.toHaveBeenCalled();
+    await act(async () => seen.current?.applyMappings([]));
+    expect(seen.current?.mappings).toEqual([]);
+    const fresh = await act(async () => seen.current?.refreshLinks());
+    expect(fresh?.length).toBeGreaterThan(0);
+    await waitFor(() => expect(seen.current?.mappings.length).toBeGreaterThan(0));
+  });
+
+  it('refreshLinks rejects when the read fails, and toasts nothing: the caller shows it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.chapterTrackMapList.bind(api);
+    let failing = false;
+    api.chapterTrackMapList = async () => {
+      if (failing) throw new Error('locked');
+      return real();
+    };
+    const notify = vi.fn();
+    const seen: { current?: ChapterTrackState } = {};
+    function LinksOnly() {
+      seen.current = useChapterTrackState({ enabled: true, tracks: false });
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled={false} notify={notify}>
+          <LinksOnly />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.current?.mappings.length).toBeGreaterThan(0));
+    failing = true;
+    await expect(seen.current!.refreshLinks()).rejects.toThrow('locked');
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('a read a newer one superseded never rejects its caller, even when it hangs', async () => {
+    vi.useFakeTimers();
+    try {
+      const api = createMockApi({}, { voiceFolders: true });
+      const real = api.chapterTrackMapList.bind(api);
+      let calls = 0;
+      api.chapterTrackMapList = () => (++calls === 1 ? new Promise(() => {}) : real());
+      const seen: { current?: ChapterTrackState } = {};
+      function LinksOnly() {
+        seen.current = useChapterTrackState({ enabled: true, tracks: false });
+        return null;
+      }
+      render(
+        <ApiProvider api={api}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled={false} notify={vi.fn()}>
+            <LinksOnly />
+          </ChapterTrackStateProvider>
+        </ApiProvider>,
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      const first = seen.current!.refreshLinks();
+      const second = seen.current!.refreshLinks();
+      const settled = vi.fn();
+      void first.then(settled, settled);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LIVE_TRACKS_TIMEOUT_MS + 100);
+      });
+      await expect(second).resolves.toBeDefined();
+      expect(settled).toHaveBeenCalledWith(expect.any(Array));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

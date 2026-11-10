@@ -9,13 +9,13 @@ import {
   groupSections,
   hasSubtitleChoices,
   isGroupOpen,
-  plural,
   REVIEW_GROUPS,
   reviewCounts,
   reviewedHeading,
   subtitleKept,
   subtitleOverridesToCommit,
 } from './importReviewModel';
+import { pluralWord } from '../../plural';
 
 const preview = mockImportPreview('docx');
 const section = (id: string) => {
@@ -147,12 +147,12 @@ describe('isGroupOpen', () => {
   });
 });
 
-describe('plural', () => {
+describe('pluralWord', () => {
   it('uses the singular for exactly one, and adds an s otherwise, or the plural given', () => {
-    expect(plural(1, 'chapter')).toBe('chapter');
-    expect(plural(0, 'chapter')).toBe('chapters');
-    expect(plural(2, 'chapter')).toBe('chapters');
-    expect(plural(2, 'entry', 'entries')).toBe('entries');
+    expect(pluralWord(1, 'chapter')).toBe('chapter');
+    expect(pluralWord(0, 'chapter')).toBe('chapters');
+    expect(pluralWord(2, 'chapter')).toBe('chapters');
+    expect(pluralWord(2, 'entry', 'entries')).toBe('entries');
   });
 });
 

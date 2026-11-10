@@ -1,3 +1,4 @@
+import { plural } from '../../plural';
 import type {
   ChapterSyncBackgroundWait,
   ChapterSyncBatch,
@@ -96,8 +97,6 @@ export function chapterSyncProjectName(projectFile: string, daw: ChapterSyncDaw)
   return projectFile;
 }
 
-const chapters = (count: number) => `${count} chapter${count === 1 ? '' : 's'}`;
-
 /** Chapter sync's facts, one per row of its card: when it last synced and from which project (`daw` says which one to name), and how many chapters it and you linked. */
 export function chapterSyncSummaryFacts(
   state: { lastSync: string | null; projectFile: string; chapters: Pick<ChapterSyncChapter, 'origin'>[]; linked: number; daw: ChapterSyncDaw },
@@ -112,12 +111,12 @@ export function chapterSyncSummaryFacts(
   }
   let links: string;
   if (state.chapters.length === 0) {
-    links = `${chapters(state.linked)} linked`;
+    links = `${plural(state.linked, 'chapter')} linked`;
   } else {
     const auto = state.chapters.filter((chapter) => chapter.origin === 'auto').length;
     const manual = state.chapters.filter((chapter) => chapter.origin === 'manual').length;
-    if (auto > 0) links = `${chapters(auto)} linked automatically${manual > 0 ? `, ${manual} by you` : ''}`;
-    else if (manual > 0) links = `${chapters(manual)} linked by you`;
+    if (auto > 0) links = `${plural(auto, 'chapter')} linked automatically${manual > 0 ? `, ${manual} by you` : ''}`;
+    else if (manual > 0) links = `${plural(manual, 'chapter')} linked by you`;
     else links = 'No chapters linked';
   }
   return { synced: `${when}${file}`, links };
@@ -152,7 +151,7 @@ export function chapterSyncActivityRows(activity: ChapterSyncBatch[], trackName:
   return activity.flatMap((batch, index) => {
     if (batch.trigger === 'consent') {
       return batch.linked.length > 0
-        ? [{ key: `${index}:first`, at: batch.at, text: `First sync: ${chapters(batch.linked.length)} linked`, undoTrackGuid: '' }]
+        ? [{ key: `${index}:first`, at: batch.at, text: `First sync: ${plural(batch.linked.length, 'chapter')} linked`, undoTrackGuid: '' }]
         : [];
     }
     const linked = batch.linked.map((link) => {

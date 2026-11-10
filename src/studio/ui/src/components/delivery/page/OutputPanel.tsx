@@ -12,6 +12,7 @@ import type { DeliveryBuild } from './useDeliveryBuild';
 import { NOTHING_MEASURED } from './chapterStates';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 import { useErrorToast } from '../../../hooks/useErrorToast';
+import { plural } from '../../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 const WHY_ID = 'delivery-build-why';
@@ -174,7 +175,7 @@ export function OutputPanel({
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm">
               <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <StatusBadge tone={statusTone('done')} label="Built" />
-                <b>{built.files.length} files</b>
+                <b>{plural(built.files.length, 'file')}</b>
                 <span dir="auto" className="[overflow-wrap:anywhere]" style={MUTED}>
                   in {built.outputDir}
                 </span>

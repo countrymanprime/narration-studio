@@ -6,6 +6,7 @@ import type { Hit } from '../registry/search';
 import { PageSettingList } from './PagesPane';
 import { RowOf } from './RowOf';
 import type { CategoryId } from '../registry/types';
+import { plural } from '../../../plural';
 
 /** The result list while the narrator searches or filters: rows from every category, each under the category it belongs to. */
 export function Results({
@@ -56,7 +57,7 @@ export function Results({
         );
       })}
       <span className="sr-only" role="status">
-        {hits.length} {hits.length === 1 ? 'setting' : 'settings'} found
+        {plural(hits.length, 'setting')} found
       </span>
     </>
   );

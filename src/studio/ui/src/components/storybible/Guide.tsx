@@ -56,6 +56,7 @@ import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
+import { plural } from '../../plural';
 
 // A brand-new entity has no backend record at all until a category is chosen
 // (see GuideDetail's isNewDraft handling) - this is a purely local stand-in
@@ -402,7 +403,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   label="Search entries"
                   value={query}
                   onChange={setQuery}
-                  placeholder={`Search ${visible.length} entries`}
+                  placeholder={`Search ${plural(visible.length, 'entry', 'entries')}`}
                   onKeyDown={(event) => {
                     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
                     if (event.key === 'ArrowDown') {

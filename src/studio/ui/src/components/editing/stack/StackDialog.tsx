@@ -3,8 +3,9 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { clock } from '../../../clock';
 import type { StackPlan } from '../model/stacking';
 import { shiftText, undoSentence, type StackActing } from './stackPlan';
-import { plural, STACK_TEXT } from './stackText';
+import { STACK_TEXT } from './stackText';
 import type { StackLine } from './types';
+import { plural } from '../../../plural';
 
 export type StackDirection = 'stack' | 'unstack';
 

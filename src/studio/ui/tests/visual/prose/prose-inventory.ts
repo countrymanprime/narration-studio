@@ -73,7 +73,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
-    text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
+    text: 'Your opening and closing credits need …. We filled in what the manuscript already says; check them and save.',
     class: 'overlay',
   },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Not set yet: nothing in the manuscript names the narrator.', class: 'overlay' },
@@ -98,7 +98,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/editing/EditingCheckPanel.tsx', text: 'Another chapter is being checked. Check this one when it finishes.', class: 'overlay' },
   {
     file: 'components/editing/EditingCheckPanel.tsx',
-    text: 'Stopped after … of … items. The items already checked are kept for the next check.',
+    text: 'Stopped after … of …. The items already checked are kept for the next check.',
     class: 'overlay',
   },
   { file: 'components/editing/EditingPage.tsx', text: 'Import a manuscript with at least one narration chapter first.', class: 'empty' },
@@ -298,7 +298,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.',
     class: 'overlay',
   },
-  { file: 'components/production/ChapterTrackPanel.tsx', text: 'tracks look like this chapter. Link the one it is recorded on.', class: 'overlay' },
+  { file: 'components/production/ChapterTrackPanel.tsx', text: 'look like this chapter. Link the one it is recorded on.', class: 'overlay' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
     text: 'This track&rsquo;s audio couldn&rsquo;t be played. Check that its source files are still where the project expects them.',
@@ -466,7 +466,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/settings/controls/DiagnosticsSection.tsx',
-    text: 'Leak check: … … dropped for naming you or your project.',
+    text: 'Leak check: … dropped for naming you or your project.',
     class: 'state',
   },
   {
@@ -630,7 +630,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'state',
   },
   { file: 'components/engine/EnginePanel.tsx', text: 'One chapter can’t get a stage suggestion until its track link is confirmed below.', class: 'state' },
-  { file: 'components/engine/EnginePanel.tsx', text: '… chapters can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
+  { file: 'components/engine/EnginePanel.tsx', text: '… can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
   {
     file: 'components/engine/VoicesCard.tsx',
     text: 'Flat: a chapter is one track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them). Voice folders: a chapter is a folder, one child track per voice.',

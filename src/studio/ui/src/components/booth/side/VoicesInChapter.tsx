@@ -13,11 +13,10 @@ import type { BoothSamples } from '../samples/useBoothSamples';
 import type { ChapterVoice } from './nearby';
 import type { VoiceKeys } from './sections';
 import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
+import { plural } from '../../../plural';
 
 /** What a voice with no sample says: where to make one. */
 export const NO_SAMPLE_NOTE = 'No voice sample yet. Mark one in Editing.';
-
-const plural = (count: number) => `${count} ${count === 1 ? 'sample' : 'samples'}`;
 
 /** The speakers in and around the current phrase, each with the Story Bible's note on how they talk and, when the project has voice samples, how to hear them. */
 export function VoicesInChapter({ voices, voiceKeys }: { voices: readonly ChapterVoice[]; voiceKeys?: VoiceKeys }) {
@@ -116,7 +115,7 @@ function VoiceRow({ voice, samples, voiceKeys }: { voice: ChapterVoice; samples:
           aria-controls={`voice-samples-${voice.id}`}
           onClick={() => setOpen((now) => !now)}
         >
-          {plural(mine.length)}
+          {plural(mine.length, 'sample')}
           <span aria-hidden="true">{open ? '▴' : '▾'}</span>
         </Button>
       ) : null}

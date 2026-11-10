@@ -6,6 +6,7 @@ import { decideLinked, restoreLinked, type LinkedChange } from '../../../studio/
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
+import { pluralWord, formatCount } from '../../../plural';
 
 /**
  * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is
@@ -20,7 +21,7 @@ export type SuspectedTake = {
   entry?: number;
 };
 
-const lines = (n: number) => `${n} suspected ${n === 1 ? 'line' : 'lines'} added to Pickups`;
+const lines = (n: number) => `${formatCount(n)} suspected ${pluralWord(n, 'line')} added to Pickups`;
 
 /**
  * Suspected lines become pickups (the research mock's `suspectedFrom` in `stopTake`, ruling BO-1 item 7). When a take stops, each line

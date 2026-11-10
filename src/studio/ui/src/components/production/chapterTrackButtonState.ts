@@ -1,6 +1,7 @@
 // The chapter track button's state: one of seven states from a ChapterTrackLink, each with a distinct look and an accessible name that says
 // the state out loud, since colour is never the only signal (WCAG 1.4.1).
 import type { ChapterTrackLink } from '../../types';
+import { plural } from '../../plural';
 
 export type ChapterTrackButtonState =
   | { kind: 'linked'; trackName: string; trackGuid: string }
@@ -44,7 +45,7 @@ export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrac
     case 'suggested':
       return `Track for ${chapterTitle}: suggested ${state.trackName}, not confirmed`;
     case 'ambiguous':
-      return `Track for ${chapterTitle}: ${state.count} possible tracks, choose one`;
+      return `Track for ${chapterTitle}: ${plural(state.count, 'possible track')}, choose one`;
     case 'missing':
       return `Track for ${chapterTitle}: linked track is missing`;
     case 'not_linked':

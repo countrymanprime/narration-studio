@@ -6,6 +6,7 @@ import { useEditingPage } from '../script/EditingPageState';
 import { clock } from '../../../clock';
 import { useSelectionActions } from './selectionActions';
 import type { ScriptPlayback } from './useScriptPlayback';
+import { plural } from '../../../plural';
 
 /**
  * The bar at the foot of the script: transport, what is selected, and what the selection can do. The actions are whatever the other slices
@@ -69,9 +70,7 @@ export function SelectionBar({
       >
         {has ? (
           <>
-            <b>
-              {count} {count === 1 ? 'word' : 'words'}
-            </b>
+            <b>{plural(count, 'word')}</b>
             {summary.audible.length > 0 ? (
               <span className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]">
                 {clock(summary.start)} to {clock(summary.end)} · {summary.len.toFixed(1)} s

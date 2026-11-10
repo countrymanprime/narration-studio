@@ -1,5 +1,6 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { STACK_EDITS, AUDACITY_BACKUPS } from './stackText';
+import { plural } from '../../../plural';
 
 /** Who stacks the retries and how it is undone, or why nobody will. */
 export type StackHow =
@@ -41,7 +42,7 @@ export function undoSentence(how: StackActing): string {
     case 'recorder':
       return 'The app makes this change itself. Un-stack puts the takes back.';
     case 'steps':
-      return `${how.dawName} cannot do this as one action, so it is ${how.steps.length} undo steps. A backup of the audio around the takes is made first, and Undo in ${how.dawName} puts them back.`;
+      return `${how.dawName} cannot do this as one action, so it is ${plural(how.steps.length, 'undo step')}. A backup of the audio around the takes is made first, and Undo in ${how.dawName} puts them back.`;
     case 'daw':
       return `${how.dawName} does this as one action, so it is one undo step. Edit > Undo in ${how.dawName} puts the takes back.`;
   }

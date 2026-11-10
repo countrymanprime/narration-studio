@@ -8,10 +8,9 @@ import { Checkbox } from '../primitives/Checkbox';
 import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { brand } from '../../brand.gen';
+import { plural } from '../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
  * The report export: an explicit action that writes an HTML page a reviewer can open
@@ -76,7 +75,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
             <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
           </p>
           <p className="mt-1" style={MUTED}>
-            {count(written.files, 'file', 'files')}, {count(written.openFindings, 'open finding', 'open findings')} of {written.findings};{' '}
+            {plural(written.files, 'file', 'files')}, {plural(written.openFindings, 'open finding', 'open findings')} of {written.findings};{' '}
             {written.pathsIncluded ? 'full file locations included.' : 'file names only, no locations.'}
           </p>
         </div>

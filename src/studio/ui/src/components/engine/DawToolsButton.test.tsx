@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,7 +17,9 @@ function renderButton(overrides: Partial<NarrationApi> = {}, initial: Parameters
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <DawToolsButton groups={['structure']} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <DawToolsButton groups={['structure']} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );

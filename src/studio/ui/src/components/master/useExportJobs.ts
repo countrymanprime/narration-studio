@@ -5,6 +5,7 @@ import { overlay } from '../../overlay/overlayService';
 import type { ExportItem, ExportJob, ExportPlan, MasteringApproval } from '../../types';
 import { startExportRequest, useExportStarting } from './masterRequests';
 import { kindFromFileName } from './packageKind';
+import { plural } from '../../plural';
 
 /** How a request to start the export ended for the panel that sent it. */
 export type ExportStartOutcome = 'started' | 'refused' | 'no-answer' | 'busy';
@@ -114,7 +115,7 @@ export function useExportJobs() {
         return [...current, ...added];
       });
       if (repeats.length === 1) overlay.toast(`${fileName(repeats[0] ?? '')} is already in the list.`);
-      else if (repeats.length > 1) overlay.toast(`${repeats.length} files are already in the list.`);
+      else if (repeats.length > 1) overlay.toast(`${plural(repeats.length, 'file')} are already in the list.`);
     } catch (error) {
       setProblem(apiErrorMessage(error));
     } finally {

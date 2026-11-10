@@ -2,6 +2,7 @@ import { Icon } from '../../primitives/Icon';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { CATEGORIES, GROUPS, PAGES_CATEGORY } from '../registry/categories';
 import type { CategoryId } from '../registry/types';
+import { plural } from '../../../plural';
 
 // A group label sits 4 px over its own items and 12 px more under the group above, so it reads as the head of its group; the first group
 // gets no extra room, Elsewhere the same as the others.
@@ -83,7 +84,7 @@ export function CategoryNav({
         ))}
         <div role="group" aria-label="Elsewhere" className={GROUP}>
           <div className={GROUP_LABEL}>Elsewhere</div>
-          {item('pages', PAGES_CATEGORY.label, PAGES_CATEGORY.icon, pageSettingCount, `${pageSettingCount} settings`)}
+          {item('pages', PAGES_CATEGORY.label, PAGES_CATEGORY.icon, pageSettingCount, `${plural(pageSettingCount, 'setting')}`)}
         </div>
       </div>
     </nav>

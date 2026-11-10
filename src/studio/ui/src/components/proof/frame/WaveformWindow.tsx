@@ -7,6 +7,7 @@ import type { PeaksSegment } from './peaksJoin';
 import { clusterPins, earliestInView, type Band, type Pin } from './pins';
 import { centreWindow, edgeStep, followSecond, MIN_WINDOW, nudgeWindow, resizeWindow, stepLength, zoomWindow, type TimeWindow } from './windowMath';
 import { clock } from '../../../clock';
+import { plural } from '../../../plural';
 
 /** The ruler's clock: minutes always two digits, as the mock draws it. */
 const at = (seconds: number): string => clock(seconds, { minuteDigits: 2 });
@@ -202,7 +203,7 @@ export function WaveformWindow({
   };
   const clusters = clusterPins(pins, win.start, win.len, width, selectedId);
   const x = (sec: number): number => ((sec - win.start) / win.len) * 100;
-  const label = `Chapter waveform, ${at(win.start)} to ${at(end)}, ${noteCount} ${noteCount === 1 ? 'note' : 'notes'} in this chapter`;
+  const label = `Chapter waveform, ${at(win.start)} to ${at(end)}, ${plural(noteCount, 'note')} in this chapter`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -276,7 +277,7 @@ export function WaveformWindow({
               <button
                 key={cluster.pins[0].id}
                 type="button"
-                aria-label={`${cluster.pins.length} notes`}
+                aria-label={`${plural(cluster.pins.length, 'note')}`}
                 data-cluster={cluster.pins.map((p) => p.id).join(',')}
                 onClick={() => onPin(cluster.pins[0].id)}
                 className={`${PIN_TARGET} [&>span]:size-5 [&>span]:border-[var(--text)] [&>span]:bg-[var(--surface)] [&>span]:text-xs [&>span]:font-bold [&>span]:text-[var(--text)]`}

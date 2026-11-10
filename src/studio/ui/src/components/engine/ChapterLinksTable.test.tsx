@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -27,12 +28,14 @@ function renderTable(onChanged?: () => void) {
   const api = createMockApi();
   render(
     <ApiProvider api={api}>
-      <MemoryRouter initialEntries={['/production']}>
-        <Table onChanged={onChanged} />
-        <Routes>
-          <Route path="*" element={<Where />} />
-        </Routes>
-      </MemoryRouter>
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+        <MemoryRouter initialEntries={['/production']}>
+          <Table onChanged={onChanged} />
+          <Routes>
+            <Route path="*" element={<Where />} />
+          </Routes>
+        </MemoryRouter>
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return api;
@@ -109,9 +112,11 @@ describe('ChapterLinksTable', () => {
     }
     render(
       <ApiProvider api={createMockApi()}>
-        <MemoryRouter initialEntries={['/production']}>
-          <Harness />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter initialEntries={['/production']}>
+            <Harness />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -292,9 +297,11 @@ describe('ChapterLinksTable', () => {
     await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
     render(
       <ApiProvider api={api}>
-        <MemoryRouter>
-          <Table />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const user = userEvent.setup();
@@ -338,9 +345,11 @@ describe('ChapterLinksTable', () => {
     await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
     render(
       <ApiProvider api={api}>
-        <MemoryRouter>
-          <Table />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -427,9 +436,11 @@ describe('ChapterLinksTable', () => {
     const api = { ...real, chapterTrackMapList: () => (hold ? new Promise<never>(() => {}) : real.chapterTrackMapList()) };
     render(
       <ApiProvider api={api}>
-        <MemoryRouter initialEntries={['/production']}>
-          <Table />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter initialEntries={['/production']}>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -490,9 +501,11 @@ describe('ChapterLinksTable', () => {
     await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
     render(
       <ApiProvider api={api}>
-        <MemoryRouter>
-          <Table />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -511,9 +524,11 @@ describe('ChapterLinksTable', () => {
     await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
     render(
       <ApiProvider api={api}>
-        <MemoryRouter>
-          <Table />
-        </MemoryRouter>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
 

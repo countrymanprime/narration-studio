@@ -17,6 +17,7 @@ import { analyzerLabel, findingSummary, noteTime } from '../findingFormat';
 import { noteIsOpen } from '../proof.selectors';
 import { fixKindOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
+import { plural } from '../../../plural';
 
 export type NoteRow = {
   id: string;
@@ -171,7 +172,7 @@ export function notesSource(rows: () => readonly NoteRow[], onFind: (term: strin
       };
     });
     if (found.length > NOTES_SHOWN)
-      hits.push({ group: NOTES_GROUP, title: `${found.length - NOTES_SHOWN} more notes. Show them in the list.`, run: () => onFind(term) });
+      hits.push({ group: NOTES_GROUP, title: `${plural(found.length - NOTES_SHOWN, 'more note')}. Show them in the list.`, run: () => onFind(term) });
     return hits;
   };
 }

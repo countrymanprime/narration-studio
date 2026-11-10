@@ -13,6 +13,7 @@ import { ToggleGroup } from '../primitives/ToggleGroup';
 import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { cleanupThresholdRows, thresholdRows } from './diagnosticsFormat';
 import { CheckedFilesTable, CleanupFindingsTable, FindingsTable } from './DiagnosticsTables';
+import { plural } from '../../plural';
 
 /** How often a running check is read. */
 const POLL_MS = 500;
@@ -32,8 +33,6 @@ function useDawName(): string {
 
 /** The host's Cleanup settings (`fieldSchemas` in src/studio/desktop/app.go): the five thresholds of the silence, breath and click analyzer. */
 const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_seconds', 'breath_below_speech_db', 'click_above_silence_db'] as const;
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 // A label and value list, one label column for every panel here so Thresholds and Silence cleanup line up (R3MS-4).
 const DEFINITIONS = 'grid grid-cols-[minmax(8rem,11rem)_minmax(0,1fr)] gap-x-6 gap-y-1 text-sm';
