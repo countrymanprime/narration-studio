@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { VoiceTracksLayout, VoiceTracksState } from '../../api/contracts/voiceTracks';
 import { usePort } from '../../ports/usePort';
 
-const FLAT: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [] };
+const FLAT: VoiceTracksState = { layout: 'flat', narratorCharacter: '', narratorGuids: [], tracks: [] };
 
 type VoiceSetup = {
   setup: VoiceTracksState;

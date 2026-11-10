@@ -196,7 +196,7 @@ export function createMockApi(
     proofNotes: () => proofNotes.read(),
   });
   const voiceTracks = createVoiceTracksMock(
-    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'], guids: [] }] } : undefined,
   );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,

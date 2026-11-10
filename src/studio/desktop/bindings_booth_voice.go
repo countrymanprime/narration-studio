@@ -163,16 +163,16 @@ func unsavedVoices(svc hostServices, project tracks.Project, link string) []Boot
 	return unsaved
 }
 
-// voiceFor is the voice a take records on: chosen when it is one of voices, else the first named Narrator (as the Engine panel's
+// voiceFor is the voice a take records on: chosen when it is one of voices, else the first Narrator track (named so, or renamed from it; as the Engine panel's
 // Voices card gives it key 0), else the first voice.
-func voiceFor(voices []tracks.Track, chosen string) string {
+func voiceFor(voices []tracks.Track, chosen string, setup voicetracks.State) string {
 	for _, voice := range voices {
 		if chosen != "" && strings.EqualFold(voice.GUID, chosen) {
 			return voice.GUID
 		}
 	}
 	for _, voice := range voices {
-		if strings.EqualFold(strings.TrimSpace(voice.Name), "narrator") {
+		if setup.IsNarrator(voice.GUID, voice.Name) {
 			return voice.GUID
 		}
 	}
@@ -202,7 +202,9 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. Add a track inside the folder in %s, and save.", title, readAloudAdapterName(svc)))
 		return "", &refused, nil
 	}
-	return voiceFor(voices, svc.boothVoices.For(chapterID)), nil, nil
+	// A setup that cannot be read leaves the Narrator to be found by name, as before.
+	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
+	return voiceFor(voices, svc.boothVoices.For(chapterID), setup), nil, nil
 }
 
 // boothVoiceChoices is the voice the Booth chose for each chapter of one project, by chapter id: the track its next record start

@@ -113,7 +113,7 @@ describe("the Booth's voices", () => {
     ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
   ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
     const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', tracks: [] }),
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }),
       chapterTrackMapList: async () => ({
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],

@@ -10,6 +10,8 @@ export type VoiceTrackAssignment = {
   track: string;
   /** Story Bible character ids, at least one. */
   characters: string[];
+  /** The tracks (GUIDs, lower case) this assignment was seen on: a track renamed to a name no assignment has keeps it. */
+  guids: string[];
 };
 
 export type VoiceTracksState = {
@@ -18,6 +20,8 @@ export type VoiceTracksState = {
   narratorCharacter: string;
   /** In track name order. A track with no assignment matches characters by name and alias, and is not listed. */
   tracks: VoiceTrackAssignment[];
+  /** The tracks (GUIDs, lower case) that were named Narrator: renaming the Narrator track keeps it key 0. */
+  narratorGuids: string[];
 };
 
 /**

@@ -23,7 +23,7 @@ func TestAProjectWithNoFileIsFlatWithNoAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got, State{Layout: LayoutFlat, NarratorCharacter: "", Tracks: []TrackAssignment{}}) {
+	if !reflect.DeepEqual(got, State{Layout: LayoutFlat, NarratorCharacter: "", Tracks: []TrackAssignment{}, NarratorGUIDs: []string{}}) {
 		t.Fatalf("got %+v", got)
 	}
 }
@@ -51,7 +51,7 @@ func TestATracksCharactersAreSetReplacedAndClearedByTrackName(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ := service.Get()
-	want := []TrackAssignment{{Track: "Gardeners", Characters: []string{"two", "five", "seven"}}, {Track: "Queen", Characters: []string{"queen-of-hearts"}}}
+	want := []TrackAssignment{{Track: "Gardeners", Characters: []string{"two", "five", "seven"}, GUIDs: []string{}}, {Track: "Queen", Characters: []string{"queen-of-hearts"}, GUIDs: []string{}}}
 	if !reflect.DeepEqual(got.Tracks, want) {
 		t.Fatalf("tracks = %+v, want %+v (in name order, a repeated id once)", got.Tracks, want)
 	}
@@ -187,7 +187,7 @@ func TestAddingCharactersToATrackKeepsTheOnesItHad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []TrackAssignment{{Track: "Extras", Characters: []string{"duchess", "cook", "king"}}}
+	want := []TrackAssignment{{Track: "Extras", Characters: []string{"duchess", "cook", "king"}, GUIDs: []string{}}}
 	if !reflect.DeepEqual(got.Tracks, want) {
 		t.Fatalf("got %+v, want %+v", got.Tracks, want)
 	}
@@ -222,5 +222,118 @@ func TestAddingPastTheLimitOfCharactersIsRefused(t *testing.T) {
 	}
 	if _, err := service.AddTrackCharacters("Extras", ids[:3]); err != nil {
 		t.Fatalf("adding ones it has: %v", err)
+	}
+}
+
+func learnSetup(t *testing.T) *Service {
+	t.Helper()
+	service := New(Config{Project: t.TempDir()})
+	if _, err := service.SetTrackCharacters("Lead", []string{"lead-id"}); err != nil {
+		t.Fatal(err)
+	}
+	return service
+}
+
+func guidsOf(t *testing.T, service *Service, name string) []string {
+	t.Helper()
+	state, err := service.Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, track := range state.Tracks {
+		if track.Track == name {
+			return track.GUIDs
+		}
+	}
+	return nil
+}
+
+func TestLearnRecordsTheTracksCarryingAnAssignmentAndKeepsThemThroughARename(t *testing.T) {
+	service := learnSetup(t)
+	if changed, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}, {GUID: "{B}", Name: "Lead"}, {GUID: "{C}", Name: "Other"}}); err != nil || !changed {
+		t.Fatalf("learn changed=%v err=%v", changed, err)
+	}
+	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{a}", "{b}"}) {
+		t.Fatalf("guids = %v", got)
+	}
+	// {A} is renamed to a name no assignment has: it keeps Lead's assignment; {B} is unchanged.
+	if changed, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead 2"}, {GUID: "{B}", Name: "Lead"}, {GUID: "{C}", Name: "Other"}}); err != nil || changed {
+		t.Fatalf("a rename to an unassigned name changed the file: changed=%v err=%v", changed, err)
+	}
+	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{a}", "{b}"}) {
+		t.Fatalf("a rename lost the assignment: %v", got)
+	}
+}
+
+func TestLearnMovesATrackRenamedToAnotherAssignmentsName(t *testing.T) {
+	service := learnSetup(t)
+	if _, err := service.SetTrackCharacters("Queen", []string{"queen-id"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Queen"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := guidsOf(t, service, "Queen"); !reflect.DeepEqual(got, []string{"{a}"}) {
+		t.Fatalf("queen guids = %v", got)
+	}
+	if got := guidsOf(t, service, "Lead"); len(got) != 0 {
+		t.Fatalf("lead still holds the track: %v", got)
+	}
+}
+
+func TestLearnDropsDeletedTracksButNeverForgetsOnAnEmptyRead(t *testing.T) {
+	service := learnSetup(t)
+	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}, {GUID: "{B}", Name: "Lead"}}); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := service.Learn(nil); err != nil || changed {
+		t.Fatalf("an empty read changed the file: changed=%v err=%v", changed, err)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{B}", Name: "Lead"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{b}"}) {
+		t.Fatalf("guids = %v", got)
+	}
+}
+
+func TestTheNarratorTrackStaysTheNarratorWhenRenamed(t *testing.T) {
+	service := New(Config{Project: t.TempDir()})
+	if _, err := service.Learn([]Seen{{GUID: "{N}", Name: "Narrator"}, {GUID: "{X}", Name: "Alice"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{N}", Name: "Storyteller"}, {GUID: "{X}", Name: "Alice"}}); err != nil {
+		t.Fatal(err)
+	}
+	state, err := service.Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !state.IsNarrator("{N}", "Storyteller") || state.IsNarrator("{X}", "Alice") || !state.IsNarrator("{x}", "narrator") {
+		t.Fatalf("narrator state %+v", state)
+	}
+}
+
+func TestAnOlderFileWithNoGuidsReadsAndIsRepairedOnTheFirstLearn(t *testing.T) {
+	dir := t.TempDir()
+	raw := `{"schemaVersion":1,"layout":"folders","narratorCharacter":"","tracks":{"Lead":{"characters":["lead-id"]}}}`
+	if err := os.MkdirAll(filepath.Dir(File(dir)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(File(dir), []byte(raw), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	service := New(Config{Project: dir})
+	if got := guidsOf(t, service, "Lead"); len(got) != 0 {
+		t.Fatalf("older file guids = %v", got)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{a}"}) {
+		t.Fatalf("repaired guids = %v", got)
 	}
 }

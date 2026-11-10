@@ -1,6 +1,7 @@
 {
   "layout": "folders",
   "narratorCharacter": "alice",
+  "narratorGuids": [],
   "tracks": [
     {
       "characters": [
@@ -8,12 +9,14 @@
         "five",
         "seven"
       ],
+      "guids": [],
       "track": "Gardeners"
     },
     {
       "characters": [
         "queen-of-hearts"
       ],
+      "guids": [],
       "track": "Queen"
     }
   ]

@@ -98,7 +98,8 @@ function withTrackCharacters(current: VoiceTracksState, track: string, ids: stri
   const name = track.trim();
   const unique = [...new Set(ids)];
   const others = current.tracks.filter((entry) => entry.track !== name);
-  const tracks = unique.length === 0 ? others : [...others, { track: name, characters: unique }];
+  const guids = current.tracks.find((entry) => entry.track === name)?.guids ?? [];
+  const tracks = unique.length === 0 ? others : [...others, { track: name, characters: unique, guids }];
   tracks.sort((a, b) => (a.track < b.track ? -1 : a.track > b.track ? 1 : 0));
   return { ...current, tracks };
 }
