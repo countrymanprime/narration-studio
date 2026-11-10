@@ -41,12 +41,12 @@ export function folderChildren(tracks: readonly Track[], folderGuid: string): Tr
 
 /** The assignment a track carries: the one named as the track is, else the one the track was seen on before it was renamed (a rename to a
  * name no assignment has keeps what the track had; a rename to one that has an assignment takes that one). */
-export function assignmentOf(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>) {
+function assignmentOf(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>) {
   return setup.tracks.find((entry) => entry.track === track.name.trim()) ?? setup.tracks.find((entry) => entry.guids.includes(track.guid.toLowerCase()));
 }
 
 /** Whether a track is a Narrator track: named so, or seen named so before it was renamed. */
-export function isNarratorTrack(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>): boolean {
+function isNarratorTrack(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>): boolean {
   return same(track.name, NARRATOR) || setup.narratorGuids.includes(track.guid.toLowerCase());
 }
 
