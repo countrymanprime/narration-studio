@@ -30,6 +30,7 @@ function links(overrides: Partial<ChapterLinks> = {}): ChapterLinks {
     creatingChapterId: '',
     set: () => {},
     unlink: () => {},
+    recheck: async () => {},
     create: async () => undefined,
     ...overrides,
   };

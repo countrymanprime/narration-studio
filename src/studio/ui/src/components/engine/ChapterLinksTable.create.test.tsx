@@ -61,7 +61,7 @@ const trackNameOf = (index: number) => {
 };
 
 function liveStub(): LiveTracks {
-  return { reason: '', message: '', readAt: Date.now(), busy: false, refreshing: false, stale: false, error: '', refresh: vi.fn(), join: vi.fn() };
+  return { reason: '', message: '', readAt: Date.now(), busy: false, refreshing: false, stale: false, error: '', refresh: vi.fn(), recheck: vi.fn(async () => undefined), join: vi.fn() };
 }
 
 type Harness = {

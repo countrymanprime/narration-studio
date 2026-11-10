@@ -31,6 +31,8 @@ export type LiveTracks = {
   error: string;
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
+  /** Reads the tracks now like `refresh` and answers what the read found, or undefined when it failed (a toast says so), was replaced by a newer read, or the project is Audacity's. */
+  recheck: () => Promise<TracksProject | undefined>;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
   join: () => void;
 };
@@ -56,7 +58,7 @@ function withinLimit(read: Promise<TracksLive>): Promise<TracksLive> {
  */
 export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; readKey: unknown; notify: Notify }): LiveTracks {
   const tracks = usePort('tracks');
-  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'join' | 'busy' | 'refreshing'>>({
+  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'recheck' | 'join' | 'busy' | 'refreshing'>>({
     reason: '',
     message: '',
     readAt: null,
@@ -79,8 +81,8 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   const refreshRef = useRef<() => void>(() => {});
 
   const read = useCallback(
-    (force: boolean, pressed: boolean) => {
-      if (!enabled || (!force && inFlight.current > 0)) return;
+    (force: boolean, pressed: boolean): Promise<TracksProject | undefined> => {
+      if (!enabled || (!force && inFlight.current > 0)) return Promise.resolve(undefined);
       const id = ++latest.current;
       inFlight.current += 1;
       setBusy(true);
@@ -88,9 +90,9 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
         pressedRead.current = id;
         setRefreshing(true);
       }
-      withinLimit(tracks.tracksLive())
+      return withinLimit(tracks.tracksLive())
         .then((answer) => {
-          if (!mounted.current || id !== latest.current) return;
+          if (!mounted.current || id !== latest.current) return undefined;
           failing.current = false;
           hasProject.current = true;
           setState({
@@ -102,9 +104,10 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
             stale: false,
             error: '',
           });
+          return answer.project;
         })
         .catch((reason: unknown) => {
-          if (!mounted.current || id !== latest.current) return;
+          if (!mounted.current || id !== latest.current) return undefined;
           const text = describeApiError(reason);
           if (pressed || !failing.current)
             notifyRef.current(
@@ -114,6 +117,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
+          return undefined;
         })
         .finally(() => {
           inFlight.current -= 1;
@@ -133,11 +137,13 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   }, []);
 
   // readKey has no meaning of its own: a change asks for a fresh read (another linked file, Check again).
-  useEffect(() => read(true, false), [read, readKey]);
+  useEffect(() => {
+    void read(true, false);
+  }, [read, readKey]);
 
   useEffect(() => {
     if (!enabled) return;
-    const auto = () => read(false, false);
+    const auto = () => void read(false, false);
     const onVisible = () => {
       if (document.visibilityState === 'visible') auto();
     };
@@ -151,8 +157,9 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
     };
   }, [enabled, read]);
 
-  const refresh = useCallback(() => read(true, true), [read]);
+  const refresh = useCallback(() => void read(true, true), [read]);
   refreshRef.current = refresh;
-  const join = useCallback(() => read(false, false), [read]);
-  return { ...state, busy, refreshing, refresh, join };
+  const recheck = useCallback(() => read(true, true), [read]);
+  const join = useCallback(() => void read(false, false), [read]);
+  return { ...state, busy, refreshing, refresh, recheck, join };
 }

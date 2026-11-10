@@ -77,6 +77,22 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
     );
   };
 
+  // Confirm on the link the chapter already has: read the tracks from the DAW and the links again, then say what that found, so the press
+  // is never silent and doubles as the resync after a track was renamed or removed in the DAW (#3275).
+  const recheck = async (row: ChapterTrackRow) => {
+    const short = chapterName(row.chapter, 'short');
+    const guid = row.mapping?.trackGuid;
+    const project = live ? await live.recheck() : undefined;
+    try {
+      await links.recheck();
+    } catch (reason) {
+      notify(`The link for ${short} could not be read again: ${apiErrorMessage(reason)}`, 'error');
+      return;
+    }
+    if (live && !project) return; // the read failed and its own toast says so
+    notify(recheckSentence(short, row.trackName, project?.tracks ?? tracks, guid), 'info');
+  };
+
   return (
     <Panel
       title="Chapter links"
@@ -116,6 +132,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
                 createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
                 onCreate={() => create(row.chapter)}
                 onConfirm={(trackGuid) => links.set(row.chapter.id, trackGuid)}
+                onRecheck={() => recheck(row)}
                 onClear={() => links.unlink(row.chapter.id)}
                 onEditingCheck={() => setEditingChecking(row.chapter)}
               />
@@ -145,6 +162,16 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
+/** What a Confirm on an unchanged link found: the track as it is now, its voices in a folder, and whether its name moved. */
+export function recheckSentence(short: string, was: string | undefined, tracks: Track[], guid: string | undefined): string {
+  const track = tracks.find((candidate) => candidate.guid === guid);
+  if (!track) return `${short} is linked to a track that is no longer in the project. Choose another track or clear the link.`;
+  const voices = track.isFolder ? folderChildren(tracks, track.guid).length : 0;
+  const what = track.isFolder ? `${voices} ${voices === 1 ? 'voice' : 'voices'}` : 'a single track';
+  if (was !== undefined && was !== track.name) return `Updated: ${short}'s track was “${was}” and is now “${track.name}” (${what}).`;
+  return `${short} is linked to “${track.name}” (${what}). Nothing changed.`;
+}
+
 /** The done toast: what the DAW made, named as it was given, and that it is not saved yet. */
 function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
   return result.voice
@@ -164,6 +191,7 @@ function ChapterLinkRow({
   createLocked,
   onCreate,
   onConfirm,
+  onRecheck,
   onClear,
   onEditingCheck,
 }: {
@@ -176,6 +204,8 @@ function ChapterLinkRow({
   createLocked: boolean;
   onCreate: () => void;
   onConfirm: (trackGuid: string) => void;
+  /** Confirm pressed on the track the chapter is already linked to: reads again and says what it found. */
+  onRecheck: () => Promise<void>;
   onClear: () => void;
   onEditingCheck: () => void;
 }) {
@@ -183,10 +213,13 @@ function ChapterLinkRow({
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
   const [picking, setPicking] = useState(!hasLink);
+  const [rechecking, setRechecking] = useState(false);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
   useEffect(() => {
     setPicking(!hasLink);
+    // A cleared link leaves no choice behind: the old pick would show the check as ready, one press from linking it again.
+    if (!hasLink) setChosen('');
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
@@ -256,8 +289,16 @@ function ChapterLinkRow({
                 label={`Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 variant={chosen ? 'primary' : 'default'}
                 disabledReason={!chosen ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
-                pending={busy && !creating}
-                onClick={() => onConfirm(chosen)}
+                pending={(busy && !creating) || rechecking}
+                onClick={() => {
+                  if (chosen !== linkedGuid) return onConfirm(chosen);
+                  // The same track again: not a change, so read it again and report, then leave the picker.
+                  setRechecking(true);
+                  void onRecheck().finally(() => {
+                    setRechecking(false);
+                    setPicking(false);
+                  });
+                }}
               />
               {createButton}
               {hasLink && <IconButton action="cancelEdit" disabledReason={busy ? 'Saving the link' : undefined} onClick={() => setPicking(false)} />}

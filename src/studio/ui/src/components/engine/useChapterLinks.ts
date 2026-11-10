@@ -25,6 +25,8 @@ export type ChapterLinks = {
   creatingChapterId: string;
   /** Replaces the chapter's link with this track, then re-reads. */
   set: (chapterId: string, trackGuid: string) => void;
+  /** Reads the links again (a Confirm on the link the chapter already has asks for this, so the press shows what the host holds now). */
+  recheck: () => Promise<void>;
   /** Clears every link the chapter holds, then re-reads. */
   unlink: (chapterId: string) => void;
   /** Has the DAW add a track named after the chapter (a folder with a Narrator track in Voice folders) and link it (chapterTrackCreate), then
@@ -120,11 +122,12 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       });
   };
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
-  // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
+  // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice: the row asks for `recheck` then.
   const set = (chapterId: string, trackGuid: string) => {
     if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
+  const recheck = () => reload().then(onChanged);
   const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
 
   // Mounted while a create from an earlier mount runs (the panel closed and opened again): busy until it ends, then read the links again.
@@ -190,5 +193,5 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, unlink, create };
+  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, recheck, unlink, create };
 }

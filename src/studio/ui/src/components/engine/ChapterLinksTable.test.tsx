@@ -122,6 +122,48 @@ describe('ChapterLinksTable', () => {
     expect(confirm.getAttribute('aria-disabled')).toBeNull();
   });
 
+  // #3275: Confirm on the track the chapter already has looked enabled and did nothing, so the narrator could not tell a resync from a dead button.
+  it('acts when Confirm is pressed on the track the chapter already has: says nothing changed, writes nothing, leaves the picker', async () => {
+    const user = userEvent.setup();
+    notify.mockClear();
+    const api = renderTable();
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    expect(set).toHaveBeenCalledTimes(1);
+
+    // The picker opens on the linked track, and its check is live: pressing it is not a dead click.
+    const confirm = within(opening).getByRole('button', { name: /^Use this track for/ });
+    expect(confirm.getAttribute('aria-disabled')).toBeNull();
+    await user.click(confirm);
+
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Nothing changed\./), 'info'));
+    expect(notify.mock.calls.at(-1)?.[0]).toContain(WIRE_TRACKS_PROJECT.tracks[0].name);
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(await within(opening).findByRole('button', { name: /^Change the track for/ })).toBeTruthy();
+  });
+
+  // Narrator walkthrough: after Clear the select still held the old track and the check looked ready, one press from linking it again.
+  it('opens a cleared row on "Choose a track" with the check off', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
+    const select = (await within(opening).findByRole('combobox')) as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.textContent).toBe('Choose a track');
+    expect(
+      within(opening)
+        .getByRole('button', { name: /^Use this track for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
+  });
+
   // ENX-1: the columns were sized by their content, so they moved between states and rows.
   it('lays the table out on fixed columns with a visible heading over the track', async () => {
     renderTable();
