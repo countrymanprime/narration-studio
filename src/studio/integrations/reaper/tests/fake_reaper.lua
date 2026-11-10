@@ -45,6 +45,9 @@ function Fake.new(host)
   -- like a freshly opened project; a test bumps it directly (`s.fake.change_count = s.fake.change_count + 1`) to
   -- model an edit, the way REAPER increments it on any change.
   self.change_count = 0
+  -- The change count the project file holds (IsProjectDirty is false when they match); a save sets it. A test sets
+  -- save_fails to model a file REAPER cannot write: the save does nothing and the project stays dirty.
+  self.saved_count = 0
   -- Transport and loop state (narration_navigation.lua). A new project has an empty time selection and loop range
   -- (both 0..0), repeat off and the transport stopped. The time selection and the loop points are kept apart unless a
   -- test sets linked_loop: REAPER 7.80 links them by default (seen in a real REAPER 7.80 check) but the link is a preference, so a
@@ -618,6 +621,21 @@ function Fake:add_project_api(api)
   end
   function api.GetProjectStateChangeCount(_)
     return fake.change_count
+  end
+  -- IsProjectDirty(proj): non-zero while the project has edits its file lacks.
+  function api.IsProjectDirty(_)
+    return fake.change_count ~= fake.saved_count and 1 or 0
+  end
+  -- Main_SaveProject(proj, forceSaveAsIn): saves to the project's own file. A project that was never saved has none, and REAPER
+  -- opens a file dialog and waits for the narrator, which the fake records as dialog_opened and then leaves unsaved.
+  function api.Main_SaveProject(_, force_save_as)
+    fake.calls[#fake.calls + 1] = { name = 'Main_SaveProject', force_save_as = force_save_as }
+    if fake.project_path == '' then
+      fake.dialog_opened = true
+    elseif not fake.save_fails then
+      fake.saved_count = fake.change_count
+      fake.saves = (fake.saves or 0) + 1
+    end
   end
   function api.get_action_context()
     return true, fake.action_path or '', 0, 0, 0, 0

@@ -82,6 +82,8 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { useRereadFeedback } from './useRereadFeedback';
+import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
 import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
@@ -562,6 +564,9 @@ export function EditingBody(props: EditingBodyProps) {
 
   const layout = useVoiceLayout();
   // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
+  const { rereading, reread } = useRereadFeedback(read, chapterName, props.onReread);
+  // The read after a save is the same read as **Read again**: it shows pending and says when the saved project still has no audio.
+  const save = useSaveInDaw(reread);
   const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
   const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName, layout).headline}`;
 
@@ -588,7 +593,14 @@ export function EditingBody(props: EditingBodyProps) {
               dawTools
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
-            <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={dawName}
+              onReread={reread}
+              rereading={rereading}
+              save={canSaveFromApp(caps) ? save : undefined}
+            />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>

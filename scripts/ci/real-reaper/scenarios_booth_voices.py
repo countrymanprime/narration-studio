@@ -1193,3 +1193,85 @@ def record_into_unsaved_voice(env: Env) -> str:
     env.lua("reaper.Main_SaveProject(0, false) return true")
     assert "<ITEM" in Path(rpp).read_text(encoding="utf-8"), "a save did not write the take"
     return f"voice {created[3:5]} added after the save; saved file has no item and no Veyra while REAPER is dirty; live read has 1 item on Veyra; after a save the file has the item"
+
+
+def _arrange_unsaved_take(env: Env) -> tuple[str, str, str]:
+    """The #3232 flow up to Editing: a chapter folder saved, a voice added to it and a take recorded on it, nothing saved since. Answers the folder, the voice and the .rpp."""
+    g = env.lua(
+        """
+        local names = { 'Book', 'Chapter 3', 'Narrator', 'After' }
+        local t = {}
+        for _, n in ipairs(names) do t[n] = ci.add_track(n) end
+        reaper.SetMediaTrackInfo_Value(t.Book, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(t['Chapter 3'], 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(t.Narrator, 'I_FOLDERDEPTH', -2)
+        ci.save_and_reload(ci.rpp)
+        return { folder = reaper.GetTrackGUID(ci.track_by_name('Chapter 3')) }
+        """
+    )
+    env.ok("track_create", "Veyra", g["folder"], until="TRACK_CREATED")
+    veyra = env.lua("return reaper.GetTrackGUID(ci.track_by_name('Veyra'))")
+    env.ok("arm_only", veyra, until="ARMED")
+    env.ok("record_start", veyra, until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 1.2, timeout=8, what="the take to run over a second")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    settled_items(env, 1)
+    return g["folder"], veyra, env.lua("return ci.rpp")
+
+
+@scenario(
+    "save_project",
+    "track_create, arm_only, record_start, record_stop, save_project, chapter_track_state",
+    "#3262: the take recorded onto a new voice since the last save is written to the .rpp by save_project, which adds no undo point and leaves REAPER clean; "
+    "a second save answers the same",
+    needs_audio=True,
+)
+def save_project_writes_the_take(env: Env) -> str:
+    folder, veyra, rpp = _arrange_unsaved_take(env)
+    before = Path(rpp).read_text(encoding="utf-8")
+    assert "<ITEM" not in before and "Veyra" not in before, "the saved file already holds the take or the new voice"
+    assert env.lua("return reaper.IsProjectDirty(0)") != 0, "REAPER does not report unsaved changes after the take"
+    undo_before = env.lua("return reaper.Undo_CanUndo2(0)")
+    saved = env.ok("save_project", rpp, until="SAVED")
+    after = Path(rpp).read_text(encoding="utf-8")
+    assert "<ITEM" in after and "Veyra" in after, "save_project did not write the take and the new voice"
+    assert env.lua("return reaper.IsProjectDirty(0)") == 0, "REAPER still reports unsaved changes after save_project"
+    assert env.lua("return reaper.Undo_CanUndo2(0)") == undo_before, "save_project added or took an undo point"
+    again = env.ok("save_project", rpp, until="SAVED")
+    assert again[2:] == saved[2:], f"a second save answered {again[2:]} after {saved[2:]}"
+    live = env.send("chapter_track_state", folder, "children", until={"TRACK_STATE_END", "TRACK_STALE"})
+    assert [e[10] for e in live if e[0] == "TRACK_ITEM"] == [veyra], "the folder read lost the take after the save"
+    return f"saved file had no item and no Veyra; save_project answered SAVED tracks={saved[2]} items={saved[3]}; the file now holds the item on Veyra, REAPER is clean, the undo top is unchanged ({undo_before!r}), a second save answers the same"
+
+
+@scenario(
+    "save_project",
+    "save_project",
+    "#3262: refusals write nothing and leave REAPER answering: another project open, recording and a project never saved (no file dialog)",
+    needs_audio=True,
+)
+def save_project_refusals(env: Env) -> str:
+    _folder, veyra, rpp = _arrange_unsaved_take(env)
+    before = Path(rpp).read_text(encoding="utf-8")
+    other = env.refused("save_project", str(Path(rpp).with_name("NotThisOne.rpp")))
+    assert "different project" in other[2], other
+    assert Path(rpp).read_text(encoding="utf-8") == before, "a refused save wrote the file"
+    # Recording: the take above is stopped, so start another and ask while it runs.
+    env.ok("arm_only", veyra, until="ARMED")
+    env.ok("record_start", veyra, until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 0.3, timeout=8, what="the take to run")
+    recording = env.refused("save_project", rpp)
+    assert "recording" in recording[2], recording
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    settled_items(env, 2)
+    # A project that was never saved has no file; the save must not open REAPER's file dialog (which would stop the bridge).
+    env.lua("reaper.Main_SaveProject(0, false) return true")
+    env.lua("reaper.Main_OnCommand(40023, 0) return true")
+    env.wait_for(lambda: env.lua("local _, p = reaper.EnumProjects(-1, '') return p") == "", what="a new, unsaved project")
+    never = env.refused("save_project", rpp)
+    assert "never been saved" in never[2], never
+    env.ok("ping", until="PONG")
+    env.lua("reaper.Main_openProject('noprompt:' .. ci.rpp) return true")
+    return f"another project, recording and a never-saved project were each refused with nothing written ({other[2][:40]!r}, {recording[2][:30]!r}, {never[2][:40]!r}); the bridge still answered ping. Not run: a read-only file, because REAPER 7.82 stops answering the bridge on it (the host checks the file first)"

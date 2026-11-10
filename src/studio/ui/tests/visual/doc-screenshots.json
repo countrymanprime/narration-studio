@@ -897,6 +897,13 @@
   },
   {
     "page": "editing",
+    "state": "unsaved-take",
+    "viewport": "desktop",
+    "docName": "editing-unsaved-take",
+    "caption": "Editing - a chapter whose recording is still unsaved in REAPER: the note says so, with Save in REAPER and read beside Read again"
+  },
+  {
+    "page": "editing",
     "state": "output-popover",
     "viewport": "desktop",
     "docName": "editing-output",
