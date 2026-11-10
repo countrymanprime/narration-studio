@@ -51,11 +51,7 @@ func TestResolverAnswersEveryChapterAsForChapterDoes(t *testing.T) {
 func TestResolverMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
 	chapters, project := bookProject(44, 20)
 	resolver := NewResolver(chapters, project)
-	calls := map[string]int{}
-	resolver.matchTitle = func(titles []string, name string) TitleMatch {
-		calls[name]++
-		return MatchTitle(titles, name)
-	}
+	before := TitleMatchCalls()
 	for _, chapter := range chapters {
 		if _, err := resolver.ForChapter(chapter.ID, nil); err != nil {
 			t.Fatal(err)
@@ -68,15 +64,8 @@ func TestResolverMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
 	for _, region := range project.Regions {
 		names[region.Name] = true
 	}
-	total := 0
-	for name, n := range calls {
-		total += n
-		if n != 1 {
-			t.Errorf("%q was matched %d times, want once", name, n)
-		}
-	}
-	if total > len(names) {
-		t.Fatalf("%d title matches for %d distinct names (%d chapters, %d tracks, %d regions)", total, len(names), len(chapters), len(project.Tracks), len(project.Regions))
+	if calls := TitleMatchCalls() - before; calls != int64(len(names)) {
+		t.Fatalf("%d title matches for %d distinct names (%d chapters, %d tracks, %d regions), want one each", calls, len(names), len(chapters), len(project.Tracks), len(project.Regions))
 	}
 }
 

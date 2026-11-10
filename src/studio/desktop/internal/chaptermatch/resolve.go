@@ -122,13 +122,11 @@ type Resolver struct {
 	indexOf  map[string]int
 	project  tracks.Project
 	matches  map[string]TitleMatch
-	// matchTitle is MatchTitle; a test counts the calls through it.
-	matchTitle func(titles []string, name string) TitleMatch
 }
 
 // NewResolver prepares to resolve chapters against project.
 func NewResolver(chapters []Chapter, project tracks.Project) *Resolver {
-	r := &Resolver{chapters: chapters, titles: make([]string, len(chapters)), indexOf: make(map[string]int, len(chapters)), project: project, matches: map[string]TitleMatch{}, matchTitle: MatchTitle}
+	r := &Resolver{chapters: chapters, titles: make([]string, len(chapters)), indexOf: make(map[string]int, len(chapters)), project: project, matches: map[string]TitleMatch{}}
 	for i, chapter := range chapters {
 		r.titles[i] = chapter.Title
 		r.indexOf[chapter.ID] = i
@@ -141,7 +139,7 @@ func (r *Resolver) match(name string) TitleMatch {
 	if m, ok := r.matches[name]; ok {
 		return m
 	}
-	m := r.matchTitle(r.titles, name)
+	m := MatchTitle(r.titles, name)
 	r.matches[name] = m
 	return m
 }

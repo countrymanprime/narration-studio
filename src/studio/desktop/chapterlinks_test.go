@@ -2,11 +2,13 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/chaptermatch"
 	"desktop/internal/manuscript"
 	"desktop/internal/recordedthrough"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -262,5 +264,22 @@ func TestLinkingAndUnlinkingAChapterNeverTakesAMeasuredRead(t *testing.T) {
 		if measured() != before {
 			t.Fatalf("%s took a measured read of the chapter list (providers called %d times, want %d)", name, measured(), before)
 		}
+	}
+}
+
+// #3272: ChapterTrackLinks resolves every chapter against the saved project from one resolver, so each track and region name is matched against
+// the titles once, not once per chapter (44 chapters against 64 tracks was about 0.9 s). Work done, not time.
+func TestChapterTrackLinksMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	before := chaptermatch.TitleMatchCalls()
+	links := decodeLinks(t, host)
+	calls := chaptermatch.TitleMatchCalls() - before
+	names := map[string]bool{}
+	for _, track := range links.Tracks {
+		names[track.Name] = true
+	}
+	limit := int64(len(names) + strings.Count(chapterTracksRpp, "MARKER"))
+	if len(ids) < 2 || calls == 0 || calls > limit {
+		t.Fatalf("%d chapters, %d distinct track names: %d title matches, want 1 to %d", len(ids), len(names), calls, limit)
 	}
 }

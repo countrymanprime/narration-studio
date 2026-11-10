@@ -141,6 +141,30 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect((await api.chapterTrackLinks()).chapters.find((c) => c.chapterId === link.chapterId)?.links).toEqual([]);
   });
 
+  // Link has no optimistic state (the linked facts come from the re-read), so its order is fixed: the host writes, the toast says so, then the links are read again once.
+  it('links in order: the host call, the toast, then one re-read of the links', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const order: string[] = [];
+    const spied = {
+      ...api,
+      chapterTrackSet: async (chapterId: string, trackGuid: string) => {
+        order.push('set');
+        return api.chapterTrackSet(chapterId, trackGuid);
+      },
+    } as NarrationApi;
+    const reread = vi.fn(async () => {
+      order.push('reread');
+    });
+    const { notify } = renderPanel(spied, { ...link, status: 'matched' }, track, reread);
+    notify.mockImplementation(() => order.push('toast'));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => expect(order).toEqual(['set', 'toast', 'reread']));
+    expect(reread).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a link that Unlink failed to clear', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
