@@ -186,7 +186,7 @@ export function App({ journal }: { journal?: Journal } = {}) {
 // A pending guarded move, either a path (the nav, a "go to" link) or a Back/Forward delta; the two guards below
 // (unsaved Settings, leaving a Proof chapter view with a run) apply to both the same way (`guardedNavigate` and
 // `attemptDelta` in `App`).
-type PendingMove = { kind: 'path'; path: string; state?: unknown } | { kind: 'delta'; direction: 1 | -1 };
+type PendingMove = { kind: 'path'; path: string; state?: unknown } | { kind: 'delta'; direction: 1 | -1 } | { kind: 'picker' };
 
 function AppRoutes() {
   const api = useApi();
@@ -882,12 +882,17 @@ function AppRoutes() {
   guardedPickerRef.current = () => {
     const verdict = journal.checkLeave('');
     if (verdict === 'allow') {
-      setProjectPickerOpen(true);
+      openPickerPastSettings();
       return;
     }
     void answerLeave(verdict).then((confirmed) => {
-      if (confirmed) setProjectPickerOpen(true);
+      if (confirmed) openPickerPastSettings();
     });
+  };
+  // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved settings" question).
+  const openPickerPastSettings = () => {
+    if (location.pathname === '/settings' && settingsDirty) setPendingMove({ kind: 'picker' });
+    else setProjectPickerOpen(true);
   };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
@@ -1284,7 +1289,8 @@ function AppRoutes() {
   );
 
   function resolvePendingMove(move: PendingMove) {
-    if (move.kind === 'path') navigate(move.path, move.state === undefined ? undefined : { state: move.state });
+    if (move.kind === 'picker') setProjectPickerOpen(true);
+    else if (move.kind === 'path') navigate(move.path, move.state === undefined ? undefined : { state: move.state });
     else if (move.direction === -1) history.back();
     else history.forward();
   }

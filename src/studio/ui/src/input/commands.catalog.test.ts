@@ -2,11 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG, findCommand } from './commands.catalog';
 import { findConflicts } from './findConflicts';
 import { defaultKeymap } from './keymap';
+import { commandsFor } from './surfaces';
 
 describe('COMMAND_CATALOG', () => {
   it('has no duplicate id', () => {
     const ids = COMMAND_CATALOG.map((command) => command.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  // The shortcut sheet and the Keyboard panel list rows by scope, in catalogue order: a row of another group between two rows of one group splits that
+  // group's run under the scope's heading (#3349: the project picker's Back landed inside Proof's). Labels also have to fit a 360 px sheet on one line.
+  it.each(['help', 'settings'] as const)('on the %s surface the rows of one group stay together under their scope heading, with a short label', (surface) => {
+    const rows = commandsFor(surface);
+    for (const scope of new Set(rows.map((row) => row.scope))) {
+      const groups = rows.filter((row) => row.scope === scope).map((row) => row.group ?? '');
+      const runs = groups.filter((group, index) => index === 0 || group !== groups[index - 1]);
+      expect(runs, `${surface}/${scope}: a group appears in two runs: ${runs.join(' | ')}`).toEqual([...new Set(runs)]);
+    }
+    // The project picker's Back wrapped at 360 px with its key cap on a line of its own.
+    expect(findCommand('project.back')!.label.length).toBeLessThanOrEqual(32);
   });
 
   it('has a non-empty label and at least one default gesture for every command', () => {

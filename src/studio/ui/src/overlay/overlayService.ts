@@ -17,6 +17,8 @@ type ConfirmSpec = {
   safeDefault?: boolean;
   /** The confirm button ignores a press for this long after the question appears: for a question that replaces another under the same pixels. */
   armAfterMs?: number;
+  /** No Enter or Space is taken for this long after the question appears, whichever button has focus: for a question raised by a key the narrator may press twice. A click and Escape are not held back. */
+  ignoreEnterAfterMs?: number;
 };
 type DialogSpec =
   | {

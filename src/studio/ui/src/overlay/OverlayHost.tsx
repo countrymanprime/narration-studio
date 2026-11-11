@@ -18,6 +18,9 @@ function useArmed(armAfterMs: number | undefined): boolean {
 
 function Layer({ entry }: { entry: DialogEntry }) {
   const armed = useArmed(entry.kind === 'confirm' ? entry.spec.armAfterMs : undefined);
+  // `ignoreEnterAfterMs`: no Enter or Space for that long after the question appears, so the second press of a double Enter on the row that raised it cannot
+  // answer it unread (#3349). A click and Escape are not held back.
+  const enterArmed = useArmed(entry.kind === 'confirm' ? entry.spec.ignoreEnterAfterMs : undefined);
   if (entry.kind === 'confirm') {
     const { title, body, confirmLabel, confirmVariant, cancelLabel, safeDefault } = entry.spec;
     return (
@@ -29,6 +32,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
         cancelLabel={cancelLabel}
         focusCancel={safeDefault}
         stayOnBody={safeDefault}
+        holdEnter={!enterArmed}
         confirm={() => {
           if (armed) entry.answer(true);
         }}

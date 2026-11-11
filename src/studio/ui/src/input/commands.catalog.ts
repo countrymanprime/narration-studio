@@ -109,6 +109,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
   {
+    id: 'project.back',
+    label: 'Back from the project picker',
+    scope: 'page',
+    defaults: [key('Escape')],
+    shadows: ['editing.escape', 'script.escape', 'proof.escape'],
+    group: 'Go to',
+    surfaces: ['help', 'settings'],
+  },
+  {
     id: 'workspace.play',
     label: 'Play or pause the chapter',
     scope: 'page',
