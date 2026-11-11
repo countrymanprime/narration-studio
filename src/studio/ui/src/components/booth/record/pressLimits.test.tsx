@@ -29,12 +29,27 @@ afterEach(() => {
 
 const OK: DawRecordStart = { ok: true, changed: true, message: '', undoSteps: 0 } as DawRecordStart;
 
-function mount(options: { start?: DawClient['recordStart']; bootstrap?: NarrationApi['bootstrap']; setup?: 'reaper' | 'builtin' } = {}) {
+function mount(
+  options: {
+    start?: DawClient['recordStart'];
+    bootstrap?: NarrationApi['bootstrap'];
+    setup?: 'reaper' | 'builtin';
+    transport?: (emit: (transport: { recording: boolean }) => void) => void;
+  } = {},
+) {
   const stops = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
   const client: DawClient = {
     ...dawClientFor(options.setup ?? 'reaper'),
     ...(options.start ? { recordStart: options.start } : {}),
     recordStop: stops as unknown as DawClient['recordStop'],
+    ...(options.transport
+      ? {
+          subscribeTransport: ((listener: (transport: { recording: boolean }) => void) => (
+            options.transport!(listener),
+            () => {}
+          )) as unknown as DawClient['subscribeTransport'],
+        }
+      : {}),
   };
   const api = createMockApi(options.bootstrap ? ({ bootstrap: options.bootstrap } as Partial<NarrationApi>) : {});
   const notify = vi.fn();
@@ -251,5 +266,31 @@ describe('the host start of the take', () => {
     await act(async () => release(OK));
     await vi.advanceTimersByTimeAsync(10);
     expect(view.stops).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a late start of an abandoned press (#3320)', () => {
+  it('is stopped when the newer take it was held back for has already ended in the DAW', async () => {
+    let answerOld: (start: DawRecordStart) => void = () => {};
+    let calls = 0;
+    const oldView = mount({ start: () => (calls++ === 0 ? new Promise<DawRecordStart>((resolve) => (answerOld = resolve)) : Promise.resolve(OK)) });
+    await ready(oldView);
+    act(() => void oldView.result.current.toggle());
+    await waitFor(() => expect(calls).toBe(1));
+    oldView.unmount();
+    let emit: (transport: { recording: boolean }) => void = () => {};
+    const newView = mount({ start: () => Promise.resolve(OK), transport: (listener) => (emit = listener) });
+    await ready(newView);
+    await act(async () => void (await newView.result.current.toggle()));
+    expect(newView.result.current.recording).toBe(true);
+    // The narrator stops it in REAPER: it was heard recording, then stopped.
+    act(() => {
+      emit({ recording: true });
+      emit({ recording: false });
+    });
+    await waitFor(() => expect(newView.result.current.recording).toBe(false));
+    await act(async () => answerOld(OK));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(oldView.stops).toHaveBeenCalledTimes(1);
   });
 });

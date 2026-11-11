@@ -12,7 +12,7 @@ type Calls = { stops: number; listeningStops: number; listeningStarts: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
-async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningStartLate'): Promise<void> {
+async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningStartLate' | 'listeningStartPastLimit'): Promise<void> {
   await page.addInitScript((which) => {
     const w = window as unknown as { __calls: Calls; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
     w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
@@ -30,9 +30,11 @@ async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningS
         return new Promise(() => {});
       };
     } else {
+      // Late by 3 s, or past the press's 45 s limit (the host's own limit is shorter, but a slow model load must not leave a session behind).
+      const after = which === 'listeningStartLate' ? 3000 : 55_000;
       map.teleprompterStart = () => {
         w.__calls.listeningStarts += 1;
-        return new Promise((resolve) => setTimeout(() => resolve({ status: 'started' }), 3000));
+        return new Promise((resolve) => setTimeout(() => resolve({ status: 'started' }), after));
       };
     }
     w.__NARRATION_MOCK_OVERRIDES__ = map;
@@ -65,3 +67,25 @@ test('a press that is stopped while its listening is starting lets that session 
   await page.keyboard.press('Space');
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(2);
 });
+
+// Break found by QA: the start answers ok after the press's limit and the press was stopped or left meanwhile. The session that comes up then has
+// nobody else to stop it, so the late answer must be stopped (a stop sent earlier reached a host that was not listening yet).
+for (const how of ['Stop', 'Stop and leave'] as const) {
+  test(`a listening start that answers after its limit for a press the narrator ended with ${how} is stopped when it answers`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await openBooth(page, 'listeningStartPastLimit');
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(1500);
+    if (how === 'Stop') {
+      await page.keyboard.press('Space');
+    } else {
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: /Stop and leave/ }).click();
+    }
+    await page.waitForTimeout(50_000);
+    const before = (await calls(page)).listeningStops;
+    // The start answers at 55 s.
+    await expect.poll(async () => (await calls(page)).listeningStops, { timeout: 15_000 }).toBeGreaterThan(before);
+  });
+}

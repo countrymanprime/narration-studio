@@ -8,42 +8,38 @@
  * - `joinListening`: a press that finds a session already running takes it over when a press owns it (the one that began it may have been
  *   cancelled and will not look again); a session the narrator started on its own, with no press behind it, is not taken.
  * - `ownsListening` / `releaseListening`: asked before every stop; a claim that was replaced stops nothing.
- * - `unclaimListening`: the start failed, so the claim goes back to who held it, and a session still running is not orphaned.
+ * - `unclaimListening`: the start failed or was refused, so the claim goes away and the session, if one still runs, stays with the claim before it.
  */
 export type ListeningClaim = symbol;
 
-let owner: ListeningClaim | null = null;
-/** What each live claim replaced, so a failed start can hand the session back. */
-const replaced = new Map<ListeningClaim, ListeningClaim | null>();
+/** The live claims, oldest first. The owner is the last: a claim that goes away (refused, released) hands the session back to the one before it. */
+let live: ListeningClaim[] = [];
 
 export const claimListening = (): ListeningClaim => {
   const claim = Symbol('listening');
-  replaced.set(claim, owner);
-  owner = claim;
+  live.push(claim);
   return claim;
 };
 
 /** The claim of a press that joins the running session, or null when nobody's press owns it. */
-export const joinListening = (): ListeningClaim | null => (owner === null ? null : claimListening());
+export const joinListening = (): ListeningClaim | null => (live.length === 0 ? null : claimListening());
 
-export const ownsListening = (claim: ListeningClaim | null): boolean => claim !== null && owner === claim;
+export const ownsListening = (claim: ListeningClaim | null): boolean => claim !== null && live[live.length - 1] === claim;
 
-/** True when `claim` owned the session: the caller stops it now. */
+/** True when `claim` owned the session: the caller stops it now. Every older claim ended with it (the session they meant is gone). */
 export const releaseListening = (claim: ListeningClaim | null): boolean => {
   if (!ownsListening(claim)) return false;
-  owner = null;
-  replaced.delete(claim!);
+  live = [];
   return true;
 };
 
+/** The start failed or was refused: the claim goes away wherever it sits, and the claims before it keep their place (the session, if any, is still theirs). */
 export const unclaimListening = (claim: ListeningClaim | null): void => {
   if (claim === null) return;
-  if (owner === claim) owner = replaced.get(claim) ?? null;
-  replaced.delete(claim);
+  live = live.filter((item) => item !== claim);
 };
 
-/** The session ended some other way (a take's stop, a cold read's toggle): no press owns it any more. */
-export const endListeningClaims = (): void => {
-  owner = null;
-  replaced.clear();
+/** For tests that share the module. */
+export const forgetListeningClaims = (): void => {
+  live = [];
 };

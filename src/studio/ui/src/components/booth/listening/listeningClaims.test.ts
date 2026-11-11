@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { claimListening, endListeningClaims, joinListening, ownsListening, releaseListening, unclaimListening } from './listeningClaims';
+import { claimListening, forgetListeningClaims, joinListening, ownsListening, releaseListening, unclaimListening } from './listeningClaims';
 
-beforeEach(endListeningClaims);
+beforeEach(forgetListeningClaims);
 
 describe('who owns the host listening session', () => {
   it('the press that started it owns it and lets it go once', () => {
@@ -29,6 +29,23 @@ describe('who owns the host listening session', () => {
     unclaimListening(refused);
     expect(releaseListening(first)).toBe(true);
   });
+  it('claims A, B and C: B refused changes nothing, C refused hands the session back to A, whose late answer then lets it go', () => {
+    const a = claimListening();
+    const b = claimListening();
+    const c = claimListening();
+    unclaimListening(b);
+    expect(ownsListening(c)).toBe(true);
+    unclaimListening(c);
+    expect(ownsListening(a)).toBe(true);
+    expect(releaseListening(a)).toBe(true);
+  });
+  it('a claim that was refused after a newer one took its place is gone, not the owner again', () => {
+    const a = claimListening();
+    const b = claimListening();
+    unclaimListening(a);
+    expect(releaseListening(a)).toBe(false);
+    expect(releaseListening(b)).toBe(true);
+  });
   it('a cold read started after a cancelled press cannot be stopped by that press', () => {
     const press = claimListening();
     const cold = claimListening();
@@ -37,7 +54,7 @@ describe('who owns the host listening session', () => {
   });
   it('a session that ended some other way has no owner', () => {
     const press = claimListening();
-    endListeningClaims();
+    forgetListeningClaims();
     expect(releaseListening(press)).toBe(false);
     expect(joinListening()).toBeNull();
   });

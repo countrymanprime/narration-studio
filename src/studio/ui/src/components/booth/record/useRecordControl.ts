@@ -653,6 +653,14 @@ export function useRecordControl({
     [daw, system, chapterId, notify, stopLateStart, stopUnseenTake],
   );
 
+  // A take that ended in the DAW (the transport stopped, a quiet DAW) is no longer the running one: a start of an abandoned press that answers
+  // after it is stopped like any other orphan (`runningStart`).
+  const endedInDaw = useRef(recording);
+  useEffect(() => {
+    if (endedInDaw.current && !recording) runningStart = 0;
+    endedInDaw.current = recording;
+  }, [recording]);
+
   const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);
 
   const stopped = useCallback(() => {

@@ -3,6 +3,7 @@
 // Each of these runs the real page against a host that behaves as the real one does (one session at a time; a second start while one runs is
 // refused; a stop ends whatever runs) and holds the answers a test names, so a press that outlived its Booth shows what it does to the next one.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/hostWindow', () => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
@@ -11,15 +12,15 @@ vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('
 import type { TeleprompterEvent, TeleprompterStartOptions } from '../../../api/contracts/teleprompter';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { NarrationApi, TeleprompterState } from '../../../types';
-import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
-import { endListeningClaims } from '../listening/listeningClaims';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
+import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
+import { forgetListeningClaims } from '../listening/listeningClaims';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
 
 beforeEach(() => {
   forgetAppTake();
-  endListeningClaims();
+  forgetListeningClaims();
 });
 afterEach(() => {
   cleanup();
@@ -49,6 +50,7 @@ function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = 
   const states = new Set<(next: TeleprompterState) => void>();
   const events = new Set<(event: TeleprompterEvent) => void>();
   const gates: Array<Promise<void>> = [];
+  // How a held start ends: `answer` resolves it as started, `refuse` makes it fail as the host's does (the phase goes to error).
   const publish = (next: Partial<TeleprompterState>) => {
     state = { ...state, ...next };
     states.forEach((listener) => listener(state));
@@ -56,7 +58,12 @@ function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = 
   const teleprompterStart = vi.fn(async (options: TeleprompterStartOptions) => {
     if (state.phase === 'starting' || state.phase === 'running') throw new Error('a teleprompter session is already running');
     publish({ phase: 'starting', chapter: 'c1', engine: 'whisper', coldRead: Boolean(options.coldRead), position: null });
-    await gates.shift();
+    try {
+      await gates.shift();
+    } catch (reason) {
+      publish({ phase: 'error', message: 'the microphone is in use' });
+      throw reason;
+    }
     // A stop that came while the session was starting ends it: the start fails, as the real host's does.
     if (stopEndsStarting && (state.phase as string) !== 'starting') throw new Error('the session was stopped while it started');
     publish({ phase: 'running' });
@@ -88,10 +95,20 @@ function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = 
     /** The next start does not answer until the returned function is called. */
     holdNextStart: () => {
       let release = () => {};
-      gates.push(new Promise<void>((resolve) => (release = resolve)));
-      return () => act(async () => release());
+      let fail = () => {};
+      gates.push(new Promise<void>((resolve, reject) => ((release = resolve), (fail = () => reject(new Error('the microphone is in use'))))));
+      const answer = () => act(async () => release());
+      return Object.assign(answer, { refuse: () => act(async () => fail()) });
     },
   };
+}
+
+/** The router from inside it: a chapter change, as a link elsewhere in the app would make it. */
+const driver = { go: (_to: string): void => undefined };
+function Driver() {
+  const navigateTo = useNavigate();
+  driver.go = (to) => void navigateTo(to);
+  return null;
 }
 
 /** One Booth mount over the host and DAW; a second call is the narrator coming back to the Booth. */
@@ -104,6 +121,7 @@ function mountBooth(host: ReturnType<typeof fakeHost>, daw = dawFor('reaper'), o
   const view = render(
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <BoothNextPage hasManuscript navigate={vi.fn()} />
+      <Driver />
     </BoothHost>,
   );
   return { view, daw, recordStart, recordStop, undoLast, overlay };
@@ -269,5 +287,112 @@ describe('a Stop while the take listening is still starting', () => {
     await release();
     await settle();
     await waitFor(() => expect(host.phase()).not.toBe('running'));
+  });
+});
+
+// The class guard (#3320): whatever happens to a press whose listening start outlasts its limit, and however that start ends, the host's one session
+// is never left running with nobody to stop it.
+describe('a listening start that outlasts its limit never leaves a session running with no owner', () => {
+  const outcomes = ['stopped', 'left', 'chapter changed', 'timed out'] as const;
+  const answers = ['ok late', 'refused late', 'never'] as const;
+  for (const outcome of outcomes) {
+    for (const answer of answers) {
+      it(`press ${outcome}, start answers: ${answer}`, async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+          // The host brings a session up after a Stop that came while it started (service.go: a stop before the child is spawned is a no-op).
+          const host = fakeHost({ stopEndsStarting: false });
+          const control = host.holdNextStart();
+          const page = mountBooth(host);
+          await ready();
+          await space();
+          await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(1));
+          await act(() => vi.advanceTimersByTimeAsync(1500));
+          if (outcome === 'stopped') await space();
+          if (outcome === 'left') page.view.unmount();
+          if (outcome === 'chapter changed') await act(async () => driver.go('/booth?chapter=c2'));
+          await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 1000));
+          if (answer === 'ok late') await control();
+          if (answer === 'refused late') await control.refuse();
+          await act(() => vi.advanceTimersByTimeAsync(500));
+          expect(host.phase(), 'the session is left running with nobody to stop it').not.toBe('running');
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+    }
+  }
+});
+
+describe('a press that joined a session whose start then fails', () => {
+  it('drops its take and says so', async () => {
+    const host = fakeHost();
+    const control = host.holdNextStart();
+    const first = mountBooth(host);
+    first.recordStart.mockImplementationOnce(refused);
+    await ready();
+    await space();
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(1));
+    first.view.unmount();
+    const second = mountBooth(host);
+    await ready();
+    await space();
+    await waitFor(() => expect(second.recordStart).toHaveBeenCalledTimes(1));
+    await control.refuse();
+    await waitFor(() => expect(second.recordStop).toHaveBeenCalled());
+    expect(await screen.findByText(/Recording did not start: the text cannot follow your voice/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+  });
+});
+
+describe('a stop of a dropped take that answers after a newer take began', () => {
+  it('does not undo: the undo is scoped to the kind of the top of the DAW history, and the newer take would be on top', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      let fails = true;
+      host.api.teleprompterStart = vi.fn(async () => {
+        if (fails) throw new Error('The microphone is in use by another application.');
+        return { status: 'started' as const };
+      });
+      const page = mountBooth(host);
+      let answerStop: (result: Awaited<ReturnType<typeof page.daw.recordStop>>) => void = () => {};
+      page.recordStop.mockImplementationOnce(() => new Promise((resolve) => (answerStop = resolve)));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
+      await screen.findByText(/the stop did not answer in time/);
+      fails = false;
+      await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      await act(async () => answerStop({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await act(() => vi.advanceTimersByTimeAsync(50));
+      expect(page.undoLast).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('a cold read the narrator left behind says nothing on the page they are on now', () => {
+  it('a model check that gives up after the chapter changed toasts nothing', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      const assetsList = vi.fn(() => new Promise(() => {}));
+      mountBooth(host, undefined, { assetsList: assetsList as never });
+      await ready();
+      await chooseCold();
+      await act(async () => void fireEvent.click(main()));
+      await waitFor(() => expect(assetsList).toHaveBeenCalled());
+      await act(async () => driver.go('/booth?chapter=c2'));
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.modelCheck + 100));
+      expect(screen.queryByText(/The speech model could not be checked in time/)).toBeNull();
+      expect(host.teleprompterStart).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

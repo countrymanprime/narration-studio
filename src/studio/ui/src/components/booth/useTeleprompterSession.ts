@@ -176,6 +176,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const shown = useMemo(() => (coldRead && session.flags.length > 0 ? { ...session, flags: [] } : session), [coldRead, session]);
   // Stops that wait for the host to say the session has ended (`stopAndWait`).
   const stopWaiters = useRef(new Set<() => void>());
+  // Waits for a session the host is still starting (`whenUp`): told when the phase leaves `starting`.
+  const upWaiters = useRef(new Set<(next: TeleprompterState) => void>());
   const hostPhase = useRef(host.phase);
   hostPhase.current = host.phase;
 
@@ -186,6 +188,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       if (next.phase === 'starting') {
         dispatch({ kind: 'reset' });
         setEpoch((last) => ({ count: last.count + 1, at: startedAt.current }));
+      }
+      if (next.phase !== 'starting') {
+        const waiting = [...upWaiters.current];
+        upWaiters.current.clear();
+        waiting.forEach((told) => told(next));
       }
       if (!ACTIVE_PHASES.includes(next.phase)) {
         stopWaiters.current.forEach((done) => done());
@@ -327,6 +334,17 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
    * never says, so a take is never held behind it. Answers at once when nothing runs.
    */
+  /**
+   * Answers when a session the host is starting (another press's, whose Booth may be gone) is up or has failed, as `start` does for its own: a press that joins
+   * it must not keep a take on a session that then fails. Answers at once when none is starting.
+   */
+  const whenUp = useCallback((): Promise<{ ok: boolean; reason: string }> => {
+    const answer = (state: TeleprompterState) =>
+      state.phase === 'running' ? { ok: true, reason: '' } : { ok: false, reason: state.message || 'listening failed' };
+    if (hostPhase.current !== 'starting')
+      return Promise.resolve(hostPhase.current === 'running' ? { ok: true, reason: '' } : { ok: false, reason: 'listening is not running' });
+    return new Promise((resolve) => upWaiters.current.add((next) => resolve(answer(next))));
+  }, []);
   const stopAndWait = useCallback((): Promise<void> => {
     if (!ACTIVE_PHASES.includes(hostPhase.current)) return Promise.resolve();
     return new Promise<void>((resolve) => {
@@ -497,6 +515,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     start,
     stop,
     stopAndWait,
+    whenUp,
+    phase: host.phase,
     seek,
     changeDevice,
     closeModelPrompt,
