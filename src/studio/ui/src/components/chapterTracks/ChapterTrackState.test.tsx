@@ -441,6 +441,33 @@ describe('the shared chapter-track state', () => {
       vi.useRealTimers();
     }
   });
+
+  // The qa-breaker on #3412: a poll's read that a throwing read superseded must not leave a rejection nobody holds.
+  it('a links read that a throwing read superseded never rejects unhandled', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      let calls = 0;
+      const base = createMockApi();
+      const api = createMockApi({
+        chapterTrackMapList: () => {
+          calls += 1;
+          return calls >= 2 ? new Promise((_, reject) => setTimeout(() => reject(new Error('down')), 20)) : base.chapterTrackMapList();
+        },
+      });
+      const { seen } = mount(api);
+      await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
+      // A press (toast mode) and then a dialog's refresh (throw mode): the first is superseded and the second fails.
+      act(() => seen.current!.refresh());
+      await act(async () => {
+        await seen.current!.refreshLinks().catch(() => {});
+      });
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+  });
 });
 
 // #3413: the overlay host draws a dialog beside the app, not inside it, so a dialog that reads the state reaches the mounted one.

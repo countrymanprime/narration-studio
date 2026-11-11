@@ -158,6 +158,9 @@ export function ChapterTrackStateProvider({
       linksBusy.current = true;
       const pressed = retryPressed.current;
       retryPressed.current = false;
+      // What a read a newer one superseded answers with: the newest read's answer. A caller that shows its own failure (`throw`) gets the failure; one
+      // that does not hold the result (the poll, a press) must not be handed a rejection nobody catches.
+      const supersededAnswer = () => (mode === 'throw' ? newestLinks.current : newestLinks.current.catch(() => mappingsRef.current));
       let timer = 0;
       const limit = new Promise<never>((_, reject) => {
         timer = window.setTimeout(() => reject(new Error('The chapter links were not read in time.')), LIVE_TRACKS_TIMEOUT_MS);
@@ -169,7 +172,7 @@ export function ChapterTrackStateProvider({
       const both = Promise.all([trackMap.chapterTrackMapList(), detailRead]);
       const read = Promise.race([both, limit])
         .then(([answer, detail]) => {
-          if (run !== linksRun.current) return newestLinks.current;
+          if (run !== linksRun.current) return supersededAnswer();
           linksFailing.current = false;
           setLinksStale(detail === null);
           mappingsRef.current = answer.mappings;
@@ -182,7 +185,7 @@ export function ChapterTrackStateProvider({
         .catch((reason: unknown) => {
           // A read a newer one superseded is silent whatever its caller asked: its answer is not the current one, so a failure of it is no
           // news (a hung read's limit firing after the change that replaced it worked).
-          if (run !== linksRun.current) return newestLinks.current;
+          if (run !== linksRun.current) return supersededAnswer();
           setLinksStale(true);
           // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
           if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
