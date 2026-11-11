@@ -25,7 +25,7 @@ const CEILING: Record<string, number> = {
   'src/components/credits/CreditsSetupBanner.tsx': 1,
   'src/components/credits/CreditsSetupDialog.tsx': 1,
   'src/components/editing/CleanupAction.tsx': 1,
-  'src/components/editing/EditingCheckPanel.tsx': 2,
+  'src/components/editing/EditingCheckPanel.tsx': 1,
   'src/components/editing/takes/prep/usePrepSteps.tsx': 1,
   'src/components/engine/ChapterSyncPanel.tsx': 1,
   'src/components/engine/ChapterTagsDialog.tsx': 1,

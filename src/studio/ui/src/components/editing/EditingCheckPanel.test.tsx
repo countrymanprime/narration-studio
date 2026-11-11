@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EditingCheckPanel } from './EditingCheckPanel';
 import { ApiProvider } from '../../api/ApiContext';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
 import { outwaitEcho } from '../primitives/outwaitEcho';
@@ -24,7 +26,9 @@ function renderPanel(initial: Initial = {}) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EditingCheckPanel chapter={chapter} notify={notify} close={close} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EditingCheckPanel chapter={chapter} notify={notify} close={close} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -48,7 +52,9 @@ describe('a refused start offers Retry', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EditingCheckPanel chapter={chapter} notify={notify} close={vi.fn()} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <EditingCheckPanel chapter={chapter} notify={notify} close={vi.fn()} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -182,16 +188,17 @@ describe('EditingCheckPanel', () => {
     );
   });
 
-  it('a failed link shows the host error on the panel', async () => {
+  it('a failed link toasts the host error and keeps the picker', async () => {
     const user = userEvent.setup();
-    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const { api, notify } = renderPanel({ editing: { refusal: 'unmapped' } });
     vi.spyOn(api, 'chapterTrackSet').mockRejectedValue(new Error('REAPER did not answer'));
     const dialog = await panel();
     await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
     const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
     await user.selectOptions(select, within(select).getAllByRole('option')[1] as HTMLOptionElement);
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(within(dialog).getByText(/REAPER did not answer/)).toBeTruthy());
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error'));
+    expect(within(dialog).getByRole('combobox', { name: `Track for ${chapter.title}` })).toBeTruthy();
   });
 
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {
@@ -277,5 +284,17 @@ describe('EditingCheckPanel', () => {
       // Choosing the render is an explicit, per-chapter pick - it never silently reuses the item scenario's own reason.
       await waitFor(() => expect(within(dialog).getByText(/Checked the rendered file; no open empty-space candidate remains\./)).toBeTruthy());
     });
+  });
+});
+
+describe("the check starts against the shared state's document (#3413)", () => {
+  it('starts the check with the document the chapter links belong to', async () => {
+    const { api } = renderPanel({});
+    const start = vi.spyOn(api, 'editingStart');
+    const { documentId } = await api.chapterTrackMapList();
+    const dialog = await panel();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    await waitFor(() => expect(start).toHaveBeenCalled());
+    expect(start.mock.calls[0][0]).toBe(documentId);
   });
 });
