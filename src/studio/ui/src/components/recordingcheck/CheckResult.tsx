@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
-import { linkedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
@@ -215,11 +215,7 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
             const { linkedNotice } = await actions.set(chapter.id, trackGuid);
             overlay.toast(linkedNotice);
             setError('');
-            try {
-              await onLinked();
-            } catch (reason) {
-              overlay.toast(linkedButUnread(reason), { tone: 'error' });
-            }
+            await onLinked();
           } catch (reason) {
             setError(describeApiError(reason));
           }

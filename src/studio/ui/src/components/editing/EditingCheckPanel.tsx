@@ -17,7 +17,7 @@ import type {
   Track,
 } from '../../types';
 import type { TrackMapping } from '../../types';
-import { linkedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -112,11 +112,7 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
             const { linkedNotice } = await actions.set(chapter.id, trackGuid);
             notify(linkedNotice);
             setError('');
-            try {
-              onLinked();
-            } catch (reason) {
-              notify(linkedButUnread(reason), 'error');
-            }
+            onLinked();
           } catch (reason) {
             setError(describeApiError(reason));
           }

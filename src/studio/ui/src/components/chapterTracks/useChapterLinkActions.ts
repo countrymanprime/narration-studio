@@ -3,7 +3,6 @@ import type { ManuscriptChapter, TrackMapping } from '../../types';
 import { headingName } from '../../chapterHeading';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
-import { describeApiError } from '../../api/errorMessage';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
  * longer in the manuscript", so none is silent or reads " was linked to that track" with no name (#3053). */
@@ -40,12 +39,6 @@ export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: 
   const name = keptTitle(nameOf?.(displaced.chapterId)) ?? keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript';
   return `${name} was linked to that track and is now not linked.`;
 }
-
-/**
- * What to say when the link was made and reading the screen again failed. A caller that put the write and its refresh in one `try` told a narrator
- * "could not link" for a link that was made (#3398); the write's failure and the refresh's are two things.
- */
-export const linkedButUnread = (reason: unknown): string => `The link was made, but the screen could not be read again: ${describeApiError(reason)}`;
 
 /** A link written: the host's answer, and the sentence for the chapter that lost the track, or '' when the track was free. */
 async function manuscriptNames(manuscript: {

@@ -218,7 +218,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
   const holders = new Map<string, { id: string; name: string }>();
   for (const { chapter, mapping, state } of rows) {
-    if (mapping && (state === 'linked' || state === 'several')) holders.set(mapping.trackGuid, { id: chapter.id, name: chapterName(chapter, 'short') });
+    if (mapping && (state === 'linked' || state === 'several')) holders.set(mapping.trackGuid, { id: chapter.id, name: mapping.chapterTitle });
   }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
     const at = tracks.findIndex((track) => track.guid === folderGuid);
