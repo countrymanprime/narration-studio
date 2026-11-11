@@ -62,7 +62,7 @@ func TestChapterTrackMapListIsEmptyBeforeAnyConfirmation(t *testing.T) {
 	}
 }
 
-func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
+func TestAStoredLinkRoundTripsThroughTheList(t *testing.T) {
 	host, firstChapterID := newTestHostForMapping(t)
 
 	raw, err := host.seedLink("track-guid-a", firstChapterID)
@@ -71,7 +71,7 @@ func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
 	}
 	confirmed := decodeBinding(t, raw)
 	if confirmed["trackGuid"] != "track-guid-a" || confirmed["chapterId"] != firstChapterID {
-		t.Fatalf("ChapterTrackMapConfirm returned %#v", confirmed)
+		t.Fatalf("seedLink returned %#v", confirmed)
 	}
 	if confirmed["chapterTitle"] != "Chapter I: Down the Rabbit-Hole" {
 		t.Fatalf("chapterTitle = %v, want the real chapter title (re-suggestion after a re-import depends on it)", confirmed["chapterTitle"])
@@ -88,13 +88,6 @@ func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
 	mappings, _ := list["mappings"].([]any)
 	if len(mappings) != 1 {
 		t.Fatalf("mappings = %#v, want the one confirmed link", mappings)
-	}
-}
-
-func TestChapterTrackMapConfirmRejectsAChapterIDNotInTheManuscript(t *testing.T) {
-	host, _ := newTestHostForMapping(t)
-	if _, err := host.seedLink("track-guid-a", "c-9999"); err == nil {
-		t.Fatal("expected an error confirming a chapter id outside the current manuscript")
 	}
 }
 

@@ -386,11 +386,10 @@ func TestContractChapterTrackMap(t *testing.T) {
 	}
 	pin("chapter-track-map-empty", json.RawMessage(emptyRaw))
 
-	confirmedRaw, err := host.seedLink("{0E4D1D7F-D039-674D-87E6-719376DE95EC}", firstChapterID)
-	if err != nil {
+	// One link for the list below to show (the set payload has its own golden, chapter-track-set-displaced).
+	if _, err := host.ChapterTrackSet(firstChapterID, "{0E4D1D7F-D039-674D-87E6-719376DE95EC}"); err != nil {
 		t.Fatal(err)
 	}
-	pin("chapter-track-map-confirmed", json.RawMessage(confirmedRaw))
 
 	listRaw, err := host.ChapterTrackMapList()
 	if err != nil {
