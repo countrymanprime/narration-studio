@@ -39,11 +39,12 @@ describe('chapterTrackRows', () => {
     expect(rows).toEqual([]);
   });
 
-  it('uses the first confirmed mapping when more than one points at the same chapter', () => {
+  // #3363: two links are one answer on every screen (the Booth already said several): the row says so and names the first track.
+  it('reports more than one confirmed mapping on a chapter as several, with the first mapping', () => {
     const first = mapping({ trackGuid: 'guid-1' });
     const second = mapping({ trackGuid: 'guid-2' });
     const rows = chapterTrackRows([chapter()], [track({ guid: 'guid-1' }), track({ guid: 'guid-2', name: 'Other' })], [first, second]);
 
-    expect(rows).toEqual([{ chapter: chapter(), mapping: first, trackName: 'Chapter 1', state: 'linked' }]);
+    expect(rows).toEqual([{ chapter: chapter(), mapping: first, trackName: 'Chapter 1', state: 'several' }]);
   });
 });

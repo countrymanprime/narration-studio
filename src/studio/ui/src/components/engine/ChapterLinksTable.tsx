@@ -34,6 +34,7 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }>
   linked: { label: 'Linked', tone: 'success' },
   unlinked: { label: 'Not linked', tone: 'neutral' },
   missing_track: { label: 'Track missing', tone: 'danger' },
+  several: { label: 'Several tracks', tone: 'warning' },
 };
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status badge, the track (its
@@ -344,6 +345,10 @@ function ChapterLinkRow({
                 </span>
               </TooltipTarget>
             )}
+          </span>
+        ) : row.state === 'several' ? (
+          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--warn-text)' }}>
+            Linked to several tracks
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>

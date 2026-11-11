@@ -603,7 +603,8 @@ describe('ChapterLinksTable', () => {
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    // Two links are several, as the Booth says; the row still offers Clear, which removes both.
+    await waitFor(() => expect(within(firstRow).getByText('Several tracks')).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 

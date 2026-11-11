@@ -1,10 +1,12 @@
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { isNarrationChapter } from '../../chapterKinds';
+import { chapterLink } from '../chapterTracks/chapterLink';
 
 /** A chapter's link state for the audio engine panel list `linked` when the
  * confirmed track still exists in the current REAPER project, `missing_track` when the confirmed trackGuid no longer
- * resolves to a track (the track was deleted or the project points elsewhere), `unlinked` when nothing is confirmed yet. */
-export type ChapterLinkState = 'linked' | 'unlinked' | 'missing_track';
+ * resolves to a track (the track was deleted or the project points elsewhere), `unlinked` when nothing is confirmed yet, `several` when the
+ * chapter holds more than one link (chapterLink). */
+export type ChapterLinkState = 'linked' | 'unlinked' | 'missing_track' | 'several';
 
 export type ChapterTrackRow = {
   chapter: ManuscriptChapter;
@@ -15,17 +17,15 @@ export type ChapterTrackRow = {
 
 /** Builds one row per narration chapter (reference chapters are hidden here the way the page-flip reader hides them,
  * since they have no audio to link) joined against the confirmed mappings and the tracks currently in the project.
- * A chapter with more than one confirmed track (the store may hold several links) shows its first mapping only. */
+ * A chapter with more than one confirmed track (the store may hold several links) is `several`, with its first mapping shown. */
 export function chapterTrackRows(chapters: ManuscriptChapter[], tracks: Track[], mappings: TrackMapping[]): ChapterTrackRow[] {
   const trackByGuid = new Map(tracks.map((track) => [track.guid, track]));
-  const mappingByChapter = new Map<string, TrackMapping>();
-  for (const mapping of mappings) {
-    if (!mappingByChapter.has(mapping.chapterId)) mappingByChapter.set(mapping.chapterId, mapping);
-  }
   return chapters.filter(isNarrationChapter).map((chapter) => {
-    const mapping = mappingByChapter.get(chapter.id);
+    const link = chapterLink(mappings, chapter.id);
+    const mapping = link.mappings[0];
     if (!mapping) return { chapter, state: 'unlinked' as const };
     const track = trackByGuid.get(mapping.trackGuid);
-    return { chapter, mapping, trackName: track?.name, state: (track ? 'linked' : 'missing_track') as ChapterLinkState };
+    const state: ChapterLinkState = link.state === 'several' ? 'several' : track ? 'linked' : 'missing_track';
+    return { chapter, mapping, trackName: track?.name, state };
   });
 }

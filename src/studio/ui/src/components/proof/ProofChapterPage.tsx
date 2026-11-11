@@ -21,6 +21,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { useChapterCompare } from './useChapterCompare';
+import { chapterLink } from '../chapterTracks/chapterLink';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -84,7 +85,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         if (!active) return;
         setRead(true);
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
-        setLinkedTrackGuid(mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid);
+        setLinkedTrackGuid(chapterLink(mapping.mappings, chapterId).trackGuid);
       })
       .catch((reason: unknown) => {
         if (active) setLoadError(apiErrorMessage(reason));
