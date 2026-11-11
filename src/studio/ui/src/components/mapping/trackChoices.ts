@@ -29,6 +29,10 @@ export function holderName(current: string | undefined, kept: string | undefined
   return clean(current) || clean(kept) || 'another chapter';
 }
 
+/** The link of a track another chapter holds, or undefined: every picker finds a holder here, so none disagrees with another about who it is. */
+export const holderOf = <T extends { trackGuid: string; chapterId: string }>(links: readonly T[], trackGuid: string, chapterId?: string): T | undefined =>
+  links.find((link) => link.trackGuid === trackGuid && link.chapterId !== chapterId);
+
 /** What says who holds a track ("linked to X") and a track's option text with it: the one place the template is written (`holderTemplate.guard.test.ts`). */
 export const heldNote = (heldBy: string): string => `linked to ${heldBy}`;
 export const heldLabel = (name: string, heldBy?: string): string => (heldBy ? `${name} (${heldNote(heldBy)})` : name);
@@ -69,7 +73,7 @@ export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapp
   const order = [...ranked, ...match.tracks.map((t) => t.guid).filter((g) => !ranked.includes(g))];
   const best = match.status === 'ambiguous' || match.status === 'none' ? null : (match.track?.trackGuid ?? ranked[0] ?? null);
   return order.map((guid) => {
-    const holder = links.find((l) => l.trackGuid === guid && l.chapterId !== chapterId);
+    const holder = holderOf(links, guid, chapterId);
     const summary = summaries.get(guid);
     return {
       guid,
@@ -90,7 +94,7 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
  */
 export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
   tracks.map((t) => {
-    const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
+    const holder = holderOf(links, t.guid, chapterId);
     return {
       guid: t.guid,
       name: trackName(t.name, t.index),

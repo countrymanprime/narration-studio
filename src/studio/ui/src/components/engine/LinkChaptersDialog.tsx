@@ -24,7 +24,7 @@ import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineId
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
-import { heldLabel, holderName } from '../mapping/trackChoices';
+import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -217,13 +217,6 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
-  // The chapter that holds a track, named as every picker names it (the title the host kept, cleaned: holderName); the first holder when several do.
-  const holders = new Map<string, { id: string; name: string }>();
-  for (const { chapter, mapping, state } of rows) {
-    if (mapping && (state === 'linked' || state === 'several') && !holders.has(mapping.trackGuid)) {
-      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(undefined, mapping.chapterTitle) });
-    }
-  }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
     const at = tracks.findIndex((track) => track.guid === folderGuid);
     const folder = tracks[at];
@@ -323,10 +316,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
             const options = own.map((option) => {
-              const holder = option.value ? holders.get(option.value) : undefined;
-              return holder && holder.id !== chapter.id && option.value !== mapping?.trackGuid
-                ? { ...option, label: heldLabel(option.label, holder.name) }
-                : option;
+              const holder = option.value ? holderOf(links.mappings, option.value, chapter.id) : undefined;
+              return holder ? { ...option, label: heldLabel(option.label, holderName(undefined, holder.chapterTitle)) } : option;
             });
             return (
               <TableRow key={chapter.id}>
