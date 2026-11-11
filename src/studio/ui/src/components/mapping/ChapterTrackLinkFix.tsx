@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -21,14 +20,13 @@ export function ChapterTrackLinkFix({
   onNavigate,
 }: {
   chapter: ManuscriptChapter;
-  notify: (text: string) => void;
+  /** Says something: the takeover sentence, or (`'error'`) that the link could not be made. */
+  notify: (text: string, tone?: 'error') => void;
   onLinked: () => void | Promise<void>;
   onNavigate?: () => void;
 }) {
   const actions = useChapterLinkActions();
   const state = useChapterTrackState({ enabled: true });
-  // A link that could not be made is said under the picker, which stays: the narrator can choose again once the cause is gone.
-  const [linkError, setLinkError] = useState('');
   const confirming = usePendingAction();
   const listError = state.project ? '' : state.live.error;
   if (listError)
@@ -41,34 +39,27 @@ export function ChapterTrackLinkFix({
   // that failed (the state is stale) leaves the notes off rather than leaving the prompt reading for good.
   if (!state.project || (state.readAt === null && !state.stale)) return <p role="status">Reading the REAPER tracks…</p>;
   return (
-    <>
-      <MappingConfirm
-        chapterTitle={chapterName(chapter, 'short')}
-        tracks={state.project.tracks}
-        links={state.mappings}
-        chapterId={chapter.id}
-        busy={confirming.isBusy}
-        onConfirm={(trackGuid) =>
-          void confirming.run('confirm', async () => {
-            try {
-              // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-              const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
-              notify(linkedNotice);
-              state.applyMappings(result.mappings);
-              setLinkError('');
-              await onLinked();
-            } catch (reason) {
-              setLinkError(apiErrorMessage(reason));
-            }
-          })
-        }
-        onClear={() => {}}
-      />
-      {linkError && (
-        <p role="alert" style={{ color: 'var(--danger-text)' }}>
-          The link could not be made: {linkError}
-        </p>
-      )}
-    </>
+    <MappingConfirm
+      chapterTitle={chapterName(chapter, 'short')}
+      tracks={state.project.tracks}
+      links={state.mappings}
+      chapterId={chapter.id}
+      busy={confirming.isBusy}
+      onConfirm={(trackGuid) =>
+        void confirming.run('confirm', async () => {
+          try {
+            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
+            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
+            notify(linkedNotice);
+            state.applyMappings(result.mappings);
+            await onLinked();
+          } catch (reason) {
+            // A toast, the picker stays: the narrator can choose again once the cause is gone.
+            notify(`The link could not be made: ${apiErrorMessage(reason)}`, 'error');
+          }
+        })
+      }
+      onClear={() => {}}
+    />
   );
 }

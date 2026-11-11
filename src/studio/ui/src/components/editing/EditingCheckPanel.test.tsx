@@ -188,16 +188,17 @@ describe('EditingCheckPanel', () => {
     );
   });
 
-  it('a failed link shows the host error on the panel', async () => {
+  it('a failed link toasts the host error and keeps the picker', async () => {
     const user = userEvent.setup();
-    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const { api, notify } = renderPanel({ editing: { refusal: 'unmapped' } });
     vi.spyOn(api, 'chapterTrackSet').mockRejectedValue(new Error('REAPER did not answer'));
     const dialog = await panel();
     await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
     const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
     await user.selectOptions(select, within(select).getAllByRole('option')[1] as HTMLOptionElement);
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(within(dialog).getByText(/REAPER did not answer/)).toBeTruthy());
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error'));
+    expect(within(dialog).getByRole('combobox', { name: `Track for ${chapter.title}` })).toBeTruthy();
   });
 
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {

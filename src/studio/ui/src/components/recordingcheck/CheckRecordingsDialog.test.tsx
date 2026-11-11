@@ -388,7 +388,7 @@ describe('CheckRecordingsDialog', () => {
     expect(set).toHaveBeenCalledWith('a', option.value);
   });
 
-  it('a failed in-row link shows the host error', async () => {
+  it('a failed in-row link toasts the host error and keeps the picker', async () => {
     const { api, emit } = host({
       coverageStart: async (id) =>
         id === 'a'
@@ -396,14 +396,15 @@ describe('CheckRecordingsDialog', () => {
           : { status: 'started', state: { runId: 'r-b', chapterId: id, phase: 'running', percent: 0, message: '' } },
     });
     vi.spyOn(api, 'chapterTrackSet').mockRejectedValue(new Error('REAPER did not answer'));
-    open(api, ['a', 'b']);
+    const { service } = open(api, ['a', 'b']);
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     emit({ runId: 'r-b', phase: 'complete' });
     const alert = await within(await screen.findByRole('dialog')).findByRole('alert');
     const select = await within(alert).findByRole('combobox', { name: /^Track for Chapter a/ });
     await userEvent.selectOptions(select, within(select).getAllByRole('option')[1] as HTMLOptionElement);
     await userEvent.click(within(alert).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(within(alert).getByText(/REAPER did not answer/)).toBeTruthy());
+    await waitFor(() => expect(toasts(service).some((text) => text.includes('REAPER did not answer'))).toBe(true));
+    expect(within(alert).getByRole('combobox', { name: /^Track for Chapter a/ })).toBeTruthy();
   });
 
   it('disabled-without-the-daw', async () => {

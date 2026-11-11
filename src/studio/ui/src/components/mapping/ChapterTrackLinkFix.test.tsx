@@ -53,18 +53,17 @@ describe('ChapterTrackLinkFix (#3413)', () => {
   });
 
   // The qa-breaker on #3417: a rejected link was worded as a track-list failure and took the picker away.
-  it('keeps the picker, says the link could not be made, and links on the next press', async () => {
+  it('keeps the picker, toasts that the link could not be made, and links on the next press', async () => {
     let fail = true;
     const base = createMockApi();
     const chapterTrackSet = vi.fn((chapterId: string, trackGuid: string) =>
       fail ? Promise.reject(new Error('REAPER did not answer')) : base.chapterTrackSet(chapterId, trackGuid),
     );
-    const { onLinked } = show({ chapterTrackSet });
+    const { onLinked, notify } = show({ chapterTrackSet });
     await choose();
     await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('The link could not be made: REAPER did not answer');
-    expect(alert.textContent).not.toMatch(/could not be listed|Error:/);
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('The link could not be made: REAPER did not answer', 'error'));
+    expect(screen.queryByText(/could not be listed/)).toBeNull();
     expect(screen.getByRole('combobox', { name: /^Track for/ })).toBeTruthy();
     fail = false;
     await userEvent.click(within(document.body).getByRole('button', { name: 'Confirm' }));

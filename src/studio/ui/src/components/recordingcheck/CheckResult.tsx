@@ -138,7 +138,14 @@ export function ReasonBlock({
         </p>
       )}
       {footer && <p style={{ color: 'var(--text-muted)' }}>{footer}</p>}
-      {link && <ChapterTrackLinkFix chapter={chapter} notify={(text) => overlay.toast(text)} onLinked={onLinked} onNavigate={onNavigate} />}
+      {link && (
+        <ChapterTrackLinkFix
+          chapter={chapter}
+          notify={(text, tone) => overlay.toast(text, tone ? { tone } : undefined)}
+          onLinked={onLinked}
+          onNavigate={onNavigate}
+        />
+      )}
       {pages.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {pages.map((page) =>

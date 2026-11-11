@@ -345,7 +345,7 @@ export function EditingCheckPanel({
             ) : (
               <ChapterTrackLinkFix
                 chapter={chapter}
-                notify={(text) => notify(text)}
+                notify={(text, tone) => (tone ? notify(text, tone) : notify(text))}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();
