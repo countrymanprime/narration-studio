@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, act, render, screen } from '@testing-library/react';
+import { renderHook, act, render, screen, waitFor } from '@testing-library/react';
 import { OverlayHost } from '../../../overlay/OverlayHost';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
@@ -769,6 +769,18 @@ describe('useBoothLeaveGuard', () => {
       expect(go).toHaveBeenCalledWith('/proof');
     });
 
+    it('a question re-asked after the start landed stays open when the take then ends by itself', async () => {
+      const { overlay, go, hook, session, dialog } = setup({ startPending: true });
+      act(() => void hook.result.current.leave('/proof', go));
+      hook.rerender({ ...session, recording: true, startPending: false });
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      // The DAW ends the take on its own: an ordinary question about a real take stays (#3342).
+      hook.rerender({ ...session, recording: false, startPending: false });
+      await act(async () => {});
+      expect(overlay.getSnapshot().dialogs).toHaveLength(1);
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+    });
+
     it('the question stays when the start lands as a take: Stop and leave still stops it', async () => {
       const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
       let done: Promise<void> = Promise.resolve();
@@ -776,6 +788,9 @@ describe('useBoothLeaveGuard', () => {
         done = hook.result.current.leave('/proof', go);
       });
       hook.rerender({ ...session, recording: true, startPending: false });
+      // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);
