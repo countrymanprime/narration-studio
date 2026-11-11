@@ -60,6 +60,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const asked = useRef(0);
   // The press that owns the DAW's play now: null after Stop. A play that comes back after it was replaced stops the DAW only when nobody owns it.
   const owner = useRef<number | null>(null);
+  // A DAW play was started and not stopped since: an earlier press's, which a later press that ended in the app must not leave running.
+  const dawStarted = useRef(false);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
@@ -73,6 +75,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   };
   const stopDaw = useCallback((): void => {
     clearTimer();
+    dawStarted.current = false;
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
     sync.dawTransportSync('stop', 0).then(
       (result) => !result.ok && live.current.onRefused(result.message),
@@ -119,6 +122,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
             // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
+              dawStarted.current = true;
               if (asked.current !== mine) {
                 // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
                 if (owner.current === null) stopDaw();
@@ -165,6 +169,12 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
         stillWanted: wanted,
         keepQuiet: quietWhileRecording(() => daw.projectState(), name),
       });
+      // This press ended in the app (the DAW refused or could not play): it owns no DAW play, and one an earlier press left running is stopped now, or when its
+      // late answer comes (qa B1 on #3402).
+      if (by !== name && owner.current === mine) {
+        owner.current = null;
+        if (dawStarted.current) stopDaw();
+      }
       if (!wanted() || !notice) return;
       if (by === null) live.current.onRefused(notice);
       else live.current.onNotice(notice);

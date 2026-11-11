@@ -235,6 +235,45 @@ describe('a-second-press-while-the-first-is-in-flight', () => {
   });
 });
 
+describe('a-refused-second-press-while-the-first-is-in-flight', () => {
+  // #3402 (qa B1): the second press fell back to the app while the first was still being started in the DAW; the first's late success played on beside it.
+  it('stops the first DAW play when the second is refused and the app plays instead', async () => {
+    const answers: Array<(result: DawResult) => void> = [];
+    transport = vi.fn((action: string) =>
+      action === 'stop'
+        ? Promise.resolve(ok)
+        : new Promise<DawResult>((resolve) => {
+            answers.push(resolve);
+          }),
+    );
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    act(() => {
+      first = result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      second = result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    answers[1]({ ...ok, ok: false, message: 'REAPER does not have this book open.', refused: 'REAPER does not have this book open.' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    answers[0](ok);
+    await act(async () => {
+      await Promise.all([first, second]);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport.mock.calls.map((call) => call[0])).toEqual(['playRange', 'playRange', 'stop']);
+  });
+});
+
 describe('the-app-plays-when-the-daw-cannot', () => {
   it('falls back to the app with a notice when the DAW refuses', async () => {
     transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER does not have this book open.', refused: 'REAPER does not have this book open.' }));
