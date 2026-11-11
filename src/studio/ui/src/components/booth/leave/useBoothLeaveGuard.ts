@@ -135,14 +135,17 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       const startedByApp = now.startedByApp ?? true;
       let spec = stopRecordingSpec(now.daw.name, startedByApp, now.startPending);
       let refusedOnce = false;
+      // Whether the question asked is the one about a start still pending; the re-ask after the start landed is an ordinary recording question.
+      let startAsked = !!now.startPending;
       for (;;) {
         const closing = new AbortController();
-        open.current = { close: closing, pending: !!now.startPending && !refusedOnce };
+        open.current = { close: closing, pending: startAsked && !refusedOnce };
         const yes = gone.current ? false : await overlay.confirm(spec, closing.signal).finally(() => (open.current = null));
         // The start landed as a take while the question was open: it is asked again as the recording question, with its own Enter hold.
         if (reask.current && !gone.current) {
           reask.current = false;
           spec = stopRecordingSpec(now.daw.name, startedByApp, false);
+          startAsked = false;
           continue;
         }
         // Closed because nothing records now: the narrator stays, with nothing left to stop (the press said why).

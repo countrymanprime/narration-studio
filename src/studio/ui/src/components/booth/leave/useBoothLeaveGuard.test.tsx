@@ -769,6 +769,18 @@ describe('useBoothLeaveGuard', () => {
       expect(go).toHaveBeenCalledWith('/proof');
     });
 
+    it('a question re-asked after the start landed stays open when the take then ends by itself', async () => {
+      const { overlay, go, hook, session, dialog } = setup({ startPending: true });
+      act(() => void hook.result.current.leave('/proof', go));
+      hook.rerender({ ...session, recording: true, startPending: false });
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      // The DAW ends the take on its own: an ordinary question about a real take stays (#3342).
+      hook.rerender({ ...session, recording: false, startPending: false });
+      await act(async () => {});
+      expect(overlay.getSnapshot().dialogs).toHaveLength(1);
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+    });
+
     it('the question stays when the start lands as a take: Stop and leave still stops it', async () => {
       const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
       let done: Promise<void> = Promise.resolve();
