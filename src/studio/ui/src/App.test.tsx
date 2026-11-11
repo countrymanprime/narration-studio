@@ -1525,7 +1525,8 @@ describe('App Back and Forward', () => {
           expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
           holder.keep();
           await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-          expect(window.location.pathname).toBe(holder.page);
+          // The address is put back by the pop recovery's own navigation, which can land a render after the question closes (CI saw '/' here): wait for it.
+          await waitFor(() => expect(window.location.pathname).toBe(holder.page));
           expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
           holder.stillHeld();
         });
