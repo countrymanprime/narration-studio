@@ -140,7 +140,7 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     });
     renderPanel(api, link, track);
     expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.getByText(/is not in the saved project/)).toBeTruthy();
+    expect(screen.getByText(/is not in the project now/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
   });
 
@@ -166,7 +166,10 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
       throw new Error('REAPER did not answer');
     });
     renderPanel(api, link, track);
-    expect(await screen.findByText(/could not be listed/)).toBeTruthy();
+    const line = await screen.findByText(/could not be listed/);
+    // The bare message: no "Error: " prefix from the error's string form.
+    expect(line.textContent).toContain('could not be listed: REAPER did not answer');
+    expect(line.textContent).not.toMatch(/Error:/);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     const before = reads;
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));

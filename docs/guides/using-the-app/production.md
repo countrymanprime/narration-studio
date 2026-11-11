@@ -149,12 +149,12 @@ recorded length, how the link was found and when, and whether you or chapter syn
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
 A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
-track no longer in the saved project says it may have been deleted or the project saved elsewhere,
-shows its figures as last known and offers no playback.
+track that is no longer in the project's tracks (REAPER's now, or the saved file's when REAPER is not open) says it may have been deleted or the project saved elsewhere,
+shows its figures as last known and offers no playback. The panel names the track as it is called now, says when its latest read failed (it shows the last one), and a failed list of tracks offers **Retry** and a link to the audio engine panel.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
-view in your DAW itself. It is on only for a confirmed link to a track that is in the saved project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
+view in your DAW itself. It is on only for a confirmed link to a track that is in the project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)

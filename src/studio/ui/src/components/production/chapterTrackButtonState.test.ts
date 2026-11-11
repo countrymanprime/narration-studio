@@ -89,18 +89,23 @@ describe('followLiveTracks', () => {
     links: [{ trackGuid: '{T}', chapterId: 'c-1', chapterTitle: 'Chapter 6', confirmedAt: '2026-01-01T00:00:00Z' }],
   };
 
-  it('leaves a link alone when the tracks are not known yet or it is not one confirmed link', () => {
+  it('leaves a link alone when the tracks are not known yet or it is not a confirmed link', () => {
     expect(followLiveTracks(confirmed, undefined)).toBe(confirmed);
     const suggested = { ...confirmed, status: 'matched' as const };
     expect(followLiveTracks(suggested, [])).toBe(suggested);
-    const several = { ...confirmed, links: [...confirmed.links, { ...confirmed.links[0], trackGuid: '{U}' }] };
-    expect(followLiveTracks(several, [])).toBe(several);
   });
 
   it('marks a confirmed link missing when the live list has no such track, once', () => {
     const gone = followLiveTracks(confirmed, [{ guid: '{Other}', name: 'Other' }]);
     expect(chapterTrackButtonState(gone).kind).toBe('missing');
     expect(followLiveTracks(gone, []).warnings.filter((w) => w === 'confirmed-track-missing')).toHaveLength(1);
+  });
+
+  it('calls several links several, whichever of their tracks is there', () => {
+    const two = { ...confirmed, links: [...confirmed.links, { ...confirmed.links[0], trackGuid: '{U}' }], warnings: ['confirmed-track-missing' as const] };
+    const allGone = followLiveTracks(two, []);
+    expect(chapterTrackButtonState(allGone).kind).toBe('ambiguous');
+    expect(allGone.warnings).not.toContain('confirmed-track-missing');
   });
 
   it('draws a track that is there under the name it has now', () => {

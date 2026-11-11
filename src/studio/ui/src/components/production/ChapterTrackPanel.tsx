@@ -150,7 +150,7 @@ export function ChapterTrackPanel({
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the saved project. It may have been deleted or the project
+                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the project now. It may have been deleted or the project
                 saved elsewhere. Link another track, or unlink.
               </span>
             </InsetCard>
