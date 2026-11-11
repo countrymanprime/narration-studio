@@ -121,6 +121,44 @@ describe('LinkChaptersDialog', () => {
     expect(labels).not.toContain('Chapter 1');
   });
 
+  // #3398: the write and the re-read are two things; a list that cannot be read again after the link was made must not read as a failed link.
+  it('says the change was made when only the re-read after it fails', async () => {
+    const user = userEvent.setup();
+    let failReads = false;
+    const real = createMockApi();
+    const { api } = renderDialog({
+      chapterTrackMapList: async () => {
+        if (failReads) throw new Error('REAPER did not answer');
+        return real.chapterTrackMapList();
+      },
+    });
+    const first = WIRE_CHAPTERS[0];
+    const tracks = (await api.tracksList()).tracks;
+    const picker = await screen.findByRole('combobox', { name: `Track for ${first.title}` });
+    failReads = true;
+    await user.selectOptions(picker, tracks[0].guid);
+    expect(await screen.findByText(/The change was made, but the list could not be read again: .*REAPER did not answer/)).toBeTruthy();
+  });
+
+  it('labels a holder by a clean name: the manuscript’s, else the kept title, else "another chapter"', async () => {
+    const user = userEvent.setup();
+    const { api } = renderDialog();
+    const [first, second] = WIRE_CHAPTERS;
+    const tracks = (await api.tracksList()).tracks;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[0].guid);
+    const other = await screen.findByRole('combobox', { name: `Track for ${second.title}` });
+    const labelled = await waitFor(() => {
+      const option = within(other)
+        .getAllByRole('option')
+        .find((o) => /\(linked to /.test(o.textContent ?? ''));
+      if (!option) throw new Error('no holder label yet');
+      return option.textContent ?? '';
+    });
+    expect(labelled).not.toMatch(/\(linked to \s*\)/);
+    // eslint-disable-next-line no-control-regex
+    expect(labelled).not.toMatch(/[\u0000-\u001f\u202a-\u202e\u2066-\u2069]/);
+  });
+
   // #3398: picking a track another chapter holds moves it, so the option says who holds it before the pick, as the Chapter links list does.
   it('labels a track another chapter holds in the other chapters’ pickers', async () => {
     const user = userEvent.setup();

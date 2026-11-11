@@ -25,6 +25,28 @@ import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 
+/** The name a holder is shown by: the manuscript's, else the host's kept title, with control and direction characters made spaces and a long one clipped. */
+function holderName(current: string, kept: string): string {
+  const clean = (text: string) => {
+    const spaced = Array.from(text, (ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return code < 0x20 ||
+        (code >= 0x7f && code <= 0x9f) ||
+        code === 0x200e ||
+        code === 0x200f ||
+        (code >= 0x202a && code <= 0x202e) ||
+        (code >= 0x2066 && code <= 0x2069)
+        ? ' '
+        : ch;
+    })
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return spaced.length > 60 ? `${spaced.slice(0, 59)}…` : spaced;
+  };
+  return clean(current) || clean(kept) || 'another chapter';
+}
+
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
   drift: 'Text changed since stamping',
@@ -216,9 +238,12 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
+  // The chapter that holds a track, by the manuscript's current name (else the title the host kept, cleaned); the first holder when several do.
   const holders = new Map<string, { id: string; name: string }>();
   for (const { chapter, mapping, state } of rows) {
-    if (mapping && (state === 'linked' || state === 'several')) holders.set(mapping.trackGuid, { id: chapter.id, name: mapping.chapterTitle });
+    if (mapping && (state === 'linked' || state === 'several') && !holders.has(mapping.trackGuid)) {
+      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(chapterName(chapter, 'short'), mapping.chapterTitle) });
+    }
   }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
     const at = tracks.findIndex((track) => track.guid === folderGuid);

@@ -5,7 +5,7 @@ import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -123,15 +123,18 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     setBusyChapterId(chapterId);
     setError('');
     setNotice('');
+    // Once the write has answered, a failure after it is the re-read's: the change was made and the narrator is told so.
+    let written = false;
     write()
       .then((result) => {
+        written = true;
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
         const notice = (result as { displacedNotice?: string } | undefined)?.displacedNotice;
         if (notice) setNotice(notice);
       })
       .then(() => reload())
       .then(() => onChanged())
-      .catch((reason) => setError(apiErrorMessage(reason)))
+      .catch((reason) => setError(written ? changedButUnread(reason) : apiErrorMessage(reason)))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
