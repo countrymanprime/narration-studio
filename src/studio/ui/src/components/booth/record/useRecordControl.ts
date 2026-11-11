@@ -8,6 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
+import { limited } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -442,6 +443,39 @@ export function useRecordControl({
   const startedRef = useRef(onStarted);
   startedRef.current = onStarted;
 
+  /** Ends a take that started where nobody can see it: the page is gone, or the press had been given up on. A failure is said, because the DAW is still recording. */
+  const stopUnseenTake = useCallback(
+    (how: string) => {
+      // The page may be gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
+      // bookkeeping, so a take it kept is not in Undo.)
+      const name = capabilitiesRef.current?.daw ?? 'the DAW';
+      const unstopped = (why: string) => {
+        logUi('ui.record', `The late take was not stopped: ${why}`);
+        overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
+      };
+      void daw.recordStop().then(
+        (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),
+        (error: unknown) => unstopped(apiErrorMessage(error)),
+      );
+    },
+    [daw, overlay],
+  );
+
+  /**
+   * The answer of a start the press had given up on (`limited`). Another press may have started a take since, and that take is the Booth's:
+   * a take running, or a press still asking, is left alone and its own answer decides. Otherwise this one is stopped.
+   */
+  const stopLateStart = useCallback(
+    async (late: DawRecordStart) => {
+      if (!late.ok) return;
+      await inflight.current;
+      if (recordingRef.current) return;
+      logUi('ui.record', 'A take started after its press had given up waiting; stopping it.');
+      stopUnseenTake('after Record had given up waiting');
+    },
+    [stopUnseenTake],
+  );
+
   // Set by a stop the DAW accepted, so `stop` can say whether its press stopped the take.
   const stopAccepted = useRef(false);
   const toggle = useCallback(
@@ -465,8 +499,19 @@ export function useRecordControl({
         // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
         // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
         if (starting && capabilitiesRef.current) {
-          const fresh = await system.bootstrap().catch(() => null);
+          const checked = await limited(
+            'projectCheck',
+            system.bootstrap().catch(() => null),
+          );
           if (how?.current && !how.current()) return false;
+          if (checked.timedOut) {
+            // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
+            const sentence = `Checking that ${capabilitiesRef.current.daw ?? 'the DAW'} has this project open did not answer in time, so no take was started. Press Record to try again.`;
+            setRefused({ chapterId, sentence });
+            block({ cause: 'failed', reason: sentence });
+            return false;
+          }
+          const fresh = checked.value;
           if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
             setLink((last) => ({ ...last, open: 'different' }));
             const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
@@ -480,22 +525,26 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         // From here the host has the start: a leave can no longer cancel it, so it asks (`starting`) and waits for the answer (`settle`).
         if (starting) setStarting(true);
-        const result: DawRecordStart = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
+        let result: DawRecordStart;
+        if (starting) {
+          const answered = await limited('recordStart', daw.recordStart(chapterId, at), stopLateStart);
+          if (answered.timedOut) {
+            // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
+            // so the DAW is never left recording behind a take nobody sees.
+            const name = capabilitiesRef.current?.daw ?? 'the DAW';
+            const sentence = `${name} did not answer the start in time. If it starts recording after all, the take is stopped. Check ${name} before pressing Record again.`;
+            if (how?.current && !how.current()) return false;
+            setRefused({ chapterId, sentence });
+            block({ cause: 'failed', reason: sentence });
+            return false;
+          }
+          result = answered.value;
+        } else result = await daw.recordStop();
         if (result.ok && starting && !alive.current) {
           // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
           // only a start that nothing could wait for.)
           logUi('ui.record', 'A take started after the Booth was left; stopping it.');
-          // The page is gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
-          // bookkeeping, so a take it kept is not in Undo.)
-          const name = capabilitiesRef.current?.daw ?? 'the DAW';
-          const unstopped = (why: string) => {
-            logUi('ui.record', `The late take was not stopped: ${why}`);
-            overlay.toast(`A take started as you left the Booth and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
-          };
-          void daw.recordStop().then(
-            (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),
-            (error: unknown) => unstopped(apiErrorMessage(error)),
-          );
+          stopUnseenTake('as you left the Booth');
           return false;
         }
         if (result.ok) {
@@ -533,7 +582,7 @@ export function useRecordControl({
       }
       return false;
     },
-    [daw, system, chapterId, notify, overlay],
+    [daw, system, chapterId, notify, stopLateStart, stopUnseenTake],
   );
 
   const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);

@@ -21,6 +21,7 @@ import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
 import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
+import { limited } from '../record/pressLimits';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
@@ -373,7 +374,14 @@ export function useBoothPage(options: BoothPageOptions) {
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
-    if (!(await latest.current.session.ensureModel())) return false;
+    const modelChecked = await limited('modelCheck', latest.current.session.ensureModel());
+    if (!current()) return false;
+    if (modelChecked.timedOut) {
+      // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
+      notify('Checking the speech model did not answer in time, so no take was started. Press Record to try again.');
+      return false;
+    }
+    if (!modelChecked.value) return false;
     // Each wait can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
@@ -398,7 +406,15 @@ export function useBoothPage(options: BoothPageOptions) {
     const together = !recordsInApp(control.capabilities?.daw);
     listenStarting.current = listen;
     const hearing = listen
-      ? ended.then(() => latest.current.session.start(endedColdRead ? { startWord: from } : undefined))
+      ? ended.then(async () => {
+          const listening = await limited(
+            'listening',
+            latest.current.session.start(endedColdRead ? { startWord: from } : undefined),
+            // The session came up after the press gave up on it: let it go, unless a newer press has begun a take or its own press.
+            (late) => late.ok && !starting.current && !latest.current.recording && latest.current.session.stop(),
+          );
+          return listening.timedOut ? { ok: false, reason: 'the listening did not start in time' } : listening.value;
+        })
       : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
       together
@@ -472,7 +488,16 @@ export function useBoothPage(options: BoothPageOptions) {
       },
       chooseVoice: async (trackGuid) => {
         const token = pressToken.current;
-        const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
+        const chosen = await limited(
+          'voiceChoice',
+          voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null),
+        );
+        if (chosen.timedOut) {
+          if (token === pressToken.current)
+            notify('The voice this passage was recorded on was not chosen in time, so no take was started. Press Record to try again.');
+          return false;
+        }
+        const answer = chosen.value;
         // The narrator has left (or changed chapter) since: the press is over, and a refusal is not said on whatever page they are on now.
         if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
@@ -765,9 +790,17 @@ export function useBoothPage(options: BoothPageOptions) {
     coldReadStarting.current = true;
     setColdStarting(true);
     try {
-      if (!(await now.session.ensureModel())) return;
+      const modelChecked = await limited('modelCheck', now.session.ensureModel());
+      if (modelChecked.timedOut) return notify('Checking the speech model did not answer in time, so the cold read was not started.');
+      if (!modelChecked.value) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
-      const started = await latest.current.session.start({ coldRead: true, startWord: realWord() });
+      const listening = await limited(
+        'listening',
+        latest.current.session.start({ coldRead: true, startWord: realWord() }),
+        // It came up after the press gave up on it: let it go, unless a take began meanwhile.
+        (late) => late.ok && !latest.current.recording && latest.current.session.stop(),
+      );
+      const started = listening.timedOut ? { ok: false, reason: 'the listening did not start in time' } : listening.value;
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
