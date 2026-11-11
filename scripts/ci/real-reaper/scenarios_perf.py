@@ -398,11 +398,16 @@ def perf_record_press(env: Env) -> str:
     fx = env.lua(BUILD, env.media_path("tone_a"), LARGE, timeout=300)
     guid = fx["chapter"]
     presses: list[dict] = []
+    # The press reads the state with the 'none' option: the same state row as the full read and the total, no item rows.
+    full = env.send("chapter_track_state", guid, until={"TRACK_STATE_END"})
+    light = env.send("chapter_track_state", guid, "none", until={"TRACK_STATE_END"})
+    assert [e[0] for e in light] == ["TRACK_STATE", "TRACK_STATE_END"], f"the none read answered {[e[0] for e in light][:5]}"
+    assert light[0][2:] == full[0][2:] and light[-1][2:4] == ["0", full[-1][3]], f"none read {light} differs from the full read's state or total"
 
     def press_five(deadline: float) -> None:
         for _ in range(5):
             steps, start = {}, time.monotonic()
-            steps["track_state"] = round_trip(env, "chapter_track_state", guid, until={"TRACK_STATE_END"})
+            steps["track_state"] = round_trip(env, "chapter_track_state", guid, "none", until={"TRACK_STATE_END"})
             steps["arm_only"] = round_trip(env, "arm_only", guid, until={"ARMED"})
             steps["punch_to"] = round_trip(env, "punch_to", "120", "0", until={"PUNCHED"})
             steps["record_start"] = round_trip(env, "record_start", guid, until={"RECORD_STARTED"})

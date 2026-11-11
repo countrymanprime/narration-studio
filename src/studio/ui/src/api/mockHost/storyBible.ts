@@ -21,11 +21,31 @@ function parseMockProperties(text: string): GuideProperty[] {
 }
 
 /**
- * A real, silent 22.05 kHz mono WAV (a 44-byte header and 200 bytes of samples). The Story Bible preview hook
- * rejects an empty payload (the host never sends one), so the mock must send audio.
- */
-export const MOCK_PREVIEW_WAV_BASE64 =
-  'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+ * A real 22.05 kHz mono WAV. The Story Bible preview hook rejects an empty payload (the host never sends one), so the mock must send audio.
+ * A 1.2 s quiet tone, long enough that the button shows "playing" (Pause) before it ends: a 5 ms clip made Play preview look like it did nothing (#3339). */
+function previewWavBase64(): string {
+  const rate = 22050;
+  const count = Math.round(rate * 1.2);
+  const bytes = new Uint8Array(44 + count * 2);
+  const view = new DataView(bytes.buffer);
+  const text = (at: number, value: string) => [...value].forEach((char, k) => view.setUint8(at + k, char.charCodeAt(0)));
+  text(0, 'RIFF');
+  view.setUint32(4, 36 + count * 2, true);
+  text(8, 'WAVEfmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  text(36, 'data');
+  view.setUint32(40, count * 2, true);
+  for (let k = 0; k < count; k += 1)
+    view.setInt16(44 + k * 2, Math.round(Math.sin((2 * Math.PI * 330 * k) / rate) * 1500 * Math.min(1, k / 800, (count - k) / 800)), true);
+  return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''));
+}
+export const MOCK_PREVIEW_WAV_BASE64 = previewWavBase64();
 
 // A pronunciation the narrator typed: `manual`, or `user` in a file written before it.
 const isUser = (value: { source?: string }) => value.source === 'user' || value.source === 'manual';

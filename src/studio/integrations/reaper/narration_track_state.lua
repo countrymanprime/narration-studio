@@ -8,7 +8,8 @@
 -- ever answered in its place. With no GUID it answers the transport and the arms only.
 --
 -- With the option 'children' (a chapter linked to a folder of voices) it lists the items on the track and on every track inside it,
--- in track order, each with its track's GUID; the limit and the total count the whole folder. Any other option is refused.
+-- in track order, each with its track's GUID; the limit and the total count the whole folder. With 'none' it lists no item at all
+-- and TRACK_STATE_END carries 0 listed and the track's total (a Record press and the polls read only the state). Any other option is refused.
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
 -- inputDevice|outputDevice|recInputName, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
@@ -106,7 +107,7 @@ local function item_row(item)
 end
 
 local function chapter_track_state(session_dir, run_id, guid_text, option)
-  if option ~= '' and option ~= 'children' then
+  if option ~= '' and option ~= 'children' and option ~= 'none' then
     event(session_dir, 'ERROR', run_id, 'Unknown track read option: ' .. option .. '.')
     return
   end
@@ -148,7 +149,9 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
   )
   if option ~= 'children' or not track then
     local total = track and reaper.CountTrackMediaItems(track) or 0
-    local listed = math.min(total, ITEM_LIMIT)
+    -- 'none': the caller wants the transport and the arms only (a Record press, the poll), so the row per item, about ten
+    -- ReaScript calls each, is skipped; the total still says how many there are.
+    local listed = option == 'none' and 0 or math.min(total, ITEM_LIMIT)
     for index = 0, listed - 1 do
       event(session_dir, 'TRACK_ITEM', run_id, item_row(reaper.GetTrackMediaItem(track, index)))
     end

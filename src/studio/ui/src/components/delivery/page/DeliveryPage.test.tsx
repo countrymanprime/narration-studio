@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -108,22 +108,20 @@ describe('DeliveryPage', () => {
     expect(screen.getByText('Not mastered')).toBeTruthy();
   });
 
-  it('keeps a blocked Build focusable, described by its reason, and says why a press builds nothing', async () => {
+  it('keeps a blocked Build focusable, with its reason as a tooltip, and a press builds nothing', async () => {
     const packageStart = vi.fn(async () => PACKAGE_DONE);
     mount(BLOCKED, { packageStart });
     const button = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
     await screen.findByText('1 failing, 1 not ready');
     expect(button).toHaveProperty('disabled', false);
-    const why = document.getElementById(button.getAttribute('aria-describedby') ?? '');
-    expect(why?.textContent).toBe('1 failing, 1 not ready');
-    await userEvent.tab();
-    await userEvent.tab();
-    button.focus();
-    expect(document.activeElement).toBe(button);
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     await userEvent.click(button);
     expect(packageStart).not.toHaveBeenCalled();
-    expect(screen.getByRole('status').textContent).toBe('Nothing was built: 1 failing, 1 not ready');
+    await userEvent.keyboard('{Shift}');
+    act(() => button.blur());
+    act(() => button.focus());
+    expect(document.activeElement).toBe(button);
+    expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', '1 failing, 1 not ready');
   });
 
   it('says nothing is mastered as the reason when no chapter has been measured, and drops the note once every chapter passes', async () => {

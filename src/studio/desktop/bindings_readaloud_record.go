@@ -208,7 +208,7 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 		return *refused, nil
 	}
 	if reader != nil {
-		state, err := reader.ChapterTrackState(ctx, guid)
+		state, err := dawport.TrackStateNoItems(ctx, reader, guid)
 		timeline.Mark("track_state")
 		if err != nil {
 			return readAloudRecordRefusal(name, err), nil

@@ -46,7 +46,8 @@ func TestOnlyReadsThatMeanOneTrackAskForTheLinkedTrackAlone(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(string(text), ".ChapterTrackState(") || strings.Contains(string(text), "ChapterTrackState(ctx") {
+		// The itemless read (dawport.TrackStateNoItems) asks for the linked track alone just as the one-track read does.
+		if strings.Contains(string(text), ".ChapterTrackState(") || strings.Contains(string(text), "ChapterTrackState(ctx") || strings.Contains(string(text), "TrackStateNoItems(") {
 			found = append(found, slash)
 		}
 		return nil

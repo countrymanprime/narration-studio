@@ -281,6 +281,21 @@ type TrackStateReader interface {
 	ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error)
 }
 
+// ItemlessStateReader is a TrackStateReader that can answer without the track's items: the transport, the arms and the input, and
+// the item total. Only the REAPER bridge has it, where listing the items is the cost that grows with the takes.
+type ItemlessStateReader interface {
+	ChapterTrackStateNoItems(ctx context.Context, trackGUID string) (TrackState, error)
+}
+
+// TrackStateNoItems reads the state of trackGUID for a caller that never looks at its items (a Record press, the poll): the
+// itemless read when reader has one, else the full read.
+func TrackStateNoItems(ctx context.Context, reader TrackStateReader, trackGUID string) (TrackState, error) {
+	if light, ok := reader.(ItemlessStateReader); ok {
+		return light.ChapterTrackStateNoItems(ctx, trackGUID)
+	}
+	return reader.ChapterTrackState(ctx, trackGUID)
+}
+
 // FolderStateReader is a TrackStateReader that can also read a chapter linked to a folder of voices: the folder's items and every
 // track's inside it, each item with its TrackGUID. Only an engine with folder tracks (REAPER) has it; a caller that wants a chapter's
 // audio uses ChapterAudioState, which falls back to the one-track read.

@@ -320,6 +320,53 @@ H.test('chapter_track_state refuses an unknown read option and lists nothing', f
   H.eq(s:events(), { { 'ERROR', 't1', 'Unknown track read option: everything.' } })
 end)
 
+H.test('chapter_track_state with none answers the state row and the item total, and lists no item', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 4, source = 'a.wav' })
+  s.fake:add_item(chapter, { position = 5, length = 4, source = 'b.wav' })
+  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  local events = s:events()
+  H.eq(#events, 2)
+  H.eq(events[1], { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '' })
+  H.eq(events[2], { 'TRACK_STATE_END', 't1', '0', '2' })
+end)
+
+H.test('chapter_track_state with none reads no item, so its cost does not grow with the takes', function()
+  local s, chapter = new_session()
+  for index = 1, 1003 do
+    s.fake:add_item(chapter, { position = index, length = 0.5, source = 'x.wav' })
+  end
+  local item_reads, original = 0, reaper.GetTrackMediaItem
+  reaper.GetTrackMediaItem = function(...)
+    item_reads = item_reads + 1
+    return original(...)
+  end
+  local ok, err = pcall(s.send, s, 'chapter_track_state', 't1', chapter.guid, 'none')
+  reaper.GetTrackMediaItem = original
+  H.truthy(ok, tostring(err))
+  H.eq(s:events()[2], { 'TRACK_STATE_END', 't1', '0', '1003' })
+  H.eq(item_reads, 0)
+end)
+
+H.test('chapter_track_state with none answers the same twice and changes nothing', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 1, source = 'a.wav' })
+  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  local first = s:events()
+  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  H.eq(s:events(), first)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('chapter_track_state with none and a track that is gone answers TRACK_STALE, and with no track the transport only', function()
+  local s, chapter = new_session()
+  s:send('chapter_track_state', 't1', '{00000000-0000-4000-8000-0000000000DE}', 'none')
+  H.eq(s:events(), { { 'TRACK_STALE', 't1', '{00000000-0000-4000-8000-0000000000DE}' } })
+  s:send('chapter_track_state', 't2', '', 'none')
+  local events = s:events()
+  H.eq(events[#events], { 'TRACK_STATE_END', 't2', '0', '0' })
+end)
+
 H.test('chapter_track_state with children counts the limit over the whole folder', function()
   local s, t = voices_session()
   for index = 1, 600 do
