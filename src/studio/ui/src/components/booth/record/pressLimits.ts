@@ -9,15 +9,23 @@ export const PRESS_LIMITS_MS = {
   modelCheck: 8_000,
   /** The project check (`bootstrap`) that says the DAW has the linked project open. */
   projectCheck: 8_000,
-  /** The listening start: the host itself waits up to 20 s for the sidecar's first event, and the first start of a session reads the whole model. */
-  listening: 30_000,
-  /** The host's start of the take: its own limit is 6 s (3 s for the track list, 3 s for the DAW to report recording). */
+  /**
+   * The listening start. The host first lets a running session end (up to `defaultGrace` 8 s, then 2 s more) and then waits `listeningWait` 20 s
+   * for the sidecar's first event, so its worst case is about 30 s before the model loads; this is above that with a margin.
+   */
+  listening: 45_000,
+  /** The start of the take by a DAW engine: the host's own limit is `readAloudVoiceStartTimeout`, 6 s (3 s for the track list, 3 s for the DAW to report recording). */
   recordStart: 10_000,
+  /** The start of the take by the app's own recorder: the host runs it under `recorderDevicesTimeout`, 20 s, so the limit is above that. */
+  recordStartInApp: 25_000,
   /** Making the voice a passage was recorded on the take's track (a punch). */
   voiceChoice: 8_000,
 } as const;
 
 export type PressStage = keyof typeof PRESS_LIMITS_MS;
+
+/** The limit of the DAW's start of the take: the app's own recorder takes longer than a DAW engine to answer. */
+export const recordStartLimit = (inApp: boolean): PressStage => (inApp ? 'recordStartInApp' : 'recordStart');
 
 /** The answer of a limited wait, or that the limit was reached first. */
 export type Limited<T> = { timedOut: false; value: T } | { timedOut: true };

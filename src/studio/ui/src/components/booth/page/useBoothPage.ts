@@ -374,7 +374,12 @@ export function useBoothPage(options: BoothPageOptions) {
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
-    const modelChecked = await limited('modelCheck', latest.current.session.ensureModel());
+    const modelChecked = await limited(
+      'modelCheck',
+      latest.current.session.ensureModel(),
+      // The question opened after the press said it did not answer: one press has one outcome, so the question is closed again.
+      (opened) => !opened && latest.current.session.closeModelPrompt(),
+    );
     if (!current()) return false;
     if (modelChecked.timedOut) {
       // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
@@ -790,7 +795,7 @@ export function useBoothPage(options: BoothPageOptions) {
     coldReadStarting.current = true;
     setColdStarting(true);
     try {
-      const modelChecked = await limited('modelCheck', now.session.ensureModel());
+      const modelChecked = await limited('modelCheck', now.session.ensureModel(), (opened) => !opened && latest.current.session.closeModelPrompt());
       if (modelChecked.timedOut) return notify('Checking the speech model did not answer in time, so the cold read was not started.');
       if (!modelChecked.value) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.

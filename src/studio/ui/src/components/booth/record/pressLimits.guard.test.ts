@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PRESS_LIMITS_MS, type PressStage } from './pressLimits';
+import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimits';
 
 // #3321: a Record press never waits on a host call without a limit. Every host call the press awaits before or during the start is listed here
 // with the stage that bounds it; the test finds each call in its source and requires it to sit inside `limited('<stage>', ...)`. A new await in
 // the press goes in this list (and into `PRESS_LIMITS_MS`), or it hangs Record for good when the host never answers (#3221).
 // A call written `void ...` is one nothing waits for (the DAW's own Record started a listening session), so it is not a wait.
-// Not host calls, so not listed: `playTakeTone` (a fixed timer), `endColdRead` (its own 9 s STOP_WAIT_MS), the punch-target lookup (LOOKUP_MS in
-// useRoll.ts) and the narrator's own answer to a question (`ask`).
+// The other awaits of the press are named in OTHER_AWAITS, each with its reason. Two of them are host calls that are NOT bounded here and are
+// known gaps (#3321 follow-up, stated in the PR): the stop side of the press (`dropUnheardTake`, `daw.recordStop`) and `daw.roll`.
 const BOOTH = join(__dirname, '..');
 const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = [
   { file: 'page/useBoothPage.ts', call: 'session.ensureModel()', stage: 'modelCheck' },
@@ -16,6 +16,28 @@ const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = 
   { file: 'page/useBoothPage.ts', call: 'voiceTracks.boothVoiceSet(', stage: 'voiceChoice' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStart(', stage: 'recordStart' },
+];
+
+/** The functions of the press that are scanned for awaits, from the text that opens one to the text that follows it. */
+const SCANNED: ReadonlyArray<readonly [file: string, from: string, to: string]> = [
+  ['page/useBoothPage.ts', 'const beginOnce', '\n  // The press under way'],
+  ['record/useRecordControl.ts', 'const toggle = useCallback', '\n  const settle'],
+  ['roll/useRoll.ts', 'const startTake = useCallback', 'startTakeRef.current = startTake'],
+];
+
+/** Awaits in the scanned functions that are not a limited host call, by what the awaited expression starts with. */
+const OTHER_AWAITS: ReadonlyArray<{ head: string; why: string }> = [
+  { head: 'limited(', why: 'a limited wait: PRESS lists the call and its stage' },
+  { head: '(', why: 'the listening and the Record control together (Promise.all / hearing.then): the listening is limited, control.toggle is below' },
+  { head: 'control.toggle(', why: "the Record control's own waits are the limited ones in useRecordControl.ts" },
+  { head: 'actionsRef.current.beginTake(', why: "the Booth's beginOnce, whose waits are limited" },
+  { head: 'actionsRef.current.chooseVoice(', why: "the Booth's chooseVoice, whose host call is limited ('voiceChoice')" },
+  { head: 'lookUp(', why: 'the punch-target lookup, limited by LOOKUP_MS in useRoll.ts' },
+  { head: 'ask(', why: "the narrator's own answer to a question, not a host wait" },
+  { head: 'playTakeTone(', why: 'a fixed timer (TAKE_TONE_MS), not a host call' },
+  { head: 'stoppedRef.current', why: "the Booth's own bookkeeping callback after a stop, local work" },
+  { head: 'dropUnheardTake(', why: 'UNBOUNDED host calls (recordStop, then undoLast) of a take whose listening failed: known gap, follow-up' },
+  { head: 'daw.recordStop(', why: 'UNBOUNDED host call, the stop of a take: known gap, follow-up' },
 ];
 
 describe('every host call a Record press awaits has a limit', () => {
@@ -27,7 +49,9 @@ describe('every host call a Record press awaits has a limit', () => {
       for (const index of at) {
         // The `limited(` that opens the statement is on the call's own line or a few lines above it (prettier wraps the call onto its own lines).
         const around = lines.slice(Math.max(0, index - 4), index + 1).join('\n');
-        expect(around, `${file}:${index + 1} awaits ${call} with no limit`).toMatch(new RegExp(`limited\\(\\s*'${stage}'`));
+        expect(around, `${file}:${index + 1} awaits ${call} with no limit`).toMatch(
+          stage === 'recordStart' ? /limited\(\s*recordStartLimit\(/ : new RegExp(`limited\\(\\s*'${stage}'`),
+        );
       }
     });
   }
@@ -36,45 +60,51 @@ describe('every host call a Record press awaits has a limit', () => {
     for (const [stage, ms] of Object.entries(PRESS_LIMITS_MS)) {
       expect(ms, stage).toBeGreaterThan(0);
       expect(
-        PRESS.some((entry) => entry.stage === stage),
+        PRESS.some((entry) => entry.stage === stage) || (stage === 'recordStartInApp' && PRESS.some((entry) => entry.stage === 'recordStart')),
         `${stage} guards nothing`,
       ).toBe(true);
     }
   });
 
-  it('finds no other host call awaited in beginOnce or toggle', () => {
-    // A new `await <something>.<host call>` in these two functions must be listed above or be named here as not a host call.
-    const NOT_HOST = [
-      'playTakeTone',
-      'ended',
-      'pending',
-      'dropUnheardTake',
-      'overlay.',
-      'stoppedRef',
-      'startedRef',
-      'daw.recordStop',
-      'hearing',
-      'inflight',
-      'ask(',
-      // The press's own calls into the Record control and the Booth's one-at-a-time wrapper: each is bounded by the stages above.
-      'control.toggle(',
-      'beginOnce(',
-    ];
+  it('every other await in the press is named, with why it is not an unbounded host wait', () => {
     const unknown: string[] = [];
-    for (const [file, from] of [
-      ['page/useBoothPage.ts', 'const beginOnce'],
-      ['record/useRecordControl.ts', 'const toggle = useCallback'],
-    ] as const) {
+    for (const [file, from, to] of SCANNED) {
       const text = readFileSync(join(BOOTH, file), 'utf8');
       const start = text.indexOf(from);
-      const body = text.slice(start, text.indexOf('\n  );\n', start));
+      expect(start, `${from} is not in ${file} any more: update SCANNED`).toBeGreaterThan(-1);
+      const body = text.slice(start, text.indexOf(to, start));
       for (const match of body.matchAll(/await ([^;\n]+)/g)) {
         const expression = match[1]!;
-        if (expression.includes('limited(') || NOT_HOST.some((word) => expression.includes(word))) continue;
-        if (/^\(?\s*$/.test(expression)) continue;
-        unknown.push(`${file}: await ${expression}`);
+        if (!OTHER_AWAITS.some((entry) => expression.startsWith(entry.head))) unknown.push(`${file}: await ${expression}`);
       }
     }
-    expect(unknown, 'an await in the press with no limit: wrap it in limited() and list it, or say why it is not a host call').toEqual([]);
+    expect(unknown, 'an await in the press with no limit: wrap it in limited() and list it in PRESS, or name it in OTHER_AWAITS with its reason').toEqual([]);
+  });
+});
+
+// The limits against the host's own limits, read from the Go source so a host constant that grows past its UI limit fails here.
+const GO = join(__dirname, '../../../../../desktop');
+const seconds = (file: string, name: string): number => {
+  const match = readFileSync(join(GO, file), 'utf8').match(new RegExp(`\\b${name}\\s*=\\s*(\\d+)\\s*\\*\\s*time\\.Second`));
+  expect(match, `${name} is not in ${file} as N * time.Second: update this test`).not.toBeNull();
+  return Number(match![1]) * 1000;
+};
+
+describe('each limit is above the host call it waits for', () => {
+  const MARGIN_MS = 2_000;
+  it('the DAW start of a DAW engine: readAloudRecordStartTimeout plus the live track list wait', () => {
+    const host = seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') + seconds('tracks_live.go', 'tracksLiveTimeout');
+    expect(PRESS_LIMITS_MS.recordStart).toBeGreaterThanOrEqual(host + MARGIN_MS);
+  });
+  it("the app's own recorder start: recorderDevicesTimeout", () => {
+    expect(PRESS_LIMITS_MS.recordStartInApp).toBeGreaterThanOrEqual(seconds('bindings_recording.go', 'recorderDevicesTimeout') + MARGIN_MS);
+  });
+  it("the listening start: the previous session's grace (8 s) and wait (2 s), then listeningWait", () => {
+    const host = seconds('internal/teleprompter/service.go', 'defaultGrace') + 2_000 + seconds('bindings.go', 'listeningWait');
+    expect(PRESS_LIMITS_MS.listening).toBeGreaterThanOrEqual(host + MARGIN_MS);
+  });
+  it('the Booth picks recordStartInApp for the app recorder and recordStart for a DAW engine', () => {
+    expect(recordStartLimit(true)).toBe('recordStartInApp');
+    expect(recordStartLimit(false)).toBe('recordStart');
   });
 });

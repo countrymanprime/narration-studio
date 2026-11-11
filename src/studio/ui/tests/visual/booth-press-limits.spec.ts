@@ -87,8 +87,9 @@ test('a DAW start that never answers ends the press with a sentence and Record i
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/did not answer the start in time/).first()).toBeVisible({ timeout: 16_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
-  expect(await dawRecording(page)).toBe(false);
+  // The overridden start never reached the mock DAW, so its recording state says nothing here: what counts is that no stop was sent for a take that never started.
   expect((await calls(page)).hangs).toBe(1);
+  expect((await calls(page)).stops).toBe(0);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
 });
@@ -108,7 +109,7 @@ test('a listening start that never answers ends the press with a sentence, and n
   await arm(page);
   await page.keyboard.press('Space');
   // The DAW starts meanwhile (Record reads Stop); the take is dropped when the listening gives up.
-  await expect(page.getByText(/the listening did not start in time/).first()).toBeVisible({ timeout: 36_000 });
+  await expect(page.getByText(/the listening did not start in time/).first()).toBeVisible({ timeout: 52_000 });
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);

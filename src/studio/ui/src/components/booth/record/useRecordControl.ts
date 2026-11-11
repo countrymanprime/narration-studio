@@ -8,7 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
-import { limited } from './pressLimits';
+import { limited, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -468,8 +468,8 @@ export function useRecordControl({
   const stopLateStart = useCallback(
     async (late: DawRecordStart) => {
       if (!late.ok) return;
-      await inflight.current;
-      if (recordingRef.current) return;
+      // The newer press's own answer (`done(running)`), not a render's `recording`, which can lag behind it.
+      if ((await inflight.current) || recordingRef.current) return;
       logUi('ui.record', 'A take started after its press had given up waiting; stopping it.');
       stopUnseenTake('after Record had given up waiting');
     },
@@ -527,7 +527,7 @@ export function useRecordControl({
         if (starting) setStarting(true);
         let result: DawRecordStart;
         if (starting) {
-          const answered = await limited('recordStart', daw.recordStart(chapterId, at), stopLateStart);
+          const answered = await limited(recordStartLimit(recordsInApp(capabilitiesRef.current?.daw)), daw.recordStart(chapterId, at), stopLateStart);
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
@@ -554,6 +554,8 @@ export function useRecordControl({
           setRefused(null);
           if (!starting) stopAccepted.current = true;
           if (starting) lastStartAt = Date.now();
+          // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
+          recordingRef.current = starting;
           setRecording(starting);
           return starting;
         } else {

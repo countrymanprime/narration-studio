@@ -9,8 +9,11 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { dawClientFor } from './fixtures';
+import { logUi } from '../../../api/uiLog';
 import { limited, PRESS_LIMITS_MS } from './pressLimits';
 import { forgetAppTake, useRecordControl } from './useRecordControl';
+
+vi.mock('../../../api/uiLog', () => ({ logUi: vi.fn() }));
 
 // #3321: every wait in a Record press ends. These drive the Record control with a host whose calls the test holds, answers late or never answers,
 // and check that Record is free afterwards, one honest sentence was said and no take is left running behind it.
@@ -26,10 +29,10 @@ afterEach(() => {
 
 const OK: DawRecordStart = { ok: true, changed: true, message: '', undoSteps: 0 } as DawRecordStart;
 
-function mount(options: { start?: DawClient['recordStart']; bootstrap?: NarrationApi['bootstrap'] } = {}) {
+function mount(options: { start?: DawClient['recordStart']; bootstrap?: NarrationApi['bootstrap']; setup?: 'reaper' | 'builtin' } = {}) {
   const stops = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
   const client: DawClient = {
-    ...dawClientFor('reaper'),
+    ...dawClientFor(options.setup ?? 'reaper'),
     ...(options.start ? { recordStart: options.start } : {}),
     recordStop: stops as unknown as DawClient['recordStop'],
   };
@@ -49,6 +52,19 @@ const ready = async (view: ReturnType<typeof mount>) => {
   await waitFor(() => expect(view.result.current.capabilities).not.toBeNull());
   expect(DAW_SETUPS.reaper.reachable).toBe(true);
 };
+
+describe('the run log', () => {
+  it('names the stage that hit its limit, and when it answered late', async () => {
+    let release: (v: number) => void = () => {};
+    const out = limited('projectCheck', new Promise<number>((r) => (release = r)));
+    await vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.projectCheck + 1);
+    await out;
+    expect(logUi).toHaveBeenCalledWith('ui.record.limit', expect.stringContaining('stage=projectCheck'));
+    release(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(logUi).toHaveBeenCalledWith('ui.record.limit', expect.stringContaining('stage=projectCheck answered after its limit'));
+  });
+});
 
 describe('limited', () => {
   it('answers in time: the value, no late call', async () => {
@@ -156,7 +172,16 @@ describe('the host start of the take', () => {
     expect(view.stops).not.toHaveBeenCalled();
   });
 
-  it('fails: the failure sentence as before, Record free', async () => {
+  it("the app's own recorder may take up to its host limit (20 s): a start answering at 15 s is the take, not a refusal", async () => {
+    const view = mount({ setup: 'builtin', start: () => new Promise((r) => setTimeout(() => r(OK), 15_000)) });
+    await ready(view);
+    act(() => void view.result.current.toggle());
+    await act(() => vi.advanceTimersByTimeAsync(15_100));
+    expect(view.result.current.recording).toBe(true);
+    expect(view.stops).not.toHaveBeenCalled();
+  });
+
+  it('fails: the failure sentence as before, Record free (a regression test: it passes on main too)', async () => {
     const view = mount({ start: async () => Promise.reject(new Error('the host went away')) });
     await ready(view);
     await act(async () => void (await view.result.current.toggle()));
@@ -179,6 +204,24 @@ describe('the host start of the take', () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(view.result.current.recording).toBe(true);
     expect(view.stops).not.toHaveBeenCalled();
+  });
+
+  it("the second press's answer lands outside a render: the late take of the first is still not stopped (the Booth reads the answer, not a render)", async () => {
+    const answers: Array<(r: DawRecordStart) => void> = [];
+    const view = mount({ start: () => new Promise((r) => answers.push(r)) });
+    await ready(view);
+    act(() => void view.result.current.toggle());
+    await vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStart + 5);
+    act(() => void view.result.current.toggle());
+    await vi.advanceTimersByTimeAsync(5);
+    // Both answers arrive with no render in between (no act): what the Booth knows is what the presses answered.
+    answers[0]!(OK);
+    answers[1]!(OK);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(view.stops).not.toHaveBeenCalled();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10)));
+    expect(view.result.current.recording).toBe(true);
   });
 
   it('pressed again after the limit and that press is refused, the first answering late with a take: the take is stopped', async () => {
