@@ -189,7 +189,7 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
       ['none', 'None yet'],
       ['none', 'Not linked'],
       ['none', 'No project'],
-      ['none', '2+ tracks'],
+      ['none', 'Several tracks'],
       ['none', 'Track missing'],
       ['none', 'Not read'],
     ]);
