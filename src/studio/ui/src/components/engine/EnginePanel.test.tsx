@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TRACKS_READ_TOPIC } from './useLiveTracks';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -387,7 +388,14 @@ describe("EnginePanel's live track list", () => {
     await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
     expect(await within(links).findByText(/^Can’t tell whether these are REAPER’s tracks now: .*REAPER did not answer in time\.$/)).toBeTruthy();
     expect(within(links).getByText(/^REAPER did not answer · last read \d+ s ago$/)).toBeTruthy();
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
+    expect(notify).toHaveBeenCalledWith(
+      expect.stringContaining('REAPER did not answer'),
+      'error',
+      expect.objectContaining({ label: 'Retry' }),
+      undefined,
+      undefined,
+      TRACKS_READ_TOPIC,
+    );
     // The tracks are still listed, and no alert is pushed into the page.
     expect(within(await trackTable()).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
     expect(screen.queryByRole('alert')).toBeNull();
@@ -418,7 +426,14 @@ describe("EnginePanel's live track list", () => {
     expect(await within(links).findByText(/^The tracks could not be read: .*REAPER did not answer in time\.$/)).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
     await waitFor(() =>
-      expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' })),
+      expect(notify).toHaveBeenCalledWith(
+        expect.stringContaining('REAPER did not answer'),
+        'error',
+        expect.objectContaining({ label: 'Retry' }),
+        undefined,
+        undefined,
+        TRACKS_READ_TOPIC,
+      ),
     );
     fail = false;
     await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));

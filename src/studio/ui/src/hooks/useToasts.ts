@@ -10,10 +10,10 @@ import type { Notify, ToastAction, ToastTone } from '../components/primitives/To
  */
 export function useToasts(service: OverlayService = appOverlay): { notify: Notify } {
   const notify = useCallback(
-    (text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition, durationMs?: number) => {
+    (text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition, durationMs?: number, topic?: string) => {
       if (!text) return;
       logUi(`ui.toast.${tone}`, text);
-      service.toast(text, { tone, action, icon, durationMs });
+      service.toast(text, { tone, action, icon, durationMs, topic });
     },
     [service],
   );
