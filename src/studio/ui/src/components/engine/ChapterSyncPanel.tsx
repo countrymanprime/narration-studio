@@ -5,7 +5,7 @@ import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { linkedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
@@ -120,8 +120,12 @@ export function ChapterSyncPanel({
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
       const { linkedNotice } = await actions.set(chapterId, trackGuid);
       notify(linkedNotice);
-      await loadPreview();
-      onChanged();
+      try {
+        await loadPreview();
+        onChanged();
+      } catch (error) {
+        notify(linkedButUnread(error), 'error');
+      }
     } catch (error) {
       notify(describeApiError(error), 'error');
     } finally {

@@ -12,7 +12,7 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { linkedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -99,7 +99,11 @@ export function ChapterTrackPanel({
     try {
       const { linkedNotice } = await actions.set(chapterId, trackGuid);
       notify(linkedNotice);
-      await onChanged();
+      try {
+        await onChanged();
+      } catch (error) {
+        notify(linkedButUnread(error), 'error');
+      }
     } catch (error) {
       notify(describeApiError(error), 'error');
     } finally {

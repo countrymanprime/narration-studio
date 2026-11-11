@@ -216,6 +216,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
+  const holders = new Map<string, { id: string; name: string }>();
+  for (const { chapter, mapping, state } of rows) {
+    if (mapping && (state === 'linked' || state === 'several')) holders.set(mapping.trackGuid, { id: chapter.id, name: chapterName(chapter, 'short') });
+  }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
     const at = tracks.findIndex((track) => track.guid === folderGuid);
     const folder = tracks[at];
@@ -312,7 +316,12 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const options = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
+            const options = own.map((option) => {
+              const holder = option.value ? holders.get(option.value) : undefined;
+              return holder && holder.id !== chapter.id ? { ...option, label: `${option.label} (linked to ${holder.name})` } : option;
+            });
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>

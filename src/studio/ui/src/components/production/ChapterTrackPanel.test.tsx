@@ -157,6 +157,25 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. Chapter 9 was linked to that track and is now not linked.'));
   });
 
+  // #3398: the write and the screen's re-read are two things; a re-read that fails after the link was made must not read as a failed link.
+  it('says the link was made when only the re-read afterwards fails', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
+      documentId: 'doc',
+      link: { trackGuid: track.guid, chapterId: link.chapterId, chapterTitle: link.chapterTitle, confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: null,
+      mappings: [],
+    });
+    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track, vi.fn().mockRejectedValue(new Error('REAPER did not answer')));
+    await screen.findByText(/Not linked yet/);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The link was made, but the screen could not be read again'), 'error'));
+    expect(notify).toHaveBeenCalledWith('Track linked.');
+    expect(notify).not.toHaveBeenCalledWith('REAPER did not answer', 'error');
+  });
+
   // #3272: the re-read of ChapterTrackLinks parses the whole saved project; the panel must not wait for it to show the chapter unlinked.
   it('shows the chapter unlinked as soon as Unlink answers, before the links are read again', async () => {
     const api = createMockApi();

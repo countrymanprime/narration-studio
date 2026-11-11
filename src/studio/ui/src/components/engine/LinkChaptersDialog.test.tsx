@@ -121,6 +121,29 @@ describe('LinkChaptersDialog', () => {
     expect(labels).not.toContain('Chapter 1');
   });
 
+  // #3398: picking a track another chapter holds moves it, so the option says who holds it before the pick, as the Chapter links list does.
+  it('labels a track another chapter holds in the other chapters’ pickers', async () => {
+    const user = userEvent.setup();
+    const { api } = renderDialog();
+    const [first, second] = WIRE_CHAPTERS;
+    const tracks = (await api.tracksList()).tracks;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[0].guid);
+    const other = await screen.findByRole('combobox', { name: `Track for ${second.title}` });
+    await waitFor(() =>
+      expect(
+        within(other)
+          .getAllByRole('option')
+          .some((option) => /\(linked to /.test(option.textContent ?? '')),
+      ).toBe(true),
+    );
+    const own = screen.getByRole('combobox', { name: `Track for ${first.title}` });
+    expect(
+      within(own)
+        .getAllByRole('option')
+        .some((option) => /\(linked to /.test(option.textContent ?? '')),
+    ).toBe(false);
+  });
+
   it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
     const user = userEvent.setup();
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
