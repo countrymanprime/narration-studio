@@ -22,10 +22,10 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
   if (startPending) {
     // The DAW has not said it records: the question never claims it does. It closes by itself if the start ends with no take.
     return {
-      title: 'Stop recording?',
+      title: 'Leave while a take is starting?',
       body: `${subject} is starting a take. Leaving the Booth stops it once it has started.`,
       confirmLabel: 'Stop and leave',
-      cancelLabel: KEEP_RECORDING,
+      cancelLabel: 'Stay',
       safeDefault: true,
     };
   }

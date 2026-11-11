@@ -458,7 +458,11 @@ describe('useBoothLeaveGuard', () => {
     it('the question never says a take records while it is only starting', () => {
       const { store } = setup({ startPending: true });
       expect(store.checkLeave('/proof')).toMatchObject({
-        ask: { title: 'Stop recording?', body: 'REAPER is starting a take. Leaving the Booth stops it once it has started.' },
+        ask: {
+          title: 'Leave while a take is starting?',
+          cancelLabel: 'Stay',
+          body: 'REAPER is starting a take. Leaving the Booth stops it once it has started.',
+        },
       });
     });
 
@@ -468,7 +472,7 @@ describe('useBoothLeaveGuard', () => {
       act(() => {
         done = hook.result.current.leave('/proof', go);
       });
-      expect(dialog()?.spec.title).toBe('Stop recording?');
+      expect(dialog()?.spec.title).toBe('Leave while a take is starting?');
       hook.rerender({ ...session, recording: false, startPending: false });
       await act(() => done);
       expect(overlay.getSnapshot().dialogs).toHaveLength(0);

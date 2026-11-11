@@ -124,7 +124,9 @@ describe('the project check before a start', () => {
     await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.projectCheck + 5));
     await expect(pressed).resolves.toBe(false);
     expect(start).not.toHaveBeenCalled();
-    expect(view.onBlocked).toHaveBeenCalledWith(expect.objectContaining({ reason: expect.stringMatching(/did not answer in time, so no take was started/) }));
+    expect(view.onBlocked).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: expect.stringMatching(/could not confirm the open project in time, so no take was started/) }),
+    );
     expect(view.result.current.starting).toBe(false);
     // The next press asks the host again and goes through.
     await act(async () => void (await view.result.current.toggle()));
@@ -145,7 +147,7 @@ describe('the host start of the take', () => {
     await expect(pressed).resolves.toBe(false);
     expect(view.result.current.starting).toBe(false);
     expect(view.result.current.recording).toBe(false);
-    expect(view.onBlocked).toHaveBeenCalledWith(expect.objectContaining({ reason: expect.stringMatching(/did not answer the start in time/) }));
+    expect(view.onBlocked).toHaveBeenCalledWith(expect.objectContaining({ reason: expect.stringMatching(/gave up waiting for .* to start recording/) }));
     expect(view.stops).not.toHaveBeenCalled();
   });
 

@@ -10,7 +10,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
-const question = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
+const question = (page: Page) => page.getByRole('alertdialog', { name: /^(Stop recording|Leave while a take is starting)\?$/ });
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
 /** The stops the host was asked for (`?mockCallLog=1` records every host call): a leave stops a take once. */
 const stops = (page: Page) => page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
@@ -578,7 +578,7 @@ for (const [width, height] of [
 
 // #3321: a start that is still pending when the narrator leaves asks the question, which never says a take records and closes by itself when the start
 // ends at its limit (10 s) with no take. The narrator stays on the Booth with the press's sentence, nothing recording and no stop owed.
-const ASKED = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
+const ASKED = (page: Page) => page.getByRole('alertdialog', { name: /^Leave while a take is starting\?$/ });
 async function openWithPendingStart(page: Page, answersAtMs: number | 'never'): Promise<void> {
   await page.addInitScript((answers) => {
     const w = window as unknown as {
@@ -632,7 +632,7 @@ for (const [name, answersAt] of [
     // The start ends at its limit with no take: the question goes, the narrator is still in the Booth, and the press said why.
     await expect(ASKED(page)).toHaveCount(0, { timeout: 12_000 });
     expect(await onBooth(page)).toBe(true);
-    await expect(page.getByText(/did not answer the start in time/).first()).toBeVisible();
+    await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible();
     if (answersAt !== 'never') {
       // The late take is stopped, never left running behind the closed question.
       await expect.poll(() => stops(page), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);

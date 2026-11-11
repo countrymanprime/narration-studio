@@ -21,6 +21,7 @@ import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
 import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
+import { logUi } from '../../../api/uiLog';
 import { limited } from '../record/pressLimits';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
@@ -380,7 +381,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!current()) return false;
     if (modelChecked.timedOut) {
       // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
-      notify('Checking the speech model did not answer in time, so no take was started. Press Record to try again.');
+      overlay.toast('The speech model could not be checked in time, so no take was started.', { tone: 'error' });
       return false;
     }
     if (!modelChecked.value) return false;
@@ -416,7 +417,7 @@ export function useBoothPage(options: BoothPageOptions) {
             // The session came up after the press gave up on it: let it go, unless a newer press has begun a take or its own press.
             (late) => late.ok && !starting.current && !latest.current.recording && latest.current.session.stop(),
           );
-          return listening.timedOut ? { ok: false, reason: 'the listening did not start in time' } : listening.value;
+          return listening.timedOut ? { ok: false, reason: 'it took too long to get ready' } : listening.value;
         })
       : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
@@ -435,10 +436,11 @@ export function useBoothPage(options: BoothPageOptions) {
       stoppedWhileStarting.current = false;
       if (listen && heard.ok) latest.current.session.stop();
       // A listening that failed is said: the take the narrator stopped was recorded without it, and it stays in the DAW (nothing is taken back that they stopped).
-      if (!heard.ok)
-        overlay.toast(`Listening did not start (${heard.reason || 'listening failed'}), so the take you stopped was recorded without the text following it.`, {
-          tone: 'error',
-        });
+      if (!heard.ok) {
+        // The host's own reason goes to the run log, not onto the screen.
+        logUi('ui.record', `Listening did not start for a take the narrator stopped: ${heard.reason || 'no reason given'}`);
+        overlay.toast('The take you stopped is kept, but the text could not follow your voice during it.', { tone: 'error' });
+      }
       return false;
     }
     if (!heard.ok) {
@@ -509,8 +511,7 @@ export function useBoothPage(options: BoothPageOptions) {
           voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null),
         );
         if (chosen.timedOut) {
-          if (token === pressToken.current)
-            notify('The voice this passage was recorded on was not chosen in time, so no take was started. Press Record to try again.');
+          if (token === pressToken.current) overlay.toast('The voice for this passage could not be set in time, so no take was started.', { tone: 'error' });
           return false;
         }
         const answer = chosen.value;
@@ -808,7 +809,7 @@ export function useBoothPage(options: BoothPageOptions) {
     setColdStarting(true);
     try {
       const modelChecked = await limited('modelCheck', now.session.ensureModel(), (opened) => !opened && latest.current.session.closeModelPrompt());
-      if (modelChecked.timedOut) return notify('Checking the speech model did not answer in time, so the cold read was not started.');
+      if (modelChecked.timedOut) return overlay.toast('The speech model could not be checked in time, so the cold read was not started.', { tone: 'error' });
       if (!modelChecked.value) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
       const listening = await limited(
@@ -817,7 +818,7 @@ export function useBoothPage(options: BoothPageOptions) {
         // It came up after the press gave up on it: let it go, unless a take began meanwhile.
         (late) => late.ok && !latest.current.recording && latest.current.session.stop(),
       );
-      const started = listening.timedOut ? { ok: false, reason: 'the listening did not start in time' } : listening.value;
+      const started = listening.timedOut ? { ok: false, reason: 'it took too long to get ready' } : listening.value;
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
@@ -842,8 +843,12 @@ export function useBoothPage(options: BoothPageOptions) {
       // Stop at once, even while the take's listening is still starting: the narrator asked to stop, so the DAW is not left recording until the
       // listening answers (up to its limit). The press then lets that listening go when it answers (`stoppedWhileStarting`) and does not drop a take
       // the narrator already stopped.
-      if (starting.current) stoppedWhileStarting.current = true;
-      await control.toggle();
+      if (starting.current) {
+        // Marked before the stop is asked (the press may end meanwhile) and taken back unless the DAW accepted it: a stop the start guard ignored or the
+        // DAW refused leaves the take running, so its listening must go on.
+        stoppedWhileStarting.current = true;
+        if (!(await control.stop())) stoppedWhileStarting.current = false;
+      } else await control.toggle();
     } else if (control.gate) blocked(control.gate);
     else await roll.startTake();
   }, [control, roll, blocked]);

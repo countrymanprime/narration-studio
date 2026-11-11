@@ -506,7 +506,7 @@ export function useRecordControl({
           if (how?.current && !how.current()) return false;
           if (checked.timedOut) {
             // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
-            const sentence = `Checking that ${capabilitiesRef.current.daw ?? 'the DAW'} has this project open did not answer in time, so no take was started. Press Record to try again.`;
+            const sentence = `${capabilitiesRef.current.daw ?? 'The DAW'} could not confirm the open project in time, so no take was started.`;
             setRefused({ chapterId, sentence });
             block({ cause: 'failed', reason: sentence });
             return false;
@@ -532,7 +532,7 @@ export function useRecordControl({
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
             const name = capabilitiesRef.current?.daw ?? 'the DAW';
-            const sentence = `${name} did not answer the start in time. If it starts recording after all, the take is stopped. Check ${name} before pressing Record again.`;
+            const sentence = `The Booth gave up waiting for ${name} to start recording.`;
             if (how?.current && !how.current()) return false;
             setRefused({ chapterId, sentence });
             block({ cause: 'failed', reason: sentence });

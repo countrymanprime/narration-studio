@@ -1,8 +1,10 @@
 import { logUi } from '../../../api/uiLog';
 
 /**
- * How long each wait in a Record press may take before the press ends with a sentence and Record is free again (#3321). Each is longer than the
- * host's own limit for that call, so a host that answers in its own time is never cut off; these only end a call that never comes back.
+ * How long each wait in a Record press may take before the press ends with a sentence and Record is free again (#3321). The DAW start, the in-app
+ * recorder's start and the listening start are each longer than the host's own limit for that call (`pressLimits.guard.test.ts` reads those from the Go
+ * source), so a host that answers in its own time is never cut off. The model check, the project check and the voice choice have no host limit of their
+ * own: their 8 s was chosen, not measured. A slow first model check (hashing, antivirus) would end at 8 s with "no take was started".
  */
 export const PRESS_LIMITS_MS = {
   /** The asset list that says whether the speech model is on this computer. */

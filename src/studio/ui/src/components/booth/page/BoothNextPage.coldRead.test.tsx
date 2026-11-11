@@ -273,7 +273,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
   });
 
   // QA round 5: a Record pressed during a cold read that is still ending, with the host start out, is a take for Escape: it asks, it does not just leave.
-  it('Escape with a cold read still ending and the host start out asks "Stop recording?" and does not leave', async () => {
+  it('Escape with a cold read still ending and the host start out asks "Leave while a take is starting?" and does not leave', async () => {
     const page = renderPage();
     await ready();
     await pressToggle();
@@ -291,7 +291,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1), { timeout: 3000 });
     await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
     await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
-    expect((page.overlay.getSnapshot().dialogs[0] as { spec: { title: string } }).spec.title).toBe('Stop recording?');
+    expect((page.overlay.getSnapshot().dialogs[0] as { spec: { title: string } }).spec.title).toBe('Leave while a take is starting?');
     expect(page.navigate).not.toHaveBeenCalled();
     await act(async () => release());
   });

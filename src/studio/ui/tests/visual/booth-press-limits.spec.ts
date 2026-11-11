@@ -72,7 +72,7 @@ test('a model check that never answers ends the press with a sentence, and the n
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/Checking the speech model did not answer in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/The speech model could not be checked in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
   await page.keyboard.press('Space');
@@ -85,7 +85,7 @@ test('a DAW start that never answers ends the press with a sentence and Record i
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/did not answer the start in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   // The overridden start never reached the mock DAW, so its recording state says nothing here: what counts is that no stop was sent for a take that never started.
   expect((await calls(page)).hangs).toBe(1);
@@ -98,7 +98,7 @@ test('a DAW start that answers after its limit is stopped, never left running', 
   await openWith(page, 'recordStartLate');
   await arm(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/did not answer the start in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
   // The host answers at 12 s with a take; the Booth gave up at 10 s, so it stops that take.
   await expect.poll(async () => (await calls(page)).stops, { timeout: 8000 }).toBeGreaterThanOrEqual(1);
   await expect(stop(page)).toHaveCount(0);
@@ -109,7 +109,7 @@ test('a listening start that never answers ends the press with a sentence, and n
   await arm(page);
   await page.keyboard.press('Space');
   // The DAW starts meanwhile (Record reads Stop); the take is dropped when the listening gives up.
-  await expect(page.getByText(/the listening did not start in time/).first()).toBeVisible({ timeout: 52_000 });
+  await expect(page.getByText(/it took too long to get ready/).first()).toBeVisible({ timeout: 52_000 });
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
@@ -124,7 +124,7 @@ test('a voice choice that never answers ends a punch press with a sentence and s
     .first()
     .click();
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/was not chosen in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
 });
@@ -184,7 +184,7 @@ test('a model check that answers missing after its limit opens no install questi
   await openWithLateModelCheck(page);
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Checking the speech model did not answer in time/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
   await page.waitForTimeout(5000);
   await expect(installQuestion(page)).toHaveCount(0);
   expect(await sawInstallQuestion(page)).toBe(false);
@@ -194,7 +194,7 @@ test('Record pressed again after the limit records, and the late "not installed"
   await openWithLateModelCheck(page);
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Checking the speech model did not answer in time/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(5000);
@@ -235,4 +235,35 @@ test('Stop pressed while the listening start is pending stops the DAW take at on
   await expect.poll(() => hostCalls('teleprompterStop'), { timeout: 25_000 }).toBeGreaterThanOrEqual(1);
   expect(await dawRecording(page)).toBe(false);
   expect(await hostCalls('readAloudRecordStop')).toBe(1);
+});
+
+// A Stop the start guard ignores (a double tap) leaves the take recording with its listening: the listening that answers later is not let go.
+test('double-tap Space with slow listening: the listening is not stopped and the take keeps recording', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStart: () => {
+        if (!w.__armed) return Promise.resolve({ status: 'started' });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ status: 'started' }), 4000));
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arm(page);
+  const hostCalls = (name: string) => page.evaluate((n) => (window.__hostCalls ?? []).filter((call) => call.name === n).length, name);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 5000 });
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(5500);
+  expect(await hostCalls('teleprompterStop')).toBe(0);
+  expect(await hostCalls('readAloudRecordStop')).toBe(0);
+  expect(await dawRecording(page)).toBe(true);
+  await expect(stop(page)).toBeVisible();
 });
