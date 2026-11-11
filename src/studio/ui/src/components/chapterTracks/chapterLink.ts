@@ -7,8 +7,20 @@ import type { TrackMapping } from '../../types';
  * one track; `trackGuid` is still the first of them, for a screen that plays what the chapter has (Editing, Proof, Pickups) and can go on,
  * while one that must pick a single track to act on (the Booth's record target) refuses.
  */
+/** The one vocabulary for a chapter's link to a track, on every screen (#3368). `missing` is a link to a track the project no longer has; the
+ * wire's own words for the same states (`unlinked`, `several_links`, `unmapped_track`) stay the host's and are read once, where they arrive. */
+export type ChapterLinkState = 'unlinked' | 'linked' | 'missing' | 'several';
+
+/** What each state is called wherever it is named, so a page does not write its own ("Missing", "Track missing", "not linked"). */
+export const LINK_STATE_LABEL: Record<ChapterLinkState, string> = {
+  unlinked: 'Not linked',
+  linked: 'Linked',
+  missing: 'Track missing',
+  several: 'Several tracks',
+};
+
 export type ChapterLink = {
-  state: 'unlinked' | 'linked' | 'several';
+  state: Exclude<ChapterLinkState, 'missing'>;
   /** The chapter's track: the one link, or the first of several; undefined when unlinked. */
   trackGuid?: string;
   /** Every confirmed mapping of the chapter, in the host's order. */

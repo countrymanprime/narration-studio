@@ -22,6 +22,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { useVoiceLayout } from './voiceLayout';
 import { destinationFor } from './destination';
+import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel, kindInWords as kindWords } from './voices';
@@ -34,10 +35,10 @@ export const UNPLAYABLE = "This track has an item that can't be played";
 
 // The status is an icon with its words in a tooltip, so the row keeps its width for the track's name (#3274).
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone; icon: IconName }> = {
-  linked: { label: 'Linked', tone: 'success', icon: 'statusLinked' },
-  unlinked: { label: 'Not linked', tone: 'neutral', icon: 'statusNotLinked' },
-  missing_track: { label: 'Track missing', tone: 'danger', icon: 'statusTrackMissing' },
-  several: { label: 'Several tracks', tone: 'warning', icon: 'statusSeveral' }, // the label follows the layout (destination.severalBadge)
+  linked: { label: LINK_STATE_LABEL.linked, tone: 'success', icon: 'statusLinked' },
+  unlinked: { label: LINK_STATE_LABEL.unlinked, tone: 'neutral', icon: 'statusNotLinked' },
+  missing: { label: LINK_STATE_LABEL.missing, tone: 'danger', icon: 'statusTrackMissing' },
+  several: { label: LINK_STATE_LABEL.several, tone: 'warning', icon: 'statusSeveral' }, // the label follows the layout (destination.severalBadge)
 };
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status icon, the track (its
@@ -303,7 +304,7 @@ function ChapterLinkRow({
   const picked = tracks.find((track) => track.guid === pick);
   const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;
   // A track that is gone is not "unnamed": the sentence says it is missing.
-  const replaced = row.state === 'missing_track' ? 'the missing track' : quoted(shownName);
+  const replaced = row.state === 'missing' ? 'the missing track' : quoted(shownName);
   const preview = picked
     ? [
         `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders)})`,

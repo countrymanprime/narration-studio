@@ -1,3 +1,4 @@
+import type { ChapterLinkState } from '../../chapterTracks/chapterLink';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import type { WordFx } from '../../../api/contracts/wordFx';
@@ -59,7 +60,7 @@ const NO_AUDIO_REASON = 'There is no audio for this chapter.';
  * nothing about the link, so the page does not claim there is no audio.
  */
 export function audioOf(
-  link: 'linked' | 'unlinked' | 'missing' | 'unknown',
+  link: Exclude<ChapterLinkState, 'several'> | 'unknown',
   trackItems: number,
   liveItems: number,
   folder = false,

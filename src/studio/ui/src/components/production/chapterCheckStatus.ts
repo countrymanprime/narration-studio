@@ -15,7 +15,7 @@ export type ChapterCheckStatus =
   | { kind: 'needs_track'; count: number }
   | { kind: 'suggested'; trackName: string }
   | { kind: 'missing' }
-  | { kind: 'not_linked' };
+  | { kind: 'unlinked' };
 
 /**
  * `link` is this chapter's row from `ChapterTrackLinks` (undefined while that read is still in flight, or the
@@ -32,7 +32,7 @@ export function chapterCheckStatus(
   background?: boolean,
 ): ChapterCheckStatus {
   if (checking) return { kind: 'checking', percent, background };
-  if (!link) return { kind: 'not_linked' };
+  if (!link) return { kind: 'unlinked' };
   const button = chapterTrackButtonState(link);
   switch (button.kind) {
     case 'missing':
@@ -41,8 +41,8 @@ export function chapterCheckStatus(
       return { kind: 'needs_track', count: button.count };
     case 'suggested':
       return { kind: 'suggested', trackName: button.trackName };
-    case 'not_linked':
-      return { kind: 'not_linked' };
+    case 'unlinked':
+      return { kind: 'unlinked' };
     case 'linked':
     case 'renamed':
       // A confirmed track: the check's own freshness is what the row shows now.
@@ -118,7 +118,7 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
     }
     case 'missing':
       return { label: 'Track missing', detail: 'not in the saved project', name: `Recording check for ${chapterTitle}: linked track is missing` };
-    case 'not_linked':
+    case 'unlinked':
       return { label: 'No track yet', name: `Recording check for ${chapterTitle}: no track linked yet` };
   }
 }

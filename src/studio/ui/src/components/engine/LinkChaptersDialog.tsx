@@ -311,7 +311,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
+            const options = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
