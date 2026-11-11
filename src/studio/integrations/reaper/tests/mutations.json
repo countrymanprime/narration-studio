@@ -3174,8 +3174,14 @@
   {
     "name": "an unknown track read option is read as the one-track read",
     "file": "narration_track_state.lua",
-    "find": "if option ~= '' and option ~= 'children' then",
+    "find": "if option ~= '' and option ~= 'children' and option ~= 'none' then",
     "replace": "if false then"
+  },
+  {
+    "name": "the none read lists the track's items like the full read",
+    "file": "narration_track_state.lua",
+    "find": "local listed = option == 'none' and 0 or math.min(total, ITEM_LIMIT)",
+    "replace": "local listed = math.min(total, ITEM_LIMIT)"
   },
   {
     "name": "the children read stops at the folder and lists none of its tracks",

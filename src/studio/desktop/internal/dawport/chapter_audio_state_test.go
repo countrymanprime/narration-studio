@@ -39,3 +39,31 @@ func TestChapterAudioStateFallsBackToTheTrackOnAnEngineWithNoFolders(t *testing.
 		t.Fatalf("asked %v: want the one-track read", reader.asked)
 	}
 }
+
+type itemlessReader struct{ oneTrackReader }
+
+func (r *itemlessReader) ChapterTrackStateNoItems(_ context.Context, guid string) (TrackState, error) {
+	r.asked = append(r.asked, "none:"+guid)
+	return TrackState{TrackGUID: guid, ItemsTotal: 500}, nil
+}
+
+func TestTrackStateNoItemsUsesTheItemlessReadWhenTheEngineHasOne(t *testing.T) {
+	reader := &itemlessReader{}
+	state, err := TrackStateNoItems(context.Background(), reader, "{T}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reader.asked) != 1 || reader.asked[0] != "none:{T}" || len(state.Items) != 0 {
+		t.Fatalf("asked %v, state %+v: want one itemless read", reader.asked, state)
+	}
+}
+
+func TestTrackStateNoItemsFallsBackToTheFullReadOnAnEngineWithoutOne(t *testing.T) {
+	reader := &oneTrackReader{}
+	if _, err := TrackStateNoItems(context.Background(), reader, "{T}"); err != nil {
+		t.Fatal(err)
+	}
+	if len(reader.asked) != 1 || reader.asked[0] != "track:{T}" {
+		t.Fatalf("asked %v: want the full read", reader.asked)
+	}
+}

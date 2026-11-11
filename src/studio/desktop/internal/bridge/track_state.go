@@ -55,6 +55,18 @@ func (a *Actions) ChapterTrackState(ctx context.Context, trackGUID string) (Trac
 	return a.chapterTrackState(ctx, trackGUID)
 }
 
+// ChapterTrackStateNoItems reads like ChapterTrackState with the item rows left out: the transport, the arms and the input, and
+// ItemsTotal, but no Items. A Record press and the poll read this, so their cost does not grow with the takes on the track. A bridge
+// script older than the 'none' option refuses it, and the full read answers instead.
+func (a *Actions) ChapterTrackStateNoItems(ctx context.Context, trackGUID string) (TrackState, error) {
+	state, err := a.chapterTrackState(ctx, trackGUID, "none")
+	var refusal *RefusalError
+	if errors.As(err, &refusal) && strings.HasPrefix(refusal.Sentence, "Unknown track read option") {
+		return a.chapterTrackState(ctx, trackGUID)
+	}
+	return state, err
+}
+
 // ChapterFolderState reads like ChapterTrackState, with the items of the track trackGUID names and of every track inside it when it
 // is a REAPER folder (a chapter linked to a folder of voices, docs/prds/booth-voice-tracks.prd.md), in track order, each with its
 // TrackGUID. Items and ItemsTotal count the whole folder. On a track that is not a folder it reads that track's items. It changes

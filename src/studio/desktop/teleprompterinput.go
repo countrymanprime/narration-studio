@@ -7,6 +7,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
+	"desktop/internal/dawport"
 	"desktop/internal/teleprompter"
 )
 
@@ -80,10 +81,10 @@ func teleprompterReaperInputIn(ctx context.Context, svc hostServices, reader tra
 	if reader == nil {
 		return inputUnavailable(reaperStandalone, messageReaperOff)
 	}
-	state, err := reader.ChapterTrackState(ctx, inputTrackFor(svc, chapterID))
+	state, err := dawport.TrackStateNoItems(ctx, reader, inputTrackFor(svc, chapterID))
 	if errors.Is(err, bridge.ErrStale) {
 		// The link points at a track that is gone: the device is still REAPER's, so read it without the track.
-		state, err = reader.ChapterTrackState(ctx, "")
+		state, err = dawport.TrackStateNoItems(ctx, reader, "")
 	}
 	if err != nil {
 		refusal := readAloudRefusal(err, "", "")
