@@ -35,7 +35,7 @@ import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript,
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
-import { claimListening, endListeningClaims, joinListening, releaseListening, unclaimListening } from '../listening/listeningClaims';
+import { claimListening, joinListening, type ListeningClaim, releaseListening, unclaimListening } from '../listening/listeningClaims';
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 
@@ -351,6 +351,12 @@ export function useBoothPage(options: BoothPageOptions) {
   // listenStarting: a take's listening session is being started by the press, so the recording's own start must not start a second one.
   // unheard: the take stopping now is one whose listening failed, dropped without a word (dropUnheardTake).
   const listenStarting = useRef(false);
+  // The claim of the press whose take is running: the take's end lets it go (its session is stopped there), and a press still waiting keeps its own.
+  const takeClaim = useRef<ListeningClaim | null>(null);
+  const endTakeClaim = useCallback(() => {
+    releaseListening(takeClaim.current);
+    takeClaim.current = null;
+  }, []);
   const unheard = useRef(false);
   /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
   const { stopped: markTakeStopped } = control;
@@ -489,6 +495,8 @@ export function useBoothPage(options: BoothPageOptions) {
       return false;
     }
     if (!started) letGo();
+    // The take that runs now ends the claim with itself (the take-ended effect stops the session), so no stale owner outlives it.
+    else takeClaim.current = claim;
     return started;
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
@@ -656,7 +664,7 @@ export function useBoothPage(options: BoothPageOptions) {
       takeBegan.current = null;
       takeEntry.current = null;
       if (now.session.active) now.session.stop();
-      endListeningClaims();
+      endTakeClaim();
       return;
     }
     // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
@@ -665,7 +673,7 @@ export function useBoothPage(options: BoothPageOptions) {
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
-    endListeningClaims();
+    endTakeClaim();
     const said = endOfChapter.current;
     endOfChapter.current = false;
     const seconds = now.elapsed();
@@ -685,7 +693,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, recordId]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops

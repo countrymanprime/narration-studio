@@ -44,7 +44,7 @@ const SCRIPT: TeleprompterEvent = {
  * The host's one session. A start while a session runs is refused as the real host does; a stop ends whatever runs, whoever asked. Each start takes
  * the next gate a test queued (`holdNextStart`), so its answer comes when the test says.
  */
-function fakeHost() {
+function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = {}) {
   let state: TeleprompterState = IDLE;
   const states = new Set<(next: TeleprompterState) => void>();
   const events = new Set<(event: TeleprompterEvent) => void>();
@@ -58,7 +58,7 @@ function fakeHost() {
     publish({ phase: 'starting', chapter: 'c1', engine: 'whisper', coldRead: Boolean(options.coldRead), position: null });
     await gates.shift();
     // A stop that came while the session was starting ends it: the start fails, as the real host's does.
-    if ((state.phase as string) !== 'starting') throw new Error('the session was stopped while it started');
+    if (stopEndsStarting && (state.phase as string) !== 'starting') throw new Error('the session was stopped while it started');
     publish({ phase: 'running' });
     events.forEach((listener) => listener(SCRIPT));
     return { status: 'started' as const };
@@ -251,5 +251,23 @@ describe('the stop of a take whose listening failed has a limit', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('a Stop while the take listening is still starting', () => {
+  it('stops the DAW at once and lets the session go when it answers: the take that ended does not release the press claim early', async () => {
+    // The mock host answers a start that was stopped meanwhile as started: the session is up after the Stop, and only the press can let it go.
+    const host = fakeHost({ stopEndsStarting: false });
+    const release = host.holdNextStart();
+    const page = mountBooth(host);
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await space();
+    await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
+    await release();
+    await settle();
+    await waitFor(() => expect(host.phase()).not.toBe('running'));
   });
 });
