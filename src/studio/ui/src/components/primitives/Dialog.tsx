@@ -209,6 +209,8 @@ export function Dialog({
         >
           <Parts.Popup
             ref={popupRef}
+            // Present while Enter and Space are held back (`holdEnter`): what a test, or a screen reader's tool, waits on instead of a guessed delay.
+            data-enter-held={holdEnter ? '' : undefined}
             initialFocus={initialFocus}
             onKeyDown={(event) => {
               if (holdEnter && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();

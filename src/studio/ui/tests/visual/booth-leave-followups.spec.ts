@@ -1,5 +1,6 @@
 // The follow-ups of the Booth leave guard (#3349): the project picker is an exit like the nav, a take that ends in the DAW during the question or the stop wait
 // leaves no stale refusal, a second exit during the wait says so again, and a double Enter on a jump menu row cannot answer the question it raised.
+import { enterHoldOver } from './helpers/enterHold';
 import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
@@ -130,7 +131,7 @@ test('a double Enter on a jump menu row that leaves the Booth keeps the question
   expect(await onBooth(page)).toBe(true);
   expect(await dawRecording(page)).toBe(true);
   // Past the moment, Enter answers as it always did: the safe button, Keep recording.
-  await page.waitForTimeout(400);
+  await enterHoldOver(question(page));
   await page.keyboard.press('Enter');
   await expect(question(page)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
@@ -252,4 +253,31 @@ test('after quiet and a DAW restart, Escape leaves silently with 0 stops', async
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   const stops = await page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
   expect(stops).toBe(0);
+});
+
+// #3405: a press inside the hold does nothing, whichever key and however it is pressed; the same press after it answers.
+test('Enter and Space pressed inside the hold leave the question open and the take recording', async ({ page }) => {
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  await expect(question(page)).toHaveAttribute('data-enter-held', '');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(100);
+  await expect(question(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('a Space pressed inside the hold and released after it does not answer the question', async ({ page }) => {
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  await question(page).getByRole('button', { name: 'Keep recording' }).focus();
+  await page.keyboard.down('Space');
+  await enterHoldOver(question(page));
+  await page.keyboard.up('Space');
+  await page.waitForTimeout(150);
+  await expect(question(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
 });
