@@ -52,6 +52,7 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
   const gates: Array<Promise<void>> = [];
   // How a held start ends: `answer` resolves it as started, `refuse` makes it fail as the host's does (the phase goes to error).
   let muted = false;
+  let holdStop = false;
   const publish = (next: Partial<TeleprompterState>) => {
     state = { ...state, ...next };
     if (!muted) states.forEach((listener) => listener(state));
@@ -74,7 +75,7 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
   const teleprompterStop = vi.fn(async () => {
     // The real host returns at once when the session has no child process yet (service.go): the stop answers OK and the session then comes up.
     if (ignoreStopWhileStarting && state.phase === 'starting') return;
-    if (state.phase === 'starting' || state.phase === 'running') publish({ phase: 'stopped' });
+    if (state.phase === 'starting' || state.phase === 'running') publish({ phase: holdStop ? 'stopping' : 'stopped' });
   });
   const api: Partial<NarrationApi> = {
     teleprompterStart,
@@ -97,6 +98,10 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
     phase: () => state.phase,
     /** The host's pushes stop reaching the page (a lost event); the state it reads still tells. */
     muteEvents: () => void (muted = true),
+    /** A stop says `stopping` and ends only at `finishStop`, as a sidecar still decoding what it heard does. */
+    holdStops: () => void (holdStop = true),
+    finishStop: () => act(async () => void publish({ phase: 'stopped' })),
+    listenerCount: () => states.size,
     /** The next start does not answer until the returned function is called. */
     holdNextStart: () => {
       let release = () => {};
@@ -350,34 +355,70 @@ describe('a press that joined a session whose start then fails', () => {
   });
 });
 
-describe('a stop of a dropped take that answers after a newer take began', () => {
-  it('does not undo: the undo is scoped to the kind of the top of the DAW history, and the newer take would be on top', async () => {
+describe('the stop and the undo of a take whose listening failed', () => {
+  const failing = () => {
+    const host = fakeHost();
+    host.api.teleprompterStart = vi.fn(async () => {
+      throw new Error('The microphone is in use by another application.');
+    });
+    return host;
+  };
+
+  it('a stop that answers after its limit undoes nothing: the narrator was told to stop it in the DAW', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      const host = fakeHost();
-      let fails = true;
-      host.api.teleprompterStart = vi.fn(async () => {
-        if (fails) throw new Error('The microphone is in use by another application.');
-        return { status: 'started' as const };
-      });
-      const page = mountBooth(host);
+      const page = mountBooth(failing());
       let answerStop: (result: Awaited<ReturnType<typeof page.daw.recordStop>>) => void = () => {};
       page.recordStop.mockImplementationOnce(() => new Promise((resolve) => (answerStop = resolve)));
       await ready();
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
-      await screen.findByText(/the stop did not answer in time/);
-      fails = false;
-      await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
-      await space();
-      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      await screen.findByText(/The recording could not be stopped: the stop did not answer in time\. Stop it in REAPER\./);
       await act(async () => answerStop({ ok: true, changed: true, message: '', undoSteps: 1 }));
       await act(() => vi.advanceTimersByTimeAsync(50));
       expect(page.undoLast).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('an undo the DAW never answers ends at its limit with the take-back sentence, and Record is free', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const page = mountBooth(failing());
+      page.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      page.undoLast.mockImplementation(() => new Promise(() => {}));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.undoLast).toHaveBeenCalledTimes(1));
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.undoLast + 5));
+      await screen.findByText(/The short recording could not be taken back: the undo did not answer in time\. Undo it in REAPER\./);
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('Record pressed while the session stop is still in flight', () => {
+  it('waits for the stop and starts its own session, so the take is not recorded unheard behind a dying one', async () => {
+    const host = fakeHost();
+    const page = mountBooth(host);
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    host.holdStops();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await space();
+    await waitFor(() => expect(host.phase()).toBe('stopping'));
+    await space();
+    await settle();
+    // Not joined: no take starts behind the session that is ending.
+    expect(page.recordStart).toHaveBeenCalledTimes(1);
+    await host.finishStop();
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(2));
   });
 });
 
@@ -487,6 +528,22 @@ describe('a joiner that waits for a session another press is starting (#3320)', 
       await control();
       await act(() => vi.advanceTimersByTimeAsync(500));
       expect(host.phase()).not.toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops listening for the host when it gives up: a host that never pushes leaves no listener behind', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+      const before = host.listenerCount();
+      const { second } = await joinWhileStarting(host);
+      expect(host.listenerCount()).toBeGreaterThan(before);
+      second.view.unmount();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 3000));
+      // Only the hooks' own subscriptions remain (the Booth was left).
+      expect(host.listenerCount()).toBe(before);
     } finally {
       vi.useRealTimers();
     }

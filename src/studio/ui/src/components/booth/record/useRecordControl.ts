@@ -595,7 +595,13 @@ export function useRecordControl({
             return false;
           }
           result = answered.value;
-        } else result = await daw.recordStop();
+        } else {
+          // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
+          // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
+          const stopAsked = await limited('recordStop', daw.recordStop());
+          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          result = stopAsked.value;
+        }
         if (result.ok && starting && !alive.current && runningStart > seq) {
           // A newer press's take is the one running: this late start is not the Booth's to end.
           logUi('ui.record', 'A late start from a Booth that was left was not stopped: a newer take runs.');

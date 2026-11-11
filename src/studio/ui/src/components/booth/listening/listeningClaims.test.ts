@@ -1,11 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { claimListening, forgetListeningClaims, joinListening, ownsListening, releaseListening, unclaimListening } from './listeningClaims';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { claimListening, forgetListeningClaims, STALE_MS, joinListening, ownsListening, releaseListening, unclaimListening } from './listeningClaims';
 
 beforeEach(forgetListeningClaims);
 
+afterEach(() => vi.useRealTimers());
+
 describe('who owns the host listening session', () => {
+  it('a claim whose start never answered is stale after STALE_MS: a press that finds a session some other way does not take it over', () => {
+    vi.useFakeTimers();
+    claimListening();
+    vi.advanceTimersByTime(STALE_MS + 1);
+    expect(joinListening()).toBeNull();
+  });
   it('the press that started it owns it and lets it go once', () => {
     const press = claimListening();
     expect(releaseListening(press)).toBe(true);

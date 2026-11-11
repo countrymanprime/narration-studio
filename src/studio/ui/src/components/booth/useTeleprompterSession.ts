@@ -5,6 +5,7 @@ import { isInstallRunning } from '../../types';
 import { buildRows, creditsRows, hydrateSession, initialSession, previewRows, reduceEvent, type CreditsKind, type Session } from './readerModel';
 import { usePacedCursor } from './usePacedCursor';
 import type { InputSource } from './listening/listeningMic';
+import { PRESS_LIMITS_MS } from './record/pressLimits';
 import type {
   ManuscriptChapter,
   ManuscriptParagraph,
@@ -338,13 +339,22 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     return new Promise((resolve) => {
       let off = () => {};
       let settled = false;
+      const timer: { id?: ReturnType<typeof setTimeout> } = {};
       const finish = (state: TeleprompterState) => {
         if (settled || state.phase === 'starting') return;
         settled = true;
+        clearTimeout(timer.id);
         off();
         resolve(answer(state));
       };
       off = api.subscribeTeleprompterState(finish);
+      // The press that waits gave up at its limit: the listener goes with it, so a host that never pushes leaves nothing behind.
+      timer.id = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        off();
+        resolve({ ok: false, reason: 'no answer in time' });
+      }, PRESS_LIMITS_MS.listening + 1000);
       void api
         .teleprompterState()
         .then(finish)

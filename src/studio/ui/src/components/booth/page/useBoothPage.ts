@@ -22,7 +22,6 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
-import { apiErrorMessage } from '../../../api/errorMessage';
 import { limited } from '../record/pressLimits';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
@@ -363,31 +362,24 @@ export function useBoothPage(options: BoothPageOptions) {
     takeClaim.current = null;
   }, []);
   const unheard = useRef(false);
-  // Counts the takes that began in this Booth; a late undo of an older drop checks it.
-  const takeEpoch = useRef(0);
   /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
   const { stopped: markTakeStopped } = control;
   const recorderLabel = control.capabilities?.daw ?? 'the DAW';
   const dropUnheardTake = useCallback(async (): Promise<boolean> => {
     unheard.current = true;
-    // Taken back only while no newer take has begun: the undo is scoped to the kind of the top of the DAW's history, and a newer take's would be on top.
-    const epoch = takeEpoch.current;
     const failed = (message: string): DawResult => ({ ok: false, changed: false, message, undoSteps: 0 });
     // Both host calls are bounded (a stop that never answers must not hold the press, and Record, for good): past the limit the take is treated as one
-    // that could not be stopped, and a stop that answers late has its short recording taken back all the same.
+    // that could not be stopped.
     const stopAsked = await limited(
       'recordStop',
       daw.recordStop().catch(() => failed('the stop did not go through.')),
-      (late) => {
-        if (!late.ok || late.undoSteps < 1) return;
-        if (takeEpoch.current !== epoch || latest.current.recording || starting.current) {
-          logUi('ui.record', 'A late stop of a dropped take was not undone: a newer take began.');
-          return;
-        }
-        void daw
-          .undoLast(TAKE_KIND, late.undoSteps)
-          .catch((error: unknown) => logUi('ui.record', `The short recording of a late stop was not taken back: ${apiErrorMessage(error)}`));
-      },
+      // A stop that lands after the limit changes nothing more: the narrator was told to stop it in the DAW, and a short recording is not undone behind that
+      // message (the project is theirs to look at). It is written to the run log.
+      (late) =>
+        logUi(
+          'ui.record',
+          `A late stop of a dropped take answered ${late.ok ? 'ok' : 'refused'}; its short recording (${late.undoSteps} undo steps) was left in the DAW.`,
+        ),
     );
     const stopped = stopAsked.timedOut ? failed('the stop did not answer in time.') : stopAsked.value;
     markTakeStopped();
@@ -442,6 +434,11 @@ export function useBoothPage(options: BoothPageOptions) {
     // narrator stopped it first: a session that fails stops the recording at once, and what it recorded is taken back (inside REAPER's pre-roll it
     // has recorded nothing). A take the narrator stopped while the listening was starting is kept (`stoppedWhileStarting`).
     // The app's own recorder has no pre-roll and keeps its file from the first instant, so it starts once listening has.
+    // A session whose stop is still in flight is not one to join (a take would record unheard behind it): wait for it to end, then start its own.
+    if (latest.current.session.phase === 'stopping') {
+      await latest.current.session.stopAndWait();
+      if (!current()) return false;
+    }
     const listen = endedColdRead || !latest.current.session.active;
     // The session this press owns (`listeningClaims.ts`): one it starts, or one a cancelled press began that this press joined. It lets the session go
     // only while it is still the owner, so a press that outlived its Booth never ends the listening of the press after it.
@@ -700,7 +697,6 @@ export function useBoothPage(options: BoothPageOptions) {
       setTakeNote('');
       setPaused(false);
       setBrowse(false);
-      takeEpoch.current += 1;
       takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
       // The press starts this take's listening itself (beginOnce), after any cold read it is ending.

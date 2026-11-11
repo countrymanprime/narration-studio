@@ -11,7 +11,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import { dawClientFor } from './fixtures';
 import { logUi } from '../../../api/uiLog';
 import { limited, PRESS_LIMITS_MS } from './pressLimits';
-import { forgetAppTake, useRecordControl } from './useRecordControl';
+import { forgetAppTake, skipStartGuard, useRecordControl } from './useRecordControl';
 
 vi.mock('../../../api/uiLog', () => ({ logUi: vi.fn() }));
 
@@ -292,5 +292,30 @@ describe('a late start of an abandoned press (#3320)', () => {
     await act(async () => answerOld(OK));
     await vi.advanceTimersByTimeAsync(10);
     expect(oldView.stops).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the Record control stop (#3320)', () => {
+  it('never answers: the press ends at its limit with the failure sentence, and the next press can ask again', async () => {
+    const view = mount({ start: () => Promise.resolve(OK) });
+    await ready(view);
+    await act(async () => void (await view.result.current.toggle()));
+    expect(view.result.current.recording).toBe(true);
+    view.stops.mockImplementationOnce(() => new Promise(() => {}));
+    // Past the start guard.
+    skipStartGuard();
+    let pressed: Promise<boolean> = Promise.resolve(true);
+    act(() => void (pressed = view.result.current.toggle()));
+    await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
+    await expect(pressed).resolves.toBe(false);
+    expect(view.onBlocked).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: expect.stringMatching(/Stop did not go through: the stop did not answer in time/) }),
+    );
+    // The take may still run; Stop asks once more and goes through.
+    expect(view.result.current.recording).toBe(true);
+    skipStartGuard();
+    await act(async () => void (await view.result.current.toggle()));
+    expect(view.stops).toHaveBeenCalledTimes(2);
+    expect(view.result.current.recording).toBe(false);
   });
 });

@@ -8,7 +8,7 @@ import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimit
 // the press goes in this list (and into `PRESS_LIMITS_MS`), or it hangs Record for good when the host never answers (#3221).
 // A call written `void ...` is one nothing waits for (the DAW's own Record started a listening session), so it is not a wait.
 // The other awaits of the press are named in OTHER_AWAITS, each with its reason. One is a host call that is NOT bounded here and is a
-// known gap (follow-up, stated in the PR): the stop of the Record control itself (`daw.recordStop` in useRecordControl) and `daw.roll`.
+// known gap (follow-up, stated in the PR): `daw.roll`.
 const BOOTH = join(__dirname, '..');
 const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = [
   { file: 'page/useBoothPage.ts', call: 'session.ensureModel(', stage: 'modelCheck' },
@@ -18,6 +18,7 @@ const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = 
   { file: 'page/useBoothPage.ts', call: 'daw.undoLast(TAKE_KIND, stopped', stage: 'undoLast' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStart(', stage: 'recordStart' },
+  { file: 'record/useRecordControl.ts', call: 'daw.recordStop()', stage: 'recordStop' },
 ];
 
 /** The functions of the press that are scanned for awaits, from the text that opens one to the text that follows it. */
@@ -35,11 +36,11 @@ const OTHER_AWAITS: ReadonlyArray<{ head: string; why: string }> = [
   { head: 'actionsRef.current.beginTake(', why: "the Booth's beginOnce, whose waits are limited" },
   { head: 'actionsRef.current.chooseVoice(', why: "the Booth's chooseVoice, whose host call is limited ('voiceChoice')" },
   { head: 'lookUp(', why: 'the punch-target lookup, limited by LOOKUP_MS in useRoll.ts' },
+  { head: 'latest.current.session.stopAndWait(', why: "a session stop in flight: the hook's own wait ends at STOP_WAIT_MS even if the host never says" },
   { head: 'ask(', why: "the narrator's own answer to a question, not a host wait" },
   { head: 'playTakeTone(', why: 'a fixed timer (TAKE_TONE_MS), not a host call' },
   { head: 'stoppedRef.current', why: "the Booth's own bookkeeping callback after a stop, local work" },
   { head: 'dropUnheardTake(', why: "the Booth's stop of a take whose listening failed; its recordStop and undoLast are limited ('recordStop', 'undoLast')" },
-  { head: 'daw.recordStop(', why: 'UNBOUNDED host call, the stop of a take: known gap, follow-up' },
 ];
 
 describe('a model check the press gave up on never opens its question', () => {
