@@ -10,6 +10,7 @@ import type { ExtractionSuggestion } from '../../../../api/contracts/extraction'
 import { createMockApi } from '../../../../api/mockApi';
 import { overlay } from '../../../../overlay/overlayService';
 import { StudioProvider, useJournal } from '../../../../studio/StudioProvider';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../studio/drafts/unsavedDrafts';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import type { NarrationApi } from '../../../../types';
 import { AcceptedClaims } from './AcceptedClaims';
@@ -179,6 +180,36 @@ describe('needs-verification-offers-accept-edit-reject', () => {
     expect(document.querySelector('[data-sug-reason]')!.textContent).toContain(`Needs verifying: ${s.reason}`);
     expect(document.querySelector('[data-sug-dup]')!.textContent).toContain('Possible duplicate');
     expect(document.querySelector('[data-sug-dup]')!.textContent).toContain('Repeats “Rabbit”.');
+  });
+});
+
+describe('an edit typed and not accepted is a draft the question cannot save (#3404)', () => {
+  it('is held with nothing to save, so Save & continue never accepts the suggestion for the narrator', async () => {
+    let drafts!: ReturnType<typeof useUnsavedDrafts>;
+    const Probe = () => {
+      drafts = useUnsavedDrafts();
+      return null;
+    };
+    const target = one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
+    const accept = vi.spyOn(api, 'extractionAccept');
+    render(
+      <ApiProvider api={api}>
+        <StudioProvider>
+          <UnsavedDraftsProvider>
+            <Probe />
+            <ul>
+              <SuggestionRow suggestion={target} sources={SOURCES} onGoToEvidence={onGoToEvidence} lineLabel={lineLabel} />
+            </ul>
+          </UnsavedDraftsProvider>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
+    await u.type(screen.getByRole('textbox', { name: 'Edit name' }), 'Jr');
+    expect(drafts.held.map((entry) => entry.saveable)).toEqual([false]);
+    expect(await drafts.save()).toBe(true);
+    expect(accept).not.toHaveBeenCalled();
   });
 });
 

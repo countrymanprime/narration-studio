@@ -132,6 +132,8 @@ first, and leaving a chapter's [Proof view](proof.md#the-chapter-view) while a c
 showing results resets it the same way. They only move between pages — closing a slide-over, the previous
 chapter, or the previous Story Bible entry are not Back steps.
 
+A browser Back (or Alt+Left) while a dialog is open does not leave the page: the dialog and what you typed stay.
+
 A box that saves when you click or Tab out of it saves what you typed before any of these moves, even when the move comes from a key and the cursor is still in the box.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows

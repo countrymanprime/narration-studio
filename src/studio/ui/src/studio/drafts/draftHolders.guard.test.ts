@@ -138,8 +138,11 @@ describe('a link out of a page goes through the guarded navigate (#3400)', () =>
 type Replacer = { file: string; control: string; asks: RegExp };
 const SETTINGS_PANE: Replacer[] = [
   { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
-  { file: 'settings/page/SettingsPage.tsx', control: 'typing in the search box', asks: /guarded\(\(\) => setQuery\(next\)/ },
-  { file: 'settings/page/SettingsPage.tsx', control: 'a filter other than All', asks: /guarded\(\(\) => setFilter\(next\)/ },
+  {
+    file: 'settings/page/SettingsPage.tsx',
+    control: 'a search or filter that shows, changes or clears the results',
+    asks: /else guarded\(apply, \{ settle: false \}\)/,
+  },
 ];
 const STORY_BIBLE_DETAIL: Replacer[] = [
   { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string\) =>\s*guarded\(/ },
@@ -226,5 +229,20 @@ describe('the Script rail view is written through the question (#3404)', () => {
       'use useShowInRail (script/page/data/useShowInRail.ts)',
     ).toEqual([]);
     expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
+  });
+});
+
+// The search and the filter swap the Settings pane for the results, and clearing them swaps it back (#3404): every write of the page's category, query or filter
+// is either inside the guarded `showCategory` / `changeSearch`, or the link effect that a link already asked for in `moveTo`. A new writer fails this until it is listed.
+describe('the Settings pane is swapped only through the question (#3404)', () => {
+  const page = code(readFileSync(join(components, 'settings/page/SettingsPage.tsx'), 'utf8'));
+  const writes = (setter: string) => [...page.matchAll(new RegExp(`\\b${setter}\\(`, 'g'))].length;
+  test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
+    expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
+  });
+  test('showCategory asks, and so does every change of the search or filter', () => {
+    expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
+    expect(page).toMatch(/onChange=\{changeQuery\}/);
+    expect(page).toMatch(/changeFilter\(next as Filter\)/);
   });
 });

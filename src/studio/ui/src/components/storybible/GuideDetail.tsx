@@ -1,5 +1,5 @@
 import { shortName } from '../../studio/drafts/draftSentence';
-import { useGuardedNavigate, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedNavigate, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -357,11 +357,13 @@ export function GuideDetail({
 
   // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
   const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
+  // The entry's own Save and the question's Save & continue share one request (#3404).
+  const saveEntryShared = useSharedSave(() => saveEntryRef.current?.() ?? Promise.resolve(true));
   useUnsavedDraft('story-bible-entry', {
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
     label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry', 16)}`,
     brief: 'your entry edit',
-    save: () => saveEntryRef.current?.() ?? Promise.resolve(true),
+    save: saveEntryShared,
     discard: () => setEditing(false),
   });
 
@@ -818,7 +820,7 @@ export function GuideDetail({
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
                   disabledReason={busyReason('save')}
-                  onClick={() => void saveEntry()}
+                  onClick={() => void saveEntryShared()}
                   variant="primary"
                 >
                   <FontAwesomeIcon icon={faFloppyDisk} />

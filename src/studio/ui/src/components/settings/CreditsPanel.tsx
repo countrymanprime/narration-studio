@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
-import { useGuardedAction, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedAction, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
@@ -160,7 +160,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     };
   }, [api, draftBody, draftKind, values]);
 
-  const saveTemplate = async (): Promise<boolean> => {
+  const saveTemplateNow = async (): Promise<boolean> => {
     setBusy(true);
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
@@ -181,6 +181,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       setBusy(false);
     }
   };
+  // The editor's Save and the question's Save & continue share one request: pressing both sends one (#3404).
+  const saveTemplate = useSharedSave(saveTemplateNow);
   // The template editor holds a draft that waits for Save template (the project values below save as they are typed), so leaving the page asks (#3400).
   // A New template with nothing typed, or an edit put back as it was, holds nothing.
   const draftHeld =

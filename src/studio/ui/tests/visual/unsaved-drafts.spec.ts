@@ -285,7 +285,7 @@ test('a save that never answers gives Cancel and Discard back after 15 seconds, 
   await expect(question).toBeVisible();
   await page.clock.fastForward(16_000);
   await expect(question.getByRole('button', { name: 'Cancel' })).toBeEnabled();
-  await expect(page.getByText('Not saved. What you typed is still here.')).toBeVisible();
+  await expect(page.getByText('Saving is taking too long. What you typed is still here.')).toBeVisible();
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
   await switchProject(page);
@@ -366,4 +366,74 @@ test('Add entry over an edited entry asks Unsaved changes', async ({ page }) => 
   await expect(question).toContainText('Save or discard your changes to');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
+});
+
+// A box that saves when it loses focus (a relationship's words) reports its edit a moment after the focus leaves it: a click on a link at once, with the
+// caret still in the box, asks all the same (#3404).
+for (const width of [1440, 1100]) {
+  test(`a nav link clicked with the caret still in a relationship row asks, at ${width} wide`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await startEntryEdit(page);
+    await page.getByRole('button', { name: 'Add a relationship' }).click();
+    await page.getByRole('combobox', { name: 'Relationship' }).last().fill('rival of');
+    await clickNav(page, 'Schedule');
+    await expect(unsaved(page, 'Unsaved changes')).toContainText('A relationship will be discarded.');
+    await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('combobox', { name: 'Relationship' }).last()).toHaveValue('rival of');
+  });
+}
+
+test('a click one millisecond after the typing, with no blur between, still asks', async ({ page }) => {
+  await startEntryEdit(page);
+  await page.getByRole('button', { name: 'Add a relationship' }).click();
+  const box = page.getByRole('combobox', { name: 'Relationship' }).last();
+  await box.fill('rival of');
+  await page
+    .locator('aside:visible')
+    .first()
+    .getByRole('button', { name: /^Schedule/ })
+    .click({ delay: 1 });
+  await expect(unsaved(page, 'Unsaved changes')).toBeVisible();
+});
+
+// The question with nothing to save opens on Keep editing at every width, also when a navigation drawer was open behind the link that asked (#3404).
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 720, height: 600 },
+  { width: 320, height: 300 },
+]) {
+  test(`Keep editing has the focus when the question opens from the navigation at ${size.width} wide`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Add entry' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).first().fill('Mr Fox');
+    await clickNav(page, 'Production');
+    const question = unsaved(page, 'Unsaved changes');
+    await expect(question).toBeVisible();
+    await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(question).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Navigation' })).toHaveCount(0);
+  });
+}
+
+// Changing or clearing the search while the results hold an editor asks as the first letter did (#3404).
+test('changing or clearing the Settings search over a credits template opened from the results asks', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Project');
+  const search = page.getByLabel('Search settings');
+  await search.fill('credits');
+  await page.getByRole('button', { name: /^Edit credits/ }).click();
+  await page.getByRole('textbox', { name: 'Body' }).fill('Typed but not saved.');
+  for (const next of ['theme', '']) {
+    await search.fill(next);
+    const question = unsaved(page, 'Unsaved settings');
+    await expect(question).toContainText('Save or discard your credit template edit before going on?');
+    await question.getByRole('button', { name: 'Cancel' }).click();
+    await expect(search).toHaveValue('credits');
+    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
+  }
 });

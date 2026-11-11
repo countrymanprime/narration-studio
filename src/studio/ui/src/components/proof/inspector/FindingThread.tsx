@@ -1,6 +1,6 @@
 import { plural } from '../../../plural';
 import { useState } from 'react';
-import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
+import { useSharedSave, useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { MAX_REVIEW_NOTE_LENGTH, type FindingThreadAuthor, type FindingThreadChange, type FindingThreadMessage } from '../../../api/contracts/findings';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -34,6 +34,12 @@ function Message({
   onDelete: () => void;
 }) {
   const [draft, setDraft] = useState<string>();
+  const saveEdit = useSharedSave(async () => {
+    if (draft === undefined) return true;
+    const saved = await onEdit(draft);
+    if (saved) setDraft(undefined);
+    return saved;
+  });
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft(`finding-note-edit-${message.id}`, {
     dirty: draft !== undefined && draft.trim() !== '' && draft !== message.text,
@@ -41,12 +47,7 @@ function Message({
     brief: 'your note edit',
     kind: 'finding-note-edit',
     many: (n) => `${plural(n, 'edit')} of notes`,
-    save: async () => {
-      if (draft === undefined) return true;
-      const saved = await onEdit(draft);
-      if (saved) setDraft(undefined);
-      return saved;
-    },
+    save: saveEdit,
     discard: () => setDraft(undefined),
   });
   if (draft !== undefined)
@@ -60,7 +61,7 @@ function Message({
             size="sm"
             variant="primary"
             disabledReason={disabled ? 'Not available right now' : draft.trim() === '' ? 'Write the note first' : undefined}
-            onClick={() => void onEdit(draft).then((saved) => saved && setDraft(undefined))}
+            onClick={() => void saveEdit()}
           />
         </div>
       </div>
@@ -111,11 +112,12 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
       return false;
     }
   };
-  const saveReply = async (): Promise<boolean> => {
+  const saveReplyNow = async (): Promise<boolean> => {
     const saved = await send({ op: 'add', who, text: reply });
     if (saved) setReply('');
     return saved;
   };
+  const saveReply = useSharedSave(saveReplyNow);
   const add = () => action.run('add', saveReply);
   // A note typed and not yet added is held text: leaving the page asks first (#3400).
   useUnsavedDraft('finding-note-reply', {

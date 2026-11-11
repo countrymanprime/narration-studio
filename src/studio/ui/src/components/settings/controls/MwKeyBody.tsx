@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
+import { useSharedSave, useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
@@ -37,7 +37,7 @@ export function MwKeyBody() {
       setBusy(undefined);
     }
   };
-  const save = () =>
+  const saveNow = () =>
     run('save', async () => {
       await port.pronunciationOnlineKeySet(draft);
       setDraft('');
@@ -45,6 +45,7 @@ export function MwKeyBody() {
       notify('Merriam-Webster key saved.');
       announceKeyChanged();
     });
+  const save = useSharedSave(saveNow);
   // A key pasted and not yet saved is held text: leaving the page asks first (#3400).
   useUnsavedDraft('mw-key', { dirty: draft.trim() !== '', label: 'the key you pasted', save, discard: () => setDraft('') });
   const remove = () =>

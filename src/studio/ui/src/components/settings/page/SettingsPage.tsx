@@ -173,8 +173,20 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
 
   // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)
   // goes with it. Asked when the results would first appear; the focus stays in the box, so the typing carries on after the answer (#3404).
-  const changeQuery = (next: string) => (!searching && next.trim() !== '' ? guarded(() => setQuery(next), { settle: false }) : setQuery(next));
-  const changeFilter = (next: Filter) => (!searching && next !== 'all' ? guarded(() => setFilter(next), { settle: false }) : setFilter(next));
+  // Every change of the search or the filter that shows, replaces or clears the results swaps the pane under an editor held there (a key pasted into the
+  // Merriam-Webster box among the results, a credits template opened from them), so it asks; a change that leaves the results as they are does not.
+  const changeSearch = (nextQuery: string, nextFilter: Filter) => {
+    const nextSearching = nextQuery.trim() !== '' || nextFilter !== 'all';
+    const sameResults = nextQuery.trim() === text && nextFilter === filter;
+    const apply = () => {
+      setQuery(nextQuery);
+      setFilter(nextFilter);
+    };
+    if (sameResults || !(searching || nextSearching)) apply();
+    else guarded(apply, { settle: false });
+  };
+  const changeQuery = (next: string) => changeSearch(next, filter);
+  const changeFilter = (next: Filter) => changeSearch(query, next);
 
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
   const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;
@@ -324,7 +336,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                   onKeyDown={(event) => {
                     if (event.key === 'Escape' && query) {
                       event.stopPropagation();
-                      setQuery('');
+                      changeQuery('');
                     }
                   }}
                 />

@@ -12,11 +12,37 @@ import type { DraftLabel, HeldDraft } from './draftSentence';
 /** How long a save may take before the question stops waiting for it: the narrator gets the buttons back, and the text stays where it was typed. */
 export const SAVE_LIMIT_MS = 15_000;
 
+/** A save that did not answer within `SAVE_LIMIT_MS`. The request may still be running: it is not stopped, only no longer waited for. */
+export class SaveTimeout extends Error {
+  constructor() {
+    super('The save did not finish.');
+  }
+}
+
+/**
+ * One save at a time for an editor: a second call while the first is in flight gets the first's answer and sends nothing. The editor uses the returned
+ * function for its own Save button and as its draft's `save`, so the question's Save & continue waits for a save the narrator already pressed, and a save
+ * the question stopped waiting for (the limit) is not sent again (#3404).
+ */
+export function useSharedSave(save: () => Promise<boolean>): () => Promise<boolean> {
+  const latest = useRef(save);
+  latest.current = save;
+  const inflight = useRef<Promise<boolean> | null>(null);
+  return useCallback(() => {
+    if (inflight.current) return inflight.current;
+    const run = latest.current().finally(() => {
+      inflight.current = null;
+    });
+    inflight.current = run;
+    return run;
+  }, []);
+}
+
 /** Gives `work` `SAVE_LIMIT_MS` to finish: a save that never answers rejects, so the question can give the narrator their buttons back. */
 export function withinSaveLimit<T>(work: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const limit = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('The save did not finish.')), SAVE_LIMIT_MS);
+    timer = setTimeout(() => reject(new SaveTimeout()), SAVE_LIMIT_MS);
   });
   return Promise.race([work, limit]).finally(() => clearTimeout(timer));
 }
@@ -37,7 +63,9 @@ export type UnsavedDraft = DraftLabel & {
 type Registry = {
   /** The held drafts, in the order they were first held, each with whether the question can save it. */
   held: readonly HeldDraft[];
-  join: (id: string, draft: UnsavedDraft) => void;
+  /** What is held right now, read from the editors themselves and not from the last render: an edit committed a moment ago (a box that saves on blur) counts. */
+  heldNow: () => readonly HeldDraft[];
+  join: (id: string, draft: () => UnsavedDraft) => void;
   leave: (id: string) => void;
   /**
    * Saves every held draft that can be saved; one call in flight at a time, so a second press shares the first's answer. A draft that says it did not save
@@ -60,22 +88,30 @@ const DraftsContext = createContext<Registry | undefined>(undefined);
 
 /** Mounted once, above the routes. */
 export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
-  const drafts = useRef(new Map<string, UnsavedDraft>());
+  // Each entry reads the editor's latest props (see `useUnsavedDraft`), so `dirty` is as of its last render and not of the last effect.
+  const drafts = useRef(new Map<string, () => UnsavedDraft>());
   const shell = useRef<Shell | null>(null);
   const saving = useRef<Promise<boolean> | null>(null);
   const [held, setHeld] = useState<readonly HeldDraft[]>([]);
+  const heldNow = useCallback(
+    (): HeldDraft[] =>
+      [...drafts.current.values()]
+        .map((read) => read())
+        .filter((draft) => draft.dirty)
+        .map(({ label, brief, kind, many, save }): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined })),
+    [],
+  );
+  const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
   const publish = useCallback(() => {
-    const labels = [...drafts.current.values()]
-      .filter((draft) => draft.dirty)
-      .map(({ label, brief, kind, many, save }): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined }));
+    const labels = heldNow();
     setHeld((current) =>
       current.length === labels.length && current.every((entry, index) => entry.label === labels[index]!.label && entry.saveable === labels[index]!.saveable)
         ? current
         : labels,
     );
-  }, []);
+  }, [heldNow]);
   const join = useCallback(
-    (id: string, draft: UnsavedDraft) => {
+    (id: string, draft: () => UnsavedDraft) => {
       drafts.current.set(id, draft);
       publish();
     },
@@ -92,7 +128,7 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     if (saving.current) return saving.current;
     const saved = (async () => {
       // A draft with no save of its own (a new entry with no category) is not saved here; the question says it goes.
-      for (const draft of [...drafts.current.values()].filter((entry) => entry.dirty && entry.save)) if (!(await draft.save!())) return false;
+      for (const draft of dirtyNow().filter((entry) => entry.save)) if (!(await draft.save!())) return false;
       return true;
     })();
     const run = withinSaveLimit(saved).finally(() => {
@@ -100,13 +136,13 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     });
     saving.current = run;
     return run;
-  }, []);
+  }, [dirtyNow]);
   const discard = useCallback(() => {
-    for (const draft of [...drafts.current.values()].filter((entry) => entry.dirty)) draft.discard();
-  }, []);
+    for (const draft of dirtyNow()) draft.discard();
+  }, [dirtyNow]);
   const discardUnsaveable = useCallback(() => {
-    for (const draft of [...drafts.current.values()].filter((entry) => entry.dirty && !entry.save)) draft.discard();
-  }, []);
+    for (const draft of dirtyNow().filter((entry) => !entry.save)) draft.discard();
+  }, [dirtyNow]);
   const setShell = useCallback((next: Shell | null) => {
     shell.current = next;
   }, []);
@@ -117,8 +153,8 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
   const value = useMemo(
-    () => ({ held, join, leave, save, discard, discardUnsaveable, setShell, ask, go }),
-    [held, join, leave, save, discard, discardUnsaveable, setShell, ask, go],
+    () => ({ held, heldNow, join, leave, save, discard, discardUnsaveable, setShell, ask, go }),
+    [held, heldNow, join, leave, save, discard, discardUnsaveable, setShell, ask, go],
   );
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;
 }
@@ -140,15 +176,11 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
   const key = `${id}:${own}`;
   useEffect(() => {
     if (!join) return;
-    join(key, {
-      dirty,
-      label,
-      brief,
-      kind,
-      many,
-      save: saveable ? () => latest.current.save?.() ?? Promise.resolve(false) : undefined,
+    join(key, () => ({
+      ...latest.current,
+      save: latest.current.save ? () => latest.current.save?.() ?? Promise.resolve(false) : undefined,
       discard: () => latest.current.discard(),
-    });
+    }));
   }, [join, key, dirty, label, brief, kind, many, saveable]);
   useEffect(() => {
     if (!leave) return;
@@ -157,9 +189,12 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
 }
 
 /** For the app shell: what is held now, the one Save and the one Discard that reach every holder, and the hooks it plugs its guarded moves into. */
-export function useUnsavedDrafts(): Pick<Registry, 'held' | 'save' | 'discard' | 'discardUnsaveable' | 'setShell'> {
+export function useUnsavedDrafts(): Pick<Registry, 'held' | 'heldNow' | 'save' | 'discard' | 'discardUnsaveable' | 'setShell'> {
   const registry = useContext(DraftsContext);
-  return useMemo(() => registry ?? { held: [], save: async () => true, discard: () => {}, discardUnsaveable: () => {}, setShell: () => {} }, [registry]);
+  return useMemo(
+    () => registry ?? { held: [], heldNow: () => [], save: async () => true, discard: () => {}, discardUnsaveable: () => {}, setShell: () => {} },
+    [registry],
+  );
 }
 
 /** Wraps a change inside a page that would drop an editor's draft (another category, another entry, Close): `run` goes ahead at once, or after the question. */

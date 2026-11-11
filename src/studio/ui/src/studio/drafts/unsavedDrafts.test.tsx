@@ -2,7 +2,7 @@
 import { act, render, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { SAVE_LIMIT_MS, UnsavedDraftsProvider, useUnsavedDraft, useUnsavedDrafts, type UnsavedDraft } from './unsavedDrafts';
+import { SAVE_LIMIT_MS, SaveTimeout, UnsavedDraftsProvider, useSharedSave, useUnsavedDraft, useUnsavedDrafts, type UnsavedDraft } from './unsavedDrafts';
 
 function Holder({ id, draft }: { id: string; draft: UnsavedDraft }) {
   useUnsavedDraft(id, draft);
@@ -158,7 +158,7 @@ describe('the unsaved-drafts registry', () => {
       act(() => {
         stuck = result.current.save();
       });
-      const settled = expect(stuck).rejects.toThrow('did not finish');
+      const settled = expect(stuck).rejects.toBeInstanceOf(SaveTimeout);
       await act(async () => {
         await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
       });
@@ -168,5 +168,91 @@ describe('the unsaved-drafts registry', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('heldNow reads what the editors rendered, before any effect has reported it (a box that saved on blur a moment ago, #3404)', () => {
+    let seenInRender: readonly string[] = [];
+    const Probe = () => {
+      seenInRender = useUnsavedDrafts()
+        .heldNow()
+        .map((entry) => entry.label);
+      return null;
+    };
+    const tree = (dirty: boolean) => (
+      <UnsavedDraftsProvider>
+        <Holder id="a" draft={draft({ dirty, label: 'your row' })} />
+        <Probe />
+      </UnsavedDraftsProvider>
+    );
+    const view = render(tree(false));
+    expect(seenInRender).toEqual([]);
+    // The probe renders after the holder in the same pass, before the holder's effect runs.
+    view.rerender(tree(true));
+    expect(seenInRender).toEqual(['your row']);
+  });
+
+  describe('an editor whose own Save and the question share one request (#3404)', () => {
+    /** An editor with its own Save button (`press`) over a slow request; the registry's save reaches the same function. */
+    function Editor({ request, press }: { request: () => Promise<boolean>; press: { current: () => Promise<boolean> } }) {
+      const save = useSharedSave(request);
+      press.current = save;
+      useUnsavedDraft('editor', { dirty: true, label: 'your text', save, discard: () => {} });
+      return null;
+    }
+    const mountEditor = (request: () => Promise<boolean>) => {
+      const press = { current: (() => Promise.resolve(false)) as () => Promise<boolean> };
+      const view = renderHook(() => useUnsavedDrafts(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <UnsavedDraftsProvider>
+            <Editor request={request} press={press} />
+            {children}
+          </UnsavedDraftsProvider>
+        ),
+      });
+      return { press, registry: view.result };
+    };
+
+    it('the question waits for a save the narrator already pressed and sends nothing more', async () => {
+      let finish: (saved: boolean) => void = () => {};
+      const request = vi.fn(() => new Promise<boolean>((resolve) => (finish = resolve)));
+      const { press, registry } = mountEditor(request);
+      let own!: Promise<boolean>;
+      let asked!: Promise<boolean>;
+      act(() => {
+        own = press.current();
+        asked = registry.current.save();
+      });
+      finish(true);
+      expect(await own).toBe(true);
+      expect(await asked).toBe(true);
+      expect(request).toHaveBeenCalledOnce();
+    });
+
+    it('a save the question stopped waiting for is not sent again by the next Save & continue', async () => {
+      vi.useFakeTimers();
+      try {
+        let finish: (saved: boolean) => void = () => {};
+        const request = vi.fn(() => new Promise<boolean>((resolve) => (finish = resolve)));
+        const { registry } = mountEditor(request);
+        let first!: Promise<boolean>;
+        act(() => {
+          first = registry.current.save();
+        });
+        const stuck = expect(first).rejects.toBeInstanceOf(SaveTimeout);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
+        });
+        await stuck;
+        let second!: Promise<boolean>;
+        act(() => {
+          second = registry.current.save();
+        });
+        expect(request).toHaveBeenCalledOnce();
+        finish(true);
+        await act(async () => expect(await second).toBe(true));
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

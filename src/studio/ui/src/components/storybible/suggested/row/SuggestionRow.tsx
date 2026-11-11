@@ -72,7 +72,7 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
     brief: 'a suggestion edit',
     kind: 'suggestion-edit',
     many: (n) => `${plural(n, 'edit')} of suggestions`,
-    save: saveEdit,
+    // Saving the edit is Save and accept, a decision the narrator makes with that button: the question cannot make it, so it only offers to keep or drop the edit.
     discard: () => setEditing(false),
   });
 

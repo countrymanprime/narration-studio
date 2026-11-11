@@ -200,6 +200,20 @@ describe('edits-a-message-and-deletes-one-with-undo', () => {
   });
 });
 
+describe('deleting a message keeps what is typed under it (#3404)', () => {
+  it('a reply typed in the card stays when the opening message is deleted, which replaces the mark with a new id', async () => {
+    const { note } = await seed();
+    await api.marksReply(note.id, 'you', 'Second message');
+    const { user } = mount();
+    await screen.findByText('Second message');
+    const cardOf = () => within(screen.getByText('Second message').closest('article')!);
+    await user.type(cardOf().getByRole('textbox', { name: 'Add to this note' }), 'Typed reply keep me');
+    await user.click(cardOf().getAllByRole('button', { name: 'Delete the message' })[0]!);
+    await waitFor(async () => expect((await marks()).find((mark) => mark.thread.length === 1)?.text).toBe(''));
+    expect((cardOf().getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('Typed reply keep me');
+  });
+});
+
 describe('copy-the-query-puts-the-passage-and-the-question-on-the-clipboard', () => {
   const clipboard = (writeText: () => Promise<void>) => Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
