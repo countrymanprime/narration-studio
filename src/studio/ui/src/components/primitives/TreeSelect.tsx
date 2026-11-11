@@ -60,8 +60,8 @@ export function TreeSelect({
   label: string;
   /** The picked item's `id`, or '' for none. */
   value: string;
-  /** What the trigger shows for the pick: the names above it (`path`) take at most 40% of the box and end in an ellipsis, so a long path never squeezes `name` to a stub. */
-  shown?: { path?: string; name: string };
+  /** What the trigger shows for the pick: the names above it (`path`) take at most 40% of the box and end in an ellipsis, so a long path never squeezes `name` to a stub. `kind` ("a single track", "a folder of 3 tracks") is for the hint and the name alone: it takes no room in the box. */
+  shown?: { path?: string; name: string; kind?: string };
   placeholder: string;
   searchLabel: string;
   query: string;
@@ -78,6 +78,11 @@ export function TreeSelect({
   const popup = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState('');
+  // Closing forgets the search, so the next open lists every item and not the last search's (no-match) result.
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    if (!next) onQueryChange('');
+  };
 
   const all = sections.flatMap((section) => section.rows);
   const byKey = new Map(all.map((row) => [row.key, row]));
@@ -86,7 +91,7 @@ export function TreeSelect({
   const press = (row: TreeSelectRow) => {
     if (row.disabledReason === undefined) {
       onPick(row.id);
-      setOpen(false);
+      changeOpen(false);
     } else if (row.folder) onToggle(row.id, !row.folder.open);
   };
   const keys = treeKeyHandler(
@@ -145,7 +150,7 @@ export function TreeSelect({
             row.label
           )}
         </span>
-        {note && <span className="max-w-[45%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
+        {note && <span className="max-w-[60%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
         {selected && (
           <span className="flex-none text-xs">
             <Icon name="accept" />
@@ -155,11 +160,14 @@ export function TreeSelect({
     );
   };
 
+  // The words the closed box shows, in full: the path and the name end in an ellipsis in a narrow box, and this is how to read the rest.
+  const fullText = shown ? `${shown.path ? `${shown.path} / ` : ''}${shown.name}${shown.kind ? ` (${shown.kind})` : ''}` : placeholder;
   const trigger = (
     <button
       type="button"
       // The name starts with what the control is for and holds the text it shows, so the visible words are part of the name.
-      aria-label={`${label}: ${shown ? (shown.path ? `${shown.path} / ` : '') + shown.name : placeholder}`}
+      aria-label={`${label}: ${fullText}`}
+      title={fullText}
       className={`${SELECT_BOX_CLASSES} flex items-center overflow-hidden text-left ${fullWidth ? 'w-full' : ''}`}
     >
       {shown ? (
@@ -175,7 +183,7 @@ export function TreeSelect({
 
   const visible = sections.filter((section) => section.rows.length > 0);
   return (
-    <Popover trigger={trigger} label={label} align="start" open={open} onOpenChange={setOpen}>
+    <Popover trigger={trigger} label={label} align="start" open={open} onOpenChange={changeOpen}>
       <div ref={popup} className={`space-y-2 ${TREE_INDENT}`} onKeyDown={keys}>
         <SearchField label={searchLabel} placeholder={searchLabel} value={query} onChange={onQueryChange} onKeyDown={fromSearch} leadingIcon autoFocus />
         <div className="max-h-[min(50vh,20rem)] overflow-auto overscroll-contain">

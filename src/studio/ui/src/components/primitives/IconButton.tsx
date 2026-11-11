@@ -41,6 +41,8 @@ type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   // the reason here instead and pair it with a plain `<TooltipTarget text={disabledReason}>`; the tooltip is reachable because the
   // button itself, not a wrapper, carries it.
   disabledReason?: string;
+  /** What the tooltip says when the button is usable, in place of its label: for a button whose label is a short name and whose hint says what pressing it will do. */
+  hint?: string;
 };
 
 // Either a `label` (the accessible name, for a control the catalogue has no row for) or an `action` (a catalogue key, docs/design/design-system.md#layout-rules:
@@ -70,6 +72,7 @@ export function IconButton({
   pending = false,
   replacesPressed,
   disabledReason,
+  hint,
   onClick,
   children,
   ...rest
@@ -105,5 +108,5 @@ export function IconButton({
   );
   // An action brings its own hint (the tooltip, then its shortcut); a gated button's hint is its reason, so the narrator who hovers or tabs to
   // it learns why it is off. A button with only a `label` keeps the caller's composition.
-  return action === undefined ? button : <TooltipTarget text={disabledReason ?? label ?? tooltipFor(action)}>{button}</TooltipTarget>;
+  return action === undefined ? button : <TooltipTarget text={disabledReason ?? hint ?? label ?? tooltipFor(action)}>{button}</TooltipTarget>;
 }

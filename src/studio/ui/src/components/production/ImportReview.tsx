@@ -294,7 +294,9 @@ export function ImportReview({
                             }}
                           >
                             <span className="block min-w-0">
-                              <span className="block truncate">{candidate.name}</span>
+                              <span className="block truncate" title={candidate.name}>
+                                {candidate.name}
+                              </span>
                               {candidate.appearances !== undefined && (
                                 <span className="block text-xs text-[var(--text-muted)] tabular-nums">{plural(candidate.appearances, 'appearance')}</span>
                               )}

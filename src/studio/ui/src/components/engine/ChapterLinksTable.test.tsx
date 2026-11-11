@@ -71,7 +71,7 @@ describe('ChapterLinksTable', () => {
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByRole('img', { name: 'Linked' })).toBeTruthy());
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
   });
 
@@ -89,7 +89,7 @@ describe('ChapterLinksTable', () => {
       await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
     };
     await link('Opening credits');
-    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByRole('img', { name: 'Linked' })).toBeTruthy());
     expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
     await link(headingName(WIRE_CHAPTERS[0]));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Opening credits was linked to that track and is now not linked.', 'info'));
@@ -124,12 +124,12 @@ describe('ChapterLinksTable', () => {
     const opening = () => chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening()).getByRole('combobox'), track);
     await user.click(within(opening()).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(opening()).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(opening()).getByRole('img', { name: 'Linked' })).toBeTruthy());
     await pastQuiet();
     await user.click(within(opening()).getByRole('button', { name: /^Change the track for/ }));
     await user.click(within(opening()).getByRole('button', { name: /^Check the link for/ }));
     await user.click(screen.getByRole('button', { name: 'elsewhere' }));
-    await waitFor(() => expect(within(opening()).queryByText('Linked')).toBeNull());
+    await waitFor(() => expect(within(opening()).queryByRole('img', { name: 'Linked' })).toBeNull());
     expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
   });
 
@@ -143,7 +143,7 @@ describe('ChapterLinksTable', () => {
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     const confirm = within(opening).getByRole('button', { name: /^Use this (track|folder) for/ });
     await user.dblClick(confirm);
-    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByRole('img', { name: 'Linked' })).toBeTruthy());
     expect(set).toHaveBeenCalledTimes(1);
     expect((await api.chapterTrackMapList()).mappings.filter((m) => m.chapterId === 'credits-opening')).toHaveLength(1);
   });
@@ -155,7 +155,7 @@ describe('ChapterLinksTable', () => {
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     await user.click(within(chapterRow(table, 'Opening credits')).getByRole('button', { name: /^More actions for / }));
     expect(await screen.findByRole('menuitem', { name: 'Open in Editing' })).toBeTruthy();
@@ -168,7 +168,7 @@ describe('ChapterLinksTable', () => {
 
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    expect(within(firstRow).getByText('Not linked')).toBeTruthy();
+    expect(within(firstRow).getByRole('img', { name: 'Not linked' })).toBeTruthy();
   });
 
   // Alignment audit R3EN2-1 and R3EN1-4: every unlinked row opened on the first track with a live Confirm, so one press linked the wrong track.
@@ -236,6 +236,49 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     expect(within(opening).getByRole('combobox')).toBeTruthy();
+  });
+
+  // #3274: the status word took the room the track's name needed; the status is an icon with its words in a tooltip and as its name.
+  it('shows a chapter\u2019s status as an icon named by its words, not as a word that takes the row\u2019s width', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    const mark = within(opening).getByRole('img', { name: 'Not linked' });
+    expect(within(opening).queryByText('Not linked')).toBeNull();
+    await user.hover(mark);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Not linked');
+  });
+
+  // #3274: "i have no fucking idea if this relink is going to work": before it is pressed the check says what it will do.
+  it('says before the check is pressed what the pick will do: the track and what it is, what it replaces, and which chapter loses it', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const [first, second] = WIRE_TRACKS_PROJECT.tracks;
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), first.guid);
+    // A pick on a row with no link: the name stays short, and the hint says what the check will do: no "instead of", and the track says what it is.
+    const check = () => within(opening).getByRole('button', { name: /^Use this track for/ });
+    expect(check().getAttribute('aria-label')).toBe('Use this track for Opening credits');
+    await user.hover(check());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(`links “${first.name}” (a single track)`);
+    await user.unhover(check());
+    await user.click(check());
+    await within(opening).findByRole('img', { name: 'Linked' });
+    await pastQuiet();
+    // Change to another track: the link it replaces is named.
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.selectOptions(within(opening).getByRole('combobox'), second.guid);
+    await user.hover(check());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(`links “${second.name}” (a single track), instead of “${first.name}”`);
+    await user.unhover(check());
+    // A track another chapter holds: the chapter that loses it is named.
+    const chapter = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await user.selectOptions(within(chapter).getByRole('combobox'), first.guid);
+    await user.hover(within(chapter).getByRole('button', { name: /^Use this track for/ }));
+    expect((await screen.findByRole('tooltip')).textContent).toContain('Opening credits loses its link');
   });
 
   // qa-breaker (#3281): a double click on Change puts the check under the second press; it must not read and toast then.
@@ -362,10 +405,10 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
     await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
-    expect(within(opening).getByText('Linked')).toBeTruthy();
+    expect(within(opening).getByRole('img', { name: 'Linked' })).toBeTruthy();
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
-    await waitFor(() => expect(within(opening).getByText('Not linked')).toBeTruthy());
+    await waitFor(() => expect(within(opening).getByRole('img', { name: 'Not linked' })).toBeTruthy());
   });
 
   // The second press of a double click on Clear lands on the Create that takes its place, which would add a track in REAPER.
@@ -400,7 +443,7 @@ describe('ChapterLinksTable', () => {
     const user = userEvent.setup();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(within(firstRow).getByText('Track missing')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Track missing' })).toBeTruthy());
     await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Change the track for/ }));
     await pastQuiet();
@@ -428,7 +471,7 @@ describe('ChapterLinksTable', () => {
   it('shows each status as a badge in a cell that does not wrap', async () => {
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    const status = within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByText('Not linked');
+    const status = within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('img', { name: 'Not linked' });
     expect(status.closest('td')?.className).toContain('whitespace-nowrap');
     expect(status.closest('td')?.getAttribute('style') ?? '').not.toContain('color');
   });
@@ -459,7 +502,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^More actions for / }));
     await user.click(await screen.findByRole('menuitem', { name: 'Open in Proof' }));
@@ -502,7 +545,7 @@ describe('ChapterLinksTable', () => {
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
 
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
     expect(within(firstRow).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
   });
 
@@ -513,12 +556,12 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
-    await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Not linked' })).toBeTruthy());
   });
 
   // #3272: the row must not wait for the re-read of the chapters and links to show Not linked; Unlink's own answer carries the links that remain.
@@ -540,13 +583,13 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     hold = true;
     await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
-    await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Not linked' })).toBeTruthy());
   });
 
   // qa-breaker B5 (#2836): ten rows each offered the same "Change the track" and "Clear the link"; the name now says which chapter.
@@ -557,7 +600,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
     const more = within(firstRow)
       .getByRole('button', { name: /^More actions for / })
       .getAttribute('aria-label')!;
@@ -573,7 +616,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
@@ -603,11 +646,11 @@ describe('ChapterLinksTable', () => {
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
-    await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Not linked' })).toBeTruthy());
     const { mappings } = await api.chapterTrackMapList();
     expect(mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)).toHaveLength(0);
   });
@@ -627,7 +670,7 @@ describe('ChapterLinksTable', () => {
 
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(within(firstRow).getByText('Track missing')).toBeTruthy());
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Track missing' })).toBeTruthy());
     expect(within(firstRow).getByText('Linked track is missing from this project')).toBeTruthy();
   });
 });

@@ -125,6 +125,9 @@ import {
   faEquals,
   faStar,
   faTriangleExclamation,
+  faPlugCircleCheck,
+  faPlugCircleExclamation,
+  faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -281,6 +284,11 @@ export const CATALOG = {
   checkPreparedFiles: action(faClipboardCheck, 'check prepared files', 'Check the prepared files so Delivery counts them'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
+  // The status of a chapter's link to a DAW track, drawn as an icon with the words in its tooltip so the Chapter links row keeps its width for the
+  // track name (#3274). A status is information, never a control, so these are `figure` rows: the badge that draws one carries its own hint.
+  statusLinked: figure(faPlugCircleCheck, 'chapter linked to a track'),
+  statusNotLinked: figure(faPlug, 'chapter not linked to a track'),
+  statusTrackMissing: figure(faPlugCircleExclamation, 'chapter linked to a track that is gone'),
   // The recording check's activity panel: the figures it labels, drawn with `Icon`. Each figure shows its own hint as its tooltip.
   chunksTranscribed: figure(faPuzzlePiece, 'chunks transcribed'),
   transcriptionsAtOnce: figure(faMicrochip, 'transcriptions at once'),
