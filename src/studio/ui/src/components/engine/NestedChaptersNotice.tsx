@@ -84,7 +84,11 @@ export function NestedChaptersNotice({
         >
           <ul className="space-y-1 text-sm break-words" aria-label="Tracks that move">
             {shown.moves.map((move) => (
-              <li key={move.trackGuid} className="line-clamp-3">
+              <li
+                key={move.trackGuid}
+                className="line-clamp-3"
+                title={`${short(trackName(move.trackName))}: out of ${folderOf(move.fromName)}, to ${folderOf(move.toName)}${move.chapterId ? '' : ' (not a chapter: it comes after one)'}`}
+              >
                 <strong>
                   <bdi>{short(trackName(move.trackName))}</bdi>
                 </strong>

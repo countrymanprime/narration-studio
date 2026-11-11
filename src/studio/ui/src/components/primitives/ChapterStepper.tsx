@@ -60,6 +60,8 @@ export function ChapterStepper({
         <Button
           variant="secondary"
           aria-label={`Chapter: ${label}. Change chapter`}
+          // The label ends in an ellipsis in a narrow picker; the title is how to read the rest (#3274).
+          title={label}
           // The mock's fixed 340 px once there is room for it, whatever the chapters are called and while they load, so the arrows
           // and the tools beside it never move (alignment audit cause M); below 860 px the picker takes what is left.
           className="max-w-full min-w-0 justify-between gap-2 min-[860px]:w-[21.25rem]"
@@ -69,7 +71,9 @@ export function ChapterStepper({
       {/* The label takes the room and starts at the left; the caret keeps to the right edge (alignment audit XPK-7). */}
       {/* normal-case: a chapter's name keeps its source casing (design-system.md, Chapter names), where the Button's capitals drew
           "CHAPTER 1 — DOWN THE RABBIT-HOLE" (alignment audit R3PK-4). */}
-      <span className="min-w-0 flex-1 truncate text-left normal-case">{label}</span>
+      <span className="min-w-0 flex-1 truncate text-left normal-case" title={label}>
+        {label}
+      </span>
       {/* flex-none: the caret keeps its width in a narrow picker and the label truncates before it (alignment audit R3MS-19). */}
       <span aria-hidden="true" className="flex-none">
         ▾
@@ -104,7 +108,9 @@ export function ChapterStepper({
                   >
                     {item.detail ? (
                       <>
-                        <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                        <span className="min-w-0 flex-1 truncate" title={item.name}>
+                          {item.name}
+                        </span>
                         {/* The note is muted and never wraps, so the names keep one left edge and the notes one right edge. */}
                         <span data-chapter-detail="" className="flex-none font-mono text-[0.72rem] font-normal text-[var(--text-muted)]">
                           {item.detail}

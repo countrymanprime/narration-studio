@@ -324,3 +324,54 @@ func TestAVoiceKeyOnAChapterWhoseTrackWasDeletedSaysTheTrackIsGoneInEitherLayout
 		})
 	}
 }
+
+// #3269: a voice track renamed in REAPER keeps the characters assigned to it, and the Narrator track renamed stays the one a take records on.
+func TestARenamedVoiceKeepsItsAssignmentAndARenamedNarratorStaysTheNarrator(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	rpp := filepath.Join(host.config.projectFolder, "Alice.rpp")
+	if _, err := host.voiceTracks().SetLayout(voicetracks.LayoutFolders); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.voiceTracks().SetTrackCharacters("Lead", []string{"e-lead"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.chapterTrackSet(ids[0], liveChapterI); err != nil {
+		t.Fatal(err)
+	}
+	lister := listerFor(rpp)
+	withLiveEngine(host, lister)
+	list := func(narrator, lead string) {
+		lister.read.Tracks = []dawport.LiveTrack{
+			{Index: 0, GUID: liveChapterI, Name: "Chapter I", FolderDelta: 1},
+			{Index: 1, GUID: liveChapterII, Name: lead},
+			{Index: 2, GUID: liveVoice, Name: narrator, FolderDelta: -1},
+		}
+		lister.read.Total = 3
+	}
+
+	// The tracks as first named: the project's tracks are read once, which is when the setup learns them.
+	list("Narrator", "Lead")
+	if _, err := host.tracksLive(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Both are renamed to names no assignment has.
+	list("Storyteller", "Lead 2")
+	if _, err := host.tracksLive(); err != nil {
+		t.Fatal(err)
+	}
+	setup, err := host.voiceTracks().Get()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(setup.Tracks) != 1 || len(setup.Tracks[0].GUIDs) != 1 || !strings.EqualFold(setup.Tracks[0].GUIDs[0], liveChapterII) {
+		t.Fatalf("assignments = %+v, want Lead still holding the renamed track", setup.Tracks)
+	}
+	if !setup.IsNarrator(liveVoice, "Storyteller") {
+		t.Fatalf("setup = %+v, want the renamed Narrator remembered", setup)
+	}
+	svc := host.services()
+	if guid, refused, err := recordTarget(svc, ids[0], liveChapterI); err != nil || refused != nil || !strings.EqualFold(guid, liveVoice) {
+		t.Fatalf("record target = %q %+v %v, want the renamed Narrator", guid, refused, err)
+	}
+}

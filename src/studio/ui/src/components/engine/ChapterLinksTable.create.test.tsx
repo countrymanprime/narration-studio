@@ -149,13 +149,13 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[2].id);
     renderTable({ api });
     const table = await screen.findByRole('table', { name: 'Chapter links' });
-    await waitFor(() => expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByText('Linked')).toBeTruthy());
-    await waitFor(() => expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[2]))).getByText('Track missing')).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('img', { name: 'Linked' })).toBeTruthy());
+    await waitFor(() => expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[2]))).getByRole('img', { name: 'Track missing' })).toBeTruthy());
     expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[0]))).getByRole('button', { name: `Create a track for ${short(0)}` })).toBeTruthy();
     expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).queryByRole('button', { name: /^Create a/ })).toBeNull();
     expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[2]))).queryByRole('button', { name: /^Create a/ })).toBeNull();
     const buttons = within(table).getAllByRole('button', { name: /^Create a track for/ });
-    const unlinked = within(table).getAllByText('Not linked');
+    const unlinked = within(table).getAllByRole('img', { name: 'Not linked' });
     expect(buttons).toHaveLength(unlinked.length);
   });
 
@@ -172,7 +172,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const { api, notify, live } = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy());
     // The track list passed in has not read the new track yet: the row shows it from the host's answer.
     // The chapter cell and the track cell: the new track is named after the chapter's display title.
     expect(within(row).getAllByText(trackNameOf(0))).toHaveLength(2);
@@ -223,7 +223,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a track for ${short(1)}` }));
     expect(create).toHaveBeenCalledTimes(1);
     await act(async () => answer.resolve(await base.chapterTrackCreate(WIRE_CHAPTERS[0].id)));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy());
     expect(notify).toHaveBeenCalledTimes(1);
   });
 
@@ -238,7 +238,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(message, 'error'));
-    expect(within(row).getByText('Not linked')).toBeTruthy();
+    expect(within(row).getByRole('img', { name: 'Not linked' })).toBeTruthy();
     expect(
       within(row)
         .getByRole('button', { name: `Create a track for ${short(0)}` })
@@ -262,7 +262,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('The track could not be added: the host went away', 'error'));
-    expect(within(row).getByText('Not linked')).toBeTruthy();
+    expect(within(row).getByRole('img', { name: 'Not linked' })).toBeTruthy();
   });
 
   it('keeps a right-to-left and emoji title exactly, and truncates a long one with its full name as the title', async () => {
@@ -291,7 +291,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(within(table).getByRole('button', { name: `Create a track for ${long}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(`“${long}”`), 'info'));
     await waitFor(() => expect(within(table).queryByRole('button', { name: `Create a track for ${long}` })).toBeNull());
-    const names = within(table).getAllByTitle(long);
+    const names = within(table).getAllByTitle(`${long} (a single track)`);
     expect(names.some((element) => element.className.includes('truncate'))).toBe(true);
     expect(
       within(table)
@@ -317,14 +317,14 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const harness = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy());
     const { mappings } = await harness.api.chapterTrackMapList();
     const guid = mappings.find((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)?.trackGuid ?? '';
     const listed: Track = { ...WIRE_TRACKS_PROJECT.tracks[0], guid, name: trackNameOf(0), index: WIRE_TRACKS_PROJECT.tracks.length };
     act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks, listed]));
-    expect(within(row).getByText('Linked')).toBeTruthy();
+    expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy();
     act(() => harness.setTracks(WIRE_TRACKS_PROJECT.tracks));
-    await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Track missing' })).toBeTruthy());
   });
   it('ignores a create press within the quiet time after an answer, and takes one after it (F1)', async () => {
     const user = userEvent.setup();
@@ -333,7 +333,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     renderTable({ api: { ...base, chapterTrackCreate: create } });
     const { table, row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy());
     // The rows below moved up a line: a fast second click lands on the next row's button. It must not add a track.
     const next = within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a track for ${short(1)}` });
     await user.click(next);
@@ -376,7 +376,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(message, 'error'));
-    expect(within(row).getByText('Not linked')).toBeTruthy();
+    expect(within(row).getByRole('img', { name: 'Not linked' })).toBeTruthy();
     expect(live.refresh).not.toHaveBeenCalled();
   });
 
@@ -407,12 +407,12 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const harness = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
-    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy());
     // A re-read with no new answer time keeps it (the list has not read REAPER since); one that answered later does not.
     act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks]));
-    expect(within(row).getByText('Linked')).toBeTruthy();
+    expect(within(row).getByRole('img', { name: 'Linked' })).toBeTruthy();
     act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks], Date.now() + 1000));
-    await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
+    await waitFor(() => expect(within(row).getByRole('img', { name: 'Track missing' })).toBeTruthy());
   });
 });
 
@@ -543,7 +543,7 @@ describe('A linked track with no name', () => {
     const { row } = await firstRow();
     await user.selectOptions(within(row).getByRole('combobox'), unnamed[0].guid);
     await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
-    await within(row).findByText('Linked');
+    await within(row).findByRole('img', { name: 'Linked' });
     expect(within(row).getByText(/^Track \d+$/)).toBeTruthy();
     expect(within(row).queryByText(/Linked track is missing/)).toBeNull();
   });

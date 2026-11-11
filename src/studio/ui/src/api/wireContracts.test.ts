@@ -6485,8 +6485,8 @@ describe('the voice tracks bindings', () => {
     const shared = await api.voiceTracksSetCharacters(' Gardeners ', ['two', 'five', 'two']);
     expectMatches(voiceTracksStateSchema, shared, 'mock voice tracks characters');
     expect(shared.tracks).toEqual([
-      { track: 'Gardeners', characters: ['two', 'five'] },
-      { track: 'Queen', characters: ['queen-of-hearts'] },
+      { track: 'Gardeners', characters: ['two', 'five'], guids: [] },
+      { track: 'Queen', characters: ['queen-of-hearts'], guids: [] },
     ]);
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
@@ -6504,7 +6504,7 @@ describe('the voice tracks bindings', () => {
     await expect(api.voiceTracksSetLayout('nested' as 'flat')).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('a\nb', ['two'])).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('Queen', [''])).rejects.toThrow();
-    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [] });
+    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [] });
   });
 
   it("the Booth's voice choice: an unlinked chapter refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {

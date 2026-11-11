@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { TooltipTarget } from './Tooltip';
 
 // A closed set of meanings, not one tone per stage name: stage names change,
 // meanings do not, so a caller maps its own status onto one of these (see src/chapterStatus.ts's STATUS_TONE). `accent`
@@ -137,7 +138,7 @@ export function StatusBadge({
   tone: StatusTone;
   label: string;
   icon?: ReactNode;
-  variant?: 'chip' | 'dot';
+  variant?: 'chip' | 'dot' | 'icon';
   shape?: BadgeShape;
   look?: BadgeLook;
   onClick?: () => void;
@@ -149,6 +150,17 @@ export function StatusBadge({
   // visible content - a screen reader hears the label; a sighted user gets the colour only, by design. `text` already
   // clears 4.5:1, which clears the 3:1 a mark needs, so the dot needs no colour of its own.
   if (variant === 'dot') return <Dot color={colors.text} label={label} className={className} />;
+
+  // The compact status: an icon in the tone's colour with the words in a tooltip, for a row that needs its width for text (a Chapter links
+  // row, #3274). Focusable so the words reach a keyboard too; a screen reader hears them as the image's name. Needs `icon`.
+  if (variant === 'icon')
+    return (
+      <TooltipTarget text={label}>
+        <span role="img" aria-label={label} tabIndex={0} className={`inline-flex flex-none ${className ?? ''}`.trim()} style={{ color: colors.text }}>
+          {icon}
+        </span>
+      </TooltipTarget>
+    );
 
   return <Badge label={label} colors={colors} shape={shape} look={look} icon={icon} onClick={onClick} className={className} />;
 }

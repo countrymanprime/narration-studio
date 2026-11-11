@@ -9,7 +9,9 @@ for (const size of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },
   { name: 'tablet', width: 768, height: 1024 },
+  { name: 'narrow', width: 500, height: 900 },
   { name: 'reflow', width: 390, height: 844 },
+  { name: 'phone', width: 360, height: 800 },
 ]) {
   test(`Engine / Chapter links rows share one grid and fit the panel / ${size.name} ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize({ width: size.width, height: size.height });
@@ -49,6 +51,35 @@ for (const size of [
       });
       return { panelRight: panelBox.right, tableRight: element.getBoundingClientRect().right, rows };
     });
+
+    // #3274: text the table cuts off with an ellipsis can be read in full: it, or what holds it, carries a title (a chapter's name, a track's name).
+    // The status header's words sit inside their cell, not over the icons' column.
+    const unreadable = await table.evaluate((element) => {
+      const clipped = [...element.querySelectorAll<HTMLElement>('*')].filter((node) => {
+        const style = getComputedStyle(node);
+        const cut =
+          style.textOverflow === 'ellipsis'
+            ? node.scrollWidth > node.clientWidth + 1
+            : style.webkitLineClamp !== 'none' && node.scrollHeight > node.clientHeight + 1;
+        return cut && (node.textContent ?? '').trim() !== '' && !node.closest('[title]');
+      });
+      return clipped.map((node) => (node.textContent ?? '').trim().slice(0, 40));
+    });
+    expect(unreadable, 'every clipped name in the table has its full text in a title').toEqual([]);
+    if (size.width >= 768) {
+      const spill = await table.evaluate((element) =>
+        [...element.querySelectorAll('thead th')]
+          .map((cell) => {
+            const range = document.createRange();
+            range.selectNodeContents(cell);
+            const text = range.getBoundingClientRect();
+            const box = cell.getBoundingClientRect();
+            return text.width > 0 && (text.left < box.left - 0.5 || text.right > box.right + 0.5) ? (cell.textContent ?? '').trim() : '';
+          })
+          .filter(Boolean),
+      );
+      expect(spill, 'every column header sits inside its cell').toEqual([]);
+    }
 
     expect(measured.tableRight, 'the table ends inside the panel').toBeLessThanOrEqual(measured.panelRight);
     for (const row of measured.rows) {

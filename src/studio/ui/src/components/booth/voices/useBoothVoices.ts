@@ -6,7 +6,7 @@ import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { destinationFor, type ChapterLinkKind } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
-import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
+import { assignmentOf, folderChildren, folderVoices, type Voice } from '../../engine/voices';
 import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
@@ -359,7 +359,7 @@ export function useBoothVoices({
           const name = voice.name.trim();
           // A track with no assignment records the character its name matches (White Rabbit on "White Rabbit"): an assignment replaces the
           // match, so that character is kept in it, or putting another on the track would take the track from it (walkthrough, #2839).
-          const had = setup.tracks.find((entry) => entry.track === name)?.characters ?? voice.characters.map((character) => character.id);
+          const had = assignmentOf(setup, { guid: voice.guid, name })?.characters ?? voice.characters.map((character) => character.id);
           replace(await voiceTracks.voiceTracksSetCharacters(name, [...had, ...characterIds.filter((id) => !had.includes(id))]));
         }
         choose(voice);
@@ -369,7 +369,7 @@ export function useBoothVoices({
         return false;
       }
     },
-    [voiceTracks, setup.tracks, replace, choose, notify],
+    [voiceTracks, setup, replace, choose, notify],
   );
 
   const standInFor = useCallback(

@@ -3,7 +3,7 @@ import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
 import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from '../engine/useLiveTracks';
-import { VoiceSetupProvider } from '../engine/voiceLayout';
+import { useVoiceSetup, VoiceSetupProvider } from '../engine/voiceLayout';
 import { retryAction, type Notify } from '../primitives/Toast';
 import { describeApiError } from '../../api/errorMessage';
 
@@ -211,6 +211,13 @@ export function ChapterTrackStateProvider({
     }
     readLinks(false);
   }, [readingLinks, live.readAt, readLinks]);
+
+  // The host learns which tracks carry which voice assignment from each read of the tracks (so a renamed track keeps its characters): the
+  // voice setup the pickers and the Booth show is read again after each, so they never differ from what the host decides.
+  const { refresh: refreshVoiceSetup } = useVoiceSetup();
+  useEffect(() => {
+    if (live.readAt !== null) refreshVoiceSetup();
+  }, [live.readAt, refreshVoiceSetup]);
 
   const watch = useCallback((kind: WatchKind) => {
     const set = kind === 'tracks' ? setWatchers : setLinkWatchers;

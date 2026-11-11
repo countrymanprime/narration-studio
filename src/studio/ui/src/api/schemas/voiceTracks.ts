@@ -8,6 +8,7 @@ const voiceTrackAssignmentSchema = z
   .object({
     track: name,
     characters: z.array(name).min(1).max(200),
+    guids: z.array(z.string().min(1).max(64)).max(2000),
   })
   .strict() satisfies z.ZodType<VoiceTrackAssignment>;
 
@@ -16,6 +17,7 @@ export const voiceTracksStateSchema = z
     layout: z.enum(['flat', 'folders']),
     narratorCharacter: z.string().max(120),
     tracks: z.array(voiceTrackAssignmentSchema).max(500),
+    narratorGuids: z.array(z.string().min(1).max(64)).max(2000),
   })
   .strict() satisfies z.ZodType<VoiceTracksState>;
 

@@ -145,6 +145,20 @@ describe('Badge', () => {
   });
 });
 
+describe('StatusBadge as an icon', () => {
+  it('is an image named by its words, in its tone, with the words in a tooltip', async () => {
+    const user = userEvent.setup();
+    render(<StatusBadge tone="danger" variant="icon" label="Track missing" icon={<svg data-testid="glyph" />} />);
+    const mark = screen.getByRole('img', { name: 'Track missing' });
+    expect(mark.style.color).toBe('var(--danger-text)');
+    expect(mark.getAttribute('tabindex')).toBe('0');
+    expect(screen.getByTestId('glyph')).toBeTruthy();
+    expect(screen.queryByText('Track missing')).toBeNull();
+    await user.hover(mark);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Track missing');
+  });
+});
+
 describe('Dot', () => {
   it('is decoration without a label', () => {
     const { container } = render(<Dot color="var(--character)" />);

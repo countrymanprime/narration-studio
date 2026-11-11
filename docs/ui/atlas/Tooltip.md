@@ -60,6 +60,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/primitives/RadioGroup.tsx`
 - `src/components/primitives/SearchField.tsx`
 - `src/components/primitives/SplitButton.tsx`
+- `src/components/primitives/StatusBadge.tsx`
 - `src/components/primitives/Table.tsx`
 - `src/components/primitives/TagInput.tsx`
 - `src/components/primitives/TitleSubtitle.tsx`

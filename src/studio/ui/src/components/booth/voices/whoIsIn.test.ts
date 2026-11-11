@@ -60,7 +60,7 @@ describe('who is in it', () => {
   });
 
   it("a character the Narrator also voices has the Narrator's key", () => {
-    const narrated = [{ ...voice('0', 'Narrator'), characters: [{ id: 'alice', name: 'Alice', source: 'assigned' as const }] }];
+    const narrated = [{ ...voice('0', 'Narrator'), characters: [{ id: 'alice', name: 'Alice', source: 'assigned' as const }], guids: [] }];
     const cast = castOf({ inThisChapter: [{ id: 'alice', name: 'Alice' }], characters: [], lines: new Map([['alice', 3]]), voices: narrated });
     expect(cast.inChapter[0].key).toBe('0');
     expect(cast.noTrack).toEqual([]);
@@ -125,6 +125,8 @@ describe('who is in it', () => {
       ['{NEW}', 0, true],
       ['{NN}', 1, false],
     ]);
-    expect(folderVoices(merged, '{NEW}', [], { layout: 'folders', narratorCharacter: '', tracks: [] }).map((voice) => voice.guid)).toEqual(['{NN}']);
+    expect(folderVoices(merged, '{NEW}', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }).map((voice) => voice.guid)).toEqual([
+      '{NN}',
+    ]);
   });
 });

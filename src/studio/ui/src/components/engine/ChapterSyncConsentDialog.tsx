@@ -65,7 +65,7 @@ export function ChapterSyncConsentDialog({
             ) : (
               <ul className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
                 {preview.autoLink.map((link) => (
-                  <li key={link.trackGuid} className="truncate">
+                  <li key={link.trackGuid} className="truncate" title={`${link.trackName} → ${link.chapterTitle}`}>
                     {link.trackName} → {link.chapterTitle}
                   </li>
                 ))}

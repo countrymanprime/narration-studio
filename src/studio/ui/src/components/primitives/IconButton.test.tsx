@@ -123,6 +123,13 @@ describe('IconButton', () => {
     expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', 'Mark done');
   });
 
+  it('a hint says more than the label in its tooltip and leaves the name short', async () => {
+    render(<IconButton action="confirmTrack" label="Use this track for Chapter 4" hint="links “Ch 4” (a single track)" />);
+    const button = screen.getByRole('button', { name: 'Use this track for Chapter 4' });
+    await userEvent.hover(button);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('links “Ch 4” (a single track)');
+  });
+
   it('puts the shortcut in the hint and in aria-keyshortcuts, not in the name', async () => {
     const user = userEvent.setup();
     render(<IconButton action="undo" />);

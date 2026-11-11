@@ -76,7 +76,9 @@ function LineStatusRow({ line }: { line: LineIdentityLine }) {
         </span>
       </TableCell>
       <TableCell className="whitespace-nowrap">
-        <span className="block truncate">{line.entityId || line.lineId}</span>
+        <span className="block truncate" title={line.entityId || line.lineId}>
+          {line.entityId || line.lineId}
+        </span>
       </TableCell>
       <TableCell>
         <StatusBadge tone={STATUS_TONE[line.status]} label={STATUS_LABEL[line.status]} />

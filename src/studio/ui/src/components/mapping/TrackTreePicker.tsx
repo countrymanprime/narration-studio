@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useVoiceLayout } from '../engine/voiceLayout';
-import { folderLinkLabel } from '../engine/voices';
+import { folderLinkLabel, holdsWords, kindInWords } from '../engine/voices';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
@@ -13,6 +13,9 @@ const NO_AUDIO = 'A folder with no audio of its own can’t be linked';
 /** The tracks above a node, outermost first: "Narration / Chapters". */
 // A voice track's tooltip in a Voice folders project.
 const VOICE = 'A voice track: link its chapter to the folder it sits in.';
+
+/** What a folder holds, in words ("3 voices", "2 tracks"): a single track needs none, the mark already says it is not a folder. */
+const holds = (node: TreeNode<Entry>, voiceFolders: boolean): string => (node.track.isFolder ? holdsWords(node.childCount, voiceFolders) : '');
 
 const pathOf = (nodes: readonly TreeNode<Entry>[], at: number): string => {
   const names: string[] = [];
@@ -97,9 +100,10 @@ export function TrackTreePicker({
       id: node.id,
       label: trackLabel(node.track),
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
-      note: [path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
+      // What a folder holds, then where it sits and who holds it: "3 voices · Narration · linked to Chapter 2".
+      note: [holds(node, folders), path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
       disabledReason: blocked ? NO_AUDIO : voice ? VOICE : undefined,
-      disabledNote: blocked ? 'No audio of its own' : voice ? 'A voice of its folder' : undefined,
+      disabledNote: blocked ? `${holds(node, folders)} · no audio` : voice ? 'A voice of its folder' : undefined,
       ...place,
     };
   };
@@ -150,7 +154,16 @@ export function TrackTreePicker({
     <TreeSelect
       label={label}
       value={value}
-      shown={chosen >= 0 ? { path: pathOf(nodes, chosen) || undefined, name: shownName(nodes[chosen]) } : undefined}
+      shown={
+        chosen >= 0
+          ? {
+              path: pathOf(nodes, chosen) || undefined,
+              name: shownName(nodes[chosen]),
+              // A Voice folders name already says how many voices it holds.
+              kind: folders && nodes[chosen].track.isFolder ? undefined : kindInWords(nodes[chosen].track.isFolder, nodes[chosen].childCount, folders),
+            }
+          : undefined
+      }
       placeholder={folders ? 'Choose a folder' : 'Choose a track'}
       searchLabel="Search tracks"
       query={query}
