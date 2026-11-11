@@ -150,7 +150,7 @@ recorded length, how the link was found and when, and whether you or chapter syn
 A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
 track that is no longer in the project's tracks (REAPER's now, or the saved file's when REAPER is not open) says it may have been deleted or the project saved elsewhere,
-shows its figures as last known and offers no playback. The panel names the track as it is called now, says when its latest read failed (it shows the last one), and a failed list of tracks offers **Retry** and a link to the audio engine panel.
+shows its figures as last known and offers no playback. The panel names the track as it is called now. One line under its header says whose tracks these are and when they were read, as the audio engine panel's does (when the latest read failed it shows the last one and says so), with the icon to read them again; a list of tracks that cannot be read links to the audio engine panel.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into

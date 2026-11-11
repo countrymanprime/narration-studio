@@ -157,7 +157,7 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     await waitFor(() => expect(screen.getAllByText('Renamed In REAPER').some((element) => element.className.includes('uppercase'))).toBe(true));
   });
 
-  it('offers Retry when the tracks could not be listed, and says a failed read after a good one is old', async () => {
+  it('reads the tracks again from the status icon, and the list-failed line has no "Error:" prefix', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
     let reads = 0;
@@ -170,10 +170,25 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     // The bare message: no "Error: " prefix from the error's string form.
     expect(line.textContent).toContain('could not be listed: REAPER did not answer');
     expect(line.textContent).not.toMatch(/Error:/);
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     const before = reads;
-    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Read the tracks from REAPER again' }));
     await waitFor(() => expect(reads).toBeGreaterThan(before));
+  });
+
+  // The narrator walkthrough of #3418: the panel's picker named no holder, so a track taken from another chapter showed only in the toast afterwards.
+  it('labels a track another chapter holds "(linked to X)" in the picker, as the Engine panel\'s does', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const links = await api.chapterTrackLinks();
+    const other = links.chapters.find((chapter) => chapter.chapterId !== link.chapterId)!;
+    const free = links.tracks.find(
+      (candidate) => candidate.guid !== track.guid && !links.chapters.some((chapter) => chapter.track?.trackGuid === candidate.guid),
+    );
+    expect(free).toBeTruthy();
+    await api.chapterTrackSet(other.chapterId, free!.guid);
+    renderPanel(api, { ...link, status: 'matched' }, track);
+    const picker = (await screen.findByRole('combobox', { name: /^Track for/ })) as HTMLSelectElement;
+    await waitFor(() => expect([...picker.options].some((option) => /\(linked to /.test(option.text))).toBe(true));
   });
 
   it('offers no Unlink for a track that is only suggested, and Unlink for a confirmed one (#3231)', async () => {

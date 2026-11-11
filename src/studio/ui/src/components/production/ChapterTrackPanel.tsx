@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { LiveTracksRefresh, LiveTracksStatus } from '../engine/LiveTracksStatus';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
@@ -144,14 +145,20 @@ export function ChapterTrackPanel({
       ) : (
         <div className="space-y-4 text-sm">
           <Header chapterTitle={shortName} link={link} trackSummary={trackSummary} />
-          {/* A read that failed after a good one leaves what was read; this says so, as the Engine panel's status line does. */}
-          {trackState.stale && <p style={{ color: 'var(--text-muted)' }}>Shown as of the last read; the latest one failed.</p>}
+          {/* Whose tracks these are and when they were read, in the Engine panel's own one-line status (a read that failed after a good one says so),
+              with the same icon to read them again: the line never changes the panel's height. */}
+          <div className="flex min-w-0 items-center justify-between gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="min-w-0 flex-1">
+              <LiveTracksStatus live={trackState.live} />
+            </div>
+            <LiveTracksRefresh live={trackState.live} />
+          </div>
           {/* The state's own sentence (chapter-track-link-control mocks 03-05). */}
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
                 The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the project now. It may have been deleted or the project
-                saved elsewhere. Link another track, or unlink.
+                saved elsewhere. Link another track below.
               </span>
             </InsetCard>
           )}
@@ -268,15 +275,9 @@ export function ChapterTrackPanel({
                 Link
               </SectionLabel>
               {tracksError ? (
-                <div className="space-y-2">
-                  <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="secondary" size="sm" onClick={trackState.refresh}>
-                      Retry
-                    </Button>
-                    <EnginePanelLink onOpen={onClose} />
-                  </div>
-                </div>
+                <p style={{ color: 'var(--danger-text)' }}>
+                  The REAPER tracks could not be listed: {tracksError} <EnginePanelLink onOpen={onClose} />
+                </p>
               ) : !tracks ? (
                 <p role="status">
                   {trackState.reading ? (
@@ -291,6 +292,9 @@ export function ChapterTrackPanel({
                 <MappingConfirm
                   chapterTitle={shortName}
                   tracks={tracks}
+                  // A track another chapter holds is labelled "(linked to X)" before the press, as the Engine panel's picker does.
+                  links={trackState.mappings}
+                  chapterId={chapterId}
                   // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
                   linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
                   linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}

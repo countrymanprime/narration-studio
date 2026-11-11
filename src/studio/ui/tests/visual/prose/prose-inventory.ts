@@ -290,7 +290,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/pickups/list/PickupsTable.tsx', text: 'Can’t tell if this list is current. … Last read at ….', class: 'error' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
-    text: 'The linked track… is not in the project now. It may have been deleted or the project saved elsewhere. Link another track, or unlink.',
+    text: 'The linked track… is not in the project now. It may have been deleted or the project saved elsewhere. Link another track below.',
     class: 'overlay',
   },
   {
@@ -305,7 +305,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/production/ChapterTrackPanel.tsx', text: 'Keep one link; the others will be cleared.', class: 'overlay' },
-  { file: 'components/production/ChapterTrackPanel.tsx', text: 'Shown as of the last read; the latest one failed.', class: 'overlay' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
     text: 'Imported by mistake? Take it out of the board and totals. Its text stays in the manuscript.',
