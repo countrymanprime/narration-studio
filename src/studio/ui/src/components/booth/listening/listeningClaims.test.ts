@@ -1,0 +1,76 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { claimListening, endListeningClaims, joinListening, ownsListening, releaseListening, unclaimListening } from './listeningClaims';
+
+beforeEach(endListeningClaims);
+
+describe('who owns the host listening session', () => {
+  it('the press that started it owns it and lets it go once', () => {
+    const press = claimListening();
+    expect(releaseListening(press)).toBe(true);
+    expect(releaseListening(press)).toBe(false);
+  });
+  it('a cancelled press whose session a later press joined stops nothing; the joiner now owns it', () => {
+    const first = claimListening();
+    const second = joinListening();
+    expect(releaseListening(first)).toBe(false);
+    expect(ownsListening(second)).toBe(true);
+    expect(releaseListening(second)).toBe(true);
+  });
+  it('a session no press began (the narrator started it) is not taken by a press that finds it', () => {
+    const joiner = joinListening();
+    expect(joiner).toBeNull();
+    expect(releaseListening(joiner)).toBe(false);
+  });
+  it('a start the host refused hands the session back to who owned it', () => {
+    const first = claimListening();
+    const refused = claimListening();
+    unclaimListening(refused);
+    expect(releaseListening(first)).toBe(true);
+  });
+  it('a cold read started after a cancelled press cannot be stopped by that press', () => {
+    const press = claimListening();
+    const cold = claimListening();
+    expect(releaseListening(press)).toBe(false);
+    expect(ownsListening(cold)).toBe(true);
+  });
+  it('a session that ended some other way has no owner', () => {
+    const press = claimListening();
+    endListeningClaims();
+    expect(releaseListening(press)).toBe(false);
+    expect(joinListening()).toBeNull();
+  });
+});
+
+// The class guard (#3320): the page asks the host to start or stop the one listening session only through a claim. A bare `session.stop()` in a press,
+// or a `session.start(` in one that never claimed, is what stopped the next press's listening.
+const PAGE = readFileSync(join(__dirname, '../page/useBoothPage.ts'), 'utf8');
+const body = (from: string, to: string): string => {
+  const start = PAGE.indexOf(from);
+  expect(start, `${from} is not in useBoothPage.ts any more: update this guard`).toBeGreaterThan(-1);
+  return PAGE.slice(start, PAGE.indexOf(to, start));
+};
+
+describe('every listening start and stop of a press or cold read is owned by a claim', () => {
+  const PRESS_PATHS: ReadonlyArray<readonly [name: string, from: string, to: string]> = [
+    ['beginOnce', 'const beginOnce', '\n  // The press under way'],
+    // The cold read's start path: the narrator's own toggle-off above it stops the cold read they can see, which is not a continuation.
+    ['toggleColdRead start', 'coldReadStarting.current = true;', '\n  // Another chapter is another text'],
+  ];
+  for (const [name, from, to] of PRESS_PATHS) {
+    const text = body(from, to);
+    it(`${name} claims before it starts a session`, () => {
+      expect(text).toMatch(/session\.start\(/);
+      expect(text).toMatch(/claimListening\(\)/);
+      expect(text.indexOf('claimListening()')).toBeLessThan(text.indexOf('session.start('));
+    });
+    it(`${name} stops the session only through a released claim`, () => {
+      const lines = text.split('\n');
+      lines.forEach((line, index) => {
+        if (!/session\.stop\(\)/.test(line) || line.trimStart().startsWith('//')) return;
+        expect(lines.slice(Math.max(0, index - 1), index + 1).join('\n'), `${name}: a stop that is not owned: ${line.trim()}`).toMatch(/releaseListening\(/);
+      });
+    });
+  }
+});

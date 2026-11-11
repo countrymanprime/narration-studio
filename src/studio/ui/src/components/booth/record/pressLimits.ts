@@ -20,6 +20,10 @@ export const PRESS_LIMITS_MS = {
   recordStart: 10_000,
   /** The start of the take by the app's own recorder: the host runs it under `recorderDevicesTimeout`, 20 s, so the limit is above that. */
   recordStartInApp: 25_000,
+  /** The stop of a take whose listening failed (`dropUnheardTake`). The host puts no limit on a stop of its own; this is the start's, so a stop is never cut off sooner than a start. */
+  recordStop: 10_000,
+  /** Taking that short recording back: the host's own limit is `undoLastTimeout`, 12 s, so this is above it. */
+  undoLast: 14_000,
   /** Making the voice a passage was recorded on the take's track (a punch). */
   voiceChoice: 8_000,
 } as const;

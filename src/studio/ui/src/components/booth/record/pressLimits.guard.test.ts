@@ -7,13 +7,15 @@ import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimit
 // with the stage that bounds it; the test finds each call in its source and requires it to sit inside `limited('<stage>', ...)`. A new await in
 // the press goes in this list (and into `PRESS_LIMITS_MS`), or it hangs Record for good when the host never answers (#3221).
 // A call written `void ...` is one nothing waits for (the DAW's own Record started a listening session), so it is not a wait.
-// The other awaits of the press are named in OTHER_AWAITS, each with its reason. Two of them are host calls that are NOT bounded here and are
-// known gaps (#3321 follow-up, stated in the PR): the stop side of the press (`dropUnheardTake`, `daw.recordStop`) and `daw.roll`.
+// The other awaits of the press are named in OTHER_AWAITS, each with its reason. One is a host call that is NOT bounded here and is a
+// known gap (follow-up, stated in the PR): the stop of the Record control itself (`daw.recordStop` in useRecordControl) and `daw.roll`.
 const BOOTH = join(__dirname, '..');
 const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = [
   { file: 'page/useBoothPage.ts', call: 'session.ensureModel(', stage: 'modelCheck' },
   { file: 'page/useBoothPage.ts', call: 'session.start(', stage: 'listening' },
   { file: 'page/useBoothPage.ts', call: 'voiceTracks.boothVoiceSet(', stage: 'voiceChoice' },
+  { file: 'page/useBoothPage.ts', call: 'daw.recordStop().catch(', stage: 'recordStop' },
+  { file: 'page/useBoothPage.ts', call: 'daw.undoLast(TAKE_KIND, stopped', stage: 'undoLast' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStart(', stage: 'recordStart' },
 ];
@@ -36,9 +38,20 @@ const OTHER_AWAITS: ReadonlyArray<{ head: string; why: string }> = [
   { head: 'ask(', why: "the narrator's own answer to a question, not a host wait" },
   { head: 'playTakeTone(', why: 'a fixed timer (TAKE_TONE_MS), not a host call' },
   { head: 'stoppedRef.current', why: "the Booth's own bookkeeping callback after a stop, local work" },
-  { head: 'dropUnheardTake(', why: 'UNBOUNDED host calls (recordStop, then undoLast) of a take whose listening failed: known gap, follow-up' },
+  { head: 'dropUnheardTake(', why: "the Booth's stop of a take whose listening failed; its recordStop and undoLast are limited ('recordStop', 'undoLast')" },
   { head: 'daw.recordStop(', why: 'UNBOUNDED host call, the stop of a take: known gap, follow-up' },
 ];
+
+describe('a model check the press gave up on never opens its question', () => {
+  // Record and the cold read both give up on the check at its limit; a call that is not handed `over` would open the install question afterwards and
+  // close it again (#3320). So every ensureModel call in the Booth page passes the third argument.
+  it('every session.ensureModel( call in useBoothPage.ts is given the over token', () => {
+    const text = readFileSync(join(BOOTH, 'page/useBoothPage.ts'), 'utf8');
+    const calls = [...text.matchAll(/session\.ensureModel\(([^)]*)\)/g)];
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    for (const call of calls) expect(call[1], call[0]).toMatch(/\bover\b/);
+  });
+});
 
 describe('every host call a Record press awaits has a limit', () => {
   for (const { file, call, stage } of PRESS) {

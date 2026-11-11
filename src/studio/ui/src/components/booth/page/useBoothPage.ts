@@ -35,6 +35,7 @@ import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript,
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
+import { claimListening, endListeningClaims, joinListening, releaseListening, unclaimListening } from '../listening/listeningClaims';
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 
@@ -357,7 +358,19 @@ export function useBoothPage(options: BoothPageOptions) {
   const dropUnheardTake = useCallback(async (): Promise<boolean> => {
     unheard.current = true;
     const failed = (message: string): DawResult => ({ ok: false, changed: false, message, undoSteps: 0 });
-    const stopped = await daw.recordStop().catch(() => failed('the stop did not go through.'));
+    // Both host calls are bounded (a stop that never answers must not hold the press, and Record, for good): past the limit the take is treated as one
+    // that could not be stopped, and a stop that answers late has its short recording taken back all the same.
+    const stopAsked = await limited(
+      'recordStop',
+      daw.recordStop().catch(() => failed('the stop did not go through.')),
+      (late) =>
+        late.ok &&
+        late.undoSteps > 0 &&
+        void daw
+          .undoLast(TAKE_KIND, late.undoSteps)
+          .catch((error: unknown) => logUi('ui.record', `The short recording of a late stop was not taken back: ${String(error)}`)),
+    );
+    const stopped = stopAsked.timedOut ? failed('the stop did not answer in time.') : stopAsked.value;
     markTakeStopped();
     if (!stopped.ok) {
       // Still unheard: the Booth stops holding the take (markTakeStopped), but a take its text could not follow is not mapped or told as saved.
@@ -365,7 +378,11 @@ export function useBoothPage(options: BoothPageOptions) {
       return false;
     }
     if (stopped.undoSteps < 1) return true;
-    const undone = await daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.'));
+    const undoAsked = await limited(
+      'undoLast',
+      daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.')),
+    );
+    const undone = undoAsked.timedOut ? failed('the undo did not answer in time.') : undoAsked.value;
     if (!undone.ok)
       overlay.toast(`The short recording could not be taken back: ${undone.refused ?? `${undone.message} Undo it in ${recorderLabel}.`}`, { tone: 'error' });
     return undone.ok;
@@ -407,6 +424,12 @@ export function useBoothPage(options: BoothPageOptions) {
     // has recorded nothing). A take the narrator stopped while the listening was starting is kept (`stoppedWhileStarting`).
     // The app's own recorder has no pre-roll and keeps its file from the first instant, so it starts once listening has.
     const listen = endedColdRead || !latest.current.session.active;
+    // The session this press owns (`listeningClaims.ts`): one it starts, or one a cancelled press began that this press joined. It lets the session go
+    // only while it is still the owner, so a press that outlived its Booth never ends the listening of the press after it.
+    const claim = listen ? claimListening() : joinListening();
+    const letGo = () => {
+      if (releaseListening(claim)) latest.current.session.stop();
+    };
     const together = !recordsInApp(control.capabilities?.daw);
     listenStarting.current = listen;
     const hearing = listen
@@ -414,8 +437,8 @@ export function useBoothPage(options: BoothPageOptions) {
           const listening = await limited(
             'listening',
             latest.current.session.start(endedColdRead ? { startWord: from } : undefined),
-            // The session came up after the press gave up on it: let it go, unless a newer press has begun a take or its own press.
-            (late) => late.ok && !starting.current && !latest.current.recording && latest.current.session.stop(),
+            // The session came up after the press gave up on it: let it go, unless a newer press owns it now or a take runs on it.
+            (late) => late.ok && !latest.current.recording && letGo(),
           );
           return listening.timedOut ? { ok: false, reason: 'no answer in time', timedOut: true as const } : listening.value;
         })
@@ -425,16 +448,19 @@ export function useBoothPage(options: BoothPageOptions) {
         ? Promise.all([hearing, control.toggle(punch, { current })])
         : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
+    // A start the host refused or failed owns nothing: the session still running, if any, stays with whoever began it. (One that has not answered
+    // by its limit keeps the claim: its late answer is let go by the owner.)
+    if (listen && !heard.ok && !('timedOut' in heard && heard.timedOut)) unclaimListening(claim);
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
     if (!current()) {
-      // The listening this press started itself (its start answered ok) is let go, once; a press that only joined stops nothing.
-      if (listen && heard.ok) latest.current.session.stop();
+      // The listening this press owns is let go, once; one a newer press joined is that press's now.
+      letGo();
       return started;
     }
     if (stoppedWhileStarting.current) {
       // The narrator pressed Stop while the listening was starting and the DAW stopped at once: the listening, if it came up, is let go and nothing is said.
       stoppedWhileStarting.current = false;
-      if (listen && heard.ok) latest.current.session.stop();
+      letGo();
       // A listening that failed is said: the take the narrator stopped was recorded without it, and it stays in the DAW (nothing is taken back that they stopped).
       if (!heard.ok) {
         // The host's own reason goes to the run log, not onto the screen.
@@ -462,7 +488,7 @@ export function useBoothPage(options: BoothPageOptions) {
       );
       return false;
     }
-    if (!started && listen) latest.current.session.stop();
+    if (!started) letGo();
     return started;
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
@@ -630,6 +656,7 @@ export function useBoothPage(options: BoothPageOptions) {
       takeBegan.current = null;
       takeEntry.current = null;
       if (now.session.active) now.session.stop();
+      endListeningClaims();
       return;
     }
     // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
@@ -638,6 +665,7 @@ export function useBoothPage(options: BoothPageOptions) {
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
+    endListeningClaims();
     const said = endOfChapter.current;
     endOfChapter.current = false;
     const seconds = now.elapsed();
@@ -816,17 +844,31 @@ export function useBoothPage(options: BoothPageOptions) {
     if (now.session.active) return notify('The Booth is already listening. Stop reading first.');
     coldReadStarting.current = true;
     setColdStarting(true);
+    // Leaving the Booth or changing chapter while the cold read waits ends it before it begins (a model check that answers then starts nothing).
+    const token = pressToken.current;
+    const gone = () => token !== pressToken.current;
     try {
-      const modelChecked = await limited('modelCheck', now.session.ensureModel(), (opened) => !opened && latest.current.session.closeModelPrompt());
+      // A check the cold read gave up on never opens the install question (`over`), as for a Record press.
+      const modelChecked = await limited('modelCheck', (over) => now.session.ensureModel(undefined, undefined, over));
       if (modelChecked.timedOut) return overlay.toast('The speech model could not be checked in time, so the cold read was not started.', { tone: 'error' });
-      if (!modelChecked.value) return;
+      if (!modelChecked.value || gone()) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
+      const mine = claimListening();
+      const letGo = () => {
+        if (releaseListening(mine)) latest.current.session.stop();
+      };
       const listening = await limited(
         'listening',
         latest.current.session.start({ coldRead: true, startWord: realWord() }),
-        // It came up after the press gave up on it: let it go, unless a take began meanwhile.
-        (late) => late.ok && !latest.current.recording && latest.current.session.stop(),
+        // It came up after the press gave up on it: let it go, unless a take began meanwhile or a newer press owns the session.
+        (late) => late.ok && !latest.current.recording && letGo(),
       );
+      if (!listening.timedOut && !listening.value.ok) unclaimListening(mine);
+      // Left, or the chapter changed, while it started: nobody is there to see or stop this cold read.
+      if (!listening.timedOut && gone()) {
+        letGo();
+        return;
+      }
       if (listening.timedOut) {
         logUi('ui.record', 'Listening did not answer in time; the cold read was not started.');
         return overlay.toast('The cold read was not started because the text could not follow your voice in time.', { tone: 'error' });
