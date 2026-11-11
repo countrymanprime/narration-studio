@@ -1440,6 +1440,111 @@ describe('App Back and Forward', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '5' });
   });
 
+  // #3349 B1: opening the project picker draws it in place of the shell, so it is an exit from Settings like the nav is.
+  describe('every exit asks the page that holds something (#3349)', () => {
+    const dirtySettings = async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      // The history's own idx settles one render after the move; Back and its shortcuts are live from then on.
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+    };
+    const headerSwitch = () => fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    const keptEdit = () => within(screen.getByRole('region', { name: 'Recording check' })).getByDisplayValue('7');
+
+    it('Switch project from Settings with unsaved changes asks Unsaved settings first, and Keep editing leaves the picker closed', async () => {
+      await dirtySettings();
+      headerSwitch();
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByText('Save or discard changes before leaving Settings?')).toBeNull());
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      expect(keptEdit()).toBeTruthy();
+      await runFromJump('Switch project…');
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(keptEdit()).toBeTruthy();
+    });
+
+    // The class: every way out of a page that holds something (a dirty Settings edit, a recording Booth) against every exit the shell has. Each exit asks
+    // that page's own question, Keep leaves the page, the address and the picker where they were, and the held thing is still held.
+    const exits: Record<string, () => unknown> = {
+      'the nav': () => fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!),
+      'the jump menu Back': () => runFromJump('Back'),
+      'a jump menu Go to row': () => runFromJump('Go to Production'),
+      'Alt+Left': () => fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true }),
+      'the mouse back button': () => fireEvent.mouseUp(document, { button: 3 }),
+      'a browser Back': () => act(() => window.history.back()),
+      'Switch project from the header': () => headerSwitch(),
+      'Switch project from the jump menu': () => runFromJump('Switch project…'),
+    };
+    const holders = {
+      'dirty Settings': {
+        hold: dirtySettings,
+        question: async () => screen.findByText('Save or discard changes before leaving Settings?'),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect(keptEdit()).toBeTruthy(),
+        page: '/settings',
+      },
+      'a recording Booth': {
+        hold: async () => {
+          const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+          render(
+            <ThemeProvider>
+              <ApiProvider api={createMockApi()}>
+                <CommandRouter>
+                  <App journal={journal} />
+                </CommandRouter>
+              </ApiProvider>
+            </ThemeProvider>,
+          );
+          await screen.findByRole('heading', { level: 1, name: 'Production' });
+          fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
+          await screen.findByRole('heading', { name: 'Script' });
+          await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+          journal.setLeaveGuard(() => ({
+            ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' },
+          }));
+        },
+        question: async () => screen.findByRole('alertdialog', { name: /Stop recording/ }),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Keep recording' })),
+        stillHeld: () => undefined,
+        page: '/script',
+      },
+    };
+    for (const [holderName, holder] of Object.entries(holders)) {
+      for (const [exitName, exit] of Object.entries(exits)) {
+        // Back and Go to Production from the page that holds a Booth/Settings with history to go back to; the table drives each one on the page it holds.
+        it(`${exitName} from ${holderName} asks its question, and keeping leaves the page and the picker closed`, async () => {
+          await holder.hold();
+          await exit();
+          await holder.question();
+          expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+          holder.keep();
+          await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+          expect(window.location.pathname).toBe(holder.page);
+          expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+          holder.stillHeld();
+        });
+      }
+    }
+
+    it('Switch project from Settings: Save & continue saves the edit and opens the picker', async () => {
+      const saveSettings = vi.fn(createMockApi().saveSettings);
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      headerSwitch();
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '7' });
+    });
+  });
+
   it('a browser Back the app did not start, from dirty Settings, restores Settings and asks (#1779)', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });

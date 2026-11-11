@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBook, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
+import { CommandScope } from '../../input/router';
+import { useCommand } from '../../input/useCommand';
 import { Brand } from '../layout/Brand';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
@@ -52,6 +54,8 @@ export function ProjectPicker({
     // Only when the picker appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Escape is Back where the picker covers a project (#3349): the same way out as the button.
+  useCommand('project.back', () => onBack?.(), !!onBack);
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   // The recent project the running REAPER has open, when the host knows one; null draws no banner (a failed read draws none either).
@@ -215,157 +219,159 @@ export function ProjectPicker({
   const now = new Date();
   return (
     // tabIndex -1 like AppShell's <main>: a dialog that closes with nothing to give focus back to sends it here, not to <body>.
-    <div className="flex h-full flex-col overflow-hidden">
-      <ExtensionBanner />
-      <main tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
-        {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
-        {/* Top-aligned: centred, the mark landed at a different height for every list length and banner (alignment audit XPJ-1, R3PJ-1). */}
-        <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">
-          <div className="flex items-center gap-[0.625rem]">
-            <Brand />
-            {onOpenSettings && (
-              // The hint wraps the button in a span, so the span is the flex item that takes the row's free space.
-              <span className="ml-auto flex">
-                <IconButton ref={settingsButton} action="gear" label="Settings" onClick={onOpenSettings} />
-              </span>
-            )}
-            {onBack && (
-              <Button variant="secondary" className="ml-auto" onClick={onBack} aria-label={currentName ? `Back to ${currentName}` : 'Back'}>
-                Back
-              </Button>
-            )}
-          </div>
-          {/* The two ways to a project sit together (XPJ-4), on the title's baseline (XPJ-11); below sm they go under the title, which
-              then has the row to itself (XPJ-10). */}
-          <div className="flex flex-col items-start gap-x-4 gap-y-3 sm:flex-row sm:items-baseline">
-            <div className="min-w-0 flex-1">
-              <Heading title="Choose your project" size="display">
-                Open the book you’re working on, or start a new project.
-              </Heading>
-            </div>
-            <div className="flex flex-none flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => void browse()} disabled={busy}>
-                Open folder…
-              </Button>
-              <Button variant="primary" onClick={() => setNewProjectOpen(true)} disabled={busy}>
-                New project
-              </Button>
-            </div>
-          </div>
-          {reason && (
-            <p className="text-sm" role="alert" style={{ color: 'var(--danger-text)' }}>
-              {reason}
-            </p>
-          )}
-          {running && (
-            <div
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-button)] border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm"
-              role="status"
-            >
-              <span className="min-w-0 flex-1">
-                REAPER is running with a project linked to <b>{running.name}</b>.{runningListed && ' Its row is marked below.'}
-              </span>
-              {!runningListed && (
-                <Button
-                  variant="secondary"
-                  aria-label={`Open ${running.name}`}
-                  onClick={() => void openRecent({ path: running.path, name: running.name, lastOpened: '', pinned: false })}
-                  disabled={busy}
-                >
-                  Open
+    <CommandScope kind="page">
+      <div className="flex h-full flex-col overflow-hidden">
+        <ExtensionBanner />
+        <main tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
+          {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
+          {/* Top-aligned: centred, the mark landed at a different height for every list length and banner (alignment audit XPJ-1, R3PJ-1). */}
+          <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">
+            <div className="flex items-center gap-[0.625rem]">
+              <Brand />
+              {onOpenSettings && (
+                // The hint wraps the button in a span, so the span is the flex item that takes the row's free space.
+                <span className="ml-auto flex">
+                  <IconButton ref={settingsButton} action="gear" label="Settings" onClick={onOpenSettings} />
+                </span>
+              )}
+              {onBack && (
+                <Button variant="secondary" className="ml-auto" onClick={onBack} aria-label={currentName ? `Back to ${currentName}` : 'Back'}>
+                  Back
                 </Button>
               )}
             </div>
-          )}
-          <Panel title="Pinned and recent" flush>
-            <div tabIndex={-1} ref={listRef} className="focus:outline-none">
-              {recentsFailed ? (
-                <p className="p-4 text-sm" style={{ color: 'var(--danger-text)' }}>
-                  Couldn&apos;t load recent projects.
-                </p>
-              ) : !recentsLoaded ? null : visible.length === 0 ? (
-                // An empty list offers the way forward where the eye is, not only in the header row (XPJ-8).
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4 text-sm">
-                  <p className="min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
-                    No recent projects yet.
-                  </p>
-                  <Button variant="secondary" onClick={() => setNewProjectOpen(true)} disabled={busy}>
-                    New project
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  {[
-                    { label: 'Pinned', rows: pinnedRows },
-                    { label: 'Recent', rows: recentRows },
-                  ]
-                    .filter((group) => group.rows.length > 0)
-                    .map((group) => (
-                      <section key={group.label} aria-labelledby={`picker-${group.label}`} className="border-t border-[var(--border)] first:border-t-0">
-                        {pinnedRows.length > 0 && (
-                          <SectionLabel as="h3" id={`picker-${group.label}`} className="block px-4 pt-3 pb-1">
-                            {group.label}
-                          </SectionLabel>
-                        )}
-                        <ul aria-labelledby={pinnedRows.length > 0 ? `picker-${group.label}` : undefined}>
-                          {group.rows.map((entry) => (
-                            <li
-                              key={entry.path}
-                              data-just-changed={restored.changed === entry.path ? '' : undefined}
-                              aria-current={running?.path === entry.path ? 'true' : undefined}
-                              className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] px-4 py-[0.8125rem] first:border-t-0 sm:flex-nowrap ${running?.path === entry.path ? 'bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)]' : ''} ${restored.changed === entry.path ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className="flex size-9 flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--surface-2)] text-[var(--text-muted)] max-sm:hidden"
-                              >
-                                <FontAwesomeIcon icon={faBook} />
-                              </span>
-                              {/* Below sm the name takes the whole first line and the date and buttons wrap under it, so the name is readable (XPJ-2). */}
-                              <div className="min-w-0 flex-1 max-sm:basis-full">
-                                <div className="truncate font-semibold" title={entry.name}>
-                                  {entry.name}
-                                </div>
-                                {running?.path === entry.path && <div className="text-xs text-[var(--accent-strong)]">Open in REAPER now</div>}
-                                <div className="truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-sm text-[var(--text-muted)]" title={entry.path}>
-                                  {entry.path}
-                                </div>
-                              </div>
-                              <span className="flex-none text-sm text-[var(--text-muted)] max-sm:mr-auto">{recentWhen(entry.lastOpened, now)}</span>
-                              <Button variant="secondary" aria-label={`Open ${entry.name}`} onClick={() => void openRecent(entry)} disabled={busy}>
-                                Open
-                              </Button>
-                              <IconButton
-                                action={entry.pinned ? 'unpin' : 'pin'}
-                                label={`${entry.pinned ? 'Unpin' : 'Pin'} ${entry.name}`}
-                                aria-pressed={entry.pinned}
-                                // Pinned reads louder than unpinned: the glyph takes the accent, not the muted grey on the accent tint (R4SM-16).
-                                className="aria-pressed:text-[var(--accent-strong)]"
-                                onClick={() => void togglePin(entry)}
-                              />
-                              <IconButton
-                                ref={(node) => {
-                                  if (node) removeButtonRefs.current.set(entry.path, node);
-                                  else removeButtonRefs.current.delete(entry.path);
-                                }}
-                                label={`Remove ${entry.name} from recent projects`}
-                                onClick={() => removeRecent(entry)}
-                              >
-                                <FontAwesomeIcon icon={faXmark} />
-                              </IconButton>
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ))}
-                </>
-              )}
+            {/* The two ways to a project sit together (XPJ-4), on the title's baseline (XPJ-11); below sm they go under the title, which
+              then has the row to itself (XPJ-10). */}
+            <div className="flex flex-col items-start gap-x-4 gap-y-3 sm:flex-row sm:items-baseline">
+              <div className="min-w-0 flex-1">
+                <Heading title="Choose your project" size="display">
+                  Open the book you’re working on, or start a new project.
+                </Heading>
+              </div>
+              <div className="flex flex-none flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => void browse()} disabled={busy}>
+                  Open folder…
+                </Button>
+                <Button variant="primary" onClick={() => setNewProjectOpen(true)} disabled={busy}>
+                  New project
+                </Button>
+              </div>
             </div>
-          </Panel>
-          <p className="text-sm text-[var(--text-muted)]">Project files stay in the folder you choose.</p>
-        </div>
-        {newProjectOpen && <NewProjectDialog onClose={() => setNewProjectOpen(false)} onCreated={projectCreated} />}
-      </main>
-    </div>
+            {reason && (
+              <p className="text-sm" role="alert" style={{ color: 'var(--danger-text)' }}>
+                {reason}
+              </p>
+            )}
+            {running && (
+              <div
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-button)] border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm"
+                role="status"
+              >
+                <span className="min-w-0 flex-1">
+                  REAPER is running with a project linked to <b>{running.name}</b>.{runningListed && ' Its row is marked below.'}
+                </span>
+                {!runningListed && (
+                  <Button
+                    variant="secondary"
+                    aria-label={`Open ${running.name}`}
+                    onClick={() => void openRecent({ path: running.path, name: running.name, lastOpened: '', pinned: false })}
+                    disabled={busy}
+                  >
+                    Open
+                  </Button>
+                )}
+              </div>
+            )}
+            <Panel title="Pinned and recent" flush>
+              <div tabIndex={-1} ref={listRef} className="focus:outline-none">
+                {recentsFailed ? (
+                  <p className="p-4 text-sm" style={{ color: 'var(--danger-text)' }}>
+                    Couldn&apos;t load recent projects.
+                  </p>
+                ) : !recentsLoaded ? null : visible.length === 0 ? (
+                  // An empty list offers the way forward where the eye is, not only in the header row (XPJ-8).
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4 text-sm">
+                    <p className="min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>
+                      No recent projects yet.
+                    </p>
+                    <Button variant="secondary" onClick={() => setNewProjectOpen(true)} disabled={busy}>
+                      New project
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {[
+                      { label: 'Pinned', rows: pinnedRows },
+                      { label: 'Recent', rows: recentRows },
+                    ]
+                      .filter((group) => group.rows.length > 0)
+                      .map((group) => (
+                        <section key={group.label} aria-labelledby={`picker-${group.label}`} className="border-t border-[var(--border)] first:border-t-0">
+                          {pinnedRows.length > 0 && (
+                            <SectionLabel as="h3" id={`picker-${group.label}`} className="block px-4 pt-3 pb-1">
+                              {group.label}
+                            </SectionLabel>
+                          )}
+                          <ul aria-labelledby={pinnedRows.length > 0 ? `picker-${group.label}` : undefined}>
+                            {group.rows.map((entry) => (
+                              <li
+                                key={entry.path}
+                                data-just-changed={restored.changed === entry.path ? '' : undefined}
+                                aria-current={running?.path === entry.path ? 'true' : undefined}
+                                className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border)] px-4 py-[0.8125rem] first:border-t-0 sm:flex-nowrap ${running?.path === entry.path ? 'bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)]' : ''} ${restored.changed === entry.path ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="flex size-9 flex-none items-center justify-center rounded-[var(--radius-button)] bg-[var(--surface-2)] text-[var(--text-muted)] max-sm:hidden"
+                                >
+                                  <FontAwesomeIcon icon={faBook} />
+                                </span>
+                                {/* Below sm the name takes the whole first line and the date and buttons wrap under it, so the name is readable (XPJ-2). */}
+                                <div className="min-w-0 flex-1 max-sm:basis-full">
+                                  <div className="truncate font-semibold" title={entry.name}>
+                                    {entry.name}
+                                  </div>
+                                  {running?.path === entry.path && <div className="text-xs text-[var(--accent-strong)]">Open in REAPER now</div>}
+                                  <div className="truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-sm text-[var(--text-muted)]" title={entry.path}>
+                                    {entry.path}
+                                  </div>
+                                </div>
+                                <span className="flex-none text-sm text-[var(--text-muted)] max-sm:mr-auto">{recentWhen(entry.lastOpened, now)}</span>
+                                <Button variant="secondary" aria-label={`Open ${entry.name}`} onClick={() => void openRecent(entry)} disabled={busy}>
+                                  Open
+                                </Button>
+                                <IconButton
+                                  action={entry.pinned ? 'unpin' : 'pin'}
+                                  label={`${entry.pinned ? 'Unpin' : 'Pin'} ${entry.name}`}
+                                  aria-pressed={entry.pinned}
+                                  // Pinned reads louder than unpinned: the glyph takes the accent, not the muted grey on the accent tint (R4SM-16).
+                                  className="aria-pressed:text-[var(--accent-strong)]"
+                                  onClick={() => void togglePin(entry)}
+                                />
+                                <IconButton
+                                  ref={(node) => {
+                                    if (node) removeButtonRefs.current.set(entry.path, node);
+                                    else removeButtonRefs.current.delete(entry.path);
+                                  }}
+                                  label={`Remove ${entry.name} from recent projects`}
+                                  onClick={() => removeRecent(entry)}
+                                >
+                                  <FontAwesomeIcon icon={faXmark} />
+                                </IconButton>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      ))}
+                  </>
+                )}
+              </div>
+            </Panel>
+            <p className="text-sm text-[var(--text-muted)]">Project files stay in the folder you choose.</p>
+          </div>
+          {newProjectOpen && <NewProjectDialog onClose={() => setNewProjectOpen(false)} onCreated={projectCreated} />}
+        </main>
+      </div>
+    </CommandScope>
   );
 }

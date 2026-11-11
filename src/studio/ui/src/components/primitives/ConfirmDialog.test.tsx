@@ -7,6 +7,34 @@ import { ConfirmDialog } from './ConfirmDialog';
 
 afterEach(cleanup);
 
+describe('ConfirmDialog holdEnter', () => {
+  const ask = (holdEnter?: boolean) => (
+    <ConfirmDialog title="Stop recording?" body="Recording." confirmLabel="Stop and leave" confirm={vi.fn()} cancel={vi.fn()} holdEnter={holdEnter} />
+  );
+
+  it('says it holds while holdEnter is true and takes Enter and Space off the buttons, then stops when it turns false', () => {
+    const view = render(ask(true));
+    expect(screen.getByRole('alertdialog').hasAttribute('data-enter-held')).toBe(true);
+    const button = screen.getByRole('button', { name: 'Stop and leave' });
+    expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(false);
+    expect(fireEvent.keyDown(button, { key: ' ', cancelable: true })).toBe(false);
+    view.rerender(ask(false));
+    expect(screen.getByRole('alertdialog').hasAttribute('data-enter-held')).toBe(false);
+    expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(true);
+  });
+
+  it('is absent, and Enter and Space untouched, when holdEnter is false or not given', () => {
+    for (const hold of [false, undefined]) {
+      cleanup();
+      render(ask(hold));
+      expect(screen.getByRole('alertdialog').hasAttribute('data-enter-held')).toBe(false);
+      const button = screen.getByRole('button', { name: 'Stop and leave' });
+      expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(true);
+      expect(fireEvent.keyDown(button, { key: ' ', cancelable: true })).toBe(true);
+    }
+  });
+});
+
 describe('ConfirmDialog', () => {
   it('offers cancel, save, and discard actions in the guard dialog', () => {
     const cancel = vi.fn();

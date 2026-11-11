@@ -13,6 +13,10 @@ export type BoothLeaveSession = {
   startedByApp?: boolean;
   daw: { name: string };
   stopRecording: () => Promise<DawResult>;
+  /** Whether the take that just ended ended with the DAW answering (true) or because the DAW went quiet (false). Absent: confirmed. A take of a DAW that went quiet may still record, so it is not taken for over. */
+  endConfirmed?: () => Promise<boolean>;
+  /** True while a take that has ended is not yet known to have ended with the DAW answering. Leaving is not allowed silently then: the stop is tried and its refusal asked. */
+  endUnconfirmed?: () => boolean;
   /** Resolves when a start that is still out lands or fails, with whether a take is running then. The narrator's yes waits for it, so what it stops is a take. */
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
@@ -26,6 +30,11 @@ const LEAVE_ANYWAY_ARM_MS = 400;
 export const LEAVE_WAIT_MS = 8000;
 const STOPPING_TOPIC = 'booth-leave-stopping';
 const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
+/**
+ * A DAW's own stop pushes its stopped transport before the stop's reply, so a take seen to end while this decision's stop is out is most likely that stop:
+ * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
+ */
+const END_GRACE_MS = 1500;
 const NO_ANSWER = 'The DAW did not answer in time.';
 
 /** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
@@ -38,6 +47,16 @@ async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | n
     return await Promise.race([work.then((value) => ({ value })), late]);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** The end check's answer, or false when it has not come after `LEAVE_WAIT_MS` or failed: an end not known to be with the DAW answering is not an end. */
+async function confirmedWithin(check: Promise<boolean> | undefined): Promise<boolean> {
+  if (!check) return true;
+  try {
+    return (await within(check, LEAVE_WAIT_MS))?.value ?? false;
+  } catch {
+    return false;
   }
 }
 
@@ -72,6 +91,21 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     };
   }, []);
   const { recording } = session;
+  // The take ended in the DAW (REAPER, the pedal, the host's own limit) while this decision waits on its stop: the stop wait is woken at once and leaves
+  // with no refusal question, which would be about a take that is already over.
+  // True while "Stopping the take…" is the narrator's only sign that the decision is waiting. A second exit in that time says it again: the message has an X, and a
+  // narrator who closed it and pressed another exit would otherwise be ignored with nothing on screen (#3349).
+  const waiting = useRef(false);
+  const sayStopping = useCallback(() => {
+    overlay.toast('Stopping the take…', { topic: STOPPING_TOPIC, durationMs: STOPPING_TOAST_MS });
+  }, [overlay]);
+  const wakeOnEnd = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const wake = wakeOnEnd.current;
+    if (recording || !wake) return;
+    // Only a take the DAW confirmed over wakes the wait: a DAW that went quiet reads as stopped too, and its take may still record.
+    void Promise.resolve(sessionRef.current.endConfirmed?.() ?? true).then((confirmed) => confirmed && wake());
+  }, [recording]);
   // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
   // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
   const open = useRef<{ close: AbortController; pending: boolean } | null>(null);
@@ -85,8 +119,12 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
   // One at a time: a second caller while it is open is the same question, and does not move.
   const decide = useCallback((): Promise<boolean> => {
+    const endIsConfirmed = () => confirmedWithin(sessionRef.current.endConfirmed?.());
     const now = sessionRef.current;
-    if (asking.current) return asking.current.then(() => false);
+    if (asking.current) {
+      if (waiting.current) sayStopping();
+      return asking.current.then(() => false);
+    }
     const run = async (): Promise<boolean> => {
       const mine = take.current;
       const startedByApp = now.startedByApp ?? true;
@@ -106,14 +144,17 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         }
         // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS, in the refusal question when it does not.
         // Up for the whole of the waits (three, each at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
-        overlay.toast('Stopping the take…', { topic: STOPPING_TOPIC, durationMs: STOPPING_TOAST_MS });
+        waiting.current = true;
+        sayStopping();
         let sentence: string;
         try {
           // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
           const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
           if (gone.current) return false;
           if (!landed) sentence = NO_ANSWER;
-          else if (!landed.value) {
+          // `landed.value` false is "no take is running now": for a start that was pending that is nothing to stop. For a take that was running when the
+          // narrator was asked it is not enough, because a DAW that went quiet reads the same: that case goes on to the stop, which checks the end (below).
+          else if (!landed.value && now.startPending) {
             answeredFor.current = mine;
             answered.current = true;
             return true;
@@ -121,7 +162,26 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             // The yes is given and this decision is stopping the take: the page's unmount stop leaves it to this one.
             answered.current = true;
             answeredFor.current = mine;
-            const stopped = await within(sessionRef.current.stopRecording(), LEAVE_WAIT_MS);
+            // A take the DAW has already ended (during the question or while this waits) has nothing to stop: what it wrote is flushed and they leave.
+            let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await endIsConfirmed());
+            // Set the moment the DAW confirms the end, before the grace is over: a refusal that arrives then is about a take that is already over.
+            let endSeen = takeEnded;
+            const endWait = new Promise<'ended'>((resolve) => {
+              wakeOnEnd.current = () => {
+                // Not yet "ended": the stop this decision sent may be what ended it, and its reply is still to come.
+                endSeen = true;
+                setTimeout(() => {
+                  takeEnded = true;
+                  resolve('ended');
+                }, END_GRACE_MS);
+              };
+            });
+            const stopped = takeEnded ? null : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording(), endWait]), LEAVE_WAIT_MS);
+            wakeOnEnd.current = null;
+            if (takeEnded || stopped?.value === 'ended' || (endSeen && stopped && !stopped.value.ok)) {
+              await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
+              return !gone.current;
+            }
             if (!stopped) sentence = NO_ANSWER;
             else if (stopped.value.ok) {
               // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
@@ -136,6 +196,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             }
           }
         } finally {
+          waiting.current = false;
           overlay.dismissTopic(STOPPING_TOPIC);
         }
         // The stop was refused or never answered: nothing changed that this app knows of, so the take may still run. The question stays, now with a way out.
@@ -155,7 +216,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     });
     asking.current = pending;
     return pending;
-  }, [overlay]);
+  }, [overlay, sayStopping]);
 
   useEffect(() => {
     if (recording) take.current += 1;
@@ -166,7 +227,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   useEffect(() => {
     guard.setLeaveGuard(() => {
       const now = sessionRef.current;
-      if (!now.recording && !asking.current) return 'allow';
+      if (!now.recording && !asking.current && !now.endUnconfirmed?.()) return 'allow';
       return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true, now.startPending), decide };
     });
     return () => guard.setLeaveGuard(null);
@@ -176,16 +237,17 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     async (next: string, go: (next: string) => void): Promise<void> => {
       // A move already decided is on its way (the question is open, or the stop and the run are being written): this exit is the same one, and does not go twice.
       if (asking.current) {
+        if (waiting.current) sayStopping();
         await asking.current;
         return;
       }
-      if (!sessionRef.current.recording) {
+      if (!sessionRef.current.recording && !sessionRef.current.endUnconfirmed?.()) {
         go(next);
         return;
       }
       if (await decide()) go(next);
     },
-    [decide],
+    [decide, sayStopping],
   );
 
   // Stable: the page's unmount effect depends on them and must not re-run (and stop a take) on every render.
