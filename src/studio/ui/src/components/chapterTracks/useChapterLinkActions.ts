@@ -5,9 +5,29 @@ import { usePort } from '../../ports/usePort';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
  * longer in the manuscript", so none is silent or reads " was linked to that track" with no name (#3053). */
-function keptTitle(storedTitle: string | undefined): string | undefined {
-  return storedTitle?.trim() || undefined;
+function keptTitle(storedTitle: unknown): string | undefined {
+  if (typeof storedTitle !== 'string') return undefined;
+  // A title is text someone else wrote: control and bidi-override characters would reach a toast as they are, and a very long one would fill it.
+  const clean = Array.from(storedTitle, (ch) => (isOddCharacter(ch.codePointAt(0) ?? 0) ? ' ' : ch))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!clean) return undefined;
+  return clean.length > MAX_TITLE ? `${clean.slice(0, MAX_TITLE - 1)}…` : clean;
 }
+/** A control character or a bidi override/isolate mark. */
+function isOddCharacter(code: number): boolean {
+  return (
+    code < 0x20 ||
+    (code >= 0x7f && code <= 0x9f) ||
+    code === 0x200e ||
+    code === 0x200f ||
+    (code >= 0x202a && code <= 0x202e) ||
+    (code >= 0x2066 && code <= 0x2069)
+  );
+}
+/** The longest chapter title a sentence quotes. */
+const MAX_TITLE = 80;
 
 /**
  * The one sentence for a chapter that lost its track to another (`ChapterTrackSet` moves a track another chapter holds). `nameOf` gives the
@@ -15,7 +35,7 @@ function keptTitle(storedTitle: string | undefined): string | undefined {
  * the host kept with the link names it, so no takeover is silent (#3053, #3365).
  */
 export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: string) => string | undefined): string {
-  const name = nameOf?.(displaced.chapterId) ?? keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript';
+  const name = keptTitle(nameOf?.(displaced.chapterId)) ?? keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript';
   return `${name} was linked to that track and is now not linked.`;
 }
 
@@ -47,7 +67,8 @@ export function useChapterLinkActions(): ChapterLinkActions {
   const set = useCallback(
     async (chapterId: string, trackGuid: string, nameOf?: (chapterId: string) => string | undefined): Promise<LinkWritten> => {
       const result = await trackMap.chapterTrackSet(chapterId, trackGuid);
-      const displacedNotice = result.displaced ? displacedSentence(result.displaced, nameOf) : '';
+      // A host that answers the chapter just linked as the one displaced has displaced no one.
+      const displacedNotice = result.displaced && result.displaced.chapterId !== chapterId ? displacedSentence(result.displaced, nameOf) : '';
       return { result, displacedNotice, linkedNotice: displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.' };
     },
     [trackMap],

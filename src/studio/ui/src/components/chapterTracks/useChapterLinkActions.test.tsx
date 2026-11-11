@@ -24,6 +24,20 @@ describe('displacedSentence', () => {
   });
 });
 
+describe('displacedSentence with hostile or empty names', () => {
+  it('falls back to the kept title when the manuscript name is empty or blank', () => {
+    expect(displacedSentence(mapping('c2', 'Kept'), () => '')).toBe('Kept was linked to that track and is now not linked.');
+    expect(displacedSentence(mapping('c2', 'Kept'), () => '   ')).toBe('Kept was linked to that track and is now not linked.');
+  });
+  it('clips a long title, strips control and bidi characters, and does not throw on a non-string title', () => {
+    expect(displacedSentence(mapping('c2', 'x'.repeat(10000))).length).toBeLessThan(140);
+    expect(displacedSentence(mapping('c2', 'A\u202eB\nC\u0000D'))).toBe('A B C D was linked to that track and is now not linked.');
+    expect(displacedSentence({ ...mapping('c2', ''), chapterTitle: 42 as unknown as string })).toBe(
+      'A chapter no longer in the manuscript was linked to that track and is now not linked.',
+    );
+  });
+});
+
 describe('useChapterLinkActions', () => {
   it('set writes through the replacing binding and says who lost the track', async () => {
     const chapterTrackSet = vi.fn(async () => setAnswer(mapping('c2', 'Two')));
@@ -46,6 +60,10 @@ describe('useChapterLinkActions', () => {
       },
     });
     await expect(refused.set('c1', 'T')).rejects.toThrow('The project is not open.');
+  });
+  it('set has no notice when the host answers the chapter just linked as the displaced one', async () => {
+    const actions = actionsWith({ chapterTrackSet: async () => setAnswer(mapping('c1', 'One')) });
+    expect((await actions.set('c1', 'T')).displacedNotice).toBe('');
   });
   it('unlink and create go to their own bindings', async () => {
     const chapterTrackUnlink = vi.fn(async () => ({ documentId: 'd', mappings: [] }));
