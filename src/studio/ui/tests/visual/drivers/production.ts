@@ -194,7 +194,7 @@ export const productionDrivers: Record<string, Driver> = {
       .getByRole('img', { name: /: recorded none yet(,|$)/ })
       .first()
       .waitFor();
-    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded no track(,|$)/ }).waitFor();
+    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked(,|$)/ }).waitFor();
   },
 
   'live-updates-degraded': async (page) => {
