@@ -1,18 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useOverlay } from '../../overlay/OverlayProvider';
-import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import type { Track } from '../../api/contracts/tracks';
-import type { TrackMapping } from '../../types';
-import { describeApiError } from '../../api/errorMessage';
-import { usePendingAction } from '../../hooks/usePendingAction';
-import { usePort } from '../../ports/usePort';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
-import { MappingConfirm } from '../mapping/MappingConfirm';
+import { ChapterTrackLinkFix } from '../mapping/ChapterTrackLinkFix';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { RecordingCheckReport } from '../production/RecordingCheckReport';
@@ -123,6 +116,7 @@ export function ReasonBlock({
   /** Runs as a fix link leaves for its page: Check recordings closes, so the page is not under it. */
   onNavigate?: () => void;
 }) {
+  const overlay = useOverlay();
   const unique = [...new Set(reasons)];
   const link = unique.some((reason) => LINK_REASONS.has(reason));
   const pages = [...new Map(unique.flatMap((reason) => (REASON_PAGE[reason] ? [[REASON_PAGE[reason]!.label, REASON_PAGE[reason]!]] : []))).values()];
@@ -144,7 +138,7 @@ export function ReasonBlock({
         </p>
       )}
       {footer && <p style={{ color: 'var(--text-muted)' }}>{footer}</p>}
-      {link && <TrackLink chapter={chapter} onLinked={onLinked} onNavigate={onNavigate} />}
+      {link && <ChapterTrackLinkFix chapter={chapter} notify={(text) => overlay.toast(text)} onLinked={onLinked} onNavigate={onNavigate} />}
       {pages.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {pages.map((page) =>
@@ -161,67 +155,5 @@ export function ReasonBlock({
         </div>
       )}
     </InsetCard>
-  );
-}
-
-/** The chapter-track link, confirmed right here: the same prompt the audio engine panel lists. */
-function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapter; onLinked: () => Promise<void>; onNavigate?: () => void }) {
-  const tracksPort = usePort('tracks');
-  const trackMap = usePort('chapterTrackMap');
-  const overlay = useOverlay();
-  const actions = useChapterLinkActions();
-  const [tracks, setTracks] = useState<Track[]>();
-  const [links, setLinks] = useState<TrackMapping[]>([]);
-  const [error, setError] = useState('');
-  const confirming = usePendingAction();
-  useEffect(() => {
-    let active = true;
-    // The links label a track another chapter holds before the press; a links read that fails only leaves the labels off.
-    Promise.all([
-      tracksPort.tracksList(),
-      trackMap.chapterTrackMapList().then(
-        (list) => list.mappings,
-        () => [] as TrackMapping[],
-      ),
-    ])
-      .then(([project, mappings]) => {
-        if (!active) return;
-        setTracks(project.tracks);
-        setLinks(mappings);
-      })
-      .catch((reason) => active && setError(describeApiError(reason)));
-    return () => {
-      active = false;
-    };
-  }, [tracksPort, trackMap]);
-  if (error)
-    return (
-      <p style={{ color: 'var(--danger-text)' }}>
-        The REAPER tracks could not be listed: {error} <EnginePanelLink onOpen={onNavigate} />
-      </p>
-    );
-  if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
-  return (
-    <MappingConfirm
-      chapterTitle={chapterName(chapter, 'short')}
-      tracks={tracks}
-      links={links}
-      chapterId={chapter.id}
-      busy={confirming.isBusy}
-      onConfirm={(trackGuid) =>
-        void confirming.run('confirm', async () => {
-          try {
-            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { linkedNotice } = await actions.set(chapter.id, trackGuid);
-            overlay.toast(linkedNotice);
-            setError('');
-            await onLinked();
-          } catch (reason) {
-            setError(describeApiError(reason));
-          }
-        })
-      }
-      onClear={() => {}}
-    />
   );
 }

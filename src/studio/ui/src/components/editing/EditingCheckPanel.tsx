@@ -14,10 +14,8 @@ import type {
   StageSignal,
   StageSignalState,
   StageUnknownCause,
-  Track,
 } from '../../types';
-import type { TrackMapping } from '../../types';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -26,7 +24,7 @@ import { SlideOver } from '../primitives/SlideOver';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { type Notify, retryAction } from '../primitives/Toast';
-import { MappingConfirm } from '../mapping/MappingConfirm';
+import { ChapterTrackLinkFix } from '../mapping/ChapterTrackLinkFix';
 import { formatWhen } from '../production/recordingCheckText';
 import { formatAge, SIGNAL_STATE_LABEL } from '../stages/stageText';
 import { CleanupAction } from './CleanupAction';
@@ -61,67 +59,6 @@ const SOURCE_CHOICE_OPTIONS = [
   { value: 'items', label: 'Track items' },
   { value: 'render', label: 'Rendered file' },
 ] as const satisfies readonly { value: EditingSourceChoice; label: string }[];
-
-/** The chapter-track link, confirmed right here: the same prompt the
- * audio engine panel and the recording check show. */
-function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter; notify: Notify; onLinked: () => void }) {
-  const api = useApi();
-  const actions = useChapterLinkActions();
-  const [tracks, setTracks] = useState<Track[]>();
-  const [links, setLinks] = useState<TrackMapping[]>([]);
-  const [error, setError] = useState('');
-  const confirming = usePendingAction();
-  useEffect(() => {
-    let active = true;
-    // The links label a track another chapter holds before the press; a links read that fails only leaves the labels off.
-    Promise.all([
-      api.tracksList(),
-      api.chapterTrackMapList().then(
-        (list) => list.mappings,
-        () => [] as TrackMapping[],
-      ),
-    ])
-      .then(([project, mappings]) => {
-        if (!active) return;
-        setTracks(project.tracks);
-        setLinks(mappings);
-      })
-      .catch((reason) => active && setError(describeApiError(reason)));
-    return () => {
-      active = false;
-    };
-  }, [api]);
-  if (error)
-    return (
-      <p style={{ color: 'var(--danger-text)' }}>
-        The REAPER tracks could not be listed: {error} <EnginePanelLink />
-      </p>
-    );
-  if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
-  return (
-    <MappingConfirm
-      chapterTitle={chapterName(chapter, 'short')}
-      tracks={tracks}
-      links={links}
-      chapterId={chapter.id}
-      busy={confirming.isBusy}
-      onConfirm={(trackGuid) =>
-        void confirming.run('confirm', async () => {
-          try {
-            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { linkedNotice } = await actions.set(chapter.id, trackGuid);
-            notify(linkedNotice);
-            setError('');
-            onLinked();
-          } catch (reason) {
-            setError(describeApiError(reason));
-          }
-        })
-      }
-      onClear={() => {}}
-    />
-  );
-}
 
 const STATE_TONE: Record<StageSignalState, StatusTone> = { met: 'success', not_met: 'danger', unknown: 'neutral' };
 
@@ -257,6 +194,8 @@ export function EditingCheckPanel({
   const [sourceChoice, setSourceChoice] = useState<EditingSourceChoice>('items');
   const [sourceChoiceError, setSourceChoiceError] = useState('');
   const documentIdRef = useRef<string | undefined>(undefined);
+  // The document the links belong to comes from the shared chapter-track state, like the links the unmapped refusal offers (#3413).
+  const trackState = useChapterTrackState({ enabled: true, tracks: false });
   const prevPhaseRef = useRef<EditingState['phase'] | undefined>(undefined);
 
   const loadCandidates = useCallback(async () => {
@@ -336,7 +275,7 @@ export function EditingCheckPanel({
     action.run('start', async () => {
       setRefusal(undefined);
       try {
-        if (!documentIdRef.current) documentIdRef.current = (await api.chapterTrackMapList()).documentId;
+        if (!documentIdRef.current) documentIdRef.current = await trackState.readDocumentId();
         const answer = await api.editingStart(documentIdRef.current, chapter.id, chapter.title);
         if (answer.status === 'refused') setRefusal({ reason: answer.reason, message: answer.message });
         else setJob(answer.state);
@@ -404,9 +343,9 @@ export function EditingCheckPanel({
             {refusal.reason === 'multiple_tracks' ? (
               <EnginePanelLink />
             ) : (
-              <MappingFix
+              <ChapterTrackLinkFix
                 chapter={chapter}
-                notify={notify}
+                notify={(text) => notify(text)}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();

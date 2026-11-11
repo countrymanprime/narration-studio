@@ -442,3 +442,33 @@ describe('the shared chapter-track state', () => {
     }
   });
 });
+
+// #3413: the overlay host draws a dialog beside the app, not inside it, so a dialog that reads the state reaches the mounted one.
+describe('a consumer outside the provider', () => {
+  it('reads the mounted state, and an empty one when none is mounted', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const seen: { current?: ChapterTrackState } = {};
+    function Outside() {
+      seen.current = useChapterTrackState({ enabled: true });
+      return null;
+    }
+    const mounted = render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <span>app</span>
+        </ChapterTrackStateProvider>
+        <Outside />
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
+    expect(seen.current?.project?.tracks.length).toBeGreaterThan(0);
+    mounted.unmount();
+    render(
+      <ApiProvider api={api}>
+        <Outside />
+      </ApiProvider>,
+    );
+    expect(seen.current?.mappings).toEqual([]);
+    expect(seen.current?.readAt).toBeNull();
+  });
+});

@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EditingCheckPanel } from './EditingCheckPanel';
 import { ApiProvider } from '../../api/ApiContext';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
 import { outwaitEcho } from '../primitives/outwaitEcho';
@@ -24,7 +26,9 @@ function renderPanel(initial: Initial = {}) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EditingCheckPanel chapter={chapter} notify={notify} close={close} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EditingCheckPanel chapter={chapter} notify={notify} close={close} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -48,7 +52,9 @@ describe('a refused start offers Retry', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EditingCheckPanel chapter={chapter} notify={notify} close={vi.fn()} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <EditingCheckPanel chapter={chapter} notify={notify} close={vi.fn()} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
@@ -24,6 +24,8 @@ export type ChapterTrackState = {
   readAt: number | null;
   /** Replaces the links shown with these, for a change whose answer already says what they are (an unlink); the next read reconciles. */
   applyMappings: (next: TrackMapping[]) => void;
+  /** The manuscript document the links belong to (what a check is started against): the last links answer's, read now when none has come yet. */
+  readDocumentId: () => Promise<string>;
   /** Reads the links alone now and answers them (a change made here, a panel told they changed); rejects when the read fails. */
   refreshLinks: () => Promise<TrackMapping[]>;
   /** The state is being read for this project (a DAW file is linked and a screen watches): until `readAt` is set, an empty answer means not read yet. */
@@ -62,6 +64,7 @@ const EMPTY: ChapterTrackState = {
   reread: () => {},
   applyMappings: () => {},
   refreshLinks: () => Promise.resolve([]),
+  readDocumentId: () => Promise.resolve(''),
   live: NO_LIVE,
 };
 
@@ -69,7 +72,28 @@ const EMPTY: ChapterTrackState = {
 type WatchKind = 'tracks' | 'links';
 type Watch = { state: ChapterTrackState; watch: (kind: WatchKind) => () => void; defaultWants: boolean };
 
-const ChapterTrackStateContext = createContext<Watch>({ state: EMPTY, watch: () => () => {}, defaultWants: true });
+const NO_WATCH: Watch = { state: EMPTY, watch: () => () => {}, defaultWants: true };
+/** The default of the context: no provider above. */
+const NO_PROVIDER: Watch = { ...NO_WATCH };
+const ChapterTrackStateContext = createContext<Watch>(NO_PROVIDER);
+
+/**
+ * The app's mounted state, for a component drawn outside its provider: the overlay host draws every dialog and panel the overlay service opens
+ * beside the app, not inside it, so a dialog that reads the chapter tracks (Check recordings) would otherwise read an empty state of its own.
+ * The provider registers itself here while it is mounted; a consumer with no provider above it reads this one (#3413). A test or story with its
+ * own provider never reaches it, and with none gets the empty state.
+ */
+let mounted: Watch | undefined;
+const mountedListeners = new Set<() => void>();
+function setMounted(next: Watch | undefined) {
+  mounted = next;
+  mountedListeners.forEach((listener) => listener());
+}
+const subscribeMounted = (listener: () => void) => {
+  mountedListeners.add(listener);
+  return () => void mountedListeners.delete(listener);
+};
+const readMounted = () => mounted;
 
 /**
  * Mounted once, in the app shell. It reads (the live track list over the saved file, and the links) only while a screen wants it
@@ -112,6 +136,7 @@ export function ChapterTrackStateProvider({
   // its limit is its own and a hung read fails after LIVE_TRACKS_TIMEOUT_MS however often the tracks answer.
   const linksRun = useRef(0);
   const mappingsRef = useRef<TrackMapping[]>([]);
+  const documentIdRef = useRef('');
   // The newest links read's promise: a read it superseded settles with it, so a caller that waited on the older one (a change's re-read) is
   // answered with the links as of the newest read, never with the old ones, and a hung older read never fails its caller after the fact.
   const newestLinks = useRef<Promise<TrackMapping[]>>(Promise.resolve([]));
@@ -134,6 +159,7 @@ export function ChapterTrackStateProvider({
           linksFailing.current = false;
           setLinksStale(false);
           mappingsRef.current = answer.mappings;
+          documentIdRef.current = answer.documentId;
           setMappings(answer.mappings);
           setMappingsAt(Date.now());
           return answer.mappings;
@@ -235,6 +261,10 @@ export function ChapterTrackStateProvider({
   }, []);
   // The links alone, now: for the screen that made a change or was told one was made. A failure is the caller's to show.
   const refreshLinks = useCallback(() => readLinks(true, 'throw'), [readLinks]);
+  const readDocumentId = useCallback(async () => {
+    if (!documentIdRef.current) await readLinks(true, 'throw');
+    return documentIdRef.current;
+  }, [readLinks]);
 
   const state = useMemo<ChapterTrackState>(
     () =>
@@ -254,12 +284,19 @@ export function ChapterTrackStateProvider({
             reread,
             applyMappings,
             refreshLinks,
+            readDocumentId,
             // The Engine panel's Refresh is a press: it reads the links with the tracks.
             live: { ...live, refresh, recheck },
           },
-    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks],
+    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks, readDocumentId],
   );
   const value = useMemo(() => ({ state, watch, defaultWants: enabled }), [state, watch, enabled]);
+  useEffect(() => {
+    setMounted(value);
+    return () => {
+      if (mounted === value) setMounted(undefined);
+    };
+  }, [value]);
   return <ChapterTrackStateContext.Provider value={value}>{children}</ChapterTrackStateContext.Provider>;
 }
 
@@ -271,7 +308,10 @@ export function ChapterTrackStateProvider({
  * tracks of its own, such as the Audacity panel, or one that only needs who is linked to what).
  */
 export function useChapterTrackState({ enabled, tracks = true, when = true }: { enabled?: boolean; tracks?: boolean; when?: boolean } = {}): ChapterTrackState {
-  const { state, watch, defaultWants } = useContext(ChapterTrackStateContext);
+  const inTree = useContext(ChapterTrackStateContext);
+  // Outside any provider (an overlay dialog), the app's mounted state, when there is one.
+  const registered = useSyncExternalStore(subscribeMounted, readMounted);
+  const { state, watch, defaultWants } = inTree === NO_PROVIDER && registered ? registered : inTree;
   const wants = (enabled ?? defaultWants) && when;
   useEffect(() => (wants ? watch(tracks ? 'tracks' : 'links') : undefined), [wants, tracks, watch]);
   return wants ? state : EMPTY;

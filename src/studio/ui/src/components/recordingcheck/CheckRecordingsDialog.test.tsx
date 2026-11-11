@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+
 import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageStartResult, CoverageState } from '../../api/contracts/coverage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -86,7 +88,10 @@ function open(api: NarrationApi, preselected: string[] = [], opener = true, opti
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <button type="button">Check icon</button>
+        {/* As in the app: the state is mounted beside the overlay host, not above it, so the dialog reaches it through the registry. */}
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <button type="button">Check icon</button>
+        </ChapterTrackStateProvider>
         <OverlayProvider service={service} />
       </ApiProvider>
     </MemoryRouter>,
