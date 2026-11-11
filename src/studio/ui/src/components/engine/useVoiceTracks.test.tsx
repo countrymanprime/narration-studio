@@ -66,7 +66,7 @@ function mountTwo(api: ReturnType<typeof createMockApi>) {
 }
 
 function state(patch: Partial<VoiceTracksState>): VoiceTracksState {
-  return { layout: 'folders', narratorCharacter: '', tracks: [], ...patch };
+  return { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [], ...patch };
 }
 
 describe('saving the voice setup', () => {

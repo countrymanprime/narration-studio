@@ -15,7 +15,7 @@ import { SpeakerTag } from '../primitives/SpeakerTag';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { folderVoices, type Voice } from './voices';
+import { assignmentOf, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 
 const LAYOUTS = [
@@ -238,7 +238,7 @@ function CharacterPicker({
     );
   }
   // What the track records now: its assignment, or else its name or alias match, so ticking another character adds to it.
-  const assignment = setup.tracks.find((entry) => entry.track === voice.name.trim());
+  const assignment = assignmentOf(setup, { guid: voice.guid, name: voice.name });
   const current = new Set(
     voice.narrator ? (setup.narratorCharacter ? [setup.narratorCharacter] : []) : (assignment?.characters ?? voice.characters.map((c) => c.id)),
   );
@@ -267,7 +267,8 @@ function CharacterPicker({
                     const ids = new Set(current);
                     if (next) ids.add(character.id);
                     else ids.delete(character.id);
-                    onTrackCharacters(voice.name, [...ids]);
+                    // A renamed track carries the assignment of the name it had: emptying it clears that one (the box would stay ticked otherwise).
+                    onTrackCharacters(ids.size === 0 && assignment ? assignment.track : voice.name, [...ids]);
                   }
                 }}
               >

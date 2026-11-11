@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/voicetracks"
 	"errors"
 	"fmt"
 	"os"
@@ -100,6 +101,7 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
 	}
 	answer.Project = project
+	rememberVoiceTracks(svc, project)
 	return answer, nil
 }
 
@@ -218,4 +220,15 @@ func guidKey(guid string) string {
 		return ""
 	}
 	return "{" + bare + "}"
+}
+
+// rememberVoiceTracks tells the voice setup which tracks the project has (voicetracks.Learn), so a track renamed in the engine keeps the
+// characters assigned to it and the Narrator track stays key 0. It adds to a setup that exists and reads cleanly and touches nothing else. It is best effort: a setup that cannot be written leaves the lookup by
+// name, which is what it was before.
+func rememberVoiceTracks(svc hostServices, project tracks.Project) {
+	seen := make([]voicetracks.Seen, 0, len(project.Tracks))
+	for _, track := range project.Tracks {
+		seen = append(seen, voicetracks.Seen{GUID: track.GUID, Name: track.Name})
+	}
+	_, _ = voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Learn(seen)
 }

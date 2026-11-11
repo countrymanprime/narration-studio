@@ -3,8 +3,10 @@
 // the narrator assigned to a voice track by its name, and which character the Narrator track also voices (a first-person book).
 // A track with no assignment matches characters by name and alias; that matching is not stored here.
 //
-// Assignments are keyed by the track's name, not its GUID, so one assignment holds in every chapter folder that has a track of
-// that name. The file is narrator data, read through persist: a corrupt one is kept aside and the project starts flat, one written
+// Assignments are keyed by the voice's name, so one assignment holds in every chapter folder that has a track of that name. Each
+// also remembers the GUIDs of the tracks it was seen on (Learn), so a track renamed to a name no assignment has keeps its
+// assignment: the name is a label, the GUID is the track. A track renamed to a name that has an assignment takes that one. The same
+// goes for the Narrator track (key 0). The file is narrator data, read through persist: a corrupt one is kept aside and the project starts flat, one written
 // by a newer app is refused and never overwritten.
 package voicetracks
 
@@ -44,6 +46,10 @@ const (
 	MaxCharacterID = 120
 	MaxCharacters  = 200
 	MaxTracks      = 500
+	// MaxGUIDs bounds the track GUIDs remembered per assignment and for the Narrator; Learn drops the ones the project no longer has.
+	MaxGUIDs = 2000
+	// MaxGUID is the longest track GUID stored, in runes.
+	MaxGUID = 64
 )
 
 var (
@@ -64,6 +70,8 @@ func File(project string) string {
 type TrackAssignment struct {
 	Track      string   `json:"track"`
 	Characters []string `json:"characters"`
+	// GUIDs are the tracks (lower case) this assignment was seen on, so a rename to an unassigned name keeps it.
+	GUIDs []string `json:"guids"`
 }
 
 // State is a project's voice setup as the UI gets it: tracks in name order.
@@ -71,6 +79,8 @@ type State struct {
 	Layout            string            `json:"layout"`
 	NarratorCharacter string            `json:"narratorCharacter"`
 	Tracks            []TrackAssignment `json:"tracks"`
+	// NarratorGUIDs are the tracks (lower case) seen named Narrator, so renaming the Narrator track keeps it key 0.
+	NarratorGUIDs []string `json:"narratorGuids"`
 }
 
 // Config is what a Service needs.
@@ -83,6 +93,7 @@ type Config struct {
 
 type trackEntry struct {
 	Characters []string `json:"characters"`
+	GUIDs      []string `json:"guids,omitempty"`
 }
 
 type voiceFile struct {
@@ -90,6 +101,7 @@ type voiceFile struct {
 	Layout            string                `json:"layout"`
 	NarratorCharacter string                `json:"narratorCharacter"`
 	Tracks            map[string]trackEntry `json:"tracks"`
+	Narrators         []string              `json:"narrators,omitempty"`
 }
 
 // Service reads and writes a project's voice setup. It holds no state, so the host builds one per call; a read-modify-write of
@@ -207,7 +219,7 @@ func (f *voiceFile) assign(name string, ids []string) error {
 	if _, ok := f.Tracks[name]; !ok && len(f.Tracks) >= MaxTracks {
 		return fmt.Errorf("%w: more than %d voice tracks", ErrInvalid, MaxTracks)
 	}
-	f.Tracks[name] = trackEntry{Characters: ids}
+	f.Tracks[name] = trackEntry{Characters: ids, GUIDs: f.Tracks[name].GUIDs}
 	return nil
 }
 
@@ -298,13 +310,19 @@ func (f voiceFile) valid() bool {
 				return false
 			}
 		}
+		if !validGUIDs(entry.GUIDs) {
+			return false
+		}
 	}
-	return true
+	return validGUIDs(f.Narrators)
 }
 
 func (s *Service) write(file voiceFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
+	if err := persist.CanOverwrite(path, what); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
@@ -326,9 +344,21 @@ func (f voiceFile) state() State {
 	sort.Strings(names)
 	tracks := make([]TrackAssignment, 0, len(names))
 	for _, name := range names {
-		tracks = append(tracks, TrackAssignment{Track: name, Characters: append([]string(nil), f.Tracks[name].Characters...)})
+		tracks = append(tracks, TrackAssignment{Track: name, Characters: append([]string(nil), f.Tracks[name].Characters...), GUIDs: append([]string{}, f.Tracks[name].GUIDs...)})
 	}
-	return State{Layout: f.Layout, NarratorCharacter: f.NarratorCharacter, Tracks: tracks}
+	return State{Layout: f.Layout, NarratorCharacter: f.NarratorCharacter, Tracks: tracks, NarratorGUIDs: append([]string{}, f.Narrators...)}
+}
+
+func validGUIDs(guids []string) bool {
+	if len(guids) > MaxGUIDs {
+		return false
+	}
+	for _, guid := range guids {
+		if guid != strings.ToLower(guid) || !validText(guid, MaxGUID) {
+			return false
+		}
+	}
+	return true
 }
 
 // validText is one line of text, not blank, at most limit runes, with no control character.
@@ -342,4 +372,117 @@ func validText(text string, limit int) bool {
 		}
 	}
 	return true
+}
+
+// Seen is a track of the project as the engine has it now.
+type Seen struct {
+	GUID string
+	Name string
+}
+
+// narratorName is the track name that is the Narrator, whatever its case.
+const narratorName = "narrator"
+
+// IsNarrator reports whether the track named name with guid is a Narrator track: it is named so, or it was seen named so and renamed.
+// A caller choosing one Narrator among tracks prefers one named so (NamedNarrator) over a remembered one.
+func (s State) IsNarrator(guid, name string) bool {
+	return NamedNarrator(name) || slices.Contains(s.NarratorGUIDs, strings.ToLower(guid))
+}
+
+// NamedNarrator reports whether name is the Narrator track's name, whatever its case.
+func NamedNarrator(name string) bool { return strings.EqualFold(strings.TrimSpace(name), narratorName) }
+
+// Learn records which tracks carry which assignment, from the tracks the project has now, and reports whether the file changed. A track
+// named as an assignment is that assignment's (moving it from another it was recorded under); a track with another name keeps the
+// assignment it was recorded under, so renaming it loses nothing. The Narrator track is remembered the same way. Nothing is dropped: the
+// list may be the saved file's (lacking a track not saved yet) or one .rpp of several in the folder, and a deleted track's GUID is never
+// seen again, so it costs only its few bytes (MaxGUIDs bounds them).
+//
+// It only ever adds to a setup that already exists and reads cleanly: no file is made (a project nobody set up has nothing to keep), and a
+// file that is corrupt, unreadable, or from a newer app is left exactly as it is for the readers that tell the narrator about it. An
+// empty list changes nothing. Nothing is written when nothing changed.
+func (s *Service) Learn(project []Seen) (bool, error) {
+	if s.config.Project == "" || len(project) == 0 {
+		return false, nil
+	}
+	unlock := lockFile(File(s.config.Project))
+	defer unlock()
+	raw, err := persist.ReadFile(File(s.config.Project))
+	if err != nil {
+		return false, nil
+	}
+	var file voiceFile
+	if json.Unmarshal(raw, &file) != nil || file.SchemaVersion > SchemaVersion || !file.valid() {
+		return false, nil
+	}
+	if file.Tracks == nil {
+		file.Tracks = map[string]trackEntry{}
+	}
+	before, _ := json.Marshal(file)
+	file.learn(project)
+	after, _ := json.Marshal(file)
+	if string(before) == string(after) {
+		return false, nil
+	}
+	return true, s.write(file)
+}
+
+func (f *voiceFile) learn(project []Seen) {
+	present := make(map[string]string, len(project))
+	for _, track := range project {
+		present[strings.ToLower(track.GUID)] = strings.TrimSpace(track.Name)
+	}
+	holder := map[string]string{}
+	names := make([]string, 0, len(f.Tracks))
+	for name := range f.Tracks {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		for _, guid := range f.Tracks[name].GUIDs {
+			if _, taken := holder[guid]; !taken {
+				holder[guid] = name
+			}
+		}
+	}
+	for guid, name := range present {
+		if _, assigned := f.Tracks[name]; assigned {
+			holder[guid] = name
+		}
+	}
+	for _, name := range names {
+		entry := f.Tracks[name]
+		entry.GUIDs = nil
+		f.Tracks[name] = entry
+	}
+	guids := make([]string, 0, len(holder))
+	for guid := range holder {
+		guids = append(guids, guid)
+	}
+	sort.Strings(guids)
+	for _, guid := range guids {
+		entry := f.Tracks[holder[guid]]
+		if len(entry.GUIDs) < MaxGUIDs && validText(guid, MaxGUID) {
+			entry.GUIDs = append(entry.GUIDs, guid)
+		}
+		f.Tracks[holder[guid]] = entry
+	}
+	var narrators []string
+	for guid, name := range present {
+		if strings.EqualFold(name, narratorName) || slices.Contains(f.Narrators, guid) {
+			if validText(guid, MaxGUID) {
+				narrators = append(narrators, guid)
+			}
+		}
+	}
+	for _, guid := range f.Narrators {
+		if !slices.Contains(narrators, guid) {
+			narrators = append(narrators, guid)
+		}
+	}
+	sort.Strings(narrators)
+	if len(narrators) > MaxGUIDs {
+		narrators = narrators[:MaxGUIDs]
+	}
+	f.Narrators = narrators
 }

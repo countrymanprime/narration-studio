@@ -21,7 +21,7 @@ function EnginePanelProbe() {
   const { replace } = useVoiceSetup();
   const layout = useVoiceLayout();
   return (
-    <button type="button" onClick={() => replace({ layout: 'flat', narratorCharacter: '', tracks: [] })}>
+    <button type="button" onClick={() => replace({ layout: 'flat', narratorCharacter: '', narratorGuids: [], tracks: [] })}>
       Engine panel layout: {layout}
     </button>
   );
