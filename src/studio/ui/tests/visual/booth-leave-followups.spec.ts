@@ -303,3 +303,31 @@ test('a Space pressed inside the hold and released after it does not answer the 
   await expect(question(page)).toBeVisible();
   expect(await dawRecording(page)).toBe(true);
 });
+
+// QA (#3405): a held Enter repeats about 500 ms in, after the hold. The repeat is not a press: with focus on the safe button it would close the question, and with
+// focus on "Stop and leave" it would leave the Booth and stop the take, unread.
+for (const button of ['Keep recording', 'Stop and leave'] as const) {
+  test(`a held Enter whose auto-repeat arrives after the hold does not answer (focus on ${button})`, async ({ page }) => {
+    await page.clock.install();
+    await recording(page);
+    await pauseClock(page);
+    await page.keyboard.press('Escape');
+    await expect(question(page)).toBeVisible();
+    await question(page).getByRole('button', { name: button }).focus();
+    await page.keyboard.down('Enter');
+    await page.clock.runFor(450);
+    await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
+    // Held on: the operating system repeats it, and Playwright marks a second `down` of a key already down as a repeat.
+    await page.keyboard.down('Enter');
+    await page.keyboard.down('Enter');
+    await page.keyboard.up('Enter');
+    await page.waitForTimeout(150);
+    await expect(question(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(true);
+    expect(await onBooth(page)).toBe(true);
+    // Pressed afresh after the release, Enter answers as it always did.
+    await page.keyboard.press('Enter');
+    if (button === 'Keep recording') await expect(question(page)).toHaveCount(0);
+    else await expect.poll(() => dawRecording(page)).toBe(false);
+  });
+}

@@ -126,6 +126,9 @@ export function Dialog({
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
   const Parts = (variant === 'alert' ? AlertDialog : BaseDialog) as typeof BaseDialog;
   const popupRef = useRef<HTMLDivElement>(null);
+  // Whether this dialog opened holding Enter and Space back, and which of them were pressed down inside the hold (see the popup's key handlers).
+  const [openedHolding] = useState(holdEnter);
+  const begunInHold = useRef(new Set<string>());
   const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
@@ -213,12 +216,18 @@ export function Dialog({
             data-enter-held={holdEnter ? '' : undefined}
             initialFocus={initialFocus}
             onKeyDown={(event) => {
-              if (holdEnter && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
+              if (event.key === 'Enter' || event.key === ' ') {
+                // Held back while `holdEnter`; and for a dialog that opened holding, a key whose press began inside the hold stays held until it is released,
+                // and an auto-repeat is never a press (a held Enter's repeat, ~500 ms in, would answer a question nobody has read).
+                if (holdEnter) begunInHold.current.add(event.key);
+                if (holdEnter || begunInHold.current.has(event.key) || (openedHolding && event.repeat)) event.preventDefault();
+              }
               routeTabAcrossToasts(event, popupRef.current);
             }}
             onKeyUp={(event) => {
               // A Space press completes on keyup in some engines: held too, so a press begun inside the window cannot answer after it.
-              if (holdEnter && event.key === ' ') event.preventDefault();
+              if (event.key === ' ' && (holdEnter || begunInHold.current.has(' '))) event.preventDefault();
+              begunInHold.current.delete(event.key);
             }}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
