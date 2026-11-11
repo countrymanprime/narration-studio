@@ -21,6 +21,7 @@ import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { useVoiceLayout } from './voiceLayout';
+import { destinationFor } from './destination';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel, kindInWords as kindWords } from './voices';
@@ -36,6 +37,7 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone; i
   linked: { label: 'Linked', tone: 'success', icon: 'statusLinked' },
   unlinked: { label: 'Not linked', tone: 'neutral', icon: 'statusNotLinked' },
   missing_track: { label: 'Track missing', tone: 'danger', icon: 'statusTrackMissing' },
+  several: { label: 'Several tracks', tone: 'warning', icon: 'statusSeveral' }, // the label follows the layout (destination.severalBadge)
 };
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status icon, the track (its
@@ -256,9 +258,11 @@ function ChapterLinkRow({
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
+  // The track the check re-reads: the chapter's one link. A chapter with several has none, so any pick replaces them.
+  const checkedGuid = row.state === 'several' ? undefined : linkedGuid;
   const [picking, setPicking] = useState(!hasLink);
   const [rechecking, setRechecking] = useState(false);
-  const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
+  const [chosen, setChosen] = useState(checkedGuid && tracks.some((track) => track.guid === checkedGuid) ? checkedGuid : '');
   // The pick as it is now, for a re-read that ends after the narrator picked something else: their pick is kept, not snapped back.
   // A pick whose track has left the list (a read answered without it) is no pick: the select shows "Choose a track", so the check must be off.
   // So is one whose track became a folder with no audio of its own (the picker marks it "can't be linked"; a Voice folders project links the folder).
@@ -272,7 +276,7 @@ function ChapterLinkRow({
   // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
   const swappedAt = useRef(0);
   const settled = () => Date.now() - swappedAt.current >= CREATE_QUIET_MS;
-  const linkedGuidIfThere = linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '';
+  const linkedGuidIfThere = checkedGuid && tracks.some((track) => track.guid === checkedGuid) ? checkedGuid : '';
   const first = useRef(true);
   useEffect(() => {
     setPicking(!hasLink);
@@ -293,7 +297,8 @@ function ChapterLinkRow({
   const unplayable = linkedTrack
     ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
     : false;
-  const badge = STATE_BADGE[row.state];
+  const destination = destinationFor(folders ? 'folders' : 'flat');
+  const badge = row.state === 'several' ? { ...STATE_BADGE.several, label: destination.severalBadge } : STATE_BADGE[row.state];
   // What the check will do with the pick, said before it is pressed: the track and what it is, what it replaces, and a chapter that loses it.
   const picked = tracks.find((track) => track.guid === pick);
   const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;
@@ -302,7 +307,7 @@ function ChapterLinkRow({
   const preview = picked
     ? [
         `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders)})`,
-        hasLink && linkedGuid !== pick ? `instead of ${replaced}` : '',
+        hasLink && checkedGuid !== pick ? `instead of ${replaced}` : '',
         heldBy ? `${heldBy} loses its link` : '',
       ]
         .filter(Boolean)
@@ -325,7 +330,7 @@ function ChapterLinkRow({
   );
   const menu: MenuItem[] = [
     // Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels.
-    ...(row.state === 'linked'
+    ...(row.state === 'linked' || row.state === 'several'
       ? [
           { key: 'editing', label: 'Open in Editing', onSelect: () => navigate(addressPath({ page: 'editing', chapter: row.chapter.id })) },
           { key: 'proof', label: 'Open in Proof', onSelect: () => navigate(`/proof/${encodeURIComponent(row.chapter.id)}`) },
@@ -369,6 +374,10 @@ function ChapterLinkRow({
               </TooltipTarget>
             )}
           </span>
+        ) : row.state === 'several' ? (
+          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--warn-text)' }} title={destination.severalChip}>
+            {destination.severalChip}
+          </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }} title="Linked track is missing from this project">
             Linked track is missing from this project
@@ -382,13 +391,13 @@ function ChapterLinkRow({
               <IconButton
                 hint={preview || undefined}
                 action="confirmTrack"
-                label={pick && pick === linkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
+                label={pick && pick === checkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
-                variant={pick && pick !== linkedGuid ? 'primary' : 'default'}
+                variant={pick && pick !== checkedGuid ? 'primary' : 'default'}
                 disabledReason={!pick ? `Choose a ${folders ? 'folder' : 'track'} first` : creating ? 'Wait for the track being added' : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {
-                  if (pick !== linkedGuid) return onConfirm(pick);
+                  if (pick !== checkedGuid) return onConfirm(pick);
                   // A double click on Change lands its second press here, where the check now is: ignore it, as Change, Clear and Cancel do.
                   if (settled()) {
                     // The same track again: not a change, so read it again and report, then leave the picker.

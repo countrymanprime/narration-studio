@@ -11,6 +11,7 @@ import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
+import { chapterLink } from '../../chapterTracks/chapterLink';
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
@@ -87,8 +88,8 @@ export function useBoothVoices({
 
   // The chapter's one link, once the shared state has answered: a chapter with no one link has no folder to read.
   const answered = trackState.readAt !== null;
-  const mine = trackState.mappings.filter((mapping) => mapping.chapterId === chapterId);
-  const link = answered && mine.length === 1 ? mine[0].trackGuid : '';
+  const chapter = chapterLink(trackState.mappings, chapterId);
+  const link = answered && chapter.state === 'linked' ? (chapter.trackGuid ?? '') : '';
   const tracks: Track[] = useMemo(() => (link ? (trackState.project?.tracks ?? []) : []), [link, trackState.project]);
   // Every track some chapter is linked to: such a track is that chapter's own, never a voice of this one (as the host decides).
   const linkedTracks = useMemo(() => trackState.mappings.map((mapping) => mapping.trackGuid.toLowerCase()), [trackState.mappings]);

@@ -17,6 +17,7 @@ import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { assignmentOf, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
+import { chapterLink } from '../chapterTracks/chapterLink';
 
 const LAYOUTS = [
   { value: 'flat', label: 'Flat' },
@@ -58,7 +59,7 @@ export function VoicesCard({
   const folderLinks = useMemo(() => {
     const folders = new Set(tracks.filter((track) => track.isFolder).map((track) => track.guid));
     return chapters.flatMap((chapter) => {
-      const link = mappings.find((mapping) => mapping.chapterId === chapter.id && folders.has(mapping.trackGuid));
+      const link = chapterLink(mappings, chapter.id).mappings.find((mapping) => folders.has(mapping.trackGuid));
       return link ? [{ chapter, folder: link.trackGuid }] : [];
     });
   }, [tracks, chapters, mappings]);

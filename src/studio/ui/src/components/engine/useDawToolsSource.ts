@@ -66,7 +66,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
   }, [system, enabled, opened, reachable, dawKind]);
 
   const links = useChapterLinks(tracks, opened, noop, null, enabled);
-  const linked = links.rows.filter((row) => row.state === 'linked').length;
+  const linked = links.rows.filter((row) => row.state === 'linked' || row.state === 'several').length;
   const dawOff =
     !trackState.project && trackState.reading && !readError
       ? 'Reading the REAPER project…'
