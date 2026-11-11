@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -49,8 +50,13 @@ describe('the chapter links reader', () => {
     };
     const changed: number[] = [];
     const seen: { current?: ChapterLinks } = {};
+    // As EnginePanel wires it: the change callback bumps the key that re-runs the hook's own read.
     function Probe() {
-      seen.current = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => changed.push(1));
+      const [key, setKey] = useState(0);
+      seen.current = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, key, () => {
+        changed.push(1);
+        setKey((n) => n + 1);
+      });
       return null;
     }
     render(
@@ -66,6 +72,9 @@ describe('the chapter links reader', () => {
     await act(async () => seen.current!.unlink(chapterId));
     await waitFor(() => expect(seen.current?.error).toContain('The change was made, but the list could not be read again'));
     expect(changed.length).toBeGreaterThan(0);
+    // The read the callback re-ran also fails; the narrator still reads that the change was made, not just the host's error.
+    await act(async () => undefined);
+    expect(seen.current?.error).toContain('The change was made, but the list could not be read again');
   });
 
   it('a link cleared through the reader shows in another screen at once, and the row stays busy until it does', async () => {

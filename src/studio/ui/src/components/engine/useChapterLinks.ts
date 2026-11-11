@@ -93,6 +93,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
+  // A change was written and the list could not be read again since: the next failed read says so too (the change callback re-runs the read).
+  const staleAfterChange = useRef(false);
 
   const reload = useCallback(async () => {
     const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
@@ -105,10 +107,12 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     reload().then(
       () => {
         // A later read that answers takes the failure of an earlier one away (a host that recovered).
+        staleAfterChange.current = false;
         if (active) setError('');
       },
       (reason) => {
-        if (active) setError(apiErrorMessage(reason));
+        // After a change that was made, a list that still cannot be read says so, not just the host's error.
+        if (active) setError(staleAfterChange.current ? changedButUnread(reason) : apiErrorMessage(reason));
       },
     );
     return () => {
@@ -135,6 +139,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
       .then(() =>
         reload().catch((reason: unknown) => {
+          staleAfterChange.current = true;
           setError(changedButUnread(reason));
         }),
       )

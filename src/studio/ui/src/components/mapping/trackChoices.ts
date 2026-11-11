@@ -29,8 +29,9 @@ export function holderName(current: string | undefined, kept: string | undefined
   return clean(current) || clean(kept) || 'another chapter';
 }
 
-/** A track's option text, with who holds it when another chapter does: the one place the "(linked to X)" template is written. */
-export const heldLabel = (name: string, heldBy?: string): string => (heldBy ? `${name} (linked to ${heldBy})` : name);
+/** What says who holds a track ("linked to X") and a track's option text with it: the one place the template is written (`holderTemplate.guard.test.ts`). */
+export const heldNote = (heldBy: string): string => `linked to ${heldBy}`;
+export const heldLabel = (name: string, heldBy?: string): string => (heldBy ? `${name} (${heldNote(heldBy)})` : name);
 
 /** One track the narrator can link a chapter to: `best` is the matcher's pick, `heldBy` the chapter the track is linked to now, if another one. */
 export type TrackChoice = {
@@ -85,9 +86,15 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
 
 /**
  * The same choices for a list of tracks with no match behind it (the engine panel's Chapter links, the recording check): project order, nothing
- * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does.
+ * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does; `nameOf` gives a holder's current manuscript name
+ * when the caller has the chapters.
  */
-export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
+export const plainTrackChoices = (
+  tracks: readonly Track[],
+  links: readonly TrackHolder[] = [],
+  chapterId?: string,
+  nameOf?: (chapterId: string) => string | undefined,
+): TrackChoice[] =>
   tracks.map((t) => {
     const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
     return {
@@ -95,7 +102,7 @@ export const plainTrackChoices = (tracks: readonly Track[], links: readonly Trac
       name: trackName(t.name, t.index),
       best: false,
       ...placement(t),
-      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
+      ...(holder ? { heldBy: holderName(nameOf?.(holder.chapterId), holder.chapterTitle) } : {}),
     };
   });
 

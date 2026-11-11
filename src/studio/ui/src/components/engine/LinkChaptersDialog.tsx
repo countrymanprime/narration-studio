@@ -217,11 +217,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
-  // The chapter that holds a track, named as every picker names it (the title the host kept, cleaned: holderName); the first holder when several do.
+  // The chapter that holds a track, named by the manuscript's current heading, as the Chapter links list and the takeover sentence name it (else the kept title, cleaned: holderName); the first holder when several do.
   const holders = new Map<string, { id: string; name: string }>();
   for (const { chapter, mapping, state } of rows) {
     if (mapping && (state === 'linked' || state === 'several') && !holders.has(mapping.trackGuid)) {
-      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(undefined, mapping.chapterTitle) });
+      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(headingName(chapter), mapping.chapterTitle) });
     }
   }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
