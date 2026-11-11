@@ -97,8 +97,8 @@ export function ChapterTrackPanel({
   const link_ = async (trackGuid: string) => {
     setBusy(true);
     try {
-      const { displacedNotice } = await actions.set(chapterId, trackGuid);
-      notify(displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.');
+      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      notify(linkedNotice);
       await onChanged();
     } catch (error) {
       notify(describeApiError(error), 'error');

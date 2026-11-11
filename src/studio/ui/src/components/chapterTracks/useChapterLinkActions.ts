@@ -20,7 +20,13 @@ export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: 
 }
 
 /** A link written: the host's answer, and the sentence for the chapter that lost the track, or '' when the track was free. */
-type LinkWritten = { result: ChapterTrackSetResult; displacedNotice: string };
+type LinkWritten = {
+  result: ChapterTrackSetResult;
+  /** The sentence for the chapter that lost the track, or '' when it was free. */
+  displacedNotice: string;
+  /** What a toast says after the link: "Track linked.", with the displaced sentence after it when a chapter lost the track. */
+  linkedNotice: string;
+};
 
 type ChapterLinkActions = {
   /** Links the chapter to the track, replacing its own link and taking the track from any chapter that held it (a Change never leaves a chapter on two tracks). Rejects with the host's error. */
@@ -41,7 +47,8 @@ export function useChapterLinkActions(): ChapterLinkActions {
   const set = useCallback(
     async (chapterId: string, trackGuid: string, nameOf?: (chapterId: string) => string | undefined): Promise<LinkWritten> => {
       const result = await trackMap.chapterTrackSet(chapterId, trackGuid);
-      return { result, displacedNotice: result.displaced ? displacedSentence(result.displaced, nameOf) : '' };
+      const displacedNotice = result.displaced ? displacedSentence(result.displaced, nameOf) : '';
+      return { result, displacedNotice, linkedNotice: displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.' };
     },
     [trackMap],
   );

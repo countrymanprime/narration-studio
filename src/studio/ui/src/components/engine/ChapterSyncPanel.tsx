@@ -118,8 +118,8 @@ export function ChapterSyncPanel({
     setLinkingChapterId(chapterId);
     try {
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
-      const { displacedNotice } = await actions.set(chapterId, trackGuid);
-      notify(displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.');
+      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      notify(linkedNotice);
       await loadPreview();
       onChanged();
     } catch (error) {

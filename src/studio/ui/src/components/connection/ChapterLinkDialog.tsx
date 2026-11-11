@@ -101,10 +101,10 @@ export function ChapterLinkDialog({
     setLinking(true);
     setRefused(null);
     actions.set(chapterId, chosen).then(
-      ({ result, displacedNotice }) => {
+      ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
         // The chapter that lost the track is named, as every other place that links says (#3365).
-        if (displacedNotice) overlay.toast(`Track linked. ${displacedNotice}`);
+        if (displacedNotice) overlay.toast(linkedNotice);
         onLinked(result);
       },
       (error: unknown) => {

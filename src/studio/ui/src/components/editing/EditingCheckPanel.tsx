@@ -95,8 +95,8 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { displacedNotice } = await actions.set(chapter.id, trackGuid);
-            if (displacedNotice) notify(`Track linked. ${displacedNotice}`);
+            const { displacedNotice, linkedNotice } = await actions.set(chapter.id, trackGuid);
+            if (displacedNotice) notify(linkedNotice);
             setError('');
             onLinked();
           } catch (reason) {

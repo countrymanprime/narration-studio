@@ -33,10 +33,13 @@ describe('useChapterLinkActions', () => {
     expect(chapterTrackSet).toHaveBeenCalledWith('c1', 'T');
     expect(confirm).not.toHaveBeenCalled();
     expect(displacedNotice).toBe('Two was linked to that track and is now not linked.');
+    expect((await actions.set('c1', 'T')).linkedNotice).toBe('Track linked. Two was linked to that track and is now not linked.');
   });
   it('set has no notice when the track was free, and rejects with the host error', async () => {
     const free = actionsWith({ chapterTrackSet: async () => setAnswer(null) });
-    expect((await free.set('c1', 'T')).displacedNotice).toBe('');
+    const written = await free.set('c1', 'T');
+    expect(written.displacedNotice).toBe('');
+    expect(written.linkedNotice).toBe('Track linked.');
     const refused = actionsWith({
       chapterTrackSet: async () => {
         throw new Error('The project is not open.');

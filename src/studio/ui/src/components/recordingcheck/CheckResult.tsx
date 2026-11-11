@@ -197,8 +197,8 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { displacedNotice } = await actions.set(chapter.id, trackGuid);
-            if (displacedNotice) overlay.toast(`Track linked. ${displacedNotice}`);
+            const { displacedNotice, linkedNotice } = await actions.set(chapter.id, trackGuid);
+            if (displacedNotice) overlay.toast(linkedNotice);
             setError('');
             await onLinked();
           } catch (reason) {

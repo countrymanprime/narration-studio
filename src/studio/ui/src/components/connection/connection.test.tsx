@@ -7,6 +7,8 @@ import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 import { createMockApi } from '../../api/mockApi';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
+import { createOverlayService } from '../../overlay/overlayService';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
@@ -360,6 +362,28 @@ describe('the not-linked dialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
     await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c3', '{T-2}'));
     await waitFor(() => expect(props.onLinked).toHaveBeenCalledOnce());
+  });
+
+  // #3365: the dialog dropped the displaced chapter, so another chapter silently became unlinked.
+  it('names the chapter that lost the track when the chosen track was held', async () => {
+    const service = createOverlayService();
+    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => ({
+      documentId: 'd',
+      link: { trackGuid, chapterId, chapterTitle: 'Chapter 3', confirmedAt: '' },
+      displaced: { trackGuid, chapterId: 'c9', chapterTitle: 'Chapter 9', confirmedAt: '' },
+      mappings: [],
+    }));
+    const props = link();
+    view(
+      <OverlayProvider service={service}>
+        <ConnectionResolveDialog {...props} />
+      </OverlayProvider>,
+      { chapterTrackMatch: async () => match(), chapterTrackSet },
+    );
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+    await waitFor(() => expect(props.onLinked).toHaveBeenCalledOnce());
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Track linked. Chapter 9 was linked to that track and is now not linked.']);
   });
 
   it('links the track the narrator picks instead, and not twice on a double press', async () => {
