@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult, TrackMapping } from '../../api/contracts/chapterTrackMap';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
@@ -12,7 +13,7 @@ import { ResolveShell } from './ResolveShell';
 import { destinationFor } from '../engine/destination';
 import { useVoiceLayout } from '../engine/voiceLayout';
 
-type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; links: TrackMapping[]; at: number };
+type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; at: number };
 
 export type ChapterLinkDialogProps = {
   chapterId: string;
@@ -54,6 +55,9 @@ export function ChapterLinkDialog({
   const trackMap = usePort('chapterTrackMap');
   const actions = useChapterLinkActions();
   const overlay = useOverlay();
+  // The links are the app's one chapter-track state, not a snapshot of the dialog's own: a link made here shows on the Engine panel, the Booth
+  // and Settings at once, and one made there shows here (#3350). Only the links are watched; the match is this chapter's own question.
+  const { mappings: links, applyMappings, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false });
   const [read, setRead] = useState<Read>({ status: 'loading' });
   const [asked, setAsked] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -66,26 +70,43 @@ export function ChapterLinkDialog({
 
   useEffect(() => {
     let live = true;
+    // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
+    // A links read that fails is this dialog's read failing: it says so, as a failed match does, and Check again tries both again.
+    // A links read that fails after the match answered leaves the picker as it was, with the failure said under it, not the whole dialog failed.
+    let linksFailure = '';
     Promise.all([
       trackMap.chapterTrackMatch(chapterId),
-      trackMap.chapterTrackMapList().then(
-        (l) => l.mappings,
-        () => [] as TrackMapping[],
-      ),
+      refreshLinks().catch((error: unknown) => {
+        linksFailure = apiErrorMessage(error);
+        return undefined;
+      }),
     ]).then(
-      ([match, links]) => {
+      ([match, fresh]) => {
         if (!live) return;
-        setRead({ status: 'ready', match, links, at: Date.now() });
+        setRead({ status: 'ready', match, at: Date.now() });
+        if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
-        setChosen((current) => (current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, links))));
+        setChosen((current) =>
+          current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh ?? linksRef.current)),
+        );
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
     );
     return () => {
       live = false;
     };
-  }, [trackMap, chapterId, asked]);
+  }, [trackMap, chapterId, asked, refreshLinks]);
 
+  const linksRef = useRef(links);
+  linksRef.current = links;
+  // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
+  const open = useRef(true);
+  useEffect(
+    () => () => {
+      open.current = false;
+    },
+    [],
+  );
   const checkAgain = useCallback(() => {
     setRefused(null);
     setAsked((n) => n + 1);
@@ -93,7 +114,7 @@ export function ChapterLinkDialog({
   }, [onCheckedAgain]);
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
-  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, read.links, chapterId) : []), [read, chapterId]);
+  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId) : []), [read, links, chapterId]);
   const held = choices.find((c) => c.guid === chosen && c.heldBy);
 
   const link = () => {
@@ -103,13 +124,16 @@ export function ChapterLinkDialog({
     actions.set(chapterId, chosen).then(
       ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
+        applyMappings(result.mappings);
         // The chapter that lost the track is named, as every other place that links says (#3365).
         if (displacedNotice) overlay.toast(linkedNotice);
         onLinked(result);
       },
       (error: unknown) => {
         setLinking(false);
-        setRefused(`The link could not be made: ${apiErrorMessage(error)}`);
+        const text = `The link could not be made: ${apiErrorMessage(error)}`;
+        if (open.current) setRefused(text);
+        else overlay.toast(text, { tone: 'error' });
       },
     );
   };
@@ -122,12 +146,17 @@ export function ChapterLinkDialog({
     actions.create(chapterId).then(
       (result) => {
         setCreating(false);
-        if (result.outcome === 'created') onLinked(result, result);
-        else setRefused(result.message);
+        if (result.outcome === 'created') {
+          applyMappings(result.mappings);
+          onLinked(result, result);
+        } else if (open.current) setRefused(result.message);
+        else overlay.toast(result.message, { tone: 'error' });
       },
       (error: unknown) => {
         setCreating(false);
-        setRefused(`The ${dest.noun} could not be added: ${apiErrorMessage(error)}`);
+        const text = `The ${dest.noun} could not be added: ${apiErrorMessage(error)}`;
+        if (open.current) setRefused(text);
+        else overlay.toast(text, { tone: 'error' });
       },
     );
   };

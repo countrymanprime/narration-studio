@@ -209,18 +209,7 @@ export const dawFeedback = {
     'inline',
     'na',
     'ok',
-    "The tracks of the saved project and the matcher's best match for the chapter, on open and with every Check again; the dialog says it is reading them, and a failed read is written in it with Check again.",
-  ),
-  'src/components/connection/ChapterLinkDialog.tsx::chapterTrackMapList#1': row(
-    'effect',
-    'file-io',
-    'na',
-    'na',
-    'ui',
-    'silent',
-    'na',
-    'exempt',
-    'Read with the match only to say which chapter a track is linked to now ("Linked to Chapter 9. Linking it here moves it."); without it the cards omit that line and the link itself still works.',
+    "The tracks of the saved project and the matcher's best match for the chapter, read with the chapter links through the shared chapter-track state (so every screen sees the answer), on open and with every Check again; the dialog says it is reading them, and a failed read of either is written in it with Check again.",
   ),
   // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
   'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(
