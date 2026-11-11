@@ -13,5 +13,15 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.value }}
     # With the browser cached this skips the download but still installs the system libraries.
+    # `--with-deps` runs apt-get update and install. On 2026-11-11 DNS for archive.ubuntu.com failed on some runners and it exited 100 after
+    # about 10 min with no retry (Test (Linux 3/6), run 43046570039). Short apt timeouts and retries make a blip a pause, not a red shard.
     - shell: bash
-      run: pnpm --dir src/studio/ui exec playwright install --with-deps chromium
+      run: |
+        printf 'Acquire::Retries "3";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
+        for attempt in 1 2 3; do
+          pnpm --dir src/studio/ui exec playwright install --with-deps chromium && exit 0
+          echo "::warning::playwright install attempt $attempt of 3 failed"
+          [ "$attempt" -lt 3 ] && sleep $((attempt * 20))
+        done
+        echo "::error::playwright could not install chromium and its system libraries in 3 attempts"
+        exit 1
