@@ -3530,6 +3530,28 @@ describe('a refusal is said once and a chosen start is always shown (#3322, #331
     expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['The armed track is locked.']);
   });
 
+  it('a press error is dismissed when a later press starts a take: its Retry would stop the take that runs', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+    );
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'REAPER is not answering.')).toBe(true));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.overlay.getSnapshot().toasts.filter((t) => t.tone === 'error')).toEqual([]);
+  });
+
+  it('a refusal with no words still says a sentence', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: '  ', refused: '' }) as never);
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error' && t.text.trim() !== '')).toBe(true));
+  });
+
   describe('a refusal on the way to a take is the one message, an error that stays (#3322)', () => {
     const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
     const alone = (page: ReturnType<typeof renderPage>, sentence: string) =>

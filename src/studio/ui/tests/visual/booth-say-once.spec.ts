@@ -7,6 +7,7 @@ import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 import { toastProblems } from './helpers/overlayGuard';
+import { pastStartGuard } from './helpers/startGuard';
 
 const REFUSAL = 'REAPER refused to start recording because the armed track is locked for the moment, so nothing was recorded. Unlock it and try again.';
 const SIZES = [
@@ -139,35 +140,31 @@ for (const [length, label] of [
   }
 }
 
-// A start chosen adds nothing to the top bar or the text: with the reading moved to the same word by a plain click (which also offers "Resume at"), the bar and the
-// reading area are the size they are after Start from here, and the chip sits inside the slot the bar keeps for it (#3319).
+// A chosen start adds nothing to the top bar, the text or the footer: with the reading moved to the same word by a plain click (which also offers "Resume at"),
+// the bar and the reading area are the size they are after Start from here, the footer is the size it was before, and the readout sits on the footer's row (#3319).
+const bars = (page: Page) =>
+  page.evaluate(() => ({
+    bar: document.querySelector('[data-booth-side-keep]')!.getBoundingClientRect().height,
+    text: document.querySelector('[data-booth-text]')!.getBoundingClientRect().top,
+    footer: document.querySelector('#btimer')?.closest('.border-t')?.getBoundingClientRect().height ?? 0,
+  }));
+const settleBar = async (page: Page) => {
+  await expect(page.locator('[data-recorded-through]')).toBeVisible();
+  await page.waitForTimeout(500);
+};
 for (const { width, height } of SIZES) {
-  test(`${width}x${height}: choosing a start moves nothing in the top bar or the text`, async ({ page }) => {
+  test(`${width}x${height}: choosing a start moves nothing in the top bar, the text or the footer`, async ({ page }) => {
     await page.setViewportSize({ width, height });
-    const layout = () =>
-      page.evaluate(() => {
-        const slot = document.querySelector('[data-chosen-start-slot]')?.getBoundingClientRect();
-        const chip = document.querySelector('[data-chosen-start]')?.getBoundingClientRect();
-        return {
-          bar: document.querySelector('[data-booth-side-keep]')!.getBoundingClientRect().height,
-          text: document.querySelector('[data-booth-text]')!.getBoundingClientRect().top,
-          slot: slot?.width ?? 0,
-          chipInSlot: !chip || (!!slot && chip.left >= slot.left - 0.5 && chip.right <= slot.right + 0.5),
-        };
-      });
-    const settleBar = async () => {
-      await expect(page.locator('[data-recorded-through]')).toBeVisible();
-      await page.waitForTimeout(500);
-    };
     // Only the reading moved.
     await openRefusing(page);
-    await settleBar();
+    await settleBar(page);
+    const idle = await bars(page);
     await page.locator('[data-booth-text] [data-word]').nth(40).click();
     await page.waitForTimeout(500);
-    const moved = await layout();
+    const moved = await bars(page);
     // The reading moved and a start was chosen.
     await openRefusing(page);
-    await settleBar();
+    await settleBar(page);
     await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
     await page
       .getByRole('menuitem', { name: /Start from here/ })
@@ -176,13 +173,92 @@ for (const { width, height } of SIZES) {
     await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
     await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).click();
     await page.waitForTimeout(500);
-    const chosen = await layout();
+    const chosen = await bars(page);
     expect(chosen.bar).toBe(moved.bar);
     expect(chosen.text).toBe(moved.text);
-    expect(chosen.slot).toBe(moved.slot);
-    expect(chosen.chipInSlot).toBe(true);
-    // Closed panel: the slot is there and holds the chip; open panel (the wide window): no slot and no chip.
-    if (chosen.slot > 0) await expect(page.locator('[data-chosen-start]')).toBeVisible();
-    else await expect(page.locator('[data-chosen-start]')).toHaveCount(0);
+    expect(chosen.footer).toBe(idle.footer);
+    // Closed panel: the readout is on the footer's timer row; open panel (the wide window): the panel says it and none is drawn.
+    const chip = page.locator('[data-chosen-start]');
+    if ((await chip.count()) > 0) {
+      await expect(chip).toBeVisible();
+      const rows = await page.evaluate(() => {
+        const top = (selector: string) => Math.round(document.querySelector(selector)!.getBoundingClientRect().top);
+        return [top('#btimer'), top('[data-chosen-start]')];
+      });
+      expect(Math.abs(rows[0]! - rows[1]!)).toBeLessThan(12);
+    }
+  });
+}
+
+// The top bar and the text keep their size from idle to a take running (the REC pill): a chosen start (above) and this state add no row. At 320 px the REC pill itself
+// wraps the tools group on main as well (101 -> 131 px at 320x300, there before this change), so that width is not asserted here; it is listed in the PR.
+for (const { width, height } of SIZES.filter((size) => size.width >= 360)) {
+  test(`${width}x${height}: the top bar and the text keep their size from idle to a take`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await showChapterTop(page);
+    await settleBar(page);
+    const idle = await bars(page);
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(500);
+    const taking = await bars(page);
+    expect(taking.bar).toBe(idle.bar);
+    expect(taking.text).toBe(idle.text);
+    expect(taking.footer).toBe(idle.footer);
+  });
+}
+
+// The most toasts the app keeps at once (an error with an action and three notes, two with actions) stay inside a small window with every button reachable, and the
+// bars they rise above give way to them (#3322): a take, its stop (Take saved with Undo, the check offer), a refused start, a bookmark.
+for (const { width, height } of [
+  { width: 320, height: 300 },
+  { width: 360, height: 500 },
+]) {
+  test(`${width}x${height}: four toasts at once are all inside the window and every button is reachable`, async ({ page }) => {
+    await page.addInitScript((sentence) => {
+      let calls = 0;
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        readAloudRecordStart: () => {
+          calls += 1;
+          return calls === 1
+            ? Promise.resolve({ ok: true, outcome: 'started', position: 0, message: '' })
+            : Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence });
+        },
+      };
+    }, REFUSAL.repeat(3));
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await showChapterTop(page);
+    await page.keyboard.press('Space');
+    const stopButton = page.getByRole('button', { name: /^Stop$/ });
+    await expect(stopButton).toBeVisible({ timeout: 8000 });
+    await pastStartGuard(page);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible({ timeout: 8000 });
+    await pastStartGuard(page);
+    await page.keyboard.press('Space');
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await page.keyboard.press('b');
+    await expect.poll(async () => page.locator('[data-toast-region] [data-tone]').count()).toBeGreaterThanOrEqual(3);
+    await page.waitForTimeout(400);
+    expect(await toastProblems(page)).toEqual([]);
+    // Every button is the topmost element at its own centre: nothing covers it.
+    const covered = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')]
+        .filter((button) => {
+          const box = button.getBoundingClientRect();
+          const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+          return !hit || !button.contains(hit);
+        })
+        .map((button) => button.getAttribute('aria-label') ?? button.textContent),
+    );
+    expect(covered).toEqual([]);
   });
 }

@@ -147,6 +147,22 @@ test('a lookup of the chosen start that never answers ends the press with one er
   expect(await dawRecording(page)).toBe(false);
 });
 
+test('a lookup refusal does not stay beside the take a later press starts', async ({ page }) => {
+  await openWith(page, 'lookup');
+  await arm(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  // "No take was started" beside a take that runs (and any Retry, which would stop it) is not true any more.
+  await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(0);
+});
+
 test('a voice choice that never answers ends a punch press with a sentence and starts no take', async ({ page }) => {
   await openWith(page, 'voiceChoice');
   await arm(page);

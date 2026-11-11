@@ -84,6 +84,7 @@ export function BoothFooter({
   coldRead,
   voice,
   voiceFolders = false,
+  start,
 }: {
   record: ReactNode;
   seconds: number;
@@ -109,6 +110,8 @@ export function BoothFooter({
   voice?: ReactNode;
   /** The chapter records on a folder of voices: the footer hints show the voice keys. */
   voiceFolders?: boolean;
+  /** The chosen start's readout, after the timer: drawn only when there is one, on the row's free room, so the footer's size does not depend on it. */
+  start?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
@@ -158,6 +161,7 @@ export function BoothFooter({
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
           </span>
+          {start}
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

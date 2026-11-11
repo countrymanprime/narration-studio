@@ -133,7 +133,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const pressRefusal = useCallback(
     (sentence: string) => {
       overlay.dismissTopic(PRESS_NOTE_TOPIC);
-      overlay.toast(sentence, { tone: 'error', topic: PRESS_TOPIC });
+      // A host that refuses with no words still ends the press with a sentence: the toast service drops a blank one.
+      overlay.toast(sentence.trim() || 'The press was refused, so no take was started.', { tone: 'error', topic: PRESS_TOPIC });
     },
     [overlay],
   );
@@ -194,9 +195,14 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeAt = useRef(0);
   // Where the take began in the DAW, when it says: the roll counts from there. A plain take starts where the last one stopped, which
   // is not the end of the recording when later audio follows it.
-  const startedAt = useCallback((result: DawRecordStart) => {
-    if (result.position !== undefined) takeAt.current = result.position;
-  }, []);
+  const startedAt = useCallback(
+    (result: DawRecordStart) => {
+      if (result.position !== undefined) takeAt.current = result.position;
+      // A take is running: what an earlier press said about not starting one (and its Retry, which would stop this take) is no longer true.
+      overlay.dismissTopic(PRESS_TOPIC);
+    },
+    [overlay],
+  );
   const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake, onStarted: startedAt });
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
@@ -384,6 +390,8 @@ export function useBoothPage(options: BoothPageOptions) {
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     stoppedWhileStarting.current = false;
+    // A new press says its own outcome: an earlier press's refusal (and its Retry) goes.
+    overlay.dismissTopic(PRESS_TOPIC);
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.

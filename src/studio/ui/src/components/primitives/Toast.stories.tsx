@@ -220,11 +220,11 @@ export const TwoToastsAboveTheBoothBars: Story = {
 };
 
 /** Every button of every toast is on screen: the story runs in the 320 x 300 window (the `tiny-window` tag), so the window is the one measured. */
-async function everyButtonOnScreen(toasts: number) {
+async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
   // Let the layout settle (the bars' variable, the toasts' share of the window) before measuring.
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   const buttons = [...document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')];
-  await expect(buttons).toHaveLength(toasts * 2);
+  await expect(buttons).toHaveLength(buttonCount);
   // The unit run has no layout (every size is 0, the window is its own): the measuring below is for the browser, where the story runs in the 320 x 300 window.
   if (buttons[0]!.getBoundingClientRect().width === 0) return false;
   await expect([window.innerWidth, window.innerHeight]).toEqual([320, 300]);
@@ -242,9 +242,24 @@ async function everyButtonOnScreen(toasts: number) {
     await expect(b.top, `${name} is above the window`).toBeGreaterThanOrEqual(0);
     await expect(b.bottom, `${name} is below the window`).toBeLessThanOrEqual(300);
     await expect(b.right, `${name} is right of the window`).toBeLessThanOrEqual(320);
+    // Nothing covers it: it is what a press at its centre reaches.
+    const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    await expect(hit !== null && el.contains(hit), `${name} is covered`).toBe(true);
   }
   return true;
 }
+// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four) above the Booth's bars: the stack gives the bars less room so each toast keeps its least height.
+export const FourToastsAboveTheBoothBars: Story = {
+  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+  args: {
+    messages: [
+      { ...failure(1, 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.'), action },
+      { ...info(2, 'Take saved.'), action: { label: 'Undo', onAction: fn() } },
+      { ...info(3, 'Check this recording against the script?'), action: { label: 'Check', onAction: fn() } },
+      info(4, 'Bookmark added.'),
+    ],
+  },
+};
 export const HugeWordInTinyWindow: Story = {
   ...HugeWord,
   tags: ['tiny-window'],
@@ -273,6 +288,14 @@ export const LongRefusalWithActionInTinyWindow: Story = {
   tags: ['tiny-window'],
   play: async () => {
     await everyButtonOnScreen(1);
+  },
+};
+export const FourToastsAboveTheBoothBarsInTinyWindow: Story = {
+  ...FourToastsAboveTheBoothBars,
+  tags: ['tiny-window'],
+  play: async () => {
+    // Three buttons carry an action and all four have Dismiss.
+    await everyButtonOnScreen(4, 7);
   },
 };
 export const LongActionLabelInTinyWindow: Story = {

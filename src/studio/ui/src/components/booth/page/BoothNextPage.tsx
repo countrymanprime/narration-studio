@@ -713,14 +713,6 @@ function BoothSession({
                   </>
                 )
               }
-              // With the side panel closed its Last punch line is out of sight: the start is read here, in a slot that is kept (its width) while none is chosen; not while a take or a cold read runs, when the bar has its REC or Mic on pill instead and no room for it.
-              start={
-                side.open || control.recording || page.coldRead.on ? undefined : (
-                  <span data-chosen-start-slot="" className="flex min-w-[5rem] justify-end">
-                    {page.startParagraph !== undefined ? <ChosenStartChip paragraph={page.startParagraph} /> : null}
-                  </span>
-                )
-              }
               setup={
                 capabilities ? (
                   <SetupChip
@@ -866,6 +858,8 @@ function BoothSession({
             // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time. A press's own sentence
             // (a refusal, a limit) is said by its message, so the footer does not repeat it (#3322).
             quietWhy={noticeShown || control.told}
+            // With the side panel closed its Last punch line is out of sight: the start is read here, after the timer.
+            start={!side.open && page.startParagraph !== undefined ? <ChosenStartChip paragraph={page.startParagraph} /> : undefined}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',

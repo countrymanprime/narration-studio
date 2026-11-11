@@ -221,7 +221,9 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
         {
           '--toast-n': Math.max(1, messages.length),
           // The bars the toasts rise above (`--toast-clear`, the Booth's footer and notice) never take more of a short window than leaves the toasts 8rem to stand in.
-          '--toast-reserve': 'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - 8rem))',
+          // ... and, with several toasts, the room each needs at its least (45 px, 0.5rem apart): four toasts would otherwise stand 30 px above the top of a 300 px window (#3322).
+          '--toast-reserve':
+            'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - max(8rem, calc(var(--toast-n, 1) * 2.8125rem + (var(--toast-n, 1) - 1) * 0.5rem + 0.25rem))))',
         } as CSSProperties
       }
       onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}

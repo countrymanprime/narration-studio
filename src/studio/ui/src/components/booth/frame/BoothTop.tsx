@@ -76,7 +76,6 @@ export function BoothTop({
   chapter,
   progress,
   resume,
-  start,
   setup,
   recording,
   paused = false,
@@ -90,8 +89,6 @@ export function BoothTop({
   chapter?: ReactNode;
   progress: string;
   resume?: ReactNode;
-  /** The chosen start's readout (`ChosenStartChip`), first in the tools group, which keeps its slot while it is not drawn so the bar never changes size when a start is chosen. */
-  start?: ReactNode;
   setup?: ReactNode;
   recording: boolean;
   paused?: boolean;
@@ -128,7 +125,6 @@ export function BoothTop({
       <div data-booth-tools="" className="ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap">
         {recording ? <Badge shape="pill" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
         {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={COLD_COLORS} look="outline" /> : null}
-        {start}
         {setup}
         {text ? <TextPopover {...text} /> : null}
         <IconButton

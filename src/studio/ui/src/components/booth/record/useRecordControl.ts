@@ -613,7 +613,8 @@ export function useRecordControl({
         } else {
           // A press the narrator has left behind ends quietly: no message on whatever page they are on now.
           if (starting && how?.current && !how.current()) return false;
-          const sentence = result.refused ?? result.message;
+          const sentence =
+            result.refused?.trim() || result.message?.trim() || (starting ? 'The DAW did not start recording.' : 'The DAW did not stop recording.');
           setRefused({ chapterId, sentence });
           // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
           if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);

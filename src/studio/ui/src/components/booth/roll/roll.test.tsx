@@ -221,6 +221,14 @@ describe('useRoll', () => {
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
+  it.each(['', '   '])('a refusal with a blank message (%j) says the default sentence', async (message) => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message };
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
+    await act(() => hook.result.current.startTake());
+    expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('Where this passage was recorded is not known, so no take was started.');
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
   it('a lookup that fails is a sentence and no take, never a guess', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => Promise.reject(new Error('down')) });
     await act(() => hook.result.current.startTake());

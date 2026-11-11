@@ -107,7 +107,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const seconds = s.takeSeconds;
       const result = await actionsRef.current.roll(to, { confirmed });
       if (!result.ok) {
-        actionsRef.current.refuse(result.refused ?? result.message);
+        actionsRef.current.refuse(result.refused?.trim() || result.message?.trim() || 'The DAW refused to roll again.');
         return;
       }
       lastRollAt.current = Date.now();
@@ -254,7 +254,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           }
           if (looked.outcome !== 'never_recorded') {
             // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
-            actionsRef.current.refuse(looked.message ?? 'Where this passage was recorded is not known, so no take was started.');
+            actionsRef.current.refuse(looked.message?.trim() || 'Where this passage was recorded is not known, so no take was started.');
             actionsRef.current.clearStart?.();
             return;
           }
@@ -330,7 +330,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           return await actionsRef.current.beginTake();
         }
         if (target.outcome !== 'found' || target.start === undefined) {
-          actionsRef.current.refuse(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
+          actionsRef.current.refuse(target.message?.trim() || 'Where this passage was recorded is not known, so no take was started.');
           actionsRef.current.clearStart?.();
           return;
         }
