@@ -3,6 +3,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { boothDrivers } from './drivers/booth';
 import { showChapterTop } from './helpers/viewTop';
+import { toastProblems } from './helpers/overlayGuard';
+import { pastStartGuard } from './helpers/startGuard';
 
 async function drive(page: Page, state: string, size: { width: number; height: number }): Promise<void> {
   await page.setViewportSize(size);
@@ -274,6 +276,21 @@ for (const state of ['setup', 'voices'] as const) {
       }
     }
     expect(problems).toEqual([]);
+    // The smallest windows, where the stack's cap can win over the readout: with one or two toasts none touches it; with three or more every toast and button stays
+    // inside the window and topmost, and the readout may be covered (messages win over the readout there).
+    for (const size of [
+      { width: 320, height: 300 },
+      { width: 320, height: 320 },
+      { width: 360, height: 500 },
+      { width: 384, height: 500 },
+    ]) {
+      await page.setViewportSize(size);
+      await page.waitForTimeout(60);
+      const count = await page.locator('[data-toast-region] [data-tone]').count();
+      if (count <= 2) for (const problem of (await toastsClearOfChip(page)) ?? []) problems.push(`${size.width}x${size.height} (${count} toasts): ${problem}`);
+      else expect(await toastProblems(page)).toEqual([]);
+    }
+    expect(problems).toEqual([]);
     // A take then runs from the refused start: its note ("goes on from the end of the chapter's audio") is above the readout too.
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
@@ -284,4 +301,66 @@ for (const state of ['setup', 'voices'] as const) {
     }
     expect(problems).toEqual([]);
   });
+}
+
+// The toasts sit no higher than one gutter above the footer after a take ends and the readout goes with it (#3322): the clearance is measured again once the footer has settled,
+// and does not keep the height it had with the readout.
+for (const state of ['setup', 'voices'] as const) {
+  for (const size of [
+    { width: 360, height: 500 },
+    { width: 1100, height: 700 },
+  ]) {
+    test(`toasts sit no higher than one gutter above the footer after a take ends and the chosen start clears (${state === 'voices' ? 'voice folders' : 'flat chapter'}, ${size.width}x${size.height})`, async ({
+      page,
+    }) => {
+      await page.addInitScript(() => {
+        let calls = 0;
+        const sentence = 'REAPER refused to start recording, so nothing was recorded.';
+        (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+          readAloudRecordStart: () => {
+            calls += 1;
+            return Promise.resolve(
+              calls === 1
+                ? { ok: false, outcome: 'refused', message: sentence, refused: sentence }
+                : { ok: true, outcome: 'started', position: 0, message: '' },
+            );
+          },
+        };
+      });
+      await drive(page, state, size);
+      await showChapterTop(page);
+      await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+      await page
+        .getByRole('menuitem', { name: /Start from here/ })
+        .first()
+        .click();
+      await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+      await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).click();
+      await expect(page.locator('[data-chosen-start]')).toBeVisible();
+      await page.keyboard.press('b');
+      await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(1);
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+      await pastStartGuard(page);
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('button', { name: /^Record$/ })).toBeVisible({ timeout: 8000 });
+      // The take is over: its start is spent, the readout is gone, and the footer is the height it has without it.
+      await expect(page.locator('[data-chosen-start]')).toHaveCount(0);
+      await expect(page.getByText('Take saved', { exact: false }).first()).toBeVisible({ timeout: 8000 });
+      await page.waitForTimeout(800);
+      const gap = await page.evaluate(() => {
+        const footer = document.querySelector('#btimer')!.closest('.border-t')!.parentElement!.getBoundingClientRect();
+        const bottoms = [...document.querySelectorAll('[data-toast-region] [data-tone]')].map((toast) => toast.getBoundingClientRect().bottom);
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:absolute;visibility:hidden;width:var(--page-gutter)';
+        document.body.append(probe);
+        const gutter = probe.getBoundingClientRect().width;
+        probe.remove();
+        return { gap: window.innerHeight - Math.max(...bottoms) - footer.height, gutter };
+      });
+      // Never higher than one gutter above the footer (a stale clearance floated them about 48 px too high); lower is the stack's own cap (several toasts in a small window).
+      expect(gap.gap).toBeLessThanOrEqual(gap.gutter + 1);
+      expect(gap.gap).toBeGreaterThan(0);
+    });
+  }
 }

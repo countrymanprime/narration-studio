@@ -7,11 +7,11 @@
 - alert
 - status
 - dialog "Stage readiness":
-    - heading "Stage readiness" [level=3]
-    - button "Close"
-    - heading "Chapter 4" [level=4]
-    - heading "Ready to move to Editing" [level=5]
-    - list:
-        - listitem: /^Every paragraph of the chapter’s text is in the recording, in order Text present:/
-    - button "Dismiss"
-    - button "Confirm"
+  - heading "Stage readiness" [level=3]
+  - button "Close"
+  - heading "Chapter 4" [level=4]
+  - heading "Ready to move to Editing" [level=5]
+  - list:
+    - listitem: /^Every paragraph of the chapter’s text is in the recording, in order Text present:/
+  - button "Dismiss"
+  - button "Confirm"

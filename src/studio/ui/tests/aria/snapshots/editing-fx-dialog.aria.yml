@@ -3,20 +3,20 @@
 # Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
 # overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
 - main:
-    - region "Script editor":
-        - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
+  - region "Script editor":
+    - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
 - status: /4 words selected, 0:\d+ to 0:\d+/
 - alert
 - status
 - dialog "Add FX to 4 words?":
-    - heading "Add FX to 4 words?" [level=2]
-    - button "Close"
-    # The chain select is a value of the facts grid, under the same "Effect" label column as the facts (alignment audit XED-17).
-    - term: Effect
-    - definition:
-        - combobox "Effect":
-            - option "Podcast Voice.RfxChain" [selected]
-    - group "The item as it will be split"
-    - paragraph: /one undo step in REAPER/
-    - button "Cancel"
-    - button "Split and add effect"
+  - heading "Add FX to 4 words?" [level=2]
+  - button "Close"
+  # The chain select is a value of the facts grid, under the same "Effect" label column as the facts (alignment audit XED-17).
+  - term: Effect
+  - definition:
+    - combobox "Effect":
+      - option "Podcast Voice.RfxChain" [selected]
+  - group "The item as it will be split"
+  - paragraph: /one undo step in REAPER/
+  - button "Cancel"
+  - button "Split and add effect"

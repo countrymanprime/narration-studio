@@ -9,6 +9,7 @@ const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;
  * characters, the filler characters, a combining mark with no letter). The message service draws nothing for such a sentence, and a press that ends in silence is the one
  * thing a refusal must not do. A real sentence with invisible characters around it is kept.
  */
-export function sentenceOr(text: string | undefined | null, fallback: string): string {
-  return text && DRAWS.test(text.replace(FILLERS, '')) ? text.trim() : fallback;
+export function sentenceOr(text: unknown, fallback: string): string {
+  // A host's answer is not typed: a number, a flag or an object where a sentence belongs says nothing.
+  return typeof text === 'string' && DRAWS.test(text.replace(FILLERS, '')) ? text.trim() : fallback;
 }

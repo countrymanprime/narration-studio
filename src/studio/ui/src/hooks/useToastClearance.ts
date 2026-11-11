@@ -20,6 +20,14 @@ function apply(): void {
 }
 
 /**
+ * Measures again once the layout has settled. A bar that mounts or unmounts changes the others' sizes in the same commit (the footer re-wraps when the chip goes), and the
+ * ResizeObserver does not fire again for a size it already reported, so a reading taken in that commit could stay: the toasts then float above the footer until a resize (#3322).
+ */
+function settle(): void {
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => apply());
+}
+
+/**
  * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
  * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
  * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
@@ -31,6 +39,7 @@ export function useToastClearance(bar: RefObject<HTMLElement | null>, active = t
     if (!element || !active) return;
     bars.add(element);
     apply();
+    settle();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
@@ -39,6 +48,7 @@ export function useToastClearance(bar: RefObject<HTMLElement | null>, active = t
       window.removeEventListener('resize', apply);
       bars.delete(element);
       apply();
+      settle();
     };
   }, [bar, active]);
 }

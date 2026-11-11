@@ -197,7 +197,8 @@ export function BoothFooter({
       {start ? (
         // Entirely above the footer's rim, at the right, over the lowest 22 px of the reading area (full-strength text can lie there: its last word may be partly hidden):
         // it intersects no control and takes no press, and it is after the controls in the order a screen reader reads. Its box (with a gap above it) is a bar the messages
-        // rise above, so no message lies over it.
+        // rise above, so one or two messages never lie over it. Three or four stacked in a very small window (320x300, 320x320, 360x500 and 384x500 with voice folders) can:
+        // the stack's cap (`--toast-reserve`, `ToastRegion`) keeps every message and button inside the window and wins over the readout, which is only a note.
         <div ref={startBox} data-chosen-start-wrap="" className="pointer-events-none absolute right-[var(--page-gutter)] bottom-full z-[1] pt-2">
           {start}
         </div>

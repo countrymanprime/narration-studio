@@ -3,28 +3,28 @@
 - alert
 - status
 - alertdialog "Approve this render?":
-    - heading "Approve this render?" [level=2]
-    - button "Close"
-    - paragraph: Your DAW's FX chain masters 4 files for this export only.
-    - region "Files and the regions they render":
-        - group "Files and the regions they render":
-            - table "Files and the regions they render":
-                - rowgroup:
-                    - row "File Region":
-                        - columnheader "File"
-                        - columnheader "Region"
-                - rowgroup:
-                    - row /\d+ Opening credits\.wav Opening credits/:
-                        - cell /\d+ Opening credits\.wav/
-                        - cell "Opening credits"
-                    - row /Chapter \d+\.wav Chapter \d+/:
-                        - cell /Chapter \d+\.wav/
-                        - cell /Chapter \d+/
-                    - row /Chapter \d+\.wav Chapter \d+/:
-                        - cell /Chapter \d+\.wav/
-                        - cell /Chapter \d+/
-                    - row /\d+ Closing credits\.wav Closing credits/:
-                        - cell /\d+ Closing credits\.wav/
-                        - cell "Closing credits"
-    - button "Cancel"
-    - button "Approve and master"
+  - heading "Approve this render?" [level=2]
+  - button "Close"
+  - paragraph: Your DAW's FX chain masters 4 files for this export only.
+  - region "Files and the regions they render":
+    - group "Files and the regions they render":
+      - table "Files and the regions they render":
+        - rowgroup:
+          - row "File Region":
+            - columnheader "File"
+            - columnheader "Region"
+        - rowgroup:
+          - row /\d+ Opening credits\.wav Opening credits/:
+            - cell /\d+ Opening credits\.wav/
+            - cell "Opening credits"
+          - row /Chapter \d+\.wav Chapter \d+/:
+            - cell /Chapter \d+\.wav/
+            - cell /Chapter \d+/
+          - row /Chapter \d+\.wav Chapter \d+/:
+            - cell /Chapter \d+\.wav/
+            - cell /Chapter \d+/
+          - row /\d+ Closing credits\.wav Closing credits/:
+            - cell /\d+ Closing credits\.wav/
+            - cell "Closing credits"
+  - button "Cancel"
+  - button "Approve and master"

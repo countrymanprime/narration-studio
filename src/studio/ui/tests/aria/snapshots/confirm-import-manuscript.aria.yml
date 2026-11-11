@@ -3,40 +3,40 @@
 # The two toast live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised
 # from inside a dialog is still announced. They are empty here: the overlay host draws the one toast region (Toast.tsx), portalled to <body>, not under <main>.
 - main:
-    - status
+  - status
 - status
 - alert
 - status
 # Step 2 of the import: the import options, then the chapters as switches (the one open group of the accordion), the other groups as
 # their headers, and the sample of the selected chapter. Footer: Back, the close-when-finished box, and the confirm.
 - alertdialog "Import Alice.docx · step 2 of 2":
-    - heading "Import Alice.docx · step 2 of 2" [level=2]
-    - button "Close"
-    - paragraph: This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses, and saved comparison results.
-    - text: 5 chapters 221 paragraphs 3 character suggestions
-    - group "Import options":
-        - text: Import options
-        - checkbox "Subtitles" [checked]
-        - text: Subtitles
-        - button "About subtitles": i
-    - group "Review what was found":
-        - text: Review what was found
-        - button "Chapters 5 of 5 chapters included" [expanded]
-        - 'switch "Chapter One: Down the Rabbit-Hole 1,862 words" [checked]'
-        - text: 'Chapter One: Down the Rabbit-Hole 1,862 words'
-        - 'switch "Chapter Two: The Pool of Tears 1,655 words" [checked]'
-        - text: 'Chapter Two: The Pool of Tears 1,655 words'
-        - switch "Chapter Three 1,410 words" [checked]
-        - text: Chapter Three 1,410 words
-        - 'switch "Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words" [checked]'
-        - text: 'Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words'
-        - switch "Chapter Five 1,980 words" [checked]
-        - text: Chapter Five 1,980 words
-        - button "Character suggestions 3 of 3 checked"
-    - region "Preview of the selected heading":
-        - 'heading "Chapter One: Down the Rabbit-Hole" [level=3]'
-        - paragraph: 'Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading…'
-    - button "Back"
-    - checkbox "Close when the import finishes" [checked]
-    - text: Close when the import finishes
-    - button "Replace and reset"
+  - heading "Import Alice.docx · step 2 of 2" [level=2]
+  - button "Close"
+  - paragraph: This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses, and saved comparison results.
+  - text: 5 chapters 221 paragraphs 3 character suggestions
+  - group "Import options":
+    - text: Import options
+    - checkbox "Subtitles" [checked]
+    - text: Subtitles
+    - button "About subtitles": i
+  - group "Review what was found":
+    - text: Review what was found
+    - button "Chapters 5 of 5 chapters included" [expanded]
+    - 'switch "Chapter One: Down the Rabbit-Hole 1,862 words" [checked]'
+    - text: "Chapter One: Down the Rabbit-Hole 1,862 words"
+    - 'switch "Chapter Two: The Pool of Tears 1,655 words" [checked]'
+    - text: "Chapter Two: The Pool of Tears 1,655 words"
+    - switch "Chapter Three 1,410 words" [checked]
+    - text: Chapter Three 1,410 words
+    - 'switch "Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words" [checked]'
+    - text: "Chapter Four: In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling 1,733 words"
+    - switch "Chapter Five 1,980 words" [checked]
+    - text: Chapter Five 1,980 words
+    - button "Character suggestions 3 of 3 checked"
+  - region "Preview of the selected heading":
+    - 'heading "Chapter One: Down the Rabbit-Hole" [level=3]'
+    - paragraph: "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading…"
+  - button "Back"
+  - checkbox "Close when the import finishes" [checked]
+  - text: Close when the import finishes
+  - button "Replace and reset"

@@ -7,35 +7,35 @@
 - alert
 - status
 - dialog "Navigation":
-    - heading "Navigation" [level=2]
-    - button "Close navigation"
-    - navigation:
-        - /children: equal
-        - group "Production":
-            - /children: equal
-            - button "Production"
-            - button "Schedule"
-        - group "Prep":
-            - /children: equal
-            - text: Prep
-            - button "Script"
-            - button "Story Bible"
-        - group "Record":
-            - /children: equal
-            - text: Record
-            - button "Booth"
-        - group "Edit":
-            - /children: equal
-            - text: Edit
-            - button "Editing"
-        - group "Review":
-            - /children: equal
-            - text: Review
-            - button /Proof, \d+/
-            - button /Pickups, \d+/
-        - group "Finish":
-            - /children: equal
-            - text: Finish
-            - button "Master & QC"
-            - button "Delivery"
-    - button "Settings"
+  - heading "Navigation" [level=2]
+  - button "Close navigation"
+  - navigation:
+    - /children: equal
+    - group "Production":
+      - /children: equal
+      - button "Production"
+      - button "Schedule"
+    - group "Prep":
+      - /children: equal
+      - text: Prep
+      - button "Script"
+      - button "Story Bible"
+    - group "Record":
+      - /children: equal
+      - text: Record
+      - button "Booth"
+    - group "Edit":
+      - /children: equal
+      - text: Edit
+      - button "Editing"
+    - group "Review":
+      - /children: equal
+      - text: Review
+      - button /Proof, \d+/
+      - button /Pickups, \d+/
+    - group "Finish":
+      - /children: equal
+      - text: Finish
+      - button "Master & QC"
+      - button "Delivery"
+  - button "Settings"

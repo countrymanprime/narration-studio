@@ -1,12 +1,12 @@
 - main:
-    - status
+  - status
 - status
 - alert
 - status
 - alertdialog "Unsaved settings":
-    - heading "Unsaved settings" [level=2]
-    - button "Close"
-    - paragraph: Save or discard changes before leaving Settings?
-    - button "Cancel"
-    - button "Discard & continue"
-    - button "Save & continue"
+  - heading "Unsaved settings" [level=2]
+  - button "Close"
+  - paragraph: Save or discard changes before leaving Settings?
+  - button "Cancel"
+  - button "Discard & continue"
+  - button "Save & continue"

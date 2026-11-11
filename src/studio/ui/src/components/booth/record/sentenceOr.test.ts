@@ -14,6 +14,12 @@ describe('sentenceOr', () => {
     expect(sentenceOr(undefined, FALLBACK)).toBe(FALLBACK);
     expect(sentenceOr(null, FALLBACK)).toBe(FALLBACK);
   });
+  it.each([0, 5, true, false, [], ['text'], {}, { message: 'x' }, () => 'x', Symbol.iterator])(
+    'says the fallback, and does not throw, for a value that is not text (%s)',
+    (value) => {
+      expect(sentenceOr(value, FALLBACK)).toBe(FALLBACK);
+    },
+  );
   it('keeps a real sentence, trimmed, even with invisible characters around it', () => {
     expect(sentenceOr('  The track is locked.  ', FALLBACK)).toBe('The track is locked.');
     expect(sentenceOr('​\u007FThe track is locked.⁠', FALLBACK)).toContain('The track is locked.');

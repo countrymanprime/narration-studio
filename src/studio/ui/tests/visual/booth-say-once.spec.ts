@@ -155,7 +155,9 @@ const settleBar = async (page: Page) => {
   await page.waitForTimeout(500);
 };
 for (const { width, height } of SIZES) {
-  test(`${width}x${height}: choosing a start moves nothing in the top bar, the text or the footer`, async ({ page }) => {
+  test(`${width}x${height}: a chosen start adds nothing to the top bar or the text beyond what moving the reading does, and nothing to the footer`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height });
     // Only the reading moved.
     await openRefusing(page);
