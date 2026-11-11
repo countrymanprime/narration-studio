@@ -133,6 +133,16 @@ describe('ProofChapterPage', () => {
     renderWorkspace({}, { chapterTrackMappings: [] });
     expect(await screen.findByText(/isn’t linked to a REAPER track yet/)).toBeTruthy();
   });
+
+  // #3394 (walkthrough): a link to a track the project lacks looked the same as a linked chapter on this page.
+  it('says the linked track is missing when the link points at a track the project lacks', async () => {
+    renderWorkspace(
+      {},
+      { chapterTrackMappings: [{ trackGuid: '{GONE}', chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-01-01T00:00:00Z' }] },
+    );
+    expect(await screen.findByText(/linked track is no longer in the project/)).toBeTruthy();
+    expect(screen.queryByText(/isn’t linked to a REAPER track yet/)).toBeNull();
+  });
 });
 
 // The compare run stays on the chapter view with its summary; its discrepancies were flags in the workspace, which the Editing page replaced.
