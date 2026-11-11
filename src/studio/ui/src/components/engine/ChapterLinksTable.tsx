@@ -375,7 +375,7 @@ function ChapterLinkRow({
             )}
           </span>
         ) : row.state === 'several' ? (
-          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--warn-text)' }}>
+          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--warn-text)' }} title={destination.severalChip}>
             {destination.severalChip}
           </span>
         ) : (
