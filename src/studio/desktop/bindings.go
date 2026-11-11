@@ -871,13 +871,9 @@ func (h *Host) TranscriptSaveHints(accepted []string) (string, error) {
 	return encodeBinding(nil, service.SaveHints(accepted))
 }
 
-// ChapterTrackMapList and ChapterTrackMapConfirm are the narrator-confirmed
-// chapter-track mapping's bindings: list the confirmed rows and confirm one.
-// ChapterTrackUnlink (below) clears a chapter's link.
+// ChapterTrackMapList is the narrator-confirmed chapter-track mapping's read:
+// the confirmed rows. ChapterTrackSet and ChapterTrackUnlink (below) write them.
 func (h *Host) ChapterTrackMapList() (string, error) { return encodeBinding(h.mappingList()) }
-func (h *Host) ChapterTrackMapConfirm(trackGUID, chapterID string) (string, error) {
-	return encodeBinding(h.mappingConfirm(trackGUID, chapterID))
-}
 
 // ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks are the chapter
 // track link control's host half: Set

@@ -26,7 +26,7 @@ func TestCreditsRecordedLengthsIsUnlinkedWithNoLink(t *testing.T) {
 
 func TestCreditsRecordedLengthsIsTheConfirmedTrackSAudioInTheSavedProject(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
-	if _, err := host.ChapterTrackMapConfirm(chapterLinksTrack, "credits-opening"); err != nil {
+	if _, err := host.seedLink(chapterLinksTrack, "credits-opening"); err != nil {
 		t.Fatal(err)
 	}
 	got := creditsRecordedLengths(t, host)
@@ -42,7 +42,7 @@ func TestCreditsRecordedLengthsIsTheConfirmedTrackSAudioInTheSavedProject(t *tes
 // A credits id must never leak into a manuscript chapter's own recorded length, and vice versa.
 func TestCreditsRecordedLengthsNeverLeaksIntoAManuscriptChaptersOwn(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	if _, err := host.ChapterTrackMapConfirm(chapterLinksTrack, "credits-opening"); err != nil {
+	if _, err := host.seedLink(chapterLinksTrack, "credits-opening"); err != nil {
 		t.Fatal(err)
 	}
 	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript))
@@ -58,7 +58,7 @@ func TestCreditsRecordedLengthsNeverLeaksIntoAManuscriptChaptersOwn(t *testing.T
 }
 
 // The Engine page's Chapter links rows for the opening and closing credits go through ChapterTrackSet and ChapterTrackUnlink,
-// not only ChapterTrackMapConfirm: both must take a credits id, and the recorded length must follow the link.
+// both must take a credits id, and the recorded length must follow the link.
 func TestCreditsLinkSetAndUnlinkTakeACreditsIDAndMoveItsRecordedLength(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
 	for _, id := range []string{"credits-opening", "credits-closing"} {

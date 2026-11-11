@@ -12,6 +12,8 @@ type Args = {
   /** The chapter on screen. */
   chapterId: string;
   recording: boolean;
+  /** The DAW has been asked to start a take and has not answered: the chapter stays until it does. */
+  starting?: boolean;
   /** Asks about leaving to `path` (a take in progress is asked about like any other way out) and runs `proceed` when it is allowed. */
   leave: (path: string, proceed: () => void) => Promise<unknown>;
   /** Shows `target` as the chapter. */
@@ -28,14 +30,14 @@ type Args = {
  * back), and the picker and Next/Previous go through `changeChapter`. The picker is disabled during a take, so a request in the address is a link
  * from elsewhere (a Script card, a bookmark, a pickup).
  */
-export function useChapterNavigation({ requested, chapterId, recording, leave, adopt, choose, chapters, toast }: Args): {
+export function useChapterNavigation({ requested, chapterId, recording, starting = false, leave, adopt, choose, chapters, toast }: Args): {
   changeChapter: (target: BoothChapterTarget) => void;
   step: (direction: -1 | 1) => void;
 } {
   const current: BoothChapterTarget = { chapter: chapterId };
   const requestedQuery = requested ? boothQuery(requested) : null;
-  const followed = useRef({ requested, current, recording, leave, adopt, choose });
-  followed.current = { requested, current, recording, leave, adopt, choose };
+  const followed = useRef({ requested, current, recording, starting, leave, adopt, choose });
+  followed.current = { requested, current, recording, starting, leave, adopt, choose };
   useEffect(() => {
     const now = followed.current;
     if (!now.requested || requestedQuery === null) return;
@@ -44,7 +46,8 @@ export function useChapterNavigation({ requested, chapterId, recording, leave, a
       if (target.from) now.adopt(target);
       return;
     }
-    if (!now.recording) {
+    // A take that is only starting is asked about like a running one (the leave question says so); the chapter does not change under it.
+    if (!now.recording && !now.starting) {
       now.adopt(target);
       return;
     }
@@ -67,6 +70,10 @@ export function useChapterNavigation({ requested, chapterId, recording, leave, a
     if (sameSource(target, current) && !asked.current) return;
     if (recording) {
       toast('Stop recording first.');
+      return;
+    }
+    if (starting) {
+      toast('A take is starting, so the chapter stays until it has started.');
       return;
     }
     asked.current = { id: target.chapter, at: Date.now() };

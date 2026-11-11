@@ -1792,3 +1792,14 @@ export function editingCandidateFor(chapterId: string, chapterTitle: string, ind
 }
 
 export const wireClone = <T>(value: T): T => structuredClone(value);
+
+/**
+ * A confirmed link row for a mock host to start with (`createMockApi({}, { chapterTrackMappings })`). The app writes links only through
+ * `chapterTrackSet`, which gives a chapter one track; a test that needs a chapter on two tracks, or on a track the project no longer has,
+ * seeds the rows here.
+ */
+export function wireLink(trackGuid: string, chapterId: string): TrackMapping {
+  const chapter = WIRE_CHAPTERS.find((candidate) => candidate.id === chapterId);
+  if (!chapter) throw new Error(`wireLink: ${chapterId} is not a fixture chapter`);
+  return { trackGuid, chapterId, chapterTitle: chapter.title, confirmedAt: '2026-11-02T09:00:00Z', origin: 'manual', match: null };
+}

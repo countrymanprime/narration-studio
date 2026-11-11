@@ -95,7 +95,6 @@ import {
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
-  trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
 import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
@@ -795,7 +794,6 @@ export const wailsClient: NarrationApi = {
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
   tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
-  chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
   chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
   chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
