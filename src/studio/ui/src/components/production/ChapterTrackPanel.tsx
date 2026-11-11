@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { LiveTracksRefresh, LiveTracksStatus } from '../engine/LiveTracksStatus';
+import { LiveTracksLine } from '../engine/LiveTracksStatus';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
@@ -145,14 +145,8 @@ export function ChapterTrackPanel({
       ) : (
         <div className="space-y-4 text-sm">
           <Header chapterTitle={shortName} link={link} trackSummary={trackSummary} />
-          {/* Whose tracks these are and when they were read, in the Engine panel's own one-line status (a read that failed after a good one says so),
-              with the same icon to read them again: the line never changes the panel's height. */}
-          <div className="flex min-w-0 items-center justify-between gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-            <div className="min-w-0 flex-1">
-              <LiveTracksStatus live={trackState.live} />
-            </div>
-            <LiveTracksRefresh live={trackState.live} />
-          </div>
+          {/* Whose tracks these are and when they were read, in the Engine panel's own one-line status with its read-again icon: the line never changes the panel's height. */}
+          <LiveTracksLine live={trackState.live} />
           {/* The state's own sentence (chapter-track-link-control mocks 03-05). */}
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">

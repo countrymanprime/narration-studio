@@ -71,3 +71,19 @@ export function LiveTracksRefresh({ live }: { live: LiveTracks }) {
     });
   return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={press} />;
 }
+
+/**
+ * The status line and the read-again icon as one row, for a panel or dialog that shows the tracks without the Engine panel's own header
+ * (the Link chapters dialog, the chapter track slide-over): one wrapper, one text size, so the pair looks the same wherever it is drawn. The
+ * line is one fixed-height row in every state.
+ */
+export function LiveTracksLine({ live, className = '' }: { live: LiveTracks; className?: string }) {
+  return (
+    <div className={`flex items-center justify-between gap-2 text-[0.8125rem] ${className}`} style={{ color: 'var(--text-muted)' }}>
+      <span className="min-w-0 flex-1">
+        <LiveTracksStatus live={live} />
+      </span>
+      <LiveTracksRefresh live={live} />
+    </div>
+  );
+}
