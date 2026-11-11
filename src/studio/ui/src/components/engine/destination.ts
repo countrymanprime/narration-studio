@@ -34,8 +34,6 @@ export function destinationFor(layout: VoiceTracksLayout) {
     missingTitle: (chapter: string) => `${chapter}’s ${noun} is not in the project`,
     notLinkedChip: `Not linked to a ${noun}`,
     severalChip: folders ? 'Linked to several folders' : 'Linked to several tracks',
-    /** The Engine table's status badge for a chapter that holds more than one link. */
-    severalBadge: folders ? 'Several folders' : 'Several tracks',
     linkButton: `Link ${noun}`,
     pickerLabel: (chapter: string) => `${folders ? 'Folder' : 'Track'} for ${chapter}`,
     /** The Booth dialog's sentence while Record waits for a link. */

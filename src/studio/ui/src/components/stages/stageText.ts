@@ -13,13 +13,16 @@ export const stageLabel = (stage: ChapterStatus) => STATUS_LABELS[stage];
  */
 export type StageCauseAction = 'check' | 'engine' | 'wait' | 'check-now';
 
+/** The cause of a chapter with no track linked: one phrase on every table, the action naming where the narrator can link it (#3368). */
+const unmappedTrack = (action: string, resolve: StageCauseAction) => ({ short: 'no track linked', action, resolve });
+
 /** Each cause in a few words (the row) and what to do about it (the evidence view). */
 export const CAUSE_TEXT: Record<StageUnknownCause, { short: string; action: string; resolve: StageCauseAction }> = {
   never_analyzed: { short: 'not checked yet', action: 'Run a recording check of this chapter.', resolve: 'check' },
   stale: { short: 'changed since the last check', action: 'Check the recording again; only the changed items are transcribed.', resolve: 'check' },
   incomplete_run: { short: 'the last check did not finish', action: 'Run the recording check again, to the end.', resolve: 'check' },
   analysis_running: { short: 'a check is running', action: 'Wait for the check to end; the suggestion is read again then.', resolve: 'wait' },
-  unmapped_track: { short: 'no track linked', action: 'Link the track in the recording check, or in the audio engine panel.', resolve: 'check' },
+  unmapped_track: unmappedTrack('Link the track in the recording check, or in the audio engine panel.', 'check'),
   unconfirmed_mapping: { short: 'track link not confirmed', action: 'Confirm the matching track in the recording check.', resolve: 'check' },
   multiple_tracks: { short: 'more than one track linked', action: 'Keep one track link in the audio engine panel.', resolve: 'engine' },
   measurement_unavailable: { short: 'cannot be checked here', action: 'The recording check says what it needs first.', resolve: 'check' },
@@ -35,7 +38,7 @@ const EDITING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; act
   stale: { short: 'changed since the last check', action: 'Check editing again; only the changed items are re-decoded.', resolve: 'check' },
   incomplete_run: { short: 'the last check did not finish', action: 'Run the editing check again, to the end.', resolve: 'check' },
   analysis_running: { short: 'a check is running', action: 'Wait for the check to end; the suggestion is read again then.', resolve: 'wait' },
-  unmapped_track: { short: 'no track linked', action: 'Link the track in the editing check, or in the audio engine panel.', resolve: 'check' },
+  unmapped_track: unmappedTrack('Link the track in the editing check, or in the audio engine panel.', 'check'),
   unconfirmed_mapping: { short: 'track link not confirmed', action: 'Confirm the matching track in the editing check.', resolve: 'check' },
   multiple_tracks: { short: 'more than one track linked', action: 'Keep one track link in the audio engine panel.', resolve: 'engine' },
   measurement_unavailable: { short: 'cannot be checked here', action: 'The editing check says what it needs first.', resolve: 'check' },
@@ -54,7 +57,7 @@ const PROOFING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; ac
   stale: { short: 'changed since the last check', action: 'Check now once you have run it again.', resolve: 'check-now' },
   incomplete_run: { short: 'the last check did not finish', action: 'Check now once it has run to the end.', resolve: 'check-now' },
   analysis_running: { short: 'a check is running', action: 'Wait for the check to end; the suggestion is read again then.', resolve: 'wait' },
-  unmapped_track: { short: 'no track linked', action: 'Link the track in the audio engine panel.', resolve: 'engine' },
+  unmapped_track: unmappedTrack('Link the track in the audio engine panel.', 'engine'),
   unconfirmed_mapping: { short: 'track link not confirmed', action: 'Confirm the matching track in the audio engine panel.', resolve: 'engine' },
   multiple_tracks: { short: 'more than one track linked', action: 'Keep one track link in the audio engine panel.', resolve: 'engine' },
   measurement_unavailable: { short: 'cannot be checked here', action: 'Check now once the reason above is resolved.', resolve: 'check-now' },

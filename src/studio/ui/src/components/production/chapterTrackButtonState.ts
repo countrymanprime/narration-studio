@@ -9,7 +9,7 @@ export type ChapterTrackButtonState =
   | { kind: 'suggested'; trackName: string; trackGuid: string }
   | { kind: 'ambiguous'; count: number }
   | { kind: 'missing' }
-  | { kind: 'not_linked' };
+  | { kind: 'unlinked' };
 
 /** Derives the button's state from one chapter's link (the matcher's status, its warnings and its confirmed links).
  * A missing track wins over every other signal: a chapter cannot be "linked" to a track that is gone. */
@@ -25,7 +25,7 @@ export function chapterTrackButtonState(link: ChapterTrackLink): ChapterTrackBut
   if ((link.status === 'matched' || link.status === 'uncertain') && link.track) {
     return { kind: 'suggested', trackName: link.track.trackName, trackGuid: link.track.trackGuid };
   }
-  return { kind: 'not_linked' };
+  return { kind: 'unlinked' };
 }
 
 /** The track REAPER may be asked to show for a chapter: only a confirmed link to a track that is in the saved project. A suggestion, an
@@ -48,7 +48,7 @@ export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrac
       return `Track for ${chapterTitle}: ${plural(state.count, 'possible track')}, choose one`;
     case 'missing':
       return `Track for ${chapterTitle}: linked track is missing`;
-    case 'not_linked':
+    case 'unlinked':
       return `Track for ${chapterTitle}: not linked`;
   }
 }

@@ -23,6 +23,7 @@ import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
+import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -201,7 +202,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
-    { value: '', label: 'Not linked' },
+    { value: '', label: LINK_STATE_LABEL.unlinked },
     ...tracks.map((track) => {
       const name = trackName(track.name, track.index);
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
@@ -311,7 +312,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
+            const options = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
