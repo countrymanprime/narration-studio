@@ -49,6 +49,19 @@ describe('useChapterLinkActions', () => {
     expect(displacedNotice).toBe('Two was linked to that track and is now not linked.');
     expect((await actions.set('c1', 'T')).linkedNotice).toBe('Track linked. Two was linked to that track and is now not linked.');
   });
+  it('names the displaced chapter as the manuscript names it now, and keeps the kept title when the manuscript cannot be read', async () => {
+    const chapters = [{ id: 'c2', title: 'Two', subtitle: 'The Pool' }];
+    const named = actionsWith({ chapterTrackSet: async () => setAnswer(mapping('c2', 'Old title')), manuscriptChapters: async () => chapters as never });
+    expect((await named.set('c1', 'T')).displacedNotice).toContain('Two');
+    expect((await named.set('c1', 'T')).displacedNotice).not.toContain('Old title');
+    const unread = actionsWith({
+      chapterTrackSet: async () => setAnswer(mapping('c2', 'Old title')),
+      manuscriptChapters: async () => {
+        throw new Error('no manuscript');
+      },
+    });
+    expect((await unread.set('c1', 'T')).displacedNotice).toBe('Old title was linked to that track and is now not linked.');
+  });
   it('set has no notice when the track was free, and rejects with the host error', async () => {
     const free = actionsWith({ chapterTrackSet: async () => setAnswer(null) });
     const written = await free.set('c1', 'T');

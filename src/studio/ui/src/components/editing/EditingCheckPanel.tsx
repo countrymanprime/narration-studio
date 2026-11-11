@@ -16,6 +16,7 @@ import type {
   StageUnknownCause,
   Track,
 } from '../../types';
+import type { TrackMapping } from '../../types';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
@@ -67,13 +68,24 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
   const api = useApi();
   const actions = useChapterLinkActions();
   const [tracks, setTracks] = useState<Track[]>();
+  const [links, setLinks] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
-    api
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
+    // The links label a track another chapter holds before the press; a links read that fails only leaves the labels off.
+    Promise.all([
+      api.tracksList(),
+      api.chapterTrackMapList().then(
+        (list) => list.mappings,
+        () => [] as TrackMapping[],
+      ),
+    ])
+      .then(([project, mappings]) => {
+        if (!active) return;
+        setTracks(project.tracks);
+        setLinks(mappings);
+      })
       .catch((reason) => active && setError(describeApiError(reason)));
     return () => {
       active = false;
@@ -90,13 +102,15 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
     <MappingConfirm
       chapterTitle={chapterName(chapter, 'short')}
       tracks={tracks}
+      links={links}
+      chapterId={chapter.id}
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { displacedNotice, linkedNotice } = await actions.set(chapter.id, trackGuid);
-            if (displacedNotice) notify(linkedNotice);
+            const { linkedNotice } = await actions.set(chapter.id, trackGuid);
+            notify(linkedNotice);
             setError('');
             onLinked();
           } catch (reason) {

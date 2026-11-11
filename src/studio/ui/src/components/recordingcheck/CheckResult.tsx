@@ -7,6 +7,7 @@ import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
+import type { TrackMapping } from '../../types';
 import { describeApiError } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { usePort } from '../../ports/usePort';
@@ -166,21 +167,33 @@ export function ReasonBlock({
 /** The chapter-track link, confirmed right here: the same prompt the audio engine panel lists. */
 function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapter; onLinked: () => Promise<void>; onNavigate?: () => void }) {
   const tracksPort = usePort('tracks');
+  const trackMap = usePort('chapterTrackMap');
   const overlay = useOverlay();
   const actions = useChapterLinkActions();
   const [tracks, setTracks] = useState<Track[]>();
+  const [links, setLinks] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
-    tracksPort
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
+    // The links label a track another chapter holds before the press; a links read that fails only leaves the labels off.
+    Promise.all([
+      tracksPort.tracksList(),
+      trackMap.chapterTrackMapList().then(
+        (list) => list.mappings,
+        () => [] as TrackMapping[],
+      ),
+    ])
+      .then(([project, mappings]) => {
+        if (!active) return;
+        setTracks(project.tracks);
+        setLinks(mappings);
+      })
       .catch((reason) => active && setError(describeApiError(reason)));
     return () => {
       active = false;
     };
-  }, [tracksPort]);
+  }, [tracksPort, trackMap]);
   if (error)
     return (
       <p style={{ color: 'var(--danger-text)' }}>
@@ -192,13 +205,15 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
     <MappingConfirm
       chapterTitle={chapterName(chapter, 'short')}
       tracks={tracks}
+      links={links}
+      chapterId={chapter.id}
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { displacedNotice, linkedNotice } = await actions.set(chapter.id, trackGuid);
-            if (displacedNotice) overlay.toast(linkedNotice);
+            const { linkedNotice } = await actions.set(chapter.id, trackGuid);
+            overlay.toast(linkedNotice);
             setError('');
             await onLinked();
           } catch (reason) {

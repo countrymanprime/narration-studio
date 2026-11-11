@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import type { TrackMapping } from '../../types';
+import type { ManuscriptChapter, TrackMapping } from '../../types';
+import { headingName } from '../../chapterHeading';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
 
@@ -40,6 +41,20 @@ export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: 
 }
 
 /** A link written: the host's answer, and the sentence for the chapter that lost the track, or '' when the track was free. */
+async function manuscriptNames(manuscript: {
+  manuscriptChapters: () => Promise<ManuscriptChapter[]>;
+}): Promise<((chapterId: string) => string | undefined) | undefined> {
+  try {
+    const chapters = await manuscript.manuscriptChapters();
+    return (chapterId) => {
+      const known = chapters.find((chapter) => chapter.id === chapterId);
+      return known ? headingName(known) : undefined;
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 type LinkWritten = {
   result: ChapterTrackSetResult;
   /** The sentence for the chapter that lost the track, or '' when it was free. */
@@ -64,14 +79,18 @@ type ChapterLinkActions = {
  */
 export function useChapterLinkActions(): ChapterLinkActions {
   const trackMap = usePort('chapterTrackMap');
+  const manuscript = usePort('manuscript');
   const set = useCallback(
     async (chapterId: string, trackGuid: string, nameOf?: (chapterId: string) => string | undefined): Promise<LinkWritten> => {
       const result = await trackMap.chapterTrackSet(chapterId, trackGuid);
+      // The chapter that lost the track is named as the manuscript names it now (a renamed chapter reads the same on every screen); a caller that
+      // has the chapters passes its own, and a manuscript that cannot be read leaves the title the host kept.
+      const names = nameOf ?? (result.displaced ? await manuscriptNames(manuscript) : undefined);
       // A host that answers the chapter just linked as the one displaced has displaced no one.
-      const displacedNotice = result.displaced && result.displaced.chapterId !== chapterId ? displacedSentence(result.displaced, nameOf) : '';
+      const displacedNotice = result.displaced && result.displaced.chapterId !== chapterId ? displacedSentence(result.displaced, names) : '';
       return { result, displacedNotice, linkedNotice: displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.' };
     },
-    [trackMap],
+    [trackMap, manuscript],
   );
   const unlink = useCallback((chapterId: string) => trackMap.chapterTrackUnlink(chapterId), [trackMap]);
   const create = useCallback((chapterId: string) => trackMap.chapterTrackCreate(chapterId), [trackMap]);

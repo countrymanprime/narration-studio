@@ -164,6 +164,26 @@ describe('EditingCheckPanel', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it('labels a track another chapter holds before the press (#3365)', async () => {
+    const user = userEvent.setup();
+    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const held = (await api.tracksList()).tracks[0];
+    vi.spyOn(api, 'chapterTrackMapList').mockResolvedValue({
+      documentId: 'doc',
+      mappings: [{ trackGuid: held.guid, chapterId: 'other-chapter', chapterTitle: 'Chapter 9', confirmedAt: '2026-01-01T00:00:00Z' }],
+    });
+    const dialog = await panel();
+    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
+    await waitFor(() =>
+      expect(
+        within(select)
+          .getAllByRole('option')
+          .some((option) => /linked to Chapter 9/.test(option.textContent ?? '')),
+      ).toBe(true),
+    );
+  });
+
   it('a failed link shows the host error on the panel', async () => {
     const user = userEvent.setup();
     const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
