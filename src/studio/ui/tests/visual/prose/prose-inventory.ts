@@ -305,6 +305,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/production/ChapterTrackPanel.tsx', text: 'Keep one link; the others will be cleared.', class: 'overlay' },
+  { file: 'components/production/ChapterTrackPanel.tsx', text: 'Shown as of the last read; the latest one failed.', class: 'overlay' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
     text: 'Imported by mistake? Take it out of the board and totals. Its text stays in the manuscript.',

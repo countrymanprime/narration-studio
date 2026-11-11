@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterTrackLink } from '../../types';
-import { chapterTrackButtonLabel, chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 
 const base: ChapterTrackLink = {
   chapterId: 'c-1',
@@ -78,5 +78,34 @@ describe('showableTrackGuid (#3168)', () => {
     expect(showableTrackGuid({ ...base, status: 'ambiguous', track, links: [mapping] })).toBeUndefined();
     expect(showableTrackGuid(base)).toBeUndefined();
     expect(showableTrackGuid(undefined)).toBeUndefined();
+  });
+});
+
+describe('followLiveTracks', () => {
+  const confirmed: ChapterTrackLink = {
+    ...base,
+    status: 'confirmed',
+    track,
+    links: [{ trackGuid: '{T}', chapterId: 'c-1', chapterTitle: 'Chapter 6', confirmedAt: '2026-01-01T00:00:00Z' }],
+  };
+
+  it('leaves a link alone when the tracks are not known yet or it is not one confirmed link', () => {
+    expect(followLiveTracks(confirmed, undefined)).toBe(confirmed);
+    const suggested = { ...confirmed, status: 'matched' as const };
+    expect(followLiveTracks(suggested, [])).toBe(suggested);
+    const several = { ...confirmed, links: [...confirmed.links, { ...confirmed.links[0], trackGuid: '{U}' }] };
+    expect(followLiveTracks(several, [])).toBe(several);
+  });
+
+  it('marks a confirmed link missing when the live list has no such track, once', () => {
+    const gone = followLiveTracks(confirmed, [{ guid: '{Other}', name: 'Other' }]);
+    expect(chapterTrackButtonState(gone).kind).toBe('missing');
+    expect(followLiveTracks(gone, []).warnings.filter((w) => w === 'confirmed-track-missing')).toHaveLength(1);
+  });
+
+  it('draws a track that is there under the name it has now', () => {
+    const renamed = followLiveTracks(confirmed, [{ guid: '{T}', name: 'New Name' }]);
+    expect(renamed.track?.trackName).toBe('New Name');
+    expect(followLiveTracks(confirmed, [{ guid: '{T}', name: 'CHAPTER SIX' }])).toBe(confirmed);
   });
 });

@@ -18,7 +18,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -80,7 +80,9 @@ export function ChapterTrackPanel({
   // is a different object and replaces it (#3272).
   const [unlinkedFrom, setUnlinkedFrom] = useState<ChapterTrackLink>();
   const unlinked = unlinkedFrom !== undefined && unlinkedFrom === linkRead;
-  const link = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  const shown = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  // The saved read says which track the chapter is linked to; the shared state's tracks say whether it is still there and what it is called now.
+  const link = shown && followLiveTracks(shown, tracks);
   const trackSummary = unlinked ? undefined : trackSummaryRead;
 
   // Playback: the track the slide-over already knows from `link.track`, played through the same
@@ -142,6 +144,8 @@ export function ChapterTrackPanel({
       ) : (
         <div className="space-y-4 text-sm">
           <Header chapterTitle={shortName} link={link} trackSummary={trackSummary} />
+          {/* A read that failed after a good one leaves what was read; this says so, as the Engine panel's status line does. */}
+          {trackState.stale && <p style={{ color: 'var(--text-muted)' }}>Shown as of the last read; the latest one failed.</p>}
           {/* The state's own sentence (chapter-track-link-control mocks 03-05). */}
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
@@ -264,7 +268,15 @@ export function ChapterTrackPanel({
                 Link
               </SectionLabel>
               {tracksError ? (
-                <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
+                <div className="space-y-2">
+                  <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="secondary" size="sm" onClick={trackState.refresh}>
+                      Retry
+                    </Button>
+                    <EnginePanelLink onOpen={onClose} />
+                  </div>
+                </div>
               ) : !tracks ? (
                 <p role="status">
                   {trackState.reading ? (
