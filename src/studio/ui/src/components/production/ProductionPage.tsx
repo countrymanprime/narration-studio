@@ -243,7 +243,7 @@ export function ProductionPage({
   const linkSignature = tools.trackLinks?.chapters
     .map((c) => `${c.chapterId}|${c.status}|${c.track?.trackGuid ?? ''}|${c.links.map((l) => l.trackGuid).join(',')}`)
     .join(';');
-  const seenLinks = useRef<string>();
+  const seenLinks = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (linkSignature === undefined) return;
     if (seenLinks.current !== undefined && seenLinks.current !== linkSignature) void read();
