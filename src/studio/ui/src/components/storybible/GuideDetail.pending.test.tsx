@@ -20,11 +20,11 @@ const neverAnswers = <T,>() => vi.fn(() => new Promise<T>(() => {}));
 
 const entity = WIRE_ENTITIES.find((row) => !row.locked && row.relationships.length > 0 && row.id === 'alice') ?? WIRE_ENTITIES[0];
 
-function renderDetail(overrides: Partial<NarrationApi>) {
+function renderDetail(overrides: Partial<NarrationApi>, shown = entity) {
   const api = createMockApi(overrides);
   render(
     <ApiProvider api={api}>
-      <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+      <GuideDetail entity={shown} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
     </ApiProvider>,
   );
   return api;
@@ -83,6 +83,35 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     expect(guideEdit).toHaveBeenCalledTimes(1);
   });
 
+  it('Add name with nothing typed is off and says why, and a press adds nothing (#3339)', () => {
+    const guideEdit = vi.fn(() => Promise.resolve());
+    renderDetail({ guideEdit });
+    edit();
+    const add = screen.getByRole('button', { name: 'Add name' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(add);
+    expect(guideEdit).not.toHaveBeenCalled();
+    // The tooltip opens on focus once the page is in keyboard modality.
+    fireEvent.keyDown(document.body, { key: 'Shift' });
+    act(() => add.blur());
+    act(() => add.focus());
+    act(() => void vi.advanceTimersByTime(1500));
+    expect(screen.getByRole('tooltip').textContent).toBe('Type a name to add first.');
+  });
+
+  it("while one preview renders, another name's Play is off and says why instead of looking live and doing nothing (#3339)", () => {
+    const guidePreview = neverAnswers<never>();
+    renderDetail({ guidePreview }, WIRE_ENTITIES.find((row) => row.aliases.length > 0 && row.pronunciation.ipa) ?? entity);
+    press(/^Play (preview|provider)/, 1);
+    acknowledged();
+    expect(guidePreview).toHaveBeenCalledTimes(1);
+    const others = screen.queryAllByRole('button', { name: /Play (alias|this alias) pronunciation/ });
+    expect(others.length).toBeGreaterThan(0);
+    for (const other of others) expect(other.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(others[0] ?? document.body);
+    expect(guidePreview).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps an alias the narrator typed while another action was running, instead of clearing it and adding nothing', () => {
     const guideEdit = neverAnswers<void>();
     renderDetail({ guideEdit, guideRescan: neverAnswers<void>() });
@@ -136,7 +165,17 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     renderDetail({ guideSetLocked: neverAnswers<void>() });
     press('Lock entry', 1);
     acknowledged();
-    expect((screen.getByRole('button', { name: 'Edit this entry' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Rescan occurrences' }) as HTMLButtonElement).disabled).toBe(true);
+    // Off with a reason (aria-disabled, still focusable), not a native `disabled` that says nothing (#3339).
+    for (const name of ['Edit this entry', 'Rescan occurrences']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.getAttribute('aria-disabled')).toBe('true');
+      fireEvent.click(button);
+    }
+    expect(screen.queryByRole('textbox', { name: 'Add a name' })).toBeNull();
+    // The hint is the reason, not the control's own name.
+    fireEvent.keyDown(document.body, { key: 'Shift' });
+    act(() => screen.getByRole('button', { name: 'Edit this entry' }).focus());
+    act(() => void vi.advanceTimersByTime(1500));
+    expect(screen.getByRole('tooltip').textContent).toBe('Another change is still saving.');
   });
 });

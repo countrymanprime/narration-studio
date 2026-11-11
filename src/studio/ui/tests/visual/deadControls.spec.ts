@@ -22,6 +22,14 @@ const PAGES: Record<string, string> = {
   'Master & QC': '/master',
   Delivery: '/delivery',
   Settings: '/settings',
+  // Non-default mock states (#3339): a state other than the default is where a control goes off, waits or fails, so each page below is opened in one
+  // and every control pressed again. Not covered here, and why: a press that is pending (the mock answers at once, so the Vitest pending tests
+  // hold it: a host call that never answers); a host call that fails (a toast, in the component tests, except the preview error below); the
+  // other side never answering or answering late (the harness of the DAW bridge); a window narrower than 1440 px (the visual suite).
+  'Settings (Audacity project)': '/settings?mockDaw=Audacity',
+  'Booth (Audacity project)': '/booth?mockDaw=Audacity',
+  'Story Bible (preview fails)': '/story-bible?mockPreviewError=The+voice+could+not+be+loaded.',
+  'Delivery (no manuscript)': '/delivery?mockNoManuscript=1',
 };
 const SHELL_ONLY = 'aside, header, nav, [data-shell]';
 const report = process.env.UI_DEAD_CONTROLS?.startsWith('report:') ? process.env.UI_DEAD_CONTROLS.slice('report:'.length) : '';

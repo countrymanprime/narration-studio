@@ -57,6 +57,9 @@ const (
 // teleprompterinput.go promote their identical local seam onto.
 type trackStateReader = dawport.TrackStateReader
 
+// The REAPER bridge has the itemless read; without it TrackStateNoItems would quietly fall back to the full one.
+var _ dawport.ItemlessStateReader = (*bridge.Actions)(nil)
+
 // ReadAloudReaperState answers whether REAPER is ready to record chapterID with reading:
 // its linked track the one track armed, and REAPER not already recording. A
 // chapter with no link, a REAPER that is not there are answers, not errors; only
@@ -108,7 +111,7 @@ func readAloudReaperStateIn(ctx context.Context, svc hostServices, reader trackS
 	if reader == nil {
 		return unavailable(reaperStandalone, messageReaperOff), nil
 	}
-	state, err := reader.ChapterTrackState(ctx, guid)
+	state, err := dawport.TrackStateNoItems(ctx, reader, guid)
 	if err != nil {
 		return readAloudRefusal(err, title, guid), nil
 	}

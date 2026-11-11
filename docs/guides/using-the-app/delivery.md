@@ -107,7 +107,7 @@ anything is measured, it says "Nothing is measured yet. Use Check files… above
 beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
-its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
+its description. Hover or focus it to see the same reason as a tooltip. Pressing it builds nothing.
 
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 
@@ -155,7 +155,7 @@ The tags icon button, **Embed chapter tags**, beside **Build**, adds ID3 chapter
 If you deliver to more than one platform, **All platforms** (inside Output, under the build) lets you build
 all of them from the one source you already mastered and encoded, without re-encoding unless a platform
 needs a different file format. Under **Build packages for**, check the box for each profile you want a
-package for, then **Build N packages**; it stays off, with "Master and encode a chapter first." beside it, until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
+package for, then **Build N packages**; it stays off, with "Master and encode a chapter first." beside it, until files are mastered and encoded (hover or focus it to see the same reason as a tooltip). This does not change which profile the page's checks are judged against (that is the project's profile,
 chosen in the profile card above); the checkboxes only choose what to build packages for.
 
 ![Delivery - All platforms with one platform checked](../../images/ui/delivery-multi-export.webp)

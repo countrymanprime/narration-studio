@@ -50,7 +50,7 @@ An entry with suggestions still to verify shows **Mark reviewed** switched off, 
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
-In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias. If another entry
+In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias; with nothing typed **Add name** is off, and hovering or focusing it says to type a name first. If another entry
 already has that name, the line beside it says so and offers **Merge into this entry**, so a name mentioned under a
 different spelling is merged into the entry it already belongs to instead of creating a duplicate. The merge can be undone from its toast. A name the
 entry already has is refused with a line saying so.
@@ -75,7 +75,7 @@ A change is saved at once, like the other edits to names and relationships, not 
 
 The play button (a speaker icon) beside a name, or beside one of its aliases, speaks it with the local preview
 voice chosen in **Settings > Voice & pronunciation > Preview voice**; while it plays the button shows stop, and pressing it again stops it. It only works once a pronunciation exists: with none, the button is dimmed and a hint
-(reachable by keyboard, not just the mouse) says so. The first time you press it, the app asks
+(reachable by keyboard, not just the mouse) says so. Only one preview runs at a time: while one is being prepared, the other names' play buttons are dimmed and say "Another preview is still loading." The first time you press it, the app asks
 before it downloads the voice. If the preview fails, the message says why, and pressing it
 again tries again; a failed run never leaves a broken recording behind.
 
@@ -91,7 +91,7 @@ again tries again; a failed run never leaves a broken recording behind.
 
 An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
 each, the entry's own name in bold. The rows share their columns, so names, pronunciations, sources and play buttons line up down the list, and every row's buttons end at the right edge: an alias's **Remove** and a flagged name's **Mark reviewed** come before its play button. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
-field, a source tag, and beside the play button **Record my own clip** (for your own recording of the name):
+field, a source tag, and beside the play button **Record my own clip**, which is dimmed with "Recording your own clip is not available yet." (for your own recording of the name):
 
 - Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.
 - Press the tag to choose a source instead: the CMU dictionary, Wiktionary (when it is installed), eSpeak NG, or

@@ -266,6 +266,11 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 - **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
   take up again, and Stop still stops it.
+- **Start from here.** A DAW that cannot punch in, the built-in recorder among them, cannot record over the phrase you chose, and
+  **Start from here** says so: it looks the phrase up once and says the take starts from the end of what is already there. Pressing
+  Space, **R** or Record while it looks joins it and records from the end as soon as it answers, with that one message; a phrase nobody
+  recorded starts the take from the end straight away. If the lookup does not answer within 8 seconds or fails, nothing is recorded, the
+  Booth says why once, no start stays chosen and Record is ready.
 - **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Record options cannot set an audio
   interface's input gain: set it in the interface's own control panel.
 - **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the
@@ -306,6 +311,8 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. The mark is for that one take: when the take ends, "Next roll starts from" goes and the next Record starts where the recording ends. A take is held while the menu is open.
+
+Any move of your place replaces the start you chose: **Resume at**, a click on a word, the arrow keys, **Next phrase** and **Back one phrase**, a find jump, a bookmark jump in the chapter, and a jump to a pickup. "Next roll starts from" goes with it, and **Record** (Space) starts from where the text now shows you, never from the earlier mark. This holds for a start kept after a refused take and for one chosen with **Record from here** on the Script. A move that lands on the phrase you chose, or that does not move the text (an arrow at the end of the chapter, or a step inside the phrase), keeps the start. Once you have moved off the phrase, the start is gone: moving back does not bring it back. A bookmark in another chapter opens that chapter at the bookmark and chooses no start. **Record from here** and **Start from here** set the start again.
 
 While a popover or a menu is open (Record options, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A choice under **Main button** keeps Space too: on a focused **Record** or **Cold read** it selects that choice and starts nothing. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 

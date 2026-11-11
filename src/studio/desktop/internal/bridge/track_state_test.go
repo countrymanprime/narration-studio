@@ -254,3 +254,57 @@ func TestChapterFolderStateRefusesAnOlderScriptsOneTrackAnswer(t *testing.T) {
 		t.Fatalf("err = %v, want ErrFolderReadUnsupported", err)
 	}
 }
+
+func TestChapterTrackStateNoItemsSendsTheNoneOptionAndKeepsTheTotal(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{
+			trackStateAnswer(command)[0],
+			{"TRACK_STATE_END", run(command), "0", "3"},
+		}
+	})
+	got, err := actions.ChapterTrackStateNoItems(context.Background(), testTrack)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 1 || len(commands[0]) < 5 || commands[0][4] != "none" {
+		t.Fatalf("commands = %v, want one chapter_track_state with the none option", commands)
+	}
+	if len(got.Items) != 0 || got.ItemsTotal != 3 || !got.Recording || !got.Playing || got.ArmedCount != 2 {
+		t.Fatalf("state = %+v, want the transport and arms, no items and a total of 3", got)
+	}
+}
+
+// A bridge script older than the 'none' option refuses it with this sentence; the press must still work.
+func TestChapterTrackStateNoItemsFallsBackToTheFullReadOnAnOlderScript(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		if len(command) > 4 {
+			return [][]string{{"ERROR", run(command), "Unknown track read option: none."}}
+		}
+		return trackStateAnswer(command)
+	})
+	got, err := actions.ChapterTrackStateNoItems(context.Background(), testTrack)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 2 || len(commands[1]) > 4 {
+		t.Fatalf("commands = %v, want the none read, then the plain read", commands)
+	}
+	if !got.Recording || len(got.Items) != 2 {
+		t.Fatalf("state = %+v, want the full read's answer", got)
+	}
+}
+
+func TestChapterTrackStateNoItemsKeepsAStaleTrackAStaleError(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_STALE", run(command), testTrack}}
+	})
+	var stale *TrackStaleError
+	if _, err := actions.ChapterTrackStateNoItems(context.Background(), testTrack); !errors.As(err, &stale) {
+		t.Fatalf("err = %v, want a *TrackStaleError", err)
+	}
+}

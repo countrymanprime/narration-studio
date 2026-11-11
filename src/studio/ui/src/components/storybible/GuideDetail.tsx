@@ -77,6 +77,9 @@ const draftOf = (entity: GuideEntity, speaks: boolean): Draft => ({
 
 const NO_TYPES: GuideType[] = [];
 
+/** Why a control waits while another change saves: its tooltip, a keyboard reaches it (#3339). */
+const BUSY_REASON = 'Another change is still saving.';
+
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
  * so nothing speaks then, and `failed` says so for the entry to show. */
 function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; failed: boolean; checkAgain: () => void } {
@@ -661,6 +664,8 @@ export function GuideDetail({
     );
   // The others wait while one runs; the one that is running shows it is (`pending`).
   const waiting = (key: string) => mutation.isBlockedFor(key);
+  // A control that waits on another change says so (a tooltip a keyboard reaches), not just dimmed (#3339).
+  const busyReason = (key: string) => (waiting(key) ? BUSY_REASON : '');
   const onAliasKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -753,18 +758,18 @@ export function GuideDetail({
                 </Button>
               </TooltipTarget>
             ) : (
-              <Button variant="secondary" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
+              <Button variant="secondary" pending={mutation.isPending('review')} disabledReason={busyReason('review')} onClick={() => void markReviewed()}>
                 Mark reviewed
               </Button>
             ))}
           {inRouter && <FindInManuscript name={entity.canonical_name} />}
           {/* Lock/Unlock is read-view only: it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
-            <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
+            <TooltipTarget text={busyReason('lock') || (locked ? 'Unlock entry' : 'Lock entry')}>
               <IconButton
                 label={locked ? 'Unlock entry' : 'Lock entry'}
                 pending={mutation.isPending('lock')}
-                disabled={waiting('lock')}
+                disabledReason={busyReason('lock')}
                 onClick={() => void setLocked()}
               >
                 <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />
@@ -772,8 +777,8 @@ export function GuideDetail({
             </TooltipTarget>
           )}
           {canEdit && !editing && (
-            <TooltipTarget text="Edit this entry">
-              <IconButton label="Edit this entry" disabled={mutation.isBusy} onClick={() => setEditing(true)}>
+            <TooltipTarget text={mutation.isBusy ? BUSY_REASON : 'Edit this entry'}>
+              <IconButton label="Edit this entry" disabledReason={mutation.isBusy ? BUSY_REASON : ''} onClick={() => setEditing(true)}>
                 <FontAwesomeIcon icon={faPen} />
               </IconButton>
             </TooltipTarget>
@@ -785,11 +790,11 @@ export function GuideDetail({
                   Saving…
                 </span>
               )}
-              <TooltipTarget text="Save changes to this entry">
+              <TooltipTarget text={busyReason('save') || 'Save changes to this entry'}>
                 <IconButton
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
-                  disabled={waiting('save')}
+                  disabledReason={busyReason('save')}
                   onClick={saveEntry}
                   variant="primary"
                 >
@@ -804,8 +809,13 @@ export function GuideDetail({
               {/* Delete only exists in edit mode: unreachable from the read view, and set off from Save/Cancel by a divider
                   so it cannot be mis-clicked beside them (B5). A locked entry never reaches edit mode, so it never has one. */}
               <div className="ml-1 border-l pl-2" style={{ borderColor: 'var(--border)' }}>
-                <TooltipTarget text="Delete entity">
-                  <IconButton label="Delete entity" variant="danger" disabled={mutation.isBusy} onClick={() => setConfirmation('delete')}>
+                <TooltipTarget text={mutation.isBusy ? BUSY_REASON : 'Delete entity'}>
+                  <IconButton
+                    label="Delete entity"
+                    variant="danger"
+                    disabledReason={mutation.isBusy ? BUSY_REASON : ''}
+                    onClick={() => setConfirmation('delete')}
+                  >
                     <FontAwesomeIcon icon={faTrash} />
                   </IconButton>
                 </TooltipTarget>
@@ -851,7 +861,14 @@ export function GuideDetail({
               const { aliasIndex, name, pronunciation } = row;
               const key = previewKey(aliasIndex);
               const playing = playingPreview === key;
-              const playReason = playing || pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
+              // One preview at a time: another name's Play says why it waits instead of looking live and doing nothing (#3339).
+              const playReason = playing
+                ? undefined
+                : !pronunciation.ipa
+                  ? NO_PRONUNCIATION_REASON
+                  : loadingPreview !== undefined && loadingPreview !== key
+                    ? 'Another preview is still loading.'
+                    : undefined;
               const flagged = aliasIndex !== undefined && aliasFlagged(entity, name);
               return (
                 <li key={`${aliasIndex ?? 'entry'}:${name}`} className="col-span-full grid grid-cols-subgrid items-start">
@@ -872,30 +889,32 @@ export function GuideDetail({
                       Record stand in one column and every row's last button ends at the list's right edge (alignment audit A4). */}
                   <div className="flex justify-end gap-2">
                     {flagged && (
-                      <TooltipTarget text={`Mark ${name} reviewed`}>
+                      <TooltipTarget text={busyReason(`review:${aliasIndex}`) || `Mark ${name} reviewed`}>
                         <IconButton
                           action="markReviewed"
                           label={`Mark ${name} reviewed`}
                           pending={mutation.isPending(`review:${aliasIndex}`)}
-                          disabled={waiting(`review:${aliasIndex}`)}
+                          disabledReason={busyReason(`review:${aliasIndex}`)}
                           onClick={() => void markReviewed(aliasIndex)}
                         />
                       </TooltipTarget>
                     )}
                     {aliasIndex !== undefined && canEdit && editing && (
-                      <IconButton
-                        label={`Remove alias ${name}`}
-                        disabled={waiting(`alias:${name}`)}
-                        pending={mutation.isPending(`alias:${name}`)}
-                        onClick={() =>
-                          void setAliasTexts(
-                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
-                            `alias:${name}`,
-                          )
-                        }
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </IconButton>
+                      <TooltipTarget text={busyReason(`alias:${name}`) || `Remove alias ${name}`}>
+                        <IconButton
+                          label={`Remove alias ${name}`}
+                          disabledReason={busyReason(`alias:${name}`)}
+                          pending={mutation.isPending(`alias:${name}`)}
+                          onClick={() =>
+                            void setAliasTexts(
+                              entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                              `alias:${name}`,
+                            )
+                          }
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </IconButton>
+                      </TooltipTarget>
                     )}
                     <TooltipTarget
                       text={
@@ -926,7 +945,7 @@ export function GuideDetail({
                     </TooltipTarget>
                     {canEdit && editing && (
                       <TooltipTarget text={`Record my own clip for ${name}`}>
-                        <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
+                        <IconButton action="record" label={`Record my own clip for ${name}`} disabledReason="Recording your own clip is not available yet." />
                       </TooltipTarget>
                     )}
                   </div>
@@ -951,7 +970,8 @@ export function GuideDetail({
               </div>
               <Button
                 variant="secondary"
-                disabled={aliasQuery.trim() === '' || waiting('alias')}
+                // Off with its reason (a tooltip a keyboard reaches), not just dimmed (#3339).
+                disabledReason={aliasQuery.trim() === '' ? 'Type a name to add first.' : busyReason('alias')}
                 pending={mutation.isPending('alias')}
                 onClick={addAliasFromQuery}
               >
@@ -1067,12 +1087,12 @@ export function GuideDetail({
           action={
             // Rescan has no mock equivalent: it re-reads where the entry's names occur, so it sits with the list it refreshes.
             !isNewDraft && (
-              <TooltipTarget text="Rescan occurrences for this entry">
+              <TooltipTarget text={busyReason('rescan') || 'Rescan occurrences for this entry'}>
                 <Button
                   variant="ghost"
                   size="sm"
                   aria-label="Rescan occurrences"
-                  disabled={waiting('rescan')}
+                  disabledReason={busyReason('rescan')}
                   pending={mutation.isPending('rescan')}
                   onClick={() => void rescanOccurrences()}
                 >

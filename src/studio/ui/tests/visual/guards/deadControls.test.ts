@@ -3,7 +3,7 @@ import { DEAD_CONTROL_DEBT, DEAD_CONTROL_TIMER_DRIVEN } from './dead-controls-al
 
 // The lists may only shrink and every line names the issue that owns the fix (#3276).
 const MAX_DEBT = 0;
-const MAX_TIMER_DRIVEN = 1;
+const MAX_TIMER_DRIVEN = 0;
 
 describe('dead-control allowlist', () => {
   test('does not grow', () => {
