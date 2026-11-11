@@ -1,6 +1,5 @@
 // The follow-ups of the Booth leave guard (#3349): the project picker is an exit like the nav, a take that ends in the DAW during the question or the stop wait
 // leaves no stale refusal, a second exit during the wait says so again, and a double Enter on a jump menu row cannot answer the question it raised.
-import { enterHoldOver } from './helpers/enterHold';
 import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
@@ -118,20 +117,32 @@ test('a take that ends in the DAW while the stop is pending leaves without the "
   expect(await onBooth(page)).toBe(false);
 });
 
+// The hold is a timer in the overlay host, so these three run on Playwright's clock: it flows while the take starts (the Booth's own guards need real
+// time) and is paused before the key presses, then moved by exactly as much as the test says. No outcome depends on how fast the machine is (#3405).
+// The clock is moved on a few seconds to stop it: far enough that a slow machine's real time has not passed it by when the call arrives.
+async function pauseClock(page: Page): Promise<void> {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 3000);
+}
+
 test('a double Enter on a jump menu row that leaves the Booth keeps the question open and the take running', async ({ page }) => {
+  await page.clock.install();
   await recording(page);
   await page.keyboard.press('Control+KeyK');
   await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Go to Script');
   await expect(page.getByRole('option', { name: /^Go to Script/ })).toBeVisible();
+  await pauseClock(page);
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
   await expect(question(page)).toBeVisible();
-  await page.waitForTimeout(250);
+  await expect(question(page)).toHaveAttribute('data-enter-held', '');
+  await page.clock.runFor(300);
   await expect(question(page)).toBeVisible();
   expect(await onBooth(page)).toBe(true);
   expect(await dawRecording(page)).toBe(true);
   // Past the moment, Enter answers as it always did: the safe button, Keep recording.
-  await enterHoldOver(question(page));
+  await page.clock.runFor(150);
+  await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
   await page.keyboard.press('Enter');
   await expect(question(page)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
@@ -257,25 +268,36 @@ test('after quiet and a DAW restart, Escape leaves silently with 0 stops', async
 
 // #3405: a press inside the hold does nothing, whichever key and however it is pressed; the same press after it answers.
 test('Enter and Space pressed inside the hold leave the question open and the take recording', async ({ page }) => {
+  await page.clock.install();
   await recording(page);
+  await pauseClock(page);
   await page.keyboard.press('Escape');
   await expect(question(page)).toBeVisible();
   await expect(question(page)).toHaveAttribute('data-enter-held', '');
   await page.keyboard.press('Enter');
   await page.keyboard.press('Space');
-  await page.waitForTimeout(100);
+  await page.clock.runFor(399);
   await expect(question(page)).toBeVisible();
+  await expect(question(page)).toHaveAttribute('data-enter-held', '');
   expect(await dawRecording(page)).toBe(true);
   expect(await onBooth(page)).toBe(true);
+  await page.clock.runFor(50);
+  await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
+  await page.keyboard.press('Enter');
+  await expect(question(page)).toHaveCount(0);
+  expect(await dawRecording(page)).toBe(true);
 });
 
 test('a Space pressed inside the hold and released after it does not answer the question', async ({ page }) => {
+  await page.clock.install();
   await recording(page);
+  await pauseClock(page);
   await page.keyboard.press('Escape');
   await expect(question(page)).toBeVisible();
   await question(page).getByRole('button', { name: 'Keep recording' }).focus();
   await page.keyboard.down('Space');
-  await enterHoldOver(question(page));
+  await page.clock.runFor(450);
+  await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
   await page.keyboard.up('Space');
   await page.waitForTimeout(150);
   await expect(question(page)).toBeVisible();

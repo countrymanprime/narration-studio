@@ -166,14 +166,25 @@ describe('a question that ignores Enter for a moment (#3349)', () => {
     expect(keyDown(' ')).toBe(false);
     // A key that is not a press is not touched.
     expect(keyDown('Tab')).toBe(true);
+    // The popup says it holds, for a test to wait on, and stops saying so when the hold is over.
+    expect(dialog.hasAttribute('data-enter-held')).toBe(true);
     await act(async () => {});
     expect(answer).toBeUndefined();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(450);
     });
+    expect(dialog.hasAttribute('data-enter-held')).toBe(false);
     expect(keyDown('Enter')).toBe(true);
     fireEvent.click(keep);
     await waitFor(() => expect(answer).toBe(false));
+  });
+
+  it('a question with no ignoreEnterAfterMs never holds, and says so by having no data-enter-held', async () => {
+    mount();
+    void service.confirm({ title: 'Clear it?', body: 'Gone.', confirmLabel: 'Clear' });
+    const dialog = await screen.findByRole('alertdialog', { name: 'Clear it?' });
+    expect(dialog.hasAttribute('data-enter-held')).toBe(false);
+    expect(fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Clear' }), { key: 'Enter', cancelable: true })).toBe(true);
   });
 
   it('does not hold back a click or Escape inside the window', async () => {

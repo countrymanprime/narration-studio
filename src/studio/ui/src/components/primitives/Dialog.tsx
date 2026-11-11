@@ -209,7 +209,7 @@ export function Dialog({
         >
           <Parts.Popup
             ref={popupRef}
-            // Present while Enter and Space are held back (`holdEnter`): what a test, or a screen reader's tool, waits on instead of a guessed delay.
+            // Present while Enter and Space are held back (`holdEnter`): what a test waits on instead of a guessed delay. Not exposed to assistive technology.
             data-enter-held={holdEnter ? '' : undefined}
             initialFocus={initialFocus}
             onKeyDown={(event) => {
