@@ -16,7 +16,7 @@ import type {
   StageUnknownCause,
   Track,
 } from '../../types';
-import { trackHeldByOther } from '../mapping/trackHeldBy';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -65,6 +65,7 @@ const SOURCE_CHOICE_OPTIONS = [
  * audio engine panel and the recording check show. */
 function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter; notify: Notify; onLinked: () => void }) {
   const api = useApi();
+  const actions = useChapterLinkActions();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
   const confirming = usePendingAction();
@@ -92,20 +93,10 @@ function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter;
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
-          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
-          let taken: string;
           try {
-            taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
-          } catch (reason) {
-            notify(`The link could not be checked: ${describeApiError(reason)}`, 'error');
-            return;
-          }
-          if (taken) {
-            notify(taken, 'error');
-            return;
-          }
-          try {
-            await api.chapterTrackMapConfirm(trackGuid, chapter.id);
+            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
+            const { displacedNotice } = await actions.set(chapter.id, trackGuid);
+            if (displacedNotice) notify(`Track linked. ${displacedNotice}`);
             setError('');
             onLinked();
           } catch (reason) {

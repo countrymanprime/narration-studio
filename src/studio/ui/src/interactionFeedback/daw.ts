@@ -222,28 +222,6 @@ export const dawFeedback = {
     'exempt',
     'Read with the match only to say which chapter a track is linked to now ("Linked to Chapter 9. Linking it here moves it."); without it the cards omit that line and the link itself still works.',
   ),
-  'src/components/connection/ChapterLinkDialog.tsx::chapterTrackSet#1': row(
-    'click',
-    'file-io',
-    'pending',
-    'pending',
-    'ui',
-    'inline',
-    'no',
-    'ok',
-    "Link track makes the chosen track the chapter's one link (replacing the old); the button is busy and ignores a second press, a refusal is written in the dialog, and on success the page reads the chapter again and the dialog goes.",
-  ),
-  'src/components/connection/ChapterLinkDialog.tsx::chapterTrackCreate#1': row(
-    'click',
-    'file-io',
-    'pending',
-    'pending',
-    'ui',
-    'inline',
-    'no',
-    'ok',
-    "Create a new track (Create a new folder in a Voice folders project) has the DAW add a track, or a folder with a Narrator track in it, named after the chapter and links it; the button is busy and ignores a second press (one press, one track), the DAW's refusal or a failed call is written in the dialog, and on success the page reads the chapter and its voices again, says what was added (the folder with its Narrator, or the track) and the dialog goes.",
-  ),
   // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
   'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(
     'effect',

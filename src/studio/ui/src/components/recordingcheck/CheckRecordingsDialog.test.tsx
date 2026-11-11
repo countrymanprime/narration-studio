@@ -358,7 +358,7 @@ describe('CheckRecordingsDialog', () => {
     expect(screen.getByRole('button', { name: 'Check 2 chapters' })).toBeTruthy();
   });
 
-  it('refuses a track another chapter holds from the in-row link, and does not link it (#3053)', async () => {
+  it('moves a track another chapter holds from the in-row link, and says which chapter lost it (#3053, #3365)', async () => {
     const { api, emit } = host({
       coverageStart: async (id) =>
         id === 'a'
@@ -372,35 +372,35 @@ describe('CheckRecordingsDialog', () => {
     const alert = await within(await screen.findByRole('dialog')).findByRole('alert');
     const select = await within(alert).findByRole('combobox', { name: /^Track for Chapter a/ });
     const option = within(select).getAllByRole('option')[1] as HTMLOptionElement;
-    vi.spyOn(api, 'chapterTrackMapList').mockResolvedValue({
+    const set = vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
       documentId: 'doc',
-      mappings: [{ trackGuid: option.value, chapterId: 'other', chapterTitle: 'Chapter 9', confirmedAt: '2026-01-01T00:00:00Z' }],
+      link: { trackGuid: option.value, chapterId: 'a', chapterTitle: 'Chapter a', confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: { trackGuid: option.value, chapterId: 'other', chapterTitle: 'Chapter 9', confirmedAt: '2026-01-01T00:00:00Z' },
+      mappings: [],
     });
     await userEvent.selectOptions(select, option);
     await userEvent.click(within(alert).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(toasts(service)).toContain('That track is already linked to Chapter 9. Unlink it there first, or pick another track.'));
+    await waitFor(() => expect(toasts(service)).toContain('Track linked. Chapter 9 was linked to that track and is now not linked.'));
+    expect(set).toHaveBeenCalledWith('a', option.value);
     expect(confirm).not.toHaveBeenCalled();
   });
 
-  it('a failed held-track check is a toast and leaves the in-row picker (ux review)', async () => {
+  it('a failed in-row link shows the host error', async () => {
     const { api, emit } = host({
       coverageStart: async (id) =>
         id === 'a'
           ? { status: 'refused', reason: 'unmapped', message: 'Link a REAPER track to this chapter first.' }
           : { status: 'started', state: { runId: 'r-b', chapterId: id, phase: 'running', percent: 0, message: '' } },
     });
-    const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
-    const { service } = open(api, ['a', 'b']);
+    vi.spyOn(api, 'chapterTrackSet').mockRejectedValue(new Error('REAPER did not answer'));
+    open(api, ['a', 'b']);
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     emit({ runId: 'r-b', phase: 'complete' });
     const alert = await within(await screen.findByRole('dialog')).findByRole('alert');
     const select = await within(alert).findByRole('combobox', { name: /^Track for Chapter a/ });
-    vi.spyOn(api, 'chapterTrackMapList').mockRejectedValue(new Error('REAPER did not answer'));
     await userEvent.selectOptions(select, within(select).getAllByRole('option')[1] as HTMLOptionElement);
     await userEvent.click(within(alert).getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(toasts(service).some((text) => text.startsWith('The link could not be checked'))).toBe(true));
-    expect(confirm).not.toHaveBeenCalled();
-    expect(within(alert).getByRole('combobox', { name: /^Track for Chapter a/ })).toBeTruthy();
+    await waitFor(() => expect(within(alert).getByText(/REAPER did not answer/)).toBeTruthy());
   });
 
   it('disabled-without-the-daw', async () => {

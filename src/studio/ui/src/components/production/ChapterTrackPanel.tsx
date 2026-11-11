@@ -12,7 +12,7 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
-import { keptTitle } from '../mapping/trackHeldBy';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -69,6 +69,7 @@ export function ChapterTrackPanel({
   onRemoveFromRecording: (kind: ManuscriptContentKind) => Promise<void>;
 }) {
   const api = useApi();
+  const actions = useChapterLinkActions();
   // The tracks are the shared state's, the same ones the Engine list and the Booth show (REAPER's now, the saved file's when it is not open).
   const trackState = useChapterTrackState({ when: open });
   const tracks: Track[] | undefined = trackState.project?.tracks;
@@ -96,12 +97,8 @@ export function ChapterTrackPanel({
   const link_ = async (trackGuid: string) => {
     setBusy(true);
     try {
-      const result = await api.chapterTrackSet(chapterId, trackGuid);
-      if (result.displaced)
-        notify(
-          `Linked. This track was linked to ${keptTitle(result.displaced.chapterTitle) ?? 'a chapter no longer in the manuscript'}, which is now unlinked.`,
-        );
-      else notify('Track linked.');
+      const { displacedNotice } = await actions.set(chapterId, trackGuid);
+      notify(displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.');
       await onChanged();
     } catch (error) {
       notify(describeApiError(error), 'error');
@@ -112,7 +109,7 @@ export function ChapterTrackPanel({
   const unlink = async () => {
     setBusy(true);
     try {
-      await api.chapterTrackUnlink(chapterId);
+      await actions.unlink(chapterId);
       setUnlinkedFrom(linkRead);
       notify('Track unlinked.');
       await onChanged();

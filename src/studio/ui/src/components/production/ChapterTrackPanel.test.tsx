@@ -154,7 +154,7 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to Chapter 9, which is now unlinked.'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. Chapter 9 was linked to that track and is now not linked.'));
   });
 
   // #3272: the re-read of ChapterTrackLinks parses the whole saved project; the panel must not wait for it to show the chapter unlinked.
@@ -221,7 +221,9 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to a chapter no longer in the manuscript, which is now unlinked.'));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith('Track linked. A chapter no longer in the manuscript was linked to that track and is now not linked.'),
+    );
   });
 
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {

@@ -3,6 +3,8 @@ import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
+import { useOverlay } from '../../overlay/OverlayProvider';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -50,6 +52,8 @@ export function ChapterLinkDialog({
   onClose,
 }: ChapterLinkDialogProps) {
   const trackMap = usePort('chapterTrackMap');
+  const actions = useChapterLinkActions();
+  const overlay = useOverlay();
   const [read, setRead] = useState<Read>({ status: 'loading' });
   const [asked, setAsked] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -96,9 +100,11 @@ export function ChapterLinkDialog({
     if (!chosen || linking) return;
     setLinking(true);
     setRefused(null);
-    trackMap.chapterTrackSet(chapterId, chosen).then(
-      (result) => {
+    actions.set(chapterId, chosen).then(
+      ({ result, displacedNotice }) => {
         setLinking(false);
+        // The chapter that lost the track is named, as every other place that links says (#3365).
+        if (displacedNotice) overlay.toast(`Track linked. ${displacedNotice}`);
         onLinked(result);
       },
       (error: unknown) => {
@@ -113,7 +119,7 @@ export function ChapterLinkDialog({
     if (creating || linking || create?.available === false) return;
     setCreating(true);
     setRefused(null);
-    trackMap.chapterTrackCreate(chapterId).then(
+    actions.create(chapterId).then(
       (result) => {
         setCreating(false);
         if (result.outcome === 'created') onLinked(result, result);
