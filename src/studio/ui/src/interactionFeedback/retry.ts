@@ -110,21 +110,24 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'A status sentence, not a failed call: a late roll landed while the take still runs, so nothing failed and nothing is left to repeat (#3409).',
   ),
   'src/components/booth/page/useBoothPage.ts#9': na(
+    'A status sentence about a late roll that landed while a newer take records: nothing was stopped and nothing failed to repeat; the narrator looks in the DAW (#3409).',
+  ),
+  'src/components/booth/page/useBoothPage.ts#10': na(
     'A status sentence about a late roll the Booth stopped (or could not stop, and says where to stop it): the stop is not one to repeat from a toast, the narrator looks in the DAW (#3409).',
   ),
-  'src/components/booth/page/useBoothPage.ts#10': no(
+  'src/components/booth/page/useBoothPage.ts#11': no(
     'Ends a roll the DAW never answered (#3409): the take may still be recording, and R on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#11': no(
+  'src/components/booth/page/useBoothPage.ts#12': no(
     'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#12': no(
+  'src/components/booth/page/useBoothPage.ts#13': no(
     'Ends a cold read whose model check never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#13': no(
+  'src/components/booth/page/useBoothPage.ts#14': no(
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#14': no(RC),
+  'src/components/booth/page/useBoothPage.ts#15': no(RC),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),

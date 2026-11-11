@@ -358,6 +358,26 @@ describe('a stop the app sends outside a press (#3409)', () => {
     expect(said(view).length).toBe(1);
   });
 
+  it('that answers slowly while the project poll reads stopped: the poll does not announce it; a failed stop does (BRK-2)', async () => {
+    let playState: 'recording' | 'stopped' = 'recording';
+    let emit: (transport: { recording: boolean }) => void = () => {};
+    const view = mount({ start: () => Promise.resolve(OK), transport: (listener) => (emit = listener) });
+    view.client.projectState = (async () => ({ playState })) as unknown as DawClient['projectState'];
+    await ready(view);
+    await act(async () => void (await view.result.current.toggle()));
+    act(() => emit({ recording: true }));
+    await vi.advanceTimersByTimeAsync(3_500);
+    let finish: (result: { ok: boolean }) => void = () => {};
+    const stopping = act(async () => void (await view.result.current.appStop(() => new Promise<{ ok: boolean }>((resolve) => (finish = resolve)))));
+    playState = 'stopped';
+    await vi.advanceTimersByTimeAsync(7_000);
+    expect(said(view)).toEqual([]);
+    await act(async () => finish({ ok: false }));
+    await stopping;
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view).length).toBe(1);
+  });
+
   it('that never answers: after its limit a take ending in the DAW is heard again', async () => {
     const { view, emit } = await recordingView();
     void view.result.current.appStop(() => new Promise<{ ok: boolean }>(() => {}));

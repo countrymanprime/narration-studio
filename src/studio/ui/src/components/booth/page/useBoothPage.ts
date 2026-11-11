@@ -23,7 +23,7 @@ import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type Read
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { limited } from '../record/pressLimits';
-import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { appTakeRuns, useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -564,6 +564,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const pressToken = useRef(0);
   // Which take is running: a late answer for one take is not for the next.
   const takeSeq = useRef(0);
+  // How many rolls the DAW answered ok: a late refusal is dropped when a later roll went through.
+  const rollsOk = useRef(0);
   useEffect(() => {
     takeSeq.current += 1;
   }, [recording]);
@@ -592,16 +594,30 @@ export function useBoothPage(options: BoothPageOptions) {
         // from before the roll, or already rolling; the sentence says to look. A roll that lands later is checked against the take it was for (#3409).
         const token = pressToken.current;
         const take = takeSeq.current;
+        const rollsBefore = rollsOk.current;
         const name = recorderNameCapital(control.capabilities?.daw);
         const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) => {
-          if (!late.ok) return void overlay.toast(`${name} could not roll again: ${late.refused ?? late.message}`, { tone: 'error' });
-          const current = mounted.current && token === pressToken.current && take === takeSeq.current && latest.current.recording;
-          if (current) {
+          if (!late.ok) {
+            // A refusal that lands after a later roll went through is about a roll that no longer matters: it must not say an error over the success.
+            if (rollsOk.current !== rollsBefore) return;
+            return void overlay.toast(`${name} could not roll again: ${late.refused ?? late.message}`, { tone: 'error' });
+          }
+          const here = mounted.current && token === pressToken.current && take === takeSeq.current && latest.current.recording;
+          if (here) {
             return void overlay.toast(`${name} rolled again after the Booth stopped waiting. The take is still recording, but the text stayed where it was.`, {
               tone: 'error',
             });
           }
-          // The narrator stopped, left or changed chapter meanwhile: the roll started a recording nobody here is running, so it is stopped like a late start.
+          // A newer take the narrator started since is theirs: a stale answer never stops it, whatever it cannot tell apart in the DAW.
+          if ((mounted.current && latest.current.recording) || appTakeRuns()) {
+            return void overlay.toast(
+              `${name} rolled again after the Booth stopped waiting, while a take is recording. Check ${recorderLabel}: that take may have been cut and restarted.`,
+              {
+                tone: 'error',
+              },
+            );
+          }
+          // The narrator stopped, left or changed chapter meanwhile: the roll has started a recording nobody here is running, so it is stopped like a late start.
           void limited(
             'recordStop',
             appStop(() => daw.recordStop()),
@@ -614,7 +630,12 @@ export function useBoothPage(options: BoothPageOptions) {
             ),
           );
         });
-        if (!asked.timedOut) return asked.value;
+        if (!asked.timedOut) {
+          if (asked.value.ok) rollsOk.current += 1;
+          return asked.value;
+        }
+        // The take ended meanwhile (the DAW's own stop was announced): the sentence about a take that may still be recording would contradict it.
+        if (!mounted.current || !latest.current.recording) return { ok: false, changed: false, undoSteps: 0, message: '' };
         // Said here as an error, like the other limits; the empty message tells the roll hook there is nothing more to say.
         overlay.toast(
           `${name} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,

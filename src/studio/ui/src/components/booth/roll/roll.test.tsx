@@ -125,6 +125,34 @@ describe('useRoll', () => {
     expect(actions.logPunch).toHaveBeenCalledWith({ paragraph: 1, seconds: 42 });
   });
 
+  it('a roll that rejects (the bridge broke) says so, changes nothing and leaves R free', async () => {
+    const roll = vi.fn(async (): Promise<DawResult> => {
+      throw new Error('bridge exploded');
+    });
+    const { hook, actions } = setup(SETUPS.reaper, {}, roll);
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.notify).toHaveBeenCalledWith('Rolling again did not go through: bridge exploded');
+    expect(actions.moveTo).not.toHaveBeenCalled();
+    expect(actions.logPunch).not.toHaveBeenCalled();
+    roll.mockImplementation(async () => ok);
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.moveTo).toHaveBeenCalledWith(3);
+  });
+
+  it('a roll that answers ok after the take ended logs, moves and says nothing', async () => {
+    let answer: (result: DawResult) => void = () => {};
+    const roll = vi.fn(() => new Promise<DawResult>((resolve) => (answer = resolve)));
+    const { hook, actions, session } = setup(SETUPS.reaper, {}, roll);
+    let pressed: Promise<void> = Promise.resolve();
+    act(() => void (pressed = hook.result.current.punchAndRoll()));
+    hook.rerender({ ...session, recording: false });
+    await act(async () => answer(ok));
+    await pressed;
+    expect(actions.moveTo).not.toHaveBeenCalled();
+    expect(actions.logPunch).not.toHaveBeenCalled();
+    expect(actions.notify).not.toHaveBeenCalled();
+  });
+
   it('a refused roll shows the DAW sentence and changes nothing', async () => {
     const roll = vi.fn(async (): Promise<DawResult> => ({ ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' }));
     const { hook, actions } = setup(SETUPS.reaper, {}, roll);

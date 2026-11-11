@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
@@ -102,13 +103,18 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     rolling.current = true;
     try {
       const seconds = s.takeSeconds;
-      const result = await actionsRef.current.roll(to, { confirmed });
+      const result = await actionsRef.current.roll(to, { confirmed }).catch((error: unknown): DawResult => {
+        // A call that fails (the bridge broke) is a sentence, never a silent press or an unhandled error.
+        return { ok: false, changed: false, undoSteps: 0, message: `Rolling again did not go through: ${apiErrorMessage(error)}` };
+      });
       if (!result.ok) {
         // An empty message is a failure the Booth already said (the roll's limit).
         const said = result.refused ?? result.message;
         if (said) actionsRef.current.notify(said);
         return;
       }
+      // The take ended while the roll was out (Stop): nothing is logged, moved or announced for a take that is over.
+      if (!sessionRef.current.recording) return;
       lastRollAt.current = Date.now();
       actionsRef.current.logPunch({ paragraph: s.paragraphOf(to), seconds });
       actionsRef.current.moveTo(to);
