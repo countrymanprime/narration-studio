@@ -6,6 +6,7 @@
 import type { ChapterSyncChapter, ChapterTrackLink } from '../../types';
 import { chapterTrackButtonState } from './chapterTrackButtonState';
 import { plural } from '../../plural';
+import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 
 export type ChapterCheckStatus =
   | { kind: 'checking'; percent?: number; background?: boolean }
@@ -117,7 +118,7 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
       return { label: 'Suggested track', detail, name: `Recording check for ${chapterTitle}: suggested track, ${detail}` };
     }
     case 'missing':
-      return { label: 'Track missing', detail: 'not in the saved project', name: `Recording check for ${chapterTitle}: linked track is missing` };
+      return { label: LINK_STATE_LABEL.missing, detail: 'not in the saved project', name: `Recording check for ${chapterTitle}: linked track is missing` };
     case 'unlinked':
       return { label: 'No track yet', name: `Recording check for ${chapterTitle}: no track linked yet` };
   }

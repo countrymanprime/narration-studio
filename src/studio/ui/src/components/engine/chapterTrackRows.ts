@@ -1,6 +1,6 @@
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { isNarrationChapter } from '../../chapterKinds';
-import { chapterLink, type ChapterLinkState } from '../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, type ChapterLinkState } from '../chapterTracks/chapterLink';
 
 /** A chapter's link state for the audio engine panel list `linked` when the
  * confirmed track still exists in the current REAPER project, `missing` when the confirmed trackGuid no longer
@@ -25,7 +25,7 @@ export function chapterTrackRows(chapters: ManuscriptChapter[], tracks: Track[],
     const mapping = link.mappings[0];
     if (!mapping) return { chapter, state: 'unlinked' as const };
     const track = trackByGuid.get(mapping.trackGuid);
-    const state: ChapterLinkState = link.state === 'several' ? 'several' : track ? 'linked' : 'missing';
+    const state = linkStateOf(link, Boolean(track));
     return { chapter, mapping, trackName: track?.name, state };
   });
 }

@@ -33,3 +33,15 @@ export function chapterLink(mappings: readonly TrackMapping[], chapterId: string
   if (mine.length === 0) return { state: 'unlinked', mappings: mine };
   return { state: mine.length === 1 ? 'linked' : 'several', trackGuid: mine[0].trackGuid, mappings: mine };
 }
+
+/** The chapter's state once the project's tracks are known: `missing` when it is linked to one track and the project no longer has it. One place
+ * decides it, for the Engine rows and the Editing source alike. */
+export function linkStateOf(link: ChapterLink, trackExists: boolean): ChapterLinkState {
+  if (link.state === 'linked' && !trackExists) return 'missing';
+  return link.state;
+}
+
+/** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. */
+export function linkStateLabel(state: ChapterLinkState, folders: boolean): string {
+  return state === 'several' && folders ? 'Several folders' : LINK_STATE_LABEL[state];
+}

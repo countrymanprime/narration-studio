@@ -22,7 +22,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { useVoiceLayout } from './voiceLayout';
 import { destinationFor } from './destination';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { LINK_STATE_LABEL, linkStateLabel } from '../chapterTracks/chapterLink';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel, kindInWords as kindWords } from './voices';
@@ -299,7 +299,7 @@ function ChapterLinkRow({
     ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
     : false;
   const destination = destinationFor(folders ? 'folders' : 'flat');
-  const badge = row.state === 'several' ? { ...STATE_BADGE.several, label: destination.severalBadge } : STATE_BADGE[row.state];
+  const badge = { ...STATE_BADGE[row.state], label: linkStateLabel(row.state, folders) };
   // What the check will do with the pick, said before it is pressed: the track and what it is, what it replaces, and a chapter that loses it.
   const picked = tracks.find((track) => track.guid === pick);
   const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;

@@ -60,7 +60,7 @@ const NO_AUDIO_REASON = 'There is no audio for this chapter.';
  * nothing about the link, so the page does not claim there is no audio.
  */
 export function audioOf(
-  link: Exclude<ChapterLinkState, 'several'> | 'unknown',
+  link: ChapterLinkState | 'unknown',
   trackItems: number,
   liveItems: number,
   folder = false,
@@ -68,9 +68,11 @@ export function audioOf(
 ): ChapterAudio {
   if (link === 'unknown' || trackItems > 0 || liveItems > 0) return { kind: 'ready' };
   // A linked track the saved project lacks may be one added since the last save: with unsaved changes that is a save to make, not a link to fix.
-  if (unsaved && (link === 'linked' || link === 'missing'))
+  // A chapter with several links plays its first track, as it did before the one vocabulary: it is `linked` here.
+  const linked = link === 'linked' || link === 'several';
+  if (unsaved && (linked || link === 'missing'))
     return { kind: 'empty', ...(folder ? { folder } : {}), unsaved, ...(link === 'missing' ? { missing: true } : {}) };
-  return link === 'linked' ? { kind: 'empty', ...(folder ? { folder } : {}) } : { kind: link };
+  return linked ? { kind: 'empty', ...(folder ? { folder } : {}) } : { kind: link };
 }
 
 /**
