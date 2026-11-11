@@ -35,35 +35,47 @@ const open = async (value = '', onChange = vi.fn()) => {
 };
 
 describe('the track picker for a project with folders', () => {
+  // qa-breaker (#3384): a search with no match, closed with Escape, reopened to "No track matches" with every track hidden.
+  it('forgets its search when it closes, so the next open lists every track', async () => {
+    const user = userEvent.setup();
+    await open();
+    await user.type(screen.getByRole('textbox', { name: 'Search tracks' }), 'zzz');
+    expect(screen.getByText('No track matches “zzz”')).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: /^Track for Chapter 4/ }));
+    expect(screen.queryByText(/No track matches/)).toBeNull();
+    expect(screen.getAllByRole('treeitem').length).toBeGreaterThan(3);
+  });
+
   // #3274: the owner could not tell a folder with a voice in it from a track named after the chapter.
-  it('says in words what each row is: a folder with what it holds, or a single track', async () => {
+  it('says what a folder holds and leaves a single track to its mark', async () => {
     await open();
     const other = screen.getByRole('tree', { name: 'Other tracks' });
     const row = (name: string) => within(other).getByText(name).closest('[role="treeitem"]') as HTMLElement;
-    expect(row('Credits').textContent).toContain('folder, 1 track');
-    expect(row('Chapters').textContent).toContain('folder, 2 tracks');
-    expect(row('Opening credits').textContent).toContain('single track');
+    expect(row('Credits').textContent).toContain('1 track');
+    expect(row('Chapters').textContent).toContain('2 tracks');
+    expect(row('Opening credits').textContent).not.toContain('single track');
   });
 
   it('puts the full text of what it shows in a tooltip on the closed box, so a narrow box can still be read', async () => {
     render(<TrackSelect label="Track for Chapter 4" choices={CHOICES} value="g-Ch 1" onChange={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: /^Track for Chapter 4/ });
-    expect(trigger.getAttribute('title')).toBe('Narration / Chapters / Ch 1');
+    expect(trigger.getAttribute('title')).toBe('Narration / Chapters / Ch 1 (single track)');
   });
 
   it('heads the list with the best match and path, then the tree with levels', async () => {
     await open();
     const best = screen.getByRole('tree', { name: 'Best match' });
     expect(within(best).getByRole('treeitem')).toHaveProperty('textContent', expect.stringContaining('Ch 4'));
-    // What it is, in words, then where it sits.
-    expect(within(best).getByText('single track · Narration / Chapters')).toBeTruthy();
+    // Where it sits.
+    expect(within(best).getByText('Narration / Chapters')).toBeTruthy();
     const other = screen.getByRole('tree', { name: 'Other tracks' });
     expect(
       within(other)
         .getAllByRole('treeitem')
         .map((item) => item.getAttribute('aria-level')),
     ).toEqual(['1', '2', '3', '3', '2', '3']);
-    expect(within(other).getByText('single track · linked to Chapter 1')).toBeTruthy();
+    expect(within(other).getByText('linked to Chapter 1')).toBeTruthy();
   });
 
   it('shows a folder with no audio but does not let it be chosen, and a folder with audio can be', async () => {

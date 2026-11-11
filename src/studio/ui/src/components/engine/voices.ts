@@ -27,6 +27,9 @@ export function folderLinkLabel(name: string, count: number, unit: 'voice' | 'tr
   return `${name} · ${plural(count, unit)}`;
 }
 
+/** What a folder holds, counted as its direct children: "3 voices" in a Voice folders project, "3 tracks" in any other. The one wording of it. */
+export const holdsWords = (count: number, voiceFolders: boolean): string => plural(count, voiceFolders ? 'voice' : 'track');
+
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
   const folder = tracks[at];

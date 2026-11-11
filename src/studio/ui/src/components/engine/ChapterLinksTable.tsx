@@ -23,7 +23,7 @@ import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackM
 import { useVoiceLayout } from './voiceLayout';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
-import { folderChildren, folderLinkLabel } from './voices';
+import { folderChildren, folderLinkLabel, holdsWords } from './voices';
 import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
@@ -42,14 +42,14 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone; i
 // name, or the picker) and the row's actions at fixed widths, so a link, a Change or a missing track never moves a column. The track gets
 // the width the status word used to take, so its name can be read; the actions column holds the widest pair (the check and Cancel) and the
 // More actions button on one line.
-const COLUMNS = ['auto', '2.75rem', '16rem', '10.5rem'] as const;
+const COLUMNS = ['auto', '4.5rem', '16rem', '10.5rem'] as const;
 
 // Below this width (the panel at a phone width or 400% zoom) a row is two lines instead: the chapter and its status, then the track
 // and the actions (ENX-29). `NARROW` is the container query the cells use.
 const NARROW_TABLE =
-  '@max-[34rem]:block @max-[34rem]:[&>colgroup]:hidden @max-[34rem]:[&>thead]:hidden @max-[34rem]:[&>tbody]:block @max-[34rem]:[&_td]:h-auto @max-[34rem]:[&_td]:border-b-0 @max-[34rem]:[&_td]:px-0! @max-[34rem]:[&_td]:py-1';
+  '@max-[40rem]:block @max-[40rem]:[&>colgroup]:hidden @max-[40rem]:[&>thead]:hidden @max-[40rem]:[&>tbody]:block @max-[40rem]:[&_td]:h-auto @max-[40rem]:[&_td]:border-b-0 @max-[40rem]:[&_td]:px-0! @max-[40rem]:[&_td]:py-1';
 const NARROW_ROW =
-  '@max-[34rem]:grid @max-[34rem]:grid-cols-[minmax(0,1fr)_auto] @max-[34rem]:items-center @max-[34rem]:gap-x-3 @max-[34rem]:border-b @max-[34rem]:border-[var(--border)] @max-[34rem]:px-4 @max-[34rem]:py-2 @max-[34rem]:last:border-b-0';
+  '@max-[40rem]:grid @max-[40rem]:grid-cols-[minmax(0,1fr)_auto] @max-[40rem]:items-center @max-[40rem]:gap-x-3 @max-[40rem]:border-b @max-[40rem]:border-[var(--border)] @max-[40rem]:px-4 @max-[40rem]:py-2 @max-[40rem]:last:border-b-0';
 
 // The audio engine panel's list of every chapter-track link (the "whole
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
@@ -182,12 +182,9 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
-/** What a track is, in words: "a single track", or "a folder with N voices" (Voice folders) / "a folder with N tracks". */
-export function kindInWords(track: Track, tracks: Track[], voiceFolders: boolean): string {
-  if (!track.isFolder) return 'a single track';
-  const inside = folderChildren(tracks, track.guid).length;
-  const unit = voiceFolders ? ['voice', 'voices'] : ['track', 'tracks'];
-  return `a folder with ${inside} ${inside === 1 ? unit[0] : unit[1]}`;
+/** What a track is, in words: "a single track", or "a folder of 3 voices" (Voice folders) / "a folder of 3 tracks". */
+function kindInWords(track: Track, tracks: Track[], voiceFolders: boolean): string {
+  return track.isFolder ? `a folder of ${holdsWords(folderChildren(tracks, track.guid).length, voiceFolders)}` : 'a single track';
 }
 
 /** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
@@ -256,6 +253,9 @@ function ChapterLinkRow({
   onEditingCheck: () => void;
 }) {
   const navigate = useNavigate();
+  // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
+  const folders = useVoiceLayout() === 'folders';
+  const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
   const [picking, setPicking] = useState(!hasLink);
@@ -263,7 +263,10 @@ function ChapterLinkRow({
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
   // The pick as it is now, for a re-read that ends after the narrator picked something else: their pick is kept, not snapped back.
   // A pick whose track has left the list (a read answered without it) is no pick: the select shows "Choose a track", so the check must be off.
-  const pick = tracks.some((track) => track.guid === chosen) ? chosen : '';
+  // So is one whose track became a folder with no audio of its own (the picker marks it "can't be linked"; a Voice folders project links the folder).
+  const blocked = (guid: string) =>
+    !folders && choices.find((choice) => choice.guid === guid)?.hasAudio === false && tracks.find((t) => t.guid === guid)?.isFolder === true;
+  const pick = tracks.some((track) => track.guid === chosen) && !blocked(chosen) ? chosen : '';
   const chosenNow = useRef(pick);
   chosenNow.current = pick;
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
@@ -283,8 +286,6 @@ function ChapterLinkRow({
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
-  // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
-  const folders = useVoiceLayout() === 'folders';
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
   // A track REAPER gives no name reads as the one name every page gives it (trackName), here with its place in the project.
   const shownName = trackName(row.trackName ?? '', linkedTrack ? tracks.indexOf(linkedTrack) : undefined);
@@ -294,15 +295,17 @@ function ChapterLinkRow({
   const unplayable = linkedTrack
     ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
     : false;
-  const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
   // What the check will do with the pick, said before it is pressed: the track and what it is, what it replaces, and a chapter that loses it.
   const picked = tracks.find((track) => track.guid === pick);
+  const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;
+  // A track that is gone is not "unnamed": the sentence says it is missing.
+  const replaced = row.state === 'missing_track' ? 'the missing track' : quoted(shownName);
   const preview = picked
     ? [
         `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders)})`,
-        hasLink && linkedGuid !== pick ? `instead of ${quoted(shownName)}` : '',
-        choices.find((choice) => choice.guid === pick)?.heldBy ? `${choices.find((choice) => choice.guid === pick)?.heldBy} will be not linked` : '',
+        hasLink && linkedGuid !== pick ? `instead of ${replaced}` : '',
+        heldBy ? `${heldBy} loses its link` : '',
       ]
         .filter(Boolean)
         .join(', ')
@@ -352,7 +355,7 @@ function ChapterLinkRow({
           </span>
         ) : row.state === 'linked' ? (
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate" title={linkedName}>
+            <span className="min-w-0 truncate" title={linkedTrack ? `${linkedName} (${kindInWords(linkedTrack, tracks, folders)})` : linkedName}>
               <bdi>{linkedName}</bdi>
             </span>
             {unplayable && (
@@ -376,15 +379,12 @@ function ChapterLinkRow({
           {showPicker ? (
             <>
               <IconButton
+                hint={preview || undefined}
                 action="confirmTrack"
-                label={
-                  pick && pick === linkedGuid
-                    ? `Check the link for ${short} again`
-                    : `Use this ${folders ? 'folder' : 'track'} for ${short}${preview ? `: ${preview}` : ''}`
-                }
+                label={pick && pick === linkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
                 variant={pick && pick !== linkedGuid ? 'primary' : 'default'}
-                disabledReason={!pick ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
+                disabledReason={!pick ? `Choose a ${folders ? 'folder' : 'track'} first` : creating ? 'Wait for the track being added' : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {
                   if (pick !== linkedGuid) return onConfirm(pick);

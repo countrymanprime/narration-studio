@@ -291,7 +291,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(within(table).getByRole('button', { name: `Create a track for ${long}` }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(`“${long}”`), 'info'));
     await waitFor(() => expect(within(table).queryByRole('button', { name: `Create a track for ${long}` })).toBeNull());
-    const names = within(table).getAllByTitle(long);
+    const names = within(table).getAllByTitle(`${long} (a single track)`);
     expect(names.some((element) => element.className.includes('truncate'))).toBe(true);
     expect(
       within(table)

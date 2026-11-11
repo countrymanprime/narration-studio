@@ -258,32 +258,27 @@ describe('ChapterLinksTable', () => {
     const [first, second] = WIRE_TRACKS_PROJECT.tracks;
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), first.guid);
-    // A pick on a row with no link: no "instead of", and the track says what it is.
-    expect(
-      within(opening)
-        .getByRole('button', { name: /^Use this track for/ })
-        .getAttribute('aria-label'),
-    ).toContain(`links “${first.name}” (a single track)`);
-    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    // A pick on a row with no link: the name stays short, and the hint says what the check will do: no "instead of", and the track says what it is.
+    const check = () => within(opening).getByRole('button', { name: /^Use this track for/ });
+    expect(check().getAttribute('aria-label')).toBe('Use this track for Opening credits');
+    await user.hover(check());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(`links “${first.name}” (a single track)`);
+    await user.unhover(check());
+    await user.click(check());
     await within(opening).findByRole('img', { name: 'Linked' });
     await pastQuiet();
     // Change to another track: the link it replaces is named.
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     await pastQuiet();
     await user.selectOptions(within(opening).getByRole('combobox'), second.guid);
-    const label =
-      within(opening)
-        .getByRole('button', { name: /^Use this track for/ })
-        .getAttribute('aria-label') ?? '';
-    expect(label).toContain(`links “${second.name}” (a single track), instead of “${first.name}”`);
+    await user.hover(check());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(`links “${second.name}” (a single track), instead of “${first.name}”`);
+    await user.unhover(check());
     // A track another chapter holds: the chapter that loses it is named.
     const chapter = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(chapter).getByRole('combobox'), first.guid);
-    expect(
-      within(chapter)
-        .getByRole('button', { name: /^Use this track for/ })
-        .getAttribute('aria-label'),
-    ).toContain('Opening credits will be not linked');
+    await user.hover(within(chapter).getByRole('button', { name: /^Use this track for/ }));
+    expect((await screen.findByRole('tooltip')).textContent).toContain('Opening credits loses its link');
   });
 
   // qa-breaker (#3281): a double click on Change puts the check under the second press; it must not read and toast then.

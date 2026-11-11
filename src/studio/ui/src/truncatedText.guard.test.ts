@@ -28,8 +28,13 @@ const TOOLTIP_TAGS = new Set(['TooltipTarget', 'Tooltip']);
 type Tag = ts.JsxOpeningElement | ts.JsxSelfClosingElement;
 const tagOf = (node: ts.Node): Tag | undefined => (ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : undefined);
 
-function hasTitle(tag: Tag): boolean {
-  return tag.attributes.properties.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText() === 'title');
+// A `title` is a tooltip on a DOM tag (`span`, `button`) and on the primitives that pass it on to a DOM element. On any other component it is a prop that
+// may draw a heading instead (`Dialog title`, `ConfirmDialog title`, `Disclosure title`), which says nothing about what its children clip.
+const FORWARDS_TITLE = new Set(['Button', 'IconButton', 'Drawer.Title']);
+function hasTitle(tag: Tag, file: ts.SourceFile): boolean {
+  const name = tag.tagName.getText(file);
+  if (!/^[a-z]/.test(name) && !FORWARDS_TITLE.has(name)) return false;
+  return tag.attributes.properties.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(file) === 'title');
 }
 
 /** The clipping elements of one source text that give no other way to read the whole text, in source order. */
@@ -43,10 +48,10 @@ export function unreadableClips(source: string, fileName = 'probe.tsx'): { line:
       const name = tag.tagName.getText(file);
       const className = tag.attributes.properties.find((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(file) === 'className');
       const clips = className !== undefined && CLIPS.test(className.getText(file));
-      if (clips && !covered && !hasTitle(tag) && name !== 'Select')
+      if (clips && !covered && !hasTitle(tag, file) && name !== 'Select')
         found.push({ line: file.getLineAndCharacterOfPosition(tag.getStart(file)).line + 1, text: tag.getText(file).slice(0, 80) });
       // What an element covers: itself and everything inside it, when it is a tooltip or carries a title.
-      next = covered || TOOLTIP_TAGS.has(name) || hasTitle(tag);
+      next = covered || TOOLTIP_TAGS.has(name) || hasTitle(tag, file);
     }
     ts.forEachChild(node, (child) => visit(child, next));
   };
@@ -59,11 +64,14 @@ describe('the scan itself', () => {
     '<span className="truncate">{name}</span>',
     '<p className="line-clamp-2 text-sm">{text}</p>',
     '<span className={`min-w-0 flex-1 text-ellipsis ${x}`}>{name}</span>',
+    '<Dialog title="Heading"><span className="truncate">{name}</span></Dialog>',
+    '<Disclosure title="Heading"><li className="line-clamp-3">{name}</li></Disclosure>',
   ])('sees %s', (code) => expect(unreadableClips(code)).toHaveLength(1));
   it.each([
     '<span className="truncate" title={name}>{name}</span>',
     '<TooltipTarget text={name}><span className="truncate">{name}</span></TooltipTarget>',
     '<button title={name}><span className="truncate">{name}</span></button>',
+    '<Button title={name}><span className="truncate">{name}</span></Button>',
     '<Select className="truncate" value={v} onChange={f} options={o} label="x" />',
     '<span className="no-truncate-here">x</span>',
     '<span className="min-w-0">x</span>',
