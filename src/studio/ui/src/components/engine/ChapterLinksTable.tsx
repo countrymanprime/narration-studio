@@ -20,6 +20,7 @@ import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { useVoiceLayout } from './voiceLayout';
+import { destinationFor } from './destination';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel } from './voices';
@@ -34,7 +35,7 @@ const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }>
   linked: { label: 'Linked', tone: 'success' },
   unlinked: { label: 'Not linked', tone: 'neutral' },
   missing_track: { label: 'Track missing', tone: 'danger' },
-  several: { label: 'Several tracks', tone: 'warning' },
+  several: { label: 'Several tracks', tone: 'warning' }, // the label follows the layout (destination.severalBadge)
 };
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status badge, the track (its
@@ -289,7 +290,8 @@ function ChapterLinkRow({
     ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
     : false;
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
-  const badge = STATE_BADGE[row.state];
+  const destination = destinationFor(folders ? 'folders' : 'flat');
+  const badge = row.state === 'several' ? { ...STATE_BADGE.several, label: destination.severalBadge } : STATE_BADGE[row.state];
   const showPicker = picking && choices.length > 0;
   // Only a chapter with no link at all gets a new track: a missing one keeps Change and Clear, and a Change picks among the tracks.
   const createButton = !hasLink && (
@@ -350,7 +352,7 @@ function ChapterLinkRow({
           </span>
         ) : row.state === 'several' ? (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--warn-text)' }}>
-            Linked to several tracks
+            {destination.severalChip}
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>
