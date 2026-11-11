@@ -630,7 +630,15 @@ describe('ChapterLinksTable', () => {
 
   it('Clear removes every link a chapter holds, including a double link left by an older Change', async () => {
     const user = userEvent.setup();
-    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id),
+          wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id),
+        ],
+      },
+    );
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -656,7 +664,15 @@ describe('ChapterLinksTable', () => {
   // the second did nothing because that pair was already held: neither resolved it.
   it.each([0, 1])('Change on a chapter with several links replaces them with the track chosen, whichever of the two it is (%i)', async (which) => {
     const user = userEvent.setup();
-    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id),
+          wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id),
+        ],
+      },
+    );
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -684,7 +700,15 @@ describe('ChapterLinksTable', () => {
   // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
   it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {
     const user = userEvent.setup();
-    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id),
+          wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id),
+        ],
+      },
+    );
     const set = vi.spyOn(api, 'chapterTrackSet');
     render(
       <ApiProvider api={api}>
