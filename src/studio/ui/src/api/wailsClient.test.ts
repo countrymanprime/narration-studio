@@ -572,7 +572,7 @@ describe('wailsClient', () => {
     await expect(wailsClient.tracksList()).resolves.toEqual(project);
   });
 
-  it('decodes the ChapterTrackMap list and confirm bindings', async () => {
+  it('decodes the ChapterTrackMap list binding', async () => {
     const empty = { documentId: 'doc-1', mappings: [] };
     const confirmed = {
       trackGuid: 'track-guid-a',
@@ -583,15 +583,11 @@ describe('wailsClient', () => {
       match: null,
     };
     const withOne = { documentId: 'doc-1', mappings: [confirmed] };
-    const confirm = vi.fn().mockResolvedValue(JSON.stringify(confirmed));
     standInHost({
       ChapterTrackMapList: vi.fn().mockResolvedValueOnce(JSON.stringify(empty)).mockResolvedValueOnce(JSON.stringify(withOne)),
-      ChapterTrackMapConfirm: confirm,
     });
 
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(empty);
-    await expect(wailsClient.chapterTrackMapConfirm('track-guid-a', 'c-0001')).resolves.toEqual(confirmed);
-    expect(confirm).toHaveBeenCalledWith('track-guid-a', 'c-0001');
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(withOne);
   });
 

@@ -365,7 +365,6 @@ describe('CheckRecordingsDialog', () => {
           ? { status: 'refused', reason: 'unmapped', message: 'Link a REAPER track to this chapter first.' }
           : { status: 'started', state: { runId: 'r-b', chapterId: id, phase: 'running', percent: 0, message: '' } },
     });
-    const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
     const { service } = open(api, ['a', 'b']);
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     emit({ runId: 'r-b', phase: 'complete' });
@@ -382,7 +381,6 @@ describe('CheckRecordingsDialog', () => {
     await userEvent.click(within(alert).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(toasts(service)).toContain('Track linked. Chapter 9 was linked to that track and is now not linked.'));
     expect(set).toHaveBeenCalledWith('a', option.value);
-    expect(confirm).not.toHaveBeenCalled();
   });
 
   it('a failed in-row link shows the host error', async () => {

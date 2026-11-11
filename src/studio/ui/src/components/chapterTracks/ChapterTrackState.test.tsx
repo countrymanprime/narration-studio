@@ -469,3 +469,78 @@ describe('the shared chapter-track state', () => {
     }
   });
 });
+
+// #3355: the Production board's per-chapter link state (status, candidates, warnings) is the state's too, so a link made in the Engine panel
+// shows there at once.
+describe('the chapter link detail on the shared state', () => {
+  function mountDetail(api: ReturnType<typeof createMockApi>) {
+    const seen: { current?: ChapterTrackState } = {};
+    function Board() {
+      seen.current = useChapterTrackState({ enabled: true, tracks: false, detail: true });
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Board />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    return seen;
+  }
+
+  it("reads each chapter's link state with the links once a screen asks for it", async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'chapterTrackLinks');
+    const seen = mountDetail(api);
+    await waitFor(() => expect(seen.current?.details?.chapters.length).toBeGreaterThan(0));
+    expect(read).toHaveBeenCalled();
+  });
+
+  it('does not read it for a screen that wants only the links', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'chapterTrackLinks');
+    const { seen } = mount(api);
+    await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
+    expect(read).not.toHaveBeenCalled();
+    expect(seen.current?.details).toBeUndefined();
+  });
+
+  it('shows a link made elsewhere at once, as soon as the change is applied', async () => {
+    const api = createMockApi();
+    const seen = mountDetail(api);
+    await waitFor(() => expect(seen.current?.details?.chapters.length).toBeGreaterThan(0));
+    const chapterId = seen.current!.details!.chapters.find((chapter) => chapter.status === 'none')!.chapterId;
+    const track = seen.current!.details!.tracks.at(-1)!;
+    const result = await api.chapterTrackSet(chapterId, track.guid);
+    act(() => seen.current!.applyMappings(result.mappings));
+    await waitFor(() => expect(seen.current?.details?.chapters.find((chapter) => chapter.chapterId === chapterId)?.track?.trackGuid).toBe(track.guid));
+  });
+  // The review of #3414: a failing detail read must not take the links from every other screen, nor silence the next failure's toast.
+  it('keeps the links when only the detail read fails, and marks the state stale', async () => {
+    const api = createMockApi({ chapterTrackLinks: () => Promise.reject(new Error('busy')) });
+    const seen = mountDetail(api);
+    await waitFor(() => expect(seen.current?.linksReadAt).not.toBeNull());
+    expect(seen.current?.details).toBeUndefined();
+    await waitFor(() => expect(seen.current?.stale).toBe(true));
+  });
+
+  it("a links read that a screen showed itself does not silence the next failure's toast", async () => {
+    let fail = false;
+    const base = createMockApi();
+    const api = createMockApi({
+      chapterTrackMapList: () => (fail ? Promise.reject(new Error('down')) : base.chapterTrackMapList()),
+    });
+    const { seen, notify } = mount(api);
+    await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
+    fail = true;
+    await act(async () => {
+      await seen.current!.refreshLinks().catch(() => {});
+    });
+    expect(notify).not.toHaveBeenCalled();
+    await act(async () => {
+      seen.current!.refresh();
+    });
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+  });
+});

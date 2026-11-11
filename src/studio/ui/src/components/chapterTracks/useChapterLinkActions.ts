@@ -73,8 +73,8 @@ type ChapterLinkActions = {
 };
 
 /**
- * Every way a screen changes a chapter's link: set, unlink, create. One binding for each (ChapterTrackSet replaces; the upserting
- * ChapterTrackMapConfirm is not used by a screen), one wording for the chapter that lost its track, and one place that throws, so a caller shows
+ * Every way a screen changes a chapter's link: set, unlink, create. One binding for each (ChapterTrackSet replaces; there is no upserting
+ * confirm binding any more), one wording for the chapter that lost its track, and one place that throws, so a caller shows
  * a failure its own way but never forgets who lost a track (#3365). It reads nothing: the caller refreshes the shared chapter-track state.
  */
 export function useChapterLinkActions(): ChapterLinkActions {

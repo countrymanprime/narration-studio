@@ -13,5 +13,23 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.value }}
     # With the browser cached this skips the download but still installs the system libraries.
+    # `--with-deps` runs apt-get update and install. On 2026-11-11 DNS for archive.ubuntu.com failed on runners for up to about 25 min at a
+    # time: the unchanged step waited it out inside apt and passed after 5.4 min (run 43059323000), but exited 100 on other runs and, with an
+    # unbounded retry, held every shard to the 30 min timeout (run 43051855249). Now: poll the resolver and retry the install (each try
+    # `timeout 300`, then `dpkg --configure -a` to finish a package a kill left half-unpacked) for up to 9 min, then a clear error.
     - shell: bash
-      run: pnpm --dir src/studio/ui exec playwright install --with-deps chromium
+      run: |
+        printf 'Acquire::Retries "1";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
+        deadline=$((SECONDS + 540))
+        attempt=0
+        while [ "$SECONDS" -lt "$deadline" ]; do
+          attempt=$((attempt + 1))
+          if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 300 pnpm --dir src/studio/ui exec playwright install --with-deps chromium; then
+            exit 0
+          fi
+          echo "::warning::playwright install attempt $attempt failed"
+          sudo dpkg --configure -a || true
+          sleep 20
+        done
+        echo "::error::playwright could not install chromium and its system libraries in 9 minutes"
+        exit 1
