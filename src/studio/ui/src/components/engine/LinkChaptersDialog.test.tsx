@@ -140,7 +140,7 @@ describe('LinkChaptersDialog', () => {
     expect(await screen.findByText(/The change was made, but the list could not be read again: .*REAPER did not answer/)).toBeTruthy();
   });
 
-  it('labels a holder by a clean name: the manuscript’s, else the kept title, else "another chapter"', async () => {
+  it('labels a holder by a clean name: never empty, and without control or direction characters', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
     const [first, second] = WIRE_CHAPTERS;

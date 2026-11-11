@@ -83,7 +83,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // wants only the links; the tracks are the caller's.
   const trackState = useChapterTrackState({ enabled, tracks: false });
   const mappings: TrackMapping[] = trackState.mappings;
-  const { applyMappings, refreshLinks } = trackState;
+  const { applyMappings, refreshLinks, linksReadAt } = trackState;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
@@ -95,6 +95,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const inFlight = useRef(false);
   // A change was written and the list could not be read again since: the next failed read says so too (the change callback re-runs the read).
   const staleAfterChange = useRef(false);
+  // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes the "change was made but not read" line away: the list
+  // under it is current again.
+  useEffect(() => {
+    if (!staleAfterChange.current) return;
+    staleAfterChange.current = false;
+    setError('');
+  }, [linksReadAt]);
 
   const reload = useCallback(async () => {
     const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);

@@ -49,10 +49,11 @@ describe('the chapter links reader', () => {
       return real();
     };
     const changed: number[] = [];
-    const seen: { current?: ChapterLinks } = {};
+    const seen: { current?: ChapterLinks; state?: ChapterTrackState } = {};
     // As EnginePanel wires it: the change callback bumps the key that re-runs the hook's own read.
     function Probe() {
       const [key, setKey] = useState(0);
+      seen.state = useChapterTrackState();
       seen.current = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, key, () => {
         changed.push(1);
         setKey((n) => n + 1);
@@ -75,6 +76,12 @@ describe('the chapter links reader', () => {
     // The read the callback re-ran also fails; the narrator still reads that the change was made, not just the host's error.
     await act(async () => undefined);
     expect(seen.current?.error).toContain('The change was made, but the list could not be read again');
+    // The host recovers and the shared state reads the links again (its timer, a focus, the Refresh button): the line above the fresh list goes.
+    failing = false;
+    await act(async () => {
+      await seen.state?.refreshLinks();
+    });
+    await waitFor(() => expect(seen.current?.error).toBe(''));
   });
 
   it('a link cleared through the reader shows in another screen at once, and the row stays busy until it does', async () => {
