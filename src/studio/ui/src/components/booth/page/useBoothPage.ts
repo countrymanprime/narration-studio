@@ -401,8 +401,9 @@ export function useBoothPage(options: BoothPageOptions) {
     const ended = endColdRead();
     takeAt.current = punch ?? recordedEnd;
     // Listening and the DAW start together: loading the speech model takes seconds (docs/research/record-press-timeline.md), and the
-    // DAW's pre-roll runs meanwhile instead of after it. A take is still never kept without listening: a session that fails stops the
-    // recording at once, and what it recorded is taken back (inside REAPER's pre-roll it has recorded nothing).
+    // DAW's pre-roll runs meanwhile instead of after it. A take is still never kept without listening, unless the
+    // narrator stopped it first: a session that fails stops the recording at once, and what it recorded is taken back (inside REAPER's pre-roll it
+    // has recorded nothing). A take the narrator stopped while the listening was starting is kept (`stoppedWhileStarting`).
     // The app's own recorder has no pre-roll and keeps its file from the first instant, so it starts once listening has.
     const listen = endedColdRead || !latest.current.session.active;
     const together = !recordsInApp(control.capabilities?.daw);
@@ -838,8 +839,6 @@ export function useBoothPage(options: BoothPageOptions) {
   // A press that cannot start a take says so before anything else runs: no model question, no listening session, no start tone.
   const toggleTake = useCallback(async () => {
     if (latest.current.recording) {
-      // A Stop while the take's listening is still starting waits for its answer: a take whose listening fails is stopped and taken back by
-      // the press itself, once, and this Stop then has nothing left to stop.
       // Stop at once, even while the take's listening is still starting: the narrator asked to stop, so the DAW is not left recording until the
       // listening answers (up to its limit). The press then lets that listening go when it answers (`stoppedWhileStarting`) and does not drop a take
       // the narrator already stopped.

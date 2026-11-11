@@ -476,6 +476,19 @@ describe('useBoothLeaveGuard', () => {
       expect(go).not.toHaveBeenCalled();
     });
 
+    it('a question about a real take stays when that take ends by itself: Stop and leave still leaves', async () => {
+      const { overlay, go, hook, session, dialog } = setup({ recording: true });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.leave('/proof', go);
+      });
+      hook.rerender({ ...session, recording: false });
+      expect(overlay.getSnapshot().dialogs).toHaveLength(1);
+      act(() => dialog()!.answer(true));
+      await act(() => done);
+      expect(go).toHaveBeenCalledWith('/proof');
+    });
+
     it('the question stays when the start lands as a take: Stop and leave still stops it', async () => {
       const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
       let done: Promise<void> = Promise.resolve();

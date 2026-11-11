@@ -72,12 +72,15 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     };
   }, []);
   const { recording } = session;
-  // The question that asks whether to stop: closed by itself when nothing records any more (a start that ended at its limit, a take the DAW ended),
-  // because it would otherwise say a take runs when none does.
-  const open = useRef<AbortController | null>(null);
+  // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
+  // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
+  const open = useRef<{ close: AbortController; pending: boolean } | null>(null);
   useEffect(() => {
-    if (!recording) open.current?.abort();
-  }, [recording]);
+    if (!open.current?.pending) return;
+    // The start landed as a take: from here the question is about a real take and is no longer closed for its end.
+    if (session.recording && !session.startPending) open.current.pending = false;
+    else if (!recording) open.current.close.abort();
+  }, [recording, session.recording, session.startPending]);
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
   // One at a time: a second caller while it is open is the same question, and does not move.
@@ -91,7 +94,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       let refusedOnce = false;
       for (;;) {
         const closing = new AbortController();
-        open.current = closing;
+        open.current = { close: closing, pending: !!now.startPending && !refusedOnce };
         const yes = gone.current ? false : await overlay.confirm(spec, closing.signal).finally(() => (open.current = null));
         // Closed because nothing records now: the narrator stays, with nothing left to stop (the press said why).
         if (!yes || gone.current || closing.signal.aborted) return false;
