@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useVoiceLayout } from '../engine/voiceLayout';
-import { folderLinkLabel, holdsWords } from '../engine/voices';
+import { folderLinkLabel, holdsWords, kindInWords } from '../engine/voices';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
@@ -159,7 +159,8 @@ export function TrackTreePicker({
           ? {
               path: pathOf(nodes, chosen) || undefined,
               name: shownName(nodes[chosen]),
-              kind: nodes[chosen].track.isFolder ? `folder, ${holdsWords(nodes[chosen].childCount, folders)}` : 'single track',
+              // A Voice folders name already says how many voices it holds.
+              kind: folders && nodes[chosen].track.isFolder ? undefined : kindInWords(nodes[chosen].track.isFolder, nodes[chosen].childCount, folders),
             }
           : undefined
       }

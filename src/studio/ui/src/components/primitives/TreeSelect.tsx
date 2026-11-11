@@ -60,7 +60,7 @@ export function TreeSelect({
   label: string;
   /** The picked item's `id`, or '' for none. */
   value: string;
-  /** What the trigger shows for the pick: the names above it (`path`) take at most 40% of the box and end in an ellipsis, so a long path never squeezes `name` to a stub. `kind` ("single track", "folder, 3 tracks") is for the hint and the name alone: it takes no room in the box. */
+  /** What the trigger shows for the pick: the names above it (`path`) take at most 40% of the box and end in an ellipsis, so a long path never squeezes `name` to a stub. `kind` ("a single track", "a folder of 3 tracks") is for the hint and the name alone: it takes no room in the box. */
   shown?: { path?: string; name: string; kind?: string };
   placeholder: string;
   searchLabel: string;
@@ -150,7 +150,7 @@ export function TreeSelect({
             row.label
           )}
         </span>
-        {note && <span className="max-w-[45%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
+        {note && <span className="max-w-[60%] flex-none text-right text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{note}</span>}
         {selected && (
           <span className="flex-none text-xs">
             <Icon name="accept" />

@@ -30,6 +30,11 @@ export function folderLinkLabel(name: string, count: number, unit: 'voice' | 'tr
 /** What a folder holds, counted as its direct children: "3 voices" in a Voice folders project, "3 tracks" in any other. The one wording of it. */
 export const holdsWords = (count: number, voiceFolders: boolean): string => plural(count, voiceFolders ? 'voice' : 'track');
 
+/** What a track is, in words: "a single track", or "a folder of 3 voices" (Voice folders) / "a folder of 3 tracks". The one wording, in the check's hint, the
+ * recheck message and the pickers' tooltips. */
+export const kindInWords = (isFolder: boolean, children: number, voiceFolders: boolean): string =>
+  isFolder ? `a folder of ${holdsWords(children, voiceFolders)}` : 'a single track';
+
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
   const folder = tracks[at];

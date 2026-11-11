@@ -55,7 +55,7 @@ describe('the check on a Chapter links row, before it is pressed', () => {
     await user.click(within(row).getByRole('button', { name: /^Track for Opening credits/ }));
     await user.click(await screen.findByRole('treeitem', { name: /Narration/ }));
     const trigger = within(row).getByRole('button', { name: /^Track for Opening credits/ });
-    expect(trigger.getAttribute('title')).toBe('Narration (folder, 2 tracks)');
+    expect(trigger.getAttribute('title')).toBe('Narration (a folder of 2 tracks)');
     await user.hover(within(row).getByRole('button', { name: /^Use this track for/ }));
     expect((await screen.findByRole('tooltip')).textContent).toBe('links “Narration” (a folder of 2 tracks)');
   });

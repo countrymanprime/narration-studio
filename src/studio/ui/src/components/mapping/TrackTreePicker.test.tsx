@@ -60,7 +60,7 @@ describe('the track picker for a project with folders', () => {
   it('puts the full text of what it shows in a tooltip on the closed box, so a narrow box can still be read', async () => {
     render(<TrackSelect label="Track for Chapter 4" choices={CHOICES} value="g-Ch 1" onChange={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: /^Track for Chapter 4/ });
-    expect(trigger.getAttribute('title')).toBe('Narration / Chapters / Ch 1 (single track)');
+    expect(trigger.getAttribute('title')).toBe('Narration / Chapters / Ch 1 (a single track)');
   });
 
   it('heads the list with the best match and path, then the tree with levels', async () => {

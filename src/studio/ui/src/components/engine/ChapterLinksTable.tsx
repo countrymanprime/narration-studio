@@ -23,7 +23,7 @@ import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackM
 import { useVoiceLayout } from './voiceLayout';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
-import { folderChildren, folderLinkLabel, holdsWords } from './voices';
+import { folderChildren, folderLinkLabel, kindInWords as kindWords } from './voices';
 import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
@@ -182,10 +182,8 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
-/** What a track is, in words: "a single track", or "a folder of 3 voices" (Voice folders) / "a folder of 3 tracks". */
-function kindInWords(track: Track, tracks: Track[], voiceFolders: boolean): string {
-  return track.isFolder ? `a folder of ${holdsWords(folderChildren(tracks, track.guid).length, voiceFolders)}` : 'a single track';
-}
+const kindInWords = (track: Track, tracks: Track[], voiceFolders: boolean): string =>
+  kindWords(track.isFolder, track.isFolder ? folderChildren(tracks, track.guid).length : 0, voiceFolders);
 
 /** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
 function quoted(name: string, index?: number): string {
@@ -355,7 +353,10 @@ function ChapterLinkRow({
           </span>
         ) : row.state === 'linked' ? (
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate" title={linkedTrack ? `${linkedName} (${kindInWords(linkedTrack, tracks, folders)})` : linkedName}>
+            <span
+              className="min-w-0 truncate"
+              title={linkedTrack && !(folders && linkedTrack.isFolder) ? `${linkedName} (${kindInWords(linkedTrack, tracks, folders)})` : linkedName}
+            >
               <bdi>{linkedName}</bdi>
             </span>
             {unplayable && (
