@@ -64,7 +64,8 @@ runs:
         pkgs=(libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf)
         fetched=false
         for attempt in 1 2 3 4; do
-          if timeout 120 "${apt[@]}" update --error-on=any && timeout 120 "${apt[@]}" install -y --download-only "${pkgs[@]}"; then
+          # A dead resolver cannot recover inside one attempt: probe it first, so an outage costs seconds per attempt, not 120 s (run 43051855249).
+          if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 120 "${apt[@]}" update --error-on=any && timeout 120 "${apt[@]}" install -y --download-only "${pkgs[@]}"; then
             fetched=true
             break
           fi

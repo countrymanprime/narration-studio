@@ -13,15 +13,20 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.value }}
     # With the browser cached this skips the download but still installs the system libraries.
-    # `--with-deps` runs apt-get update and install. On 2026-11-11 DNS for archive.ubuntu.com failed on some runners and it exited 100 after
-    # about 10 min with no retry (Test (Linux 3/6), run 43046570039). Short apt timeouts and retries make a blip a pause, not a red shard.
+    # `--with-deps` runs apt-get update and install. On 2026-11-11 DNS for archive.ubuntu.com failed on some runners: it exited 100 after about
+    # 10 min with no retry (run 43046570039), and with a retry but no bound all six shards sat in this step until the 30 min job timeout
+    # (run 43051855249). Now: a resolver probe per attempt, a 300 s bound on the install (a `dpkg --configure -a` after a kill finishes a
+    # half-unpacked package), 4 attempts, then a clear error.
     - shell: bash
       run: |
-        printf 'Acquire::Retries "3";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
-        for attempt in 1 2 3; do
-          pnpm --dir src/studio/ui exec playwright install --with-deps chromium && exit 0
-          echo "::warning::playwright install attempt $attempt of 3 failed"
-          [ "$attempt" -lt 3 ] && sleep $((attempt * 20))
+        printf 'Acquire::Retries "1";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
+        for attempt in 1 2 3 4; do
+          if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 300 pnpm --dir src/studio/ui exec playwright install --with-deps chromium; then
+            exit 0
+          fi
+          echo "::warning::playwright install attempt $attempt of 4 failed"
+          sudo dpkg --configure -a || true
+          [ "$attempt" -lt 4 ] && sleep $((attempt * 20))
         done
-        echo "::error::playwright could not install chromium and its system libraries in 3 attempts"
+        echo "::error::playwright could not install chromium and its system libraries in 4 attempts"
         exit 1
