@@ -3212,3 +3212,233 @@ describe('while a press is under way the reading stays where the press chose, so
 
   const recordIdle = () => screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy') === null;
 });
+
+// Any move of the reading replaces the chosen start (#3317, #3353): after a move the chosen start is gone or is the reading's own phrase, so the cursor,
+// the footer's "Next roll starts from" and what Space starts from agree.
+describe('a move of the reading replaces the chosen start (#3317, #3353)', () => {
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+  const START = '?chapter=c1&para=p3&at=28';
+  const refusedStart = { ok: false as const, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' };
+  const nextRoll = () => screen.queryByText(/Next roll starts from/);
+  const startFromUnit = async (unit: number) => {
+    const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+  };
+  const idle = () => waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+
+  it('repro A: a refused take keeps its start, but the first arrow key replaces it and Space starts from the cursor', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+    const page = renderPage({ api: { boothPunchTarget, boothVoiceSet } as never });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(async () => refusedStart as never);
+    await startFromUnit(3);
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    await idle();
+    expect(nextRoll()).toBeTruthy();
+    for (let i = 0; i < 4; i++) await press('ArrowDown');
+    expect(current()).not.toBe('3');
+    expect(nextRoll()).toBeNull();
+    boothPunchTarget.mockClear();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('repro B: Record from here, then arrow keys, then Space starts from the cursor, not the Script place', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ search: START, api: { boothPunchTarget } as never });
+    await ready();
+    await waitFor(() => expect(current()).toBe('7'));
+    expect(nextRoll()).toBeTruthy();
+    for (let i = 0; i < 3; i++) await press('ArrowUp');
+    expect(current()).not.toBe('7');
+    expect(nextRoll()).toBeNull();
+    boothPunchTarget.mockClear();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('ArrowDown and ArrowRight on the last phrase move nothing, so they keep the chosen start', async () => {
+    renderPage({ search: START, api: { boothPunchTarget: vi.fn(async () => FOUND) } as never });
+    await ready();
+    await waitFor(() => expect(current()).toBe('7'));
+    await press('ArrowDown');
+    await press('ArrowRight');
+    expect(current()).toBe('7');
+    expect(nextRoll()).toBeTruthy();
+  });
+
+  describe('invariant: after any move, the chosen start is gone (no "Next roll starts from"), so the footer never names a phrase the reading is not on', () => {
+    const moves: [string, () => Promise<void>][] = [
+      ['ArrowUp', async () => press('ArrowUp')],
+      ['ArrowLeft', async () => press('ArrowLeft')],
+      [
+        'a word click',
+        async () => {
+          await userEvent.click(document.querySelector('[data-unit="1"] [data-word]')!);
+        },
+      ],
+      [
+        'the Back one phrase menu item',
+        async () => {
+          const word = document.querySelector('[data-unit="7"] [data-word]')!;
+          await act(async () => {
+            fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+          });
+          await userEvent.click(await screen.findByRole('menuitem', { name: 'Back one phrase' }));
+        },
+      ],
+    ];
+    for (const [name, move] of moves) {
+      it(name, async () => {
+        renderPage({ search: START, api: { boothPunchTarget: vi.fn(async () => FOUND) } as never });
+        await ready();
+        await waitFor(() => expect(current()).toBe('7'));
+        expect(nextRoll()).toBeTruthy();
+        await move();
+        await settle();
+        expect(nextRoll()).toBeNull();
+      });
+    }
+  });
+
+  it('on a DAW that cannot punch, a plain Record press after a move records from the cursor with no lookup', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ setup: 'builtin', search: START, api: { boothPunchTarget } as never });
+    await ready();
+    await press('ArrowUp');
+    boothPunchTarget.mockClear();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+  });
+
+  describe('a move that changes nothing replaces nothing, and one that lands on the chosen phrase keeps it', () => {
+    it('during a take an arrow key that cannot move the reading keeps Start from here, and R rolls from it again', async () => {
+      const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => FOUND), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
+      await record(page);
+      await startFromUnit(3);
+      await waitFor(() => expect(current()).toBe('3'));
+      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
+      // A word step inside the phrase leaves the reading on the same phrase: nothing to replace.
+      await press('ArrowRight');
+      expect(current()).toBe('3');
+      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
+      await press('r', 'KeyR');
+      await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
+      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
+    });
+
+    it('a click inside the phrase chosen as the start keeps it', async () => {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+      const page = renderPage({ api: { boothPunchTarget, boothVoiceSet } as never });
+      await ready();
+      page.daw.recordStart.mockImplementationOnce(async () => refusedStart as never);
+      await startFromUnit(3);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await idle();
+      await userEvent.click(document.querySelector('[data-unit="3"] [data-word="2"]')!);
+      expect(current()).toBe('3');
+      expect(nextRoll()).toBeTruthy();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12));
+    });
+
+    it('moving off the chosen phrase replaces it for good: moving back does not bring it back', async () => {
+      const page = renderPage({ search: START, api: { boothPunchTarget: vi.fn(async () => FOUND) } as never });
+      await ready();
+      await waitFor(() => expect(current()).toBe('7'));
+      await press('ArrowUp');
+      await press('ArrowDown');
+      expect(current()).toBe('7');
+      expect(nextRoll()).toBeNull();
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+    });
+  });
+
+  describe('every kind of move, then Space, starts from the cursor and looks the old spot up no more', () => {
+    const refusedFirst = async (api: Record<string, unknown> = {}, unit = 3) => {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+      const page = renderPage({ api: { boothPunchTarget, boothVoiceSet, ...api } as never });
+      await ready();
+      page.daw.recordStart.mockImplementationOnce(async () => refusedStart as never);
+      await startFromUnit(unit);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await idle();
+      boothPunchTarget.mockClear();
+      return { page, boothPunchTarget };
+    };
+    const spaceStartsAtCursor = async (page: ReturnType<typeof renderPage>, boothPunchTarget: ReturnType<typeof vi.fn>) => {
+      expect(nextRoll()).toBeNull();
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(boothPunchTarget).not.toHaveBeenCalled();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
+    };
+
+    it('refused take, then a word click', async () => {
+      const { page, boothPunchTarget } = await refusedFirst();
+      await userEvent.click(document.querySelector('[data-unit="1"] [data-word="2"]')!);
+      expect(current()).toBe('1');
+      await spaceStartsAtCursor(page, boothPunchTarget);
+    });
+
+    it('a word click with Record from here as the start', async () => {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const page = renderPage({ search: START, api: { boothPunchTarget } as never });
+      await ready();
+      await waitFor(() => expect(current()).toBe('7'));
+      await userEvent.click(document.querySelector('[data-unit="1"] [data-word="2"]')!);
+      boothPunchTarget.mockClear();
+      expect(nextRoll()).toBeNull();
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(boothPunchTarget).not.toHaveBeenCalled();
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+    });
+
+    it('refused take, then Resume at', async () => {
+      const { page, boothPunchTarget } = await refusedFirst({ teleprompterLocate: async () => LOCATED }, 7);
+      await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶ 2/ }));
+      await spaceStartsAtCursor(page, boothPunchTarget);
+    });
+
+    it('refused take, then a bookmark jump in the same chapter (the same path as a find or a pickup jump)', async () => {
+      const { page, boothPunchTarget } = await refusedFirst({ bookmarksList: async () => [held({ paragraphId: 'p1', paragraph: 0, offset: 0 })] });
+      await press(']', 'BracketRight', { altKey: true });
+      await waitFor(() => expect(current()).not.toBe('3'));
+      await spaceStartsAtCursor(page, boothPunchTarget);
+    });
+  });
+
+  describe('a bookmark jump to another chapter puts the reading there and chooses no start; Record from here does', () => {
+    it('Alt+] into the next chapter opens it with no "Next roll starts from"', async () => {
+      renderPage({ api: { bookmarksList: async () => [held({}), held({ id: 'b2', chapterId: 'c2', paragraphId: 'q1', paragraph: 0, offset: 2 })] } });
+      await ready();
+      await press(']', 'BracketRight', { altKey: true });
+      await press(']', 'BracketRight', { altKey: true });
+      await waitFor(() => expect(driver.search()).toContain('chapter=c2'));
+      expect(driver.search()).toContain('only=1');
+      await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+      expect(nextRoll()).toBeNull();
+    });
+
+    it('the Script link without the mark still chooses the start', async () => {
+      renderPage({ search: START });
+      await ready();
+      await waitFor(() => expect(nextRoll()).toBeTruthy());
+    });
+  });
+});
