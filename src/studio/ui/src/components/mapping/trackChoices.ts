@@ -86,15 +86,9 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
 
 /**
  * The same choices for a list of tracks with no match behind it (the engine panel's Chapter links, the recording check): project order, nothing
- * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does; `nameOf` gives a holder's current manuscript name
- * when the caller has the chapters.
+ * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does.
  */
-export const plainTrackChoices = (
-  tracks: readonly Track[],
-  links: readonly TrackHolder[] = [],
-  chapterId?: string,
-  nameOf?: (chapterId: string) => string | undefined,
-): TrackChoice[] =>
+export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
   tracks.map((t) => {
     const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
     return {
@@ -102,7 +96,7 @@ export const plainTrackChoices = (
       name: trackName(t.name, t.index),
       best: false,
       ...placement(t),
-      ...(holder ? { heldBy: holderName(nameOf?.(holder.chapterId), holder.chapterTitle) } : {}),
+      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
     };
   });
 
