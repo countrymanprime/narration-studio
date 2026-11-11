@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../api/ApiContext';
-import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
 import { DAW_SETUPS } from '../../fixtures/daw';
@@ -635,5 +635,50 @@ describe('deleted-files-have-no-importers', () => {
     await pipeline();
     await userEvent.setup().click(within(screen.getByRole('region', { name: 'Recorded vs plan' })).getByRole('button', { name: 'Open schedule' }));
     expect(go).toHaveBeenLastCalledWith('/schedule');
+  });
+});
+
+// The narrator walkthrough of #3414: the board's Rec. column comes from the overview, so a link changed in the Engine panel has to make the
+// page read the overview again.
+describe('the board follows a link changed elsewhere', () => {
+  it('reads the overview again when a chapter is linked, cleared or created in another screen', async () => {
+    const api = createMockApi();
+    const data = await api.bootstrap();
+    const overview = vi.spyOn(api, 'productionOverview');
+    const seen: { current?: ReturnType<typeof useChapterTrackState> } = {};
+    function Elsewhere() {
+      seen.current = useChapterTrackState({ enabled: true, tracks: false });
+      return null;
+    }
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <TooltipProvider>
+            <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+              <Elsewhere />
+              <ProductionPage
+                data={data}
+                go={vi.fn()}
+                notify={vi.fn()}
+                goToScript={vi.fn()}
+                goToBooth={vi.fn()}
+                refreshBootstrap={async () => {}}
+                dawConnectGraceMs={0}
+              />
+            </ChapterTrackStateProvider>
+          </TooltipProvider>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await pipeline();
+    await waitFor(() => expect(overview).toHaveBeenCalled());
+    // Let the first reads settle, then change a link the way the Engine panel does.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const before = overview.mock.calls.length;
+    const links = await api.chapterTrackLinks();
+    const chapter = links.chapters.find((c) => c.status === 'none')!;
+    const result = await api.chapterTrackSet(chapter.chapterId, links.tracks.at(-1)!.guid);
+    act(() => seen.current!.applyMappings(result.mappings));
+    await waitFor(() => expect(overview.mock.calls.length).toBeGreaterThan(before));
   });
 });
