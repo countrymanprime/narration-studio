@@ -44,6 +44,8 @@ export type RollActions = TakeControls & {
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
   notify: (sentence: string, topic?: string) => void;
+  /** Says why the press ended without a take (a refusal, a lookup that failed or ran out): one message that stays until dismissed and takes the press's notes away. */
+  refuse: (sentence: string) => void;
 };
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
@@ -105,7 +107,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const seconds = s.takeSeconds;
       const result = await actionsRef.current.roll(to, { confirmed });
       if (!result.ok) {
-        actionsRef.current.notify(result.refused ?? result.message);
+        actionsRef.current.refuse(result.refused ?? result.message);
         return;
       }
       lastRollAt.current = Date.now();
@@ -122,7 +124,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const to = clampPhrase(from, s.phraseCount);
       const plan = rollPlan(s.capabilities);
-      if (plan.kind === 'refused') return actionsRef.current.notify(plan.reason);
+      if (plan.kind === 'refused') return actionsRef.current.refuse(plan.reason);
       if (plan.kind === 'confirm') {
         if (!(await ask(`Roll again from ¶ ${s.paragraphOf(to) + 1}?`, 'Roll again', plan.dawName))) return;
         return doRoll(to, true);
@@ -252,7 +254,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           }
           if (looked.outcome !== 'never_recorded') {
             // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
-            actionsRef.current.notify(looked.message ?? 'Where this passage was recorded is not known, so no take was started.');
+            actionsRef.current.refuse(looked.message ?? 'Where this passage was recorded is not known, so no take was started.');
             actionsRef.current.clearStart?.();
             return;
           }
@@ -328,7 +330,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           return await actionsRef.current.beginTake();
         }
         if (target.outcome !== 'found' || target.start === undefined) {
-          actionsRef.current.notify(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
+          actionsRef.current.refuse(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
           actionsRef.current.clearStart?.();
           return;
         }

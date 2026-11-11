@@ -178,6 +178,18 @@ export const FiveLongMessages: Story = {
     })),
   },
 };
+// A refusal as long as a pasted host error, with the action the Booth gives it: in a narrow window the action sits on a row under the text, and that row is
+// taken from the text's cap (#3322), so the toast and its first line stay inside the window.
+export const LongRefusalWithAction: Story = {
+  args: {
+    messages: [
+      {
+        ...failure(1, `${'REAPER refused to start recording because the armed track is locked. '.repeat(5)}Unlock it and try again.`),
+        action: { label: 'Check again', onAction: fn() },
+      },
+    ],
+  },
+};
 // A very long action label wraps inside a share of the toast (three lines at most); the message keeps room and Dismiss stays on screen.
 export const LongActionLabel: Story = {
   args: {
@@ -216,6 +228,13 @@ async function everyButtonOnScreen(toasts: number) {
   // The unit run has no layout (every size is 0, the window is its own): the measuring below is for the browser, where the story runs in the 320 x 300 window.
   if (buttons[0]!.getBoundingClientRect().width === 0) return false;
   await expect([window.innerWidth, window.innerHeight]).toEqual([320, 300]);
+  // The toasts themselves and their text start inside the window too: a message that loses its first lines above the top cannot be scrolled back to (#3322).
+  for (const el of document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone], [data-toast-region] [data-toast-text]')) {
+    await expect(
+      el.getBoundingClientRect().top,
+      `${el.hasAttribute('data-toast-text') ? 'a message text' : 'a toast'} is above the window`,
+    ).toBeGreaterThanOrEqual(0);
+  }
   for (const el of buttons) {
     const b = el.getBoundingClientRect();
     const name = el.getAttribute('aria-label') ?? el.textContent?.slice(0, 20) ?? 'button';
@@ -247,6 +266,13 @@ export const FiveLongMessagesInTinyWindow: Story = {
   tags: ['tiny-window'],
   play: async () => {
     await everyButtonOnScreen(5);
+  },
+};
+export const LongRefusalWithActionInTinyWindow: Story = {
+  ...LongRefusalWithAction,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(1);
   },
 };
 export const LongActionLabelInTinyWindow: Story = {

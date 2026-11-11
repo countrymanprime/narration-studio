@@ -13,6 +13,22 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'chosen-start',
+    description:
+      'Booth after Start from here on a phrase the DAW refused to start on, the refusal dismissed (#3319): the start is kept and shown in the top bar as the dashed readout "Starts ¶ n" in its kept slot while the side panel is closed (1280 px and narrower, a drawer), and as "Next roll starts from ¶ n" in the panel\'s Last punch while it is open (wide); the phrase is tinted in the text, and the top bar and text are the size they are with no start chosen',
+    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'refused-start',
+    description:
+      'Booth after the DAW refused the start (#3322): one error message with the refusal sentence and Check again above the footer, whole and inside the window (its action row under the text in a window of 24 rem or less); the sentence is not drawn again in the footer, which keeps its size, and no note about the start is beside it',
+    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'voices',
     description:
       'Booth on a chapter linked to a folder of voices (?mockVoiceFolders=1, Voice folders): the voice control on the record bar after Levels, "Num 0 Narrator", the take records on, and the key hints gaining Num 0 Narrator, Num − Num + Voice and Num . Voices',

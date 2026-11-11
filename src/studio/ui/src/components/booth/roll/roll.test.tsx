@@ -38,6 +38,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     moveTo: vi.fn(),
     logPunch: vi.fn(),
     notify: vi.fn(),
+    refuse: vi.fn(),
   };
   const session: RollSession = {
     capabilities,
@@ -130,7 +131,7 @@ describe('useRoll', () => {
     const roll = vi.fn(async (): Promise<DawResult> => ({ ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' }));
     const { hook, actions } = setup(SETUPS.reaper, {}, roll);
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith('No.');
+    expect(actions.refuse).toHaveBeenCalledWith('No.');
     expect(actions.logPunch).not.toHaveBeenCalled();
     expect(actions.moveTo).not.toHaveBeenCalled();
   });
@@ -170,7 +171,7 @@ describe('useRoll', () => {
   it('a-dawless-or-rollless-setup-says-why: nothing rolls', async () => {
     const { hook, actions } = setup(SETUPS.reaperOff);
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
+    expect(actions.refuse).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
@@ -215,7 +216,7 @@ describe('useRoll', () => {
     const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed since it was last checked.' };
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith(refused.message);
+    expect(actions.refuse).toHaveBeenCalledWith(refused.message);
     expect(actions.clearStart).toHaveBeenCalledTimes(1);
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
@@ -223,7 +224,7 @@ describe('useRoll', () => {
   it('a lookup that fails is a sentence and no take, never a guess', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => Promise.reject(new Error('down')) });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
+    expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
@@ -247,7 +248,7 @@ describe('useRoll', () => {
           await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
         expect(actions.clearStart).toHaveBeenCalledTimes(1);
         expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
@@ -267,7 +268,7 @@ describe('useRoll', () => {
           await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
         expect(actions.chooseStart).not.toHaveBeenCalled();
         expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
@@ -514,7 +515,7 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
         await vi.advanceTimersByTimeAsync(200);
       });
       // The first press ended with its sentence at the limit: the next one is a new press and asks the host again.
-      expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+      expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
       act(() => void hook.result.current.startTake());
       expect(punchTarget).toHaveBeenCalledTimes(2);
     } finally {
@@ -982,7 +983,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
       // Past a second limit nothing more happens: the lookup was asked once.
       await act(async () => void (await vi.advanceTimersByTimeAsync(LOOKUP_MS + 50)));
       expect(punchTarget).toHaveBeenCalledTimes(1);
-      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
+      expect(h.actions.refuse.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
       expect(h.actions.beginTake).not.toHaveBeenCalled();
       expect(h.actions.chooseStart).not.toHaveBeenCalled();
       expect(h.hook.result.current.lookingUp).toBe(false);
@@ -997,7 +998,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
     const h = setup(noPunch, { recording: false, punchTarget });
     await act(() => h.hook.result.current.startFromHere(1));
     expect(punchTarget).toHaveBeenCalledTimes(1);
-    expect(h.actions.notify).toHaveBeenCalledExactlyOnceWith(refused.message);
+    expect(h.actions.refuse).toHaveBeenCalledExactlyOnceWith(refused.message);
     expect(h.actions.clearStart).toHaveBeenCalled();
     expect(h.actions.beginTake).not.toHaveBeenCalled();
   });
@@ -1035,7 +1036,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
       await act(() => pressed);
       expect(punchTarget).toHaveBeenCalledTimes(1);
       expect(h.actions.beginTake).not.toHaveBeenCalled();
-      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
+      expect(h.actions.refuse.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
       expect(h.hook.result.current.lookingUp).toBe(false);
     } finally {
       vi.useRealTimers();

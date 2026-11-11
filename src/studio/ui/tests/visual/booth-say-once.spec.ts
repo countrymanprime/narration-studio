@@ -6,6 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
+import { toastProblems } from './helpers/overlayGuard';
 
 const REFUSAL = 'REAPER refused to start recording because the armed track is locked for the moment, so nothing was recorded. Unlock it and try again.';
 const SIZES = [
@@ -18,12 +19,12 @@ const SIZES = [
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const footerHeight = (page: Page) => page.evaluate(() => document.querySelector('#btimer')?.closest('.border-t')?.getBoundingClientRect().height ?? 0);
 
-async function openRefusing(page: Page): Promise<void> {
+async function openRefusing(page: Page, refusal: string = REFUSAL): Promise<void> {
   await page.addInitScript((sentence) => {
     (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
       readAloudRecordStart: () => Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence }),
     };
-  }, REFUSAL);
+  }, refusal);
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -76,6 +77,7 @@ for (const scheme of ['light', 'dark'] as const) {
           share: box.height / window.innerHeight,
         };
       });
+      expect(await toastProblems(page)).toEqual([]);
       expect(fits.clipped).toBe(false);
       expect(fits.inside).toBe(true);
       expect(fits.dismissInside).toBe(true);
@@ -91,7 +93,7 @@ for (const scheme of ['light', 'dark'] as const) {
       if ((await chip.count()) > 0) await expect(chip).toBeVisible();
       else await expect(panelLine).toBeVisible();
       expect((await chip.count()) + (await panelLine.filter({ visible: true }).count())).toBe(1);
-      if ((await chip.count()) > 0) await expect(chip).toHaveText(/^Starts from ¶ \d+$/);
+      if ((await chip.count()) > 0) await expect(chip).toHaveText(/^Starts ¶ \d+$/);
     });
   }
 }
@@ -107,3 +109,80 @@ test('a second refused press shows one message, not two', async ({ page }) => {
   await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
   expect(await timesSaid(page, REFUSAL)).toBe(1);
 });
+
+// A long refusal (a pasted host error) in a small window: the toast, its text and its buttons stay inside the window (the action row under the text is taken from
+// the text's cap), the text scrolls when it must, and its first line is reachable (#3322).
+for (const [length, label] of [
+  [330, '330 characters'],
+  [10_000, '10,000 characters'],
+] as const) {
+  for (const { width, height } of [
+    { width: 320, height: 300 },
+    { width: 360, height: 500 },
+    { width: 320, height: 568 },
+  ]) {
+    test(`a long refusal (${label}) at ${width}x${height} stays inside the window`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      const long = `${'The armed track is locked, so REAPER would not start recording. '.repeat(Math.ceil(length / 64)).slice(0, length - 1)}.`;
+      await openRefusing(page, long);
+      await page.keyboard.press('Space');
+      const toast = page.locator('[data-toast-region] [data-tone="error"]');
+      await expect(toast).toBeVisible();
+      await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+      expect(await toastProblems(page)).toEqual([]);
+      const text = toast.locator('[data-toast-text]');
+      // Whatever does not fit scrolls inside the toast, from its first line.
+      expect(await text.evaluate((el) => el.scrollTop)).toBe(0);
+      await expect(toast.getByRole('button', { name: 'Check again' })).toBeInViewport();
+      await expect(toast.getByRole('button', { name: 'Dismiss message' })).toBeInViewport();
+    });
+  }
+}
+
+// A start chosen adds nothing to the top bar or the text: with the reading moved to the same word by a plain click (which also offers "Resume at"), the bar and the
+// reading area are the size they are after Start from here, and the chip sits inside the slot the bar keeps for it (#3319).
+for (const { width, height } of SIZES) {
+  test(`${width}x${height}: choosing a start moves nothing in the top bar or the text`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    const layout = () =>
+      page.evaluate(() => {
+        const slot = document.querySelector('[data-chosen-start-slot]')?.getBoundingClientRect();
+        const chip = document.querySelector('[data-chosen-start]')?.getBoundingClientRect();
+        return {
+          bar: document.querySelector('[data-booth-side-keep]')!.getBoundingClientRect().height,
+          text: document.querySelector('[data-booth-text]')!.getBoundingClientRect().top,
+          slot: slot?.width ?? 0,
+          chipInSlot: !chip || (!!slot && chip.left >= slot.left - 0.5 && chip.right <= slot.right + 0.5),
+        };
+      });
+    const settleBar = async () => {
+      await expect(page.locator('[data-recorded-through]')).toBeVisible();
+      await page.waitForTimeout(500);
+    };
+    // Only the reading moved.
+    await openRefusing(page);
+    await settleBar();
+    await page.locator('[data-booth-text] [data-word]').nth(40).click();
+    await page.waitForTimeout(500);
+    const moved = await layout();
+    // The reading moved and a start was chosen.
+    await openRefusing(page);
+    await settleBar();
+    await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+    await page
+      .getByRole('menuitem', { name: /Start from here/ })
+      .first()
+      .click();
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).click();
+    await page.waitForTimeout(500);
+    const chosen = await layout();
+    expect(chosen.bar).toBe(moved.bar);
+    expect(chosen.text).toBe(moved.text);
+    expect(chosen.slot).toBe(moved.slot);
+    expect(chosen.chipInSlot).toBe(true);
+    // Closed panel: the slot is there and holds the chip; open panel (the wide window): no slot and no chip.
+    if (chosen.slot > 0) await expect(page.locator('[data-chosen-start]')).toBeVisible();
+    else await expect(page.locator('[data-chosen-start]')).toHaveCount(0);
+  });
+}

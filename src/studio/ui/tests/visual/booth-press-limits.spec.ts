@@ -10,7 +10,7 @@ import { goToPage } from './drivers/shared';
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(120_000);
 
-type Hung = 'modelCheck' | 'listening' | 'voiceChoice' | 'recordStart' | 'recordStartLate';
+type Hung = 'lookup' | 'modelCheck' | 'listening' | 'voiceChoice' | 'recordStart' | 'recordStartLate';
 type Calls = { stops: number; starts: number; hangs: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -46,6 +46,7 @@ async function openWith(page: Page, hung: Hung): Promise<void> {
         return { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] };
       };
     }
+    if (which === 'lookup') overrides.boothPunchTarget = () => (hangOnce() ? new Promise(() => {}) : Promise.resolve({ outcome: 'found', start: 12, end: 20 }));
     if (which === 'listening') overrides.teleprompterStart = () => (hangOnce() ? new Promise(() => {}) : Promise.resolve({ status: 'started' }));
     if (which === 'voiceChoice') {
       overrides.boothPunchTarget = async () => ({ outcome: 'found', start: 12, end: 20, trackGuid: 'g1', trackName: 'Hero' });
@@ -124,6 +125,24 @@ test('a listening start that never answers ends the press with a sentence, and n
   await expect(page.getByText(/The take was taken back because the text could not follow your voice in time/).first()).toBeVisible({ timeout: 52_000 });
   expect(await timesSaid(page, /The take was taken back because the text could not follow your voice in time/)).toBe(1);
   await expect(record(page)).toBeVisible();
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  expect(await dawRecording(page)).toBe(false);
+});
+
+test('a lookup of the chosen start that never answers ends the press with one error and no "Starting from" beside it', async ({ page }) => {
+  await openWith(page, 'lookup');
+  await arm(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /did not come back in time, so no take was started/)).toBe(1);
+  // The press's note about the start is gone with it, and the message is an error that stays until dismissed.
+  await expect(page.getByText(/Starting from/)).toHaveCount(0);
+  await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
 });

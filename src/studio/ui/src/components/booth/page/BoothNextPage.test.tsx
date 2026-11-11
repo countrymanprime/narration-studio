@@ -2891,15 +2891,15 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await settle();
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
+      // What the press said before the second one: its notes share a topic (#3322), so "Recording over" replaced "Starting from" and counts one message.
+      const toastsBefore = said(page).length;
       await startFrom(7);
       await settle();
-      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, and the one new sentence is the refusal.
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(boothVoiceSet).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
-      // The press's notes share a topic (#3322): "Recording over" replaced "Starting from", and the refusal sentence is said once beside them.
-      expect(said(page).filter((text) => text === BUSY)).toHaveLength(1);
-      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(0);
+      expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
       holder.release();
       await waitFor(() => expect(stopButton()).toBeTruthy());
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
@@ -3515,21 +3515,58 @@ describe('a refusal is said once and a chosen start is always shown (#3322, #331
     });
   }
 
-  it('a second refused press replaces the first message: it never stacks', async () => {
+  it('a second refused press with another sentence replaces the first message: it never stacks', async () => {
     const page = renderPage({ search: START });
     await ready();
-    const refuse = () =>
-      page.daw.recordStart.mockImplementationOnce(
-        async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
-      );
-    refuse();
+    const refuse = (sentence: string) =>
+      page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: sentence, refused: sentence }) as never);
+    refuse('REAPER is not answering.');
     await space();
     await waitFor(() => expect(page.overlay.getSnapshot().toasts.length).toBe(1));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
-    refuse();
+    refuse('The armed track is locked.');
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
-    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['REAPER is not answering.']);
+    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['The armed track is locked.']);
+  });
+
+  describe('a refusal on the way to a take is the one message, an error that stays (#3322)', () => {
+    const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+    const alone = (page: ReturnType<typeof renderPage>, sentence: string) =>
+      expect(page.overlay.getSnapshot().toasts.map((t) => [t.text, t.tone])).toEqual([[sentence, 'error']]);
+    it('a lookup the host refuses after "Starting from" says the refusal alone', async () => {
+      const sentence = 'The recording check is out of date.';
+      const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, message: sentence })) } as never });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
+    it('a lookup that gave up at its limit says so alone, and as an error', async () => {
+      const sentence = 'Where this passage was recorded did not come back in time, so no take was started.';
+      const page = renderPage({
+        api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'failed', message: sentence })) } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+    });
+    it('a voice the host refuses to choose says the refusal alone', async () => {
+      const sentence = 'That voice is not on this chapter any more.';
+      const page = renderPage({
+        api: {
+          boothPunchTarget: vi.fn(async () => FOUND),
+          boothVoiceSet: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'stale', message: sentence })),
+        } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
   });
 
   it('a refused start leaves the refusal alone: the notes of the press ("Starting from", "Recording over") go', async () => {

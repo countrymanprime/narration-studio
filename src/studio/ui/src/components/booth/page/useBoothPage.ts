@@ -128,13 +128,14 @@ export function useBoothPage(options: BoothPageOptions) {
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
-  // What a press refuses with (a limit, a failure, the host's no) is one message at a time (`PRESS_TOPIC`), and ends the press's notes (`PRESS_NOTE_TOPIC`).
-  const pressNotify = useCallback(
+  // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed (`PRESS_TOPIC`: a newer one replaces it),
+  // and the press's notes ("Starting from ¶ 3") go with it (`PRESS_NOTE_TOPIC`).
+  const pressRefusal = useCallback(
     (sentence: string) => {
       overlay.dismissTopic(PRESS_NOTE_TOPIC);
-      notify(sentence, PRESS_TOPIC);
+      overlay.toast(sentence, { tone: 'error', topic: PRESS_TOPIC });
     },
-    [notify, overlay],
+    [overlay],
   );
 
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
@@ -172,7 +173,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const { setSize } = text;
   const view = useRef<BrowseView>(null);
 
-  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => pressNotify(b.reason)))(block), [pressNotify]);
+  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => pressRefusal(b.reason)))(block), [pressRefusal]);
   // A take a DAW stopped is one history entry, so the shell's Undo and the take's toast take it back in the DAW; null once the take is told.
   const takeEntry = useRef<number | null>(null);
   const latestJournal = useRef(options.journal);
@@ -542,7 +543,7 @@ export function useBoothPage(options: BoothPageOptions) {
         if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
-          pressNotify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
+          pressRefusal(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
           return false;
         }
         return true;
@@ -561,6 +562,7 @@ export function useBoothPage(options: BoothPageOptions) {
       },
       logPunch: (punch) => setPunches((list) => [...list, punch]),
       notify,
+      refuse: pressRefusal,
     },
     { overlay },
   );
