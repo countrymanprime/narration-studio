@@ -221,7 +221,7 @@ describe('useRoll', () => {
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
-  it.each(['', '   '])('a refusal with a blank message (%j) says the default sentence', async (message) => {
+  it.each(['', '   ', '\u200B', ' \u200B\u2060 '])('a refusal with a blank message (%j) says the default sentence', async (message) => {
     const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message };
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
     await act(() => hook.result.current.startTake());

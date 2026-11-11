@@ -2,6 +2,7 @@
 // meter, measured on the real app at the widths where the footer used to fall into a stack of little rows.
 import { expect, test, type Page } from '@playwright/test';
 import { boothDrivers } from './drivers/booth';
+import { showChapterTop } from './helpers/viewTop';
 
 async function drive(page: Page, state: string, size: { width: number; height: number }): Promise<void> {
   await page.setViewportSize(size);
@@ -81,3 +82,56 @@ test('Record becomes Stop without moving the timer', async ({ page }) => {
   expect(after[1], 'the timer stays where it was').toBeCloseTo(before[1], 0);
   await page.getByRole('button', { name: /^Stop$/ }).click();
 });
+
+// The chosen start's readout takes no room in the footer (#3319): at every width from 320 to 1280 px, with and without voice folders (the voice control
+// wraps the footer's row early), and for a one-digit and a five-digit paragraph, the footer is the height it is with the readout taken away.
+async function chooseRefusedStart(page: Page, state: 'setup' | 'voices'): Promise<void> {
+  await page.addInitScript(() => {
+    const sentence = 'REAPER refused to start recording, so nothing was recorded.';
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStart: () => Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence }),
+    };
+  });
+  await drive(page, state, { width: 1280, height: 700 });
+  await showChapterTop(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+  await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).click();
+  await expect(page.locator('[data-chosen-start]')).toBeVisible();
+}
+
+for (const state of ['setup', 'voices'] as const) {
+  test(`a chosen start does not change the footer height (${state === 'voices' ? 'voice folders' : 'flat chapter'}, 320 to 1280 px)`, async ({ page }) => {
+    test.setTimeout(300_000);
+    await chooseRefusedStart(page, state);
+    const heights = (hidden: boolean) =>
+      page.evaluate((hide) => {
+        const wrap = document.querySelector('[data-chosen-start]')?.closest<HTMLElement>('[role="group"]');
+        if (wrap) wrap.style.display = hide ? 'none' : '';
+        return document.querySelector('#btimer')!.closest('.border-t')!.getBoundingClientRect().height;
+      }, hidden);
+    const problems: string[] = [];
+    for (let width = 320; width <= 1280; width += 20) {
+      // Every width at one height; the short and tall windows at the widths where a footer row used to wrap.
+      for (const height of [450, ...([320, 360, 420, 480, 540, 680, 720, 760].includes(width) ? [300, 700] : [])]) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(30);
+        for (const paragraph of ['1', '12345']) {
+          await page.evaluate((n) => {
+            const chip = document.querySelector('[data-chosen-start]');
+            if (chip) chip.textContent = `Starts ¶ ${n}`;
+          }, paragraph);
+          if ((await page.locator('[data-chosen-start]').count()) === 0) continue;
+          const without = await heights(true);
+          const withChip = await heights(false);
+          if (withChip !== without) problems.push(`${width}x${height} ¶ ${paragraph}: footer ${without} -> ${withChip}`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+}

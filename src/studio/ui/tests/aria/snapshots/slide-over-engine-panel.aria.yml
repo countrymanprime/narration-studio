@@ -7,31 +7,31 @@
 - alert
 - status
 - dialog "Audio engine":
-  - heading "Audio engine" [level=2]
-  - button "Close the engine panel"
-  - region "REAPER project":
-    - heading "REAPER project" [level=2]
-    - button "Change the linked file"
-  - region "REAPER tools":
-    - heading "REAPER tools" [level=2]
-    - toolbar "REAPER tools":
-      - /children: equal
-      - button "Link chapters to tracks"
-      - button "Prepare the chapter render"
-      - button "Create chapter regions"
-      - button "Open the cleanup tools"
-  - region "Chapter sync":
-    - heading "Chapter sync" [level=2]
-    - button "Turn off chapter sync"
-    # Chapter sync's facts are a description list, one term per fact, the tracks that are not chapters among them.
-    - term: Status
-    - definition: "On"
-    - term: Last synced
-    - definition: /, from the saved Alice\.rpp$/
-    - term: Links
-    - definition: /chapters? linked/
-    - term: Not chapters (1)
-    - definition: Click Track
-  - region "Chapter links":
-    - heading "Chapter links" [level=2]
-    - table "Chapter links"
+    - heading "Audio engine" [level=2]
+    - button "Close the engine panel"
+    - region "REAPER project":
+        - heading "REAPER project" [level=2]
+        - button "Change the linked file"
+    - region "REAPER tools":
+        - heading "REAPER tools" [level=2]
+        - toolbar "REAPER tools":
+            - /children: equal
+            - button "Link chapters to tracks"
+            - button "Prepare the chapter render"
+            - button "Create chapter regions"
+            - button "Open the cleanup tools"
+    - region "Chapter sync":
+        - heading "Chapter sync" [level=2]
+        - button "Turn off chapter sync"
+        # Chapter sync's facts are a description list, one term per fact, the tracks that are not chapters among them.
+        - term: Status
+        - definition: 'On'
+        - term: Last synced
+        - definition: /, from the saved Alice\.rpp$/
+        - term: Links
+        - definition: /chapters? linked/
+        - term: Not chapters (1)
+        - definition: Click Track
+    - region "Chapter links":
+        - heading "Chapter links" [level=2]
+        - table "Chapter links"

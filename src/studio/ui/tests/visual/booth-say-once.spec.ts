@@ -141,7 +141,7 @@ for (const [length, label] of [
 }
 
 // A chosen start adds nothing to the top bar, the text or the footer: with the reading moved to the same word by a plain click (which also offers "Resume at"),
-// the bar and the reading area are the size they are after Start from here, the footer is the size it was before, and the readout sits on the footer's row (#3319).
+// the bar and the reading area are the size they are after Start from here, the footer is the size it was before, and the readout lies over the footer's top edge (#3319).
 const bars = (page: Page) =>
   page.evaluate(() => ({
     bar: document.querySelector('[data-booth-side-keep]')!.getBoundingClientRect().height,
@@ -181,11 +181,13 @@ for (const { width, height } of SIZES) {
     const chip = page.locator('[data-chosen-start]');
     if ((await chip.count()) > 0) {
       await expect(chip).toBeVisible();
-      const rows = await page.evaluate(() => {
-        const top = (selector: string) => Math.round(document.querySelector(selector)!.getBoundingClientRect().top);
-        return [top('#btimer'), top('[data-chosen-start]')];
+      // Laid over the footer's top edge: its middle is within the rim's reach, taking no room in the footer's rows.
+      const edge = await page.evaluate(() => {
+        const footer = document.querySelector('#btimer')!.closest('.border-t')!.getBoundingClientRect();
+        const chip = document.querySelector('[data-chosen-start]')!.getBoundingClientRect();
+        return Math.abs((chip.top + chip.bottom) / 2 - footer.top);
       });
-      expect(Math.abs(rows[0]! - rows[1]!)).toBeLessThan(12);
+      expect(edge).toBeLessThan(12);
     }
   });
 }

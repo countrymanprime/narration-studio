@@ -3,6 +3,7 @@ import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
+import { sentenceOr } from '../record/sentenceOr';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
@@ -51,6 +52,7 @@ export type RollActions = TakeControls & {
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
 export const LOOKUP_MS = 8000;
 
+const NOT_KNOWN = 'Where this passage was recorded is not known, so no take was started.';
 const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. No start is chosen now: choose the phrase again to retry.';
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
@@ -107,7 +109,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const seconds = s.takeSeconds;
       const result = await actionsRef.current.roll(to, { confirmed });
       if (!result.ok) {
-        actionsRef.current.refuse(result.refused?.trim() || result.message?.trim() || 'The DAW refused to roll again.');
+        actionsRef.current.refuse(sentenceOr(result.refused, sentenceOr(result.message, 'The DAW refused to roll again.')));
         return;
       }
       lastRollAt.current = Date.now();
@@ -254,7 +256,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           }
           if (looked.outcome !== 'never_recorded') {
             // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
-            actionsRef.current.refuse(looked.message?.trim() || 'Where this passage was recorded is not known, so no take was started.');
+            actionsRef.current.refuse(sentenceOr(looked.message, NOT_KNOWN));
             actionsRef.current.clearStart?.();
             return;
           }
@@ -330,7 +332,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           return await actionsRef.current.beginTake();
         }
         if (target.outcome !== 'found' || target.start === undefined) {
-          actionsRef.current.refuse(target.message?.trim() || 'Where this passage was recorded is not known, so no take was started.');
+          actionsRef.current.refuse(sentenceOr(target.message, NOT_KNOWN));
           actionsRef.current.clearStart?.();
           return;
         }

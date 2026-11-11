@@ -110,7 +110,10 @@ export function BoothFooter({
   voice?: ReactNode;
   /** The chapter records on a folder of voices: the footer hints show the voice keys. */
   voiceFolders?: boolean;
-  /** The chosen start's readout, after the timer: drawn only when there is one, on the row's free room, so the footer's size does not depend on it. */
+  /**
+   * The chosen start's readout. It is laid over the footer's top edge at the right (absolutely placed, taking no room in the footer's rows), so the footer is the
+   * same height with or without it at every width; a row it could wrap onto, or a width it could outgrow, would move the reading area (#3319).
+   */
   start?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -132,7 +135,13 @@ export function BoothFooter({
   // then stays only as its description (`aria-describedby`), not drawn beside it; so does a sentence a setup notice above already says (`quietWhy`).
   const shownWhy = why && !listenWhy && !quietWhy ? why : undefined;
   return (
-    <div ref={bar} className="flex flex-col">
+    <div ref={bar} className="relative flex flex-col">
+      {start ? (
+        // Half above the footer's rim and half in its top padding: it lies over the bottom of the text (which fades out there), not over any control.
+        <div data-chosen-start-wrap="" className="absolute -top-3 right-[var(--page-gutter)] z-[1]">
+          {start}
+        </div>
+      ) : null}
       {/*
         One row from 1024 px: the controls, the sentence in the room between (wrapping inside it), the meter at the right edge. Narrower,
         the meter stays on the controls' row and the sentence takes the full row under them, so the footer is never a stack of
@@ -161,7 +170,6 @@ export function BoothFooter({
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
           </span>
-          {start}
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

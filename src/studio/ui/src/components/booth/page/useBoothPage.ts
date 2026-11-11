@@ -23,6 +23,7 @@ import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type Read
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { limited, PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
+import { sentenceOr } from '../record/sentenceOr';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
@@ -134,7 +135,7 @@ export function useBoothPage(options: BoothPageOptions) {
     (sentence: string) => {
       overlay.dismissTopic(PRESS_NOTE_TOPIC);
       // A host that refuses with no words still ends the press with a sentence: the toast service drops a blank one.
-      overlay.toast(sentence.trim() || 'The press was refused, so no take was started.', { tone: 'error', topic: PRESS_TOPIC });
+      overlay.toast(sentenceOr(sentence, 'The press was refused, so no take was started.'), { tone: 'error', topic: PRESS_TOPIC });
     },
     [overlay],
   );

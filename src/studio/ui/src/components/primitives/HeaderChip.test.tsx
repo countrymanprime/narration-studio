@@ -20,10 +20,10 @@ describe('HeaderChip', () => {
     expect(screen.getByText('REAPER linked').style.borderColor).toBe('transparent');
   });
 
-  it('a readout has no fill and a dashed muted rim, so it does not read as a pressable chip', () => {
+  it('a readout has the surface fill and a dashed muted rim, so it does not read as a pressable chip', () => {
     render(<HeaderChip readout>Starts ¶ 3</HeaderChip>);
     const style = screen.getByText('Starts ¶ 3').style;
-    expect(style.background).toBe('transparent');
+    expect(style.background).toBe('var(--surface)');
     expect(style.borderColor).toBe('var(--text-muted)');
     expect(style.borderStyle).toBe('dashed');
   });

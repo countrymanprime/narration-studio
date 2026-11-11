@@ -6,21 +6,21 @@
 - alert
 - status
 - dialog "Jump menu":
-  - heading "Jump menu" [level=2]
-  - combobox "Jump menu" [expanded]
-  - text: /On the Production page/
-  - status
-  - listbox "Jump menu results":
-    - text: On this page
-    - option /Chapters \d+ ›/ [selected]
-    - option /Checks \d+ ›/
-    - option /Actions \d+ ›/
-    - text: Commands
-    - option /Go to \d+ ›/
-    - option /Zoom \d+ ›/
-    - option "Booth 1 ›"
-    - option /View \d+ ›/
-    - option /Edit \d+ ›/
-    - option /Settings \d+ ›/
-    - option /Manuscript \d+ ›/
-    - option /Production \d+ ›/
+    - heading "Jump menu" [level=2]
+    - combobox "Jump menu" [expanded]
+    - text: /On the Production page/
+    - status
+    - listbox "Jump menu results":
+        - text: On this page
+        - option /Chapters \d+ ›/ [selected]
+        - option /Checks \d+ ›/
+        - option /Actions \d+ ›/
+        - text: Commands
+        - option /Go to \d+ ›/
+        - option /Zoom \d+ ›/
+        - option "Booth 1 ›"
+        - option /View \d+ ›/
+        - option /Edit \d+ ›/
+        - option /Settings \d+ ›/
+        - option /Manuscript \d+ ›/
+        - option /Production \d+ ›/

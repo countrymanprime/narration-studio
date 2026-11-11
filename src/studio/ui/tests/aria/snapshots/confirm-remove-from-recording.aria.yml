@@ -7,8 +7,8 @@
 - alert
 - status
 - alertdialog "Remove Chapter 1 from recording?":
-  - heading "Remove Chapter 1 from recording?" [level=2]
-  - button "Close"
-  - paragraph: It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can restore it below the table.
-  - button "Cancel"
-  - button "Remove from recording"
+    - heading "Remove Chapter 1 from recording?" [level=2]
+    - button "Close"
+    - paragraph: It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can restore it below the table.
+    - button "Cancel"
+    - button "Remove from recording"

@@ -4,23 +4,23 @@
 # The live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised from inside a
 # dialog is still announced. Under <main> they are the reader's line position ("¶ 1 of 24") and the zoom readout; the one toast pair is portalled to <body> (Toast.tsx).
 - main:
-  - region "Reader": /¶ 1 of \d+/
+    - region "Reader": /¶ 1 of \d+/
 - status
 - alert
 - status
 - dialog "Mark “Rabbit”":
-  - heading "Mark “Rabbit”" [level=2]
-  - button "Close"
-  - text: Type
-  - combobox "Type":
-    - option "Word stress" [selected]
-    - option "Breath / pause"
-    - option "Pace"
-    - option "Emotion"
-    - option "Note"
-    - option "Query for author (tracks a reply)"
-  - text: Note (optional)
-  - textbox "Note (optional)":
-    - /placeholder: Anything you want to remember here
-  - button "Cancel"
-  - button "Save"
+    - heading "Mark “Rabbit”" [level=2]
+    - button "Close"
+    - text: Type
+    - combobox "Type":
+        - option "Word stress" [selected]
+        - option "Breath / pause"
+        - option "Pace"
+        - option "Emotion"
+        - option "Note"
+        - option "Query for author (tracks a reply)"
+    - text: Note (optional)
+    - textbox "Note (optional)":
+        - /placeholder: Anything you want to remember here
+    - button "Cancel"
+    - button "Save"
