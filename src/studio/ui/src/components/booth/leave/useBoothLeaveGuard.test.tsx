@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { DawResult } from '../../../api/contracts/daw';
+import { IGNORE_ENTER_MS } from './stopRecordingSpec';
 import { LEAVE_WAIT_MS, useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
 
 const ok: DawResult = { ok: true, changed: true, message: 'Stopped.', undoSteps: 0 };
@@ -33,6 +34,100 @@ describe('useBoothLeaveGuard', () => {
     expect(session.recording).toBe(false);
   });
 
+  // #3349 QA B-A: `recording` false is also what a DAW that went quiet leaves behind. Leaving is silent only when the end is confirmed with the DAW answering.
+  describe('a take that ended with the DAW not (yet) known to answer', () => {
+    const refusal = async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult;
+
+    it('class guard: the exit is allowed with no question only when nothing records AND the end is confirmed', () => {
+      for (const [recording, unconfirmed, allowed] of [
+        [false, false, true],
+        [false, true, false],
+        [true, false, false],
+        [true, true, false],
+      ] as const) {
+        const { store } = setup({ recording, endUnconfirmed: () => unconfirmed });
+        expect(store.checkLeave('/script') === 'allow', `recording ${recording}, unconfirmed ${unconfirmed}`).toBe(allowed);
+      }
+    });
+
+    it('asks, tries the stop, and asks "Could not stop the take" when the stop is refused', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false }, refusal);
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.go).not.toHaveBeenCalled();
+      act(() => t.dialog()!.answer(false));
+    });
+
+    // QA B-D: the end check is a read of the DAW, and a read can hang. It is bounded like every other wait, and a timeout is "not confirmed".
+    it('a stop wait whose end check never answers falls to the Could not stop the take question after LEAVE_WAIT_MS', async () => {
+      vi.useFakeTimers();
+      try {
+        const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: () => new Promise<boolean>(() => {}) }, refusal);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        expect(t.stopRecording).not.toHaveBeenCalled();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 100);
+        });
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(t.go).not.toHaveBeenCalled();
+        act(() => t.dialog()!.answer(false));
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('Keep recording works while the end check hangs', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: () => new Promise<boolean>(() => {}) });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(false));
+      await act(() => done);
+      expect(t.go).not.toHaveBeenCalled();
+      expect(t.dialog()).toBeUndefined();
+    });
+
+    it('an end check that fails is not a confirmed end: one stop, and it leaves when that succeeds', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => Promise.reject(new Error('no answer')) });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await act(() => done);
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      expect(t.go).toHaveBeenCalledWith('/script');
+    });
+
+    it('Keep recording stays, and the next exit asks again', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      act(() => t.dialog()!.answer(false));
+      await flush();
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      act(() => t.dialog()!.answer(false));
+      expect(t.go).not.toHaveBeenCalled();
+    });
+
+    it('a take that ended with the DAW answering leaves with no question and no stop', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => false });
+      await act(() => t.hook.result.current.leave('/script', t.go));
+      expect(t.go).toHaveBeenCalledWith('/script');
+      expect(t.stopRecording).not.toHaveBeenCalled();
+    });
+  });
+
   it('recording-asks-stop-recording, naming the DAW from the report', () => {
     const { store } = setup({ daw: { name: 'Audacity' } });
     expect(store.checkLeave('/proof')).toEqual({
@@ -43,6 +138,7 @@ describe('useBoothLeaveGuard', () => {
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
+        ignoreEnterAfterMs: IGNORE_ENTER_MS,
       },
     });
   });
@@ -316,7 +412,7 @@ describe('useBoothLeaveGuard', () => {
     await act(() => done);
     expect(a.stopRecording).toHaveBeenCalledTimes(1);
 
-    const b = setup({ settle: async () => false });
+    const b = setup({ settle: async () => false, startPending: true });
     act(() => {
       done = b.hook.result.current.leave('/script', b.go);
     });
@@ -407,6 +503,186 @@ describe('useBoothLeaveGuard', () => {
       await act(() => t.done());
       expect(t.go).toHaveBeenCalledWith('/script');
       expect(t.dialog()).toBeUndefined();
+    });
+
+    // #3349 B3: the message has an X; a narrator who closed it and pressed another exit is told again that the stop is still out.
+    it('a second exit while the stop is pending says "Stopping the take…" again after the narrator closed it', async () => {
+      vi.useFakeTimers();
+      const t = setup({}, never);
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      const shown = () => t.overlay.getSnapshot().toasts.filter((toast) => toast.text === 'Stopping the take…');
+      expect(shown()).toHaveLength(1);
+      act(() => t.overlay.dismissToast(shown()[0]!.id));
+      expect(shown()).toHaveLength(0);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      act(() => void t.hook.result.current.leave('/proof', vi.fn()));
+      expect(shown()).toHaveLength(1);
+      act(() => void t.hook.result.current.decide());
+      expect(shown()).toHaveLength(1);
+      // It moved nowhere: the first decision is still the only one.
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+    });
+
+    // #3349 B2: the DAW ended the take itself (the Booth showed "Stopped. Recorded") while the stop was out: the refusal question would be about a take that is over.
+    describe('the take ends in the DAW while the decision waits', () => {
+      it('a take that ended during the stop wait leaves without the refusal question', async () => {
+        vi.useFakeTimers();
+        const t = setup({ endConfirmed: async () => true }, never);
+        render(<OverlayHost service={t.overlay} />);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+        expect(screen.queryByText('Stopping the take…')).toBeNull();
+        // Not waited out: it left when the take ended, not at the limit.
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      });
+
+      it('a take already over when the narrator says yes (the DAW answering) is not stopped, and they leave', async () => {
+        const t = setup({ endConfirmed: async () => true });
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+        expect(t.stopRecording).not.toHaveBeenCalled();
+      });
+
+      // F2: the DAW pushes its stopped transport before the reply to this decision's own stop: the reply (the take's undo entry) is still waited for.
+      it("the stopped transport pushed before the stop's own reply does not skip that reply", async () => {
+        vi.useFakeTimers();
+        const order: string[] = [];
+        const t = setup(
+          { endConfirmed: async () => true },
+          () => new Promise<DawResult>((resolve) => setTimeout(() => (order.push('reply'), resolve(ok)), 500)),
+        );
+        t.go.mockImplementation(() => order.push('go'));
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2500);
+        });
+        await act(() => done);
+        expect(order).toEqual(['reply', 'go']);
+      });
+
+      it('a refusal that arrives as the take ends leaves without the refusal question', async () => {
+        let refuse: (result: DawResult) => void = () => {};
+        const t = setup({ endConfirmed: async () => true }, () => new Promise<DawResult>((resolve) => (refuse = resolve)));
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        t.hook.rerender({ ...t.session, recording: false });
+        await flush();
+        refuse({ ok: false, changed: false, message: 'REAPER is busy.', undoSteps: 0, refused: 'REAPER is busy.' } as DawResult);
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+      });
+
+      // F1: a DAW that went quiet reads as stopped too, and its take may still record: that is not an end, and the refusal question still comes.
+      it('a DAW that went quiet during a hung stop is not a confirmed end: the refusal question still asks', async () => {
+        vi.useFakeTimers();
+        const t = setup({ endConfirmed: async () => false }, never);
+        render(<OverlayHost service={t.overlay} />);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS);
+        });
+        expect(t.go).not.toHaveBeenCalled();
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(t.dialog()?.spec.body).toContain('may keep recording');
+        act(() => t.dialog()!.answer(false));
+        await act(() => done);
+      });
+
+      // QA break 1: `settle` says "no take is running" for a take a quiet DAW ended too. For a take that was running when asked that is not "nothing to stop".
+      it('settle saying no take runs is not nothing to stop for a take that was running: the stop is tried', async () => {
+        const t = setup(
+          { settle: async () => false, endConfirmed: async () => false },
+          async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult,
+        );
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.go).not.toHaveBeenCalled();
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        act(() => t.dialog()!.answer(false));
+      });
+
+      it('a DAW that went quiet before the narrator said yes is stopped like a running take, and its refusal asks', async () => {
+        const t = setup(
+          { endConfirmed: async () => false },
+          async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult,
+        );
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        act(() => t.dialog()!.answer(false));
+        await act(() => done);
+        expect(t.go).not.toHaveBeenCalled();
+      });
+
+      it('a take that ended during the question is not stopped again when the narrator says yes', async () => {
+        const t = setup();
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await act(() => done);
+        expect(t.stopRecording).not.toHaveBeenCalled();
+        expect(t.go).toHaveBeenCalledWith('/script');
+      });
     });
 
     // The Booth went some other way mid-wait (the project picker drawn in its place): what still waits must not open a question over the new page, move the

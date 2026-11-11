@@ -497,6 +497,8 @@ test('Enter pressed twice on Stop and leave: a take the second press starts is s
   await recording(page);
   await page.keyboard.press('Escape');
   await question(page).getByRole('button', { name: /^Stop/ }).focus();
+  // The question takes no Enter for its first 400 ms (#3349), so a double Enter on the row that raised it cannot answer it.
+  await page.waitForTimeout(500);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
   await page.keyboard.press('Enter');

@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { Button } from '../primitives/Button';
 import { plainTrackChoices } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
-import type { Track } from '../../types';
+import type { Track, TrackMapping } from '../../types';
 
 type Props = {
   /** The chapter this link is for, used only to name the track picker for a screen reader. */
   chapterTitle: string;
   /** Every REAPER track the narrator can link to. */
   tracks: Track[];
+  /** Every confirmed link, so a track another chapter holds is labelled "(linked to X)" before the press, as the Chapter links list does. */
+  links?: readonly TrackMapping[];
+  /** The chapter being linked, so its own link is not a holder. */
+  chapterId?: string;
   /** The confirmed track's resolved name, when the link points at a track that still exists; omit it (leaving
    * `linkedTrackGuid` set) to show a missing-track state, or omit both to show nothing confirmed yet. */
   linkedTrackGuid?: string;
@@ -33,6 +37,8 @@ type Props = {
 export function MappingConfirm({
   chapterTitle,
   tracks,
+  links,
+  chapterId,
   linkedTrackGuid,
   linkedTrackName,
   suggestedTrackGuid,
@@ -44,7 +50,7 @@ export function MappingConfirm({
 }: Props) {
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
-  const choices = plainTrackChoices(tracks);
+  const choices = plainTrackChoices(tracks, links, chapterId);
   // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
   // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
   const initial = linkedTrackGuid ?? suggestedTrackGuid;

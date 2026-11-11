@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
-import { trackHeldByOther } from '../mapping/trackHeldBy';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
+import type { TrackMapping } from '../../types';
 import { describeApiError } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { usePort } from '../../ports/usePort';
@@ -168,19 +169,31 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
   const tracksPort = usePort('tracks');
   const trackMap = usePort('chapterTrackMap');
   const overlay = useOverlay();
+  const actions = useChapterLinkActions();
   const [tracks, setTracks] = useState<Track[]>();
+  const [links, setLinks] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
-    tracksPort
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
+    // The links label a track another chapter holds before the press; a links read that fails only leaves the labels off.
+    Promise.all([
+      tracksPort.tracksList(),
+      trackMap.chapterTrackMapList().then(
+        (list) => list.mappings,
+        () => [] as TrackMapping[],
+      ),
+    ])
+      .then(([project, mappings]) => {
+        if (!active) return;
+        setTracks(project.tracks);
+        setLinks(mappings);
+      })
       .catch((reason) => active && setError(describeApiError(reason)));
     return () => {
       active = false;
     };
-  }, [tracksPort]);
+  }, [tracksPort, trackMap]);
   if (error)
     return (
       <p style={{ color: 'var(--danger-text)' }}>
@@ -192,23 +205,15 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
     <MappingConfirm
       chapterTitle={chapterName(chapter, 'short')}
       tracks={tracks}
+      links={links}
+      chapterId={chapter.id}
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
-          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
-          let taken: string;
           try {
-            taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
-          } catch (reason) {
-            overlay.toast(`The link could not be checked: ${describeApiError(reason)}`, { tone: 'error' });
-            return;
-          }
-          if (taken) {
-            overlay.toast(taken, { tone: 'error' });
-            return;
-          }
-          try {
-            await trackMap.chapterTrackMapConfirm(trackGuid, chapter.id);
+            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
+            const { linkedNotice } = await actions.set(chapter.id, trackGuid);
+            overlay.toast(linkedNotice);
             setError('');
             await onLinked();
           } catch (reason) {

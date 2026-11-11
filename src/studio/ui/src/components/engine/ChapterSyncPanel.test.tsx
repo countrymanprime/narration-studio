@@ -96,7 +96,7 @@ describe('ChapterSyncPanel', () => {
     render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={notify} onChanged={() => {}} />}</ApiProvider>);
     await screen.findByText('Needs you (1)');
     fireEvent.click(screen.getByRole('button', { name: /^Link/ }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. It was linked to Chapter 1, which is now unlinked.'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. Chapter 1 was linked to that track and is now not linked.'));
   });
 
   it('names a plain phrase when the chapter that lost the track has no stored title (#3053)', async () => {
@@ -107,7 +107,9 @@ describe('ChapterSyncPanel', () => {
     render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={notify} onChanged={() => {}} />}</ApiProvider>);
     await screen.findByText('Needs you (1)');
     fireEvent.click(screen.getByRole('button', { name: /^Link/ }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. It was linked to a chapter no longer in the manuscript, which is now unlinked.'));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith('Track linked. A chapter no longer in the manuscript was linked to that track and is now not linked.'),
+    );
   });
 
   it('shows a Needs-you list with the reason and a preselected candidate, and Link calls chapterTrackSet', async () => {

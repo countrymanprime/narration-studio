@@ -3,6 +3,9 @@ import type { ConfirmSpec } from '../../../studio/journal/leaveGuard';
 /** The cancel label the mock's question uses; the shell's `ConfirmSpec` carries it as `cancelLabel`. */
 const KEEP_RECORDING = 'Keep recording';
 
+/** The second Enter of a double Enter on a jump menu row lands on the question that row raised; it must not answer it (#3349). */
+export const IGNORE_ENTER_MS = 400;
+
 /**
  * The question asked when the narrator leaves the Booth while a take records. `dawName` comes from the capability report
  * ("REAPER", "Audacity", "the built-in recorder"), never hard-coded. A recording the app did not start is never stopped
@@ -17,6 +20,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
       confirmLabel: 'Leave',
       cancelLabel: KEEP_RECORDING,
       safeDefault: true,
+      ignoreEnterAfterMs: IGNORE_ENTER_MS,
     };
   }
   if (startPending) {
@@ -27,6 +31,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
       safeDefault: true,
+      ignoreEnterAfterMs: IGNORE_ENTER_MS,
     };
   }
   return {
@@ -35,5 +40,6 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     confirmLabel: 'Stop and leave',
     cancelLabel: KEEP_RECORDING,
     safeDefault: true,
+    ignoreEnterAfterMs: IGNORE_ENTER_MS,
   };
 }
