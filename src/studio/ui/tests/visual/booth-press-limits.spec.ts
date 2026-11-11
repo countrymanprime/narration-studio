@@ -315,3 +315,35 @@ test('a dropped unheard take does not also say that REAPER stopped recording', a
   await page.waitForTimeout(4000);
   await expect(page.getByText(/REAPER stopped recording/)).toHaveCount(0);
 });
+
+// #3409: a roll that lands after the narrator stopped the take started a recording nobody runs: it is stopped and said.
+test('a roll that answers after Stop is stopped, and said', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 12_000));
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  const stops = () => page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await expect(page.getByText(/did not answer the roll in time/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible({ timeout: 8000 });
+  expect(await stops()).toBe(1);
+  await expect(page.getByText(/so that new recording was stopped/).first()).toBeVisible({ timeout: 10_000 });
+  expect(await stops()).toBe(2);
+  expect(await dawRecording(page)).toBe(false);
+});

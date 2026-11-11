@@ -8,7 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
-import { limited, recordStartLimit } from './pressLimits';
+import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -351,36 +351,52 @@ export function useRecordControl({
   const heardRecording = useRef(false);
   // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
   const appStops = useRef(0);
+  const appStopReleases = useRef(new Set<() => void>());
+  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
+  const endHeldByAppStop = useRef(false);
+  const endHeard = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
       return;
     }
-    return daw.subscribeTransport?.((transport) => {
+    // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers.
+    const heardEnd = () => {
+      if (!heardRecording.current) return;
+      heardRecording.current = false;
+      setRecording(false);
+      // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
+      // before the end is believed (`endConfirmed`), and before saying what became of the take.
+      const daw_ = capabilities?.daw;
+      const read = daw
+        .capabilities()
+        .then((c) => {
+          reachableRef.current = c.reachable;
+        })
+        .catch(() => {
+          reachableRef.current = false;
+        });
+      markEnd(read);
+      void read.then(() => {
+        if (reachableRef.current === false) lostTake.current = true;
+        if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
+        else announceEnd(daw_);
+      });
+    };
+    endHeard.current = heardEnd;
+    const unsubscribe = daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
-      else if (heardRecording.current && !busy.current && appStops.current === 0) {
-        heardRecording.current = false;
-        setRecording(false);
-        // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
-        // before the end is believed (`endConfirmed`), and before saying what became of the take.
-        const daw_ = capabilities?.daw;
-        const read = daw
-          .capabilities()
-          .then((c) => {
-            reachableRef.current = c.reachable;
-          })
-          .catch(() => {
-            reachableRef.current = false;
-          });
-        markEnd(read);
-        void read.then(() => {
-          if (reachableRef.current === false) lostTake.current = true;
-          if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-          else announceEnd(daw_);
-        });
+      else if (heardRecording.current && !busy.current) {
+        // A stop the app is sending: held until it answers. If it did not go through, the end is heard then (`appStop`).
+        if (appStops.current > 0) endHeldByAppStop.current = true;
+        else heardEnd();
       }
     });
+    return () => {
+      endHeard.current = null;
+      unsubscribe?.();
+    };
   }, [daw, recording, notify, capabilities?.daw]);
 
   // The transport is pushed only on a change, so one lost event would leave the REC pill wrong for ever. While a take runs the project's
@@ -684,15 +700,40 @@ export function useRecordControl({
 
   const appStop = useCallback(async <T extends { ok: boolean }>(stopIt: () => Promise<T>): Promise<T> => {
     appStops.current += 1;
+    // Released once, when the stop answers, fails, or has outlived its limit (a stop that never answers must not mute the end of every later take).
+    let released = false;
+    const release = (didStop: boolean) => {
+      if (released) return;
+      released = true;
+      window.clearTimeout(timer);
+      appStopReleases.current.delete(giveUp);
+      appStops.current = Math.max(0, appStops.current - 1);
+      // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end. A stop that did not
+      // go through leaves the take running, and an end heard meanwhile is heard now.
+      if (didStop) heardRecording.current = false;
+      const held = endHeldByAppStop.current;
+      if (appStops.current === 0) endHeldByAppStop.current = false;
+      if (!didStop && held && appStops.current === 0) endHeard.current?.();
+    };
+    const giveUp = () => release(false);
+    const timer = window.setTimeout(giveUp, PRESS_LIMITS_MS.recordStop);
+    appStopReleases.current.add(giveUp);
     try {
       const result = await stopIt();
-      // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end.
-      if (result.ok) heardRecording.current = false;
+      release(result.ok);
       return result;
-    } finally {
-      appStops.current -= 1;
+    } catch (error) {
+      release(false);
+      throw error;
     }
   }, []);
+  // The page is gone: no stop still in flight may keep the next Booth's control from hearing a take end.
+  useEffect(
+    () => () => {
+      for (const giveUp of [...appStopReleases.current]) giveUp();
+    },
+    [],
+  );
 
   const stop = useCallback(async () => {
     if (!recordingRef.current) return true;

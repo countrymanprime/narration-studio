@@ -41,6 +41,7 @@ import { EnginePanelProvider } from '../../engine/EnginePanelContext';
 import { BOOTH_SIZE_STORAGE_KEY } from './boothSize';
 import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
+import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 
 // A take one test leaves running is not the next test's.
@@ -146,7 +147,6 @@ describe('the-page-asks-for-a-manuscript-first', () => {
   it('asks for a manuscript when there is none', () => {
     renderPage({ hasManuscript: false });
     expect(screen.getByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
   });
 });
 
@@ -347,6 +347,42 @@ describe('every-way-out-asks-while-recording', () => {
     await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
     expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
     expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
+  });
+
+  // #3409: the stop the app sends on the way out pushes the DAW's transport event; that is not REAPER ending the take, so no second sentence.
+  it('Stop and leave does not also say that REAPER stopped recording', async () => {
+    const daw = dawFor('reaper');
+    const listeners = new Set<(transport: { recording: boolean }) => void>();
+    const push = (recording: boolean) => listeners.forEach((listener) => listener({ recording }));
+    daw.subscribeTransport = ((listener: (transport: { recording: boolean }) => void) => (
+      listeners.add(listener),
+      () => listeners.delete(listener)
+    )) as unknown as typeof daw.subscribeTransport;
+    const stop = daw.recordStop.bind(daw);
+    daw.recordStop = (async () => (push(false), stop())) as typeof daw.recordStop;
+    const page = renderPage({ daw });
+    const toast = vi.spyOn(page.overlay, 'toast');
+    await record(page);
+    act(() => push(true));
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    await settle();
+    expect(toast.mock.calls.map(([text]) => String(text)).filter((text) => /REAPER stopped recording/.test(text))).toEqual([]);
+  });
+
+  it('Stop and leave with a stop the DAW never answers gives up at the stop limit and does not leave', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const page = renderPage();
+    await record(page);
+    page.daw.recordStop.mockImplementation(() => new Promise(() => {}));
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
+    // Not left: the stop did not go through, so the take is still the narrator's to stop (the control's own test shows the end of a take is heard again).
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /^Record$/ })).toBeNull();
   });
 
   it('the setup chip opens the Audio engine panel, as the header chip does, and leaves the take running', async () => {

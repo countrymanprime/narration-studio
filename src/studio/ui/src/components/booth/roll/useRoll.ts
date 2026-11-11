@@ -104,7 +104,9 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const seconds = s.takeSeconds;
       const result = await actionsRef.current.roll(to, { confirmed });
       if (!result.ok) {
-        actionsRef.current.notify(result.refused ?? result.message);
+        // An empty message is a failure the Booth already said (the roll's limit).
+        const said = result.refused ?? result.message;
+        if (said) actionsRef.current.notify(said);
         return;
       }
       lastRollAt.current = Date.now();

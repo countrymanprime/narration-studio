@@ -10,7 +10,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { recordsInApp } from '../../../studio/dawNames';
+import { recordsInApp, recorderNameCapital } from '../../../studio/dawNames';
 import { dawShortName } from '../../../studio/StudioProvider';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
@@ -562,6 +562,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
   const pressToken = useRef(0);
+  // Which take is running: a late answer for one take is not for the next.
+  const takeSeq = useRef(0);
+  useEffect(() => {
+    takeSeq.current += 1;
+  }, [recording]);
   const mounted = useRef(true);
 
   const roll = useRoll(
@@ -584,23 +589,40 @@ export function useBoothPage(options: BoothPageOptions) {
     {
       roll: async (_phrase, { confirmed }) => {
         // Bounded: a roll the DAW never answers must not hold R, and the take under it, for good. Past the limit the take may still be recording
-        // from before the roll, or already rolling; the sentence says to look, and a roll that lands later is said too (it cannot be undone from here).
-        const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) =>
-          overlay.toast(
-            late.ok
-              ? `${recorderLabel} rolled again after the Booth stopped waiting. The take goes on from there.`
-              : `${recorderLabel} could not roll again: ${late.refused ?? late.message}`,
-            { tone: late.ok ? 'info' : 'error' },
-          ),
+        // from before the roll, or already rolling; the sentence says to look. A roll that lands later is checked against the take it was for (#3409).
+        const token = pressToken.current;
+        const take = takeSeq.current;
+        const name = recorderNameCapital(control.capabilities?.daw);
+        const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) => {
+          if (!late.ok) return void overlay.toast(`${name} could not roll again: ${late.refused ?? late.message}`, { tone: 'error' });
+          const current = mounted.current && token === pressToken.current && take === takeSeq.current && latest.current.recording;
+          if (current) {
+            return void overlay.toast(`${name} rolled again after the Booth stopped waiting. The take is still recording, but the text stayed where it was.`, {
+              tone: 'error',
+            });
+          }
+          // The narrator stopped, left or changed chapter meanwhile: the roll started a recording nobody here is running, so it is stopped like a late start.
+          void limited(
+            'recordStop',
+            appStop(() => daw.recordStop()),
+          ).then((stopped) =>
+            overlay.toast(
+              !stopped.timedOut && stopped.value.ok
+                ? `${name} rolled again after the Booth stopped waiting, so that new recording was stopped. What it recorded stays in ${recorderLabel}.`
+                : `${name} rolled again after the Booth stopped waiting and is recording. Stop it in ${recorderLabel}.`,
+              { tone: 'error' },
+            ),
+          );
+        });
+        if (!asked.timedOut) return asked.value;
+        // Said here as an error, like the other limits; the empty message tells the roll hook there is nothing more to say.
+        overlay.toast(
+          `${name} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
+          {
+            tone: 'error',
+          },
         );
-        return asked.timedOut
-          ? {
-              ok: false,
-              changed: false,
-              undoSteps: 0,
-              message: `${recorderLabel} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
-            }
-          : asked.value;
+        return { ok: false, changed: false, undoSteps: 0, message: '' };
       },
       pause,
       resume: resumeTake,
@@ -792,7 +814,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const latestDaw = useRef(control.capabilities?.daw);
   latestDaw.current = control.capabilities?.daw;
   const stopRecording = useCallback(async (): Promise<DawResult> => {
-    const result = await appStop(() => daw.recordStop());
+    const stopAsked = await limited(
+      'recordStop',
+      appStop(() => daw.recordStop()),
+    );
+    const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
     // Undoable from the next page: a DAW's take is in the history before the page goes.
     if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.

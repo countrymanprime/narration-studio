@@ -16,6 +16,7 @@ const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = 
   { file: 'page/useBoothPage.ts', call: 'appStop(() => daw.recordStop()).catch(', stage: 'recordStop' },
   { file: 'page/useBoothPage.ts', call: 'daw.undoLast(TAKE_KIND, stopped', stage: 'undoLast' },
   { file: 'page/useBoothPage.ts', call: 'daw.roll(', stage: 'roll' },
+  { file: 'page/useBoothPage.ts', call: 'appStop(() => daw.recordStop())', stage: 'recordStop' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStart(', stage: 'recordStart' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStop()', stage: 'recordStop' },

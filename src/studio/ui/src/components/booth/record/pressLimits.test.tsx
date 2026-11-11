@@ -60,7 +60,7 @@ function mount(
     </ApiProvider>
   );
   const view = renderHook(() => useRecordControl({ chapterId: 'c1', notify, onBlocked }), { wrapper });
-  return { ...view, stops, onBlocked, client };
+  return { ...view, stops, onBlocked, client, notify };
 }
 
 const ready = async (view: ReturnType<typeof mount>) => {
@@ -317,5 +317,53 @@ describe('the Record control stop (#3320)', () => {
     await act(async () => void (await view.result.current.toggle()));
     expect(view.stops).toHaveBeenCalledTimes(2);
     expect(view.result.current.recording).toBe(false);
+  });
+});
+
+describe('a stop the app sends outside a press (#3409)', () => {
+  const stoppedSentence = /REAPER stopped recording/;
+  const recordingView = async () => {
+    let emit: (transport: { recording: boolean }) => void = () => {};
+    const view = mount({ start: () => Promise.resolve(OK), transport: (listener) => (emit = listener) });
+    await ready(view);
+    await act(async () => void (await view.result.current.toggle()));
+    expect(view.result.current.recording).toBe(true);
+    act(() => emit({ recording: true }));
+    return { view, emit };
+  };
+  const said = (view: { notify: ReturnType<typeof vi.fn> }) =>
+    view.notify.mock.calls.map(([text]) => String(text)).filter((text) => stoppedSentence.test(text));
+
+  it('that goes through: the transport push during it is not a take that ended in the DAW', async () => {
+    const { view, emit } = await recordingView();
+    await act(async () => {
+      await view.result.current.appStop(async () => {
+        emit({ recording: false });
+        return { ok: true };
+      });
+    });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view)).toEqual([]);
+  });
+
+  it('that does not go through: the end the push told of is heard when the stop fails', async () => {
+    const { view, emit } = await recordingView();
+    await act(async () => {
+      await view.result.current.appStop(async () => {
+        emit({ recording: false });
+        return { ok: false };
+      });
+    });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view).length).toBe(1);
+  });
+
+  it('that never answers: after its limit a take ending in the DAW is heard again', async () => {
+    const { view, emit } = await recordingView();
+    void view.result.current.appStop(() => new Promise<{ ok: boolean }>(() => {}));
+    await vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5);
+    act(() => emit({ recording: false }));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view).length).toBe(1);
   });
 });
