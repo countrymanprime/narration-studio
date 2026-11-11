@@ -67,6 +67,10 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/chapterTracks/ChapterTrackState.tsx#1':
+    "The quiet re-read of the links detail after a change made on a screen that already has its answer (`applyMappings`): the change itself is shown, and a failed re-read marks the state stale and is retried by the next poll or the screen's own refresh, which reports a failure.",
+  'src/components/chapterTracks/ChapterTrackState.tsx#2':
+    'The first read of the links detail for a screen that asked for it after the links were already read: a failure marks the state stale, the screen keeps showing the saved links, and the next poll or its own refresh reads it again and reports a failure.',
   'src/components/editing/takes/useTakeAudition.ts#1':
     "Stopping the DAW's preview of a take failed, as the narrator pressed Stop or left the page: at most the rest of one take plays on in the DAW, which ends by itself, and Play on any take stops it again.",
   'src/components/proof/inspector/HearIt.tsx#1':
