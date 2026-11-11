@@ -16,7 +16,7 @@ describe('holderName', () => {
   });
   it('gives a held track a label in the pickers even when the kept title is empty', () => {
     const track = { guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] } as unknown as Track;
-    const [choice] = plainTrackChoices([track], [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: '   ', confirmedAt: '' }], 'c1');
+    const [choice] = plainTrackChoices([track], [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: '   ' }], 'c1');
     expect(choice.heldBy).toBe('another chapter');
   });
 });
