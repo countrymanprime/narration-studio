@@ -3637,6 +3637,7 @@
         "Opens What It Counts",
         "With Icon",
         "Dot",
+        "Icon Only",
         "All Tones As Dots",
         "Announces Its Label"
       ],
@@ -4334,6 +4335,7 @@
         "src/components/primitives/RadioGroup.tsx",
         "src/components/primitives/SearchField.tsx",
         "src/components/primitives/SplitButton.tsx",
+        "src/components/primitives/StatusBadge.tsx",
         "src/components/primitives/Table.tsx",
         "src/components/primitives/TagInput.tsx",
         "src/components/primitives/TitleSubtitle.tsx",

@@ -76,7 +76,7 @@ func TestAddingAVoiceMakesAChildOfTheChaptersFolderAssignsItsCharactersAndChoose
 		t.Fatalf("children %v, top-level %v: want one child of the chapter's folder", creator.children, creator.names)
 	}
 	setup := voiceSetup(t, host)
-	if !reflect.DeepEqual(setup.Tracks, []voicetracks.TrackAssignment{{Track: "King of Hearts", Characters: []string{"king"}}}) {
+	if !reflect.DeepEqual(setup.Tracks, []voicetracks.TrackAssignment{{Track: "King of Hearts", Characters: []string{"king"}, GUIDs: []string{}}}) {
 		t.Fatalf("assignments %+v", setup.Tracks)
 	}
 	// The saved project does not hold the track until the narrator saves, but this session knows it is a voice of the chapter: the next
@@ -143,7 +143,7 @@ func TestAnAddedVoiceAddsTheCharactersToATrackOfTheSameNameElsewhere(t *testing.
 		t.Fatal(err)
 	}
 	boothVoiceAdd(t, host, &fakeChildCreator{}, ids[0], "Extras", []string{"king", "knave"})
-	want := []voicetracks.TrackAssignment{{Track: "Extras", Characters: []string{"cook", "king", "knave"}}}
+	want := []voicetracks.TrackAssignment{{Track: "Extras", Characters: []string{"cook", "king", "knave"}, GUIDs: []string{}}}
 	if got := voiceSetup(t, host).Tracks; !reflect.DeepEqual(got, want) {
 		t.Fatalf("assignments %+v, want %+v", got, want)
 	}

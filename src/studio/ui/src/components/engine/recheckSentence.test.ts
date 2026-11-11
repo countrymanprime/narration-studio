@@ -12,9 +12,9 @@ describe('recheckSentence', () => {
   });
   it('counts what a folder holds: voices in a Voice folders project, tracks in any other', () => {
     const folder = [track('f', 'Ch 1', 0, true), track('n', 'Narrator', 1)];
-    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f', true)).toContain('(a folder with 1 voice). Nothing changed.');
-    expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f', true)).toContain('(a folder with 2 voices)');
-    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder with 1 track). Nothing changed.');
+    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f', true)).toContain('(a folder of 1 voice). Nothing changed.');
+    expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f', true)).toContain('(a folder of 2 voices)');
+    expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder of 1 track). Nothing changed.');
   });
   it('says the track was renamed', () => {
     expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(

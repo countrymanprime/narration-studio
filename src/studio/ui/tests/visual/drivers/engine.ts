@@ -289,7 +289,7 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
     await table.scrollIntoViewIfNeeded();
-    await table.getByText('Track missing').waitFor();
+    await table.getByRole('img', { name: 'Track missing' }).first().waitFor();
   },
   'editing-check-unmapped': async (page) => {
     const panel = await openEditingCheckFromEngine(page, 'mockEditingRefusal=unmapped');

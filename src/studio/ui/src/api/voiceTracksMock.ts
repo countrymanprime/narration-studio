@@ -14,8 +14,12 @@ function validName(text: string): boolean {
 export function createVoiceTracksMock(
   initial?: Partial<VoiceTracksState>,
 ): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
-  let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], ...initial };
-  const snapshot = (): VoiceTracksState => ({ ...state, tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters] })) });
+  let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], ...initial };
+  const snapshot = (): VoiceTracksState => ({
+    ...state,
+    tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters], guids: [...entry.guids] })),
+    narratorGuids: [...state.narratorGuids],
+  });
   return {
     voiceTracksGet: async () => snapshot(),
     voiceTracksSetLayout: async (layout) => {
@@ -29,7 +33,8 @@ export function createVoiceTracksMock(
       if (characterIds.length > 200 || !characterIds.every(validName)) throw new Error('that voice setup is not valid: a character id');
       const ids = [...new Set(characterIds)];
       const others = state.tracks.filter((entry) => entry.track !== nameTrimmed);
-      const tracks = ids.length === 0 ? others : [...others, { track: nameTrimmed, characters: ids }];
+      const guids = state.tracks.find((entry) => entry.track === nameTrimmed)?.guids ?? [];
+      const tracks = ids.length === 0 ? others : [...others, { track: nameTrimmed, characters: ids, guids }];
       tracks.sort((a, b) => (a.track < b.track ? -1 : a.track > b.track ? 1 : 0));
       state = { ...state, tracks };
       return snapshot();
