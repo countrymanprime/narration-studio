@@ -580,17 +580,51 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     await waitFor(() => expect(within(select).queryByRole('option', { name: /linked to Chapter 9/ })).toBeNull());
   });
 
-  it('says the links could not be read when that read fails, and Check again reads them again', async () => {
+  it('keeps the picker and says the links could not be read again when only that read fails, and Check again recovers', async () => {
     let fail = true;
     const chapterTrackMapList = vi.fn(async () => {
       if (fail) throw new Error('the host is busy');
       return { documentId: 'd', mappings: [] as (typeof held)[] };
     });
     open({ chapterTrackMatch: async () => match(), chapterTrackMapList });
-    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    // The picker stays (the match answered); the failure is said under it, naming the links and not the tracks.
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect((await screen.findByRole('alert')).textContent).toContain('The links could not be read again');
     fail = false;
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('a link that fails after the dialog was closed still says so, as a toast', async () => {
+    const service = createOverlayService();
+    let rejectSet: (reason: Error) => void = () => {};
+    const chapterTrackSet = vi.fn(() => new Promise<never>((_, reject) => (rejectSet = reject)));
+    const props = {
+      variant: 'chapter-unlinked' as const,
+      chapterId: 'c3',
+      chapterName: 'Chapter 3',
+      sentence: 's',
+      dawName: 'REAPER',
+      onLinked: vi.fn(),
+      onClose: vi.fn(),
+    };
+    const { unmount } = render(
+      <ApiProvider api={createMockApi({ chapterTrackMatch: async () => match(), chapterTrackSet })}>
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+              <ConnectionResolveDialog {...props} />
+            </ChapterTrackStateProvider>
+          </OverlayProvider>
+        </TooltipProvider>
+      </ApiProvider>,
+    );
     await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+    // Escape while the link is out: the dialog is gone before the host answers.
+    unmount();
+    rejectSet(new Error('REAPER did not answer'));
+    await waitFor(() => expect(service.getSnapshot().toasts.some((toast) => toast.text.includes('The link could not be made'))).toBe(true));
   });
 
   it('Check again re-reads the links through the state, quietly', async () => {

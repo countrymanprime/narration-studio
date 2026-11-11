@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -72,12 +72,23 @@ export function ChapterLinkDialog({
     let live = true;
     // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
     // A links read that fails is this dialog's read failing: it says so, as a failed match does, and Check again tries both again.
-    Promise.all([trackMap.chapterTrackMatch(chapterId), refreshLinks()]).then(
+    // A links read that fails after the match answered leaves the picker as it was, with the failure said under it, not the whole dialog failed.
+    let linksFailure = '';
+    Promise.all([
+      trackMap.chapterTrackMatch(chapterId),
+      refreshLinks().catch((error: unknown) => {
+        linksFailure = apiErrorMessage(error);
+        return undefined;
+      }),
+    ]).then(
       ([match, fresh]) => {
         if (!live) return;
         setRead({ status: 'ready', match, at: Date.now() });
+        if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
-        setChosen((current) => (current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh))));
+        setChosen((current) =>
+          current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh ?? linksRef.current)),
+        );
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
     );
@@ -86,6 +97,16 @@ export function ChapterLinkDialog({
     };
   }, [trackMap, chapterId, asked, refreshLinks]);
 
+  const linksRef = useRef(links);
+  linksRef.current = links;
+  // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
+  const open = useRef(true);
+  useEffect(
+    () => () => {
+      open.current = false;
+    },
+    [],
+  );
   const checkAgain = useCallback(() => {
     setRefused(null);
     setAsked((n) => n + 1);
@@ -110,7 +131,9 @@ export function ChapterLinkDialog({
       },
       (error: unknown) => {
         setLinking(false);
-        setRefused(`The link could not be made: ${apiErrorMessage(error)}`);
+        const text = `The link could not be made: ${apiErrorMessage(error)}`;
+        if (open.current) setRefused(text);
+        else overlay.toast(text, { tone: 'error' });
       },
     );
   };
@@ -126,11 +149,14 @@ export function ChapterLinkDialog({
         if (result.outcome === 'created') {
           applyMappings(result.mappings);
           onLinked(result, result);
-        } else setRefused(result.message);
+        } else if (open.current) setRefused(result.message);
+        else overlay.toast(result.message, { tone: 'error' });
       },
       (error: unknown) => {
         setCreating(false);
-        setRefused(`The ${dest.noun} could not be added: ${apiErrorMessage(error)}`);
+        const text = `The ${dest.noun} could not be added: ${apiErrorMessage(error)}`;
+        if (open.current) setRefused(text);
+        else overlay.toast(text, { tone: 'error' });
       },
     );
   };

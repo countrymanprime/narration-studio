@@ -55,6 +55,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
+  'src/components/connection/ChapterLinkDialog.tsx#1': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#2': no(RF),
+  'src/components/connection/ChapterLinkDialog.tsx#3': no(ED),
   'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
     'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
   ),
