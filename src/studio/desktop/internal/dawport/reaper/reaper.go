@@ -16,6 +16,7 @@ import (
 	"maps"
 	"strconv"
 	"sync"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
@@ -240,6 +241,10 @@ func Factory(env dawport.Env) (dawport.Adapter, error) {
 	return New(client, env.Allowed)
 }
 
+// answerTimeout replaces the bridge's 3 s answer wait when above zero. Only this package's TestMain sets it: the fake bridge
+// answers from a polling goroutine, and a loaded Windows runner can starve it for longer than 3 s (#3395).
+var answerTimeout time.Duration
+
 // New wraps client, which must not be nil (ErrNoSession). allowed is the resolver's Allowed, asked through Gate before each of
 // bridge.Actions' commands is sent; nil refuses them all with bridge.ErrNotGated.
 //
@@ -250,6 +255,10 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 	}
 	navigator := bridge.NewNavigator(client)
 	actions := bridge.NewActions(client, Gate(allowed))
+	if answerTimeout > 0 {
+		navigator.SetTimeout(answerTimeout)
+		actions.SetTimeout(answerTimeout)
+	}
 	heartbeat := daw.NewReachability(client)
 	commands := events{client: client}
 	positions := daw.NewPositionFeed()
