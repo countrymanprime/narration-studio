@@ -1395,8 +1395,8 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(unlinked).toEqual({ opening: { recordedUnavailable: 'unlinked' }, closing: { recordedUnavailable: 'unlinked' } });
 
     const tracks = await api.tracksList();
-    const confirmed = await api.chapterTrackMapConfirm(tracks.tracks[0].guid, 'credits-opening');
-    expect(confirmed.chapterTitle).toBe('Opening credits');
+    const confirmed = await api.chapterTrackSet('credits-opening', tracks.tracks[0].guid);
+    expect(confirmed.link.chapterTitle).toBe('Opening credits');
 
     const afterLink = await api.creditsRecordedLengths();
     expectMatches(creditsRecordedLengthsSchema, afterLink, 'mock credits recorded lengths, opening linked');
@@ -1661,7 +1661,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(empty.mappings).toHaveLength(0);
 
     const chapters = await ownChapters(api);
-    const confirmed = await api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', chapters[0].id);
+    const confirmed = (await api.chapterTrackSet(chapters[0].id, '{0E4D1D7F-D039-674D-87E6-719376DE95EC}')).link;
     expectMatches(trackMappingSchema, confirmed, 'mock chapter-track map confirmation');
     expect(confirmed.chapterTitle).toBe(chapters[0].title);
 
@@ -1673,7 +1673,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(chapterTrackMappingSchema, cleared, 'mock chapter-track map after unlink');
     expect(cleared.mappings).toHaveLength(0);
 
-    await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
+    await expect(api.chapterTrackSet('not-a-real-chapter', '{0E4D1D7F-D039-674D-87E6-719376DE95EC}')).rejects.toThrow();
   });
 
   it('the ChapterFolders answers: clean, nested with its moves, repaired, stale and refused, each through the schema (#2838)', async () => {
@@ -1852,7 +1852,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(unmatched.status).toBe('none');
     expect(unmatched.track).toBeNull();
 
-    await api.chapterTrackMapConfirm('{DA2D209F-D10F-5E46-93E7-098D96499ED0}', last);
+    await api.chapterTrackSet(last, '{DA2D209F-D10F-5E46-93E7-098D96499ED0}');
     const confirmed = await api.chapterTrackMatch(last);
     expectMatches(chapterTrackMatchSchema, confirmed, 'mock chapter-track match, confirmed');
     expect(confirmed.status).toBe('confirmed');
@@ -4703,7 +4703,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'tracksList',
       'tracksLive',
       'chapterTrackMapList',
-      'chapterTrackMapConfirm',
       'chapterTrackSet',
       'chapterTrackCreate',
       'chapterFoldersCheck',

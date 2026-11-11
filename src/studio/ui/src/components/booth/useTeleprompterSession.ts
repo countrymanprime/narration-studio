@@ -5,6 +5,7 @@ import { isInstallRunning } from '../../types';
 import { buildRows, creditsRows, hydrateSession, initialSession, previewRows, reduceEvent, type CreditsKind, type Session } from './readerModel';
 import { usePacedCursor } from './usePacedCursor';
 import type { InputSource } from './listening/listeningMic';
+import { PRESS_LIMITS_MS } from './record/pressLimits';
 import type {
   ManuscriptChapter,
   ManuscriptParagraph,
@@ -327,6 +328,45 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
    * never says, so a take is never held behind it. Answers at once when nothing runs.
    */
+  /**
+   * Answers when a session the host is starting (another press's, whose Booth may be gone) is up or has failed, as `start` does for its own: a press that joins
+   * it must not keep a take on a session that then fails. It listens to the host itself, not through this hook's subscription, so it still hears the answer
+   * when the Booth that asked has been left or the chapter has changed. Answers at once when none is starting.
+   */
+  const whenUp = useCallback((): Promise<{ ok: boolean; reason: string }> => {
+    const answer = (state: TeleprompterState) =>
+      state.phase === 'running' ? { ok: true, reason: '' } : { ok: false, reason: state.message || 'listening failed' };
+    return new Promise((resolve) => {
+      let off = () => {};
+      let settled = false;
+      const timer: { id?: ReturnType<typeof setTimeout> } = {};
+      const finish = (state: TeleprompterState) => {
+        if (settled || state.phase === 'starting') return;
+        settled = true;
+        clearTimeout(timer.id);
+        off();
+        resolve(answer(state));
+      };
+      off = api.subscribeTeleprompterState(finish);
+      // The press that waits gave up at its limit: the listener goes with it, so a host that never pushes leaves nothing behind.
+      timer.id = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        off();
+        resolve({ ok: false, reason: 'no answer in time' });
+      }, PRESS_LIMITS_MS.listening + 1000);
+      void api
+        .teleprompterState()
+        .then(finish)
+        // A read that fails claims nothing: the host's push still answers.
+        .catch(() => null);
+    });
+  }, [api]);
+  /** Ends a session the host runs or is starting, if there is one: for a press that gave up on a session nobody else owns. */
+  const stopIfRunning = useCallback(async (): Promise<void> => {
+    const state = await api.teleprompterState().catch(() => null);
+    if (state && ACTIVE_PHASES.includes(state.phase)) await api.teleprompterStop().catch((reason) => setError(errorText(reason)));
+  }, [api]);
   const stopAndWait = useCallback((): Promise<void> => {
     if (!ACTIVE_PHASES.includes(hostPhase.current)) return Promise.resolve();
     return new Promise<void>((resolve) => {
@@ -497,6 +537,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     start,
     stop,
     stopAndWait,
+    whenUp,
+    stopIfRunning,
+    phase: host.phase,
     seek,
     changeDevice,
     closeModelPrompt,

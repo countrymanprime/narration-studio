@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
+import type { ChapterTrackLinks } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
 import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from '../engine/useLiveTracks';
 import { useVoiceSetup, VoiceSetupProvider } from '../engine/voiceLayout';
@@ -18,6 +19,8 @@ export type ChapterTrackState = {
   source?: TracksSource;
   /** Every confirmed chapter-to-track link the host holds, read with the tracks. */
   mappings: TrackMapping[];
+  /** Every narration chapter's link state, candidates and warnings, with the tracks they name, read with the links; undefined until a screen that asks for it (`detail`) has had its first answer. */
+  details?: ChapterTrackLinks;
   /** When the links last answered (Unix ms), tracks or no tracks; null before the first. A screen that reads the links alone waits on this. */
   linksReadAt: number | null;
   /** When the tracks last answered (Unix ms); null before the first. A change means everything above is a fresh read. */
@@ -69,7 +72,7 @@ const EMPTY: ChapterTrackState = {
 };
 
 /** What a screen asks the state to read: the tracks with the links (`tracks`), or the links alone (`links`: the Audacity panel, which has no REAPER tracks to read). */
-type WatchKind = 'tracks' | 'links';
+type WatchKind = 'tracks' | 'links' | 'detail';
 type Watch = { state: ChapterTrackState; watch: (kind: WatchKind) => () => void; defaultWants: boolean };
 
 const NO_WATCH: Watch = { state: EMPTY, watch: () => () => {}, defaultWants: true };
@@ -116,15 +119,21 @@ export function ChapterTrackStateProvider({
   const trackMap = usePort('chapterTrackMap');
   const [watchers, setWatchers] = useState(0);
   const [linkWatchers, setLinkWatchers] = useState(0);
+  // Screens that also want each chapter's link state (status, candidates, warnings): the links are then read with that detail.
+  const [detailWatchers, setDetailWatchers] = useState(0);
   // A toast's Retry pressed after the last screen left still reads once: the reading stays on until that read has ended.
   const [oneShot, setOneShot] = useState(false);
   const reading = (watchers > 0 || oneShot) && !!projectFolder;
   // The links alone are read for a screen that wants only them (no polling: they are read when it asks and when a change is made).
-  const readingLinks = reading || (linkWatchers > 0 && !!projectFolder);
+  const readingLinks = reading || ((linkWatchers > 0 || detailWatchers > 0) && !!projectFolder);
+  const wantDetail = detailWatchers > 0;
+  const wantDetailRef = useRef(false);
+  wantDetailRef.current = wantDetail;
   const retryRef = useRef<() => void>(() => {});
   const live = useLiveTracks({ enabled: reading, readKey: projectFolder, notify, onRetry: () => retryRef.current() });
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
+  const [details, setDetails] = useState<ChapterTrackLinks>();
   const refreshLive = live.refresh;
   const recheckLive = live.recheck;
   const rereadLive = live.reread;
@@ -153,14 +162,20 @@ export function ChapterTrackStateProvider({
       const limit = new Promise<never>((_, reject) => {
         timer = window.setTimeout(() => reject(new Error('The chapter links were not read in time.')), LIVE_TRACKS_TIMEOUT_MS);
       });
-      const read = Promise.race([trackMap.chapterTrackMapList(), limit])
-        .then((answer) => {
+      // The detail is one more read of the same host state, asked for only while a screen wants it, answered with the links.
+      const wantsDetail = wantDetailRef.current;
+      // A failed detail does not fail the links every other screen shows: the links apply, and the state is marked stale (null = failed).
+      const detailRead = wantsDetail ? trackMap.chapterTrackLinks().catch(() => null) : Promise.resolve(undefined);
+      const both = Promise.all([trackMap.chapterTrackMapList(), detailRead]);
+      const read = Promise.race([both, limit])
+        .then(([answer, detail]) => {
           if (run !== linksRun.current) return newestLinks.current;
           linksFailing.current = false;
-          setLinksStale(false);
+          setLinksStale(detail === null);
           mappingsRef.current = answer.mappings;
           documentIdRef.current = answer.documentId;
           setMappings(answer.mappings);
+          if (detail) setDetails(detail);
           setMappingsAt(Date.now());
           return answer.mappings;
         })
@@ -171,7 +186,8 @@ export function ChapterTrackStateProvider({
           setLinksStale(true);
           // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
           if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
-          linksFailing.current = true;
+          // Only a read that toasted counts as a run of failures: a caller that showed the failure itself must not silence the next toast.
+          if (mode === 'toast') linksFailing.current = true;
           // The state's own reads end here (the toast said it); a caller that asked to show the failure gets it.
           if (mode === 'throw') throw reason;
           return mappingsRef.current;
@@ -198,6 +214,8 @@ export function ChapterTrackStateProvider({
     const linksRead = readLinks(true, 'throw').then(
       () => true,
       (reason: unknown) => {
+        // This one toasts, so it counts as a toasted failure: the poll that follows does not toast the same outage again.
+        linksFailing.current = true;
         notify(describeApiError(reason), 'error', retryAction(retryRef.current));
         return false;
       },
@@ -249,22 +267,32 @@ export function ChapterTrackStateProvider({
   }, [live.readAt, refreshVoiceSetup]);
 
   const watch = useCallback((kind: WatchKind) => {
-    const set = kind === 'tracks' ? setWatchers : setLinkWatchers;
+    const set = kind === 'tracks' ? setWatchers : kind === 'detail' ? setDetailWatchers : setLinkWatchers;
     set((n) => n + 1);
     return () => set((n) => n - 1);
   }, []);
   // A change whose answer already says what the links are: shown at once, reconciled by the next read.
-  const applyMappings = useCallback((next: TrackMapping[]) => {
-    mappingsRef.current = next;
-    setMappings(next);
-    setMappingsAt(Date.now());
-  }, []);
+  const applyMappings = useCallback(
+    (next: TrackMapping[]) => {
+      mappingsRef.current = next;
+      setMappings(next);
+      setMappingsAt(Date.now());
+      // The links' detail (status, candidates) is not in the answer to a change, so a screen that shows it is told by a quiet read.
+      if (wantDetailRef.current) readLinks(true, 'throw').catch(() => {});
+    },
+    [readLinks],
+  );
   // The links alone, now: for the screen that made a change or was told one was made. A failure is the caller's to show.
   const refreshLinks = useCallback(() => readLinks(true, 'throw'), [readLinks]);
   const readDocumentId = useCallback(async () => {
     if (!documentIdRef.current) await readLinks(true, 'throw');
     return documentIdRef.current;
   }, [readLinks]);
+  // A screen asking for the detail after the links were already being read gets its first answer now.
+  const needDetail = wantDetail && readingLinks && details === undefined && mappingsAt !== null;
+  useEffect(() => {
+    if (needDetail) readLinks(true, 'throw').catch(() => {});
+  }, [needDetail, readLinks]);
 
   const state = useMemo<ChapterTrackState>(
     () =>
@@ -275,6 +303,7 @@ export function ChapterTrackStateProvider({
             project: live.project,
             source: live.source,
             mappings,
+            details,
             linksReadAt: mappingsAt,
             // Not ready until both the tracks and the links have answered for this project.
             readAt: live.readAt !== null && mappingsAt !== null ? live.readAt : null,
@@ -288,7 +317,7 @@ export function ChapterTrackStateProvider({
             // The Engine panel's Refresh is a press: it reads the links with the tracks.
             live: { ...live, refresh, recheck },
           },
-    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks, readDocumentId],
+    [projectFolder, reading, live, linksStale, mappings, details, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks, readDocumentId],
   );
   const value = useMemo(() => ({ state, watch, defaultWants: enabled }), [state, watch, enabled]);
   useEffect(() => {
@@ -304,16 +333,21 @@ export function ChapterTrackStateProvider({
  * The tracks and links every watching screen shares. Calling it starts the reading while `enabled` (default: the project has a DAW file
  * linked and the DAW is not Audacity, so a project with no REAPER file is never asked); the reading stops when no screen wants it. A screen
  * that does not want it gets an empty state, so it never shows tracks it did not ask for. The Engine panel passes its own `enabled` (a
- * project file is selected), because it is where the file gets linked. `when` is the screen's own condition (a panel is open) on top of that. `tracks: false` wants the links alone (a screen that reads no REAPER
+ * project file is selected), because it is where the file gets linked. `when` is the screen's own condition (a panel is open) on top of that. `detail: true` wants the links with each chapter's link state (the Production board and its track panel); `tracks: false` wants the links alone (a screen that reads no REAPER
  * tracks of its own, such as the Audacity panel, or one that only needs who is linked to what).
  */
-export function useChapterTrackState({ enabled, tracks = true, when = true }: { enabled?: boolean; tracks?: boolean; when?: boolean } = {}): ChapterTrackState {
+export function useChapterTrackState({
+  enabled,
+  tracks = true,
+  detail = false,
+  when = true,
+}: { enabled?: boolean; tracks?: boolean; detail?: boolean; when?: boolean } = {}): ChapterTrackState {
   const inTree = useContext(ChapterTrackStateContext);
   // Outside any provider (an overlay dialog), the app's mounted state, when there is one.
   const registered = useSyncExternalStore(subscribeMounted, readMounted);
   const { state, watch, defaultWants } = inTree === NO_PROVIDER && registered ? registered : inTree;
   const wants = (enabled ?? defaultWants) && when;
-  useEffect(() => (wants ? watch(tracks ? 'tracks' : 'links') : undefined), [wants, tracks, watch]);
+  useEffect(() => (wants ? watch(detail ? 'detail' : tracks ? 'tracks' : 'links') : undefined), [wants, tracks, detail, watch]);
   return wants ? state : EMPTY;
 }
 

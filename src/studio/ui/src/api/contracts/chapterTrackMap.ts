@@ -253,8 +253,6 @@ export type ChapterFolders = {
 
 export interface ChapterTrackMapApi {
   chapterTrackMapList(): Promise<ChapterTrackMapping>;
-  /** Confirms trackGuid as chapterId's link; refuses a chapterId outside the current manuscript. */
-  chapterTrackMapConfirm(trackGuid: string, chapterId: string): Promise<TrackMapping>;
   /** Makes trackGuid chapterId's one link, replacing its old one; `displaced` names the chapter the track was taken from. */
   chapterTrackSet(chapterId: string, trackGuid: string): Promise<ChapterTrackSetResult>;
   /** Adds a track named after chapterId in the DAW (at the end, unsaved) and links it as chapterTrackSet would; a DAW that cannot is a refusal. */
