@@ -34,13 +34,13 @@ describe('the unsaved-drafts registry', () => {
 
   it('names a dirty holder, and not a clean one', () => {
     const { result } = setup({ a: draft({ label: 'your note' }), b: draft({ dirty: false, label: 'your entry' }) });
-    expect(result.current.held).toEqual(['your note']);
+    expect(result.current.held.map((entry) => entry.label)).toEqual(['your note']);
   });
 
   it('forgets a holder when it unmounts', () => {
     let held: readonly string[] = [];
     const Probe = () => {
-      held = useUnsavedDrafts().held;
+      held = useUnsavedDrafts().held.map((entry) => entry.label);
       return null;
     };
     const tree = (shown: boolean) => (
@@ -82,5 +82,26 @@ describe('the unsaved-drafts registry', () => {
     act(() => result.current.discard());
     expect(a).toHaveBeenCalledOnce();
     expect(clean).not.toHaveBeenCalled();
+  });
+
+  it('a second save while the first runs shares it and saves once (#3400)', async () => {
+    let release: (value: boolean) => void = () => {};
+    const slow = vi.fn(() => new Promise<boolean>((resolve) => (release = resolve)));
+    const { result } = setup({ a: draft({ save: slow }) });
+    let first!: Promise<boolean>;
+    let second!: Promise<boolean>;
+    act(() => {
+      first = result.current.save();
+      second = result.current.save();
+    });
+    release(true);
+    expect(await first).toBe(true);
+    expect(await second).toBe(true);
+    expect(slow).toHaveBeenCalledOnce();
+  });
+
+  it('says it cannot save when a held draft has nothing to save', () => {
+    const { result } = setup({ a: draft({ save: undefined }) });
+    expect(result.current.canSave).toBe(false);
   });
 });

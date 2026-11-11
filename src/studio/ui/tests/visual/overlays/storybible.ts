@@ -67,6 +67,7 @@ export const storyBibleCases: OverlayCase[] = [
     },
   },
   fromState('storybible', 'delete-confirm'),
+  fromState('storybible', 'entry-leave-confirm'),
   fromState('storybible', 'relationship-picker', 'dialog'),
   fromState('storybible', 'import-dialog'),
   fromState('storybible', 'voice-download-confirm'),

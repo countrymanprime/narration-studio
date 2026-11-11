@@ -1,6 +1,7 @@
+import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { headingName } from '../../chapterHeading';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -56,7 +57,7 @@ export function ProofChapterPage(props: ChapterViewProps) {
 
 function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToEditing, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');

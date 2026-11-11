@@ -1,3 +1,5 @@
+import { plural } from '../../../../../plural';
+import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
@@ -126,7 +128,13 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
     }
   };
   // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
-  useUnsavedDraft(`script-word-say-${word}`, { dirty: say.trim() !== '', label: 'the pronunciation you typed', save, discard: () => setSay('') });
+  useUnsavedDraft(`script-word-say-${word}`, {
+    dirty: say.trim() !== '',
+    label: `the pronunciation you typed for “${shortName(word)}”`,
+    many: (n) => `${plural(n, 'pronunciation')} you typed`,
+    save,
+    discard: () => setSay(''),
+  });
   return (
     <RailFieldRow
       field={

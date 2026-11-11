@@ -1,3 +1,4 @@
+import { plural } from '../../../plural';
 import { useState } from 'react';
 import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { MAX_REVIEW_NOTE_LENGTH, type FindingThreadAuthor, type FindingThreadChange, type FindingThreadMessage } from '../../../api/contracts/findings';
@@ -36,7 +37,8 @@ function Message({
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft(`finding-note-edit-${message.id}`, {
     dirty: draft !== undefined && draft.trim() !== '' && draft !== message.text,
-    label: 'your edit of a note',
+    label: `your edit of ${message.who === 'you' ? 'your' : 'the proofer’s'} note`,
+    many: (n) => `${plural(n, 'edit')} of notes`,
     save: async () => {
       if (draft === undefined) return true;
       const saved = await onEdit(draft);
@@ -114,7 +116,13 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
   };
   const add = () => action.run('add', saveReply);
   // A note typed and not yet added is held text: leaving the page asks first (#3400).
-  useUnsavedDraft('finding-note-reply', { dirty: reply.trim() !== '', label: 'the note you are writing', save: saveReply, discard: () => setReply('') });
+  useUnsavedDraft('finding-note-reply', {
+    dirty: reply.trim() !== '',
+    label: 'the note you are writing',
+    many: (n) => `${plural(n, 'note')} you are writing`,
+    save: saveReply,
+    discard: () => setReply(''),
+  });
   const remove = (message: FindingThreadMessage) =>
     action.run(`delete-${message.id}`, async () => {
       // A deleted note is one journal entry, so Ctrl+Z and History bring it back as the toast's Undo does. `send` has already said why when it fails.

@@ -1,5 +1,7 @@
+import { plural } from '../../../../../plural';
 import { useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
+import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
@@ -80,7 +82,8 @@ export function NoteCard({
   // A reply typed and not yet added is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-note-reply-${mark.id}`, {
     dirty: reply.trim() !== '',
-    label: 'the reply you are writing',
+    label: `your reply on “${shortName(quote || line)}”`,
+    many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,
     save: () => send(actions.onReply),
     discard: () => setReply(''),
   });

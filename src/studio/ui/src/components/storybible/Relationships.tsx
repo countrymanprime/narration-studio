@@ -1,3 +1,5 @@
+import { plural } from '../../plural';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { useRef, useState, type ReactNode } from 'react';
 import type { GuideEntity, GuideType } from '../../types';
 import { entryColour } from '../../kinds/entityColour';
@@ -267,6 +269,13 @@ export function Relationships({
     setDrafts((all) => all.map((row) => (row.key === draft.key ? next : row)));
   };
   const showing = editing ? drafts : [];
+  // A relationship row half filled in is written once it has both its words and its other end, so until then it is held text with nothing to save (#3400).
+  useUnsavedDraft('story-bible-relationship-rows', {
+    dirty: editing && drafts.some((row) => row.label.trim() !== '' || row.otherId !== ''),
+    label: 'a relationship you started',
+    many: (n) => `${plural(n, 'relationship')} you started`,
+    discard: () => setDrafts([]),
+  });
   return (
     <div>
       <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>

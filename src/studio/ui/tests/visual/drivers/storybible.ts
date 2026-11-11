@@ -242,6 +242,17 @@ export const storybibleDrivers: Record<string, Driver> = {
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
   },
+  'entry-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await entryRows(page).first().click();
+    const unlock = page.getByRole('button', { name: 'Unlock entry' });
+    if (await unlock.count()) await unlock.click();
+    await clickVisible(page, 'button', 'Edit this entry');
+    await page.getByRole('textbox', { name: 'Description' }).fill('A line typed and not saved.');
+    // Leaving with an edit not saved asks first, so this click does not arrive at Production: it opens the confirm dialog.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
   'entry-properties-editing': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();

@@ -1,6 +1,6 @@
+import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { CoverageEngines, CoverageReason, CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { WhisperInstallJob } from '../../api/contracts/whisper';
@@ -61,7 +61,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
   const coverage = usePort('coverage');
   const whisper = usePort('whisper');
   const overlay = useOverlay();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const capability = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [loadError, setLoadError] = useState('');

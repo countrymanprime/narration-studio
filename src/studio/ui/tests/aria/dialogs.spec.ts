@@ -34,6 +34,11 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'confirm-approve-render.aria.yml',
   },
   {
+    name: 'the unsaved-changes confirm of a Story Bible entry is an alert dialog with three actions',
+    state: ['storybible', 'entry-leave-confirm'],
+    snapshot: 'confirm-unsaved-changes.aria.yml',
+  },
+  {
     name: 'the unsaved-settings confirm is an alert dialog with three actions',
     state: ['settings', 'pages-navigate-away-confirm'],
     snapshot: 'confirm-unsaved-settings.aria.yml',

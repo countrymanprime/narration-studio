@@ -1,3 +1,4 @@
+import { useGuardedAction } from '../../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePageCommands } from '../../../input/pageCommands';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
@@ -41,7 +42,7 @@ export type SettingsPageProps = {
   data: Bootstrap;
   notify: Notify;
   onDirtyChange: (dirty: boolean) => void;
-  registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
+  registerActions: (actions: { save: () => Promise<boolean>; discard: () => Promise<void> }) => void;
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
@@ -157,12 +158,18 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // What the header's Reset to defaults puts back: the changed rows it knows how to reset (the others are undone in their own row).
   const resettableChangedIn = (id: CategoryId) => categoryRows(id).filter((row) => changed(row) && isResettable(row)).length;
 
-  const showCategory = useCallback((id: CategoryId) => {
-    setCat(id);
-    setQuery('');
-    setFilter('all');
-    setNavOpen(false);
-  }, []);
+  // Another category replaces the panel that holds a draft (the credits template), so it asks first like a move to another page.
+  const guarded = useGuardedAction();
+  const showCategory = useCallback(
+    (id: CategoryId) =>
+      guarded(() => {
+        setCat(id);
+        setQuery('');
+        setFilter('all');
+        setNavOpen(false);
+      }),
+    [guarded],
+  );
 
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
   const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;

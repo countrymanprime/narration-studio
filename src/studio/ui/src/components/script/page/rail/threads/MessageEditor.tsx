@@ -1,3 +1,4 @@
+import { plural } from '../../../../../plural';
 import { useState } from 'react';
 import { useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { Button } from '../../../../primitives/Button';
@@ -9,7 +10,8 @@ export function MessageEditor({ initial, onSave, onCancel }: { initial: string; 
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft('script-note-edit', {
     dirty: text.trim() !== '' && text.trim() !== initial.trim(),
-    label: 'your edit of a note',
+    label: 'your edit of a message',
+    many: (n) => `${plural(n, 'edit')} of messages`,
     save: async () => (await onSave(text.trim())) !== false,
     // The page is leaving, and cancelling would rewrite the address under the move that is about to run.
     discard: () => {},

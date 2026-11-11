@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useGuardedAction, useGuardedNavigate } from '../../../studio/drafts/unsavedDrafts';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
@@ -121,6 +122,8 @@ function ScriptWorkspace({
   goToBooth,
 }: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
+  const leave = useGuardedNavigate();
+  const guarded = useGuardedAction();
   const layout = useLayoutClass();
   const marks = useMarks();
   const prep = useScriptPrep();
@@ -546,7 +549,7 @@ function ScriptWorkspace({
           <ChapterList
             chapters={chapters}
             currentId={inView}
-            onJump={goToChapter}
+            onJump={(id) => guarded(() => goToChapter(id))}
             onClose={layout.narrow ? () => update({ drawer: null }) : undefined}
             openingCredits={openingCredits}
             closingCredits={closingCredits}
@@ -641,7 +644,7 @@ function ScriptWorkspace({
             credits.setSetup(next);
             setFillingIn(false);
           }}
-          onMoreFields={() => navigate('/settings#credits')}
+          onMoreFields={() => leave('/settings#credits')}
         />
       )}
     </GutterContext.Provider>

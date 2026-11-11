@@ -3,7 +3,8 @@ import { subscribePronunciationChanged } from '../../studio/commands/pronounce';
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useGuardedAction, useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { GuideEntity, GuideType } from '../../types';
 import { CommandScope } from '../../input/router';
@@ -95,7 +96,8 @@ export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
   const api = useApi();
   const location = useLocation();
-  const routerNavigate = useNavigate();
+  const routerNavigate = useGuardedNavigate();
+  const guarded = useGuardedAction();
   // The entry a hand-off asked for (`#<entity id>`), read by the typed address module. A malformed address is the route gate's to show;
   // here it asks for nothing.
   const asked = useMemo(() => readAddress('story-bible', { search: location.search, hash: location.hash }), [location.search, location.hash]);
@@ -274,11 +276,13 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     const name = taken(base) ? `${base} ${next}` : base;
     setPendingNewEntity({ name });
   };
-  const selectRow = (id?: string) => {
-    setPendingNewEntity(undefined);
-    setLooseId(null);
-    setSelectedId(id);
-  };
+  // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
+  const selectRow = (id?: string) =>
+    guarded(() => {
+      setPendingNewEntity(undefined);
+      setLooseId(null);
+      setSelectedId(id);
+    });
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({

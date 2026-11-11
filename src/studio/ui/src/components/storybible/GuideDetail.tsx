@@ -1,8 +1,9 @@
-import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { shortName } from '../../studio/drafts/draftSentence';
+import { useGuardedNavigate, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useInRouterContext, useNavigate } from 'react-router-dom';
+import { useInRouterContext } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faCodeMerge, faFloppyDisk, faLock, faLockOpen, faPen, faRotate, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
@@ -183,7 +184,7 @@ function EntryFrame({
 
 /** The entry's header button that opens the Script page's Find on its name. Drawn only inside the router, which every page has. */
 function FindInManuscript({ name }: { name: string }) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
       <IconButton label="Find in the manuscript" onClick={() => navigate(addressPath({ page: 'script', find: name }))}>
@@ -358,9 +359,16 @@ export function GuideDetail({
   const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
   useUnsavedDraft('story-bible-entry', {
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
-    label: `your changes to ${entity?.canonical_name ?? 'this entry'}`,
+    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry')}`,
     save: () => saveEntryRef.current?.() ?? Promise.resolve(true),
     discard: () => setEditing(false),
+  });
+
+  // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
+  useUnsavedDraft('story-bible-new-entry', {
+    dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
+    label: `the new entry “${shortName(draft.name)}”`,
+    discard: () => onDiscardNewDraft?.(),
   });
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;

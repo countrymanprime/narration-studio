@@ -9,13 +9,14 @@ import { describe, expect, test } from 'vitest';
 // therefore cannot be added without someone deciding which it is. App.test.tsx drives the registered holders through every exit.
 //
 // The reasons are a closed set, each a fact a reviewer can check:
-const MODAL = 'a modal dialog: the page behind it is inert and the exits are off while it is open, and Cancel or Escape is the narrator saying drop it';
+const MODAL =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
 const KEPT = 'the draft is kept by the page or a store and comes back when the page is opened again';
 const POPOVER = 'a small popover form that a click outside or Escape closes on purpose, with a line or two typed';
-const INSIDE = 'drawn inside an editor that registers (see the file that does), so its text is part of that draft';
+const INSIDE = 'a text box that only its consumers draw; every file that uses it must register (the second test)';
 const PICKER = 'a choice made by picking a row; the box only narrows the rows';
 
 const EXEMPT: Record<string, string> = {
@@ -59,7 +60,6 @@ const EXEMPT: Record<string, string> = {
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,
-  'storybible/Relationships.tsx': INSIDE,
   'storybible/VoiceReferencesSection.tsx': 'the optional note of an approval that is not made until Approve; one short phrase beside a region choice',
   'storybible/source/NamePronunciation.tsx': BLUR,
   'storybible/suggested/import/ImportDialog.tsx': MODAL,
@@ -68,14 +68,17 @@ const EXEMPT: Record<string, string> = {
 
 const srcRoot = join(__dirname, '..', '..');
 const components = join(srcRoot, 'components');
-const TEXT_BOX = /<(Field|TextField|TagInput|NumberInput|SearchField|DateField|textarea|input)\b/;
+const TEXT_BOX = /<(Field|TextField|TagInput|NumberInput|SearchField|DateField|textarea|input|NoteTextarea|EntryText)\b/;
 const JOINS = /\buseUnsavedDraft\(/;
+/** The source with comments taken out, so a mention of the hook in prose does not count as calling it. */
+const code = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 const SKIPPED = /\.(test|stories)\.tsx$|^primitives\//;
+const SKIPPED_NAV = /\.(test|stories)\.tsx?$/;
 
-function files(dir: string): string[] {
+function files(dir: string, pattern = /\.tsx$/): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    return entry.isDirectory() ? files(path) : entry.name.endsWith('.tsx') ? [path] : [];
+    return entry.isDirectory() ? files(path, pattern) : pattern.test(entry.name) ? [path] : [];
   });
 }
 const key = (path: string) => relative(components, path).split(sep).join('/');
@@ -85,13 +88,45 @@ const drawing = files(components)
 
 describe('every editor that draws a text box either joins the unsaved-drafts registry or says why leaving loses nothing (#3400)', () => {
   test('no component draws a text box without deciding', () => {
-    const undecided = drawing.filter(({ name, source }) => !JOINS.test(source) && !(name in EXEMPT)).map(({ name }) => name);
+    const undecided = drawing.filter(({ name, source }) => !JOINS.test(code(source)) && !(name in EXEMPT)).map(({ name }) => name);
     expect(undecided, 'call useUnsavedDraft (see studio/drafts/unsavedDrafts.tsx), or add the file to EXEMPT with the reason').toEqual([]);
   });
 
   test('a file in EXEMPT still draws a text box and does not also register', () => {
     const names = new Map(drawing.map(({ name, source }) => [name, source]));
-    const stale = Object.keys(EXEMPT).filter((name) => !names.has(name) || JOINS.test(names.get(name)!));
+    const stale = Object.keys(EXEMPT).filter((name) => !names.has(name) || JOINS.test(code(names.get(name)!)));
     expect(stale, 'delete the entry: the file no longer draws a text box, or it registers now').toEqual([]);
+  });
+});
+
+// A link that leaves a page must take the shell's guarded move, or the question is skipped and the draft goes (#3400: the Story Bible's Find in the
+// manuscript, the engine panel's Open in Proof, Script's More fields). The router's own `navigate` is for a redirect that holds nothing.
+const ROUTER_NAVIGATE = /\buseNavigate\(/;
+const NAVIGATE_EXEMPT: Record<string, string> = {
+  'booth/companion/CompanionPage.tsx': 'the companion window, which holds no draft',
+  'layout/AddressGate.tsx': 'a replace to a safe page when the address cannot be shown; the page it replaces holds nothing',
+  'layout/NotFoundPage.tsx': 'a replace from a page that does not exist; it holds nothing',
+  'script/page/ScriptPage.tsx':
+    "replaces the address inside the Script page (a find or a deep link cleared) and the empty state's import link; the guarded links use useGuardedNavigate",
+  'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
+  '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
+  '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
+};
+describe('a link out of a page goes through the guarded navigate (#3400)', () => {
+  const sources = files(srcRoot, /\.tsx?$/)
+    .map((path) => ({ name: relative(components, path).split(sep).join('/'), source: readFileSync(path, 'utf8') }))
+    .filter(({ name }) => !SKIPPED_NAV.test(name) && !name.startsWith('../App.tsx'))
+    .filter(({ source }) => ROUTER_NAVIGATE.test(code(source)));
+  test('no file calls the router navigate without a reviewed reason', () => {
+    const undecided = sources.filter(({ name }) => !(name in NAVIGATE_EXEMPT)).map(({ name }) => name);
+    expect(undecided, 'use useGuardedNavigate (studio/drafts/unsavedDrafts.tsx), or add the file to NAVIGATE_EXEMPT with the reason').toEqual([]);
+  });
+  test('a file in NAVIGATE_EXEMPT still calls it', () => {
+    const names = new Set(sources.map(({ name }) => name));
+    expect(Object.keys(NAVIGATE_EXEMPT).filter((name) => !names.has(name))).toEqual([]);
+  });
+  test("no editor registers a draft inside the Booth, whose exits ask the Booth's own question first", () => {
+    const inBooth = files(join(components, 'booth'), /\.tsx?$/).filter((path) => JOINS.test(code(readFileSync(path, 'utf8'))));
+    expect(inBooth.map(key)).toEqual([]);
   });
 });

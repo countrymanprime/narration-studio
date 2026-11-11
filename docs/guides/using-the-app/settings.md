@@ -326,7 +326,8 @@ The reset button next to **Change location…** moves the downloads back to the 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
   and **Delete** removes it. Text typed in the template waits for **Save template**, so leaving Settings with it unsaved
-  (the nav, Back, the jump menu or Switch project) asks **Unsaved settings** first: **Save & continue** saves the
+  (the nav, Back, the jump menu or Switch project), or closing the editor, picking another template, **New**,
+  **Duplicate**, **Delete** or another category, asks **Unsaved settings** first: **Save & continue** saves the
   template, **Discard & continue** drops it, and **Cancel** keeps the editor and the text.
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
   from the project values. Wrap a part in braces to drop it, punctuation and all, when a token in it has no

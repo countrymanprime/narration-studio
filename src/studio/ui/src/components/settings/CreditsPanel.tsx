@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
-import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedAction, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
@@ -97,6 +97,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  const guarded = useGuardedAction();
   const selected = templates.find((template) => template.id === selectedId);
 
   const load = useCallback(async () => {
@@ -292,17 +293,24 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             <Select
               label="Template"
               value={selectedId}
-              onChange={setSelectedId}
+              onChange={(id) => id !== selectedId && guarded(() => setSelectedId(id))}
               fullWidth
               options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
             />
-            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={newTemplate}>
+            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={() => guarded(newTemplate)}>
               New
             </Button>
-            <Button variant="secondary" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={!selected || busy}
+              pending={busy}
+              onClick={() => guarded(() => void duplicateTemplate())}
+            >
               Duplicate
             </Button>
-            <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
+            <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => guarded(() => void deleteTemplate())}>
               Delete
             </Button>
           </div>
