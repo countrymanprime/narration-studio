@@ -130,3 +130,101 @@ describe('a link out of a page goes through the guarded navigate (#3400)', () =>
     expect(inBooth.map(key)).toEqual([]);
   });
 });
+
+// A holder is also lost without any exit from the page: a control on the same page that unmounts or replaces it (another rail tab, another finding, a search that
+// swaps the pane for its results, Add entry over an edited entry) drops the typed text with no question (#3404). Every file that registers a draft therefore
+// lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
+// without listing what replaces it, and a listed control cannot lose its question without this failing.
+type Replacer = { file: string; control: string; asks: RegExp };
+const SETTINGS_PANE: Replacer[] = [
+  { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
+  { file: 'settings/page/SettingsPage.tsx', control: 'typing in the search box', asks: /guarded\(\(\) => setQuery\(next\)/ },
+  { file: 'settings/page/SettingsPage.tsx', control: 'a filter other than All', asks: /guarded\(\(\) => setFilter\(next\)/ },
+];
+const STORY_BIBLE_DETAIL: Replacer[] = [
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
+];
+const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
+const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
+const PROOF_MOVES: Replacer[] = [
+  { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
+];
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'proof/inspector/FindingThread.tsx': PROOF_MOVES,
+  'script/page/rail/threads/MessageEditor.tsx': [
+    RAIL_TABS,
+    { file: 'script/page/rail/threads/ThreadsTab.tsx', control: 'editing another message', asks: /onEdit: \(id, index\) => guarded\(/ },
+  ],
+  'script/page/rail/threads/NoteCard.tsx': [RAIL_TABS, RAIL_LOOKUP],
+  'script/page/rail/words/WordCard.tsx': [
+    RAIL_TABS,
+    RAIL_LOOKUP,
+    { file: 'script/page/rail/words/WordsTab.tsx', control: 'another word in the chapter list', asks: /word !== row\.key && guarded\(/ },
+  ],
+  'settings/CreditsPanel.tsx': [
+    ...SETTINGS_PANE,
+    { file: 'settings/CreditsPanel.tsx', control: 'another template', asks: /onChange=\{\(id\) => id !== selectedId && guarded\(/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'New', asks: /guarded\(newTemplate\)/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'Duplicate', asks: /guarded\(\(\) => void duplicateTemplate\(\)\)/ },
+    { file: 'settings/controls/CreditsBody.tsx', control: 'Close credits editor', asks: /editing \? guarded\(\(\) => setEditing\(false\)\)/ },
+  ],
+  'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
+  'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
+};
+
+describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
+  const holders = files(components)
+    .filter((path) => !SKIPPED.test(key(path)) && JOINS.test(code(readFileSync(path, 'utf8'))))
+    .map(key);
+
+  test('every holder lists what replaces it', () => {
+    const unlisted = holders.filter((name) => !(name in HOLDER_REPLACED_BY));
+    expect(unlisted, 'add the file to HOLDER_REPLACED_BY with the controls that unmount or replace it, each asking through useGuardedAction').toEqual([]);
+    expect(
+      Object.keys(HOLDER_REPLACED_BY).filter((name) => !holders.includes(name)),
+      'a listed file no longer registers a draft',
+    ).toEqual([]);
+  });
+
+  test('each listed control asks through useGuardedAction at the call it names', () => {
+    const missing: string[] = [];
+    for (const [holder, replacers] of Object.entries(HOLDER_REPLACED_BY)) {
+      for (const { file, control, asks } of replacers) {
+        const source = code(readFileSync(join(components, file), 'utf8'));
+        if (!/\buseGuardedAction\(\)/.test(source)) missing.push(`${holder}: ${control} (${file} does not call useGuardedAction)`);
+        else if (!asks.test(source)) missing.push(`${holder}: ${control} (${file} no longer asks at ${asks})`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+// What shows in the Script rail is changed through `useShowInRail` (which asks), the tab strip or the word list (which ask themselves); a file that writes the tab,
+// word or entry to the view store directly would skip the question.
+const RAIL_VIEW_WRITE = /\b(?:update|updateView)\(\{[^}]*\b(?:tab|word|entryId)\b/;
+const RAIL_WRITE_EXEMPT: Record<string, string> = {
+  'script/page/layout/RailPanel.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/words/WordsTab.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/bible/BibleTab.tsx':
+    'picks an entry on the Story Bible tab, whose cards hold no typed text: the Words and Notes cards are not mounted there',
+};
+describe('the Script rail view is written through the question (#3404)', () => {
+  test('no file writes the rail tab, word or entry to the view store without asking', () => {
+    const writers = files(join(components, 'script'), /\.tsx?$/)
+      .filter((path) => !SKIPPED_NAV.test(path))
+      .filter((path) => RAIL_VIEW_WRITE.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(
+      writers.filter((name) => !(name in RAIL_WRITE_EXEMPT)),
+      'use useShowInRail (script/page/data/useShowInRail.ts)',
+    ).toEqual([]);
+    expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
+  });
+});

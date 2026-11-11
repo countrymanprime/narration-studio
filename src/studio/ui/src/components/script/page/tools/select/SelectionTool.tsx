@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
 import { useBookmarks } from '../../../bookmarks/model/useBookmarks';
+import { useShowInRail } from '../../data/useShowInRail';
 import { useEntries, useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import { useBibleKindChoices } from '../../rail/bible/kinds';
 import type { ReaderSelection } from '../../registry/contextProvider';
@@ -56,7 +57,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
   const kinds = useBibleKindChoices();
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
-  const [, updateView] = useScriptView(() => null);
+  const showInRail = useShowInRail();
   const [drawer] = useScriptView((state) => state.drawer);
   const present = selection !== null;
 
@@ -132,7 +133,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             }}
             onFlagWord={() => {
               onDismiss();
-              updateView({ tab: 'pron', word: place.quote.trim() });
+              showInRail({ tab: 'pron', word: place.quote.trim() });
             }}
             onDefine={() => {
               onDismiss();
@@ -143,7 +144,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             kinds={kinds}
             onChoose={(kind) => {
               onDismiss();
-              void commands.createEntryFrom(kind, place.quote).then((entryId) => entryId && updateView({ tab: 'bible', entryId, miss: null, missSel: null }));
+              void commands.createEntryFrom(kind, place.quote).then((entryId) => entryId && showInRail({ tab: 'bible', entryId, miss: null, missSel: null }));
             }}
           />
           <IconButton
@@ -175,9 +176,9 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             onClick={() => {
               onDismiss();
               const target = lookupTarget(place.quote, entries);
-              if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word, missSel: place });
-              else if ('entryId' in target) updateView({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
-              else updateView({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
+              if (target.tab === 'pron') showInRail({ tab: 'pron', word: target.word, missSel: place });
+              else if ('entryId' in target) showInRail({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
+              else showInRail({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
             }}
           />
         </>

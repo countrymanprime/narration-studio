@@ -10,6 +10,7 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
+import { SAVE_LIMIT_MS } from './studio/drafts/unsavedDrafts';
 import { createJournal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1710,6 +1711,16 @@ describe('App Back and Forward', () => {
         }
       });
 
+      it('Delete over a typed template deletes it without asking to save a template that is going (#3404)', async () => {
+        const deleteCreditsTemplate = vi.fn(createMockApi().deleteCreditsTemplate);
+        const saveCreditsTemplate = vi.fn(createMockApi().saveCreditsTemplate);
+        await openCredits({ deleteCreditsTemplate, saveCreditsTemplate });
+        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await waitFor(() => expect(deleteCreditsTemplate).toHaveBeenCalled());
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+        expect(saveCreditsTemplate).not.toHaveBeenCalled();
+      });
+
       it('another Settings category asks, and Discard & continue goes on', async () => {
         await openCredits();
         const categories = screen.getByRole('navigation', { name: 'Settings categories' });
@@ -1739,20 +1750,101 @@ describe('App Back and Forward', () => {
         expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
       });
 
-      it('a new Story Bible entry with a typed name asks, offering Keep editing and Discard & continue only', async () => {
+      const openStoryBible = async () => {
         renderApp();
         await screen.findByRole('heading', { level: 1, name: 'Production' });
         fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]!);
         await screen.findAllByText('Alice');
+      };
+
+      it('a new Story Bible entry with a typed name asks with one way to stay and one to discard, and no word about saving (#3404)', async () => {
+        await openStoryBible();
         fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
         const name = await screen.findByDisplayValue(/New entity/);
         fireEvent.change(name, { target: { value: 'Mr Fox' } });
         fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-        expect(await screen.findByText('Save or discard the new entry “Mr Fox” before leaving?')).toBeTruthy();
-        expect(screen.queryByRole('button', { name: 'Save & continue' })).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+        expect(await screen.findByText('Discard the new entry “Mr Fox” before leaving?')).toBeTruthy();
+        const question = screen.getByRole('alertdialog');
+        expect(
+          within(question)
+            .getAllByRole('button')
+            .map((button) => button.textContent)
+            .filter(Boolean),
+        ).toEqual(['Keep editing', 'Discard & continue']);
+        fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
         expect(screen.getByDisplayValue('Mr Fox')).toBeTruthy();
+      });
+
+      it('Add entry over an edited entry asks before it replaces the edit (#3404)', async () => {
+        await openStoryBible();
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+        fireEvent.change(await screen.findByRole('textbox', { name: 'Description' }), { target: { value: 'Typed but not saved.' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
+        expect(await screen.findByText(/^Save or discard your changes to .+ before going on\?$/)).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+      });
+
+      it('an entry edit beside a relationship row that was started still offers Save, saves the entry, and says the row goes (#3404)', async () => {
+        const guideEdit = vi.fn(createMockApi().guideEdit);
+        renderApp({ guideEdit });
+        await screen.findByRole('heading', { level: 1, name: 'Production' });
+        fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]!);
+        await screen.findAllByText('Alice');
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+        fireEvent.change(await screen.findByRole('textbox', { name: 'Description' }), { target: { value: 'Typed but not saved.' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
+        const rows = screen.getAllByRole('combobox', { name: 'Relationship' });
+        fireEvent.change(rows[rows.length - 1]!, { target: { value: 'friend of' } });
+        // The words are kept when the box is left (the exit takes the focus off it first).
+        fireEvent.blur(rows[rows.length - 1]!);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
+        expect(await screen.findByText(/^Save or discard your .+\? A relationship will be discarded\.$/)).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
+        await screen.findByRole('heading', { level: 1, name: 'Production' });
+        expect(guideEdit).toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/');
+      });
+
+      it('a save that never answers gives the narrator Cancel and Discard back after its limit, with the text kept (#3404)', async () => {
+        const saveCreditsTemplate = vi.fn(() => new Promise<never>(() => {}));
+        await openCredits({ saveCreditsTemplate });
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+          headerSwitch();
+          fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+          expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+          await act(async () => {
+            await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+          });
+          await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(false));
+          expect(await screen.findByText('Not saved. What you typed is still here.')).toBeTruthy();
+          fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+          await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+          expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      it('after a save that never answered, Discard & continue still leaves (#3404)', async () => {
+        const saveCreditsTemplate = vi.fn(() => new Promise<never>(() => {}));
+        await openCredits({ saveCreditsTemplate });
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+          headerSwitch();
+          fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+          await act(async () => {
+            await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+          });
+          await waitFor(() => expect((screen.getByRole('button', { name: 'Discard & continue' }) as HTMLButtonElement).disabled).toBe(false));
+          fireEvent.click(screen.getByRole('button', { name: 'Discard & continue' }));
+          await screen.findByRole('heading', { name: 'Choose your project' });
+        } finally {
+          vi.useRealTimers();
+        }
       });
     });
 

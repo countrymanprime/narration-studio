@@ -12,8 +12,8 @@ import { useShellCommands } from './components/layout/useShellCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
-import { UnsavedDraftsProvider, useUnsavedDrafts } from './studio/drafts/unsavedDrafts';
-import { describeHeld } from './studio/drafts/draftSentence';
+import { UnsavedDraftsProvider, useUnsavedDrafts, withinSaveLimit, type AskOptions } from './studio/drafts/unsavedDrafts';
+import { draftQuestion } from './studio/drafts/draftSentence';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -830,10 +830,11 @@ function AppRoutes() {
     };
   }, [journal]);
   // The registry's two hooks into the shell: a change inside a page that would drop a draft asks first, and a link that leaves the page takes the guarded move.
-  const askRef = useRef<(run: () => void) => void>(() => {});
-  askRef.current = (run) => {
-    if (settleFocusedField()) {
-      setTimeout(() => askRef.current(run), SETTLE_MS);
+  const askRef = useRef<(run: () => void, options?: AskOptions) => void>(() => {});
+  askRef.current = (run, options) => {
+    // A change made from the box being typed in (the Settings search) leaves the focus where it is: blurring it would stop the typing.
+    if (options?.settle !== false && settleFocusedField()) {
+      setTimeout(() => askRef.current(run, options), SETTLE_MS);
       return;
     }
     if (pageHolds) setPendingMove({ kind: 'action', run });
@@ -841,7 +842,7 @@ function AppRoutes() {
   };
   const { setShell } = drafts;
   useEffect(() => {
-    setShell({ ask: (run) => askRef.current(run), go: (to, state) => guardedNavigateRef.current(to, state) });
+    setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state) => guardedNavigateRef.current(to, state) });
     return () => setShell(null);
   }, [setShell]);
   useEffect(() => {
@@ -1042,44 +1043,61 @@ function AppRoutes() {
   // Leaving with an edit not yet saved asks first, wherever it is held: Settings (drawn in the shell, or in the frame for no project) or an editor's draft.
   // Settings keeps its own words; a draft elsewhere names what it holds, so the question never says "settings" for an entry or a note.
   const onSettings = location.pathname === '/settings';
+  const question = pendingMove && !onSettings ? draftQuestion(drafts.held, pendingMove.kind !== 'action') : undefined;
+  // Save is offered when Settings holds edits (they always save) or when any held draft can be saved; otherwise the only ways on are to keep editing or discard.
+  const canSave = settingsHeld || (question?.canSave ?? true);
+  const discardMove = (move: PendingMove) => {
+    const token = moveToken.current;
+    setResolving(true);
+    void (async () => {
+      try {
+        if (settingsHeld) await withinSaveLimit(settingsActions.current?.discard() ?? Promise.resolve());
+        drafts.discard();
+        if (token !== moveToken.current) return;
+        setSettingsDirty(false);
+        resolvePendingMove(move);
+        setPendingMove(undefined);
+      } catch {
+        if (token === moveToken.current) overlay.toast('Not discarded. What you typed is still here.', { tone: 'error' });
+      } finally {
+        if (token === moveToken.current) setResolving(false);
+      }
+    })();
+  };
   const unsavedSettings = pendingMove && (
     <ConfirmDialog
       title={onSettings ? 'Unsaved settings' : 'Unsaved changes'}
-      body={
-        onSettings
-          ? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`
-          : `Save or discard ${describeHeld(drafts.held)} before ${pendingMove.kind === 'action' ? 'going on' : 'leaving'}?`
-      }
-      confirmLabel={drafts.canSave ? 'Save & continue' : 'Keep editing'}
+      body={question?.body ?? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`}
+      confirmLabel={canSave ? 'Save & continue' : 'Discard & continue'}
+      confirmVariant={canSave ? 'primary' : 'danger'}
+      // With nothing that can be saved there is one way to stay, and it is the safe one: the focus starts on it.
+      cancelLabel={canSave ? 'Cancel' : 'Keep editing'}
+      focusCancel={!canSave}
       pending={resolving}
+      {...(canSave ? { danger: () => discardMove(pendingMove), dangerLabel: 'Discard & continue' } : { danger: undefined, dangerLabel: undefined })}
       confirm={() => {
-        if (!drafts.canSave) return cancelPendingMove();
+        // Nothing here can be saved: the only way on is to discard.
+        if (!canSave) return discardMove(pendingMove);
         const token = moveToken.current;
         setResolving(true);
         void (async () => {
-          // Settings' fields first, then the drafts; the first that does not save keeps the narrator where they are (each says why in its own words).
-          const saved = (!settingsHeld || (await settingsActions.current?.save())) && (await drafts.save());
-          // Cancel, or another question, came while this was saving: the move is no longer the one that was asked for.
-          if (token !== moveToken.current) return;
-          setResolving(false);
-          if (!saved) return cancelPendingMove();
-          setSettingsDirty(false);
-          resolvePendingMove(pendingMove);
-          setPendingMove(undefined);
-        })();
-      }}
-      dangerLabel="Discard & continue"
-      danger={() => {
-        const token = moveToken.current;
-        setResolving(true);
-        void (async () => {
-          if (settingsHeld) await settingsActions.current?.discard();
-          drafts.discard();
-          if (token !== moveToken.current) return;
-          setResolving(false);
-          setSettingsDirty(false);
-          resolvePendingMove(pendingMove);
-          setPendingMove(undefined);
+          try {
+            // Settings' fields first, then the drafts; the first that does not save keeps the narrator where they are (each says why in its own words).
+            const saved = (!settingsHeld || (await withinSaveLimit(settingsActions.current?.save() ?? Promise.resolve(true)))) && (await drafts.save());
+            // Cancel, or another question, came while this was saving: the move is no longer the one that was asked for.
+            if (token !== moveToken.current) return;
+            if (!saved) return cancelPendingMove();
+            // What had nothing to save (the question said so) goes with the move.
+            drafts.discardUnsaveable();
+            setSettingsDirty(false);
+            resolvePendingMove(pendingMove);
+            setPendingMove(undefined);
+          } catch {
+            // A save that threw, or never answered within its limit: the text is where it was typed, and the question can be answered again.
+            if (token === moveToken.current) overlay.toast('Not saved. What you typed is still here.', { tone: 'error' });
+          } finally {
+            if (token === moveToken.current) setResolving(false);
+          }
         })();
       }}
       cancel={cancelPendingMove}

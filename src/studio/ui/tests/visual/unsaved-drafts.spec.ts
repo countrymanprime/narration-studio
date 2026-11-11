@@ -1,8 +1,9 @@
 // Typed text an editor holds until its own Save is asked about when the narrator leaves (#3400): the credits template in Settings, a Story Bible entry being
 // edited, a note being written on a Proof finding, and a box that saves on blur when the exit is a key press with the cursor still in it.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { WIRE_ENTITIES } from '../../src/api/mockFixtures';
 import { settlePage } from './helpers/settle';
-import { clickNav, goToPage, openSettings } from './drivers/shared';
+import { clickNav, goToPage, openSettings, selectReaderWord } from './drivers/shared';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(60_000);
@@ -144,21 +145,225 @@ test('a browser Back with a dialog open and nothing held leaves the dialog and t
   expect(await page.evaluate(() => window.location.pathname)).toBe('/script');
 });
 
-test('the Unsaved changes question shows its whole sentence at 320 x 300 even for five replies', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 300 });
+// The question at the smallest window (320 x 300) shows its whole sentence and every button inside the window, however long a name or a list is (#3404).
+const LONG_NAME = 'Bartholomew Fitzwilliam Montgomery-Smythe the Third';
+
+/** Gives the first Story Bible entry a long saved name, as the host would send it. */
+async function withLongEntryName(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ entities, name }) => {
+      const first = entities[0]!;
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
+        guideEntities: async () => entities.map((entity) => (entity.id === first.id ? { ...entity, canonical_name: name } : entity)),
+      };
+    },
+    { entities: WIRE_ENTITIES, name: LONG_NAME },
+  );
+}
+
+async function expectFits(page: Page, dialog: Locator): Promise<void> {
+  const body = dialog
+    .locator('p, [id]')
+    .filter({ hasText: /\?$|\.$/ })
+    .first();
+  await expect(body).toBeVisible();
+  const clipped = await body.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (getComputedStyle(parent).overflowY !== 'visible') {
+        const box = parent.getBoundingClientRect();
+        return rect.bottom > box.bottom + 0.5 || rect.top < box.top - 0.5 ? `${rect.bottom} past ${box.bottom}` : '';
+      }
+    }
+    return '';
+  });
+  expect(clipped, 'the sentence is cut off by the dialog').toBe('');
+  const view = page.viewportSize()!;
+  for (const button of await dialog.getByRole('button').all()) {
+    const box = (await button.boundingBox())!;
+    expect(box.y + box.height, await button.innerText()).toBeLessThanOrEqual(view.height);
+    expect(box.x + box.width, await button.innerText()).toBeLessThanOrEqual(view.width);
+  }
+}
+
+async function startEntryEdit(page: Page): Promise<void> {
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Story Bible');
   await page.getByRole('button', { name: 'Edit this entry' }).click();
   await page.getByRole('textbox', { name: 'Description' }).fill('Typed but not saved.');
-  await page.keyboard.press('Alt+ArrowLeft');
-  const dialog = unsaved(page, 'Unsaved changes');
-  await expect(dialog).toBeVisible();
-  const sentence = dialog.getByText(/^Save or discard .* before leaving\?$/);
-  await expect(sentence).toBeVisible();
-  const clipped = await sentence.evaluate((node) => {
-    const holder = node.closest('[id]') ?? node.parentElement!;
-    return node.scrollHeight > node.clientHeight + 1 || (holder as HTMLElement).scrollHeight > (holder as HTMLElement).clientHeight + 1;
+}
+
+async function startRelationship(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Add a relationship' }).click();
+  const row = page.getByRole('combobox', { name: 'Relationship' }).last();
+  await row.fill('friend of');
+  await row.blur();
+}
+
+test.describe('at 320 x 300', () => {
+  test.use({ viewport: { width: 320, height: 300 } });
+
+  test('the question for an entry with a very long name shows its whole sentence', async ({ page }) => {
+    await withLongEntryName(page);
+    await startEntryEdit(page);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const dialog = unsaved(page, 'Unsaved changes');
+    await expect(dialog).toContainText('Save or discard your changes to Bartholomew');
+    await expectFits(page, dialog);
   });
-  expect(clipped).toBe(false);
+
+  test('the question for a long name and a list of drafts shows its whole sentence', async ({ page }) => {
+    await withLongEntryName(page);
+    await startEntryEdit(page);
+    await startRelationship(page);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const dialog = unsaved(page, 'Unsaved changes');
+    await expect(dialog).toContainText('will be discarded');
+    await expectFits(page, dialog);
+  });
+
+  test('the question for a new entry with a very long name shows its whole sentence', async ({ page }) => {
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Add entry' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).first().fill(LONG_NAME);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const dialog = unsaved(page, 'Unsaved changes');
+    await expect(dialog).toContainText('Discard the new entry');
+    await expectFits(page, dialog);
+  });
+
+  test('a credits template, two kinds of draft in the Settings pane, fits too', async ({ page }) => {
+    await creditsDraft(page);
+    await page.keyboard.press('Alt+ArrowLeft');
+    await expectFits(page, unsaved(page, 'Unsaved settings'));
+  });
+});
+
+test('a new entry that cannot be saved offers Keep editing and Discard & continue, with no Cancel and no word about saving', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Story Bible');
+  await page.getByRole('button', { name: 'Add entry' }).click();
+  await page.getByRole('textbox', { name: 'Name' }).first().fill('Mr Fox');
+  await clickNav(page, 'Production');
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('Discard the new entry “Mr Fox” before leaving?');
+  await expect(question.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+  await expect(question.getByRole('button', { name: 'Save & continue' })).toHaveCount(0);
+  await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(page.getByRole('textbox', { name: 'Name' }).first()).toHaveValue('Mr Fox');
+});
+
+test('an entry edit beside a relationship that was started still offers Save, and Save & continue leaves with the entry saved', async ({ page }) => {
+  await startEntryEdit(page);
+  await startRelationship(page);
+  await clickNav(page, 'Production');
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('A relationship will be discarded.');
+  await question.getByRole('button', { name: 'Save & continue' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Production' })).toBeVisible();
+  await goToPage(page, 'Story Bible');
+  await expect(page.getByText('Typed but not saved.').first()).toBeVisible();
+});
+
+// A save that never answers must not trap the narrator: after its limit the buttons come back and the text is still there (#3404).
+test('a save that never answers gives Cancel and Discard back after 15 seconds, and the text stays', async ({ page }) => {
+  await page.clock.install();
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = { saveCreditsTemplate: () => new Promise(() => {}) };
+  });
+  await creditsDraft(page);
+  await switchProject(page);
+  const question = unsaved(page, 'Unsaved settings');
+  await question.getByRole('button', { name: 'Save & continue' }).click();
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(question).toBeVisible();
+  await page.clock.fastForward(16_000);
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  await expect(page.getByText('Not saved. What you typed is still here.')).toBeVisible();
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
+  await switchProject(page);
+  await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(picker(page)).toBeVisible();
+});
+
+// Moves inside a page that would unmount or replace a draft ask too (#3404).
+const RAIL = 'Words, Story Bible and marks';
+
+/** Looks the word up in the Script page's text, which opens its card on the Words tab, and types how the narrator says it. */
+async function typePronunciation(page: Page, word: string, say: string): Promise<Locator> {
+  await selectReaderWord(page, word);
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }).click();
+  const rail = page.locator(`section[aria-label="${RAIL}"]`).first();
+  const box = rail.getByLabel(`Pronunciation of ${word} for my dictionary`);
+  await box.fill(say);
+  return rail;
+}
+
+test('switching the Script rail tab over a typed pronunciation asks Unsaved changes', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  const rail = await typePronunciation(page, 'tired', 'TY-erd');
+  await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('Save or discard your “tired” pronunciation before going on?');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(rail.getByLabel('Pronunciation of tired for my dictionary')).toHaveValue('TY-erd');
+  await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(rail.getByRole('tab', { name: 'Notes', exact: true, selected: true })).toBeVisible();
+});
+
+test('looking up another word in the Script text over a typed pronunciation asks Unsaved changes', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  const rail = await typePronunciation(page, 'tired', 'TY-erd');
+  await selectReaderWord(page, 'sister');
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }).click();
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('before going on?');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(rail.getByLabel('Pronunciation of tired for my dictionary')).toHaveValue('TY-erd');
+});
+
+test('another finding over a typed Proof note asks Unsaved changes', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Proof');
+  await page.getByRole('textbox', { name: 'Add a note' }).fill('Typed but not saved.');
+  await page.getByRole('textbox', { name: 'Add a note' }).blur();
+  await page.keyboard.press('ArrowDown');
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('Save or discard the note you are writing before going on?');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Add a note' })).toHaveValue('Typed but not saved.');
+});
+
+test('typing in Settings search over an unsaved template asks Unsaved settings, and the typing carries on after Cancel', async ({ page }) => {
+  await creditsDraft(page);
+  const search = page.getByLabel('Search settings');
+  await search.click();
+  await page.keyboard.type('voice');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toContainText('before going on?');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
+  await expect(search).toHaveValue('');
+});
+
+test('Add entry over an edited entry asks Unsaved changes', async ({ page }) => {
+  await startEntryEdit(page);
+  await page.getByRole('button', { name: 'Add entry' }).click();
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('Save or discard your changes to');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
 });

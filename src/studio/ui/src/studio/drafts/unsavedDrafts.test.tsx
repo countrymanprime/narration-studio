@@ -2,7 +2,7 @@
 import { act, render, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { UnsavedDraftsProvider, useUnsavedDraft, useUnsavedDrafts, type UnsavedDraft } from './unsavedDrafts';
+import { SAVE_LIMIT_MS, UnsavedDraftsProvider, useUnsavedDraft, useUnsavedDrafts, type UnsavedDraft } from './unsavedDrafts';
 
 function Holder({ id, draft }: { id: string; draft: UnsavedDraft }) {
   useUnsavedDraft(id, draft);
@@ -100,8 +100,73 @@ describe('the unsaved-drafts registry', () => {
     expect(slow).toHaveBeenCalledOnce();
   });
 
-  it('says it cannot save when a held draft has nothing to save', () => {
-    const { result } = setup({ a: draft({ save: undefined }) });
-    expect(result.current.canSave).toBe(false);
+  it('says which held drafts have nothing to save, and leaves them out of the one Save', async () => {
+    const saved = vi.fn(async () => true);
+    const { result } = setup({ a: draft({ save: saved, label: 'your entry' }), b: draft({ save: undefined, label: 'a new row' }) });
+    expect(result.current.held.map((entry) => [entry.label, entry.saveable])).toEqual([
+      ['your entry', true],
+      ['a new row', false],
+    ]);
+    await act(async () => expect(await result.current.save()).toBe(true));
+    expect(saved).toHaveBeenCalledOnce();
+  });
+
+  it('discards only the drafts with nothing to save after the rest is saved', () => {
+    const entry = vi.fn();
+    const row = vi.fn();
+    const { result } = setup({ a: draft({ discard: entry }), b: draft({ save: undefined, discard: row }) });
+    act(() => result.current.discardUnsaveable());
+    expect(row).toHaveBeenCalledOnce();
+    expect(entry).not.toHaveBeenCalled();
+  });
+
+  it('two editors that register under one name both hold their text (the Proof note box of two findings, #3404)', () => {
+    const discards = [vi.fn(), vi.fn()];
+    const view = renderHook(() => useUnsavedDrafts(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <UnsavedDraftsProvider>
+          <Holder id="finding-note-reply" draft={draft({ label: 'the note you are writing', discard: discards[0] })} />
+          <Holder id="finding-note-reply" draft={draft({ label: 'the note you are writing', discard: discards[1] })} />
+          {children}
+        </UnsavedDraftsProvider>
+      ),
+    });
+    expect(view.result.current.held).toHaveLength(2);
+    act(() => view.result.current.discard());
+    expect(discards[0]).toHaveBeenCalledOnce();
+    expect(discards[1]).toHaveBeenCalledOnce();
+  });
+
+  it('a save that throws rejects, and the next save starts afresh with the text untouched (#3404)', async () => {
+    const discard = vi.fn();
+    const save = vi.fn().mockRejectedValueOnce(new Error('the host went away')).mockResolvedValue(true);
+    const { result } = setup({ a: draft({ save, discard }) });
+    await act(async () => {
+      await expect(result.current.save()).rejects.toThrow('the host went away');
+    });
+    await act(async () => expect(await result.current.save()).toBe(true));
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(discard).not.toHaveBeenCalled();
+  });
+
+  it('a save that never answers rejects after its limit, and a second press then starts a new save (#3404)', async () => {
+    vi.useFakeTimers();
+    try {
+      const save = vi.fn(() => new Promise<boolean>(() => {}));
+      const { result } = setup({ a: draft({ save }) });
+      let stuck!: Promise<boolean>;
+      act(() => {
+        stuck = result.current.save();
+      });
+      const settled = expect(stuck).rejects.toThrow('did not finish');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
+      });
+      await settled;
+      act(() => void result.current.save().catch(() => {}));
+      expect(save).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

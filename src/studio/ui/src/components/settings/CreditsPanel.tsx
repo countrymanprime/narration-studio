@@ -190,7 +190,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       : draftBody !== '' || draftName !== NEW_TEMPLATE_NAME);
   useUnsavedDraft('credits-template', {
     dirty: draftHeld,
-    label: 'your changes to the credit template',
+    label: 'your credit template edit',
     save: saveTemplate,
     discard: () => setTemplateDirty(false),
   });
@@ -222,6 +222,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       await api.deleteCreditsTemplate(selected.id);
       notify('Credit template deleted.');
+      // Deleting the template takes the text typed for it along: the button is the narrator's answer, so it does not ask to save a template about to go (#3404).
+      setTemplateDirty(false);
       projectDataChanged();
       await load();
     } catch (error) {
@@ -310,7 +312,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             >
               Duplicate
             </Button>
-            <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => guarded(() => void deleteTemplate())}>
+            <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
               Delete
             </Button>
           </div>

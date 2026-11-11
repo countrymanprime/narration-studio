@@ -359,7 +359,8 @@ export function GuideDetail({
   const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
   useUnsavedDraft('story-bible-entry', {
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
-    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry')}`,
+    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry', 16)}`,
+    brief: 'your entry edit',
     save: () => saveEntryRef.current?.() ?? Promise.resolve(true),
     discard: () => setEditing(false),
   });
@@ -367,7 +368,8 @@ export function GuideDetail({
   // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
   useUnsavedDraft('story-bible-new-entry', {
     dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
-    label: `the new entry “${shortName(draft.name)}”`,
+    label: `the new entry “${shortName(draft.name, 18)}”`,
+    brief: 'a new entry',
     discard: () => onDiscardNewDraft?.(),
   });
 

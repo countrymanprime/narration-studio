@@ -38,6 +38,8 @@ function Message({
   useUnsavedDraft(`finding-note-edit-${message.id}`, {
     dirty: draft !== undefined && draft.trim() !== '' && draft !== message.text,
     label: `your edit of ${message.who === 'you' ? 'your' : 'the proofer’s'} note`,
+    brief: 'your note edit',
+    kind: 'finding-note-edit',
     many: (n) => `${plural(n, 'edit')} of notes`,
     save: async () => {
       if (draft === undefined) return true;
@@ -119,6 +121,8 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
   useUnsavedDraft('finding-note-reply', {
     dirty: reply.trim() !== '',
     label: 'the note you are writing',
+    brief: 'your note',
+    kind: 'finding-note-reply',
     many: (n) => `${plural(n, 'note')} you are writing`,
     save: saveReply,
     discard: () => setReply(''),

@@ -130,7 +130,9 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
   // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-word-say-${word}`, {
     dirty: say.trim() !== '',
-    label: `the pronunciation you typed for “${shortName(word)}”`,
+    label: `your “${shortName(word, 13)}” pronunciation`,
+    brief: 'your pronunciation',
+    kind: 'script-word-say',
     many: (n) => `${plural(n, 'pronunciation')} you typed`,
     save,
     discard: () => setSay(''),

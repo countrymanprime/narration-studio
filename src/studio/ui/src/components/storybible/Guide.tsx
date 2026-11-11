@@ -267,15 +267,17 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // No backend record is created here - see GuideDetail's isNewDraft prop.
   // Navigating away or picking a different row just discards this, matching
   // a "doesn't exist until saved" model instead of create-then-delete.
-  const addEntity = () => {
-    const base = 'New entity';
-    const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
-    // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
-    let next = 2;
-    while (taken(`${base} ${next}`)) next += 1;
-    const name = taken(base) ? `${base} ${next}` : base;
-    setPendingNewEntity({ name });
-  };
+  // It replaces the entry being edited, so it asks first when that holds text (#3404).
+  const addEntity = () =>
+    guarded(() => {
+      const base = 'New entity';
+      const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
+      // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
+      let next = 2;
+      while (taken(`${base} ${next}`)) next += 1;
+      const name = taken(base) ? `${base} ${next}` : base;
+      setPendingNewEntity({ name });
+    });
   // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
   const selectRow = (id?: string) =>
     guarded(() => {
@@ -478,7 +480,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   // Below the two-pane width the entry opens under the table: bring it into view so the press visibly does something.
                   if (window.matchMedia?.('(max-width: 1023px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
                 }}
-                onOpenLoose={setLooseId}
+                onOpenLoose={(id) => guarded(() => setLooseId(id))}
                 empty={empty}
                 words={searchWords(query)}
                 handle={tableRef}

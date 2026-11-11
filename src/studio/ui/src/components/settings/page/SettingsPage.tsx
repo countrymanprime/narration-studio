@@ -171,6 +171,11 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     [guarded],
   );
 
+  // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)
+  // goes with it. Asked when the results would first appear; the focus stays in the box, so the typing carries on after the answer (#3404).
+  const changeQuery = (next: string) => (!searching && next.trim() !== '' ? guarded(() => setQuery(next), { settle: false }) : setQuery(next));
+  const changeFilter = (next: Filter) => (!searching && next !== 'all' ? guarded(() => setFilter(next), { settle: false }) : setFilter(next));
+
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
   const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;
   useEffect(() => {
@@ -315,7 +320,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                   label="Search settings"
                   placeholder="Search settings"
                   value={query}
-                  onChange={setQuery}
+                  onChange={changeQuery}
                   onKeyDown={(event) => {
                     if (event.key === 'Escape' && query) {
                       event.stopPropagation();
@@ -328,7 +333,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                 label="Show"
                 look="segmented"
                 value={filter}
-                onChange={(next) => setFilter(next as Filter)}
+                onChange={(next) => changeFilter(next as Filter)}
                 options={[
                   { value: 'all', label: 'All' },
                   { value: 'changed', label: 'Changed' },

@@ -69,6 +69,8 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
   useUnsavedDraft(`suggestion-edit-${suggestion.id}`, {
     dirty: editing && text.trim() !== '' && text !== editableText(suggestion.payload),
     label: `your edit of the ${kind.toLowerCase()} suggestion`,
+    brief: 'a suggestion edit',
+    kind: 'suggestion-edit',
     many: (n) => `${plural(n, 'edit')} of suggestions`,
     save: saveEdit,
     discard: () => setEditing(false),

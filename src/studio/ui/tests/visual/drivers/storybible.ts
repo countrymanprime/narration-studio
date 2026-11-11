@@ -253,6 +253,14 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickNav(page, 'Production');
     await confirmDialog(page, 'Unsaved changes').waitFor();
   },
+  'new-entry-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Add entry' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).first().fill('Mr Fox');
+    // A new entry is not made until a category is chosen, so the question has nothing to save: it offers Keep editing and Discard & continue.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
   'entry-properties-editing': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();

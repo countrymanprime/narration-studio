@@ -327,8 +327,11 @@ The reset button next to **Change location…** moves the downloads back to the 
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
   and **Delete** removes it. Text typed in the template waits for **Save template**, so leaving Settings with it unsaved
   (the nav, Back, the jump menu or Switch project), or closing the editor, picking another template, **New**,
-  **Duplicate**, **Delete** or another category, asks **Unsaved settings** first: **Save & continue** saves the
-  template, **Discard & continue** drops it, and **Cancel** keeps the editor and the text.
+  **Duplicate**, another category, or the first letter typed in **Search settings** (or a filter other than All, which swaps the
+  pane for the results), asks **Unsaved settings** first: **Save & continue** saves the template, **Discard & continue** drops
+  it, and **Cancel** keeps the editor and the text. **Delete** removes the template and the text typed for it without asking.
+  If a save does not answer within 15 seconds, the question says so and **Cancel** and **Discard & continue** work again; the
+  text is still in the editor.
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
   from the project values. Wrap a part in braces to drop it, punctuation and all, when a token in it has no
   value: `[Title]{: [Subtitle]}` reads just the title for a book with no subtitle.

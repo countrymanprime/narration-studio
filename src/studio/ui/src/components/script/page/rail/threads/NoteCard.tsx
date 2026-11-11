@@ -82,7 +82,9 @@ export function NoteCard({
   // A reply typed and not yet added is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-note-reply-${mark.id}`, {
     dirty: reply.trim() !== '',
-    label: `your reply on “${shortName(quote || line)}”`,
+    label: `your reply on “${shortName(quote || line, 18)}”`,
+    brief: 'your reply',
+    kind: 'script-note-reply',
     many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,
     save: () => send(actions.onReply),
     discard: () => setReply(''),
