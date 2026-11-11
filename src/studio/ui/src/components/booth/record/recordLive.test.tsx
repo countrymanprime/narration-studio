@@ -319,6 +319,31 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     expect(said.some((sentence) => /The take ended there/.test(sentence))).toBe(false);
   });
 
+  // #3349 QA break 1: the DAW goes quiet and its last push is a stopped transport, before any heartbeat was missed. The end is believed only after a read
+  // says the DAW answers; `endConfirmed` is what the Booth's leave guard asks.
+  it('a stopped transport pushed before any heartbeat was missed, from a DAW that no longer answers, is not a confirmed end', async () => {
+    const { daw, transport } = await running();
+    daw.set(refused('not_running'));
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await expect(daw.result.current.endConfirmed()).resolves.toBe(false);
+  });
+
+  it('a read that fails after the stopped transport is not a confirmed end either', async () => {
+    const { daw, transport } = await running();
+    daw.set('fail');
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await expect(daw.result.current.endConfirmed()).resolves.toBe(false);
+  });
+
+  it('a stopped transport from a DAW that answers is a confirmed end', async () => {
+    const { daw, transport } = await running();
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await expect(daw.result.current.endConfirmed()).resolves.toBe(true);
+  });
+
   it('when the DAW answers again, the narrator is told once what became of the take: this window ended it, and the DAW is where to check', async () => {
     const { daw, transport } = await running();
     daw.set(refused('not_running'));

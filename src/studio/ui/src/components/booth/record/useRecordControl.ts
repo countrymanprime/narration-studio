@@ -324,12 +324,24 @@ export function useRecordControl({
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
       else if (heardRecording.current && !busy.current) {
         heardRecording.current = false;
-        endCheck.current = Promise.resolve(reachableRef.current !== false);
         setRecording(false);
-        // A stop pushed after the heartbeat went is the DAW going quiet, not the DAW saying the take ended.
-        if (reachableRef.current === false) lostTake.current = true;
-        if (reachableRef.current === false) notify(lostInDaw(capabilities?.daw), TAKE_TOPIC);
-        else announceEnd(capabilities?.daw);
+        // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
+        // before the end is believed (`endConfirmed`), and before saying what became of the take.
+        const daw_ = capabilities?.daw;
+        const read = daw
+          .capabilities()
+          .then((c) => {
+            reachableRef.current = c.reachable;
+          })
+          .catch(() => {
+            reachableRef.current = false;
+          });
+        endCheck.current = read.then(() => reachableRef.current !== false);
+        void read.then(() => {
+          if (reachableRef.current === false) lostTake.current = true;
+          if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
+          else announceEnd(daw_);
+        });
       }
     });
   }, [daw, recording, notify, capabilities?.daw]);

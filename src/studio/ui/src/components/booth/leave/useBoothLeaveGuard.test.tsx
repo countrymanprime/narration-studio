@@ -318,7 +318,7 @@ describe('useBoothLeaveGuard', () => {
     await act(() => done);
     expect(a.stopRecording).toHaveBeenCalledTimes(1);
 
-    const b = setup({ settle: async () => false });
+    const b = setup({ settle: async () => false, startPending: true });
     act(() => {
       done = b.hook.result.current.leave('/script', b.go);
     });
@@ -538,6 +538,23 @@ describe('useBoothLeaveGuard', () => {
         expect(t.dialog()?.spec.body).toContain('may keep recording');
         act(() => t.dialog()!.answer(false));
         await act(() => done);
+      });
+
+      // QA break 1: `settle` says "no take is running" for a take a quiet DAW ended too. For a take that was running when asked that is not "nothing to stop".
+      it('settle saying no take runs is not nothing to stop for a take that was running: the stop is tried', async () => {
+        const t = setup(
+          { settle: async () => false, endConfirmed: async () => false },
+          async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult,
+        );
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.go).not.toHaveBeenCalled();
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        act(() => t.dialog()!.answer(false));
       });
 
       it('a DAW that went quiet before the narrator said yes is stopped like a running take, and its refusal asks', async () => {

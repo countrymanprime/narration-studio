@@ -139,7 +139,9 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
           if (gone.current) return false;
           if (!landed) sentence = NO_ANSWER;
-          else if (!landed.value) {
+          // `landed.value` false is "no take is running now": for a start that was pending that is nothing to stop. For a take that was running when the
+          // narrator was asked it is not enough, because a DAW that went quiet reads the same: that case goes on to the stop, which checks the end (below).
+          else if (!landed.value && now.startPending) {
             answeredFor.current = mine;
             answered.current = true;
             return true;

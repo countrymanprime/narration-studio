@@ -148,3 +148,23 @@ test('a DAW that goes quiet while the stop is pending is not an ended take: "Cou
   await expect(refused).toContainText('may keep recording');
   expect(await onBooth(page)).toBe(true);
 });
+
+// QA break 1: the DAW goes quiet while "Stop recording?" is open. A quiet DAW may still be recording, so Stop and leave tries the stop and, when it does
+// not answer, asks "Could not stop the take". It never leaves with no stop and no question, however long the question had been open.
+for (const gap of [100, 1500]) {
+  test(`the DAW goes quiet ${gap} ms before Stop and leave: the stop is tried, and when it does not answer the refusal question asks; it never leaves silently`, async ({
+    page,
+  }) => {
+    await page.addInitScript(NEVER_STOPS);
+    await recording(page);
+    await page.keyboard.press('Escape');
+    await expect(question(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+    await page.waitForTimeout(gap);
+    await question(page).getByRole('button', { name: /^Stop/ }).click();
+    const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+    await expect(refused).toBeVisible({ timeout: 14_000 });
+    await expect(refused).toContainText('may keep recording');
+    expect(await onBooth(page)).toBe(true);
+  });
+}
