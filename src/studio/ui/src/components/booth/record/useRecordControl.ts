@@ -63,6 +63,11 @@ export type RecordControlState = {
   stop: () => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
+  /**
+   * Runs a stop the app itself sends outside a press (the unheard take dropped, "Stop and leave"). The transport event the stop pushes is not a take that
+   * ended in the DAW, so it is not announced; a stop that did not go through is left to be heard as before (#3409).
+   */
+  appStop: <T extends { ok: boolean }>(stop: () => Promise<T>) => Promise<T>;
   /** Read the capabilities again, after a setting the Booth itself changed. */
   refresh: () => void;
   /** The visible Check again: a fresh read now, whatever a timer or an event last said. */
@@ -344,6 +349,8 @@ export function useRecordControl({
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
   // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end.
   const heardRecording = useRef(false);
+  // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
+  const appStops = useRef(0);
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
@@ -352,7 +359,7 @@ export function useRecordControl({
     return daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
-      else if (heardRecording.current && !busy.current) {
+      else if (heardRecording.current && !busy.current && appStops.current === 0) {
         heardRecording.current = false;
         setRecording(false);
         // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
@@ -675,6 +682,18 @@ export function useRecordControl({
     setRecording(false);
   }, []);
 
+  const appStop = useCallback(async <T extends { ok: boolean }>(stopIt: () => Promise<T>): Promise<T> => {
+    appStops.current += 1;
+    try {
+      const result = await stopIt();
+      // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end.
+      if (result.ok) heardRecording.current = false;
+      return result;
+    } finally {
+      appStops.current -= 1;
+    }
+  }, []);
+
   const stop = useCallback(async () => {
     if (!recordingRef.current) return true;
     stopAccepted.current = false;
@@ -691,6 +710,7 @@ export function useRecordControl({
     endConfirmed,
     endUnconfirmed,
     stopped,
+    appStop,
     stop,
     startedByApp: true,
     reason,

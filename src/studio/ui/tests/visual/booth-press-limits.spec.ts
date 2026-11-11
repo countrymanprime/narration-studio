@@ -267,3 +267,51 @@ test('double-tap Space with slow listening: the listening is not stopped and the
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
 });
+
+// #3409: R (Punch and roll) during a take ends too: a roll the DAW never answers gives a sentence at its limit and R rolls again.
+test('a roll the DAW never answers ends with a sentence that says to look, and R rolls again', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise(() => {});
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await expect(page.getByText(/REAPER did not answer the roll in time\. The take may still be recording from before/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('r');
+  await expect(page.getByText(/Rolling again from ¶/).first()).toBeVisible({ timeout: 5000 });
+  await expect(stop(page)).toBeVisible();
+});
+
+// #3409: a take the app itself drops (its listening failed after the DAW started) is said once; the stop's own transport push is not REAPER ending it.
+test('a dropped unheard take does not also say that REAPER stopped recording', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStart: () => new Promise((_resolve, reject) => setTimeout(() => reject(new Error('The microphone is in use by another application.')), 1500)),
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 10_000 });
+  expect(await dawRecording(page)).toBe(false);
+  // The second sentence came a few seconds after the first.
+  await page.waitForTimeout(4000);
+  await expect(page.getByText(/REAPER stopped recording/)).toHaveCount(0);
+});

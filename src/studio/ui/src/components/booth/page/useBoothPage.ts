@@ -363,7 +363,7 @@ export function useBoothPage(options: BoothPageOptions) {
   }, []);
   const unheard = useRef(false);
   /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
-  const { stopped: markTakeStopped } = control;
+  const { stopped: markTakeStopped, appStop } = control;
   const recorderLabel = control.capabilities?.daw ?? 'the DAW';
   const dropUnheardTake = useCallback(async (): Promise<boolean> => {
     unheard.current = true;
@@ -372,7 +372,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // that could not be stopped.
     const stopAsked = await limited(
       'recordStop',
-      daw.recordStop().catch(() => failed('the stop did not go through.')),
+      appStop(() => daw.recordStop()).catch(() => failed('the stop did not go through.')),
       // A stop that lands after the limit changes nothing more: the narrator was told to stop it in the DAW, and a short recording is not undone behind that
       // message (the project is theirs to look at). It is written to the run log.
       (late) =>
@@ -397,7 +397,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!undone.ok)
       overlay.toast(`The short recording could not be taken back: ${undone.refused ?? `${undone.message} Undo it in ${recorderLabel}.`}`, { tone: 'error' });
     return undone.ok;
-  }, [daw, markTakeStopped, overlay, recorderLabel]);
+  }, [daw, markTakeStopped, overlay, recorderLabel, appStop]);
 
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
@@ -582,7 +582,26 @@ export function useBoothPage(options: BoothPageOptions) {
       takeSeconds: seconds,
     },
     {
-      roll: (_phrase, { confirmed }) => daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }),
+      roll: async (_phrase, { confirmed }) => {
+        // Bounded: a roll the DAW never answers must not hold R, and the take under it, for good. Past the limit the take may still be recording
+        // from before the roll, or already rolling; the sentence says to look, and a roll that lands later is said too (it cannot be undone from here).
+        const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) =>
+          overlay.toast(
+            late.ok
+              ? `${recorderLabel} rolled again after the Booth stopped waiting. The take goes on from there.`
+              : `${recorderLabel} could not roll again: ${late.refused ?? late.message}`,
+            { tone: late.ok ? 'info' : 'error' },
+          ),
+        );
+        return asked.timedOut
+          ? {
+              ok: false,
+              changed: false,
+              undoSteps: 0,
+              message: `${recorderLabel} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
+            }
+          : asked.value;
+      },
       pause,
       resume: resumeTake,
       beginTake: async (punch) => {
@@ -773,7 +792,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const latestDaw = useRef(control.capabilities?.daw);
   latestDaw.current = control.capabilities?.daw;
   const stopRecording = useCallback(async (): Promise<DawResult> => {
-    const result = await daw.recordStop();
+    const result = await appStop(() => daw.recordStop());
     // Undoable from the next page: a DAW's take is in the history before the page goes.
     if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
@@ -782,7 +801,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
     if (result.ok) void tellStopped(true);
     return result;
-  }, [daw, tellStopped, markStopped, keepTake]);
+  }, [daw, tellStopped, markStopped, keepTake, appStop]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({

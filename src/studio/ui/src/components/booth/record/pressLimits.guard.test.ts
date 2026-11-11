@@ -7,15 +7,15 @@ import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimit
 // with the stage that bounds it; the test finds each call in its source and requires it to sit inside `limited('<stage>', ...)`. A new await in
 // the press goes in this list (and into `PRESS_LIMITS_MS`), or it hangs Record for good when the host never answers (#3221).
 // A call written `void ...` is one nothing waits for (the DAW's own Record started a listening session), so it is not a wait.
-// The other awaits of the press are named in OTHER_AWAITS, each with its reason. One is a host call that is NOT bounded here and is a
-// known gap (follow-up, stated in the PR): `daw.roll`.
+// The other awaits of the press are named in OTHER_AWAITS, each with its reason.
 const BOOTH = join(__dirname, '..');
 const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = [
   { file: 'page/useBoothPage.ts', call: 'session.ensureModel(', stage: 'modelCheck' },
   { file: 'page/useBoothPage.ts', call: 'session.start(', stage: 'listening' },
   { file: 'page/useBoothPage.ts', call: 'voiceTracks.boothVoiceSet(', stage: 'voiceChoice' },
-  { file: 'page/useBoothPage.ts', call: 'daw.recordStop().catch(', stage: 'recordStop' },
+  { file: 'page/useBoothPage.ts', call: 'appStop(() => daw.recordStop()).catch(', stage: 'recordStop' },
   { file: 'page/useBoothPage.ts', call: 'daw.undoLast(TAKE_KIND, stopped', stage: 'undoLast' },
+  { file: 'page/useBoothPage.ts', call: 'daw.roll(', stage: 'roll' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStart(', stage: 'recordStart' },
   { file: 'record/useRecordControl.ts', call: 'daw.recordStop()', stage: 'recordStop' },
@@ -116,6 +116,9 @@ describe('each limit is above the host call it waits for', () => {
   it("the listening start: the previous session's grace (8 s) and wait (2 s), then listeningWait", () => {
     const host = seconds('internal/teleprompter/service.go', 'defaultGrace') + 2_000 + seconds('bindings.go', 'listeningWait');
     expect(PRESS_LIMITS_MS.listening).toBeGreaterThanOrEqual(host + MARGIN_MS);
+  });
+  it('a roll: rollTimeout', () => {
+    expect(PRESS_LIMITS_MS.roll).toBeGreaterThanOrEqual(seconds('bindings_daw_roll.go', 'rollTimeout') + MARGIN_MS);
   });
   it('the Booth picks recordStartInApp for the app recorder and recordStart for a DAW engine', () => {
     expect(recordStartLimit(true)).toBe('recordStartInApp');

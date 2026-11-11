@@ -24,6 +24,8 @@ export const PRESS_LIMITS_MS = {
   recordStop: 10_000,
   /** Taking that short recording back: the host's own limit is `undoLastTimeout`, 12 s, so this is above it. */
   undoLast: 14_000,
+  /** Rolling again in a take (R, Punch and roll): the host's own limit is `rollTimeout`, 5 s (the stop, the cursor move and the DAW recording again). */
+  roll: 8_000,
   /** Making the voice a passage was recorded on the take's track (a punch). */
   voiceChoice: 8_000,
 } as const;
