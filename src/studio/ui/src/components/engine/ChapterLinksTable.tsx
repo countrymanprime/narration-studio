@@ -250,6 +250,8 @@ function ChapterLinkRow({
   const navigate = useNavigate();
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
+  // The track the check re-reads: the chapter's one link. A chapter with several has none, so any pick replaces them.
+  const checkedGuid = row.state === 'several' ? undefined : linkedGuid;
   const [picking, setPicking] = useState(!hasLink);
   const [rechecking, setRechecking] = useState(false);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
@@ -305,7 +307,7 @@ function ChapterLinkRow({
   );
   const menu: MenuItem[] = [
     // Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels.
-    ...(row.state === 'linked'
+    ...(row.state === 'linked' || row.state === 'several'
       ? [
           { key: 'editing', label: 'Open in Editing', onSelect: () => navigate(addressPath({ page: 'editing', chapter: row.chapter.id })) },
           { key: 'proof', label: 'Open in Proof', onSelect: () => navigate(`/proof/${encodeURIComponent(row.chapter.id)}`) },
@@ -362,13 +364,13 @@ function ChapterLinkRow({
             <>
               <IconButton
                 action="confirmTrack"
-                label={pick && pick === linkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
+                label={pick && pick === checkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
-                variant={pick && pick !== linkedGuid ? 'primary' : 'default'}
+                variant={pick && pick !== checkedGuid ? 'primary' : 'default'}
                 disabledReason={!pick ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {
-                  if (pick !== linkedGuid) return onConfirm(pick);
+                  if (pick !== checkedGuid) return onConfirm(pick);
                   // A double click on Change lands its second press here, where the check now is: ignore it, as Change, Clear and Cancel do.
                   if (settled()) {
                     // The same track again: not a change, so read it again and report, then leave the picker.

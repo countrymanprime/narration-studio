@@ -613,6 +613,36 @@ describe('ChapterLinksTable', () => {
     expect(mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)).toHaveLength(0);
   });
 
+  // #3363 (intent review): on a chapter with several links the first one was the row's "linked" track, so choosing it only re-read, and choosing
+  // the second did nothing because that pair was already held: neither resolved it.
+  it.each([0, 1])('Change on a chapter with several links replaces them with the track chosen, whichever of the two it is (%i)', async (which) => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByText('Several tracks')).toBeTruthy());
+
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
+    await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[which].guid);
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this track/ }));
+
+    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    const { mappings } = await api.chapterTrackMapList();
+    const mine = mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id);
+    expect(mine.map((mapping) => mapping.trackGuid)).toEqual([WIRE_TRACKS_PROJECT.tracks[which].guid]);
+  });
+
   it('shows a link to a track that no longer exists as Track missing', async () => {
     const api = createMockApi();
     await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
