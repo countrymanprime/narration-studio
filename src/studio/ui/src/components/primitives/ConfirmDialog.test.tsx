@@ -18,6 +18,8 @@ describe('ConfirmDialog holdEnter', () => {
     const button = screen.getByRole('button', { name: 'Stop and leave' });
     expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(false);
     expect(fireEvent.keyDown(button, { key: ' ', cancelable: true })).toBe(false);
+    fireEvent.keyUp(button, { key: 'Enter' });
+    fireEvent.keyUp(button, { key: ' ' });
     view.rerender(ask(false));
     expect(screen.getByRole('alertdialog').hasAttribute('data-enter-held')).toBe(false);
     expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(true);
@@ -31,6 +33,8 @@ describe('ConfirmDialog holdEnter', () => {
       const button = screen.getByRole('button', { name: 'Stop and leave' });
       expect(fireEvent.keyDown(button, { key: 'Enter', cancelable: true })).toBe(true);
       expect(fireEvent.keyDown(button, { key: ' ', cancelable: true })).toBe(true);
+      // A repeat is only refused by a dialog that opened holding.
+      expect(fireEvent.keyDown(button, { key: 'Enter', repeat: true, cancelable: true })).toBe(true);
     }
   });
 });
