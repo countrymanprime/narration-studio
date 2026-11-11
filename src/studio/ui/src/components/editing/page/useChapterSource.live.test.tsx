@@ -82,4 +82,24 @@ describe('the Editing page follows the shared track state while it is open', () 
     await waitFor(() => expect(read()?.audio.kind).toBe('missing'));
     expect(cutReads).toBe(1);
   });
+
+  it('a first tracks read that fails leaves the text showing with nothing to play, not loading for good', async () => {
+    const api = createMockApi({
+      chapterTrackMapList: async () => ({ documentId: 'doc', mappings: [] }),
+      tracksLive: async () => {
+        throw new Error('REAPER did not answer.');
+      },
+      workspaceAlignment: async () => heard(),
+      dawProjectState: async () => ({ savedAt: '', unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 }),
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+          {children}
+        </ProjectTrackProviders>
+      </ApiProvider>
+    );
+    const { result } = renderHook(() => useChapterSource('c1', 'One'), { wrapper });
+    await waitFor(() => expect(result.current.source.status).toBe('ready'));
+  });
 });

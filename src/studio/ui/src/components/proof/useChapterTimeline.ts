@@ -45,7 +45,7 @@ export function useChapterTimeline(chapterId: string | undefined): ChapterTimeli
   const trackGuid = chapterId ? chapterLink(tracks.mappings, chapterId).trackGuid : undefined;
   const items = useMemo(() => (tracks.project ? chapterTrackOf(tracks.project.tracks, trackGuid)?.items : undefined) ?? [], [tracks.project, trackGuid]);
   // Still reading: the state is on its first read. A state that is not reading (no linked DAW file) has no tracks to wait for.
-  const waiting = tracks.reading && tracks.readAt === null;
+  const waiting = tracks.reading && tracks.readAt === null && !tracks.live.error;
   const aligned = loaded && loaded.chapterId === chapterId && !waiting ? loaded.aligned : undefined;
   const current = useMemo(() => (aligned ? { items, aligned } : undefined), [items, aligned]);
   return useMemo(() => {

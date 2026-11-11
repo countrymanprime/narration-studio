@@ -126,7 +126,8 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     folder: boolean;
     unsaved: boolean | 'unknown';
   }>();
-  const waiting = tracks.reading && tracks.readAt === null;
+  // A first read that failed is not waited on either: the text shows and nothing plays, as it did when the page read the tracks itself.
+  const waiting = tracks.reading && tracks.readAt === null && !tracks.live.error;
   const { project: tracksProject, mappings: tracksMappings, reread: tracksReread } = tracks;
   useEffect(() => {
     let live = true;
