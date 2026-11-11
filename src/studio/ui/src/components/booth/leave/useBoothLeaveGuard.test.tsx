@@ -43,6 +43,7 @@ describe('useBoothLeaveGuard', () => {
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
+        ignoreEnterAfterMs: 400,
       },
     });
   });
@@ -407,6 +408,81 @@ describe('useBoothLeaveGuard', () => {
       await act(() => t.done());
       expect(t.go).toHaveBeenCalledWith('/script');
       expect(t.dialog()).toBeUndefined();
+    });
+
+    // #3349 B3: the message has an X; a narrator who closed it and pressed another exit is told again that the stop is still out.
+    it('a second exit while the stop is pending says "Stopping the take…" again after the narrator closed it', async () => {
+      vi.useFakeTimers();
+      const t = setup({}, never);
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      const shown = () => t.overlay.getSnapshot().toasts.filter((toast) => toast.text === 'Stopping the take…');
+      expect(shown()).toHaveLength(1);
+      act(() => t.overlay.dismissToast(shown()[0]!.id));
+      expect(shown()).toHaveLength(0);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      act(() => void t.hook.result.current.leave('/proof', vi.fn()));
+      expect(shown()).toHaveLength(1);
+      act(() => void t.hook.result.current.decide());
+      expect(shown()).toHaveLength(1);
+      // It moved nowhere: the first decision is still the only one.
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+    });
+
+    // #3349 B2: the DAW ended the take itself (the Booth showed "Stopped. Recorded") while the stop was out: the refusal question would be about a take that is over.
+    describe('the take ends in the DAW while the decision waits', () => {
+      it('a take that ended during the stop wait leaves without the refusal question', async () => {
+        vi.useFakeTimers();
+        const t = setup({}, never);
+        render(<OverlayHost service={t.overlay} />);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+        expect(screen.queryByText('Stopping the take…')).toBeNull();
+        // Not waited out: it left when the take ended, not at the limit.
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      });
+
+      it('a take that ended while the stop was refused leaves without the refusal question', async () => {
+        const t = setup({}, async () => ({ ok: false, changed: false, message: 'REAPER is busy.', undoSteps: 0, refused: 'REAPER is busy.' }) as DawResult);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        // The take ends in the same moment the refusal arrives.
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+        expect(t.stopRecording).not.toHaveBeenCalled();
+      });
+
+      it('a take that ended during the question is not stopped again when the narrator says yes', async () => {
+        const t = setup();
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await act(() => done);
+        expect(t.stopRecording).not.toHaveBeenCalled();
+        expect(t.go).toHaveBeenCalledWith('/script');
+      });
     });
 
     // The Booth went some other way mid-wait (the project picker drawn in its place): what still waits must not open a question over the new page, move the

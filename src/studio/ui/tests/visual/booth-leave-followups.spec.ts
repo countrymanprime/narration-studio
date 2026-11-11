@@ -1,0 +1,136 @@
+// The follow-ups of the Booth leave guard (#3349): the project picker is an exit like the nav, a take that ends in the DAW during the question or the stop wait
+// leaves no stale refusal, a second exit during the wait says so again, and a double Enter on a jump menu row cannot answer the question it raised.
+import { expect, test, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
+import { settlePage } from './helpers/settle';
+import { goToPage, openSettings } from './drivers/shared';
+
+test.use({ viewport: { width: 1440, height: 900 } });
+test.setTimeout(60_000);
+
+const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
+const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
+const question = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
+const picker = (page: Page) => page.getByRole('heading', { name: 'Choose your project' });
+const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+const onBooth = (page: Page) => page.evaluate(() => window.location.pathname === '/booth');
+
+const NEVER_STOPS = () => {
+  (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+    readAloudRecordStop: () => new Promise(() => {}),
+  };
+};
+
+async function recording(page: Page): Promise<void> {
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await record(page).click();
+  await expect(stop(page)).toBeVisible();
+  await expect.poll(() => dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+}
+
+async function runFromPalette(page: Page, command: string, press = 'Enter'): Promise<void> {
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill(`> ${command}`);
+  await expect(page.getByRole('option', { name: new RegExp(`^${command}`) })).toBeVisible();
+  await page.keyboard.press(press);
+}
+
+async function dirtySettings(page: Page): Promise<void> {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
+}
+
+for (const [via, open] of [
+  ['the header project name', (page: Page) => page.getByRole('button', { name: /, switch project$/ }).click()],
+  ['the jump menu', (page: Page) => runFromPalette(page, 'Switch project…')],
+] as const) {
+  test(`Switch project from ${via} over unsaved Settings asks first; Keep editing leaves the picker closed and the edit in place`, async ({ page }) => {
+    await dirtySettings(page);
+    await open(page);
+    const unsaved = page.getByRole('alertdialog', { name: 'Unsaved settings' });
+    await expect(unsaved).toBeVisible();
+    await expect(picker(page)).toHaveCount(0);
+    await unsaved.getByRole('button', { name: 'Cancel' }).click();
+    await expect(unsaved).toHaveCount(0);
+    await expect(picker(page)).toHaveCount(0);
+    await expect(page.getByLabel('Share of each paragraph that must be read', { exact: false }).first()).toHaveValue('0.7');
+  });
+}
+
+test('Switch project over unsaved Settings: Discard & continue opens the picker, and Escape then returns to Settings', async ({ page }) => {
+  await dirtySettings(page);
+  await page.getByRole('button', { name: /, switch project$/ }).click();
+  await page.getByRole('alertdialog', { name: 'Unsaved settings' }).getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(picker(page)).toBeVisible();
+  // Escape is Back, as it is for every page that covers another.
+  await page.keyboard.press('Escape');
+  await expect(picker(page)).toHaveCount(0);
+  expect(await page.evaluate(() => window.location.pathname)).toBe('/settings');
+});
+
+test('the project picker over Production: Escape is Back', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await page.getByRole('button', { name: /, switch project$/ }).click();
+  await expect(picker(page)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(picker(page)).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1, name: 'Production' })).toBeVisible();
+});
+
+test('a second exit while the stop is pending says "Stopping the take…" again after the narrator closed the message', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  const stopping = page.getByText('Stopping the take…');
+  await expect(stopping).toBeVisible();
+  await page
+    .getByRole('button', { name: /^Dismiss/ })
+    .first()
+    .click();
+  await expect(stopping).toHaveCount(0);
+  await page.keyboard.press('Alt+ArrowLeft');
+  await expect(stopping).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('a take that ends in the DAW while the stop is pending leaves without the "Could not stop" question', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(page.getByText('Stopping the take…')).toBeVisible();
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 6000 });
+  await expect(page.getByRole('alertdialog', { name: /Could not stop the take/ })).toHaveCount(0);
+  expect(await onBooth(page)).toBe(false);
+});
+
+test('a double Enter on a jump menu row that leaves the Booth keeps the question open and the take running', async ({ page }) => {
+  await recording(page);
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Go to Script');
+  await expect(page.getByRole('option', { name: /^Go to Script/ })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await expect(question(page)).toBeVisible();
+  await page.waitForTimeout(250);
+  await expect(question(page)).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+  expect(await dawRecording(page)).toBe(true);
+  // Past the moment, Enter answers as it always did: the safe button, Keep recording.
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await expect(question(page)).toHaveCount(0);
+  expect(await dawRecording(page)).toBe(true);
+});

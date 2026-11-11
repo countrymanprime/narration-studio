@@ -13,14 +13,14 @@ afterEach(() => {
 
 function renderPicker(
   overrides: Parameters<typeof createMockApi>[0] = {},
-  props: { onCreated?: () => void; onOpenSettings?: () => void } = {},
+  props: { onCreated?: () => void; onOpenSettings?: () => void; onBack?: () => void } = {},
   seed: Parameters<typeof createMockApi>[1] = {},
 ) {
   const api = createMockApi(overrides, seed);
   const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
-      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} onOpenSettings={props.onOpenSettings} />
+      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} onOpenSettings={props.onOpenSettings} onBack={props.onBack} />
     </ApiProvider>,
   );
   return { api, notify };
@@ -39,6 +39,27 @@ describe('ProjectPicker', () => {
   });
 
   // Settings has rows that are this computer's, so the picker offers it when no project is open (issue 3024): an icon button with a hint, in the top row.
+  it('Escape is Back when the picker covers a project (#3349), and does nothing with no project to go back to', () => {
+    const onBack = vi.fn();
+    renderPicker({}, { onBack });
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(onBack).toHaveBeenCalledTimes(1);
+    cleanup();
+    const none = vi.fn();
+    renderPicker();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(none).not.toHaveBeenCalled();
+  });
+
+  it('Escape closes the New project dialog and not the picker (#3349)', async () => {
+    const onBack = vi.fn();
+    renderPicker({}, { onBack });
+    fireEvent.click(await screen.findByRole('button', { name: /^New project/ }));
+    await screen.findByRole('dialog');
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
   it('offers Settings as an icon button in the top row when it is given a way to open it, and none otherwise', () => {
     const onOpenSettings = vi.fn();
     renderPicker({}, { onOpenSettings });

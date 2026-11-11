@@ -52,6 +52,20 @@ export function ProjectPicker({
     // Only when the picker appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Escape is Back where the picker covers a project (#3349): the same way out as the button, and not while a dialog of the picker's own (New project) is up.
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  const hasBack = !!onBack;
+  useEffect(() => {
+    if (!hasBack) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      event.preventDefault();
+      onBackRef.current?.();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [hasBack]);
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   // The recent project the running REAPER has open, when the host knows one; null draws no banner (a failed read draws none either).

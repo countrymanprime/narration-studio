@@ -47,8 +47,8 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
-The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
-recent project there switches to it.
+The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
+recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved settings**), or a take recording in the Booth (**Stop recording?**).
 
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 

@@ -142,6 +142,52 @@ describe('a question that arms its confirm: Cancel', () => {
   });
 });
 
+describe('a question that ignores Enter for a moment (#3349)', () => {
+  it('takes no Enter or Space on either button until ignoreEnterAfterMs has passed, and a click and Escape still answer at once', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mount();
+    let answer: boolean | undefined;
+    void service
+      .confirm({
+        title: 'Stop recording?',
+        body: 'REAPER is recording.',
+        confirmLabel: 'Stop and leave',
+        cancelLabel: 'Keep recording',
+        safeDefault: true,
+        ignoreEnterAfterMs: 400,
+      })
+      .then((value) => (answer = value));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Stop recording?' });
+    // Focus is on the safe button, and the second Enter of a double Enter lands on it.
+    const keep = within(dialog).getByRole('button', { name: 'Keep recording' });
+    keep.focus();
+    const keyDown = (key: string) => fireEvent.keyDown(keep, { key, bubbles: true, cancelable: true });
+    expect(keyDown('Enter')).toBe(false);
+    expect(keyDown(' ')).toBe(false);
+    // A key that is not a press is not touched.
+    expect(keyDown('Tab')).toBe(true);
+    await act(async () => {});
+    expect(answer).toBeUndefined();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    expect(keyDown('Enter')).toBe(true);
+    fireEvent.click(keep);
+    await waitFor(() => expect(answer).toBe(false));
+  });
+
+  it('does not hold back a click or Escape inside the window', async () => {
+    mount();
+    let answer: boolean | undefined;
+    void service
+      .confirm({ title: 'Stop recording?', body: 'REAPER is recording.', confirmLabel: 'Stop and leave', ignoreEnterAfterMs: 400 })
+      .then((value) => (answer = value));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Stop recording?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Stop and leave' }));
+    await waitFor(() => expect(answer).toBe(true));
+  });
+});
+
 describe('stacking and Escape order stay the primitives', () => {
   it('stacks a confirm above an open Dialog, closes only the topmost on Escape and returns focus to the opener', async () => {
     function Page() {
