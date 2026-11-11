@@ -30,6 +30,8 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
+  'components/chapterTracks/useChapterLinkActions.ts':
+    "reads the chapters only to name the chapter that lost a track; the credits are linked and named like any chapter, and a name the list lacks falls back to the host's kept title",
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
   'components/proof/PreviewPanel.tsx': "resolves a preview candidate's paragraph ids to an index; the credits have no paragraphs",
   'components/storybible/Guide.tsx': 'Appears in and evidence links name entities in the text; the credits have none (withoutCredits)',

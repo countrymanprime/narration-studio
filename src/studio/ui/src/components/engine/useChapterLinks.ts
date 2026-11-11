@@ -5,7 +5,7 @@ import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
-import { keptTitle } from '../mapping/trackHeldBy';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -72,8 +72,13 @@ function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'cre
  */
 export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, tracksReadAt: number | null = null, enabled = true): ChapterLinks {
   const manuscript = usePort('manuscript');
-  const chapterTrackMap = usePort('chapterTrackMap');
+  const actions = useChapterLinkActions();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // A chapter the manuscript no longer lists is named by the title the host kept with its link (displacedSentence).
+  const nameOf = (chapterId: string) => {
+    const known = chapters.find((chapter) => chapter.id === chapterId);
+    return known ? headingName(known) : undefined;
+  };
   // The links are the shared state's (#3269): read once for every screen, so the table, the dialog and the Booth cannot disagree. This hook
   // wants only the links; the tracks are the caller's.
   const trackState = useChapterTrackState({ enabled, tracks: false });
@@ -121,13 +126,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     write()
       .then((result) => {
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
-        const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
-        // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
-        const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        if (displaced)
-          setNotice(
-            `${taken ? headingName(taken) : (keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript')} was linked to that track and is now not linked.`,
-          );
+        const notice = (result as { displacedNotice?: string } | undefined)?.displacedNotice;
+        if (notice) setNotice(notice);
       })
       .then(() => reload())
       .then(() => onChanged())
@@ -145,14 +145,14 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // A chapter with several links is not linked to one track: choosing one of them replaces the rest, so it reaches the host.
     const link = chapterLink(mappings, chapterId);
     if (link.state === 'linked' && link.trackGuid === trackGuid) return;
-    change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
+    change(chapterId, () => actions.set(chapterId, trackGuid, nameOf));
   };
   // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
   const unlink = (chapterId: string) =>
     change(
       chapterId,
       async () => {
-        const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
+        const result = await actions.unlink(chapterId);
         applyMappings(result.mappings);
         return result;
       },
@@ -184,7 +184,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     setBusyChapterId(chapterId);
     setCreatingChapterId(chapterId);
     setError('');
-    const request = chapterTrackMap.chapterTrackCreate(chapterId);
+    const request = actions.create(chapterId);
     createGuard.pending = { chapterId, done: request };
     try {
       const result = await request;

@@ -5,7 +5,7 @@ import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
-import { keptTitle } from '../mapping/trackHeldBy';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
@@ -43,6 +43,7 @@ export function ChapterSyncPanel({
   onLayoutShown?: (shown: boolean) => void;
 }) {
   const api = useApi();
+  const actions = useChapterLinkActions();
   const state = useChapterSync(api);
   const [preview, setPreview] = useState<ChapterSyncPreview>();
   const [toggling, setToggling] = useState(false);
@@ -116,13 +117,9 @@ export function ChapterSyncPanel({
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
     try {
-      const result = await api.chapterTrackSet(chapterId, trackGuid);
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
-      notify(
-        result.displaced
-          ? `Track linked. It was linked to ${keptTitle(result.displaced.chapterTitle) ?? 'a chapter no longer in the manuscript'}, which is now unlinked.`
-          : 'Track linked.',
-      );
+      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      notify(linkedNotice);
       await loadPreview();
       onChanged();
     } catch (error) {
