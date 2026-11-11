@@ -61,6 +61,8 @@ type DialogProps = {
   // True: when the element that had focus is gone or was <body>, leave focus there on close instead of moving it into the page's <main>. For a question
   // that interrupts a page where a stray Enter on the first control would do harm (the Booth's "Stop recording?").
   stayOnBody?: boolean;
+  /** Enter and Space do nothing in the dialog while this is true (a press that reaches a button is not taken): for a question whose first moments must not be answered by the second press of a double press. */
+  holdEnter?: boolean;
   children: ReactNode;
 } & (
   | { variant?: 'dialog'; description?: ReactNode }
@@ -118,6 +120,7 @@ export function Dialog({
   footer,
   returnFocus,
   stayOnBody = false,
+  holdEnter = false,
   children,
 }: DialogProps) {
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
@@ -207,7 +210,14 @@ export function Dialog({
           <Parts.Popup
             ref={popupRef}
             initialFocus={initialFocus}
-            onKeyDown={(event) => routeTabAcrossToasts(event, popupRef.current)}
+            onKeyDown={(event) => {
+              if (holdEnter && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
+              routeTabAcrossToasts(event, popupRef.current);
+            }}
+            onKeyUp={(event) => {
+              // A Space press completes on keyup in some engines: held too, so a press begun inside the window cannot answer after it.
+              if (holdEnter && event.key === ' ') event.preventDefault();
+            }}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]

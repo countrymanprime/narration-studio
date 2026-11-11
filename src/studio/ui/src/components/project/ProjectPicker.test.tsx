@@ -5,6 +5,7 @@ import { ProjectPicker, REMOVE_UNDO_MS } from './ProjectPicker';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Notify } from '../primitives/Toast';
+import { CommandRouter } from '../../input/router';
 
 afterEach(() => {
   cleanup();
@@ -20,7 +21,9 @@ function renderPicker(
   const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
-      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} onOpenSettings={props.onOpenSettings} onBack={props.onBack} />
+      <CommandRouter>
+        <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} onOpenSettings={props.onOpenSettings} onBack={props.onBack} />
+      </CommandRouter>
     </ApiProvider>,
   );
   return { api, notify };
@@ -42,12 +45,12 @@ describe('ProjectPicker', () => {
   it('Escape is Back when the picker covers a project (#3349), and does nothing with no project to go back to', () => {
     const onBack = vi.fn();
     renderPicker({}, { onBack });
-    fireEvent.keyDown(document.body, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
     expect(onBack).toHaveBeenCalledTimes(1);
     cleanup();
     const none = vi.fn();
     renderPicker();
-    fireEvent.keyDown(document.body, { key: 'Escape' });
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
     expect(none).not.toHaveBeenCalled();
   });
 
@@ -56,7 +59,7 @@ describe('ProjectPicker', () => {
     renderPicker({}, { onBack });
     fireEvent.click(await screen.findByRole('button', { name: /^New project/ }));
     await screen.findByRole('dialog');
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' });
     expect(onBack).not.toHaveBeenCalled();
   });
 
@@ -297,7 +300,9 @@ describe('ProjectPicker', () => {
       const removeRecentProject = vi.spyOn(api, 'removeRecentProject');
       const { unmount } = render(
         <ApiProvider api={api}>
-          <ProjectPicker notify={vi.fn()} onCreated={() => undefined} />
+          <CommandRouter>
+            <ProjectPicker notify={vi.fn()} onCreated={() => undefined} />
+          </CommandRouter>
         </ApiProvider>,
       );
       await screen.findByText(VOLTAGE);
@@ -313,7 +318,9 @@ describe('ProjectPicker', () => {
       const notify = vi.fn<Notify>();
       const { unmount } = render(
         <ApiProvider api={api}>
-          <ProjectPicker notify={notify} onCreated={() => undefined} />
+          <CommandRouter>
+            <ProjectPicker notify={notify} onCreated={() => undefined} />
+          </CommandRouter>
         </ApiProvider>,
       );
       await screen.findByText(VOLTAGE);

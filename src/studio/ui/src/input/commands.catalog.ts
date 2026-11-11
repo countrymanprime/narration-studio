@@ -421,6 +421,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'proof.decide.waive', label: 'Fine as read', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.defer', label: 'Defer', scope: 'page', defaults: [key('KeyD')], group: 'Proof', surfaces: ['help', 'settings'] },
   {
+    id: 'project.back',
+    label: 'Back to the open project from the project picker',
+    scope: 'page',
+    defaults: [key('Escape')],
+    shadows: ['editing.escape', 'script.escape', 'proof.escape'],
+    group: 'Project',
+    surfaces: ['help', 'settings'],
+  },
+  {
     id: 'proof.escape',
     label: 'Back to all chapters',
     scope: 'page',
