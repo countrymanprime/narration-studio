@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { describeApiError } from '../../api/errorMessage';
+import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
@@ -27,39 +27,48 @@ export function ChapterTrackLinkFix({
 }) {
   const actions = useChapterLinkActions();
   const state = useChapterTrackState({ enabled: true });
-  const [error, setError] = useState('');
+  // A link that could not be made is said under the picker, which stays: the narrator can choose again once the cause is gone.
+  const [linkError, setLinkError] = useState('');
   const confirming = usePendingAction();
-  const shown = error || (state.project ? '' : state.live.error);
-  if (shown)
+  const listError = state.project ? '' : state.live.error;
+  if (listError)
     return (
       <p style={{ color: 'var(--danger-text)' }}>
-        The REAPER tracks could not be listed: {shown} <EnginePanelLink onOpen={onNavigate} />
+        The REAPER tracks could not be listed: {listError} <EnginePanelLink onOpen={onNavigate} />
       </p>
     );
-  // Both reads (the tracks and the links) answer before the prompt shows, so the "linked to" notes are there from the first draw.
-  if (!state.project || state.readAt === null) return <p role="status">Reading the REAPER tracks…</p>;
+  // Both reads (the tracks and the links) answer before the prompt shows, so the "linked to" notes are there from the first draw. A links read
+  // that failed (the state is stale) leaves the notes off rather than leaving the prompt reading for good.
+  if (!state.project || (state.readAt === null && !state.stale)) return <p role="status">Reading the REAPER tracks…</p>;
   return (
-    <MappingConfirm
-      chapterTitle={chapterName(chapter, 'short')}
-      tracks={state.project.tracks}
-      links={state.mappings}
-      chapterId={chapter.id}
-      busy={confirming.isBusy}
-      onConfirm={(trackGuid) =>
-        void confirming.run('confirm', async () => {
-          try {
-            // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
-            notify(linkedNotice);
-            state.applyMappings(result.mappings);
-            setError('');
-            await onLinked();
-          } catch (reason) {
-            setError(describeApiError(reason));
-          }
-        })
-      }
-      onClear={() => {}}
-    />
+    <>
+      <MappingConfirm
+        chapterTitle={chapterName(chapter, 'short')}
+        tracks={state.project.tracks}
+        links={state.mappings}
+        chapterId={chapter.id}
+        busy={confirming.isBusy}
+        onConfirm={(trackGuid) =>
+          void confirming.run('confirm', async () => {
+            try {
+              // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
+              const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
+              notify(linkedNotice);
+              state.applyMappings(result.mappings);
+              setLinkError('');
+              await onLinked();
+            } catch (reason) {
+              setLinkError(apiErrorMessage(reason));
+            }
+          })
+        }
+        onClear={() => {}}
+      />
+      {linkError && (
+        <p role="alert" style={{ color: 'var(--danger-text)' }}>
+          The link could not be made: {linkError}
+        </p>
+      )}
+    </>
   );
 }
