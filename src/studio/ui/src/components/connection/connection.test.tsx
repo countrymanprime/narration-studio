@@ -537,7 +537,7 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     );
   }
 
-  function open(api: Partial<NarrationApi>) {
+  function open(api: Partial<NarrationApi>, notify: () => void = () => {}) {
     const props = {
       variant: 'chapter-unlinked' as const,
       chapterId: 'c3',
@@ -550,7 +550,7 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     render(
       <ApiProvider api={createMockApi(api)}>
         <TooltipProvider>
-          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
             <Elsewhere />
             <ConnectionResolveDialog {...props} />
           </ChapterTrackStateProvider>
@@ -580,13 +580,28 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     await waitFor(() => expect(within(select).queryByRole('option', { name: /linked to Chapter 9/ })).toBeNull());
   });
 
+  it('says the links could not be read when that read fails, and Check again reads them again', async () => {
+    let fail = true;
+    const chapterTrackMapList = vi.fn(async () => {
+      if (fail) throw new Error('the host is busy');
+      return { documentId: 'd', mappings: [] as (typeof held)[] };
+    });
+    open({ chapterTrackMatch: async () => match(), chapterTrackMapList });
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    fail = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+  });
+
   it('Check again re-reads the links through the state, quietly', async () => {
     const chapterTrackMapList = vi.fn(async () => ({ documentId: 'd', mappings: [] as (typeof held)[] }));
-    open({ chapterTrackMatch: async () => match(), chapterTrackMapList });
+    const notify = vi.fn();
+    open({ chapterTrackMatch: async () => match(), chapterTrackMapList }, notify);
     await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
     const before = chapterTrackMapList.mock.calls.length;
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(chapterTrackMapList.mock.calls.length).toBeGreaterThan(before));
     expect(screen.queryByRole('alert')).toBeNull();
+    expect(notify).not.toHaveBeenCalled();
   });
 });

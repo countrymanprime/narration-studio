@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -71,15 +71,13 @@ export function ChapterLinkDialog({
   useEffect(() => {
     let live = true;
     // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
-    // A links read that fails leaves the state's last answer, which is what the other screens show too.
-    Promise.all([trackMap.chapterTrackMatch(chapterId), refreshLinks().catch(() => undefined)]).then(
+    // A links read that fails is this dialog's read failing: it says so, as a failed match does, and Check again tries both again.
+    Promise.all([trackMap.chapterTrackMatch(chapterId), refreshLinks()]).then(
       ([match, fresh]) => {
         if (!live) return;
         setRead({ status: 'ready', match, at: Date.now() });
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
-        setChosen((current) =>
-          current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh ?? linksRef.current)),
-        );
+        setChosen((current) => (current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh))));
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
     );
@@ -88,8 +86,6 @@ export function ChapterLinkDialog({
     };
   }, [trackMap, chapterId, asked, refreshLinks]);
 
-  const linksRef = useRef(links);
-  linksRef.current = links;
   const checkAgain = useCallback(() => {
     setRefused(null);
     setAsked((n) => n + 1);
