@@ -129,6 +129,11 @@ export function Dialog({
   // Whether this dialog opened holding Enter and Space back, and which of them were pressed down inside the hold (see the popup's key handlers).
   const [openedHolding] = useState(holdEnter);
   const begunInHold = useRef(new Set<string>());
+  useEffect(() => {
+    const forget = () => begunInHold.current.clear();
+    window.addEventListener('blur', forget);
+    return () => window.removeEventListener('blur', forget);
+  }, []);
   const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
@@ -217,10 +222,11 @@ export function Dialog({
             initialFocus={initialFocus}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
-                // Held back while `holdEnter`; and for a dialog that opened holding, a key whose press began inside the hold stays held until it is released,
-                // and an auto-repeat is never a press (a held Enter's repeat, ~500 ms in, would answer a question nobody has read).
+                // Held back while `holdEnter`. After it, an auto-repeat is never a press in a dialog that opened holding (a held Enter's repeat, ~500 ms in, would
+                // answer a question nobody has read), while a fresh press of the same key is one, whether or not its earlier keyup ever arrived.
                 if (holdEnter) begunInHold.current.add(event.key);
-                if (holdEnter || begunInHold.current.has(event.key) || (openedHolding && event.repeat)) event.preventDefault();
+                else if (!event.repeat) begunInHold.current.delete(event.key);
+                if (holdEnter || (openedHolding && event.repeat)) event.preventDefault();
               }
               routeTabAcrossToasts(event, popupRef.current);
             }}
@@ -229,6 +235,8 @@ export function Dialog({
               if (event.key === ' ' && (holdEnter || begunInHold.current.has(' '))) event.preventDefault();
               begunInHold.current.delete(event.key);
             }}
+            // Focus leaving the popup's controls ends what the hold remembers: a keyup that went elsewhere never arrives here.
+            onBlur={() => begunInHold.current.clear()}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
