@@ -109,11 +109,16 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
   // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
   const open = useRef<{ close: AbortController; pending: boolean } | null>(null);
+  const reask = useRef(false);
   useEffect(() => {
     if (!open.current?.pending) return;
     // The start landed as a take: from here the question is about a real take and is no longer closed for its end.
-    if (session.recording && !session.startPending) open.current.pending = false;
-    else if (!recording) open.current.close.abort();
+    if (session.recording && !session.startPending) {
+      // The question said the DAW was only starting: it is asked again as the recording question, in the same place (`decide` loops on `reask`).
+      open.current.pending = false;
+      reask.current = true;
+      open.current.close.abort();
+    } else if (!recording) open.current.close.abort();
   }, [recording, session.recording, session.startPending]);
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
@@ -134,6 +139,12 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         const closing = new AbortController();
         open.current = { close: closing, pending: !!now.startPending && !refusedOnce };
         const yes = gone.current ? false : await overlay.confirm(spec, closing.signal).finally(() => (open.current = null));
+        // The start landed as a take while the question was open: it is asked again as the recording question, with its own Enter hold.
+        if (reask.current && !gone.current) {
+          reask.current = false;
+          spec = stopRecordingSpec(now.daw.name, startedByApp, false);
+          continue;
+        }
         // Closed because nothing records now: the narrator stays, with nothing left to stop (the press said why).
         if (!yes || gone.current || closing.signal.aborted) return false;
         // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.

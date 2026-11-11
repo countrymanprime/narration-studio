@@ -36,8 +36,8 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
 } {
   const current: BoothChapterTarget = { chapter: chapterId };
   const requestedQuery = requested ? boothQuery(requested) : null;
-  const followed = useRef({ requested, current, recording, leave, adopt, choose });
-  followed.current = { requested, current, recording, leave, adopt, choose };
+  const followed = useRef({ requested, current, recording, starting, leave, adopt, choose });
+  followed.current = { requested, current, recording, starting, leave, adopt, choose };
   useEffect(() => {
     const now = followed.current;
     if (!now.requested || requestedQuery === null) return;
@@ -46,7 +46,8 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
       if (target.from) now.adopt(target);
       return;
     }
-    if (!now.recording) {
+    // A take that is only starting is asked about like a running one (the leave question says so); the chapter does not change under it.
+    if (!now.recording && !now.starting) {
       now.adopt(target);
       return;
     }

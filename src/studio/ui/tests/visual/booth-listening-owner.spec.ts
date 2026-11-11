@@ -209,3 +209,50 @@ test('a Stop the DAW never answers ends at its limit with a sentence, and Stop c
   await page.keyboard.press('Space');
   await expect.poll(async () => (await calls(page)).stops, { timeout: 5000 }).toBe(2);
 });
+
+// QA r4: the host's session stop never finishes. Record used to start the take after the wait with no listening and no sentence.
+test('a session stop the host never finishes: the next Record says the text cannot follow, and records nothing unheard', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.addInitScript(() => {
+    const w = window as unknown as { __calls: Calls; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
+    let phase = 'idle';
+    const listeners = new Set<(state: unknown) => void>();
+    const publish = (next: string) => {
+      phase = next;
+      listeners.forEach((listener) => listener({ phase, message: '', engine: 'whisper', chapter: 'c1', script: null, position: null }));
+    };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterState: async () => ({ phase, message: '', engine: 'whisper', chapter: 'c1', script: null, position: null }),
+      subscribeTeleprompterState: (listener: (state: unknown) => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      teleprompterStart: async () => {
+        w.__calls.listeningStarts += 1;
+        if (phase !== 'idle' && phase !== 'stopped') throw new Error('a teleprompter session is already running');
+        publish('running');
+        return { status: 'started' };
+      },
+      teleprompterStop: async () => {
+        w.__calls.listeningStops += 1;
+        if (phase === 'running') publish('stopping');
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(record(page)).toBeVisible();
+  expect((await calls(page)).listeningStarts).toBe(2);
+});

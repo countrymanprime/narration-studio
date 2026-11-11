@@ -82,3 +82,30 @@ describe('a chapter asked for in the address', () => {
     expect(args.choose).toHaveBeenCalledWith({ chapter: 'a' });
   });
 });
+
+// The class guard (#3320): a take that is running or only starting is never walked away from by any route to another chapter. The picker and Next say so;
+// an address (a Script card, a bookmark, Back, a pickup link) asks the leave question, and staying keeps the chapter.
+describe('every route to another chapter respects a take that records or is starting', () => {
+  for (const state of ['recording', 'starting'] as const) {
+    const flags = { recording: state === 'recording', starting: state === 'starting' };
+    it(`${state}: the picker changes nothing and says why`, () => {
+      const { args, view } = setup(flags);
+      act(() => view.result.current.changeChapter({ chapter: 'b' }));
+      expect(args.choose).not.toHaveBeenCalled();
+      expect(args.toast).toHaveBeenCalledTimes(1);
+    });
+    it(`${state}: Next changes nothing and says why`, () => {
+      const { args, view } = setup(flags);
+      act(() => view.result.current.step(1));
+      expect(args.choose).not.toHaveBeenCalled();
+      expect(args.toast).toHaveBeenCalledTimes(1);
+    });
+    it(`${state}: an address asks the leave question first, and staying keeps the chapter`, async () => {
+      const leave = vi.fn(() => Promise.resolve());
+      const { args } = setup({ ...flags, requested: { chapter: 'b' }, leave });
+      await act(async () => {});
+      expect(leave).toHaveBeenCalledTimes(1);
+      expect(args.adopt).not.toHaveBeenCalled();
+    });
+  }
+});

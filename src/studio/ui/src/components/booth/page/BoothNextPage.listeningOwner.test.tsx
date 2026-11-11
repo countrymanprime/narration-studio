@@ -58,7 +58,7 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
     if (!muted) states.forEach((listener) => listener(state));
   };
   const teleprompterStart = vi.fn(async (options: TeleprompterStartOptions) => {
-    if (state.phase === 'starting' || state.phase === 'running') throw new Error('a teleprompter session is already running');
+    if (state.phase === 'starting' || state.phase === 'running' || state.phase === 'stopping') throw new Error('a teleprompter session is already running');
     publish({ phase: 'starting', chapter: 'c1', engine: 'whisper', coldRead: Boolean(options.coldRead), position: null });
     try {
       await gates.shift();
@@ -136,6 +136,9 @@ function mountBooth(host: ReturnType<typeof fakeHost>, daw = dawFor('reaper'), o
   );
   return { view, daw, recordStart, recordStop, undoLast, overlay };
 }
+
+// Longer than the session hook's wait for a stop (STOP_WAIT_MS).
+const STOP_WAIT_FOR_TEST = 12_000;
 
 const settle = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 0))));
 const ready = async () => {
@@ -588,5 +591,30 @@ describe('the chapter during a take that is still starting', () => {
     const next = screen.getByRole('button', { name: /Next chapter/ });
     await waitFor(() => expect(next.getAttribute('aria-disabled') === 'true' || (next as HTMLButtonElement).disabled).toBe(true));
     await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 } as never));
+  });
+});
+
+describe('a session stop the host never finishes', () => {
+  it('Record does not take a silent, unheard take: after the wait it asks for its own session, and the refused take is dropped with the sentence', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      const page = mountBooth(host);
+      await ready();
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      host.holdStops();
+      await act(() => vi.advanceTimersByTimeAsync(50));
+      await space();
+      await waitFor(() => expect(host.phase()).toBe('stopping'));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+      await space();
+      await act(() => vi.advanceTimersByTimeAsync(STOP_WAIT_FOR_TEST));
+      await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+      expect(await screen.findByText(/Recording did not start: the text cannot follow your voice/)).toBeTruthy();
+      expect(page.recordStop).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

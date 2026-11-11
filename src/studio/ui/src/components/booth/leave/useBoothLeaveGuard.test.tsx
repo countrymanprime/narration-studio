@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, act, render, screen } from '@testing-library/react';
+import { renderHook, act, render, screen, waitFor } from '@testing-library/react';
 import { OverlayHost } from '../../../overlay/OverlayHost';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
@@ -776,6 +776,9 @@ describe('useBoothLeaveGuard', () => {
         done = hook.result.current.leave('/proof', go);
       });
       hook.rerender({ ...session, recording: true, startPending: false });
+      // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);

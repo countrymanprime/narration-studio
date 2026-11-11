@@ -435,11 +435,14 @@ export function useBoothPage(options: BoothPageOptions) {
     // has recorded nothing). A take the narrator stopped while the listening was starting is kept (`stoppedWhileStarting`).
     // The app's own recorder has no pre-roll and keeps its file from the first instant, so it starts once listening has.
     // A session whose stop is still in flight is not one to join (a take would record unheard behind it): wait for it to end, then start its own.
-    if (latest.current.session.phase === 'stopping') {
+    // A stop the host never finishes (`stopAndWait` gives up) leaves a session that will not listen: the press starts its own, and if the host refuses
+    // that, the take is dropped with the usual sentence, never recorded unheard in silence.
+    const waitedForStop = latest.current.session.phase === 'stopping';
+    if (waitedForStop) {
       await latest.current.session.stopAndWait();
       if (!current()) return false;
     }
-    const listen = endedColdRead || !latest.current.session.active;
+    const listen = endedColdRead || waitedForStop || !latest.current.session.active;
     // The session this press owns (`listeningClaims.ts`): one it starts, or one a cancelled press began that this press joined. It lets the session go
     // only while it is still the owner, so a press that outlived its Booth never ends the listening of the press after it.
     const claim = listen ? claimListening() : joinListening();
