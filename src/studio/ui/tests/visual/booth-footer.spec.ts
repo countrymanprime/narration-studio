@@ -222,3 +222,66 @@ for (const state of ['setup', 'voices'] as const) {
     expect(problems).toEqual([]);
   });
 }
+
+// Messages rise above the readout as well as the footer (#3319): no toast box touches the readout, and one stands clear of it by a gap.
+const toastsClearOfChip = (page: Page) =>
+  page.evaluate(() => {
+    const chip = document.querySelector('[data-chosen-start]')?.closest('[role="group"]')?.getBoundingClientRect();
+    if (!chip) return null;
+    const problems: string[] = [];
+    for (const toast of document.querySelectorAll('[data-toast-region] [data-tone]')) {
+      const box = toast.getBoundingClientRect();
+      const overlaps = box.left < chip.right && box.right > chip.left && box.top < chip.bottom + 4 && box.bottom > chip.top - 4;
+      if (overlaps)
+        problems.push(
+          `toast "${toast.textContent?.slice(0, 24)}" (${Math.round(box.top)}-${Math.round(box.bottom)}) is within 4 px of the readout (${Math.round(chip.top)}-${Math.round(chip.bottom)})`,
+        );
+    }
+    return problems;
+  });
+
+for (const state of ['setup', 'voices'] as const) {
+  test(`a message rises above the readout, not over it (${state === 'voices' ? 'voice folders' : 'flat chapter'})`, async ({ page }) => {
+    test.setTimeout(300_000);
+    await page.addInitScript(() => {
+      let calls = 0;
+      const sentence = 'REAPER refused to start recording, so nothing was recorded.';
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        readAloudRecordStart: () => {
+          calls += 1;
+          return Promise.resolve(
+            calls === 1 ? { ok: false, outcome: 'refused', message: sentence, refused: sentence } : { ok: true, outcome: 'started', position: 0, message: '' },
+          );
+        },
+      };
+    });
+    await drive(page, state, { width: 1280, height: 700 });
+    await showChapterTop(page);
+    await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+    await page
+      .getByRole('menuitem', { name: /Start from here/ })
+      .first()
+      .click();
+    // The refusal stays until dismissed: it is the message to keep clear of the readout, at every size.
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await expect(page.locator('[data-chosen-start]')).toBeVisible();
+    const problems: string[] = [];
+    for (let width = 320; width <= 1280; width += 20) {
+      for (const height of [450, 800]) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(30);
+        for (const problem of (await toastsClearOfChip(page)) ?? []) problems.push(`${width}x${height}: ${problem}`);
+      }
+    }
+    expect(problems).toEqual([]);
+    // A take then runs from the refused start: its note ("goes on from the end of the chapter's audio") is above the readout too.
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    for (const width of [320, 360, 420, 720, 1280]) {
+      await page.setViewportSize({ width, height: 450 });
+      await page.waitForTimeout(30);
+      for (const problem of (await toastsClearOfChip(page)) ?? []) problems.push(`take ${width}: ${problem}`);
+    }
+    expect(problems).toEqual([]);
+  });
+}

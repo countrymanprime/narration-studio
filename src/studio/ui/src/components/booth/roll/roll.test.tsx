@@ -221,16 +221,31 @@ describe('useRoll', () => {
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
-  it.each(['', '   ', '\u200B', ' \u200B\u2060 ', '\u034F', '\u2800', '\u3164', '\uFE0F', '\u{E0020}', '\u17B4'])(
-    'a refusal with a blank message (%j) says the default sentence',
-    async (message) => {
-      const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message };
-      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
-      await act(() => hook.result.current.startTake());
-      expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('Where this passage was recorded is not known, so no take was started.');
-      expect(actions.beginTake).not.toHaveBeenCalled();
-    },
-  );
+  it.each([
+    '',
+    '   ',
+    '\u200B',
+    ' \u200B\u2060 ',
+    '\u034F',
+    '\u2800',
+    '\u3164',
+    '\uFE0F',
+    '\u{E0020}',
+    '\u17B4',
+    '\u007F',
+    '\u0605',
+    '\u070F',
+    '\uFFF9',
+    '\uFFFA',
+    '\uFFFB',
+    '\u0301',
+  ])('a refusal with a blank message (%j) says the default sentence', async (message) => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message };
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
+    await act(() => hook.result.current.startTake());
+    expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('Where this passage was recorded is not known, so no take was started.');
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
 
   it('a real message wins over an invisible refused sentence', async () => {
     const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed.' };

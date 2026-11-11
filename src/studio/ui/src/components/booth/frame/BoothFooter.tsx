@@ -131,6 +131,8 @@ export function BoothFooter({
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
+  const startBox = useRef<HTMLDivElement>(null);
+  useToastClearance(startBox, Boolean(start));
   // One sentence at a time (alignment audit R3BO-5): why the text cannot follow the voice, in the warning colour, wins; Record's own reason
   // then stays only as its description (`aria-describedby`), not drawn beside it; so does a sentence a setup notice above already says (`quietWhy`).
   const shownWhy = why && !listenWhy && !quietWhy ? why : undefined;
@@ -193,9 +195,10 @@ export function BoothFooter({
         <KeyHints id="bkeys" hints={hints} />
       </div>
       {start ? (
-        // Entirely above the footer's rim, at the right, over the bottom of the text (which fades out there): it intersects no control and takes no press, so
-        // a click meant for the reading or for Record goes where it was aimed. It is after the controls in the order a screen reader reads.
-        <div data-chosen-start-wrap="" className="pointer-events-none absolute right-[var(--page-gutter)] bottom-full z-[1]">
+        // Entirely above the footer's rim, at the right, over the lowest 22 px of the reading area (full-strength text can lie there: its last word may be partly hidden):
+        // it intersects no control and takes no press, and it is after the controls in the order a screen reader reads. Its box (with a gap above it) is a bar the messages
+        // rise above, so no message lies over it.
+        <div ref={startBox} data-chosen-start-wrap="" className="pointer-events-none absolute right-[var(--page-gutter)] bottom-full z-[1] pt-2">
           {start}
         </div>
       ) : null}

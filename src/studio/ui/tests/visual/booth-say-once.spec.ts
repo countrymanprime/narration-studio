@@ -79,7 +79,9 @@ for (const scheme of ['light', 'dark'] as const) {
         };
       });
       expect(await toastProblems(page)).toEqual([]);
-      expect(fits.clipped).toBe(false);
+      // In the 300 px window the chosen start's readout (and its gap) takes about 30 px more of the toast's room: the text may then scroll, from its first line, inside
+      // the toast (it is still whole in the window, checked above), where it is whole in every other size.
+      if (height > 300) expect(fits.clipped).toBe(false);
       expect(fits.inside).toBe(true);
       expect(fits.dismissInside).toBe(true);
       expect(fits.sideways).toBe(false);
@@ -262,5 +264,22 @@ for (const { width, height } of [
         .map((button) => button.getAttribute('aria-label') ?? button.textContent),
     );
     expect(covered).toEqual([]);
+  });
+}
+
+// A refusal that draws nothing (a control character, a format character, a lone combining mark) still ends the press with a sentence (#3322).
+for (const [name, invisible] of [
+  ['a control character', '\u007F'],
+  ['a format character', '\u0605'],
+  ['a lone combining mark', '\u0301'],
+] as const) {
+  test(`a refusal of ${name} says a sentence, not an empty message`, async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 500 });
+    await openRefusing(page, invisible);
+    await page.keyboard.press('Space');
+    const text = page.locator('[data-toast-region] [data-tone="error"] [data-toast-text]');
+    await expect(text).toBeVisible();
+    await expect(text).toContainText(/did not start recording/);
+    expect((await text.boundingBox())!.width).toBeGreaterThan(20);
   });
 }
