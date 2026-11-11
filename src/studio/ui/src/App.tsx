@@ -12,6 +12,7 @@ import { useShellCommands } from './components/layout/useShellCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from './studio/drafts/unsavedDrafts';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -123,11 +124,11 @@ const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^
 // A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
 // the router sees it: once the route changed, the page would unmount and its edits be gone (dirty Settings), or its take left recording with no Stop
 // (the Booth's leave guard, #3325), before any prompt. History is put back where it was and the same prompt the nav asks is shown. Two things hold a
-// page: dirty Settings ("Unsaved settings") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
+// page: unsaved edits (dirty Settings, an editor's draft: "Unsaved settings", "Unsaved changes") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
 // router's own, which React Router adds when it mounts: listeners of one event run in the order they were added.
 const popGuard = {
+  /** True while the page shown holds unsaved edits: dirty Settings, or a draft an editor registered (`useUnsavedDraft`). */
   dirty: false,
-  pathname: '',
   /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
   route: '',
   idx: 0,
@@ -139,6 +140,14 @@ const popGuard = {
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
   askLeave: null as ((direction: 1 | -1) => void) | null,
 };
+/**
+ * A field that saves when it loses focus (a Settings row, a due date, a limit) keeps what was typed as a draft until then, and a page that goes away under the
+ * caret never sends the blur (#3400). An exit therefore takes the focus off a text field first, which commits it the way Tab would.
+ */
+const settleFocusedField = () => {
+  const field = document.activeElement;
+  if (field instanceof HTMLElement && field.matches('input, textarea, select')) field.blur();
+};
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', (event) => {
@@ -147,8 +156,9 @@ if (typeof window !== 'undefined') {
       event.stopImmediatePropagation();
       return;
     }
+    settleFocusedField();
     const next = historyIdx();
-    const settingsHolds = popGuard.dirty && popGuard.pathname === '/settings' && !routePath().endsWith('/settings');
+    const settingsHolds = popGuard.dirty && routePath() !== popGuard.route;
     const leaveHolds = !settingsHolds && routePath() !== popGuard.route && popGuard.leaveHeld();
     const ask = settingsHolds ? popGuard.ask : popGuard.askLeave;
     if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
@@ -175,7 +185,9 @@ export function App({ journal }: { journal?: Journal } = {}) {
         {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
         <div className="relative h-full">
           <OverlayProvider>
-            <AppRoutes />
+            <UnsavedDraftsProvider>
+              <AppRoutes />
+            </UnsavedDraftsProvider>
           </OverlayProvider>
         </div>
       </StudioProvider>
@@ -256,6 +268,7 @@ function AppRoutes() {
   const [diagnosticId, setDiagnosticId] = useState('');
   const [retryKey, setRetryKey] = useState(0);
   const [settingsDirty, setSettingsDirty] = useState(false);
+  const drafts = useUnsavedDrafts();
   const [pendingMove, setPendingMove] = useState<PendingMove>();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // The engine panel: one panel for the app, opened from the header's
@@ -773,8 +786,10 @@ function AppRoutes() {
     tail: contextTail,
   };
 
-  popGuard.dirty = settingsDirty;
-  popGuard.pathname = location.pathname;
+  // What the page shown holds that leaving would drop: Settings' edited fields (only on Settings, whose flag outlives the page), or any editor's draft.
+  const settingsHeld = location.pathname === '/settings' && settingsDirty;
+  const pageHolds = settingsHeld || drafts.held.length > 0;
+  popGuard.dirty = pageHolds;
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
@@ -861,6 +876,7 @@ function AppRoutes() {
   // The page's own question when it has one (the Booth's stops the take and keeps the narrator in the Booth when the DAW refuses), else the plain confirm.
   const answerLeave = (verdict: Exclude<ReturnType<typeof journal.checkLeave>, 'allow'>) => (verdict.decide ? verdict.decide() : overlay.confirm(verdict.ask));
   const guardedMove = (next: string, state?: unknown) => {
+    settleFocusedField();
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
     if (verdict === 'allow') {
@@ -880,6 +896,7 @@ function AppRoutes() {
   };
   guardedNavigateRef.current = guardedMove;
   guardedPickerRef.current = () => {
+    settleFocusedField();
     const verdict = journal.checkLeave('');
     if (verdict === 'allow') {
       openPickerPastSettings();
@@ -891,14 +908,14 @@ function AppRoutes() {
   };
   // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved settings" question).
   const openPickerPastSettings = () => {
-    if (location.pathname === '/settings' && settingsDirty) setPendingMove({ kind: 'picker' });
+    if (pageHolds) setPendingMove({ kind: 'picker' });
     else setProjectPickerOpen(true);
   };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
   const moveTo = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
-    if (nextPath !== location.pathname && location.pathname === '/settings' && settingsDirty) {
+    if (nextPath !== location.pathname && pageHolds) {
       setPendingMove({ kind: 'path', path: next, state });
       return;
     }
@@ -911,6 +928,7 @@ function AppRoutes() {
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).
   const attemptDelta = (direction: 1 | -1, fromPop = false) => {
+    settleFocusedField();
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
     const verdict = journal.checkLeave('');
     if (verdict !== 'allow') {
@@ -924,7 +942,7 @@ function AppRoutes() {
     moveByDelta(direction);
   };
   const moveByDelta = (direction: 1 | -1) => {
-    if (location.pathname === '/settings' && settingsDirty) {
+    if (pageHolds) {
       setPendingMove({ kind: 'delta', direction });
       return;
     }
@@ -967,26 +985,33 @@ function AppRoutes() {
     refreshBootstrap,
     initialCategory: SETTINGS_ANCHORS[location.hash],
   };
-  // Leaving Settings with an edit not yet saved asks first, wherever Settings is drawn (the shell, or the frame for no project).
+  // Leaving with an edit not yet saved asks first, wherever it is held: Settings (drawn in the shell, or in the frame for no project) or an editor's draft.
+  // Settings keeps its own words; a draft elsewhere names what it holds, so the question never says "settings" for an entry or a note.
+  const onSettings = location.pathname === '/settings';
   const unsavedSettings = pendingMove && (
     <ConfirmDialog
-      title="Unsaved settings"
-      body="Save or discard changes before leaving Settings?"
+      title={onSettings ? 'Unsaved settings' : 'Unsaved changes'}
+      body={onSettings ? 'Save or discard changes before leaving Settings?' : `Save or discard ${drafts.held.join(' and ')} before leaving?`}
       confirmLabel="Save & continue"
       confirm={() =>
-        void settingsActions.current?.save().then(() => {
+        void (async () => {
+          if (settingsHeld) await settingsActions.current?.save();
+          // A draft that did not save says why itself; the narrator stays with it.
+          if (!(await drafts.save())) return setPendingMove(undefined);
           setSettingsDirty(false);
           resolvePendingMove(pendingMove);
           setPendingMove(undefined);
-        })
+        })()
       }
       dangerLabel="Discard & continue"
       danger={() =>
-        void settingsActions.current?.discard().then(() => {
+        void (async () => {
+          if (settingsHeld) await settingsActions.current?.discard();
+          drafts.discard();
           setSettingsDirty(false);
           resolvePendingMove(pendingMove);
           setPendingMove(undefined);
-        })
+        })()
       }
       cancel={() => setPendingMove(undefined)}
     />

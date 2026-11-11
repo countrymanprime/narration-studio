@@ -248,7 +248,7 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about like any unsaved setting when you leave Settings.
 
 ## Models and downloads
 
@@ -325,7 +325,9 @@ The reset button next to **Change location…** moves the downloads back to the 
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
-  and **Delete** removes it.
+  and **Delete** removes it. Text typed in the template waits for **Save template**, so leaving Settings with it unsaved
+  (the nav, Back, the jump menu or Switch project) asks **Unsaved settings** first: **Save & continue** saves the
+  template, **Discard & continue** drops it, and **Cancel** keeps the editor and the text.
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
   from the project values. Wrap a part in braces to drop it, punctuation and all, when a token in it has no
   value: `[Title]{: [Subtitle]}` reads just the title for a book with no subtitle.

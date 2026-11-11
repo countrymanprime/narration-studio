@@ -1,3 +1,4 @@
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -353,6 +354,15 @@ export function GuideDetail({
     onCommandTaken?.();
   });
 
+  // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
+  useUnsavedDraft('story-bible-entry', {
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
+    label: `your changes to ${entity?.canonical_name ?? 'this entry'}`,
+    save: () => saveEntryRef.current?.() ?? Promise.resolve(true),
+    discard: () => setEditing(false),
+  });
+
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
   // Entries open read-only: Edit reveals the form controls and Save.
@@ -366,16 +376,16 @@ export function GuideDetail({
     setDraft(draftOf(entity, speaks));
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
-  const saveEntry = () => {
+  const saveEntry = async (): Promise<boolean> => {
     const problem = propertyProblem(draft.properties, speaks);
     if (problem) {
       setPropertyError(problem);
-      return;
+      return false;
     }
     const nameIssue = nameProblem(draft.name);
     if (nameIssue) {
       setNameError(nameIssue);
-      return;
+      return false;
     }
     const saved = propertiesOf(entity, speaks);
     const properties = speaks ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
@@ -387,8 +397,11 @@ export function GuideDetail({
       context: draft.context,
     };
     if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
-    void save('save', values, 'Entry saved.').then((saved) => saved && setEditing(false));
+    const done = await save('save', values, 'Entry saved.');
+    if (done) setEditing(false);
+    return done;
   };
+  saveEntryRef.current = saveEntry;
   // An entry cannot be saved with no name or with one another entry has (the mock's renameEntry).
   const nameProblem = (name: string) => {
     if (!name.trim()) return 'Give this entry a name.';
@@ -795,7 +808,7 @@ export function GuideDetail({
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
                   disabledReason={busyReason('save')}
-                  onClick={saveEntry}
+                  onClick={() => void saveEntry()}
                   variant="primary"
                 >
                   <FontAwesomeIcon icon={faFloppyDisk} />

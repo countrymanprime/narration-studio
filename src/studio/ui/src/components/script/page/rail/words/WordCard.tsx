@@ -1,3 +1,4 @@
+import { useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
 import { hearNameAction } from '../../../../../icons.catalog';
@@ -113,15 +114,19 @@ export function WordCard({ word, host }: { word: string; host: WordsHost }) {
 function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: string) => Promise<boolean> }) {
   const [say, setSay] = useState('');
   const [busy, setBusy] = useState(false);
-  const save = async () => {
-    if (!say.trim() || busy) return;
+  const save = async (): Promise<boolean> => {
+    if (!say.trim() || busy) return false;
     setBusy(true);
     try {
-      if (await onSave(say)) setSay('');
+      const saved = await onSave(say);
+      if (saved) setSay('');
+      return saved;
     } finally {
       setBusy(false);
     }
   };
+  // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
+  useUnsavedDraft(`script-word-say-${word}`, { dirty: say.trim() !== '', label: 'the pronunciation you typed', save, discard: () => setSay('') });
   return (
     <RailFieldRow
       field={

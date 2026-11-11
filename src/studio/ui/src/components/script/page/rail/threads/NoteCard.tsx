@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
+import { useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
@@ -72,8 +73,17 @@ export function NoteCard({
   }, [active]);
 
   const send = async (act: NoteActions['onReply']) => {
-    if (await act(mark.id, who, reply.trim())) setReply('');
+    const sent = await act(mark.id, who, reply.trim());
+    if (sent) setReply('');
+    return sent;
   };
+  // A reply typed and not yet added is held text: leaving the page asks first (#3400).
+  useUnsavedDraft(`script-note-reply-${mark.id}`, {
+    dirty: reply.trim() !== '',
+    label: 'the reply you are writing',
+    save: () => send(actions.onReply),
+    discard: () => setReply(''),
+  });
   const addReply = () => {
     if (!reply.trim()) {
       overlay.toast('Write the reply or note first.');

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
@@ -23,13 +24,15 @@ export function MwKeyBody() {
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState<'save' | 'remove' | 'test' | 'signup'>();
 
-  const run = async (what: NonNullable<typeof busy>, action: () => Promise<void>) => {
+  const run = async (what: NonNullable<typeof busy>, action: () => Promise<void>): Promise<boolean> => {
     setBusy(what);
     setError(undefined);
     try {
       await action();
+      return true;
     } catch (failure) {
       setError(apiErrorMessage(failure));
+      return false;
     } finally {
       setBusy(undefined);
     }
@@ -42,6 +45,8 @@ export function MwKeyBody() {
       notify('Merriam-Webster key saved.');
       announceKeyChanged();
     });
+  // A key pasted and not yet saved is held text: leaving the page asks first (#3400).
+  useUnsavedDraft('mw-key', { dirty: draft.trim() !== '', label: 'the key you pasted', save, discard: () => setDraft('') });
   const remove = () =>
     run('remove', async () => {
       await port.pronunciationOnlineKeyClear();

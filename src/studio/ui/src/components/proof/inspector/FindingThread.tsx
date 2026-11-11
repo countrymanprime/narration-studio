@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { MAX_REVIEW_NOTE_LENGTH, type FindingThreadAuthor, type FindingThreadChange, type FindingThreadMessage } from '../../../api/contracts/findings';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -32,6 +33,18 @@ function Message({
   onDelete: () => void;
 }) {
   const [draft, setDraft] = useState<string>();
+  // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  useUnsavedDraft(`finding-note-edit-${message.id}`, {
+    dirty: draft !== undefined && draft.trim() !== '' && draft !== message.text,
+    label: 'your edit of a note',
+    save: async () => {
+      if (draft === undefined) return true;
+      const saved = await onEdit(draft);
+      if (saved) setDraft(undefined);
+      return saved;
+    },
+    discard: () => setDraft(undefined),
+  });
   if (draft !== undefined)
     return (
       <div className="flex flex-col gap-1.5">
@@ -94,10 +107,14 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
       return false;
     }
   };
-  const add = () =>
-    action.run('add', async () => {
-      if (await send({ op: 'add', who, text: reply })) setReply('');
-    });
+  const saveReply = async (): Promise<boolean> => {
+    const saved = await send({ op: 'add', who, text: reply });
+    if (saved) setReply('');
+    return saved;
+  };
+  const add = () => action.run('add', saveReply);
+  // A note typed and not yet added is held text: leaving the page asks first (#3400).
+  useUnsavedDraft('finding-note-reply', { dirty: reply.trim() !== '', label: 'the note you are writing', save: saveReply, discard: () => setReply('') });
   const remove = (message: FindingThreadMessage) =>
     action.run(`delete-${message.id}`, async () => {
       // A deleted note is one journal entry, so Ctrl+Z and History bring it back as the toast's Undo does. `send` has already said why when it fails.
