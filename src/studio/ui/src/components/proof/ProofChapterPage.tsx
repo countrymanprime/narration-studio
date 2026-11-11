@@ -169,8 +169,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           <b className="font-semibold" style={{ color: 'var(--text)' }}>
             No linked track.
           </b>{' '}
-          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel, then open this chapter again.{' '}
-          <EnginePanelLink />
+          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel. <EnginePanelLink />
         </p>
       ),
     ].filter(Boolean);

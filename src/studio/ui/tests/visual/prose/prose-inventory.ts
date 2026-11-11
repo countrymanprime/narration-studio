@@ -354,7 +354,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/proof/ProofChapterPage.tsx',
-    text: 'This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel, then open this chapter again.',
+    text: 'This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel.',
     class: 'empty',
   },
   {
