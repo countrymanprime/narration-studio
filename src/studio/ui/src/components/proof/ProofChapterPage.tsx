@@ -22,6 +22,7 @@ import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { useChapterCompare } from './useChapterCompare';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -57,10 +58,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const api = useApi();
   const navigate = useNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
-  const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
   // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
+  // The links are the shared state's: a chapter linked, relinked or unlinked elsewhere changes this page's notice at once (#3366).
+  const links = useChapterTrackState({ tracks: false, enabled: true });
+  const linkedTrackGuid = chapterLink(links.mappings, chapterId).trackGuid;
   const [read, setRead] = useState(false);
   const [reload, setReload] = useState(0);
   // Retry after a failed read: counted apart from `reload` (which only re-reads the check's state) so both reads run again.
@@ -80,12 +83,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.manuscriptChapters(), api.chapterTrackMapList()])
-      .then(([chapters, mapping]) => {
+    api
+      .manuscriptChapters()
+      .then((chapters) => {
         if (!active) return;
         setRead(true);
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
-        setLinkedTrackGuid(chapterLink(mapping.mappings, chapterId).trackGuid);
       })
       .catch((reason: unknown) => {
         if (active) setLoadError(apiErrorMessage(reason));
@@ -160,13 +163,13 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.
         </p>
       ),
-      !linkedTrackGuid && (
+      // Said only once the links have answered: before that, no guid means not read yet.
+      links.linksReadAt !== null && !linkedTrackGuid && (
         <p key="link">
           <b className="font-semibold" style={{ color: 'var(--text)' }}>
             No linked track.
           </b>{' '}
-          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel, then open this chapter again.{' '}
-          <EnginePanelLink />
+          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel. <EnginePanelLink />
         </p>
       ),
     ].filter(Boolean);

@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { Track, TrackItem, TracksProject } from '../../../api/contracts/tracks';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
@@ -53,10 +54,16 @@ function read(tracks: Track[], linked: string | null) {
       documentId: 'doc',
       mappings: linked === null ? [] : [{ trackGuid: linked, chapterId: 'c1', chapterTitle: 'One', confirmedAt: '' }],
     }),
-    tracksList: async () => project,
+    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project: project }),
     workspaceAlignment: async () => unheard(),
   });
-  const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <ApiProvider api={api}>
+      <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+        {children}
+      </ProjectTrackProviders>
+    </ApiProvider>
+  );
   return renderHook(() => useChapterSource('c1', 'One'), { wrapper });
 }
 
@@ -105,7 +112,13 @@ describe('the Editing page reads the chapter audio through the track it is linke
 
   it('the Voice folders mock (?mockVoiceFolders=1): Chapter 1 is linked to its folder and the Narrator voice’s take is the chapter’s audio, before any check has run', async () => {
     const api = createMockApi({}, { voiceFolders: true });
-    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+          {children}
+        </ProjectTrackProviders>
+      </ApiProvider>
+    );
     const { result } = renderHook(() => useChapterSource('chapter-1', 'Chapter 1'), { wrapper });
     expect(await audioOf(result)).toBe('ready');
     const source = result.current.source;

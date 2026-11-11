@@ -18,6 +18,8 @@ export type ChapterTrackState = {
   source?: TracksSource;
   /** Every confirmed chapter-to-track link the host holds, read with the tracks. */
   mappings: TrackMapping[];
+  /** When the links last answered (Unix ms), tracks or no tracks; null before the first. A screen that reads the links alone waits on this. */
+  linksReadAt: number | null;
   /** When the tracks last answered (Unix ms); null before the first. A change means everything above is a fresh read. */
   readAt: number | null;
   /** Replaces the links shown with these, for a change whose answer already says what they are (an unlink); the next read reconciles. */
@@ -52,6 +54,7 @@ const NO_LIVE: LiveTracks = {
 };
 const EMPTY: ChapterTrackState = {
   mappings: [],
+  linksReadAt: null,
   readAt: null,
   reading: false,
   stale: false,
@@ -242,6 +245,7 @@ export function ChapterTrackStateProvider({
             project: live.project,
             source: live.source,
             mappings,
+            linksReadAt: mappingsAt,
             // Not ready until both the tracks and the links have answered for this project.
             readAt: live.readAt !== null && mappingsAt !== null ? live.readAt : null,
             reading,

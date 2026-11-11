@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { Finding } from '../../../api/contracts/findings';
 import type { WorkspaceAlignmentResult, WorkspaceTakesResult } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
@@ -178,7 +179,7 @@ export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & 
     workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
     workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
-    tracksList: async () => PROJECT,
+    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project: PROJECT }),
     findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
     ...overrides,
   } as Partial<NarrationApi>);
@@ -198,7 +199,17 @@ export function noAudioApi(kind: 'unlinked' | 'missing' | 'empty'): Partial<Narr
           ? []
           : [{ chapterId: 'c1', trackGuid: kind === 'missing' ? '{GONE}' : TRACK_GUID, chapterTitle: 'Chapter One', confirmedAt: '2026-09-01T12:00:00Z' }],
     }),
-    ...(kind === 'empty' ? { tracksList: async () => ({ ...PROJECT, tracks: PROJECT.tracks.map((t) => ({ ...t, items: [] })) }) } : {}),
+    ...(kind === 'empty'
+      ? {
+          tracksLive: async () => ({
+            source: 'saved' as const,
+            reason: '' as const,
+            message: '',
+            readAt: '2026-11-11T00:00:00Z',
+            project: { ...PROJECT, tracks: PROJECT.tracks.map((t) => ({ ...t, items: [] })) },
+          }),
+        }
+      : {}),
   };
 }
 
@@ -219,15 +230,17 @@ export function EditingHost({ api: base, daw, journal, children }: { api: Narrat
     <MemoryRouter>
       <ApiProvider api={api}>
         <PortOverrides clients={{ daw }}>
-          <CommandRouter>
-            <StudioProvider journal={journal}>
-              <OverlayProvider>
-                <main className="h-full">
-                  <ContextMenuHost className="size-full">{children}</ContextMenuHost>
-                </main>
-              </OverlayProvider>
-            </StudioProvider>
-          </CommandRouter>
+          <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+            <CommandRouter>
+              <StudioProvider journal={journal}>
+                <OverlayProvider>
+                  <main className="h-full">
+                    <ContextMenuHost className="size-full">{children}</ContextMenuHost>
+                  </main>
+                </OverlayProvider>
+              </StudioProvider>
+            </CommandRouter>
+          </ProjectTrackProviders>
         </PortOverrides>
       </ApiProvider>
     </MemoryRouter>

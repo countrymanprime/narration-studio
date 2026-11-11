@@ -11,6 +11,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import { usePlayOriginal } from './usePlayOriginal';
 
 // The Pickups list's Play original goes through the playback providers (playback/providers.ts): the DAW's transport first, the app's
@@ -64,22 +65,35 @@ let transport: ReturnType<typeof vi.fn<(action: string, seconds: number, until?:
 const refused: string[] = [];
 const notices: string[] = [];
 
-function mount(caps: DawCapabilities, client: Partial<DawClient> = {}) {
+function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false) {
   const api = createMockApi({
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ trackGuid: 'tr', chapterId: 'chapter-1', chapterTitle: 'One', confirmedAt: '' }] }),
-    tracksList: async () => ({
-      path: 'book.rpp',
-      tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [ITEM] }],
-    }),
+    tracksLive: async () =>
+      hungTracks
+        ? new Promise<never>(() => {})
+        : {
+            source: 'saved' as const,
+            reason: '' as const,
+            message: '',
+            readAt: '2026-11-11T00:00:00Z',
+            project: {
+              path: 'book.rpp',
+              tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [ITEM] }],
+            },
+          },
     dawTransportSync: (action, seconds, ...until) => transport(action, seconds, ...until),
   });
   const daw: DawClient = { ...createMockDawClient(caps), capabilities: async () => caps, ...client };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <ApiProvider api={api}>
-      <PortOverrides clients={{ daw }}>{children}</PortOverrides>
+      <PortOverrides clients={{ daw }}>
+        <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+          {children}
+        </ProjectTrackProviders>
+      </PortOverrides>
     </ApiProvider>
   );
-  return renderHook(
+  const view = renderHook(
     () =>
       usePlayOriginal(
         (text) => refused.push(text),
@@ -87,6 +101,15 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}) {
       ),
     { wrapper },
   );
+  return view;
+}
+// The tracks come from the shared state, which reads them after the page mounts: a press waits for that read, as a narrator's press does.
+async function mountRead(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false) {
+  const view = mount(caps, client, hungTracks);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  return view;
 }
 const flush = () =>
   act(async () => {
@@ -112,7 +135,7 @@ afterEach(() => {
 describe('a-daw-that-can-play-plays-the-original', () => {
   // Changed from "stops it after the stretch" (#2251 item 22): the DAW is told the stretch and stops itself at its end, so the list sends no stop.
   it('plays the stretch 3 s either side of the pickup in the DAW, which stops itself at the end; the app stays silent', async () => {
-    const { result } = mount(DAW_SETUPS.reaper);
+    const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));
     expect(transport).toHaveBeenCalledWith('playRange', 12, 18, 'chapter-1');
     expect(audio.play).not.toHaveBeenCalled();
@@ -123,8 +146,33 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     expect(transport).toHaveBeenCalledTimes(1);
     expect(result.current.playingId).toBeNull();
   });
+  // #3366 (qa B1): the DAW's play needs only the pickup's place, so a tracks read that has not answered holds nothing up.
+  it('starts the DAW play without waiting for the tracks read', async () => {
+    const { result } = await mountRead(DAW_SETUPS.reaper, {}, true);
+    await act(() => result.current.play(pickup(15)));
+    expect(transport).toHaveBeenCalledWith('playRange', 12, 18, 'chapter-1');
+  });
+  // #3366 (qa B2): a list that is gone when the DAW's capabilities answer starts nothing.
+  it('does not start the DAW after the list unmounted', async () => {
+    let answer: (caps: DawCapabilities) => void = () => {};
+    const late = new Promise<DawCapabilities>((resolve) => {
+      answer = resolve;
+    });
+    const { result, unmount } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => late });
+    let pressed: Promise<void> = Promise.resolve();
+    act(() => {
+      pressed = result.current.play(pickup(15));
+    });
+    unmount();
+    answer(DAW_SETUPS.reaper);
+    await act(async () => {
+      await pressed;
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport).not.toHaveBeenCalled();
+  });
   it('a second press stops the DAW', async () => {
-    const { result } = mount(DAW_SETUPS.reaper);
+    const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));
     await act(() => result.current.play(pickup(15)));
     expect(transport).toHaveBeenLastCalledWith('stop', 0);
@@ -135,7 +183,7 @@ describe('a-daw-that-can-play-plays-the-original', () => {
 describe('the-app-plays-when-the-daw-cannot', () => {
   it('falls back to the app with a notice when the DAW refuses', async () => {
     transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER does not have this book open.', refused: 'REAPER does not have this book open.' }));
-    const { result } = mount(DAW_SETUPS.reaper);
+    const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));
     await flush();
     expect(audio.play).toHaveBeenCalled();
@@ -143,7 +191,7 @@ describe('the-app-plays-when-the-daw-cannot', () => {
     expect(refused).toEqual([]);
   });
   it('falls back with the capability sentence when the DAW is not running, asking it nothing', async () => {
-    const { result } = mount(DAW_SETUPS['reaper-off']);
+    const { result } = await mountRead(DAW_SETUPS['reaper-off']);
     await act(() => result.current.play(pickup(15)));
     await flush();
     expect(transport).not.toHaveBeenCalled();
@@ -151,7 +199,7 @@ describe('the-app-plays-when-the-daw-cannot', () => {
     expect(notices.join(' ')).toContain('Played in the app instead.');
   });
   it('a pickup with no project second plays in the app and says why', async () => {
-    const { result } = mount(DAW_SETUPS.reaper);
+    const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(null, 20)));
     await flush();
     expect(transport).not.toHaveBeenCalled();
@@ -162,7 +210,7 @@ describe('the-app-plays-when-the-daw-cannot', () => {
     ['the built-in recorder', DAW_SETUPS.builtin],
     ['Audacity', DAW_SETUPS.audacity],
   ])('plays in the app with %s, with no notice', async (_, caps) => {
-    const { result } = mount(caps);
+    const { result } = await mountRead(caps);
     await act(() => result.current.play(pickup(15)));
     await flush();
     expect(transport).not.toHaveBeenCalled();
@@ -170,7 +218,7 @@ describe('the-app-plays-when-the-daw-cannot', () => {
     expect(notices).toEqual([]);
   });
   it('a capabilities read that fails plays in the app and says so', async () => {
-    const { result } = mount(DAW_SETUPS.reaper, { capabilities: () => Promise.reject(new Error('gone')) });
+    const { result } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => Promise.reject(new Error('gone')) });
     await act(() => result.current.play(pickup(15)));
     await flush();
     expect(audio.play).toHaveBeenCalled();
@@ -181,7 +229,7 @@ describe('the-app-plays-when-the-daw-cannot', () => {
 describe('a-recording-daw-keeps-the-room-quiet', () => {
   it('plays nothing, in the DAW or the app, and says why', async () => {
     transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER is recording. Stop recording first.', refused: 'REAPER is recording.' }));
-    const { result } = mount(DAW_SETUPS.reaper, {
+    const { result } = await mountRead(DAW_SETUPS.reaper, {
       projectState: async () => ({ savedAt: null, unsavedChanges: false, playState: 'recording', playPosition: 3 }),
     });
     await act(() => result.current.play(pickup(15)));

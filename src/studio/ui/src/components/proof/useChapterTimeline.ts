@@ -1,12 +1,12 @@
 import { chapterTrackOf } from '../../api/chapterTrackItems';
 import { useEffect, useMemo, useState } from 'react';
-import type { TrackItem } from '../../api/contracts/tracks';
 import type { WorkspaceItem } from '../../api/contracts/workspace';
 import { usePort } from '../../ports/usePort';
 import { joinPeaks, joinedDuration, type PeaksSegment } from './frame/peaksJoin';
 import { useChapterPeaks } from './frame/useChapterPeaks';
 import { buildPlaylist } from './playlist';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 
 /** The chapter's recording on the app's timeline: its items' segments with peaks, its length, and where a project second falls on it. */
 export type ChapterTimeline = {
@@ -23,29 +23,31 @@ const EMPTY: ChapterTimeline = { segments: [], total: 0, toTimeline: () => null 
  * window draws. Undefined while the items load; a chapter with no mapped track or no playable item is an empty timeline.
  */
 export function useChapterTimeline(chapterId: string | undefined): ChapterTimeline | undefined {
-  const trackMap = usePort('chapterTrackMap');
-  const tracks = usePort('tracks');
+  const tracks = useChapterTrackState();
   const workspace = usePort('workspace');
   const peaks = useChapterPeaks(chapterId);
-  const [loaded, setLoaded] = useState<{ chapterId: string; items: TrackItem[]; aligned: WorkspaceItem[] }>();
+  const [loaded, setLoaded] = useState<{ chapterId: string; aligned: WorkspaceItem[] }>();
 
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
     // The alignment names each item's index, which is what the peaks are keyed by; a chapter not yet aligned draws flat lines.
-    Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList(), workspace.workspaceAlignment(chapterId).catch(() => undefined)])
-      .then(([mapping, project, alignment]) => {
-        const trackGuid = chapterLink(mapping.mappings, chapterId).trackGuid;
-        const items = chapterTrackOf(project.tracks, trackGuid)?.items ?? [];
-        if (live) setLoaded({ chapterId, items, aligned: alignment?.items ?? [] });
-      })
-      .catch(() => live && setLoaded({ chapterId, items: [], aligned: [] }));
+    workspace
+      .workspaceAlignment(chapterId)
+      .catch(() => undefined)
+      .then((alignment) => live && setLoaded({ chapterId, aligned: alignment?.items ?? [] }));
     return () => {
       live = false;
     };
-  }, [trackMap, tracks, workspace, chapterId]);
+  }, [workspace, chapterId]);
 
-  const current = loaded?.chapterId === chapterId ? loaded : undefined;
+  // The items are the shared state's: a track renamed, deleted or relinked is on the waveform as soon as the state reads it (#3366).
+  const trackGuid = chapterId ? chapterLink(tracks.mappings, chapterId).trackGuid : undefined;
+  const items = useMemo(() => (tracks.project ? chapterTrackOf(tracks.project.tracks, trackGuid)?.items : undefined) ?? [], [tracks.project, trackGuid]);
+  // Still reading: the state is on its first read. A state that is not reading (no linked DAW file) has no tracks to wait for.
+  const waiting = tracks.reading && tracks.readAt === null && !tracks.live.error;
+  const aligned = loaded && loaded.chapterId === chapterId && !waiting ? loaded.aligned : undefined;
+  const current = useMemo(() => (aligned ? { items, aligned } : undefined), [items, aligned]);
   return useMemo(() => {
     if (!current) return undefined;
     const playlist = buildPlaylist(current.items);
