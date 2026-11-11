@@ -181,8 +181,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           <b className="font-semibold" style={{ color: 'var(--text)' }}>
             {LINK_STATE_LABEL.missing}.
           </b>{' '}
-          This chapter&rsquo;s linked track is no longer in the project. Link another from the Chapter links table in the audio engine panel.{' '}
-          <EnginePanelLink />
+          This chapter&rsquo;s linked track is no longer in the project. <EnginePanelLink />
         </p>
       ),
     ].filter(Boolean);
