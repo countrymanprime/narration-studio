@@ -8,7 +8,7 @@ import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink } from '../../chapterTracks/chapterLink';
-import { useChapterTrackSnapshot } from '../../chapterTracks/useChapterTrackSnapshot';
+import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
@@ -40,7 +40,9 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * a sentence through `onRefused`, a fallback's notice through `onNotice`.
  */
 export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice: (sentence: string) => void = onRefused) {
-  const snapshot = useChapterTrackSnapshot();
+  // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
+  // track renamed or deleted in REAPER is what the next press plays (#3366).
+  const trackState = useChapterTrackState();
   const tracks = usePort('tracks');
   const daw = usePort('daw');
   const sync = usePort('dawTransportSync');
@@ -50,6 +52,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
+  const shared = useRef(trackState);
+  shared.current = trackState;
   live.current = { onRefused, onNotice, playingId, inDaw };
 
   const unavailable = useCallback((pickup: PickupItem): string | undefined => (pickup.at === null && pickup.time === null ? NO_PLACE : undefined), []);
@@ -125,24 +129,20 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           return { played: false, why };
         },
       };
-      let spot: ReturnType<typeof sourceSpot>;
-      let lookup: string | undefined;
+      const { project, mappings, reread } = shared.current;
+      const guid = chapterLink(mappings, pickup.chapterId).trackGuid;
+      const spot = sourceSpot((project ? chapterTrackOf(project.tracks, guid)?.items : undefined) ?? [], pickup);
+      // The state is a few seconds old at most; a press asks it to read again for the next one.
       const app: PlaybackProvider<PickupItem> = {
         name: APP,
-        readiness: () => (spot ? { ready: true } : { ready: false, why: lookup ?? NO_AUDIO }),
+        readiness: () => (spot ? { ready: true } : { ready: false, why: NO_AUDIO }),
         play: (p) => {
           setPlayingId(p.id);
           player.play({ sourceFile: spot!.sourceFile, rangeStart: spot!.seconds, rangeEnd: spot!.seconds });
           return { played: true };
         },
       };
-      try {
-        const { project, mappings } = await snapshot();
-        const guid = chapterLink(mappings, pickup.chapterId).trackGuid;
-        spot = sourceSpot((project ? chapterTrackOf(project.tracks, guid)?.items : undefined) ?? [], pickup);
-      } catch (error) {
-        lookup = error instanceof Error && error.message ? error.message : NO_AUDIO;
-      }
+      reread();
       const wanted = (): boolean => asked.current === mine;
       const { by, notice } = await playThrough([transport, app], pickup, {
         stillWanted: wanted,
@@ -152,7 +152,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       if (by === null) live.current.onRefused(notice);
       else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, snapshot],
+    [daw, player, stop, stopDaw, sync],
   );
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
@@ -166,6 +166,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   // Leaving the page stops a DAW play this list started.
   useEffect(
     () => () => {
+      // A press still waiting on the DAW's capabilities must not start anything on a list that is gone.
+      asked.current += 1;
       if (live.current.inDaw) stopDaw();
       clearTimer();
     },

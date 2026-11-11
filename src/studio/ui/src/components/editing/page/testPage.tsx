@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { Finding } from '../../../api/contracts/findings';
 import type { WorkspaceAlignmentResult, WorkspaceTakesResult } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
@@ -229,15 +230,17 @@ export function EditingHost({ api: base, daw, journal, children }: { api: Narrat
     <MemoryRouter>
       <ApiProvider api={api}>
         <PortOverrides clients={{ daw }}>
-          <CommandRouter>
-            <StudioProvider journal={journal}>
-              <OverlayProvider>
-                <main className="h-full">
-                  <ContextMenuHost className="size-full">{children}</ContextMenuHost>
-                </main>
-              </OverlayProvider>
-            </StudioProvider>
-          </CommandRouter>
+          <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+            <CommandRouter>
+              <StudioProvider journal={journal}>
+                <OverlayProvider>
+                  <main className="h-full">
+                    <ContextMenuHost className="size-full">{children}</ContextMenuHost>
+                  </main>
+                </OverlayProvider>
+              </StudioProvider>
+            </CommandRouter>
+          </ProjectTrackProviders>
         </PortOverrides>
       </ApiProvider>
     </MemoryRouter>

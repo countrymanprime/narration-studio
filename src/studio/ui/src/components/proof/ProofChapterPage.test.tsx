@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_DISCREPANCIES, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -42,13 +43,15 @@ function renderWorkspace(
   });
   render(
     <ApiProvider api={api}>
-      <CommandRouter>
-        <MemoryRouter initialEntries={[at]}>
-          <Routes>
-            <Route path="/proof/:chapterId" element={<ProofChapterPage {...props} />} />
-          </Routes>
-        </MemoryRouter>
-      </CommandRouter>
+      <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+        <CommandRouter>
+          <MemoryRouter initialEntries={[at]}>
+            <Routes>
+              <Route path="/proof/:chapterId" element={<ProofChapterPage {...props} />} />
+            </Routes>
+          </MemoryRouter>
+        </CommandRouter>
+      </ProjectTrackProviders>
     </ApiProvider>,
   );
   return api;
@@ -97,25 +100,27 @@ describe('ProofChapterPage', () => {
           },
         )}
       >
-        <CommandRouter>
-          <MemoryRouter initialEntries={[`/proof/${neverChecked.id}`]}>
-            <Routes>
-              <Route
-                path="/proof/:chapterId"
-                element={
-                  <ProofChapterPage
-                    notify={() => {}}
-                    transcript={WIRE_TRANSCRIPT}
-                    dawFileLinked
-                    goToManuscript={() => {}}
-                    goToEditing={() => {}}
-                    refreshKey="test"
-                  />
-                }
-              />
-            </Routes>
-          </MemoryRouter>
-        </CommandRouter>
+        <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+          <CommandRouter>
+            <MemoryRouter initialEntries={[`/proof/${neverChecked.id}`]}>
+              <Routes>
+                <Route
+                  path="/proof/:chapterId"
+                  element={
+                    <ProofChapterPage
+                      notify={() => {}}
+                      transcript={WIRE_TRANSCRIPT}
+                      dawFileLinked
+                      goToManuscript={() => {}}
+                      goToEditing={() => {}}
+                      refreshKey="test"
+                    />
+                  }
+                />
+              </Routes>
+            </MemoryRouter>
+          </CommandRouter>
+        </ProjectTrackProviders>
       </ApiProvider>,
     );
     // The title row's status says it, with Check recordings beside it; the sentence is not repeated in a card under it (alignment audit XPC-13).

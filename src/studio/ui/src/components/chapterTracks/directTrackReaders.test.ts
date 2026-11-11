@@ -19,8 +19,6 @@ const DIRECT_READERS = new Set([
   'components/production/useChapterTools.tsx',
   // Reads the links together with the chapter's match as one snapshot (the dialog's check: its match and its links must be one moment); moving it onto the state is tracked in #3350.
   'components/connection/ChapterLinkDialog.tsx',
-  // The snapshot: the state's reading for a page that reads once when it opens (Editing, Proof, Pickups), the same live-over-saved read.
-  'components/chapterTracks/useChapterTrackSnapshot.ts',
   // The state itself: the one reader every screen above is meant to move onto.
   'components/chapterTracks/ChapterTrackState.tsx',
 ]);

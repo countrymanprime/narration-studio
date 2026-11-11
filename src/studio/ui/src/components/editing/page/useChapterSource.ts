@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import type { WordFx } from '../../../api/contracts/wordFx';
+import type { TrackItem } from '../../../api/contracts/tracks';
 import { chapterTrackOf } from '../../../api/chapterTrackItems';
 import { usePort } from '../../../ports/usePort';
 import { useSpeakers } from '../../script/page/data/useScriptData';
@@ -11,7 +12,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 import { chapterLink } from '../../chapterTracks/chapterLink';
-import { useChapterTrackSnapshot } from '../../chapterTracks/useChapterTrackSnapshot';
+import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 type ChapterSource =
   | { status: 'loading' }
@@ -76,11 +77,14 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const log = usePort('editLog');
   const cutsPort = usePort('editCuts');
   const fxPort = usePort('editWordFx');
-  const snapshot = useChapterTrackSnapshot();
+  // The chapter's track is the shared state's, as the Engine list and the Booth read it: a track renamed, deleted or relinked while this page is open
+  // reaches it at once, and the rest of the chapter is not read again for it (#3366).
+  const tracks = useChapterTrackState();
   const daw = usePort('daw');
-  const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null; details?: string }>({
+  type Base = Omit<ChapterRead, 'items' | 'place' | 'audio'>;
+  const [state, setState] = useState<{ chapterId: string; base: Base | null; error: string | null; details?: string }>({
     chapterId,
-    read: null,
+    base: null,
     error: null,
   });
   const [reads, setReads] = useState(0);
@@ -93,55 +97,82 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
 
   useEffect(() => {
     let live = true;
-    const trackOf = async () => {
-      try {
-        const { project, mappings } = await snapshot();
-        if (!project) throw new Error('The tracks could not be read.');
-        const guid = chapterLink(mappings, chapterId).trackGuid;
-        // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
-        const found = chapterTrackOf(project.tracks, guid);
-        const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
-        // Only a chapter with no items needs to know: the DAW's unsaved changes are where a take recorded since the last save is. A DAW that does not answer says no.
-        const unsaved = found && found.items.length > 0 ? false : await unsavedChanges(daw.projectState());
-        return found
-          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link, folder: found.track.isFolder, unsaved }
-          : { items: [], place: chapterName, link, folder: false, unsaved };
-      } catch {
-        // The saved project could not be read: the text still shows, and nothing plays.
-        return { items: [], place: chapterName, link: 'unknown' as const, folder: false, unsaved: false };
-      }
-    };
     Promise.all([
       workspace.workspaceAlignment(chapterId),
       alignment.heard(chapterId),
       cutsPort.editingCutsList(chapterId),
       fxPort.editingWordFxList(chapterId),
       log.editingAcceptedList(chapterId),
-      trackOf(),
     ])
-      .then(([ws, answer, cuts, fx, accepted, track]) => {
+      .then(([ws, answer, cuts, fx, accepted]) => {
         if (!live) return;
-        const read: ChapterRead = {
-          workspace: ws,
-          answer,
-          cuts: cuts.cuts,
-          effects: fx.effects,
-          accepted: accepted.words.map((w) => w.key),
-          items: track.items,
-          place: track.place,
-          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length, track.folder, track.unsaved),
-        };
-        setState({ chapterId, read, error: null });
+        setState({ chapterId, base: { workspace: ws, answer, cuts: cuts.cuts, effects: fx.effects, accepted: accepted.words.map((w) => w.key) }, error: null });
       })
       .catch((e: unknown) => {
-        if (live) setState({ chapterId, read: null, error: why(e), details: apiErrorDetails(e) });
+        if (live) setState({ chapterId, base: null, error: why(e), details: apiErrorDetails(e) });
       });
     return () => {
       live = false;
     };
-  }, [workspace, alignment, log, cutsPort, fxPort, snapshot, daw, chapterId, chapterName, reads]);
+  }, [workspace, alignment, log, cutsPort, fxPort, chapterId, reads]);
 
-  const patch = useCallback((change: Partial<ChapterRead>) => setState((s) => (s.read ? { ...s, read: { ...s.read, ...change } } : s)), []);
+  // The chapter's track from the state. Until the state's first read answers there is nothing to say; a state that is not reading (no DAW file is
+  // linked) or whose tracks are not there says nothing about the link, so the page does not claim there is no audio.
+  const [track, setTrack] = useState<{
+    chapterId: string;
+    items: TrackItem[];
+    place: string;
+    link: 'linked' | 'unlinked' | 'missing' | 'unknown';
+    folder: boolean;
+    unsaved: boolean | 'unknown';
+  }>();
+  const waiting = tracks.reading && tracks.readAt === null;
+  const { project: tracksProject, mappings: tracksMappings, reread: tracksReread } = tracks;
+  useEffect(() => {
+    let live = true;
+    if (waiting) {
+      setTrack(undefined);
+      return;
+    }
+    const guid = chapterLink(tracksMappings, chapterId).trackGuid;
+    // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
+    const found = tracksProject ? chapterTrackOf(tracksProject.tracks, guid) : undefined;
+    const link = !tracksProject ? ('unknown' as const) : guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
+    // Only a chapter with no items needs to know: the DAW's unsaved changes are where a take recorded since the last save is. A DAW that does not answer says no.
+    (found && found.items.length > 0 ? Promise.resolve(false as const) : unsavedChanges(daw.projectState())).then((unsaved) => {
+      if (!live) return;
+      setTrack(
+        found
+          ? {
+              chapterId,
+              items: found.items,
+              place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`,
+              link,
+              folder: found.track.isFolder,
+              unsaved,
+            }
+          : { chapterId, items: [], place: chapterName, link, folder: false, unsaved },
+      );
+    });
+    return () => {
+      live = false;
+    };
+  }, [daw, chapterId, chapterName, waiting, tracksProject, tracksMappings, reads]);
+
+  const base = state.chapterId === chapterId ? state.base : null;
+  const trackOfChapter = track?.chapterId === chapterId ? track : undefined;
+  const read = useMemo((): ChapterRead | null => {
+    if (!base || !trackOfChapter) return null;
+    const liveItems = base.workspace.items.filter((item) => item.live).length;
+    return {
+      ...base,
+      items: trackOfChapter.items,
+      place: trackOfChapter.place,
+      audio: audioOf(trackOfChapter.link, trackOfChapter.items.length, liveItems, trackOfChapter.folder, trackOfChapter.unsaved),
+    };
+  }, [base, trackOfChapter]);
+
+  const patch = useCallback((change: Partial<Base>) => setState((s) => (s.base ? { ...s, base: { ...s.base, ...change } } : s)), []);
   const setCuts = useCallback((cuts: EditCut[]) => patch({ cuts }), [patch]);
   const setEffects = useCallback((effects: WordFx[]) => patch({ effects }), [patch]);
   const reloadAccepted = useCallback(() => {
@@ -151,16 +182,6 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     );
   }, [log, chapterId, patch]);
 
-  const read = state.chapterId === chapterId ? state.read : null;
-  // While the chapter has no audio to edit, the link or the recording may be made elsewhere (REAPER, the audio engine panel): read again whenever the
-  // window is focused, not only when the chapter was opened.
-  const noAudio = read !== null && read.audio.kind !== 'ready';
-  useEffect(() => {
-    if (!noAudio) return;
-    const again = () => setReads((n) => n + 1);
-    window.addEventListener('focus', again);
-    return () => window.removeEventListener('focus', again);
-  }, [noAudio]);
   const error = state.chapterId === chapterId ? state.error : null;
   const details = state.chapterId === chapterId ? state.details : undefined;
   const source = useMemo((): ChapterSource => {
@@ -178,9 +199,12 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     };
   }, [read, error, details, phrasesOf]);
 
-  const reread = useCallback(() => setReads((n) => n + 1), []);
+  const reread = useCallback(() => {
+    setReads((n) => n + 1);
+    tracksReread();
+  }, [tracksReread]);
   const retry = useCallback(() => {
-    setState({ chapterId, read: null, error: null });
+    setState({ chapterId, base: null, error: null });
     setReads((n) => n + 1);
   }, [chapterId]);
 

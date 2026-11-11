@@ -24,7 +24,6 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   // Proof's chapter view: the chapter and its track link are loaded together on mount, and the check's state beside them; a failure in
   // either shows the page-level inline error.
   'src/components/proof/ProofChapterPage.tsx::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Finds the chapter by id from the route; a failure shows the page\'s inline error.'),
-  'src/components/proof/ProofChapterPage.tsx::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Finds the chapter\'s linked track, same as ChapterLinksTable\'s own read of the same binding.'),
   'src/components/proof/ProofChapterPage.tsx::workspaceAlignment#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s stored word alignment on open and again after a check completes (never runs one); a failure is the page\'s own inline error.'),
 
 
@@ -72,8 +71,6 @@ export const proofFeedback: Record<string, FeedbackRow> = {
   'src/components/proof/ProofPage.tsx::findingsSetType#1': row('input', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Choosing a type in the Inspector\'s select records it at once and the select shows the answer; a refusal (stale evidence) is a toast and the select keeps the stored type.'),
   'src/components/proof/ProoferSheet.tsx::pickupsImport#1': row('input', 'job', 'none', 'none', 'event', 'toast', 'no', 'ok', 'Choosing the proofer\'s CSV: when the run this control started finishes (the pickups state event), a toast says how many pickups it added, were there already or were skipped; a refusal is a toast.'),
   'src/components/proof/ProoferSheet.tsx::pickupsExport#1': row('click', 'job', 'none', 'none', 'event', 'toast', 'no', 'ok', 'When the export this control started finishes (the pickups state event), the browser download starts and a toast says how many pickups it wrote; a refusal is a toast. A run another page started, or one that finished before the page opened, downloads nothing.'),
-  'src/components/proof/useChapterTimeline.ts::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Finds the chapter\'s track for the waveform window; without it the chapter says it has no recording yet, and the notes still show.'),
-  'src/components/proof/useChapterTimeline.ts::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The chapter track\'s items, read with the link above for the waveform window; same fallback.'),
   'src/components/proof/useChapterTimeline.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Only names which peaks belong to which item; a chapter not aligned yet draws flat lines in the window.'),
   'src/components/proof/ProofPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Fills the chapter stepper and the chapter strip; a failed read is a toast, and the notes (read separately) still show.'),
 

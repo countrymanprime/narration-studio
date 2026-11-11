@@ -22,7 +22,7 @@ import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { useChapterCompare } from './useChapterCompare';
 import { chapterLink } from '../chapterTracks/chapterLink';
-import { useChapterTrackSnapshot } from '../chapterTracks/useChapterTrackSnapshot';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -58,11 +58,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const api = useApi();
   const navigate = useNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
-  const [linkedTrackGuid, setLinkedTrackGuid] = useState<string>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
   // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
-  const snapshot = useChapterTrackSnapshot();
+  // The links are the shared state's: a chapter linked, relinked or unlinked elsewhere changes this page's notice at once (#3366).
+  const links = useChapterTrackState({ tracks: false, enabled: true });
+  const linkedTrackGuid = chapterLink(links.mappings, chapterId).trackGuid;
   const [read, setRead] = useState(false);
   const [reload, setReload] = useState(0);
   // Retry after a failed read: counted apart from `reload` (which only re-reads the check's state) so both reads run again.
@@ -82,12 +83,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.manuscriptChapters(), snapshot({ tracks: false })])
-      .then(([chapters, { mappings }]) => {
+    api
+      .manuscriptChapters()
+      .then((chapters) => {
         if (!active) return;
         setRead(true);
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
-        setLinkedTrackGuid(chapterLink(mappings, chapterId).trackGuid);
       })
       .catch((reason: unknown) => {
         if (active) setLoadError(apiErrorMessage(reason));
@@ -95,7 +96,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     return () => {
       active = false;
     };
-  }, [api, snapshot, chapterId, attempt]);
+  }, [api, chapterId, attempt]);
 
   // Clears the error and the half-read state first, so the skeleton shows with no stale sentence under it, then both reads run again.
   const retry = () => {
@@ -162,7 +163,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
           This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.
         </p>
       ),
-      !linkedTrackGuid && (
+      // Said only once the links have answered: before that, no guid means not read yet.
+      links.linksReadAt !== null && !linkedTrackGuid && (
         <p key="link">
           <b className="font-semibold" style={{ color: 'var(--text)' }}>
             No linked track.

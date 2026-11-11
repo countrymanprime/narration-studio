@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { Track, TrackItem, TracksProject } from '../../../api/contracts/tracks';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
@@ -60,7 +61,13 @@ function read(tracks: Track[], linked: string, unsavedChanges: boolean | 'refuse
           ? Promise.reject(new Error('REAPER is not answering'))
           : Promise.resolve({ savedAt: '2026-11-10T01:00:00Z', unsavedChanges, playState: 'stopped' as const, playPosition: 0 }),
   });
-  const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <ApiProvider api={api}>
+      <ProjectTrackProviders projectFolder="project" enabled notify={() => {}}>
+        {children}
+      </ProjectTrackProviders>
+    </ApiProvider>
+  );
   return renderHook(() => useChapterSource('c1', 'One'), { wrapper });
 }
 
@@ -96,6 +103,10 @@ describe('a chapter with nothing in the saved project while the DAW has unsaved 
     vi.useFakeTimers();
     try {
       const { result } = read(nested(), 'F', 'hang');
+      // The shared state reads the tracks first; the DAW is asked, and waited on, after that.
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(3500);
+      // The state's links answer after its tracks, which asks the DAW again: the wait starts over once.
       await vi.advanceTimersByTimeAsync(3500);
       await vi.waitFor(() => expect(result.current.source.status).toBe('ready'));
       const source = result.current.source;
