@@ -287,3 +287,15 @@ describe('EditingCheckPanel', () => {
     });
   });
 });
+
+describe("the check starts against the shared state's document (#3413)", () => {
+  it('starts the check with the document the chapter links belong to', async () => {
+    const { api } = renderPanel({});
+    const start = vi.spyOn(api, 'editingStart');
+    const { documentId } = await api.chapterTrackMapList();
+    const dialog = await panel();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    await waitFor(() => expect(start).toHaveBeenCalled());
+    expect(start.mock.calls[0][0]).toBe(documentId);
+  });
+});

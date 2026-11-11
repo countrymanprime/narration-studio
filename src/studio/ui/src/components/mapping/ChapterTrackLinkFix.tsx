@@ -36,7 +36,8 @@ export function ChapterTrackLinkFix({
         The REAPER tracks could not be listed: {shown} <EnginePanelLink onOpen={onNavigate} />
       </p>
     );
-  if (!state.project) return <p role="status">Reading the REAPER tracks…</p>;
+  // Both reads (the tracks and the links) answer before the prompt shows, so the "linked to" notes are there from the first draw.
+  if (!state.project || state.readAt === null) return <p role="status">Reading the REAPER tracks…</p>;
   return (
     <MappingConfirm
       chapterTitle={chapterName(chapter, 'short')}

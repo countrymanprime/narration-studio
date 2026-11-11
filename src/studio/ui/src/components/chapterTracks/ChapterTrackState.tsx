@@ -64,7 +64,7 @@ const EMPTY: ChapterTrackState = {
   reread: () => {},
   applyMappings: () => {},
   refreshLinks: () => Promise.resolve([]),
-  readDocumentId: () => Promise.resolve(''),
+  readDocumentId: () => Promise.reject(new Error('The chapter links are not being read for a project.')),
   live: NO_LIVE,
 };
 
