@@ -358,6 +358,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
+    file: 'components/proof/ProofChapterPage.tsx',
+    text: 'This chapter&rsquo;s linked track is no longer in the project.',
+    class: 'state',
+  },
+  {
     file: 'components/proof/inspector/EvidenceChangedBanner.tsx',
     text: 'The check heard the same words again; their timing or confidence changed.',
     class: 'state',
