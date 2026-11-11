@@ -6,6 +6,8 @@ import { retryAction, type Notify } from '../primitives/Toast';
 
 /** How often the panel reads REAPER's tracks again while the window is visible. */
 export const LIVE_TRACKS_POLL_MS = 5_000;
+/** The topic of a tracks read's toast: a read's answer replaces the failure (or the earlier answer) it follows, so two opposite messages never stand together (#3339). */
+export const TRACKS_READ_TOPIC = 'tracks-read';
 
 /** How long one read may go unanswered before it counts as failed: the host gives REAPER 3 s (tracksLiveTimeout in tracks_live.go), and
  * this leaves time for the saved file's parse and the binding's own trip. A read that never answers must not hold every later read back. */
@@ -84,6 +86,8 @@ export function useLiveTracks({
   const pressedRead = useRef(0);
   // The newest read's number: an answer for any other is an older read answering late.
   const latest = useRef(0);
+  // The newest read's answer: a press that a newer read took over resolves with it, so it still gets its answer (#3339).
+  const newest = useRef<Promise<{ project?: TracksProject; source?: TracksSource; failed: boolean }>>(undefined);
   const inFlight = useRef(0);
   const mounted = useRef(true);
   // Whether the last read failed, so a run of failed automatic reads toasts once.
@@ -105,9 +109,10 @@ export function useLiveTracks({
         pressedRead.current = id;
         setRefreshing(true);
       }
-      return withinLimit(tracks.tracksLive())
+      const run = withinLimit(tracks.tracksLive())
         .then((answer) => {
-          if (!mounted.current || id !== latest.current) return { failed: false };
+          if (!mounted.current) return { failed: false };
+          if (id !== latest.current) return newest.current ?? { failed: false };
           failing.current = false;
           hasProject.current = true;
           setState({
@@ -122,13 +127,17 @@ export function useLiveTracks({
           return { project: answer.project, source: answer.source, failed: false };
         })
         .catch((reason: unknown) => {
-          if (!mounted.current || id !== latest.current) return { failed: false };
+          if (!mounted.current) return { failed: false };
+          if (id !== latest.current) return newest.current ?? { failed: false };
           const text = describeApiError(reason);
           if (pressed || !failing.current)
             notifyRef.current(
               text,
               'error',
               retryAction(() => (onRetryRef.current ?? refreshRef.current)()),
+              undefined,
+              undefined,
+              TRACKS_READ_TOPIC,
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
@@ -140,6 +149,8 @@ export function useLiveTracks({
           if (inFlight.current === 0) setBusy(false);
           if (id === pressedRead.current) setRefreshing(false);
         });
+      newest.current = run;
+      return run;
     },
     [enabled, tracks],
   );
