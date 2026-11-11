@@ -1,5 +1,6 @@
 // Every way out of the Booth while a take records asks the way Escape does, and none leaves the DAW recording on another page with no Stop (#3325).
 // The Booth hides the navigation rail, so the narrator's exits are Escape, Exit and the browser's Back; the last two ran past the question before.
+import { enterHoldOver } from './helpers/enterHold';
 import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
@@ -498,7 +499,7 @@ test('Enter pressed twice on Stop and leave: a take the second press starts is s
   await page.keyboard.press('Escape');
   await question(page).getByRole('button', { name: /^Stop/ }).focus();
   // The question takes no Enter for its first 400 ms (#3349), so a double Enter on the row that raised it cannot answer it.
-  await page.waitForTimeout(500);
+  await enterHoldOver(question(page));
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
   await page.keyboard.press('Enter');

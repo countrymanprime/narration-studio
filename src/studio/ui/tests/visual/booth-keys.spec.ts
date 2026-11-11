@@ -2,6 +2,7 @@
 // open: the page behind must not act, focus must stay in the popup (or the popup must close), and Escape must close it and return focus to what
 // opened it. The one key that does reach the take is a pedal's Space (owner ruling): with a menu or popover open it closes the popup and records or
 // stops, unless focus is in a field that takes typed text; a dialog or question keeps Space like every other key.
+import { enterHoldOver } from './helpers/enterHold';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
@@ -237,6 +238,8 @@ for (const overlay of OVERLAYS) {
         const { popup } = await overlay.open(page);
         await focusSettled(page, popup);
         await expect(popup.getByRole('button', { name: 'Keep recording' })).toBeFocused();
+        // The question takes no Enter or Space for its first 400 ms (#3405): wait for that to end, as a narrator who read it would.
+        await enterHoldOver(popup);
         await page.keyboard.press('Space');
         await expect(popup).toBeHidden();
         expect((await behindTheOverlay(page)).recording).toBe(true);
