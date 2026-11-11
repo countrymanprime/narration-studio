@@ -6,6 +6,7 @@ import type { DawChoice } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { ConnectionResolveDialog, type ConnectionResolveDialogProps } from './ConnectionResolveDialog';
 
 // The dialog that replaces the not-connected and not-linked banners: it names the problem in the host's words, offers the fix and a Check again,
@@ -47,7 +48,10 @@ const choice = (over: Partial<DawChoice> = {}): DawChoice => ({
 function Stage({ props, api }: { props: ConnectionResolveDialogProps; api?: Partial<NarrationApi> }) {
   return (
     <ApiProvider api={createMockApi(api)}>
-      <ConnectionResolveDialog {...props} />
+      {/* As in the app, the dialog is drawn inside the chapter-track state it reads its links from. */}
+      <ChapterTrackStateProvider projectFolder="C:/Audio" enabled notify={() => {}}>
+        <ConnectionResolveDialog {...props} />
+      </ChapterTrackStateProvider>
     </ApiProvider>
   );
 }
