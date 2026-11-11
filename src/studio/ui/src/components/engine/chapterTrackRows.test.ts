@@ -27,10 +27,10 @@ describe('chapterTrackRows', () => {
     expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: 'Chapter 1', state: 'linked' }]);
   });
 
-  it('reports a chapter whose confirmed track no longer exists as missing_track, with no track name', () => {
+  it('reports a chapter whose confirmed track no longer exists as missing, with no track name', () => {
     const rows = chapterTrackRows([chapter()], [track({ guid: 'a-different-guid' })], [mapping()]);
 
-    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: undefined, state: 'missing_track' }]);
+    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: undefined, state: 'missing' }]);
   });
 
   it('hides reference chapters, which have no audio to link', () => {

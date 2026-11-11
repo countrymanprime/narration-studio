@@ -44,8 +44,8 @@ describe('chapterCheckStatus', () => {
   });
 
   it('shows not_linked with no link read yet, or a none status with no candidates', () => {
-    expect(chapterCheckStatus(undefined, undefined, false)).toEqual({ kind: 'not_linked' });
-    expect(chapterCheckStatus(link, undefined, false)).toEqual({ kind: 'not_linked' });
+    expect(chapterCheckStatus(undefined, undefined, false)).toEqual({ kind: 'unlinked' });
+    expect(chapterCheckStatus(link, undefined, false)).toEqual({ kind: 'unlinked' });
   });
 
   it('shows the track-link trouble before freshness: missing, needs_track, suggested', () => {
@@ -118,7 +118,7 @@ describe('chapterCheckStatusText', () => {
 
   it('labels missing and not_linked plainly', () => {
     expect(chapterCheckStatusText('Chapter 6', { kind: 'missing' }).detail).toBe('not in the saved project');
-    expect(chapterCheckStatusText('Chapter 6', { kind: 'not_linked' }).detail).toBeUndefined();
+    expect(chapterCheckStatusText('Chapter 6', { kind: 'unlinked' }).detail).toBeUndefined();
   });
 
   it('labels checking with the live percent when known', () => {

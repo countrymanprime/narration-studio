@@ -1,10 +1,11 @@
+import type { ChapterLinkState } from '../../chapterTracks/chapterLink';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { recorderName, recorderNameCapital, wrongProjectReason } from '../../../studio/dawNames';
 
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
   /** `unread` until the host has answered; Record is then left to the host's own refusal at the press. */
-  tracks: 'unread' | 'none' | 'one' | 'several';
+  tracks: 'unread' | Exclude<ChapterLinkState, 'missing'>;
   message: string;
   /** The DAW is already recording a take this app did not start (`recording_elsewhere`): a second start would fight it, so Record says so first. */
   elsewhere?: boolean;
@@ -35,7 +36,7 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
     return { code: 'recording_elsewhere', reason: `${name} is already recording. Stop it in ${name} before recording here.` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
-  if (chapter.tracks === 'none') return { code: 'no_track', reason: chapter.message };
+  if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };
   if (chapter.tracks === 'several') return { code: 'several_tracks', reason: chapter.message };
   return null;
 }

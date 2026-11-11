@@ -11,7 +11,7 @@ import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
-import { chapterLink } from '../../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 type ChapterSource =
@@ -122,7 +122,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     chapterId: string;
     items: TrackItem[];
     place: string;
-    link: 'linked' | 'unlinked' | 'missing' | 'unknown';
+    link: ChapterLinkState | 'unknown';
     folder: boolean;
     unsaved: boolean | 'unknown';
   }>();
@@ -138,7 +138,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     const guid = chapterLink(tracksMappings, chapterId).trackGuid;
     // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
     const found = tracksProject ? chapterTrackOf(tracksProject.tracks, guid) : undefined;
-    const link = !tracksProject ? ('unknown' as const) : guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
+    const link = tracksProject ? linkStateOf(chapterLink(tracksMappings, chapterId), Boolean(found)) : ('unknown' as const);
     // Only a chapter with no items needs to know: the DAW's unsaved changes are where a take recorded since the last save is. A DAW that does not answer says no.
     (found && found.items.length > 0 ? Promise.resolve(false as const) : unsavedChanges(daw.projectState())).then((unsaved) => {
       if (!live) return;

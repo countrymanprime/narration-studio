@@ -6,6 +6,7 @@ import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
 import { plural } from '../../../plural';
+import { LINK_STATE_LABEL } from '../../chapterTracks/chapterLink';
 
 /** The page a cell goes to (the mock's `cellAct`): Prep goes to the Script, Record to the Booth, Edit to Editing, Master and QC to Master. */
 export type GoTarget = 'script' | 'booth' | 'editing' | 'proof' | 'pickups' | 'master';
@@ -105,10 +106,10 @@ const clockOf = (seconds: number): string => hm(seconds / 3600);
 
 /** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons). */
 const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = {
-  unlinked: { text: 'No track', tip: 'No track is linked to this chapter, so nothing is measured. Link it from the chapter’s track panel' },
+  unlinked: { text: LINK_STATE_LABEL.unlinked, tip: 'No track is linked to this chapter, so nothing is measured. Link it from the chapter’s track panel' },
   no_project: { text: 'No project', tip: 'No saved DAW project could be read, so nothing is measured' },
-  multiple_tracks: { text: '2+ tracks', tip: 'Linked to more than one track, so nothing is measured. Keep one in the chapter’s track panel' },
-  track_missing: { text: 'Track gone', tip: 'The linked track is no longer in the saved project, so nothing is measured' },
+  multiple_tracks: { text: LINK_STATE_LABEL.several, tip: 'Linked to more than one track, so nothing is measured. Keep one in the chapter’s track panel' },
+  track_missing: { text: LINK_STATE_LABEL.missing, tip: 'The linked track is no longer in the saved project, so nothing is measured' },
 };
 const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
 
