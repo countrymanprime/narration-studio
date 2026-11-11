@@ -8,7 +8,7 @@ import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
 import { CREATE_QUIET_MS, useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 
 afterEach(cleanup);
@@ -429,8 +429,7 @@ describe('ChapterLinksTable', () => {
 
   // Intent review: Change, Cancel, Change on a row whose track is gone restored a pick that does not exist and left the check ready.
   it('reopens a Track missing row on "Choose a track" with the check off after a Cancel', async () => {
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id)] });
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -477,8 +476,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('names a track another chapter holds, so it is not linked twice by mistake', async () => {
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id)] });
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -632,9 +630,7 @@ describe('ChapterLinksTable', () => {
 
   it('Clear removes every link a chapter holds, including a double link left by an older Change', async () => {
     const user = userEvent.setup();
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -660,9 +656,7 @@ describe('ChapterLinksTable', () => {
   // the second did nothing because that pair was already held: neither resolved it.
   it.each([0, 1])('Change on a chapter with several links replaces them with the track chosen, whichever of the two it is (%i)', async (which) => {
     const user = userEvent.setup();
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
@@ -690,9 +684,7 @@ describe('ChapterLinksTable', () => {
   // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
   it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {
     const user = userEvent.setup();
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
-    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id), wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id)] });
     const set = vi.spyOn(api, 'chapterTrackSet');
     render(
       <ApiProvider api={api}>
@@ -714,8 +706,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('shows a link to a track that no longer exists as Track missing', async () => {
-    const api = createMockApi();
-    await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id)] });
     render(
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>

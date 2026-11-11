@@ -114,7 +114,7 @@ func TestChapterTrackMatchReportsAmbiguousAndNoneWithoutARecordedEnd(t *testing.
 
 func TestChapterTrackMatchHonoursAConfirmedLink(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	if _, err := host.ChapterTrackMapConfirm("{33333333-3333-4333-8333-333333333333}", ids[2]); err != nil {
+	if _, err := host.seedLink("{33333333-3333-4333-8333-333333333333}", ids[2]); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := host.ChapterTrackMatch(ids[2])
@@ -165,7 +165,7 @@ func TestChapterTrackMatchAnswersForTheCreditsToo(t *testing.T) {
 	if result["status"] != "none" || result["chapterTitle"] != "Opening credits" || len(result["tracks"].([]any)) != 3 {
 		t.Fatalf("an unlinked credits file is no match with every track to pick from: %#v", result)
 	}
-	if _, err := host.ChapterTrackMapConfirm("{33333333-3333-4333-8333-333333333333}", "credits-opening"); err != nil {
+	if _, err := host.seedLink("{33333333-3333-4333-8333-333333333333}", "credits-opening"); err != nil {
 		t.Fatal(err)
 	}
 	raw, err = host.ChapterTrackMatch("credits-opening")

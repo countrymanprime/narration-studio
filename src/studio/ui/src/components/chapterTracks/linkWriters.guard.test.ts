@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest';
 /**
  * A screen changes a chapter's link only through `useChapterLinkActions` (#3365): one binding for set (the replacing `chapterTrackSet`),
  * one for unlink and one for create, and one sentence for the chapter that lost its track. Before, six callers did it on two bindings and
- * only two said who lost the track. The upserting `chapterTrackMapConfirm` is not called by a screen at all.
+ * only two said who lost the track. The upserting `chapterTrackMapConfirm` is gone from the host (#3396).
  */
-const WRITE = /\.(chapterTrackSet|chapterTrackMapConfirm|chapterTrackUnlink|chapterTrackCreate)\(/;
+const WRITE = /\.(chapterTrackSet|chapterTrackUnlink|chapterTrackCreate)\(/;
 const OWNER = 'components/chapterTracks/useChapterLinkActions.ts';
 const root = join(__dirname, '..', '..');
 
@@ -33,7 +33,7 @@ describe('the chapter-link writers', () => {
     expect(linkWriters(files)).toEqual([OWNER]);
   });
   it('sees each binding it guards', () => {
-    for (const call of ['chapterTrackSet', 'chapterTrackMapConfirm', 'chapterTrackUnlink', 'chapterTrackCreate'])
+    for (const call of ['chapterTrackSet', 'chapterTrackUnlink', 'chapterTrackCreate'])
       expect(linkWriters([{ path: 'x.tsx', text: `await api.${call}(a, b);` }])).toEqual(['x.tsx']);
     expect(linkWriters([{ path: 'x.tsx', text: 'actions.set(a, b)' }])).toEqual([]);
   });

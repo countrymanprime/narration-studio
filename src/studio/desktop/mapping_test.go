@@ -65,7 +65,7 @@ func TestChapterTrackMapListIsEmptyBeforeAnyConfirmation(t *testing.T) {
 func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
 	host, firstChapterID := newTestHostForMapping(t)
 
-	raw, err := host.ChapterTrackMapConfirm("track-guid-a", firstChapterID)
+	raw, err := host.seedLink("track-guid-a", firstChapterID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestChapterTrackMapConfirmThenListRoundTrips(t *testing.T) {
 
 func TestChapterTrackMapConfirmRejectsAChapterIDNotInTheManuscript(t *testing.T) {
 	host, _ := newTestHostForMapping(t)
-	if _, err := host.ChapterTrackMapConfirm("track-guid-a", "c-9999"); err == nil {
+	if _, err := host.seedLink("track-guid-a", "c-9999"); err == nil {
 		t.Fatal("expected an error confirming a chapter id outside the current manuscript")
 	}
 }
@@ -106,10 +106,10 @@ func TestChapterTrackUnlinkRemovesTheChaptersLinkAndReturnsWhatRemains(t *testin
 	}
 	secondChapterID := chapters[1]["id"].(string)
 
-	if _, err := host.ChapterTrackMapConfirm("track-guid-a", firstChapterID); err != nil {
+	if _, err := host.seedLink("track-guid-a", firstChapterID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := host.ChapterTrackMapConfirm("track-guid-b", secondChapterID); err != nil {
+	if _, err := host.seedLink("track-guid-b", secondChapterID); err != nil {
 		t.Fatal(err)
 	}
 

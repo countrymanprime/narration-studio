@@ -32,7 +32,7 @@ func mappingCount(t *testing.T, host *Host) []any {
 
 func TestChapterTrackSetReplacesTheChapterSLinkSoAChangeNeverLeavesTwo(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	if _, err := host.ChapterTrackMapConfirm(chapterLinksTrackII, ids[1]); err != nil {
+	if _, err := host.seedLink(chapterLinksTrackII, ids[1]); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := host.ChapterTrackSet(ids[1], chapterLinksTrackIJ)
@@ -51,7 +51,7 @@ func TestChapterTrackSetReplacesTheChapterSLinkSoAChangeNeverLeavesTwo(t *testin
 
 func TestChapterTrackSetNamesTheChapterThatLostTheTrack(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	if _, err := host.ChapterTrackMapConfirm(chapterLinksTrack, ids[0]); err != nil {
+	if _, err := host.seedLink(chapterLinksTrack, ids[0]); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := host.ChapterTrackSet(ids[2], chapterLinksTrack)
@@ -84,7 +84,7 @@ func TestChapterTrackSetRefusesAnUnknownChapterOrNoTrack(t *testing.T) {
 func TestChapterTrackUnlinkClearsEveryLinkTheChapterHolds(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
 	for _, link := range [][2]string{{chapterLinksTrackII, ids[1]}, {chapterLinksTrackIJ, ids[1]}, {chapterLinksTrack, ids[0]}} {
-		if _, err := host.ChapterTrackMapConfirm(link[0], link[1]); err != nil {
+		if _, err := host.seedLink(link[0], link[1]); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -147,7 +147,7 @@ func TestChapterTrackLinksReadsEveryChapterAndTheTrackFactsFromOneProject(t *tes
 func TestChapterTrackLinksShowsAConflictAMissingAndARenamedTrack(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
 	for _, link := range [][2]string{{chapterLinksTrackII, ids[1]}, {chapterLinksTrackIJ, ids[1]}, {chapterLinksTrack, ids[2]}, {"{DEADBEEF-0000-4000-8000-000000000000}", ids[0]}} {
-		if _, err := host.ChapterTrackMapConfirm(link[0], link[1]); err != nil {
+		if _, err := host.seedLink(link[0], link[1]); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -252,12 +252,11 @@ func TestLinkingAndUnlinkingAChapterNeverTakesAMeasuredRead(t *testing.T) {
 	}
 	before := measured()
 	steps := map[string]func() error{
-		"ChapterTrackMapConfirm": func() error { _, err := host.ChapterTrackMapConfirm(chapterLinksTrackII, ids[1]); return err },
-		"ChapterTrackSet":        func() error { _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackIJ); return err },
-		"ChapterTrackUnlink":     func() error { _, err := host.ChapterTrackUnlink(ids[1]); return err },
-		"ChapterTrackMatch":      func() error { _, err := host.ChapterTrackMatch(ids[0]); return err },
+		"ChapterTrackSet":    func() error { _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackIJ); return err },
+		"ChapterTrackUnlink": func() error { _, err := host.ChapterTrackUnlink(ids[1]); return err },
+		"ChapterTrackMatch":  func() error { _, err := host.ChapterTrackMatch(ids[0]); return err },
 	}
-	for _, name := range []string{"ChapterTrackMapConfirm", "ChapterTrackSet", "ChapterTrackUnlink", "ChapterTrackMatch"} {
+	for _, name := range []string{"ChapterTrackSet", "ChapterTrackUnlink", "ChapterTrackMatch"} {
 		if err := steps[name](); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

@@ -48,34 +48,11 @@ func (h *Host) mappingList() (map[string]any, error) {
 	return map[string]any{"documentId": documentID, "mappings": mappings}, nil
 }
 
-// mappingConfirm records trackGUID as the confirmed link for chapterID,
-// refusing a chapterID that is not one of the current manuscript's chapters:
-// the stored ChapterTitle must be the real title, never one the caller
-// invents, because the re-suggestion after a re-import matches on it.
-func (h *Host) mappingConfirm(trackGUID, chapterID string) (evidence.TrackMapping, error) {
-	svc := h.services()
-	documentID, store, err := mappingContext(svc)
-	if err != nil {
-		return evidence.TrackMapping{}, err
-	}
-	if trackGUID == "" {
-		return evidence.TrackMapping{}, fmt.Errorf("choose a track before confirming a chapter link")
-	}
-	title, ok, err := chapterTitle(svc, chapterID)
-	if err != nil {
-		return evidence.TrackMapping{}, err
-	}
-	if !ok {
-		return evidence.TrackMapping{}, fmt.Errorf("that chapter is not part of the current manuscript")
-	}
-	return store.Confirm(documentID, trackGUID, chapterID, title)
-}
-
 // chapterTitle looks up chapterID's title among the current manuscript's
 // chapters, reporting false when chapterID is not one of them.
 func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
 	// A credits id is never a manuscript chapter, so it never turns up in svc.manuscript.Chapters(); a
-	// credits row's link goes through the same ChapterTrackSet/ChapterTrackMapConfirm/Unlink bindings a manuscript
+	// credits row's link goes through the same ChapterTrackSet/Unlink bindings a manuscript
 	// chapter's does (src/studio/desktop/internal/coverage/credits.go: one chapter-track-map.json), and each calls this to validate the id and stamp the
 	// stored link with a real title, so it needs the credits titles too, not just the manuscript's own.
 	if kind, ok := creditsid.Kind(chapterID); ok {

@@ -269,25 +269,6 @@ export function createChapterTracksMock(
       return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project: liveProject() });
     },
     chapterTrackMapList: async () => ({ documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) }),
-    chapterTrackMapConfirm: async (trackGuid, chapterId) => {
-      await manuscriptReady;
-      const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
-      // A credits id is never a manuscript chapter, so its "link a track" flow
-      // (the audio engine panel's link, generic over chapter.id) needs this to accept it too, mirroring the host's
-      // own chapterTitle fix: one chapter-track-map.json, a real title stamped either way.
-      const creditsTitle = CREDITS_CHECK_TITLE[chapterId];
-      if (!chapter && !creditsTitle) throw new Error('that chapter is not part of the current manuscript');
-      const mapping: TrackMapping = {
-        trackGuid,
-        chapterId,
-        chapterTitle: chapter?.title ?? creditsTitle!,
-        confirmedAt: new Date().toISOString(),
-        origin: 'manual',
-        match: null,
-      };
-      s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid), mapping];
-      return wireClone(mapping);
-    },
     chapterTrackSet: async (chapterId, trackGuid) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);

@@ -386,7 +386,7 @@ func TestContractChapterTrackMap(t *testing.T) {
 	}
 	pin("chapter-track-map-empty", json.RawMessage(emptyRaw))
 
-	confirmedRaw, err := host.ChapterTrackMapConfirm("{0E4D1D7F-D039-674D-87E6-719376DE95EC}", firstChapterID)
+	confirmedRaw, err := host.seedLink("{0E4D1D7F-D039-674D-87E6-719376DE95EC}", firstChapterID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -489,7 +489,7 @@ func TestContractChapterTrackLinks(t *testing.T) {
 	pin(t, "chapter-track-links-ready", folder, call(host.ChapterTrackLinks()))
 
 	for _, link := range [][2]string{{chapterLinksTrackII, ids[1]}, {chapterLinksTrackIJ, ids[1]}, {chapterLinksTrack, ids[2]}, {"{DEADBEEF-0000-4000-8000-000000000000}", ids[0]}} {
-		call(host.ChapterTrackMapConfirm(link[0], link[1]))
+		call(host.seedLink(link[0], link[1]))
 	}
 	pin(t, "chapter-track-links-conflict", folder, call(host.ChapterTrackLinks()))
 	pin(t, "chapter-track-set-displaced", folder, call(host.ChapterTrackSet(ids[0], chapterLinksTrack)))
