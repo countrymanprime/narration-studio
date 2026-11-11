@@ -172,7 +172,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   );
 
   // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)
-  // goes with it. Asked when the results would first appear; the focus stays in the box, so the typing carries on after the answer (#3404).
+  // goes with it. Asked on every change that shows, changes or clears the results. The question takes the focus, so after Cancel the letter just typed is not kept (#3404).
   // Every change of the search or the filter that shows, replaces or clears the results swaps the pane under an editor held there (a key pasted into the
   // Merriam-Webster box among the results, a credits template opened from them), so it asks; a change that leaves the results as they are does not.
   const changeSearch = (nextQuery: string, nextFilter: Filter) => {
