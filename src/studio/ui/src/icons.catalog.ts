@@ -127,6 +127,7 @@ import {
   faTriangleExclamation,
   faPlugCircleCheck,
   faPlugCircleExclamation,
+  faPlugCirclePlus,
   faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
@@ -289,6 +290,7 @@ export const CATALOG = {
   statusLinked: figure(faPlugCircleCheck, 'chapter linked to a track'),
   statusNotLinked: figure(faPlug, 'chapter not linked to a track'),
   statusTrackMissing: figure(faPlugCircleExclamation, 'chapter linked to a track that is gone'),
+  statusSeveral: figure(faPlugCirclePlus, 'chapter linked to several tracks'),
   // The recording check's activity panel: the figures it labels, drawn with `Icon`. Each figure shows its own hint as its tooltip.
   chunksTranscribed: figure(faPuzzlePiece, 'chunks transcribed'),
   transcriptionsAtOnce: figure(faMicrochip, 'transcriptions at once'),

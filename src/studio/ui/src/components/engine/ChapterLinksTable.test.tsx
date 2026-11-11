@@ -646,13 +646,71 @@ describe('ChapterLinksTable', () => {
     );
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
+    // Two links are several, as the Booth says; the row still offers Clear, which removes both.
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Several tracks' })).toBeTruthy());
 
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Not linked' })).toBeTruthy());
     const { mappings } = await api.chapterTrackMapList();
     expect(mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id)).toHaveLength(0);
+  });
+
+  // #3363 (intent review): on a chapter with several links the first one was the row's "linked" track, so choosing it only re-read, and choosing
+  // the second did nothing because that pair was already held: neither resolved it.
+  it.each([0, 1])('Change on a chapter with several links replaces them with the track chosen, whichever of the two it is (%i)', async (which) => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Several tracks' })).toBeTruthy());
+
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
+    await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[which].guid);
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this track/ }));
+
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Linked' })).toBeTruthy());
+    const { mappings } = await api.chapterTrackMapList();
+    const mine = mappings.filter((mapping) => mapping.chapterId === WIRE_CHAPTERS[0].id);
+    expect(mine.map((mapping) => mapping.trackGuid)).toEqual([WIRE_TRACKS_PROJECT.tracks[which].guid]);
+  });
+
+  // #3363 (qa-breaker): the second press of a double click on Change lands on the confirm, which used to open on the first track and replace
+  // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
+  it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Several tracks' })).toBeTruthy());
+
+    await user.dblClick(within(firstRow).getByRole('button', { name: /^Change the track/ }));
+
+    expect(set).not.toHaveBeenCalled();
+    expect(within(firstRow).getByRole('img', { name: 'Several tracks' })).toBeTruthy();
   });
 
   it('shows a link to a track that no longer exists as Track missing', async () => {

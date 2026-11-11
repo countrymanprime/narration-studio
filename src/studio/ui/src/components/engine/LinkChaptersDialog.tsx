@@ -53,7 +53,7 @@ const STAMPED_COLUMNS = ['15rem', '5.5rem', '13rem', 'auto'] as const;
 function itemsOwnedByChapter(rows: ChapterTrackRow[], tracks: Track[]): Map<string, TrackItem[]> {
   const links = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) {
-    if (mapping && state === 'linked' && !creditsKindOfId(chapter.id)) links.set(chapter.id, mapping.trackGuid);
+    if (mapping && (state === 'linked' || state === 'several') && !creditsKindOfId(chapter.id)) links.set(chapter.id, mapping.trackGuid);
   }
   return chapterItemsByNearestLink(tracks, links);
 }
@@ -214,7 +214,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink); the sentence under
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
-  for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
+  for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
   const sharesTrack = (chapterId: string, folderGuid: string) => {
     const at = tracks.findIndex((track) => track.guid === folderGuid);
     const folder = tracks[at];
@@ -222,7 +222,9 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     const end = tracks.findIndex((track, i) => i > at && track.depth <= folder.depth);
     return tracks.slice(at + 1, end < 0 ? undefined : end).some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
   };
-  const sharing = rows.filter(({ chapter, mapping, state }) => mapping && state === 'linked' && sharesTrack(chapter.id, mapping.trackGuid));
+  const sharing = rows.filter(
+    ({ chapter, mapping, state }) => mapping && (state === 'linked' || state === 'several') && sharesTrack(chapter.id, mapping.trackGuid),
+  );
 
   const approve = () => {
     setLastAction('stamp');
@@ -305,7 +307,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         <TableBody>
           {rows.map(({ chapter, mapping, state }) => {
             const count =
-              state === 'linked' && !creditsKindOfId(chapter.id) && chapterTrackOf(tracks, mapping?.trackGuid)
+              (state === 'linked' || state === 'several') && !creditsKindOfId(chapter.id) && chapterTrackOf(tracks, mapping?.trackGuid)
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".

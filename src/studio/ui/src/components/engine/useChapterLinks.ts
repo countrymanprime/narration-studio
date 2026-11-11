@@ -4,6 +4,7 @@ import { usePort } from '../../ports/usePort';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
+import { chapterLink } from '../chapterTracks/chapterLink';
 import { keptTitle } from '../mapping/trackHeldBy';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
@@ -141,7 +142,9 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
   // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
   const set = (chapterId: string, trackGuid: string) => {
-    if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
+    // A chapter with several links is not linked to one track: choosing one of them replaces the rest, so it reaches the host.
+    const link = chapterLink(mappings, chapterId);
+    if (link.state === 'linked' && link.trackGuid === trackGuid) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
   // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).

@@ -10,6 +10,7 @@ import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
+import { chapterLink } from '../../chapterTracks/chapterLink';
 
 type ChapterSource =
   | { status: 'loading' }
@@ -95,7 +96,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     const trackOf = async () => {
       try {
         const [map, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
-        const guid = map.mappings.find((m) => m.chapterId === chapterId)?.trackGuid;
+        const guid = chapterLink(map.mappings, chapterId).trackGuid;
         // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
         const found = chapterTrackOf(project.tracks, guid);
         const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);

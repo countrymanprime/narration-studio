@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import { joinPeaks, joinedDuration, type PeaksSegment } from './frame/peaksJoin';
 import { useChapterPeaks } from './frame/useChapterPeaks';
 import { buildPlaylist } from './playlist';
+import { chapterLink } from '../chapterTracks/chapterLink';
 
 /** The chapter's recording on the app's timeline: its items' segments with peaks, its length, and where a project second falls on it. */
 export type ChapterTimeline = {
@@ -34,7 +35,7 @@ export function useChapterTimeline(chapterId: string | undefined): ChapterTimeli
     // The alignment names each item's index, which is what the peaks are keyed by; a chapter not yet aligned draws flat lines.
     Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList(), workspace.workspaceAlignment(chapterId).catch(() => undefined)])
       .then(([mapping, project, alignment]) => {
-        const trackGuid = mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid;
+        const trackGuid = chapterLink(mapping.mappings, chapterId).trackGuid;
         const items = chapterTrackOf(project.tracks, trackGuid)?.items ?? [];
         if (live) setLoaded({ chapterId, items, aligned: alignment?.items ?? [] });
       })

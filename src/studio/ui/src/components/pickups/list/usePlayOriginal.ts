@@ -7,6 +7,7 @@ import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
+import { chapterLink } from '../../chapterTracks/chapterLink';
 
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
@@ -136,7 +137,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       };
       try {
         const [mapping, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
-        const guid = mapping.mappings.find((entry) => entry.chapterId === pickup.chapterId)?.trackGuid;
+        const guid = chapterLink(mapping.mappings, pickup.chapterId).trackGuid;
         spot = sourceSpot(chapterTrackOf(project.tracks, guid)?.items ?? [], pickup);
       } catch (error) {
         lookup = error instanceof Error && error.message ? error.message : NO_AUDIO;
