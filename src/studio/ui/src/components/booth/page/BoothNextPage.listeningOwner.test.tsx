@@ -285,6 +285,21 @@ describe('the stop of a take whose listening failed has a limit', () => {
   });
 });
 
+describe('the sentence of a take whose listening failed (finding 5)', () => {
+  it('does not double the full stop of the reason', async () => {
+    const host = fakeHost();
+    host.api.teleprompterStart = vi.fn(async () => {
+      throw new Error('The microphone is in use by another application.');
+    });
+    mountBooth(host);
+    await ready();
+    await space();
+    const text = await screen.findByText(/Recording did not start: the text cannot follow your voice/);
+    expect(text.textContent).toContain('another application).');
+    expect(text.textContent).not.toContain('.).');
+  });
+});
+
 describe('a Stop while the take listening is still starting', () => {
   it('stops the DAW at once and lets the session go when it answers: the take that ended does not release the press claim early', async () => {
     // The mock host answers a start that was stopped meanwhile as started: the session is up after the Stop, and only the press can let it go.
@@ -671,8 +686,7 @@ describe('the roll of a take has a limit', () => {
     return { page, roll, lands };
   };
 
-  const LANDED =
-    /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it, and a take you are recording may have been cut and restarted\. Check REAPER and stop it there; record the passage again if needed\./;
+  const LANDED = /A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./;
   const CUT = LANDED;
 
   it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
@@ -799,6 +813,58 @@ describe('the roll of a take has a limit', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("the late sentence replaces the roll's timeout sentence: exactly one roll toast is left (finding 2)", async () => {
+    try {
+      const { page, lands } = await hungRoll();
+      const rollToasts = () =>
+        page.overlay
+          .getSnapshot()
+          .toasts.map((toast) => toast.text)
+          .filter((text) => /roll/i.test(text));
+      expect(rollToasts()).toHaveLength(1);
+      await lands();
+      await screen.findByText(LANDED);
+      expect(rollToasts()).toHaveLength(1);
+      expect(screen.queryByText(/press R to roll again/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the roll's timeout sentence goes when the take ends", async () => {
+    try {
+      const { page } = await hungRoll();
+      await space();
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      expect(
+        page.overlay
+          .getSnapshot()
+          .toasts.map((toast) => toast.text)
+          .join('\n'),
+      ).not.toMatch(/press R to roll again/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a roll that answers ok inside its limit after Stop says it landed, and logs and moves nothing (finding 3)', async () => {
+    const page = mountBooth(fakeHost());
+    const roll = vi.spyOn(page.daw, 'roll');
+    let answer: (value: Awaited<ReturnType<typeof page.daw.roll>>) => void = () => {};
+    roll.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
+    await space();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+    await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    await screen.findByText(LANDED);
+    expect(screen.queryByText(/Rolling again from/)).toBeNull();
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
   });
 
   it('a refusal that lands after a later roll went through says nothing over the success (BRK late refusal)', async () => {

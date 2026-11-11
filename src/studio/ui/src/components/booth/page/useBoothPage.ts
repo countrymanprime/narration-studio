@@ -23,6 +23,10 @@ import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type Read
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { limited } from '../record/pressLimits';
+
+/** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
+const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
+const ROLL_LANDED_TOPIC = 'booth-roll-landed';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
@@ -539,7 +543,7 @@ export function useBoothPage(options: BoothPageOptions) {
           ? kept
             ? 'The text could not follow your voice in time, and the take is still in the DAW.'
             : 'The take was taken back because the text could not follow your voice in time.'
-          : `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
+          : `Recording did not start: the text cannot follow your voice (${(heard.reason || 'listening failed').replace(/[.\s]+$/, '')}).${kept ? '' : ' Nothing was recorded.'}`,
         {
           tone: 'error',
           action: retryAction(() => void retryTake.current()),
@@ -562,6 +566,13 @@ export function useBoothPage(options: BoothPageOptions) {
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
   const pressToken = useRef(0);
+  // Which take is running: a roll's answer is for the take it was asked in.
+  const takeSeq = useRef(0);
+  useEffect(() => {
+    takeSeq.current += 1;
+    // The roll's timeout advice (press R again) is stale once the take is over.
+    if (!recording) overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
+  }, [recording, overlay]);
   // How many rolls the DAW answered ok: a late refusal is dropped when a later roll went through.
   const rollsOk = useRef(0);
   const mounted = useRef(true);
@@ -588,26 +599,40 @@ export function useBoothPage(options: BoothPageOptions) {
         // Bounded: a roll the DAW never answers must not hold R, and the take under it, for good. Past the limit the take may still be recording
         // from before the roll, or already rolling; the sentence says to look. A roll that lands later is checked against the take it was for (#3409).
         const rollsBefore = rollsOk.current;
+        const take = takeSeq.current;
         const name = recorderNameCapital(control.capabilities?.daw);
+        /** One short sentence for a roll that lands when its press is no longer current: it replaces the roll's timeout sentence, whose advice is stale. */
+        const landed = () => {
+          overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
+          overlay.toast(
+            `A roll the Booth stopped waiting for has landed. ${name} may be recording, and a take in progress may have been cut. Check ${recorderLabel}.`,
+            {
+              tone: 'error',
+              topic: ROLL_LANDED_TOPIC,
+            },
+          );
+        };
         const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) => {
           // The app does nothing to the DAW for an answer it stopped waiting for: it cannot tell the roll's recording from the narrator's own, so a stale
           // continuation never stops one (#3320). The narrator is told, and decides in the DAW.
-          const recording = mounted.current && latest.current.recording;
           if (!late.ok) {
             // A refusal means no roll happened. It is said only for the take it was about, and not over a later roll that went through.
-            if (!recording || rollsOk.current !== rollsBefore) return;
+            if (!(mounted.current && latest.current.recording) || rollsOk.current !== rollsBefore) return;
             return void overlay.toast(`A roll the Booth stopped waiting for was refused, so nothing was rolled: ${late.refused ?? late.message}`, {
               tone: 'error',
             });
           }
-          // One sentence whatever the Booth can tell of the takes (an old mount, a start in flight): it cannot know whose recording this is.
-          overlay.toast(
-            `A roll the Booth stopped waiting for has landed, so ${recorderLabel} may be recording from it, and a take you are recording may have been cut and restarted. Check ${recorderLabel} and stop it there; record the passage again if needed.`,
-            { tone: 'error' },
-          );
+          landed();
         });
         if (!asked.timedOut) {
-          if (asked.value.ok) rollsOk.current += 1;
+          if (!asked.value.ok) return asked.value;
+          // Landed ok after the take it was for is over (Stop, Stop and leave, left the Booth, a newer take): nothing is logged or moved, and the narrator is told,
+          // because the DAW's roll is stop, move, record again and may have left it recording.
+          if (!mounted.current || !latest.current.recording || take !== takeSeq.current) {
+            landed();
+            return { ok: false, changed: false, undoSteps: 0, message: '' };
+          }
+          rollsOk.current += 1;
           return asked.value;
         }
         // The take ended meanwhile (the DAW's own stop was announced): the sentence about a take that may still be recording would contradict it.
@@ -617,6 +642,7 @@ export function useBoothPage(options: BoothPageOptions) {
           `${name} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
           {
             tone: 'error',
+            topic: ROLL_TIMEOUT_TOPIC,
           },
         );
         return { ok: false, changed: false, undoSteps: 0, message: '' };
@@ -721,8 +747,9 @@ export function useBoothPage(options: BoothPageOptions) {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
-  }, []);
+  }, [overlay]);
   // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
   const startPending = !recording && (roll.lookingUp || beginning);
 

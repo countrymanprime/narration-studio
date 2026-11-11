@@ -345,9 +345,7 @@ test('a roll that answers after Stop says to check the DAW and sends no stop', a
   expect(await stops()).toBe(1);
   await expect(
     page
-      .getByText(
-        /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it, and a take you are recording may have been cut and restarted/,
-      )
+      .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
       .first(),
   ).toBeVisible({ timeout: 10_000 });
   // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
@@ -382,8 +380,58 @@ test('a roll that answers while a newer take records does not stop that take', a
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/and a take you are recording may have been cut and restarted/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/a take in progress may have been cut/).first()).toBeVisible({ timeout: 10_000 });
   expect(await stops()).toBe(1);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
+});
+
+// #3409 (walkthrough finding 1): the late-roll sentence fits whole inside its toast, and the toast inside a 360x500 window, uncovered by the footer.
+test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 500 });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 9_000));
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  const late = page
+    .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
+    .first();
+  await expect(late).toBeVisible({ timeout: 14_000 });
+  // The timeout sentence is replaced, not left beside it.
+  await expect(page.getByText(/press R to roll again/)).toHaveCount(0);
+  const box = (await late.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(360);
+  expect(box.y + box.height).toBeLessThanOrEqual(500);
+  // Nothing (the footer) sits over any corner of the sentence.
+  const covered = await late.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return [
+      [rect.left + 2, rect.top + 2],
+      [rect.right - 2, rect.top + 2],
+      [rect.left + 2, rect.bottom - 2],
+      [rect.right - 2, rect.bottom - 2],
+    ].some(([x, y]) => {
+      const hit = document.elementFromPoint(x!, y!);
+      return !hit || !(element.contains(hit) || hit.contains(element));
+    });
+  });
+  expect(covered).toBe(false);
 });
