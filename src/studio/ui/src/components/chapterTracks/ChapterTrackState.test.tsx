@@ -489,4 +489,31 @@ describe('the chapter link detail on the shared state', () => {
     act(() => seen.current!.applyMappings(result.mappings));
     await waitFor(() => expect(seen.current?.details?.chapters.find((chapter) => chapter.chapterId === chapterId)?.track?.trackGuid).toBe(track.guid));
   });
+  // The review of #3414: a failing detail read must not take the links from every other screen, nor silence the next failure's toast.
+  it('keeps the links when only the detail read fails, and marks the state stale', async () => {
+    const api = createMockApi({ chapterTrackLinks: () => Promise.reject(new Error('busy')) });
+    const seen = mountDetail(api);
+    await waitFor(() => expect(seen.current?.linksReadAt).not.toBeNull());
+    expect(seen.current?.details).toBeUndefined();
+    await waitFor(() => expect(seen.current?.stale).toBe(true));
+  });
+
+  it("a links read that a screen showed itself does not silence the next failure's toast", async () => {
+    let fail = false;
+    const base = createMockApi();
+    const api = createMockApi({
+      chapterTrackMapList: () => (fail ? Promise.reject(new Error('down')) : base.chapterTrackMapList()),
+    });
+    const { seen, notify } = mount(api);
+    await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
+    fail = true;
+    await act(async () => {
+      await seen.current!.refreshLinks().catch(() => {});
+    });
+    expect(notify).not.toHaveBeenCalled();
+    await act(async () => {
+      seen.current!.refresh();
+    });
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+  });
 });

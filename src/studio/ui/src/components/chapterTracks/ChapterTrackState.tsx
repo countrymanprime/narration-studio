@@ -139,12 +139,14 @@ export function ChapterTrackStateProvider({
       });
       // The detail is one more read of the same host state, asked for only while a screen wants it, answered with the links.
       const wantsDetail = wantDetailRef.current;
-      const both = Promise.all([trackMap.chapterTrackMapList(), wantsDetail ? trackMap.chapterTrackLinks() : Promise.resolve(undefined)]);
+      // A failed detail does not fail the links every other screen shows: the links apply, and the state is marked stale (null = failed).
+      const detailRead = wantsDetail ? trackMap.chapterTrackLinks().catch(() => null) : Promise.resolve(undefined);
+      const both = Promise.all([trackMap.chapterTrackMapList(), detailRead]);
       const read = Promise.race([both, limit])
         .then(([answer, detail]) => {
           if (run !== linksRun.current) return newestLinks.current;
           linksFailing.current = false;
-          setLinksStale(false);
+          setLinksStale(detail === null);
           mappingsRef.current = answer.mappings;
           setMappings(answer.mappings);
           if (detail) setDetails(detail);
@@ -158,7 +160,8 @@ export function ChapterTrackStateProvider({
           setLinksStale(true);
           // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
           if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
-          linksFailing.current = true;
+          // Only a read that toasted counts as a run of failures: a caller that showed the failure itself must not silence the next toast.
+          if (mode === 'toast') linksFailing.current = true;
           // The state's own reads end here (the toast said it); a caller that asked to show the failure gets it.
           if (mode === 'throw') throw reason;
           return mappingsRef.current;
@@ -185,6 +188,8 @@ export function ChapterTrackStateProvider({
     const linksRead = readLinks(true, 'throw').then(
       () => true,
       (reason: unknown) => {
+        // This one toasts, so it counts as a toasted failure: the poll that follows does not toast the same outage again.
+        linksFailing.current = true;
         notify(describeApiError(reason), 'error', retryAction(retryRef.current));
         return false;
       },
@@ -254,9 +259,10 @@ export function ChapterTrackStateProvider({
   // The links alone, now: for the screen that made a change or was told one was made. A failure is the caller's to show.
   const refreshLinks = useCallback(() => readLinks(true, 'throw'), [readLinks]);
   // A screen asking for the detail after the links were already being read gets its first answer now.
+  const needDetail = wantDetail && readingLinks && details === undefined && mappingsAt !== null;
   useEffect(() => {
-    if (wantDetail && readingLinks) readLinks(true, 'throw').catch(() => {});
-  }, [wantDetail, readingLinks, readLinks]);
+    if (needDetail) readLinks(true, 'throw').catch(() => {});
+  }, [needDetail, readLinks]);
 
   const state = useMemo<ChapterTrackState>(
     () =>
