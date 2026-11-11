@@ -372,14 +372,11 @@ export function useBoothPage(options: BoothPageOptions) {
 
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
+    stoppedWhileStarting.current = false;
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
-    const modelChecked = await limited(
-      'modelCheck',
-      latest.current.session.ensureModel(),
-      // The question opened after the press said it did not answer: one press has one outcome, so the question is closed again.
-      (opened) => !opened && latest.current.session.closeModelPrompt(),
-    );
+    // A check the press gave up on never opens the question (`over`): one press has one outcome.
+    const modelChecked = await limited('modelCheck', (over) => latest.current.session.ensureModel(undefined, undefined, over));
     if (!current()) return false;
     if (modelChecked.timedOut) {
       // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
@@ -432,6 +429,17 @@ export function useBoothPage(options: BoothPageOptions) {
       if (listen && heard.ok) latest.current.session.stop();
       return started;
     }
+    if (stoppedWhileStarting.current) {
+      // The narrator pressed Stop while the listening was starting and the DAW stopped at once: the listening, if it came up, is let go and nothing is said.
+      stoppedWhileStarting.current = false;
+      if (listen && heard.ok) latest.current.session.stop();
+      // A listening that failed is said: the take the narrator stopped was recorded without it, and it stays in the DAW (nothing is taken back that they stopped).
+      if (!heard.ok)
+        overlay.toast(`Listening did not start (${heard.reason || 'listening failed'}), so the take you stopped was recorded without the text following it.`, {
+          tone: 'error',
+        });
+      return false;
+    }
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
@@ -449,6 +457,8 @@ export function useBoothPage(options: BoothPageOptions) {
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
   const starting = useRef<Promise<boolean> | null>(null);
+  // A Stop was pressed while this press's listening was still starting.
+  const stoppedWhileStarting = useRef(false);
   // The same press as state, for Record's pending look.
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
@@ -691,10 +701,10 @@ export function useBoothPage(options: BoothPageOptions) {
     () => ({
       toast: (text, toastOptions) => overlay.toast(text, toastOptions),
       dismissTopic: (topic) => overlay.dismissTopic(topic),
-      confirm: async (spec) => {
+      confirm: async (spec, until) => {
         const release = latest.current.takeOut ? hold() : null;
         try {
-          return await overlay.confirm(spec);
+          return await overlay.confirm(spec, until);
         } finally {
           release?.();
         }
@@ -711,6 +721,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const { leave, handled, leaving } = useBoothLeaveGuard(
     {
       recording: recording || control.starting,
+      startPending: control.starting && !recording,
       startedByApp: control.startedByApp,
       daw: { name: dawName },
       stopRecording,
@@ -829,8 +840,10 @@ export function useBoothPage(options: BoothPageOptions) {
     if (latest.current.recording) {
       // A Stop while the take's listening is still starting waits for its answer: a take whose listening fails is stopped and taken back by
       // the press itself, once, and this Stop then has nothing left to stop.
-      const pending = starting.current;
-      if (pending && !(await pending)) return;
+      // Stop at once, even while the take's listening is still starting: the narrator asked to stop, so the DAW is not left recording until the
+      // listening answers (up to its limit). The press then lets that listening go when it answers (`stoppedWhileStarting`) and does not drop a take
+      // the narrator already stopped.
+      if (starting.current) stoppedWhileStarting.current = true;
       await control.toggle();
     } else if (control.gate) blocked(control.gate);
     else await roll.startTake();

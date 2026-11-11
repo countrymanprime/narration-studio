@@ -453,4 +453,41 @@ describe('useBoothLeaveGuard', () => {
       });
     });
   });
+
+  describe('a start still pending (#3321)', () => {
+    it('the question never says a take records while it is only starting', () => {
+      const { store } = setup({ startPending: true });
+      expect(store.checkLeave('/proof')).toMatchObject({
+        ask: { title: 'Stop recording?', body: 'REAPER is starting a take. Leaving the Booth stops it once it has started.' },
+      });
+    });
+
+    it('the question closes by itself, and the narrator stays, when the start ends at its limit with no take', async () => {
+      const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.leave('/proof', go);
+      });
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+      hook.rerender({ ...session, recording: false, startPending: false });
+      await act(() => done);
+      expect(overlay.getSnapshot().dialogs).toHaveLength(0);
+      expect(stopRecording).not.toHaveBeenCalled();
+      expect(go).not.toHaveBeenCalled();
+    });
+
+    it('the question stays when the start lands as a take: Stop and leave still stops it', async () => {
+      const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.leave('/proof', go);
+      });
+      hook.rerender({ ...session, recording: true, startPending: false });
+      expect(overlay.getSnapshot().dialogs).toHaveLength(1);
+      act(() => dialog()!.answer(true));
+      await act(() => done);
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+      expect(go).toHaveBeenCalledWith('/proof');
+    });
+  });
 });

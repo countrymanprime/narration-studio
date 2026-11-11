@@ -128,3 +128,111 @@ test('a voice choice that never answers ends a punch press with a sentence and s
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
 });
+
+// A model check that answers "not installed" after the press gave up on it opens no install question, on its own or over a take the narrator
+// started meanwhile (the question exists so that no take begins behind it).
+async function openWithLateModelCheck(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    const missing = {
+      id: 'x',
+      kind: 'whisper',
+      displayName: 'Late model',
+      version: '1',
+      publisher: 'p',
+      license: 'l',
+      licenseUrl: '',
+      modelCardUrl: '',
+      provenanceUrl: '',
+      attribution: '',
+      installState: 'not_installed',
+      downloadSize: 1,
+      diskSize: 1,
+      path: '',
+    };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      assetsList: async () => {
+        const empty = { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] as unknown[] };
+        if (!w.__armed) return empty;
+        w.__armed = false;
+        await new Promise((resolve) => setTimeout(resolve, 12_000));
+        return { ...empty, assets: { find: () => missing } };
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arm(page);
+}
+const installQuestion = (page: Page) => page.getByRole('dialog', { name: /Download local/ });
+/** Whether the install question was on screen at any moment since it was watched (one that opens and is closed again at once is seen too). */
+const watchInstallQuestion = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as unknown as { __sawInstall: boolean };
+    w.__sawInstall = false;
+    new MutationObserver(() => {
+      if (/Download local/.test(document.body.innerText)) w.__sawInstall = true;
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+const sawInstallQuestion = (page: Page) => page.evaluate(() => (window as unknown as { __sawInstall: boolean }).__sawInstall);
+
+test('a model check that answers missing after its limit opens no install question', async ({ page }) => {
+  await openWithLateModelCheck(page);
+  await watchInstallQuestion(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Checking the speech model did not answer in time/).first()).toBeVisible({ timeout: 12_000 });
+  await page.waitForTimeout(5000);
+  await expect(installQuestion(page)).toHaveCount(0);
+  expect(await sawInstallQuestion(page)).toBe(false);
+});
+
+test('Record pressed again after the limit records, and the late "not installed" answer opens no question over the take', async ({ page }) => {
+  await openWithLateModelCheck(page);
+  await watchInstallQuestion(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Checking the speech model did not answer in time/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(5000);
+  await expect(installQuestion(page)).toHaveCount(0);
+  expect(await sawInstallQuestion(page)).toBe(false);
+  expect(await dawRecording(page)).toBe(true);
+});
+
+// Stop pressed while the take's listening is still starting stops the DAW at once; the listening is let go when it answers.
+test('Stop pressed while the listening start is pending stops the DAW take at once', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStart: () => {
+        if (!w.__armed) return Promise.resolve({ status: 'started' });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ status: 'started' }), 20_000));
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arm(page);
+  const hostCalls = (name: string) => page.evaluate((n) => (window.__hostCalls ?? []).filter((call) => call.name === n).length, name);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 5000 });
+  await page.waitForTimeout(3000);
+  await page.keyboard.press('Space');
+  // Within a second of the second press, not when the listening answers at 20 s.
+  await expect.poll(() => hostCalls('readAloudRecordStop'), { timeout: 1500 }).toBe(1);
+  await expect.poll(() => dawRecording(page), { timeout: 1500 }).toBe(false);
+  await expect(record(page)).toBeVisible();
+  // The listening that comes up afterwards is let go, and nothing records.
+  await expect.poll(() => hostCalls('teleprompterStop'), { timeout: 25_000 }).toBeGreaterThanOrEqual(1);
+  expect(await dawRecording(page)).toBe(false);
+  expect(await hostCalls('readAloudRecordStop')).toBe(1);
+});

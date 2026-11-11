@@ -76,6 +76,20 @@ describe('the live model is asked for before anything records', () => {
     expect(hook.result.current.prompt?.downloadSize).toBe(78_000_000);
   });
 
+  it('a check the caller gave up on opens no install question when it answers missing (#3321)', async () => {
+    const { hook } = setup([asset('whisper', 'tiny', 'not_installed')]);
+    let gaveUp = false;
+    let answer = false;
+    await act(async () => {
+      const pending = hook.result.current.ensureModel(undefined, undefined, () => gaveUp);
+      gaveUp = true;
+      answer = await pending;
+    });
+    expect(answer).toBe(true);
+    expect(hook.result.current.prompt).toBeUndefined();
+    expect(hook.result.current.modelMissing).toBe(false);
+  });
+
   it('claims nothing when the asset list cannot be read, and the take goes on', async () => {
     const api = createMockApi({
       assetsList: async () => {

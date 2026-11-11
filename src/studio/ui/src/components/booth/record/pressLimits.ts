@@ -31,14 +31,21 @@ export const recordStartLimit = (inApp: boolean): PressStage => (inApp ? 'record
 export type Limited<T> = { timedOut: false; value: T } | { timedOut: true };
 
 /**
- * Waits for `work` for at most `ms`. Past the limit the wait is over: the stage is written to the run log (which stage hit its limit), and an answer that comes later goes to `late`, which must undo whatever that answer
+ * Waits for `start` (a promise, or a function of `over` that makes it) for at most `ms`. Past the limit the wait is over: the stage is written to the run log (which stage hit its limit), and an answer that comes later goes to `late`, which must undo whatever that answer
  * started; it is never ignored without a decision. A call that rejects rejects here, as before.
  *
  * Every host call a press awaits goes through here: `pressLimits.guard.test.ts` lists them.
  */
-export function limited<T>(stage: PressStage, work: Promise<T>, late?: (value: T) => void, ms: number = PRESS_LIMITS_MS[stage]): Promise<Limited<T>> {
+export function limited<T>(
+  stage: PressStage,
+  start: Promise<T> | ((over: () => boolean) => Promise<T>),
+  late?: (value: T) => void,
+  ms: number = PRESS_LIMITS_MS[stage],
+): Promise<Limited<T>> {
   return new Promise<Limited<T>>((resolve, reject) => {
     let over = false;
+    // A function is given `over`, so work that changes the page when it answers can tell it was given up on and change nothing.
+    const work = typeof start === 'function' ? start(() => over) : start;
     const timer = setTimeout(() => {
       over = true;
       logUi('ui.record.limit', `press stage=${stage} limit=${ms}ms reached; the press ended`);

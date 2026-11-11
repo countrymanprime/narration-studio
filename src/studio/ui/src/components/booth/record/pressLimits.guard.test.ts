@@ -11,7 +11,7 @@ import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimit
 // known gaps (#3321 follow-up, stated in the PR): the stop side of the press (`dropUnheardTake`, `daw.recordStop`) and `daw.roll`.
 const BOOTH = join(__dirname, '..');
 const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = [
-  { file: 'page/useBoothPage.ts', call: 'session.ensureModel()', stage: 'modelCheck' },
+  { file: 'page/useBoothPage.ts', call: 'session.ensureModel(', stage: 'modelCheck' },
   { file: 'page/useBoothPage.ts', call: 'session.start(', stage: 'listening' },
   { file: 'page/useBoothPage.ts', call: 'voiceTracks.boothVoiceSet(', stage: 'voiceChoice' },
   { file: 'record/useRecordControl.ts', call: 'system.bootstrap()', stage: 'projectCheck' },

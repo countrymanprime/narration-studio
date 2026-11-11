@@ -575,3 +575,69 @@ for (const [width, height] of [
     }
   });
 }
+
+// #3321: a start that is still pending when the narrator leaves asks the question, which never says a take records and closes by itself when the start
+// ends at its limit (10 s) with no take. The narrator stays on the Booth with the press's sentence, nothing recording and no stop owed.
+const ASKED = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
+async function openWithPendingStart(page: Page, answersAtMs: number | 'never'): Promise<void> {
+  await page.addInitScript((answers) => {
+    const w = window as unknown as {
+      __armed: boolean;
+      __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>;
+      __NARRATION_MOCK_DAW__: { record: (a: 'start' | 'stop') => void };
+    };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStart: () => {
+        if (!w.__armed) {
+          w.__NARRATION_MOCK_DAW__.record('start');
+          return Promise.resolve({ outcome: 'started', position: 0, message: '' });
+        }
+        w.__armed = false;
+        if (answers === 'never') return new Promise(() => {});
+        return new Promise((resolve) =>
+          setTimeout(() => {
+            w.__NARRATION_MOCK_DAW__.record('start');
+            resolve({ outcome: 'started', position: 0, message: '' });
+          }, answers),
+        );
+      },
+      readAloudRecordStop: () => {
+        w.__NARRATION_MOCK_DAW__.record('stop');
+        return Promise.resolve({ outcome: 'stopped', message: '', undoPoints: 0 });
+      },
+    };
+  }, answersAtMs);
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.evaluate(() => ((window as unknown as { __armed: boolean }).__armed = true));
+}
+
+for (const [name, answersAt] of [
+  ['never answers', 'never'],
+  ['answers after the limit (12 s)', 12_000],
+] as const) {
+  test(`the leave question closes, or never says is recording, when the pending start ends at its limit: the start ${name}`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await openWithPendingStart(page, answersAt);
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(4000);
+    await page.evaluate(() => window.history.back());
+    await expect(ASKED(page)).toBeVisible();
+    await expect(ASKED(page)).not.toContainText(/is recording/);
+    await expect(ASKED(page)).toContainText(/starting a take/);
+    // The start ends at its limit with no take: the question goes, the narrator is still in the Booth, and the press said why.
+    await expect(ASKED(page)).toHaveCount(0, { timeout: 12_000 });
+    expect(await onBooth(page)).toBe(true);
+    await expect(page.getByText(/did not answer the start in time/).first()).toBeVisible();
+    if (answersAt !== 'never') {
+      // The late take is stopped, never left running behind the closed question.
+      await expect.poll(() => stops(page), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+      await expect.poll(() => dawRecording(page)).toBe(false);
+    }
+    expect(await dawRecording(page)).toBe(false);
+  });
+}

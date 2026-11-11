@@ -74,7 +74,8 @@ const OVERLAY_TOAST_LIMIT = 4;
 type UndoToastOptions = { durationMs?: number; entry: number };
 
 export type OverlayService = {
-  confirm: (spec: ConfirmSpec) => Promise<boolean>;
+  /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
+  confirm: (spec: ConfirmSpec, until?: AbortSignal) => Promise<boolean>;
   toast: (text: string, options?: ToastOptions) => void;
   /** A message with an Undo; `durationMs` keeps it longer than the usual five seconds. */
   toastUndo: (text: string, undo: Undo, options: UndoToastOptions) => void;
@@ -161,13 +162,15 @@ export function createOverlayService(): OverlayService {
   };
 
   return {
-    confirm: (spec) =>
+    confirm: (spec, until) =>
       new Promise<boolean>((resolve) => {
         const id = ++lastId;
         const answer = (confirmed: boolean) => {
           if (removeDialog(id)) resolve(confirmed);
         };
         update({ dialogs: [...snapshot.dialogs, { id, kind: 'confirm', spec, answer }] });
+        if (until?.aborted) answer(false);
+        else until?.addEventListener('abort', () => answer(false), { once: true });
       }),
     toast,
     toastUndo: (text, undo, options) => {
