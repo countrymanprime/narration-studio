@@ -53,6 +53,7 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     stop: vi.fn(),
     stopAndWait: async () => {},
     whenUp: async () => ({ ok: true, reason: '' }),
+    stopIfRunning: async () => {},
     phase: 'idle',
     seek: vi.fn(),
     changeDevice: vi.fn(),

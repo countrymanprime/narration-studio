@@ -45,15 +45,16 @@ const SCRIPT: TeleprompterEvent = {
  * The host's one session. A start while a session runs is refused as the real host does; a stop ends whatever runs, whoever asked. Each start takes
  * the next gate a test queued (`holdNextStart`), so its answer comes when the test says.
  */
-function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = {}) {
+function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: { stopEndsStarting?: boolean; ignoreStopWhileStarting?: boolean } = {}) {
   let state: TeleprompterState = IDLE;
   const states = new Set<(next: TeleprompterState) => void>();
   const events = new Set<(event: TeleprompterEvent) => void>();
   const gates: Array<Promise<void>> = [];
   // How a held start ends: `answer` resolves it as started, `refuse` makes it fail as the host's does (the phase goes to error).
+  let muted = false;
   const publish = (next: Partial<TeleprompterState>) => {
     state = { ...state, ...next };
-    states.forEach((listener) => listener(state));
+    if (!muted) states.forEach((listener) => listener(state));
   };
   const teleprompterStart = vi.fn(async (options: TeleprompterStartOptions) => {
     if (state.phase === 'starting' || state.phase === 'running') throw new Error('a teleprompter session is already running');
@@ -71,6 +72,8 @@ function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = 
     return { status: 'started' as const };
   });
   const teleprompterStop = vi.fn(async () => {
+    // The real host returns at once when the session has no child process yet (service.go): the stop answers OK and the session then comes up.
+    if (ignoreStopWhileStarting && state.phase === 'starting') return;
     if (state.phase === 'starting' || state.phase === 'running') publish({ phase: 'stopped' });
   });
   const api: Partial<NarrationApi> = {
@@ -92,6 +95,8 @@ function fakeHost({ stopEndsStarting = true }: { stopEndsStarting?: boolean } = 
     teleprompterStart,
     teleprompterStop,
     phase: () => state.phase,
+    /** The host's pushes stop reaching the page (a lost event); the state it reads still tells. */
+    muteEvents: () => void (muted = true),
     /** The next start does not answer until the returned function is called. */
     holdNextStart: () => {
       let release = () => {};
@@ -395,4 +400,121 @@ describe('a cold read the narrator left behind says nothing on the page they are
       vi.useRealTimers();
     }
   });
+});
+
+describe('a joiner that waits for a session another press is starting (#3320)', () => {
+  // Press A starts the session and its start is held; the narrator leaves, comes back and presses again (B joins and waits).
+  // `slowStart`: the joiner's DAW start takes 8 s, so the chapter can still be changed while it is out.
+  const joinWhileStarting = async (host: ReturnType<typeof fakeHost>, slowStart = false) => {
+    const control = host.holdNextStart();
+    const first = mountBooth(host);
+    first.recordStart.mockImplementationOnce(refused);
+    await ready();
+    await space();
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(1));
+    first.view.unmount();
+    const second = mountBooth(host);
+    if (slowStart) {
+      second.recordStart.mockImplementationOnce(
+        () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 0 } as never), 8000)),
+      );
+    }
+    await ready();
+    await space();
+    await waitFor(() => expect(second.recordStart).toHaveBeenCalledTimes(1));
+    return { control, second };
+  };
+
+  it('whose Booth is left while the start is out: the start answers ok and the session is stopped', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+      const { control, second } = await joinWhileStarting(host);
+      await act(() => vi.advanceTimersByTimeAsync(5000));
+      second.view.unmount();
+      await act(() => vi.advanceTimersByTimeAsync(15_000));
+      await control();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 5000));
+      expect(host.phase(), 'the session is left running with nobody to stop it').not.toBe('running');
+      expect(host.teleprompterStop).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('whose chapter changes while the start is out: the start answers ok and the session is stopped', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+      const { control } = await joinWhileStarting(host, true);
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      await act(async () => driver.go('/booth?chapter=c2'));
+      await act(() => vi.advanceTimersByTimeAsync(20_000));
+      await control();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 5000));
+      expect(host.phase(), 'the session is left running with nobody to stop it').not.toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('that times out with no live Booth while a session runs nobody else owns: the session is stopped', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+      const { control, second } = await joinWhileStarting(host);
+      // The host's pushes stop reaching the page, so no waiter ever hears the answer.
+      host.muteEvents();
+      second.view.unmount();
+      await control();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 5000));
+      expect(host.phase(), 'the session is left running with nobody to stop it').not.toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is released by a Stop: Record is free before the session it joined answers, and that session is let go when it does', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+      const { control } = await joinWhileStarting(host);
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+      expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).getAttribute('aria-busy')).not.toBe('true');
+      await control();
+      await act(() => vi.advanceTimersByTimeAsync(500));
+      expect(host.phase()).not.toBe('running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  const ends = ['left', 'chapter changed', 'stopped'] as const;
+  const answers = ['ok', 'refused', 'never'] as const;
+  for (const end of ends) {
+    for (const answer of answers) {
+      it(`class table: joiner ${end}, session answers ${answer}: no running session without a take`, async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+          const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+          const { control, second } = await joinWhileStarting(host, end === 'chapter changed');
+          await act(() => vi.advanceTimersByTimeAsync(1500));
+          if (end === 'left') second.view.unmount();
+          if (end === 'chapter changed') await act(async () => driver.go('/booth?chapter=c2'));
+          if (end === 'stopped') await space();
+          await act(() => vi.advanceTimersByTimeAsync(15_000));
+          if (answer === 'ok') await control();
+          if (answer === 'refused') await control.refuse();
+          await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 5000));
+          // A take may remain only when the narrator did not end it and the session is up for it; none of these ends is that.
+          expect(host.phase(), 'the session is left running with nobody to stop it').not.toBe('running');
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+    }
+  }
 });

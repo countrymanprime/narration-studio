@@ -36,7 +36,7 @@ import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript,
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
-import { claimListening, joinListening, type ListeningClaim, releaseListening, unclaimListening } from '../listening/listeningClaims';
+import { claimListening, joinListening, type ListeningClaim, ownsListening, releaseListening, unclaimListening } from '../listening/listeningClaims';
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 
@@ -449,6 +449,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // Past its limit the start has not answered: the session may still come up, and a stop sent now would reach a host that is not listening yet. The
     // claim is kept for the late answer (below), which is the one that lets it go.
     let unanswered = false;
+    let stoppedEarly = false;
     const letGo = () => {
       if (!unanswered && releaseListening(claim)) latest.current.session.stop();
     };
@@ -472,9 +473,28 @@ export function useBoothPage(options: BoothPageOptions) {
           return listening.timedOut ? { ok: false, reason: 'no answer in time', timedOut: true as const } : listening.value;
         })
       : joinsStarting
-        ? limited('listening', latest.current.session.whenUp()).then((up) =>
-            up.timedOut ? { ok: false, reason: 'no answer in time', timedOut: true as const } : up.value,
-          )
+        ? (() => {
+            const session = latest.current.session;
+            const up = session.whenUp();
+            // A Stop resolves the wait: the narrator ended this take, so the press need not hold Record for the session it joined. That session may still
+            // come up, and nobody else is looking at it: the answer, whenever it comes, lets it go through the claim.
+            const stopped = new Promise<{ ok: true; reason: string }>((resolve) => {
+              stopJoinerWait.current = () => {
+                stopJoinerWait.current = null;
+                stoppedEarly = true;
+                unanswered = true;
+                resolve({ ok: true, reason: '' });
+              };
+            });
+            void up.then((answer) => {
+              if (!answer.ok) return unclaimListening(claim);
+              if (stoppedEarly && releaseListening(claim)) session.stop();
+            });
+            return Promise.race([
+              limited('listening', up).then((waited) => (waited.timedOut ? { ok: false, reason: 'no answer in time', timedOut: true as const } : waited.value)),
+              stopped,
+            ]).finally(() => (stopJoinerWait.current = null));
+          })()
         : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
       together
@@ -484,8 +504,12 @@ export function useBoothPage(options: BoothPageOptions) {
     // A start the host refused or failed owns nothing: the session still running, if any, stays with whoever began it. (One that has not answered
     // by its limit keeps the claim: its late answer is let go by the owner.)
     const heardTimedOut = 'timedOut' in heard && heard.timedOut === true;
-    unanswered = listen && heardTimedOut;
+    unanswered = unanswered || (listen && heardTimedOut);
+    // A joiner that gave up waiting (its limit passed with no word from the host) while it was the owner: a session that came up unheard is stopped here,
+    // since no answer will reach anyone (the press that began it was answered before this one owned the session, or its Booth is gone).
+    const gaveUpAsOwner = !listen && heardTimedOut && ownsListening(claim);
     if (!heard.ok && !unanswered) unclaimListening(claim);
+    if (gaveUpAsOwner) void latest.current.session.stopIfRunning();
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
     if (!current()) {
       // The listening this press owns is let go, once; one a newer press joined is that press's now.
@@ -532,6 +556,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const starting = useRef<Promise<boolean> | null>(null);
   // A Stop was pressed while this press's listening was still starting.
   const stoppedWhileStarting = useRef(false);
+  // Set while a press waits on a session another press is starting; a Stop ends the wait.
+  const stopJoinerWait = useRef<(() => void) | null>(null);
   // The same press as state, for Record's pending look.
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
@@ -950,7 +976,9 @@ export function useBoothPage(options: BoothPageOptions) {
         // Marked before the stop is asked (the press may end meanwhile) and taken back unless the DAW accepted it: a stop the start guard ignored or the
         // DAW refused leaves the take running, so its listening must go on.
         stoppedWhileStarting.current = true;
+        const endWait = stopJoinerWait.current;
         if (!(await control.stop())) stoppedWhileStarting.current = false;
+        else endWait?.();
       } else await control.toggle();
     } else if (control.gate) blocked(control.gate);
     else await roll.startTake();
