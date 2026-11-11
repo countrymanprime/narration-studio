@@ -671,8 +671,9 @@ describe('the roll of a take has a limit', () => {
     return { page, roll, lands };
   };
 
-  const LANDED = /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it\. Check REAPER and stop it there\./;
-  const CUT = /The take you are recording may have been cut and restarted: stop it and record the passage again\./;
+  const LANDED =
+    /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it, and a take you are recording may have been cut and restarted\. Check REAPER and stop it there; record the passage again if needed\./;
+  const CUT = LANDED;
 
   it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
     try {
@@ -711,7 +712,6 @@ describe('the roll of a take has a limit', () => {
       await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
       await lands();
       await screen.findByText(LANDED);
-      expect(screen.queryByText(CUT)).toBeNull();
       expect(page.recordStop).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

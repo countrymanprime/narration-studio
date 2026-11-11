@@ -600,10 +600,9 @@ export function useBoothPage(options: BoothPageOptions) {
               tone: 'error',
             });
           }
+          // One sentence whatever the Booth can tell of the takes (an old mount, a start in flight): it cannot know whose recording this is.
           overlay.toast(
-            `A roll the Booth stopped waiting for has landed, so ${recorderLabel} may be recording from it. Check ${recorderLabel} and stop it there.${
-              recording ? ' The take you are recording may have been cut and restarted: stop it and record the passage again.' : ''
-            }`,
+            `A roll the Booth stopped waiting for has landed, so ${recorderLabel} may be recording from it, and a take you are recording may have been cut and restarted. Check ${recorderLabel} and stop it there; record the passage again if needed.`,
             { tone: 'error' },
           );
         });

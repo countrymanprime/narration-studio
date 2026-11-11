@@ -386,6 +386,9 @@ describe('every-way-out-asks-while-recording', () => {
     process.off('unhandledRejection', unhandled);
     expect(unhandled).not.toHaveBeenCalled();
     expect(page.navigate).not.toHaveBeenCalled();
+    // The reason starts the dialog's sentence, so it starts with a capital.
+    expect(page.dialog()?.spec.title).toBe('Could not stop the take');
+    expect(page.dialog()?.spec.body).toMatch(/^The stop did not go through\./);
   });
 
   it('Stop and leave with a stop the DAW never answers gives up at the stop limit and does not leave', async () => {

@@ -343,7 +343,13 @@ test('a roll that answers after Stop says to check the DAW and sends no stop', a
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   expect(await stops()).toBe(1);
-  await expect(page.getByText(/A roll the Booth stopped waiting for has landed, so REAPER may be recording from it/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page
+      .getByText(
+        /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it, and a take you are recording may have been cut and restarted/,
+      )
+      .first(),
+  ).toBeVisible({ timeout: 10_000 });
   // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
   expect(await stops()).toBe(1);
 });
@@ -376,7 +382,7 @@ test('a roll that answers while a newer take records does not stop that take', a
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/The take you are recording may have been cut and restarted/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/and a take you are recording may have been cut and restarted/).first()).toBeVisible({ timeout: 10_000 });
   expect(await stops()).toBe(1);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
