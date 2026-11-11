@@ -120,6 +120,6 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
     case 'missing':
       return { label: LINK_STATE_LABEL.missing, detail: 'not in the saved project', name: `Recording check for ${chapterTitle}: linked track is missing` };
     case 'unlinked':
-      return { label: 'No track yet', name: `Recording check for ${chapterTitle}: no track linked yet` };
+      return { label: LINK_STATE_LABEL.unlinked, name: `Recording check for ${chapterTitle}: no track linked yet` };
   }
 }
