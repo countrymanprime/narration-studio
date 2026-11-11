@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
+import { linkStateLabel } from '../../chapterTracks/chapterLink';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
@@ -33,7 +34,13 @@ export function useChapterLink({
   if (!problem || daw === null || audio.kind === 'ready' || audio.kind === 'empty') return { indicator: null, dialog: null };
   const text = noAudioText(audio, chapterName, daw, layout);
   return {
-    indicator: <ConnectionIndicator id="noaudio" label={destinationFor(layout).notLinkedChip} onOpen={state.reopen} />,
+    indicator: (
+      <ConnectionIndicator
+        id="noaudio"
+        label={audio.kind === 'missing' ? linkStateLabel('missing', destinationFor(layout).folders) : destinationFor(layout).notLinkedChip}
+        onOpen={state.reopen}
+      />
+    ),
     dialog: state.open ? (
       <ChapterLinkDialog
         chapterId={chapterId}
