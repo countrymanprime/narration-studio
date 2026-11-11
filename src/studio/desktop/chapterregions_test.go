@@ -135,7 +135,7 @@ func TestChapterRegionsPreviewSaysWhyEveryChapterWithoutARegionHasNone(t *testin
 func TestChapterRegionsPreviewSkipsAChapterLinkedToSeveralTracks(t *testing.T) {
 	host, ids, _ := newTestHostForChapterRegions(t)
 	for _, track := range []string{chapterLinksTrack, chapterLinksTrackII} {
-		if _, err := host.ChapterTrackMapConfirm(track, ids[0]); err != nil {
+		if _, err := host.seedLink(track, ids[0]); err != nil {
 			t.Fatal(err)
 		}
 	}

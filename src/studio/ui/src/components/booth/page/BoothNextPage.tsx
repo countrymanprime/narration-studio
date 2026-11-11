@@ -559,6 +559,7 @@ function BoothSession({
     requested,
     chapterId,
     recording: control.recording,
+    starting: control.starting,
     leave: page.leave,
     adopt,
     choose,
@@ -691,7 +692,7 @@ function BoothSession({
                   <ChapterStepper
                     chapters={pickerChapters}
                     value={pickerValue}
-                    disabled={control.recording ? 'Not while recording. Stop the take first.' : undefined}
+                    disabled={control.recording ? 'Not while recording. Stop the take first.' : control.starting ? 'Not while a take is starting.' : undefined}
                     onChange={(id) => changeChapter({ chapter: id })}
                     onStep={step}
                   />

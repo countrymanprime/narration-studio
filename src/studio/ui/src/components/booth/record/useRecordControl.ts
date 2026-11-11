@@ -127,8 +127,15 @@ const lostInDaw = (daw: DawKind | undefined) => {
 let appTakeRunning = false;
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
+// The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
+// that press began. `startsSent` numbers each start asked of the DAW; `runningStart` is the newest start that answered and runs. A late answer of an
+// older start finds a newer one running and stops nothing (the DAW would have refused the older one), so it never ends the take that Booth began (#3320).
+let startsSent = 0;
+let runningStart = 0;
 /** Forgets a take the app started; for tests that share the module. */
 export const forgetAppTake = (): void => {
+  startsSent = 0;
+  runningStart = 0;
   appTakeRunning = false;
   lastStartAt = 0;
 };
@@ -515,8 +522,9 @@ export function useRecordControl({
    * a take running, or a press still asking, is left alone and its own answer decides. Otherwise this one is stopped.
    */
   const stopLateStart = useCallback(
-    async (late: DawRecordStart) => {
+    async (late: DawRecordStart, seq: number) => {
       if (!late.ok) return;
+      if (runningStart > seq) return;
       // The newer press's own answer (`done(running)`), not a render's `recording`, which can lag behind it.
       if ((await inflight.current) || recordingRef.current) return;
       logUi('ui.record', 'A take started after its press had given up waiting; stopping it.');
@@ -575,8 +583,13 @@ export function useRecordControl({
         // From here the host has the start: a leave can no longer cancel it, so it asks (`starting`) and waits for the answer (`settle`).
         if (starting) setStarting(true);
         let result: DawRecordStart;
+        const seq = starting ? ++startsSent : 0;
         if (starting) {
-          const answered = await limited(recordStartLimit(recordsInApp(capabilitiesRef.current?.daw)), daw.recordStart(chapterId, at), stopLateStart);
+          const answered = await limited(
+            recordStartLimit(recordsInApp(capabilitiesRef.current?.daw)),
+            daw.recordStart(chapterId, at),
+            (late) => void stopLateStart(late, seq),
+          );
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
@@ -588,7 +601,18 @@ export function useRecordControl({
             return false;
           }
           result = answered.value;
-        } else result = await daw.recordStop();
+        } else {
+          // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
+          // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
+          const stopAsked = await limited('recordStop', daw.recordStop());
+          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          result = stopAsked.value;
+        }
+        if (result.ok && starting && !alive.current && runningStart > seq) {
+          // A newer press's take is the one running: this late start is not the Booth's to end.
+          logUi('ui.record', 'A late start from a Booth that was left was not stopped: a newer take runs.');
+          return false;
+        }
         if (result.ok && starting && !alive.current) {
           // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
           // only a start that nothing could wait for.)
@@ -598,6 +622,7 @@ export function useRecordControl({
         }
         if (result.ok) {
           running = starting;
+          runningStart = starting ? Math.max(runningStart, seq) : 0;
           if (starting) startedRef.current?.(result);
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
@@ -643,9 +668,18 @@ export function useRecordControl({
     [daw, system, chapterId, notify, stopLateStart, stopUnseenTake],
   );
 
+  // A take that ended in the DAW (the transport stopped, a quiet DAW) is no longer the running one: a start of an abandoned press that answers
+  // after it is stopped like any other orphan (`runningStart`).
+  const endedInDaw = useRef(recording);
+  useEffect(() => {
+    if (endedInDaw.current && !recording) runningStart = 0;
+    endedInDaw.current = recording;
+  }, [recording]);
+
   const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);
 
   const stopped = useCallback(() => {
+    runningStart = 0;
     heardRecording.current = false;
     setRecording(false);
   }, []);

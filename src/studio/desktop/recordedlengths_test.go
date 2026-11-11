@@ -39,7 +39,7 @@ func TestRecordedSecondsIsTheConfirmedTrackSAudioInTheSavedProject(t *testing.T)
 		t.Fatal(err)
 	}
 	for _, link := range [][2]string{{chapterLinksTrackII, ids[1]}, {chapterLinksTrackIJ, ids[1]}, {"{DEADBEEF-0000-4000-8000-000000000000}", ids[2]}} {
-		if _, err := host.ChapterTrackMapConfirm(link[0], link[1]); err != nil {
+		if _, err := host.seedLink(link[0], link[1]); err != nil {
 			t.Fatal(err)
 		}
 	}

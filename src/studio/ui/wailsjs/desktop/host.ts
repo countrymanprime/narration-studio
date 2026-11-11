@@ -349,14 +349,9 @@ export function ChapterTrackLinks(): $CancellablePromise<string> {
     return $Call.ByID(488920311);
 }
 
-export function ChapterTrackMapConfirm(trackGUID: string, chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(784242736, trackGUID, chapterID);
-}
-
 /**
- * ChapterTrackMapList and ChapterTrackMapConfirm are the narrator-confirmed
- * chapter-track mapping's bindings: list the confirmed rows and confirm one.
- * ChapterTrackUnlink (below) clears a chapter's link.
+ * ChapterTrackMapList is the narrator-confirmed chapter-track mapping's read:
+ * the confirmed rows. ChapterTrackSet and ChapterTrackUnlink (below) write them.
  */
 export function ChapterTrackMapList(): $CancellablePromise<string> {
     return $Call.ByID(20566568);

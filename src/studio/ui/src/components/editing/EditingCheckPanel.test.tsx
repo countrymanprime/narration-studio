@@ -146,7 +146,6 @@ describe('EditingCheckPanel', () => {
   it('moves a track another chapter holds to this one, and says which chapter lost it (#3053, #3365)', async () => {
     const user = userEvent.setup();
     const { api, notify } = renderPanel({ editing: { refusal: 'unmapped' } });
-    const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
     const dialog = await panel();
     await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
     const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
@@ -161,7 +160,6 @@ describe('EditingCheckPanel', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. Chapter 9 was linked to that track and is now not linked.'));
     expect(set).toHaveBeenCalledWith(chapter.id, option.value);
-    expect(confirm).not.toHaveBeenCalled();
   });
 
   it('labels a track another chapter holds before the press (#3365)', async () => {

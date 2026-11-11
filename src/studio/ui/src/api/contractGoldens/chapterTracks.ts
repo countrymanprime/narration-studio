@@ -10,7 +10,6 @@ import {
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
-  trackMappingSchema,
   trackSelectResultSchema,
 } from '../schemas/chapterTrackMap';
 import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from '../schemas/tracks';
@@ -24,7 +23,6 @@ export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'tracks-discovery-several.json': tracksDiscoverySchema,
   'tracks-discovery-selected.json': tracksDiscoverySchema,
   'chapter-track-map-empty.json': chapterTrackMappingSchema,
-  'chapter-track-map-confirmed.json': trackMappingSchema,
   'chapter-track-map-list.json': chapterTrackMappingSchema,
   'chapter-track-match-matched.json': chapterTrackMatchSchema,
   'chapter-track-match-ambiguous.json': chapterTrackMatchSchema,
