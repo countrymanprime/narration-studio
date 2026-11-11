@@ -24,7 +24,7 @@ import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineId
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
-import { holderName } from '../mapping/trackChoices';
+import { heldLabel, holderName } from '../mapping/trackChoices';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -217,11 +217,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && (state === 'linked' || state === 'several')) linkedTo.set(mapping.trackGuid, chapter.id);
-  // The chapter that holds a track, by the manuscript's current name (else the title the host kept, cleaned); the first holder when several do.
+  // The chapter that holds a track, named as every picker names it (the title the host kept, cleaned: holderName); the first holder when several do.
   const holders = new Map<string, { id: string; name: string }>();
   for (const { chapter, mapping, state } of rows) {
     if (mapping && (state === 'linked' || state === 'several') && !holders.has(mapping.trackGuid)) {
-      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(chapterName(chapter, 'short'), mapping.chapterTitle) });
+      holders.set(mapping.trackGuid, { id: chapter.id, name: holderName(undefined, mapping.chapterTitle) });
     }
   }
   const sharesTrack = (chapterId: string, folderGuid: string) => {
@@ -325,7 +325,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             const options = own.map((option) => {
               const holder = option.value ? holders.get(option.value) : undefined;
               return holder && holder.id !== chapter.id && option.value !== mapping?.trackGuid
-                ? { ...option, label: `${option.label} (linked to ${holder.name})` }
+                ? { ...option, label: heldLabel(option.label, holder.name) }
                 : option;
             });
             return (

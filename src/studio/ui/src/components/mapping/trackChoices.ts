@@ -29,6 +29,9 @@ export function holderName(current: string | undefined, kept: string | undefined
   return clean(current) || clean(kept) || 'another chapter';
 }
 
+/** A track's option text, with who holds it when another chapter does: the one place the "(linked to X)" template is written. */
+export const heldLabel = (name: string, heldBy?: string): string => (heldBy ? `${name} (linked to ${heldBy})` : name);
+
 /** One track the narrator can link a chapter to: `best` is the matcher's pick, `heldBy` the chapter the track is linked to now, if another one. */
 export type TrackChoice = {
   guid: string;

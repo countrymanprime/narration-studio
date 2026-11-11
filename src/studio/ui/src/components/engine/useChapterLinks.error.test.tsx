@@ -38,6 +38,36 @@ describe('the chapter links reader', () => {
     expect(seen.current?.mappings.length).toBeGreaterThan(0);
   });
 
+  // #3398 (intent review): a change that was written but whose list could not be read again still tells the screens fed by onChanged, and says so.
+  it('tells onChanged and says the change was made when only the re-read after a good write fails', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.chapterTrackMapList.bind(api);
+    let failing = false;
+    api.chapterTrackMapList = async () => {
+      if (failing) throw new Error('locked');
+      return real();
+    };
+    const changed: number[] = [];
+    const seen: { current?: ChapterLinks } = {};
+    function Probe() {
+      seen.current = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => changed.push(1));
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Probe />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.current?.mappings.length).toBeGreaterThan(0));
+    const chapterId = seen.current!.mappings[0].chapterId;
+    failing = true;
+    await act(async () => seen.current!.unlink(chapterId));
+    await waitFor(() => expect(seen.current?.error).toContain('The change was made, but the list could not be read again'));
+    expect(changed.length).toBeGreaterThan(0);
+  });
+
   it('a link cleared through the reader shows in another screen at once, and the row stays busy until it does', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const seen: { links?: ChapterLinks; other?: ChapterTrackState } = {};

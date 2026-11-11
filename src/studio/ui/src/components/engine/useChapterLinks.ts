@@ -132,7 +132,12 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         const notice = (result as { displacedNotice?: string } | undefined)?.displacedNotice;
         if (notice) setNotice(notice);
       })
-      .then(() => reload())
+      // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
+      .then(() =>
+        reload().catch((reason: unknown) => {
+          setError(changedButUnread(reason));
+        }),
+      )
       .then(() => onChanged())
       .catch((reason) => setError(written ? changedButUnread(reason) : apiErrorMessage(reason)))
       .finally(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { holderName, plainTrackChoices } from './trackChoices';
+import { heldLabel, holderName, plainTrackChoices } from './trackChoices';
 import type { Track } from '../../types';
 
 // #3398: one rule for the name a "(linked to X)" label shows, in every picker.
@@ -18,5 +18,9 @@ describe('holderName', () => {
     const track = { guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] } as unknown as Track;
     const [choice] = plainTrackChoices([track], [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: '   ' }], 'c1');
     expect(choice.heldBy).toBe('another chapter');
+  });
+  it('writes the "(linked to X)" template in one place', () => {
+    expect(heldLabel('Chapter 1')).toBe('Chapter 1');
+    expect(heldLabel('Chapter 1', 'Chapter 2')).toBe('Chapter 1 (linked to Chapter 2)');
   });
 });
