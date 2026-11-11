@@ -363,12 +363,19 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   /**
    * Asks the install question when `engine` and `model` are not on this computer: the host's asset list says, and a list that cannot be read
    * claims nothing. True when the model is there (or unknown), false when the question was opened instead. `revert` runs if it is closed
-   * without a download. A take must never begin behind this question, so Record calls this first.
+   * without a download. A take must never begin behind this question, so Record calls this first. `abandoned` says the caller gave up waiting: the
+   * question is then never opened.
    */
-  const ensureModel = async (which: { engine: string; model: string } = { engine, model }, revert?: () => void): Promise<boolean> => {
+  const ensureModel = async (
+    which: { engine: string; model: string } = { engine, model },
+    revert?: () => void,
+    abandoned?: () => boolean,
+  ): Promise<boolean> => {
     if (!isEngine(which.engine)) return true;
     try {
       const catalog = await api.assetsList();
+      // The press gave up on this check (it said so and is over): a question opened now would arrive out of nowhere, or over a take that runs.
+      if (abandoned?.()) return true;
       const asset = catalog.assets.find((item) => item.kind === which.engine && item.id === which.model);
       if (!asset || asset.installState === 'installed') return true;
       gate.current = { revert };

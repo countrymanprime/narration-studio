@@ -125,7 +125,7 @@ Pending, owner: where REAPER's time goes on the Windows machine, with a real aud
    ```
 
 3. Work as you do when REAPER feels slow for at least two minutes: edit in REAPER with the app's Editing page open, then record a take from the Booth. Note the clock time of each slow moment.
-4. Copy REAPER's console window (it opens on the first line), or send the file: Options > Show REAPER resource path, then `NarrationStudio/sessions/`, the newest `hub_…` folder, `bridge-timing.log`, and `record-timeline.log` beside it: one line per record press from the Booth, the time of each step before REAPER's pre-roll ([record-press timeline](record-press-timeline.md#the-timeline-diagnostic)).
+4. Copy REAPER's console window (it opens on the first line), or send the file: Options > Show REAPER resource path, then `NarrationStudio/sessions/`, the newest `hub_…` folder, `bridge-timing.log`, and `record-timeline.log` beside it: one line per record press from the Booth, the time of each step before REAPER's pre-roll ([record-press timeline](record-press-timeline.md#the-timeline-diagnostic)). A press that ended with a sentence at one of the Booth's limits has no line there: send the `ui.record.limit` lines from `logs/run.jsonl` instead.
 5. Switch it off with a second ReaScript holding `reaper.DeleteExtState('NarrationStudio', 'bridge_timing', false)`, or close REAPER (the switch does not outlive REAPER).
 6. Also note the app's and REAPER's CPU in Task Manager while idle and while it feels slow.
 

@@ -7,6 +7,8 @@ import { stopRecordingSpec } from './stopRecordingSpec';
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
 export type BoothLeaveSession = {
   recording: boolean;
+  /** True while the take is only being started (the DAW has not said it records): the question says so, and closes if the start ends with no take. */
+  startPending?: boolean;
   /** False when the DAW was already recording and the app did not start the take. Default true. */
   startedByApp?: boolean;
   daw: { name: string };
@@ -70,6 +72,15 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     };
   }, []);
   const { recording } = session;
+  // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
+  // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
+  const open = useRef<{ close: AbortController; pending: boolean } | null>(null);
+  useEffect(() => {
+    if (!open.current?.pending) return;
+    // The start landed as a take: from here the question is about a real take and is no longer closed for its end.
+    if (session.recording && !session.startPending) open.current.pending = false;
+    else if (!recording) open.current.close.abort();
+  }, [recording, session.recording, session.startPending]);
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
   // One at a time: a second caller while it is open is the same question, and does not move.
@@ -79,10 +90,14 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     const run = async (): Promise<boolean> => {
       const mine = take.current;
       const startedByApp = now.startedByApp ?? true;
-      let spec = stopRecordingSpec(now.daw.name, startedByApp);
+      let spec = stopRecordingSpec(now.daw.name, startedByApp, now.startPending);
       let refusedOnce = false;
       for (;;) {
-        if (gone.current || !(await overlay.confirm(spec)) || gone.current) return false;
+        const closing = new AbortController();
+        open.current = { close: closing, pending: !!now.startPending && !refusedOnce };
+        const yes = gone.current ? false : await overlay.confirm(spec, closing.signal).finally(() => (open.current = null));
+        // Closed because nothing records now: the narrator stays, with nothing left to stop (the press said why).
+        if (!yes || gone.current || closing.signal.aborted) return false;
         // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
         if (!startedByApp || refusedOnce) {
           answeredFor.current = mine;
@@ -152,7 +167,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     guard.setLeaveGuard(() => {
       const now = sessionRef.current;
       if (!now.recording && !asking.current) return 'allow';
-      return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true), decide };
+      return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true, now.startPending), decide };
     });
     return () => guard.setLeaveGuard(null);
   }, [guard, decide]);

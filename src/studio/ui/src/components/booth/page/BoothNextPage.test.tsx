@@ -1074,7 +1074,7 @@ describe('a refused stop keeps the take and the question', () => {
       if (verdict === 'allow' || !verdict.decide) throw new Error('a start the host has asks with a decision');
       let outcome: boolean | undefined;
       act(() => void verdict.decide!().then((value) => (outcome = value)));
-      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Leave while a take is starting?'));
       await act(async () => page.dialog()!.answer(true));
       await settle();
       expect(page.daw.recordStop).not.toHaveBeenCalled();
@@ -2405,22 +2405,53 @@ describe('a-record-press-while-listening-starts', () => {
     expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 
-  it('Stop while listening starts waits for it; listening up, the take stops and is kept as usual', async () => {
+  it('a Stop refused by the start guard keeps the listening and the take (#3321)', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    // A double tap: the second press lands inside the start guard and is ignored.
+    await rawSpace();
+    await settle();
+    await host.listen();
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    expect(host.stop).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+  });
+
+  it('a Stop the DAW refuses keeps the listening and the take (#3321)', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: false, changed: false, message: 'REAPER refuses.', undoSteps: 0 }));
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    await host.listen();
+    await settle();
+    expect(host.stop).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+  });
+
+  it('Stop while listening starts stops the DAW take at once; the listening, when it comes up, is let go (#3321)', async () => {
     const host = manual();
     const page = renderPage({ api: host.api as never });
     await ready();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     await space();
-    await settle();
-    expect(page.daw.recordStop).not.toHaveBeenCalled();
-    await host.listen();
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await host.listen();
     await waitFor(() => expect(host.stop).toHaveBeenCalled());
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
     expect(page.daw.undoLast).not.toHaveBeenCalled();
   });
 
-  it('Stop while listening starts, then listening fails: one stop, the take taken back, nothing saved or mapped', async () => {
+  it('Stop while listening starts, then listening fails: one stop, the take the narrator stopped is kept, and the failure is said', async () => {
     const host = manual();
     const page = renderPage({ api: host.api as never });
     page.daw.recordStop.mockImplementation(stopped(1));
@@ -2429,14 +2460,11 @@ describe('a-record-press-while-listening-starts', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     await space();
     await host.fail('The microphone is in use by another application.');
-    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
     await settle();
     expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
-    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
-    // The mock DAW refuses the undo (it never recorded the take this stop reports); its own sentence says what to do, once.
-    expect(toasts(page).filter((text) => /Take saved|could not be stopped/i.test(text))).toEqual([]);
-    expect(toasts(page).filter((text) => /Undo it in/.test(text))).toEqual([]);
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+    expect(toasts(page)).toContain('The take you stopped is kept, but the text could not follow your voice during it.');
   });
 
   it('a stop that fails after a failed listen is said, and the take is not mapped', async () => {
