@@ -51,7 +51,7 @@ function read(tracks: Track[], linked: string, unsavedChanges: boolean | 'refuse
   const project: TracksProject = { path: 'Book.rpp', tracks };
   const api = createMockApi({
     chapterTrackMapList: async () => ({ documentId: 'doc', mappings: [{ trackGuid: linked, chapterId: 'c1', chapterTitle: 'One', confirmedAt: '' }] }),
-    tracksList: async () => project,
+    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project: project }),
     workspaceAlignment: async () => unheard(),
     dawProjectState: () =>
       unsavedChanges === 'hang'

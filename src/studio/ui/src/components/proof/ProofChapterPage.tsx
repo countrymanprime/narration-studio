@@ -22,6 +22,7 @@ import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { useChapterCompare } from './useChapterCompare';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { useChapterTrackSnapshot } from '../chapterTracks/useChapterTrackSnapshot';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -61,6 +62,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
   // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
+  const snapshot = useChapterTrackSnapshot();
   const [read, setRead] = useState(false);
   const [reload, setReload] = useState(0);
   // Retry after a failed read: counted apart from `reload` (which only re-reads the check's state) so both reads run again.
@@ -80,12 +82,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.manuscriptChapters(), api.chapterTrackMapList()])
-      .then(([chapters, mapping]) => {
+    Promise.all([api.manuscriptChapters(), snapshot({ tracks: false })])
+      .then(([chapters, { mappings }]) => {
         if (!active) return;
         setRead(true);
         setChapter(chapters.find((candidate) => candidate.id === chapterId));
-        setLinkedTrackGuid(chapterLink(mapping.mappings, chapterId).trackGuid);
+        setLinkedTrackGuid(chapterLink(mappings, chapterId).trackGuid);
       })
       .catch((reason: unknown) => {
         if (active) setLoadError(apiErrorMessage(reason));
@@ -93,7 +95,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     return () => {
       active = false;
     };
-  }, [api, chapterId, attempt]);
+  }, [api, snapshot, chapterId, attempt]);
 
   // Clears the error and the half-read state first, so the skeleton shows with no stale sentence under it, then both reads run again.
   const retry = () => {

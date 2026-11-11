@@ -11,6 +11,7 @@ import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 import { chapterLink } from '../../chapterTracks/chapterLink';
+import { useChapterTrackSnapshot } from '../../chapterTracks/useChapterTrackSnapshot';
 
 type ChapterSource =
   | { status: 'loading' }
@@ -75,8 +76,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   const log = usePort('editLog');
   const cutsPort = usePort('editCuts');
   const fxPort = usePort('editWordFx');
-  const trackMap = usePort('chapterTrackMap');
-  const tracks = usePort('tracks');
+  const snapshot = useChapterTrackSnapshot();
   const daw = usePort('daw');
   const [state, setState] = useState<{ chapterId: string; read: ChapterRead | null; error: string | null; details?: string }>({
     chapterId,
@@ -95,8 +95,9 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     let live = true;
     const trackOf = async () => {
       try {
-        const [map, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
-        const guid = chapterLink(map.mappings, chapterId).trackGuid;
+        const { project, mappings } = await snapshot();
+        if (!project) throw new Error('The tracks could not be read.');
+        const guid = chapterLink(mappings, chapterId).trackGuid;
         // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
         const found = chapterTrackOf(project.tracks, guid);
         const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
@@ -138,7 +139,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     return () => {
       live = false;
     };
-  }, [workspace, alignment, log, cutsPort, fxPort, trackMap, tracks, daw, chapterId, chapterName, reads]);
+  }, [workspace, alignment, log, cutsPort, fxPort, snapshot, daw, chapterId, chapterName, reads]);
 
   const patch = useCallback((change: Partial<ChapterRead>) => setState((s) => (s.read ? { ...s, read: { ...s.read, ...change } } : s)), []);
   const setCuts = useCallback((cuts: EditCut[]) => patch({ cuts }), [patch]);

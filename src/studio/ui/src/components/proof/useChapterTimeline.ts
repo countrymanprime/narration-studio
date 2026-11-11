@@ -7,6 +7,7 @@ import { joinPeaks, joinedDuration, type PeaksSegment } from './frame/peaksJoin'
 import { useChapterPeaks } from './frame/useChapterPeaks';
 import { buildPlaylist } from './playlist';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { useChapterTrackSnapshot } from '../chapterTracks/useChapterTrackSnapshot';
 
 /** The chapter's recording on the app's timeline: its items' segments with peaks, its length, and where a project second falls on it. */
 export type ChapterTimeline = {
@@ -23,8 +24,7 @@ const EMPTY: ChapterTimeline = { segments: [], total: 0, toTimeline: () => null 
  * window draws. Undefined while the items load; a chapter with no mapped track or no playable item is an empty timeline.
  */
 export function useChapterTimeline(chapterId: string | undefined): ChapterTimeline | undefined {
-  const trackMap = usePort('chapterTrackMap');
-  const tracks = usePort('tracks');
+  const snapshot = useChapterTrackSnapshot();
   const workspace = usePort('workspace');
   const peaks = useChapterPeaks(chapterId);
   const [loaded, setLoaded] = useState<{ chapterId: string; items: TrackItem[]; aligned: WorkspaceItem[] }>();
@@ -33,17 +33,17 @@ export function useChapterTimeline(chapterId: string | undefined): ChapterTimeli
     if (!chapterId) return;
     let live = true;
     // The alignment names each item's index, which is what the peaks are keyed by; a chapter not yet aligned draws flat lines.
-    Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList(), workspace.workspaceAlignment(chapterId).catch(() => undefined)])
-      .then(([mapping, project, alignment]) => {
-        const trackGuid = chapterLink(mapping.mappings, chapterId).trackGuid;
-        const items = chapterTrackOf(project.tracks, trackGuid)?.items ?? [];
+    Promise.all([snapshot(), workspace.workspaceAlignment(chapterId).catch(() => undefined)])
+      .then(([{ project, mappings }, alignment]) => {
+        const trackGuid = chapterLink(mappings, chapterId).trackGuid;
+        const items = (project ? chapterTrackOf(project.tracks, trackGuid)?.items : undefined) ?? [];
         if (live) setLoaded({ chapterId, items, aligned: alignment?.items ?? [] });
       })
       .catch(() => live && setLoaded({ chapterId, items: [], aligned: [] }));
     return () => {
       live = false;
     };
-  }, [trackMap, tracks, workspace, chapterId]);
+  }, [snapshot, workspace, chapterId]);
 
   const current = loaded?.chapterId === chapterId ? loaded : undefined;
   return useMemo(() => {

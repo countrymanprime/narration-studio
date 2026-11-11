@@ -8,6 +8,7 @@ import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink } from '../../chapterTracks/chapterLink';
+import { useChapterTrackSnapshot } from '../../chapterTracks/useChapterTrackSnapshot';
 
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
@@ -39,7 +40,7 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * a sentence through `onRefused`, a fallback's notice through `onNotice`.
  */
 export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice: (sentence: string) => void = onRefused) {
-  const trackMap = usePort('chapterTrackMap');
+  const snapshot = useChapterTrackSnapshot();
   const tracks = usePort('tracks');
   const daw = usePort('daw');
   const sync = usePort('dawTransportSync');
@@ -136,9 +137,9 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
         },
       };
       try {
-        const [mapping, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
-        const guid = chapterLink(mapping.mappings, pickup.chapterId).trackGuid;
-        spot = sourceSpot(chapterTrackOf(project.tracks, guid)?.items ?? [], pickup);
+        const { project, mappings } = await snapshot();
+        const guid = chapterLink(mappings, pickup.chapterId).trackGuid;
+        spot = sourceSpot((project ? chapterTrackOf(project.tracks, guid)?.items : undefined) ?? [], pickup);
       } catch (error) {
         lookup = error instanceof Error && error.message ? error.message : NO_AUDIO;
       }
@@ -151,7 +152,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       if (by === null) live.current.onRefused(notice);
       else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, trackMap, tracks],
+    [daw, player, stop, stopDaw, sync, snapshot],
   );
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
