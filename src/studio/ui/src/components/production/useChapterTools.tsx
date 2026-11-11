@@ -6,7 +6,8 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
-import type { ChapterStatus, ChapterTrackLinks, ManuscriptChapter } from '../../types';
+import type { ChapterStatus, ManuscriptChapter } from '../../types';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
@@ -59,7 +60,9 @@ type Options = {
 export function useChapterTools({ rows, credits, notify, go, active, refreshKey, onChanged, onRestored, daw }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
-  const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
+  // Each chapter's link state is the app's one chapter-track state, not a read of this board's own: a chapter linked or created in the Engine
+  // panel shows here at once (#3355), and a change made here shows there.
+  const { details: trackLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
   const [open, setOpen] = useState<Open>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
@@ -74,11 +77,11 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   }, [api, notify]);
   const loadTrackLinks = useCallback(async () => {
     try {
-      setTrackLinks(await api.chapterTrackLinks());
+      await refreshLinks();
     } catch (error) {
       notify(describeApiError(error), 'error');
     }
-  }, [api, notify]);
+  }, [notify, refreshLinks]);
   const reload = useCallback(() => {
     if (!active) return;
     void loadChapters();

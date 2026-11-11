@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../api/ApiContext';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
 import { DAW_SETUPS } from '../../fixtures/daw';
@@ -45,16 +46,19 @@ async function renderPage({
     <MemoryRouter>
       <ApiProvider api={api}>
         <TooltipProvider>
-          <ProductionPage
-            data={data}
-            go={go}
-            notify={notify}
-            goToScript={vi.fn()}
-            goToBooth={goToBooth}
-            refreshBootstrap={async () => {}}
-            onManuscriptChanged={onManuscriptChanged}
-            dawConnectGraceMs={dawConnectGraceMs}
-          />
+          {/* As in the app shell: the board reads each chapter's link state from the one chapter-track state. */}
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <ProductionPage
+              data={data}
+              go={go}
+              notify={notify}
+              goToScript={vi.fn()}
+              goToBooth={goToBooth}
+              refreshBootstrap={async () => {}}
+              onManuscriptChanged={onManuscriptChanged}
+              dawConnectGraceMs={dawConnectGraceMs}
+            />
+          </ChapterTrackStateProvider>
         </TooltipProvider>
         <OverlayHost />
       </ApiProvider>
