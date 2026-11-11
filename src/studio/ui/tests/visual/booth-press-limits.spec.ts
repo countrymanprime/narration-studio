@@ -15,6 +15,15 @@ type Calls = { stops: number; starts: number; hangs: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+/** How many places on screen say `text` (a message, the footer's sentence): a refusal is said once (#3322). A screen-reader-only description is not on screen. */
+const timesSaid = (page: Page, text: RegExp) =>
+  page.evaluate((source) => {
+    const pattern = new RegExp(source);
+    return [...document.querySelectorAll('body *')].filter((el) => {
+      const box = el.getBoundingClientRect();
+      return el.children.length === 0 && pattern.test(el.textContent ?? '') && box.width > 1 && box.height > 1;
+    }).length;
+  }, text.source);
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
 /** Opens the Booth with the named host call hanging once (the first press) and answering normally after; `recordStartLate` answers after 12 s. */
@@ -73,6 +82,7 @@ test('a model check that never answers ends the press with a sentence, and the n
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/The speech model could not be checked in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time, so no take was started/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
   await page.keyboard.press('Space');
@@ -86,6 +96,7 @@ test('a DAW start that never answers ends the press with a sentence and Record i
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   // The overridden start never reached the mock DAW, so its recording state says nothing here: what counts is that no stop was sent for a take that never started.
   expect((await calls(page)).hangs).toBe(1);
@@ -99,6 +110,7 @@ test('a DAW start that answers after its limit is stopped, never left running', 
   await arm(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
   // The host answers at 12 s with a take; the Booth gave up at 10 s, so it stops that take.
   await expect.poll(async () => (await calls(page)).stops, { timeout: 8000 }).toBeGreaterThanOrEqual(1);
   await expect(stop(page)).toHaveCount(0);
@@ -110,6 +122,7 @@ test('a listening start that never answers ends the press with a sentence, and n
   await page.keyboard.press('Space');
   // The DAW starts meanwhile (Record reads Stop); the take is dropped when the listening gives up.
   await expect(page.getByText(/The take was taken back because the text could not follow your voice in time/).first()).toBeVisible({ timeout: 52_000 });
+  expect(await timesSaid(page, /The take was taken back because the text could not follow your voice in time/)).toBe(1);
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
@@ -125,6 +138,7 @@ test('a voice choice that never answers ends a punch press with a sentence and s
     .click();
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /could not be set in time, so no take was started/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
 });
@@ -185,6 +199,7 @@ test('a model check that answers missing after its limit opens no install questi
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time/)).toBe(1);
   await page.waitForTimeout(5000);
   await expect(installQuestion(page)).toHaveCount(0);
   expect(await sawInstallQuestion(page)).toBe(false);
@@ -195,6 +210,7 @@ test('Record pressed again after the limit records, and the late "not installed"
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time/)).toBe(1);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(5000);

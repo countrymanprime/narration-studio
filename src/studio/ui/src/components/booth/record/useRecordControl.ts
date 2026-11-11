@@ -49,6 +49,11 @@ export type RecordControlState = {
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
+  /**
+   * `reason` is the sentence of the last press (a refusal, a limit, a failure), which the press said as a message already: the footer keeps it for Record's
+   * description and does not draw it a second time (#3322). A standing reason (the gate, a read that failed) is not told by a press, so it is drawn.
+   */
+  told?: boolean;
   /** What stops a press now, or null when Record can start: the same precondition the press would be refused for. */
   gate: RecordBlock | null;
   disabled: boolean;
@@ -611,6 +616,7 @@ export function useRecordControl({
     stop,
     startedByApp: true,
     reason,
+    told: !check && shown !== '',
     gate,
     disabled: !recording && (!!check || blind),
     toggle,

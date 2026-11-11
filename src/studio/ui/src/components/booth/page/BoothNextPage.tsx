@@ -49,6 +49,7 @@ import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
+import { PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -79,6 +80,7 @@ import { useBoothSpeakers } from './useBoothSpeakers';
 import { useChapterNavigation } from './useChapterNavigation';
 import { useChapterResume } from './useChapterResume';
 import { RecordedThroughChip } from '../resume/RecordedThroughChip';
+import { ChosenStartChip } from '../resume/ChosenStartChip';
 import { chapterRecordedDetail, recordedThroughLabel } from '../../../recordedThrough';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
@@ -623,7 +625,8 @@ function BoothSession({
       ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
       ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
     if (noticeUp) return setRecordAsks((n) => n + 1);
-    overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
+    overlay.dismissTopic(PRESS_NOTE_TOPIC);
+    overlay.toast(block.reason, { tone: 'error', topic: PRESS_TOPIC, action: { label: 'Check again', onAction: control.checkAgain } });
   };
   // The message about the link is for before the take: once one starts it would only cover the text.
   useEffect(() => {
@@ -701,6 +704,7 @@ function BoothSession({
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
                   <>
+                    {page.startParagraph !== undefined && !side.open ? <ChosenStartChip paragraph={page.startParagraph} /> : null}
                     {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
                     <ResumeOfferLine
                       state={offerAwayFrom(page.resume, page.position)}
@@ -852,8 +856,9 @@ function BoothSession({
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
-            // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time.
-            quietWhy={noticeShown}
+            // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time. A press's own sentence
+            // (a refusal, a limit) is said by its message, so the footer does not repeat it (#3322).
+            quietWhy={noticeShown || control.told}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',

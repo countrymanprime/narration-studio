@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
@@ -153,7 +154,7 @@ describe('useRoll', () => {
     const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false });
     await act(() => hook.result.current.startFromHere(4));
     expect(actions.chooseStart).toHaveBeenCalledWith(4, true);
-    expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3');
+    expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3', PRESS_NOTE_TOPIC);
     expect(dialog()).toBeUndefined();
     expect(actions.roll).not.toHaveBeenCalled();
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
@@ -191,7 +192,7 @@ describe('useRoll', () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
     await act(() => hook.result.current.startTake());
     expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T');
-    expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.');
+    expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.', PRESS_NOTE_TOPIC);
     expect(actions.notify.mock.invocationCallOrder[0]).toBeLessThan(actions.beginTake.mock.invocationCallOrder[0]);
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
@@ -199,7 +200,7 @@ describe('useRoll', () => {
   it('a passage nobody recorded says the take goes on from the end', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 4 });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.");
+    expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.", PRESS_NOTE_TOPIC);
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
   });
 
@@ -1008,8 +1009,8 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
     expect(punchTarget).toHaveBeenCalledTimes(1);
     expect(h.actions.chooseStart).toHaveBeenCalledExactlyOnceWith(1, true);
     expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
-    expect(h.actions.notify).toHaveBeenCalledWith('Starting from ¶ 1');
-    expect(h.actions.notify).toHaveBeenCalledWith(expect.stringContaining('was not recorded before'));
+    expect(h.actions.notify).toHaveBeenCalledWith('Starting from ¶ 1', PRESS_NOTE_TOPIC);
+    expect(h.actions.notify).toHaveBeenCalledWith(expect.stringContaining('was not recorded before'), PRESS_NOTE_TOPIC);
   });
 
   it('a recorded phrase: the sentence says the start was not used, and no take starts', async () => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
+import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
@@ -42,7 +43,7 @@ export type RollActions = TakeControls & {
   moveTo: (phrase: number) => void;
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
-  notify: (sentence: string) => void;
+  notify: (sentence: string, topic?: string) => void;
 };
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
@@ -257,8 +258,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           }
           // Never recorded: nothing to punch over on any DAW, so the take goes on from the end from this phrase, with no second lookup.
           actionsRef.current.chooseStart(to, true);
-          actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
-          actionsRef.current.notify(`¶ ${s.paragraphOf(to) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
+          actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`, PRESS_NOTE_TOPIC);
+          actionsRef.current.notify(
+            `¶ ${s.paragraphOf(to) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`,
+            PRESS_NOTE_TOPIC,
+          );
           return await actionsRef.current.beginTake();
         } finally {
           endWait(mine);
@@ -268,7 +272,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (s.recording) return rollFrom(to);
       // Not recording yet: the text moves to the phrase (chooseStart), and the take starts there now, with the DAW moved to that spot first,
       // so the narrator never has to find the place and click in the DAW with a live microphone.
-      actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
+      actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`, PRESS_NOTE_TOPIC);
       return startTakeRef.current(to);
     },
     [rollFrom, lookUp, endWait, joinsOrRefuses],
@@ -317,7 +321,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (outdated(mine)) return;
         if (target.outcome === 'never_recorded') {
           // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
-          actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
+          actionsRef.current.notify(
+            `¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`,
+            PRESS_NOTE_TOPIC,
+          );
           return await actionsRef.current.beginTake();
         }
         if (target.outcome !== 'found' || target.start === undefined) {
@@ -338,7 +345,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
         if (outdated(mine)) return;
         // The narrator is told which track is recorded over before the take starts, never only after.
-        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
+        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`, PRESS_NOTE_TOPIC);
         return await actionsRef.current.beginTake(target.start);
       } finally {
         endWait(mine);
