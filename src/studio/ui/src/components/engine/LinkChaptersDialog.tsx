@@ -24,28 +24,7 @@ import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineId
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
-
-/** The name a holder is shown by: the manuscript's, else the host's kept title, with control and direction characters made spaces and a long one clipped. */
-function holderName(current: string, kept: string): string {
-  const clean = (text: string) => {
-    const spaced = Array.from(text, (ch) => {
-      const code = ch.codePointAt(0) ?? 0;
-      return code < 0x20 ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        (code >= 0x2066 && code <= 0x2069)
-        ? ' '
-        : ch;
-    })
-      .join('')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return spaced.length > 60 ? `${spaced.slice(0, 59)}…` : spaced;
-  };
-  return clean(current) || clean(kept) || 'another chapter';
-}
+import { holderName } from '../mapping/trackChoices';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -345,7 +324,9 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
             const options = own.map((option) => {
               const holder = option.value ? holders.get(option.value) : undefined;
-              return holder && holder.id !== chapter.id ? { ...option, label: `${option.label} (linked to ${holder.name})` } : option;
+              return holder && holder.id !== chapter.id && option.value !== mapping?.trackGuid
+                ? { ...option, label: `${option.label} (linked to ${holder.name})` }
+                : option;
             });
             return (
               <TableRow key={chapter.id}>

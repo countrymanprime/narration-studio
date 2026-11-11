@@ -2,6 +2,33 @@ import type { ChapterTrackMatch, TrackMapping } from '../../api/contracts/chapte
 import type { Track } from '../../types';
 import { trackName } from '../tracks/trackName';
 
+/**
+ * The name a track's holder is shown by in "(linked to X)": the manuscript's name when the caller has it, else the title the host kept with the link,
+ * with control and direction characters made spaces and a long one clipped, else "another chapter" (an empty name left the label off, or read "linked
+ * to " with no one). One rule for every picker (#3398).
+ */
+export function holderName(current: string | undefined, kept: string | undefined): string {
+  const clean = (text: string | undefined) => {
+    if (typeof text !== 'string') return '';
+    const spaced = Array.from(text, (ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return code < 0x20 ||
+        (code >= 0x7f && code <= 0x9f) ||
+        code === 0x200e ||
+        code === 0x200f ||
+        (code >= 0x202a && code <= 0x202e) ||
+        (code >= 0x2066 && code <= 0x2069)
+        ? ' '
+        : ch;
+    })
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return spaced.length > 60 ? `${spaced.slice(0, 59)}…` : spaced;
+  };
+  return clean(current) || clean(kept) || 'another chapter';
+}
+
 /** One track the narrator can link a chapter to: `best` is the matcher's pick, `heldBy` the chapter the track is linked to now, if another one. */
 export type TrackChoice = {
   guid: string;
@@ -45,7 +72,7 @@ export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapp
       name: named.get(guid) ?? guid,
       best: guid === best,
       ...(summary ? placement(summary) : {}),
-      ...(holder ? { heldBy: holder.chapterTitle } : {}),
+      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
     };
   });
 }
@@ -60,7 +87,13 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
 export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
   tracks.map((t) => {
     const holder = links.find((l) => l.trackGuid === t.guid && l.chapterId !== chapterId);
-    return { guid: t.guid, name: trackName(t.name, t.index), best: false, ...placement(t), ...(holder ? { heldBy: holder.chapterTitle } : {}) };
+    return {
+      guid: t.guid,
+      name: trackName(t.name, t.index),
+      best: false,
+      ...placement(t),
+      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
+    };
   });
 
 /** The track to preselect: the matcher's best, or null. */
