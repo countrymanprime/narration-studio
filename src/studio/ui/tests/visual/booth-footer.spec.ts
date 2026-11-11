@@ -135,3 +135,90 @@ for (const state of ['setup', 'voices'] as const) {
     expect(problems).toEqual([]);
   });
 }
+
+// The readout stands above the footer's rim: no footer control, the timer or the sentence is under it, and a press at the top edge of a control reaches the control (#3319).
+const clearOfControls = (page: Page) =>
+  page.evaluate(() => {
+    const chip = document.querySelector('[data-chosen-start]')?.closest('[role="group"]')?.getBoundingClientRect();
+    if (!chip) return null;
+    const footer = document.querySelector('#btimer')!.closest('.border-t')!;
+    const problems: string[] = [];
+    const controls = [...footer.querySelectorAll<HTMLElement>('button, #btimer, #brec-why, #blisten-why')].filter((el) => el.getBoundingClientRect().width > 1);
+    for (const el of controls) {
+      const box = el.getBoundingClientRect();
+      const name = el.getAttribute('aria-label') ?? el.id ?? el.textContent?.slice(0, 16) ?? 'control';
+      if (box.left < chip.right && box.right > chip.left && box.top < chip.bottom && box.bottom > chip.top) problems.push(`${name} is under the readout`);
+      if (el.tagName === 'BUTTON' || el.id === 'btimer') {
+        const hit = document.elementFromPoint((box.left + box.right) / 2, box.top + 1);
+        if (!hit || !el.contains(hit)) problems.push(`a press at the top edge of ${name} reaches ${hit?.id || hit?.tagName}`);
+      }
+    }
+    return problems;
+  });
+
+for (const state of ['setup', 'voices'] as const) {
+  test(`the chosen start's readout leaves every footer control clear (${state === 'voices' ? 'voice folders' : 'flat chapter'})`, async ({ page }) => {
+    test.setTimeout(300_000);
+    await chooseRefusedStart(page, state);
+    const problems: string[] = [];
+    for (let width = 320; width <= 1440; width += 20) {
+      for (const height of [450, 800]) {
+        await page.setViewportSize({ width, height });
+        await page.waitForTimeout(30);
+        for (const paragraph of ['1', '12345']) {
+          await page.evaluate((n) => {
+            const chip = document.querySelector('[data-chosen-start]');
+            if (chip) chip.textContent = `Starts ¶ ${n}`;
+          }, paragraph);
+          const found = await clearOfControls(page);
+          if (found === null) continue;
+          for (const problem of found) problems.push(`${width}x${height} ¶ ${paragraph}: ${problem}`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+    // A cold read armed (the main button reads Cold read) changes the controls the readout must clear.
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-chosen-start]')).toBeVisible();
+    expect(await clearOfControls(page)).toEqual([]);
+  });
+
+  test(`the chosen start's readout leaves the controls clear while a take runs (${state === 'voices' ? 'voice folders' : 'flat chapter'})`, async ({
+    page,
+  }) => {
+    test.setTimeout(300_000);
+    await page.addInitScript(() => {
+      let calls = 0;
+      const sentence = 'REAPER refused to start recording, so nothing was recorded.';
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        readAloudRecordStart: () => {
+          calls += 1;
+          return Promise.resolve(
+            calls === 1 ? { ok: false, outcome: 'refused', message: sentence, refused: sentence } : { ok: true, outcome: 'started', position: 0, message: '' },
+          );
+        },
+      };
+    });
+    await drive(page, state, { width: 1280, height: 700 });
+    await showChapterTop(page);
+    await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+    await page
+      .getByRole('menuitem', { name: /Start from here/ })
+      .first()
+      .click();
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('[data-chosen-start]')).toBeVisible();
+    const problems: string[] = [];
+    for (const width of [320, 340, 360, 380, 400, 420, 480, 540, 680, 720, 760, 1000, 1280]) {
+      await page.setViewportSize({ width, height: 450 });
+      await page.waitForTimeout(30);
+      for (const problem of (await clearOfControls(page)) ?? []) problems.push(`${width}: ${problem}`);
+    }
+    expect(problems).toEqual([]);
+  });
+}

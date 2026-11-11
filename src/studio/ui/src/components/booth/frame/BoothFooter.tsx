@@ -111,8 +111,8 @@ export function BoothFooter({
   /** The chapter records on a folder of voices: the footer hints show the voice keys. */
   voiceFolders?: boolean;
   /**
-   * The chosen start's readout. It is laid over the footer's top edge at the right (absolutely placed, taking no room in the footer's rows), so the footer is the
-   * same height with or without it at every width; a row it could wrap onto, or a width it could outgrow, would move the reading area (#3319).
+   * The chosen start's readout. It stands just above the footer's rim at the right (absolutely placed, taking no room in the footer's rows and no press), so the
+   * footer is the same height with or without it at every width and no control is covered; a row it could wrap onto, or a width it could outgrow, would move the reading area (#3319).
    */
   start?: ReactNode;
 }) {
@@ -136,12 +136,6 @@ export function BoothFooter({
   const shownWhy = why && !listenWhy && !quietWhy ? why : undefined;
   return (
     <div ref={bar} className="relative flex flex-col">
-      {start ? (
-        // Half above the footer's rim and half in its top padding: it lies over the bottom of the text (which fades out there), not over any control.
-        <div data-chosen-start-wrap="" className="absolute -top-3 right-[var(--page-gutter)] z-[1]">
-          {start}
-        </div>
-      ) : null}
       {/*
         One row from 1024 px: the controls, the sentence in the room between (wrapping inside it), the meter at the right edge. Narrower,
         the meter stays on the controls' row and the sentence takes the full row under them, so the footer is never a stack of
@@ -198,6 +192,13 @@ export function BoothFooter({
       <div className={GIVES_WAY_IN_A_SHORT_WINDOW}>
         <KeyHints id="bkeys" hints={hints} />
       </div>
+      {start ? (
+        // Entirely above the footer's rim, at the right, over the bottom of the text (which fades out there): it intersects no control and takes no press, so
+        // a click meant for the reading or for Record goes where it was aimed. It is after the controls in the order a screen reader reads.
+        <div data-chosen-start-wrap="" className="pointer-events-none absolute right-[var(--page-gutter)] bottom-full z-[1]">
+          {start}
+        </div>
+      ) : null}
     </div>
   );
 }

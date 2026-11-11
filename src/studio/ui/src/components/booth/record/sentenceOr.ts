@@ -1,5 +1,5 @@
-/** Characters that draw nothing: a message made only of them (and spaces) says nothing. */
-const INVISIBLE = new RegExp('[\\s\\u00AD\\u061C\\u180E\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2064\\u2066-\\u2069\\uFEFF]', 'g');
+/** Characters that draw nothing: white space, every default-ignorable code point (zero-width, variation selectors, tags, the filler characters) and the blank braille and Hangul fillers. */
+const INVISIBLE = new RegExp('[\\s\\p{Default_Ignorable_Code_Point}\\u2800\\u3164]', 'gu');
 
 /**
  * A host's sentence for why a press ended, or `fallback` when it has no words (nothing, spaces, a zero-width space): the message service draws nothing for such a

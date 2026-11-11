@@ -15,7 +15,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'chosen-start',
     description:
-      'Booth after Start from here on a phrase the DAW refused to start on, the refusal dismissed (#3319): the start is kept and shown as the dashed readout "Starts ¶ n" laid over the footer\'s top edge at the right while the side panel is closed (1280 px and narrower, a drawer), and as "Next roll starts from ¶ n" in the panel\'s Last punch while it is open (wide); the phrase is tinted in the text, and the footer is the height it is with no start chosen (the top bar may gain the "Resume at" row, as it does on main whenever the reading moves)',
+      'Booth after Start from here on a phrase the DAW refused to start on, the refusal dismissed (#3319): the start is kept and shown as the dashed readout "Starts ¶ n" standing just above the footer\'s rim at the right while the side panel is closed (1280 px and narrower, a drawer), and as "Next roll starts from ¶ n" in the panel\'s Last punch while it is open (wide); the phrase is tinted in the text, and the footer is the height it is with no start chosen (the top bar may gain the "Resume at" row, as it does on main whenever the reading moves)',
     ...SIDE_PANEL_DEPENDS_ON_WIDTH,
     ...REFLOW_AND_SMALL_WINDOW,
   },
