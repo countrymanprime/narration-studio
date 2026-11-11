@@ -344,6 +344,25 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     await expect(daw.result.current.endConfirmed()).resolves.toBe(true);
   });
 
+  // The leave guard allows an exit silently only while `endUnconfirmed()` is false: true from the push of the stop until a read says the DAW answers.
+  it('endUnconfirmed is true at once after a take ends, and stays true when the DAW does not answer', async () => {
+    const { daw, transport } = await running();
+    daw.set(refused('not_running'));
+    transport({ playing: false, recording: false });
+    expect(daw.result.current.endUnconfirmed()).toBe(true);
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await act(() => daw.result.current.endConfirmed());
+    expect(daw.result.current.endUnconfirmed()).toBe(true);
+  });
+
+  it('endUnconfirmed goes false once the DAW answers after the end, and a new take starts clean', async () => {
+    const { daw, transport } = await running();
+    transport({ playing: false, recording: false });
+    expect(daw.result.current.endUnconfirmed()).toBe(true);
+    await act(() => daw.result.current.endConfirmed());
+    expect(daw.result.current.endUnconfirmed()).toBe(false);
+  });
+
   it('when the DAW answers again, the narrator is told once what became of the take: this window ended it, and the DAW is where to check', async () => {
     const { daw, transport } = await running();
     daw.set(refused('not_running'));

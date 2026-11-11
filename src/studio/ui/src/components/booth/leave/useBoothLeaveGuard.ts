@@ -15,6 +15,8 @@ export type BoothLeaveSession = {
   stopRecording: () => Promise<DawResult>;
   /** Whether the take that just ended ended with the DAW answering (true) or because the DAW went quiet (false). Absent: confirmed. A take of a DAW that went quiet may still record, so it is not taken for over. */
   endConfirmed?: () => Promise<boolean>;
+  /** True while a take that has ended is not yet known to have ended with the DAW answering. Leaving is not allowed silently then: the stop is tried and its refusal asked. */
+  endUnconfirmed?: () => boolean;
   /** Resolves when a start that is still out lands or fails, with whether a take is running then. The narrator's yes waits for it, so what it stops is a take. */
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
@@ -214,7 +216,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   useEffect(() => {
     guard.setLeaveGuard(() => {
       const now = sessionRef.current;
-      if (!now.recording && !asking.current) return 'allow';
+      if (!now.recording && !asking.current && !now.endUnconfirmed?.()) return 'allow';
       return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true, now.startPending), decide };
     });
     return () => guard.setLeaveGuard(null);
@@ -228,7 +230,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         await asking.current;
         return;
       }
-      if (!sessionRef.current.recording) {
+      if (!sessionRef.current.recording && !sessionRef.current.endUnconfirmed?.()) {
         go(next);
         return;
       }

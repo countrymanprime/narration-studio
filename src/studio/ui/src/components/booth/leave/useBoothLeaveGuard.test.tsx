@@ -34,6 +34,54 @@ describe('useBoothLeaveGuard', () => {
     expect(session.recording).toBe(false);
   });
 
+  // #3349 QA B-A: `recording` false is also what a DAW that went quiet leaves behind. Leaving is silent only when the end is confirmed with the DAW answering.
+  describe('a take that ended with the DAW not (yet) known to answer', () => {
+    const refusal = async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult;
+
+    it('class guard: the exit is allowed with no question only when nothing records AND the end is confirmed', () => {
+      for (const [recording, unconfirmed, allowed] of [
+        [false, false, true],
+        [false, true, false],
+        [true, false, false],
+        [true, true, false],
+      ] as const) {
+        const { store } = setup({ recording, endUnconfirmed: () => unconfirmed });
+        expect(store.checkLeave('/script') === 'allow', `recording ${recording}, unconfirmed ${unconfirmed}`).toBe(allowed);
+      }
+    });
+
+    it('asks, tries the stop, and asks "Could not stop the take" when the stop is refused', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false }, refusal);
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.go).not.toHaveBeenCalled();
+      act(() => t.dialog()!.answer(false));
+    });
+
+    it('Keep recording stays, and the next exit asks again', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      act(() => t.dialog()!.answer(false));
+      await flush();
+      act(() => void t.hook.result.current.leave('/script', t.go));
+      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      act(() => t.dialog()!.answer(false));
+      expect(t.go).not.toHaveBeenCalled();
+    });
+
+    it('a take that ended with the DAW answering leaves with no question and no stop', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => false });
+      await act(() => t.hook.result.current.leave('/script', t.go));
+      expect(t.go).toHaveBeenCalledWith('/script');
+      expect(t.stopRecording).not.toHaveBeenCalled();
+    });
+  });
+
   it('recording-asks-stop-recording, naming the DAW from the report', () => {
     const { store } = setup({ daw: { name: 'Audacity' } });
     expect(store.checkLeave('/proof')).toEqual({

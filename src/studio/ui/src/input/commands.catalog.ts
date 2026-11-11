@@ -109,6 +109,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
   {
+    id: 'project.back',
+    label: 'Back from the project picker',
+    scope: 'page',
+    defaults: [key('Escape')],
+    shadows: ['editing.escape', 'script.escape', 'proof.escape'],
+    group: 'Go to',
+    surfaces: ['help', 'settings'],
+  },
+  {
     id: 'workspace.play',
     label: 'Play or pause the chapter',
     scope: 'page',
@@ -420,15 +429,6 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'proof.decide.edit', label: 'Fix in edit', scope: 'page', defaults: [key('KeyE')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.waive', label: 'Fine as read', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.defer', label: 'Defer', scope: 'page', defaults: [key('KeyD')], group: 'Proof', surfaces: ['help', 'settings'] },
-  {
-    id: 'project.back',
-    label: 'Back to the open project from the project picker',
-    scope: 'page',
-    defaults: [key('Escape')],
-    shadows: ['editing.escape', 'script.escape', 'proof.escape'],
-    group: 'Project',
-    surfaces: ['help', 'settings'],
-  },
   {
     id: 'proof.escape',
     label: 'Back to all chapters',

@@ -47,6 +47,8 @@ export type RecordControlState = {
   settle: () => Promise<boolean>;
   /** Resolves whether the take that just ended ended with the DAW answering (true), or because the DAW went quiet (false): only the first is a take known to be over. */
   endConfirmed: () => Promise<boolean>;
+  /** True while a take that has ended is not yet known to have ended with the DAW answering: leaving is then not allowed silently. */
+  endUnconfirmed: () => boolean;
   /** False when the DAW was already recording and this app did not start the take; the leave guard reads it. */
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
@@ -181,6 +183,19 @@ export function useRecordControl({
   // What `endConfirmed` answers: set where a take ends, so the leave guard can tell a take the DAW ended from a DAW that went quiet. Null (a stop of ours) is confirmed.
   const endCheck = useRef<Promise<boolean> | null>(null);
   const endConfirmed = useCallback(() => endCheck.current ?? Promise.resolve(true), []);
+  // True from the moment a take is seen to end until a read says the DAW answers: a take that ended with the DAW quiet, or not yet known to be answering, may
+  // still be recording, so leaving is not silently allowed on `recording` being false alone (`endUnconfirmed`, read by the leave guard).
+  const endOpen = useRef(false);
+  const endUnconfirmed = useCallback(() => endOpen.current, []);
+  const markEnd = (read: Promise<void>) => {
+    endOpen.current = true;
+    const check: Promise<boolean> = read.then(() => {
+      const answering = reachableRef.current !== false;
+      if (endCheck.current === check) endOpen.current = !answering;
+      return answering;
+    });
+    endCheck.current = check;
+  };
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
   const blockedRef = useRef(onBlocked);
@@ -291,6 +306,7 @@ export function useRecordControl({
     if (!recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
       heardRecording.current = true;
       endCheck.current = null;
+      endOpen.current = false;
       setRecording(true);
     }
   }, [recording, project?.playState, inApp]);
@@ -336,7 +352,7 @@ export function useRecordControl({
           .catch(() => {
             reachableRef.current = false;
           });
-        endCheck.current = read.then(() => reachableRef.current !== false);
+        markEnd(read);
         void read.then(() => {
           if (reachableRef.current === false) lostTake.current = true;
           if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
@@ -379,7 +395,7 @@ export function useRecordControl({
               .catch(() => {
                 reachableRef.current = false;
               });
-            endCheck.current = read.then(() => reachableRef.current !== false);
+            markEnd(read);
             void read.then(() => {
               if (reachableRef.current === false) lostTake.current = true;
               if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
@@ -576,7 +592,10 @@ export function useRecordControl({
           if (starting) lastStartAt = Date.now();
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;
-          if (starting) endCheck.current = null;
+          if (starting) {
+            endCheck.current = null;
+            endOpen.current = false;
+          }
           setRecording(starting);
           return starting;
         } else {
@@ -629,6 +648,7 @@ export function useRecordControl({
     starting,
     settle,
     endConfirmed,
+    endUnconfirmed,
     stopped,
     stop,
     startedByApp: true,

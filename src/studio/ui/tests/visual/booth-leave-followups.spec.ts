@@ -168,3 +168,46 @@ for (const gap of [100, 1500]) {
     expect(await onBooth(page)).toBe(true);
   });
 }
+
+// QA B-A: the DAW went quiet BEFORE the exit. `recording` false is what that leaves behind too, and a quiet DAW may still be recording: the exit asks.
+test('a DAW that went quiet before Escape still asks', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+  await question(page)
+    .getByRole('button', { name: /Keep recording/ })
+    .click();
+  await expect(question(page)).toHaveCount(0);
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('quiet() and Escape in the same tick still ask', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => {
+    window.__NARRATION_MOCK_DAW__?.quiet();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+  });
+  await expect(question(page)).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks again', async ({ page }) => {
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible();
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1000);
+  await refused.getByRole('button', { name: /Keep recording/ }).click();
+  await expect(refused).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+});
