@@ -355,6 +355,20 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     expect(daw.result.current.endUnconfirmed()).toBe(true);
   });
 
+  // QA B-E: the DAW went quiet and came back with nothing recording; the end was never read as answering, but nothing is left to stop.
+  it('endUnconfirmed clears when a later picture says the DAW answers and no take runs', async () => {
+    const { daw, transport } = await running();
+    daw.set(refused('not_running'));
+    transport({ playing: false, recording: false });
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await act(() => daw.result.current.endConfirmed());
+    expect(daw.result.current.endUnconfirmed()).toBe(true);
+    daw.set(CONNECTED);
+    act(() => daw.emit(CONNECTED));
+    expect(daw.result.current.endUnconfirmed()).toBe(false);
+    await expect(daw.result.current.endConfirmed()).resolves.toBe(true);
+  });
+
   it('endUnconfirmed goes false once the DAW answers after the end, and a new take starts clean', async () => {
     const { daw, transport } = await running();
     transport({ playing: false, recording: false });

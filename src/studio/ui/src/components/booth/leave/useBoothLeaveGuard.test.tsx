@@ -63,6 +63,52 @@ describe('useBoothLeaveGuard', () => {
       act(() => t.dialog()!.answer(false));
     });
 
+    // QA B-D: the end check is a read of the DAW, and a read can hang. It is bounded like every other wait, and a timeout is "not confirmed".
+    it('a stop wait whose end check never answers falls to the Could not stop the take question after LEAVE_WAIT_MS', async () => {
+      vi.useFakeTimers();
+      try {
+        const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: () => new Promise<boolean>(() => {}) }, refusal);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        expect(t.stopRecording).not.toHaveBeenCalled();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 100);
+        });
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(t.go).not.toHaveBeenCalled();
+        act(() => t.dialog()!.answer(false));
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('Keep recording works while the end check hangs', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: () => new Promise<boolean>(() => {}) });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(false));
+      await act(() => done);
+      expect(t.go).not.toHaveBeenCalled();
+      expect(t.dialog()).toBeUndefined();
+    });
+
+    it('an end check that fails is not a confirmed end: one stop, and it leaves when that succeeds', async () => {
+      const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => Promise.reject(new Error('no answer')) });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await act(() => done);
+      expect(t.stopRecording).toHaveBeenCalledTimes(1);
+      expect(t.go).toHaveBeenCalledWith('/script');
+    });
+
     it('Keep recording stays, and the next exit asks again', async () => {
       const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
       act(() => void t.hook.result.current.leave('/script', t.go));

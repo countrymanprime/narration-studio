@@ -50,6 +50,16 @@ async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | n
   }
 }
 
+/** The end check's answer, or false when it has not come after `LEAVE_WAIT_MS` or failed: an end not known to be with the DAW answering is not an end. */
+async function confirmedWithin(check: Promise<boolean> | undefined): Promise<boolean> {
+  if (!check) return true;
+  try {
+    return (await within(check, LEAVE_WAIT_MS))?.value ?? false;
+  } catch {
+    return false;
+  }
+}
+
 type Deps = {
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
   overlay: Pick<OverlayService, 'confirm' | 'toast' | 'dismissTopic'>;
@@ -109,6 +119,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
   // One at a time: a second caller while it is open is the same question, and does not move.
   const decide = useCallback((): Promise<boolean> => {
+    const endIsConfirmed = () => confirmedWithin(sessionRef.current.endConfirmed?.());
     const now = sessionRef.current;
     if (asking.current) {
       if (waiting.current) sayStopping();
@@ -152,7 +163,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             answered.current = true;
             answeredFor.current = mine;
             // A take the DAW has already ended (during the question or while this waits) has nothing to stop: what it wrote is flushed and they leave.
-            let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await (sessionRef.current.endConfirmed?.() ?? true));
+            let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await endIsConfirmed());
             // Set the moment the DAW confirms the end, before the grace is over: a refusal that arrives then is about a take that is already over.
             let endSeen = takeEnded;
             const endWait = new Promise<'ended'>((resolve) => {

@@ -182,10 +182,10 @@ export function useRecordControl({
   const lostTake = useRef(false);
   // What `endConfirmed` answers: set where a take ends, so the leave guard can tell a take the DAW ended from a DAW that went quiet. Null (a stop of ours) is confirmed.
   const endCheck = useRef<Promise<boolean> | null>(null);
-  const endConfirmed = useCallback(() => endCheck.current ?? Promise.resolve(true), []);
+  const endOpen = useRef(false);
+  const endConfirmed = useCallback(() => (endOpen.current ? (endCheck.current ?? Promise.resolve(true)) : Promise.resolve(true)), []);
   // True from the moment a take is seen to end until a read says the DAW answers: a take that ended with the DAW quiet, or not yet known to be answering, may
   // still be recording, so leaving is not silently allowed on `recording` being false alone (`endUnconfirmed`, read by the leave guard).
-  const endOpen = useRef(false);
   const endUnconfirmed = useCallback(() => endOpen.current, []);
   const markEnd = (read: Promise<void>) => {
     endOpen.current = true;
@@ -212,6 +212,11 @@ export function useRecordControl({
       .catch(() => '')
       .then((why) => notifyRef.current(stoppedInDaw(name, why), TAKE_TOPIC));
   };
+  // A later picture that says the DAW answers while no take runs here settles a take whose end was not known to be with the DAW answering (it went quiet and
+  // came back): nothing is left to stop, so leaving is silent again.
+  const answeringAgain = (next: DawCapabilities) => {
+    if (next.reachable && !recordingRef.current) endOpen.current = false;
+  };
   const hearAgain = (next: DawCapabilities) => {
     if (next.reachable && lostTake.current) {
       lostTake.current = false;
@@ -224,6 +229,7 @@ export function useRecordControl({
       events.current += 1;
       if (!current) return;
       reachableRef.current = next.reachable;
+      answeringAgain(next);
       hearAgain(next);
       setCapabilities(next);
       setReadFailed(false);
@@ -242,6 +248,7 @@ export function useRecordControl({
       .then((c) => {
         if (!current || heard !== events.current) return;
         reachableRef.current = c.reachable;
+        answeringAgain(c);
         hearAgain(c);
         setCapabilities(c);
         setReadFailed(false);

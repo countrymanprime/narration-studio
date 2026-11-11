@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage, openSettings } from './drivers/shared';
+import { DAW_SETUPS } from '../../src/fixtures/daw';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(60_000);
@@ -210,4 +211,45 @@ test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks 
   await page.keyboard.press('Escape');
   await expect(question(page)).toBeVisible();
   expect(await onBooth(page)).toBe(true);
+});
+
+// QA B-D: the read that confirms an end hangs. "Stop and leave" must not wait for it for ever: after its limit the stop is tried, and the refusal question asks.
+test('a hung capabilities read after the take ended: Stop and leave ends in the refusal question, and Keep recording works', async ({ page }) => {
+  await page.addInitScript((live) => {
+    const w = window as unknown as { __hangReads: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__hangReads = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStop: () => new Promise(() => {}),
+      dawCapabilities: () => (w.__hangReads ? new Promise(() => {}) : Promise.resolve(live)),
+    };
+  }, DAW_SETUPS.reaper);
+  await recording(page);
+  await page.evaluate(() => {
+    (window as unknown as { __hangReads: boolean }).__hangReads = true;
+    window.__NARRATION_MOCK_DAW__?.stopInDaw();
+  });
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 25_000 });
+  await refused.getByRole('button', { name: /Keep recording/ }).click();
+  await expect(refused).toHaveCount(0);
+  expect(await onBooth(page)).toBe(true);
+});
+
+// QA B-E: the DAW went quiet and came back, nothing records: leaving is silent again.
+test('after quiet and a DAW restart, Escape leaves silently with 0 stops', async ({ page }) => {
+  await recording(page);
+  await page.evaluate(() => {
+    window.__NARRATION_MOCK_DAW__?.quiet();
+    window.__NARRATION_MOCK_DAW__?.restart(500);
+  });
+  await page.waitForTimeout(3000);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  const stops = await page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
+  expect(stops).toBe(0);
 });
