@@ -61,8 +61,8 @@ describe('chapterTrackButtonState', () => {
   });
 
   it('reads a none status with no candidates as not linked', () => {
-    expect(chapterTrackButtonState(base)).toEqual({ kind: 'not_linked' });
-    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'not_linked' })).toBe('Track for Chapter 6: not linked');
+    expect(chapterTrackButtonState(base)).toEqual({ kind: 'unlinked' });
+    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'unlinked' })).toBe('Track for Chapter 6: not linked');
   });
 });
 

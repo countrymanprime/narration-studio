@@ -125,12 +125,12 @@ describe('Record preconditions on the Record control', () => {
 describe('recordCheck', () => {
   it('recordCheck-is-one-pure-selector', () => {
     const reaper = setupCapabilities('reaper');
-    const state = { tracks: 'one' as const, message: '' };
+    const state = { tracks: 'linked' as const, message: '' };
     expect(recordCheck(reaper, state)).toBeNull();
-    expect(recordCheck(reaper, { tracks: 'none', message: REFUSALS.none })).toEqual({ code: 'no_track', reason: REFUSALS.none });
+    expect(recordCheck(reaper, { tracks: 'unlinked', message: REFUSALS.none })).toEqual({ code: 'no_track', reason: REFUSALS.none });
     expect(recordCheck(reaper, { tracks: 'several', message: REFUSALS.several })).toEqual({ code: 'several_tracks', reason: REFUSALS.several });
     expect(recordCheck(setupCapabilities('audacity'), state)?.code).toBe('capability');
-    expect(recordCheck(setupCapabilities('builtin'), { ...state, tracks: 'none' })).toBeNull();
+    expect(recordCheck(setupCapabilities('builtin'), { ...state, tracks: 'unlinked' })).toBeNull();
   });
 
   it('names no DAW in its sources', () => {

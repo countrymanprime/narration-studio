@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -315,12 +316,12 @@ export function ChapterTrackPanel({
 function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; link: ChapterTrackLink; trackSummary?: ChapterTrackSummary }) {
   const state = chapterTrackButtonState(link);
   const STATE_LABEL: Record<typeof state.kind, string> = {
-    linked: 'Linked',
+    linked: LINK_STATE_LABEL.linked,
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
     ambiguous: 'Ambiguous',
-    missing: 'Missing',
-    not_linked: 'Not linked',
+    missing: LINK_STATE_LABEL.missing,
+    unlinked: LINK_STATE_LABEL.unlinked,
   };
   // The dot is always drawn, so the name starts at one x in every state (XPR1-22): the track's colour, or a hollow ring when there is no
   // track to colour it or the linked one is missing. The name and the state share a baseline.

@@ -194,7 +194,7 @@ export const productionDrivers: Record<string, Driver> = {
       .getByRole('img', { name: /: recorded none yet(,|$)/ })
       .first()
       .waitFor();
-    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded no track(,|$)/ }).waitFor();
+    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked(,|$)/ }).waitFor();
   },
 
   'live-updates-degraded': async (page) => {
@@ -243,7 +243,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'chapter-track-panel-missing': async (page) => {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=missing');
-    await dialog.getByText('Missing', { exact: true }).waitFor();
+    await dialog.getByText('Track missing', { exact: true }).waitFor();
   },
   'chapter-track-panel-suggested': async (page) => {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=none');

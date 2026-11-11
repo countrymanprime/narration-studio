@@ -25,8 +25,8 @@ export const START_GUARD_MS = 1000;
 export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
 
 function tracksOf(status: ReadAloudReaperStatus, reason?: ReadAloudReaperReason): ChapterRecordState['tracks'] {
-  if (status !== 'no_link') return 'one';
-  return reason === 'several_links' ? 'several' : 'none';
+  if (status !== 'no_link') return 'linked';
+  return reason === 'several_links' ? 'several' : 'unlinked';
 }
 
 /**
@@ -312,7 +312,7 @@ export function useRecordControl({
   }, [recording, project?.playState, inApp]);
   // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
   const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
-  const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'none' || match.tracks === 'several'));
+  const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
   useEffect(() => {
     const again = () => setReads((n) => n + 1);
