@@ -153,6 +153,18 @@ describe('useRoll', () => {
     expect(actions.notify).not.toHaveBeenCalled();
   });
 
+  it('a roll that rejects after the take ended says nothing (BRK-10)', async () => {
+    let fail: (error: Error) => void = () => {};
+    const roll = vi.fn(() => new Promise<DawResult>((_resolve, reject) => (fail = reject)));
+    const { hook, actions, session } = setup(SETUPS.reaper, {}, roll);
+    let pressed: Promise<void> = Promise.resolve();
+    act(() => void (pressed = hook.result.current.punchAndRoll()));
+    hook.rerender({ ...session, recording: false });
+    await act(async () => fail(new Error('bridge exploded')));
+    await pressed;
+    expect(actions.notify).not.toHaveBeenCalled();
+  });
+
   it('a refused roll shows the DAW sentence and changes nothing', async () => {
     const roll = vi.fn(async (): Promise<DawResult> => ({ ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' }));
     const { hook, actions } = setup(SETUPS.reaper, {}, roll);

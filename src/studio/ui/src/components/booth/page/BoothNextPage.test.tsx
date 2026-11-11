@@ -371,6 +371,23 @@ describe('every-way-out-asks-while-recording', () => {
     expect(toast.mock.calls.map(([text]) => String(text)).filter((text) => /REAPER stopped recording/.test(text))).toEqual([]);
   });
 
+  it('Stop and leave whose stop throws (the bridge is down) does not leave and raises no unhandled error', async () => {
+    const page = renderPage();
+    await record(page);
+    page.daw.recordStop.mockImplementation(async () => {
+      throw new Error('bridge down');
+    });
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await settle();
+    process.off('unhandledRejection', unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
+
   it('Stop and leave with a stop the DAW never answers gives up at the stop limit and does not leave', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const page = renderPage();

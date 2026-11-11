@@ -317,7 +317,7 @@ test('a dropped unheard take does not also say that REAPER stopped recording', a
 });
 
 // #3409: a roll that lands after the narrator stopped the take started a recording nobody runs: it is stopped and said.
-test('a roll that answers after Stop is stopped, and said', async ({ page }) => {
+test('a roll that answers after Stop says to check the DAW and sends no stop', async ({ page }) => {
   await page.addInitScript(() => {
     const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
     w.__armed = false;
@@ -343,9 +343,9 @@ test('a roll that answers after Stop is stopped, and said', async ({ page }) => 
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   expect(await stops()).toBe(1);
-  await expect(page.getByText(/so that new recording was stopped/).first()).toBeVisible({ timeout: 10_000 });
-  expect(await stops()).toBe(2);
-  expect(await dawRecording(page)).toBe(false);
+  await expect(page.getByText(/A roll the Booth stopped waiting for has landed, so REAPER may be recording from it/).first()).toBeVisible({ timeout: 10_000 });
+  // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
+  expect(await stops()).toBe(1);
 });
 
 // #3409 (BRK-1): a roll that answers after Stop and a second take is that take's to keep: the stale answer never stops it.
@@ -376,7 +376,7 @@ test('a roll that answers while a newer take records does not stop that take', a
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/while a take is recording\. Check REAPER/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/The take you are recording may have been cut and restarted/).first()).toBeVisible({ timeout: 10_000 });
   expect(await stops()).toBe(1);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();

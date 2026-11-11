@@ -107,14 +107,14 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         // A call that fails (the bridge broke) is a sentence, never a silent press or an unhandled error.
         return { ok: false, changed: false, undoSteps: 0, message: `Rolling again did not go through: ${apiErrorMessage(error)}` };
       });
+      // The take ended while the roll was out (Stop): nothing is said, logged or moved for a take that is over, whatever the roll answered.
+      if (!sessionRef.current.recording) return;
       if (!result.ok) {
         // An empty message is a failure the Booth already said (the roll's limit).
         const said = result.refused ?? result.message;
         if (said) actionsRef.current.notify(said);
         return;
       }
-      // The take ended while the roll was out (Stop): nothing is logged, moved or announced for a take that is over.
-      if (!sessionRef.current.recording) return;
       lastRollAt.current = Date.now();
       actionsRef.current.logPunch({ paragraph: s.paragraphOf(to), seconds });
       actionsRef.current.moveTo(to);

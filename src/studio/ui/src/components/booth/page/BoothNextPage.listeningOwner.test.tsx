@@ -670,14 +670,17 @@ describe('the roll of a take has a limit', () => {
       act(async () => answer({ ok, changed: ok, message: ok ? '' : 'REAPER is busy.', refused: ok ? undefined : 'REAPER is busy.', undoSteps: 0 }));
     return { page, roll, lands };
   };
-  const NO_TAKE = /REAPER rolled again after the Booth stopped waiting, so that new recording was stopped\./;
 
-  it('a roll that lands while the take still runs says what is true: the take records, the text stayed', async () => {
+  const LANDED = /A roll the Booth stopped waiting for has landed, so REAPER may be recording from it\. Check REAPER and stop it there\./;
+  const CUT = /The take you are recording may have been cut and restarted: stop it and record the passage again\./;
+
+  it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
     try {
       const { page, lands } = await hungRoll();
       const stopsBefore = page.recordStop.mock.calls.length;
       await lands();
-      await screen.findByText(/REAPER rolled again after the Booth stopped waiting\. The take is still recording, but the text stayed where it was\./);
+      await screen.findByText(LANDED);
+      await screen.findByText(CUT);
       expect(page.recordStop.mock.calls.length).toBe(stopsBefore);
       expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
     } finally {
@@ -685,7 +688,7 @@ describe('the roll of a take has a limit', () => {
     }
   });
 
-  it('a roll that lands after a second R rolled is the same take: nothing is stopped', async () => {
+  it('a roll that lands after a second R rolled says it once and stops nothing', async () => {
     try {
       const { page, roll, lands } = await hungRoll();
       roll.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
@@ -693,28 +696,44 @@ describe('the roll of a take has a limit', () => {
       await r();
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(2));
       await lands();
-      await screen.findByText(/The take is still recording, but the text stayed where it was\./);
+      await screen.findByText(LANDED);
       expect(page.recordStop).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('a roll that lands after the narrator pressed Stop starts a recording nobody runs: it is stopped, and said', async () => {
+  it('a roll that lands after the narrator pressed Stop says to check the DAW and sends no stop (BRK-8, BRK-9 class)', async () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
       await lands();
-      await screen.findByText(NO_TAKE);
-      expect(page.recordStop).toHaveBeenCalledTimes(2);
+      await screen.findByText(LANDED);
+      expect(screen.queryByText(CUT)).toBeNull();
+      expect(page.recordStop).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('a roll that lands after the Booth was left with the take still running stops nothing: the take is not a stale roll', async () => {
+  it('a roll that lands while the next take is still starting stops nothing (BRK-8)', async () => {
+    try {
+      const { page, lands } = await hungRoll();
+      await space();
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      page.recordStart.mockImplementationOnce(() => new Promise(() => {}));
+      await space();
+      await lands();
+      await screen.findByText(LANDED);
+      expect(page.recordStop).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a roll that lands after the Booth was left says to check the DAW and stops nothing', async () => {
     try {
       const { page, lands } = await hungRoll();
       page.view.unmount();
@@ -728,40 +747,55 @@ describe('the roll of a take has a limit', () => {
           .getSnapshot()
           .toasts.map((toast) => toast.text)
           .join('\n'),
-      ).toMatch(/while a take is recording\. Check REAPER/);
+      ).toMatch(LANDED);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('a roll that lands after the chapter changed is stopped too', async () => {
+  it('a roll that lands after a chapter change says to check the DAW and stops nothing', async () => {
     try {
       const { page, lands } = await hungRoll();
       await act(async () => driver.go('/booth?chapter=c2'));
-      // A chapter asked for during a take asks first; Stop and leave stops the take and changes chapter.
       await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
       await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
       await act(() => vi.advanceTimersByTimeAsync(50));
       await lands();
-      await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(2));
+      await screen.findByText(LANDED);
+      expect(page.recordStop).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('a late ok roll for take 1 does not stop take 2 while take 2 records (BRK-1)', async () => {
+  it('a late ok roll while take 2 records says to check the DAW, keeps take 2 running and sends no stop (BRK-1)', async () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
       await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
-      expect(page.recordStop).toHaveBeenCalledTimes(1);
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await lands();
-      await screen.findByText(/while a take is recording\. Check REAPER/);
+      await screen.findByText(CUT);
       expect(page.recordStop).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a refusal that lands while a newer take records does not blame that take (BRK-11)', async () => {
+    try {
+      const { page, lands } = await hungRoll();
+      await space();
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      await lands(false);
+      await act(() => vi.advanceTimersByTimeAsync(50));
+      expect(screen.queryByText(/could not roll again/)).toBeNull();
+      expect(page.recordStop).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
@@ -807,7 +841,7 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await lands(false);
-      await screen.findByText(/REAPER could not roll again: REAPER is busy\./);
+      await screen.findByText(/A roll the Booth stopped waiting for was refused, so nothing was rolled: REAPER is busy\./);
       expect(page.recordStop).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
