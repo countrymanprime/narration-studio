@@ -71,8 +71,17 @@ runs:
           echo "::warning::apt download attempt $attempt of 4 failed"
           [ "$attempt" -lt 4 ] && sleep $((attempt * 15))
         done
-        "$fetched" || { echo "::error::apt could not download the native libraries in 4 attempts"; exit 1; }
-        "${apt[@]}" install -y --no-download "${pkgs[@]}"
+        if "$fetched"; then
+          "${apt[@]}" install -y --no-download "${pkgs[@]}"
+        else
+          # The network stayed down (run 43044148695: DNS failed for the whole 9 min). A restored cache holds every .deb the previous install
+          # needed, so install that set offline; dpkg refuses a set that does not fit the runner, and then the step fails as before.
+          echo "::warning::apt could not download in 4 attempts; installing the cached .debs"
+          shopt -s nullglob
+          debs=("$archives"/*.deb)
+          [ "${#debs[@]}" -gt 0 ] || { echo "::error::apt could not download the native libraries in 4 attempts and no cached .debs exist"; exit 1; }
+          sudo dpkg -i "${debs[@]}"
+        fi
         sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
         rm -f ~/apt-archives/lock
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true' && steps.apt-cache.outputs.cache-hit != 'true'
