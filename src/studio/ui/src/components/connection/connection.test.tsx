@@ -10,6 +10,7 @@ import type { NarrationApi } from '../../types';
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { TooltipProvider } from '../primitives/Tooltip';
+import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
 import { LinkDawFileContext } from './linkDawFile';
@@ -518,5 +519,74 @@ describe('the not-linked dialog', () => {
       chapterTrackMatch: async () => match({ tracks: [track(1, name)], track: null, candidates: [], status: 'none' }),
     });
     expect(await screen.findByText(name)).toBeTruthy();
+  });
+});
+
+// #3350: the dialog reads its links from the app's one chapter-track state, so it and every other screen show the same links at once.
+describe('the not-linked dialog on the shared chapter-track state', () => {
+  const held = { trackGuid: '{T-2}', chapterId: 'c9', chapterTitle: 'Chapter 9', confirmedAt: '', origin: 'manual' as const, match: null };
+
+  /** Another screen: it shows the state's links, and a button stands in for a change made there. */
+  function Elsewhere() {
+    const state = useChapterTrackState({ enabled: true, tracks: false });
+    return (
+      <div>
+        <output aria-label="Links elsewhere">{state.mappings.map((m) => `${m.chapterId}>${m.trackGuid}`).join(',')}</output>
+        <button onClick={() => state.applyMappings([])}>Unlink elsewhere</button>
+      </div>
+    );
+  }
+
+  function open(api: Partial<NarrationApi>) {
+    const props = {
+      variant: 'chapter-unlinked' as const,
+      chapterId: 'c3',
+      chapterName: 'Chapter 3',
+      sentence: 's',
+      dawName: 'REAPER',
+      onLinked: vi.fn(),
+      onClose: vi.fn(),
+    };
+    render(
+      <ApiProvider api={createMockApi(api)}>
+        <TooltipProvider>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <Elsewhere />
+            <ConnectionResolveDialog {...props} />
+          </ChapterTrackStateProvider>
+        </TooltipProvider>
+      </ApiProvider>,
+    );
+    return props;
+  }
+
+  it('a link made in the dialog shows in another screen at once', async () => {
+    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => {
+      const link = { trackGuid, chapterId, chapterTitle: 'Chapter 3', confirmedAt: '', origin: 'manual' as const, match: null };
+      return { documentId: 'd', link, displaced: null, mappings: [link] };
+    });
+    open({ chapterTrackMatch: async () => match(), chapterTrackMapList: async () => ({ documentId: 'd', mappings: [] }), chapterTrackSet });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(screen.getByLabelText('Links elsewhere').textContent).toBe('');
+    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+    await waitFor(() => expect(screen.getByLabelText('Links elsewhere').textContent).toBe('c3>{T-2}'));
+  });
+
+  it('a link changed in another screen shows in the dialog at once', async () => {
+    open({ chapterTrackMatch: async () => match(), chapterTrackMapList: async () => ({ documentId: 'd', mappings: [held] }) });
+    const select = await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(within(select).getByRole('option', { name: /linked to Chapter 9/ })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink elsewhere', hidden: true }));
+    await waitFor(() => expect(within(select).queryByRole('option', { name: /linked to Chapter 9/ })).toBeNull());
+  });
+
+  it('Check again re-reads the links through the state, quietly', async () => {
+    const chapterTrackMapList = vi.fn(async () => ({ documentId: 'd', mappings: [] as (typeof held)[] }));
+    open({ chapterTrackMatch: async () => match(), chapterTrackMapList });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    const before = chapterTrackMapList.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(chapterTrackMapList.mock.calls.length).toBeGreaterThan(before));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
