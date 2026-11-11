@@ -97,6 +97,11 @@ describe('Multi-platform export', () => {
     expect(screen.getByText('Another build or export is using the files.')).toBeTruthy();
   });
 
+  it('with no platform listed (still loading, none set up or the load failed) the Build is off and still says why (#3339)', () => {
+    render(<MultiPlatformExportPanel profiles={[]} multi={jobs([])} />);
+    expect(screen.getByRole('button', { name: /^Build/ }).getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('does not offer the platforms while nothing is encoded, so ticking one cannot promise a build that stays off (#2824 walkthrough)', () => {
     render(<MultiPlatformExportPanel profiles={[ACX]} multi={{ ...jobs([]), encoded: 0 }} />);
     expect(screen.getByRole('checkbox', { name: 'ACX' }).getAttribute('aria-disabled')).toBe('true');
