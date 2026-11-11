@@ -181,3 +181,31 @@ for (const how of ['leave', 'chapter change'] as const) {
     expect((await hostState(page)).effectiveStops).toBeGreaterThanOrEqual(1);
   });
 }
+
+// Narrator walkthrough: a plain Stop the DAW never answers was silent for good (REC and the timer went on). It ends at its 10 s limit with a sentence.
+test('a Stop the DAW never answers ends at its limit with a sentence, and Stop can be asked again', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __calls: Calls; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStop: () => {
+        w.__calls.stops += 1;
+        return new Promise(() => {});
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Stop did not go through: the stop did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
+  // The take may still be recording: Stop is still there and asks the DAW again.
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await calls(page)).stops, { timeout: 5000 }).toBe(2);
+});

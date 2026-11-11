@@ -6,7 +6,9 @@ import { useChapterNavigation } from './useChapterNavigation';
 
 const CHAPTERS = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
-function setup(over: { requested?: BoothChapterTarget | null; chapterId?: string; recording?: boolean; leave?: () => Promise<unknown> } = {}) {
+function setup(
+  over: { requested?: BoothChapterTarget | null; chapterId?: string; recording?: boolean; starting?: boolean; leave?: () => Promise<unknown> } = {},
+) {
   const args = {
     requested: null as BoothChapterTarget | null,
     chapterId: 'a',
@@ -31,6 +33,13 @@ describe('changing chapter', () => {
     act(() => view.result.current.step(1));
     act(() => view.result.current.step(1));
     expect(args.choose.mock.calls.map(([target]) => target)).toEqual([{ chapter: 'b' }, { chapter: 'c' }]);
+  });
+
+  it('stays on the chapter while the DAW is starting a take, with one sentence', () => {
+    const { args, view } = setup({ starting: true });
+    act(() => view.result.current.step(1));
+    expect(args.choose).not.toHaveBeenCalled();
+    expect(args.toast).toHaveBeenCalledWith('A take is starting, so the chapter stays until it has started.');
   });
 
   it('does nothing past either end of the list', () => {

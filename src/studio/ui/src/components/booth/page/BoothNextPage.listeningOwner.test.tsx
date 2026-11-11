@@ -575,3 +575,18 @@ describe('a joiner that waits for a session another press is starting (#3320)', 
     }
   }
 });
+
+describe('the chapter during a take that is still starting', () => {
+  it('Next chapter is off until the DAW has answered, and changing chapter says why', async () => {
+    const host = fakeHost();
+    const page = mountBooth(host);
+    let answer: (start: Awaited<ReturnType<typeof page.daw.recordStart>>) => void = () => {};
+    page.recordStart.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+    await ready();
+    await space();
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1));
+    const next = screen.getByRole('button', { name: /Next chapter/ });
+    await waitFor(() => expect(next.getAttribute('aria-disabled') === 'true' || (next as HTMLButtonElement).disabled).toBe(true));
+    await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 } as never));
+  });
+});
