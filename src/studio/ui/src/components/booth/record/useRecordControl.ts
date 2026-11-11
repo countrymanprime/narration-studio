@@ -45,6 +45,8 @@ export type RecordControlState = {
   starting: boolean;
   /** Resolves when the press now out ends, with whether a take is running then; at once when none is out. */
   settle: () => Promise<boolean>;
+  /** Resolves whether the take that just ended ended with the DAW answering (true), or because the DAW went quiet (false): only the first is a take known to be over. */
+  endConfirmed: () => Promise<boolean>;
   /** False when the DAW was already recording and this app did not start the take; the leave guard reads it. */
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
@@ -176,6 +178,9 @@ export function useRecordControl({
   const reachableRef = useRef<boolean | null>(null);
   // Set when a take ended because the DAW went quiet: the next time it answers, the narrator is told what became of the take.
   const lostTake = useRef(false);
+  // What `endConfirmed` answers: set where a take ends, so the leave guard can tell a take the DAW ended from a DAW that went quiet. Null (a stop of ours) is confirmed.
+  const endCheck = useRef<Promise<boolean> | null>(null);
+  const endConfirmed = useCallback(() => endCheck.current ?? Promise.resolve(true), []);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
   const blockedRef = useRef(onBlocked);
@@ -285,6 +290,7 @@ export function useRecordControl({
     // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
     if (!recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
       heardRecording.current = true;
+      endCheck.current = null;
       setRecording(true);
     }
   }, [recording, project?.playState, inApp]);
@@ -318,6 +324,7 @@ export function useRecordControl({
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
       else if (heardRecording.current && !busy.current) {
         heardRecording.current = false;
+        endCheck.current = Promise.resolve(reachableRef.current !== false);
         setRecording(false);
         // A stop pushed after the heartbeat went is the DAW going quiet, not the DAW saying the take ended.
         if (reachableRef.current === false) lostTake.current = true;
@@ -352,19 +359,20 @@ export function useRecordControl({
             setRecording(false);
             // A quiet DAW reads as stopped: ask whether it answers before saying the take ended there.
             const daw_ = capabilitiesRef.current?.daw;
-            void daw
+            const read = daw
               .capabilities()
               .then((c) => {
                 reachableRef.current = c.reachable;
               })
               .catch(() => {
                 reachableRef.current = false;
-              })
-              .then(() => {
-                if (reachableRef.current === false) lostTake.current = true;
-                if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-                else announceEnd(daw_);
               });
+            endCheck.current = read.then(() => reachableRef.current !== false);
+            void read.then(() => {
+              if (reachableRef.current === false) lostTake.current = true;
+              if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
+              else announceEnd(daw_);
+            });
           }
         })
         // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
@@ -556,6 +564,7 @@ export function useRecordControl({
           if (starting) lastStartAt = Date.now();
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;
+          if (starting) endCheck.current = null;
           setRecording(starting);
           return starting;
         } else {
@@ -607,6 +616,7 @@ export function useRecordControl({
     recording,
     starting,
     settle,
+    endConfirmed,
     stopped,
     stop,
     startedByApp: true,

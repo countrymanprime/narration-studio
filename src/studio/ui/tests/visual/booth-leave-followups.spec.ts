@@ -134,3 +134,17 @@ test('a double Enter on a jump menu row that leaves the Booth keeps the question
   await expect(question(page)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
 });
+
+test('a DAW that goes quiet while the stop is pending is not an ended take: "Could not stop the take" still asks', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(page.getByText('Stopping the take…')).toBeVisible();
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(refused).toContainText('may keep recording');
+  expect(await onBooth(page)).toBe(true);
+});

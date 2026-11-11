@@ -13,6 +13,8 @@ export type BoothLeaveSession = {
   startedByApp?: boolean;
   daw: { name: string };
   stopRecording: () => Promise<DawResult>;
+  /** Whether the take that just ended ended with the DAW answering (true) or because the DAW went quiet (false). Absent: confirmed. A take of a DAW that went quiet may still record, so it is not taken for over. */
+  endConfirmed?: () => Promise<boolean>;
   /** Resolves when a start that is still out lands or fails, with whether a take is running then. The narrator's yes waits for it, so what it stops is a take. */
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
@@ -26,6 +28,11 @@ const LEAVE_ANYWAY_ARM_MS = 400;
 export const LEAVE_WAIT_MS = 8000;
 const STOPPING_TOPIC = 'booth-leave-stopping';
 const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
+/**
+ * A DAW's own stop pushes its stopped transport before the stop's reply, so a take seen to end while this decision's stop is out is most likely that stop:
+ * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
+ */
+const END_GRACE_MS = 1500;
 const NO_ANSWER = 'The DAW did not answer in time.';
 
 /** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
@@ -82,7 +89,10 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   }, [overlay]);
   const wakeOnEnd = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (!recording) wakeOnEnd.current?.();
+    const wake = wakeOnEnd.current;
+    if (recording || !wake) return;
+    // Only a take the DAW confirmed over wakes the wait: a DAW that went quiet reads as stopped too, and its take may still record.
+    void Promise.resolve(sessionRef.current.endConfirmed?.() ?? true).then((confirmed) => confirmed && wake());
   }, [recording]);
   // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
   // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
@@ -138,16 +148,22 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             answered.current = true;
             answeredFor.current = mine;
             // A take the DAW has already ended (during the question or while this waits) has nothing to stop: what it wrote is flushed and they leave.
-            let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending;
+            let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await (sessionRef.current.endConfirmed?.() ?? true));
+            // Set the moment the DAW confirms the end, before the grace is over: a refusal that arrives then is about a take that is already over.
+            let endSeen = takeEnded;
             const endWait = new Promise<'ended'>((resolve) => {
               wakeOnEnd.current = () => {
-                takeEnded = true;
-                resolve('ended');
+                // Not yet "ended": the stop this decision sent may be what ended it, and its reply is still to come.
+                endSeen = true;
+                setTimeout(() => {
+                  takeEnded = true;
+                  resolve('ended');
+                }, END_GRACE_MS);
               };
             });
             const stopped = takeEnded ? null : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording(), endWait]), LEAVE_WAIT_MS);
             wakeOnEnd.current = null;
-            if (takeEnded || stopped?.value === 'ended') {
+            if (takeEnded || stopped?.value === 'ended' || (endSeen && stopped && !stopped.value.ok)) {
               await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
               return !gone.current;
             }

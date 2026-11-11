@@ -735,6 +735,7 @@ export function useBoothPage(options: BoothPageOptions) {
       daw: { name: dawName },
       stopRecording,
       settle: control.settle,
+      endConfirmed: control.endConfirmed,
       flush: writer.flush,
     },
     { guard: shellGuard, overlay: heldConfirm },

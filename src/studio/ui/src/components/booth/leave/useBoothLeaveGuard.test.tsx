@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { DawResult } from '../../../api/contracts/daw';
+import { IGNORE_ENTER_MS } from './stopRecordingSpec';
 import { LEAVE_WAIT_MS, useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
 
 const ok: DawResult = { ok: true, changed: true, message: 'Stopped.', undoSteps: 0 };
@@ -43,7 +44,7 @@ describe('useBoothLeaveGuard', () => {
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
-        ignoreEnterAfterMs: 400,
+        ignoreEnterAfterMs: IGNORE_ENTER_MS,
       },
     });
   });
@@ -436,7 +437,7 @@ describe('useBoothLeaveGuard', () => {
     describe('the take ends in the DAW while the decision waits', () => {
       it('a take that ended during the stop wait leaves without the refusal question', async () => {
         vi.useFakeTimers();
-        const t = setup({}, never);
+        const t = setup({ endConfirmed: async () => true }, never);
         render(<OverlayHost service={t.overlay} />);
         let done: Promise<void> = Promise.resolve();
         act(() => {
@@ -448,6 +449,9 @@ describe('useBoothLeaveGuard', () => {
           await vi.advanceTimersByTimeAsync(2000);
         });
         t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
         await act(() => done);
         expect(t.go).toHaveBeenCalledWith('/script');
         expect(t.dialog()).toBeUndefined();
@@ -456,19 +460,104 @@ describe('useBoothLeaveGuard', () => {
         expect(t.stopRecording).toHaveBeenCalledTimes(1);
       });
 
-      it('a take that ended while the stop was refused leaves without the refusal question', async () => {
-        const t = setup({}, async () => ({ ok: false, changed: false, message: 'REAPER is busy.', undoSteps: 0, refused: 'REAPER is busy.' }) as DawResult);
+      it('a take already over when the narrator says yes (the DAW answering) is not stopped, and they leave', async () => {
+        const t = setup({ endConfirmed: async () => true });
         let done: Promise<void> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
-        // The take ends in the same moment the refusal arrives.
         t.hook.rerender({ ...t.session, recording: false });
         act(() => t.dialog()!.answer(true));
         await act(() => done);
         expect(t.go).toHaveBeenCalledWith('/script');
         expect(t.dialog()).toBeUndefined();
         expect(t.stopRecording).not.toHaveBeenCalled();
+      });
+
+      // F2: the DAW pushes its stopped transport before the reply to this decision's own stop: the reply (the take's undo entry) is still waited for.
+      it("the stopped transport pushed before the stop's own reply does not skip that reply", async () => {
+        vi.useFakeTimers();
+        const order: string[] = [];
+        const t = setup(
+          { endConfirmed: async () => true },
+          () => new Promise<DawResult>((resolve) => setTimeout(() => (order.push('reply'), resolve(ok)), 500)),
+        );
+        t.go.mockImplementation(() => order.push('go'));
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2500);
+        });
+        await act(() => done);
+        expect(order).toEqual(['reply', 'go']);
+      });
+
+      it('a refusal that arrives as the take ends leaves without the refusal question', async () => {
+        let refuse: (result: DawResult) => void = () => {};
+        const t = setup({ endConfirmed: async () => true }, () => new Promise<DawResult>((resolve) => (refuse = resolve)));
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        t.hook.rerender({ ...t.session, recording: false });
+        await flush();
+        refuse({ ok: false, changed: false, message: 'REAPER is busy.', undoSteps: 0, refused: 'REAPER is busy.' } as DawResult);
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(t.dialog()).toBeUndefined();
+      });
+
+      // F1: a DAW that went quiet reads as stopped too, and its take may still record: that is not an end, and the refusal question still comes.
+      it('a DAW that went quiet during a hung stop is not a confirmed end: the refusal question still asks', async () => {
+        vi.useFakeTimers();
+        const t = setup({ endConfirmed: async () => false }, never);
+        render(<OverlayHost service={t.overlay} />);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(2000);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS);
+        });
+        expect(t.go).not.toHaveBeenCalled();
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(t.dialog()?.spec.body).toContain('may keep recording');
+        act(() => t.dialog()!.answer(false));
+        await act(() => done);
+      });
+
+      it('a DAW that went quiet before the narrator said yes is stopped like a running take, and its refusal asks', async () => {
+        const t = setup(
+          { endConfirmed: async () => false },
+          async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult,
+        );
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        t.hook.rerender({ ...t.session, recording: false });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(t.stopRecording).toHaveBeenCalledTimes(1);
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        act(() => t.dialog()!.answer(false));
+        await act(() => done);
+        expect(t.go).not.toHaveBeenCalled();
       });
 
       it('a take that ended during the question is not stopped again when the narrator says yes', async () => {

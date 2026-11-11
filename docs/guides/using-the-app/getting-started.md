@@ -120,7 +120,7 @@ If Record looks off, the footer says why, and pressing it anyway opens the dialo
 
 **Choose your project** is the first screen whenever no project is open. With a project open, the project name in the
 header (its hint says **Switch project**) brings you back to it. **Open folder…** and **New project** are at the top; the pinned and recent projects are below them, each
-with an **Open** button.
+with an **Open** button. When it covers a project you have open, **Back** returns to that project, and so does Escape (not while the New project dialog is open).
 
 - **Open** opens that project. The date is when you last opened it.
 - **Open folder…**, beside **New project**, opens a folder chooser for a project that is not in the list.
