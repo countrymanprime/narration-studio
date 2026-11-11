@@ -417,7 +417,7 @@ export function useBoothPage(options: BoothPageOptions) {
             // The session came up after the press gave up on it: let it go, unless a newer press has begun a take or its own press.
             (late) => late.ok && !starting.current && !latest.current.recording && latest.current.session.stop(),
           );
-          return listening.timedOut ? { ok: false, reason: 'it took too long to get ready' } : listening.value;
+          return listening.timedOut ? { ok: false, reason: 'no answer in time', timedOut: true as const } : listening.value;
         })
       : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
@@ -446,8 +446,15 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
+      const timedOut = 'timedOut' in heard && heard.timedOut;
+      // A listening that never answered is its own sentence: the take ran meanwhile, so it is not said to have not started (the reason goes to the run log).
+      if (timedOut) logUi('ui.record', 'Listening did not answer in time; the take it belonged to was dropped.');
       overlay.toast(
-        `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
+        timedOut
+          ? kept
+            ? 'The text could not follow your voice in time, and the take is still in the DAW.'
+            : 'The take was taken back because the text could not follow your voice in time.'
+          : `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
         {
           tone: 'error',
           action: retryAction(() => void retryTake.current()),
@@ -818,7 +825,11 @@ export function useBoothPage(options: BoothPageOptions) {
         // It came up after the press gave up on it: let it go, unless a take began meanwhile.
         (late) => late.ok && !latest.current.recording && latest.current.session.stop(),
       );
-      const started = listening.timedOut ? { ok: false, reason: 'it took too long to get ready' } : listening.value;
+      if (listening.timedOut) {
+        logUi('ui.record', 'Listening did not answer in time; the cold read was not started.');
+        return overlay.toast('The cold read was not started because the text could not follow your voice in time.', { tone: 'error' });
+      }
+      const started = listening.value;
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;

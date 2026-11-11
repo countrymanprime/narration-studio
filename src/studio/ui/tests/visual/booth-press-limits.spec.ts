@@ -109,7 +109,7 @@ test('a listening start that never answers ends the press with a sentence, and n
   await arm(page);
   await page.keyboard.press('Space');
   // The DAW starts meanwhile (Record reads Stop); the take is dropped when the listening gives up.
-  await expect(page.getByText(/it took too long to get ready/).first()).toBeVisible({ timeout: 52_000 });
+  await expect(page.getByText(/The take was taken back because the text could not follow your voice in time/).first()).toBeVisible({ timeout: 52_000 });
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
