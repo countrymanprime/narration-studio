@@ -250,6 +250,25 @@ describe('a question that ignores Enter for a moment (#3349)', () => {
       expect(fireEvent.keyDown(stop, { key: 'Enter', cancelable: true })).toBe(true);
     });
 
+    it("is kept while focus moves between the popup's controls and forgotten when focus leaves it", async () => {
+      const { keep, stop } = await open();
+      expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);
+      await pastHold();
+      fireEvent.focusOut(keep, { relatedTarget: stop });
+      expect(fireEvent.keyUp(stop, { key: ' ', cancelable: true })).toBe(false);
+      expect(fireEvent.keyDown(stop, { key: ' ', cancelable: true })).toBe(true);
+      expect(fireEvent.keyUp(stop, { key: ' ', cancelable: true })).toBe(true);
+      expect(fireEvent.keyDown(stop, { key: ' ', cancelable: true })).toBe(true);
+    });
+
+    it('forgets a Space that went down in the hold once focus leaves the popup', async () => {
+      const { keep } = await open();
+      expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);
+      await pastHold();
+      fireEvent.focusOut(keep, { relatedTarget: document.body });
+      expect(fireEvent.keyUp(keep, { key: ' ', cancelable: true })).toBe(true);
+    });
+
     it('is forgotten when the window loses focus: the Space that ends later is not held', async () => {
       const { keep } = await open();
       expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);

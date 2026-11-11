@@ -331,3 +331,33 @@ for (const button of ['Keep recording', 'Stop and leave'] as const) {
     else await expect.poll(() => dawRecording(page)).toBe(false);
   });
 }
+
+// The owner's flow (#3405): Enter held on the jump menu row from before the question opens. The key is already down when the question appears, so the dialog never
+// sees it go down; its repeats, inside the hold and after it, must not answer, and a fresh press afterwards does.
+test('Enter held on the jump menu row from before the question opens: its repeats never answer, a fresh Enter does', async ({ page }) => {
+  await page.clock.install();
+  await recording(page);
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Go to Script');
+  await expect(page.getByRole('option', { name: /^Go to Script/ })).toBeVisible();
+  await pauseClock(page);
+  await page.keyboard.down('Enter');
+  await expect(question(page)).toBeVisible();
+  await expect(question(page)).toHaveAttribute('data-enter-held', '');
+  // Repeats inside the hold (Playwright marks a second `down` of a key already down as a repeat), then after it.
+  await page.keyboard.down('Enter');
+  await page.clock.runFor(200);
+  await page.keyboard.down('Enter');
+  await page.clock.runFor(250);
+  await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(150);
+  await expect(question(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
+  expect(await onBooth(page)).toBe(true);
+  await page.keyboard.up('Enter');
+  await page.keyboard.press('Enter');
+  await expect(question(page)).toHaveCount(0);
+  expect(await dawRecording(page)).toBe(true);
+});

@@ -235,8 +235,10 @@ export function Dialog({
               if (event.key === ' ' && (holdEnter || begunInHold.current.has(' '))) event.preventDefault();
               begunInHold.current.delete(event.key);
             }}
-            // Focus leaving the popup's controls ends what the hold remembers: a keyup that went elsewhere never arrives here.
-            onBlur={() => begunInHold.current.clear()}
+            // Focus leaving the popup altogether ends what the hold remembers: a keyup that went elsewhere never arrives here. Moving between its controls does not.
+            onBlur={(event) => {
+              if (!popupRef.current?.contains(event.relatedTarget as Node | null)) begunInHold.current.clear();
+            }}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
