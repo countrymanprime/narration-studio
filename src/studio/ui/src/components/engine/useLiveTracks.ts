@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { describeApiError } from '../../api/errorMessage';
+import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import type { TracksLive, TracksProject, TracksSavedReason, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
 import { retryAction, type Notify } from '../primitives/Toast';
@@ -140,7 +140,8 @@ export function useLiveTracks({
               TRACKS_READ_TOPIC,
             );
           failing.current = true;
-          setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
+          // The toast above keeps describeApiError's wording; the line a panel draws is the bare message, without the "Error: " prefix.
+          setState((previous) => ({ ...previous, stale: hasProject.current, error: apiErrorMessage(reason) }));
           return { failed: true };
         })
         .finally(() => {
