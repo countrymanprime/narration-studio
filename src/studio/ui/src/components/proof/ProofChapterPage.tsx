@@ -44,6 +44,18 @@ type ChapterViewProps = {
   refreshKey: string;
 };
 
+/** One strip row for a chapter whose link is a problem: the state's shared word in bold, the sentence, and the way to the audio engine panel. */
+function LinkProblem({ state, children }: { state: 'unlinked' | 'missing'; children: ReactNode }) {
+  return (
+    <p>
+      <b className="font-semibold" style={{ color: 'var(--text)' }}>
+        {LINK_STATE_LABEL[state]}.
+      </b>{' '}
+      {children} <EnginePanelLink />
+    </p>
+  );
+}
+
 /**
  * Proof's chapter view, `/proof/:chapterId`: what the chapter page held besides the workspace, which the Editing page replaced (SN-E9,
  * docs/guides/using-the-app/editing.md). The recording check's state and Check again, the native takes, Transcript Compare's run against this chapter (CompareRun),
@@ -169,20 +181,14 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       ),
       // Said only once the links have answered: before that, no guid means not read yet.
       links.linksReadAt !== null && !linkedTrackGuid && (
-        <p key="link">
-          <b className="font-semibold" style={{ color: 'var(--text)' }}>
-            No linked track.
-          </b>{' '}
-          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel. <EnginePanelLink />
-        </p>
+        <LinkProblem key="link" state="unlinked">
+          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel.
+        </LinkProblem>
       ),
       linkMissing && (
-        <p key="missing">
-          <b className="font-semibold" style={{ color: 'var(--text)' }}>
-            {LINK_STATE_LABEL.missing}.
-          </b>{' '}
-          This chapter&rsquo;s linked track is no longer in the project. <EnginePanelLink />
-        </p>
+        <LinkProblem key="missing" state="missing">
+          This chapter&rsquo;s linked track is no longer in the project.
+        </LinkProblem>
       ),
     ].filter(Boolean);
     content = frame(
