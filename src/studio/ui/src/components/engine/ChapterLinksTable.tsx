@@ -254,7 +254,7 @@ function ChapterLinkRow({
   const checkedGuid = row.state === 'several' ? undefined : linkedGuid;
   const [picking, setPicking] = useState(!hasLink);
   const [rechecking, setRechecking] = useState(false);
-  const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
+  const [chosen, setChosen] = useState(checkedGuid && tracks.some((track) => track.guid === checkedGuid) ? checkedGuid : '');
   // The pick as it is now, for a re-read that ends after the narrator picked something else: their pick is kept, not snapped back.
   // A pick whose track has left the list (a read answered without it) is no pick: the select shows "Choose a track", so the check must be off.
   const pick = tracks.some((track) => track.guid === chosen) ? chosen : '';
@@ -265,7 +265,7 @@ function ChapterLinkRow({
   // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
   const swappedAt = useRef(0);
   const settled = () => Date.now() - swappedAt.current >= CREATE_QUIET_MS;
-  const linkedGuidIfThere = linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '';
+  const linkedGuidIfThere = checkedGuid && tracks.some((track) => track.guid === checkedGuid) ? checkedGuid : '';
   const first = useRef(true);
   useEffect(() => {
     setPicking(!hasLink);

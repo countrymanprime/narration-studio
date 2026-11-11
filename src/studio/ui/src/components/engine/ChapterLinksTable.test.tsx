@@ -643,6 +643,33 @@ describe('ChapterLinksTable', () => {
     expect(mine.map((mapping) => mapping.trackGuid)).toEqual([WIRE_TRACKS_PROJECT.tracks[which].guid]);
   });
 
+  // #3363 (qa-breaker): the second press of a double click on Change lands on the confirm, which used to open on the first track and replace
+  // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
+  it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id);
+    await api.chapterTrackMapConfirm(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id);
+    const set = vi.spyOn(api, 'chapterTrackSet');
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByText('Several tracks')).toBeTruthy());
+
+    await user.dblClick(within(firstRow).getByRole('button', { name: /^Change the track/ }));
+
+    expect(set).not.toHaveBeenCalled();
+    expect(within(firstRow).getByText('Several tracks')).toBeTruthy();
+  });
+
   it('shows a link to a track that no longer exists as Track missing', async () => {
     const api = createMockApi();
     await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[0].id);
