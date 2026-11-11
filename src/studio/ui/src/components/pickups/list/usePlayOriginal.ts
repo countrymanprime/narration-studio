@@ -7,7 +7,7 @@ import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
-import { chapterLink } from '../../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 /** Seconds of the recording heard before and after the line's place. */
@@ -17,6 +17,13 @@ const RESET_MARGIN_MS = 300;
 /** Why a line cannot be heard: the host gave it no place in the recording. */
 const NO_PLACE = 'This line has no place in the recording yet.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
+
+/** Why a pickup of a chapter in this link state has no recording to play. */
+function noSpotReason(state: ChapterLinkState): string {
+  if (state === 'unlinked') return 'This chapter is not linked to a track, so the original cannot be played.';
+  if (state === 'missing') return 'This chapter’s linked track is no longer in the project, so the original cannot be played.';
+  return NO_AUDIO;
+}
 
 /** Where a pickup falls in the chapter's source audio: the file and the second in it. `at` is a project second; `time` is a second on the app's own line over the played files. */
 export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem, 'at' | 'time'>): { sourceFile: string; seconds: number } | undefined {
@@ -51,6 +58,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const [inDaw, setInDaw] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
+  // The press that owns the DAW's play now: null after Stop. A play that comes back after it was replaced stops the DAW only when nobody owns it.
+  const owner = useRef<number | null>(null);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
@@ -73,6 +82,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
 
   const stop = useCallback((): void => {
     asked.current += 1;
+    owner.current = null;
     if (live.current.inDaw) stopDaw();
     player.stop();
     setInDaw(false);
@@ -84,6 +94,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       if (live.current.playingId === pickup.id) return stop();
       stop();
       const mine = asked.current;
+      owner.current = mine;
       let caps: DawCapabilities | null = null;
       let capsFailed = false;
       try {
@@ -100,6 +111,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
         },
         play: async (p) => {
+          // A newer press, or Stop, came while the DAW's capabilities were asked: that press owns the DAW now, and this one sends nothing (qa B4).
+          if (asked.current !== mine) return { played: true };
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
           let why: string;
           try {
@@ -107,7 +120,8 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
               if (asked.current !== mine) {
-                stopDaw();
+                // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
+                if (owner.current === null) stopDaw();
                 return { played: true };
               }
               setPlayingId(p.id);
@@ -129,13 +143,16 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           return { played: false, why };
         },
       };
-      const { project, mappings, reread } = shared.current;
-      const guid = chapterLink(mappings, pickup.chapterId).trackGuid;
-      const spot = sourceSpot((project ? chapterTrackOf(project.tracks, guid)?.items : undefined) ?? [], pickup);
+      const { project, mappings, reread, live: read } = shared.current;
+      const link = chapterLink(mappings, pickup.chapterId);
+      const found = project ? chapterTrackOf(project.tracks, link.trackGuid) : undefined;
+      const spot = sourceSpot(found?.items ?? [], pickup);
+      // Why there is nothing to play, in the link's own terms (the same words the Engine list and Editing use), not one sentence for every case.
+      const missing = !project ? (read.error ? `The tracks could not be read: ${read.error}` : NO_AUDIO) : noSpotReason(linkStateOf(link, Boolean(found)));
       // The state is a few seconds old at most; a press asks it to read again for the next one.
       const app: PlaybackProvider<PickupItem> = {
         name: APP,
-        readiness: () => (spot ? { ready: true } : { ready: false, why: NO_AUDIO }),
+        readiness: () => (spot ? { ready: true } : { ready: false, why: missing }),
         play: (p) => {
           setPlayingId(p.id);
           player.play({ sourceFile: spot!.sourceFile, rangeStart: spot!.seconds, rangeEnd: spot!.seconds });
@@ -168,6 +185,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
     () => () => {
       // A press still waiting on the DAW's capabilities must not start anything on a list that is gone.
       asked.current += 1;
+      owner.current = null;
       if (live.current.inDaw) stopDaw();
       clearTimer();
     },

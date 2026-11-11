@@ -321,6 +321,9 @@ describe('EditingPage', () => {
       const open = await dialog();
       expect(within(open).getByText('Chapter One’s track is not in the project')).toBeTruthy();
       expect(open.textContent).toMatch(/Linking a track replaces the old link/);
+      // The chip says the same word as the Engine list (#3394), not the plain unlinked state's.
+      expect(document.body.textContent).toContain('Track missing');
+      expect(document.querySelector('#noaudio')?.textContent).not.toContain('Not linked');
       cleanup();
       mount({ api: noAudioApi('empty') });
       await script();

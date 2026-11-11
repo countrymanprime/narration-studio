@@ -65,9 +65,12 @@ let transport: ReturnType<typeof vi.fn<(action: string, seconds: number, until?:
 const refused: string[] = [];
 const notices: string[] = [];
 
-function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false) {
+function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false, linked: 'tr' | '{GONE}' | null = 'tr') {
   const api = createMockApi({
-    chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ trackGuid: 'tr', chapterId: 'chapter-1', chapterTitle: 'One', confirmedAt: '' }] }),
+    chapterTrackMapList: async () => ({
+      documentId: 'd',
+      mappings: linked ? [{ trackGuid: linked, chapterId: 'chapter-1', chapterTitle: 'One', confirmedAt: '' }] : [],
+    }),
     tracksLive: async () =>
       hungTracks
         ? new Promise<never>(() => {})
@@ -104,8 +107,8 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTrack
   return view;
 }
 // The tracks come from the shared state, which reads them after the page mounts: a press waits for that read, as a narrator's press does.
-async function mountRead(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false) {
-  const view = mount(caps, client, hungTracks);
+async function mountRead(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false, linked: 'tr' | '{GONE}' | null = 'tr') {
+  const view = mount(caps, client, hungTracks, linked);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0);
   });
@@ -177,6 +180,58 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     await act(() => result.current.play(pickup(15)));
     expect(transport).toHaveBeenLastCalledWith('stop', 0);
     expect(result.current.playingId).toBeNull();
+  });
+});
+
+describe('why-the-original-cannot-be-played', () => {
+  // #3394: one sentence for every case hid whether the link or the recording was the problem.
+  it('says the chapter is not linked when it has no link and the DAW cannot play', async () => {
+    const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, null);
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(refused.join(' ')).toContain('This chapter is not linked to a track');
+  });
+  it('says the linked track is no longer in the project when the link points at a track the project lacks', async () => {
+    const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, '{GONE}');
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    expect(refused.join(' ')).toContain('linked track is no longer in the project');
+  });
+});
+
+describe('a-second-press-while-the-first-is-in-flight', () => {
+  // #3394 (qa B4): the first play was still being started in the DAW when the second press came; its late answer sent a stop that undid the second.
+  it('leaves the DAW playing: no stop follows the second playRange', async () => {
+    const releases: Array<() => void> = [];
+    transport = vi.fn(
+      (action: string) =>
+        new Promise<DawResult>((resolve) => {
+          releases.push(() => resolve(ok));
+          void action;
+        }),
+    );
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    act(() => {
+      first = result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      second = result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    releases.forEach((release) => release());
+    await act(async () => {
+      await Promise.all([first, second]);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport.mock.calls.map((call) => call[0])).toEqual(['playRange', 'playRange']);
   });
 });
 
