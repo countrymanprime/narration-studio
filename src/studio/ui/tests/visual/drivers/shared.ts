@@ -1,8 +1,24 @@
 // The helpers the page drivers (drivers/<page>.ts) share: navigation, waits and the steps more than one state takes.
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { pinTheDay } from '../lib/pinnedDay';
 
 export type Driver = (page: Page) => Promise<void>;
+
+/**
+ * Drives a state on the mock's day (lib/pinnedDay.ts): the app is loaded again with the page's `Date` reading MOCK_DAY, then `driver` runs.
+ * For a state whose picture is compared with another's (a `sameAs`, a duplicate) and shows the real day, such as the Production home's
+ * "done Nov 19 (est.)": the shards of a CI run last half an hour, so two captures of one picture can fall either side of a UTC midnight.
+ * Not for a state that installs `page.clock` itself.
+ */
+export function onMockDay(driver: Driver): Driver {
+  return async (page) => {
+    await pinTheDay(page);
+    await page.goto('/');
+    await settlePage(page);
+    await driver(page);
+  };
+}
 
 // Stops every page timer (setTimeout, requestAnimationFrame) where it stands. Installed only for
 // the states that need it: a fake clock left on for a whole run interferes with React 19's

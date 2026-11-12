@@ -1,6 +1,6 @@
 // How to reach each `global` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openBooth, openProofChapter } from './shared';
+import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, onMockDay, openBooth, openProofChapter } from './shared';
 
 export const globalDrivers: Record<string, Driver> = {
   tooltip: async (page) => {
@@ -13,34 +13,34 @@ export const globalDrivers: Record<string, Driver> = {
     await page.getByRole('tooltip').waitFor();
   },
   // The collapsed rail at rest: the pointer is parked mid-page, off the rail, so it stays icons-only (it opens on hover or focus).
-  'nav-rail-collapsed': async (page) => {
+  'nav-rail-collapsed': onMockDay(async (page) => {
     const viewport = page.viewportSize();
     if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
-  },
-  'nav-rail-collapsed-dark': async (page) => {
+  }),
+  'nav-rail-collapsed-dark': onMockDay(async (page) => {
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Production');
     const viewport = page.viewportSize();
     if (viewport) await page.mouse.move(viewport.width / 2, viewport.height / 2);
-  },
+  }),
   // The collapsed rail (860 to 1359 CSS px) opens over the page on hover, with its labels and group headings; at 1360 and above the wide
   // rail is already open, and below 860 there is no rail (the hamburger and drawer replace it), so there is nothing to hover and the state is the page as it was.
-  'nav-rail-open': async (page) => {
+  'nav-rail-open': onMockDay(async (page) => {
     const width = page.viewportSize()?.width ?? 0;
     if (width >= 1360 || width < 860) return;
     const rail = page.getByRole('complementary', { name: 'Primary navigation' });
     await rail.getByRole('button', { name: /^Pickups/ }).hover();
     await page.waitForFunction(() => (document.querySelector('aside[aria-label="Primary navigation"] > div')?.getBoundingClientRect().width ?? 0) > 200);
-  },
+  }),
   // Below 860 CSS px the top bar's Open navigation button opens the navigation drawer; from 860 px there is a rail and no button.
-  'nav-drawer-open': async (page) => {
+  'nav-drawer-open': onMockDay(async (page) => {
     if ((page.viewportSize()?.width ?? 0) >= 860) return;
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await page
       .getByRole('dialog', { name: 'Navigation' })
       .getByRole('button', { name: /^Pickups/ })
       .waitFor();
-  },
+  }),
   toast: async (page) => {
     await openProofChapter(page);
     // Scrolled as proof-chapter/compare-toast scrolls it (its openCompare), so the two pictures stay the same.
@@ -107,8 +107,8 @@ export const globalDrivers: Record<string, Driver> = {
     // Light is the default theme, so the Production home after choosing it is `production/no-data`'s picture: stay where it was chosen.
     await chooseTheme(page, 'Light');
   },
-  'theme-dark': async (page) => {
+  'theme-dark': onMockDay(async (page) => {
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Production');
-  },
+  }),
 };

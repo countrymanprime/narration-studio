@@ -692,6 +692,10 @@ exactly that. What the suites do so that timing is not a variable:
   racing driver fails or photographs the wrong page there on demand instead of once in twenty CI runs. At 20x the two
   Story Bible confirm states exceed Playwright's 30 s test timeout inside the capture's own steps: they fail loudly, they
   do not photograph the wrong page.
+  A state whose picture another is declared `sameAs` and that shows the real day (the Production home's "done Nov 19 (est.)") is driven
+  through `onMockDay` (`drivers/shared.ts`, `lib/pinnedDay.ts`): the page's `Date` reads 2026-09-26 and ticks on. The shards of a full run
+  last half an hour, and two captures of one picture made either side of a UTC midnight differ, which the whole-run check reads as a stale
+  `sameAs` and an undeclared duplicate. It is not a fake clock (no `page.clock`), so do not use it on a state that installs `page.clock`.
   `UI_THEME=dark pnpm --dir src/studio/ui run screenshots` starts every capture in the dark theme, which is how the whole suite
   is looked at in dark (the palette work checks every state in both themes). Its end-of-run validation fails on
   `theme-dark` and `reader-dark` matching their default states, so copy `src/studio/ui/screenshots/app` aside after the run and read the PNGs; the

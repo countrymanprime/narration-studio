@@ -1,9 +1,7 @@
 // How to reach each `schedule` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
+import { MOCK_DAY } from '../lib/pinnedDay';
 import { type Driver, clickNav, clickVisible, confirmDialog, openWithoutManuscript } from './shared';
-
-// The mock's own day (the seeds' due dates are dated against it), so a state reads the same on every run. The clock keeps ticking.
-const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 // Opens the Schedule through the rail, optionally booted with a mock seed (main.tsx), and waits until the plan has been read.
 async function openSchedule(page: Parameters<Driver>[0], query = '', day: Date = MOCK_DAY): Promise<void> {
