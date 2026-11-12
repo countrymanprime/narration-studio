@@ -2076,7 +2076,7 @@ describe('App shell mounts', () => {
       fireEvent.click(within(await question()).getByRole('button', { name: 'Keep recording' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
-      expect(window.location.pathname).toBe('/script');
+      await waitFor(() => expect(window.location.pathname).toBe('/script'));
       journal.setLeaveGuard(null);
     });
 
@@ -2101,7 +2101,7 @@ describe('App shell mounts', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       // hidden: a second question would make the first inert, and so out of the accessibility tree.
       expect(screen.getAllByRole('alertdialog', { hidden: true })).toHaveLength(1);
-      expect(window.location.pathname).toBe('/script');
+      await waitFor(() => expect(window.location.pathname).toBe('/script'));
       journal.setLeaveGuard(null);
     });
 
@@ -2114,7 +2114,7 @@ describe('App shell mounts', () => {
       await waitFor(() => expect(decide).toHaveBeenCalledTimes(1));
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(screen.queryByRole('alertdialog')).toBeNull();
-      expect(window.location.pathname).toBe('/script');
+      await waitFor(() => expect(window.location.pathname).toBe('/script'));
       fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
       expect(decide).toHaveBeenCalledTimes(2);

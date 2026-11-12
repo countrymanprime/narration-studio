@@ -128,6 +128,69 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect([...picker.options].some((option) => option.text.includes(second.name))).toBe(false);
   });
 
+  // #3415: the saved per-chapter read says which track the chapter is linked to; the shared state's tracks say whether it is still there and what
+  // it is called, so the panel says what the Engine row says.
+  it('says a confirmed link whose track the live list no longer has is missing, as the Engine row does', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const live = await api.tracksLive();
+    vi.spyOn(api, 'tracksLive').mockResolvedValue({
+      ...live,
+      project: { ...live.project, tracks: live.project.tracks.filter((t) => t.guid !== link.track!.trackGuid) },
+    });
+    renderPanel(api, link, track);
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.getByText(/is not in the project now/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+  });
+
+  it('shows a linked track under the name it has now', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const live = await api.tracksLive();
+    vi.spyOn(api, 'tracksLive').mockResolvedValue({
+      ...live,
+      project: { ...live.project, tracks: live.project.tracks.map((t) => (t.guid === link.track!.trackGuid ? { ...t, name: 'Renamed In REAPER' } : t)) },
+    });
+    renderPanel(api, link, track);
+    // The header's name (the uppercase one), not only the picker's, which always listed the live names.
+    await waitFor(() => expect(screen.getAllByText('Renamed In REAPER').some((element) => element.className.includes('uppercase'))).toBe(true));
+  });
+
+  it('reads the tracks again from the status icon, and the list-failed line has no "Error:" prefix', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    let reads = 0;
+    vi.spyOn(api, 'tracksLive').mockImplementation(async () => {
+      reads += 1;
+      throw new Error('REAPER did not answer');
+    });
+    renderPanel(api, link, track);
+    const line = await screen.findByText(/could not be listed/);
+    // The bare message: no "Error: " prefix from the error's string form.
+    expect(line.textContent).toContain('could not be listed: REAPER did not answer');
+    expect(line.textContent).not.toMatch(/Error:/);
+    const before = reads;
+    await userEvent.click(screen.getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+  });
+
+  // The narrator walkthrough of #3418: the panel's picker named no holder, so a track taken from another chapter showed only in the toast afterwards.
+  it('labels a track another chapter holds "(linked to X)" in the picker, as the Engine panel\'s does', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const links = await api.chapterTrackLinks();
+    const other = links.chapters.find((chapter) => chapter.chapterId !== link.chapterId)!;
+    const free = links.tracks.find(
+      (candidate) => candidate.guid !== track.guid && !links.chapters.some((chapter) => chapter.track?.trackGuid === candidate.guid),
+    );
+    expect(free).toBeTruthy();
+    await api.chapterTrackSet(other.chapterId, free!.guid);
+    renderPanel(api, { ...link, status: 'matched' }, track);
+    const picker = (await screen.findByRole('combobox', { name: /^Track for/ })) as HTMLSelectElement;
+    await waitFor(() => expect([...picker.options].some((option) => /\(linked to /.test(option.text))).toBe(true));
+  });
+
   it('offers no Unlink for a track that is only suggested, and Unlink for a confirmed one (#3231)', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

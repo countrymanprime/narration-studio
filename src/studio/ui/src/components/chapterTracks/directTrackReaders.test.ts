@@ -9,10 +9,6 @@ import { describe, expect, it } from 'vitest';
  * moves onto `useChapterTrackState` and leaves it; a new file must not be added, it reads the state instead.
  */
 const DIRECT_READERS = new Set([
-  // Drawn by the overlay host, outside the track state's provider, so it reads its own (tracked in #3413).
-  'components/recordingcheck/CheckResult.tsx',
-  // Reads its own tracks too (tracked in #3413).
-  'components/editing/EditingCheckPanel.tsx',
   // The state's own reader of the live track list (the Engine panel no longer has a second instance).
   'components/engine/useLiveTracks.ts',
   'components/engine/EnginePanel.tsx',
