@@ -371,6 +371,33 @@ describe('every-way-out-asks-while-recording', () => {
     expect(toast.mock.calls.map(([text]) => String(text)).filter((text) => /REAPER stopped recording/.test(text))).toEqual([]);
   });
 
+  it('Stop and leave whose ok answer comes after the Booth left (the DAW ended the take first) says nothing on the next page', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const daw = dawFor('reaper');
+    const listeners = new Set<(transport: { recording: boolean }) => void>();
+    const push = (recording: boolean) => listeners.forEach((listener) => listener({ recording }));
+    daw.subscribeTransport = ((listener: (transport: { recording: boolean }) => void) => (
+      listeners.add(listener),
+      () => listeners.delete(listener)
+    )) as unknown as typeof daw.subscribeTransport;
+    const stop = daw.recordStop.bind(daw);
+    daw.recordStop = (async () => {
+      push(false);
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      return stop();
+    }) as typeof daw.recordStop;
+    const page = renderPage({ daw });
+    const toast = vi.spyOn(page.overlay, 'toast');
+    await record(page);
+    act(() => push(true));
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    page.view.unmount();
+    await act(() => vi.advanceTimersByTimeAsync(6000));
+    expect(toast.mock.calls.map(([text]) => String(text)).filter((text) => /REAPER stopped recording/.test(text))).toEqual([]);
+  });
+
   it('Stop and leave whose stop throws (the bridge is down) does not leave and raises no unhandled error', async () => {
     const page = renderPage();
     await record(page);

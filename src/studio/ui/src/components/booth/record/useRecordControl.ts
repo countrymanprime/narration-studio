@@ -689,37 +689,39 @@ export function useRecordControl({
     appStops.current += 1;
     // Released once, when the stop answers, fails, or has outlived its limit (a stop that never answers must not mute the end of every later take).
     let released = false;
-    const release = (didStop: boolean) => {
+    // 'unknown' is the page going away before the stop answered: what became of the stop is not known, so nothing is said about it.
+    const release = (outcome: 'ok' | 'failed' | 'unknown') => {
       if (released) return;
       released = true;
       window.clearTimeout(timer);
-      appStopReleases.current.delete(giveUp);
+      appStopReleases.current.delete(drop);
       appStops.current = Math.max(0, appStops.current - 1);
       // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end. A stop that did not
       // go through leaves the take running, and an end heard meanwhile is heard now.
-      if (didStop) heardRecording.current = false;
+      if (outcome === 'ok') heardRecording.current = false;
       if (appStops.current === 0) {
         const say = heldSay.current;
         heldSay.current = null;
-        if (!didStop) say?.();
+        if (outcome === 'failed') say?.();
       }
     };
-    const giveUp = () => release(false);
+    const giveUp = () => release('failed');
+    const drop = () => release('unknown');
     const timer = window.setTimeout(giveUp, PRESS_LIMITS_MS.recordStop);
-    appStopReleases.current.add(giveUp);
+    appStopReleases.current.add(drop);
     try {
       const result = await stopIt();
-      release(result.ok);
+      release(result.ok ? 'ok' : 'failed');
       return result;
     } catch (error) {
-      release(false);
+      release('failed');
       throw error;
     }
   }, []);
   // The page is gone: no stop still in flight may keep the next Booth's control from hearing a take end.
   useEffect(
     () => () => {
-      for (const giveUp of [...appStopReleases.current]) giveUp();
+      for (const drop of [...appStopReleases.current]) drop();
     },
     [],
   );

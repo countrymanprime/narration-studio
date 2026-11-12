@@ -359,6 +359,35 @@ describe('a stop the app sends outside a press (#3409)', () => {
     expect(said(view)).toEqual([]);
   });
 
+  it('unmounting the control during an app stop drops the held sentence and does not say it', async () => {
+    const { view, emit } = await recordingView();
+    let finish: (result: { ok: boolean }) => void = () => {};
+    void view.result.current.appStop(() => new Promise<{ ok: boolean }>((resolve) => (finish = resolve)));
+    act(() => emit({ recording: false }));
+    view.unmount();
+    await vi.advanceTimersByTimeAsync(50);
+    await act(async () => finish({ ok: true }));
+    await vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 50);
+    expect(said(view)).toEqual([]);
+  });
+
+  it('a stop that answers just inside its limit says nothing; one past it says the held sentence once', async () => {
+    for (const [answerAt, sentences] of [
+      [PRESS_LIMITS_MS.recordStop - 10, 0],
+      [PRESS_LIMITS_MS.recordStop + 10, 1],
+    ] as const) {
+      cleanup();
+      const { view, emit } = await recordingView();
+      let finish: (result: { ok: boolean }) => void = () => {};
+      void view.result.current.appStop(() => new Promise<{ ok: boolean }>((resolve) => (finish = resolve)));
+      act(() => emit({ recording: false }));
+      await vi.advanceTimersByTimeAsync(answerAt);
+      await act(async () => finish({ ok: true }));
+      await vi.advanceTimersByTimeAsync(50);
+      expect(said(view).length, `answer at ${answerAt} ms`).toBe(sentences);
+    }
+  });
+
   it('that does not go through: the end the push told of is heard when the stop fails', async () => {
     const { view, emit } = await recordingView();
     await act(async () => {
