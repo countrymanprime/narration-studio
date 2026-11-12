@@ -117,6 +117,22 @@ test('a take that ends in the DAW while the stop is pending leaves without the "
   expect(await onBooth(page)).toBe(false);
 });
 
+test('push before a 4 s ok stop: "REAPER stopped recording" never shows on Script', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStop: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'stopped', message: '', undoPoints: 0 }), 4000)),
+    };
+  });
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+  await page.waitForTimeout(6000);
+  await expect(page.getByText(/REAPER stopped recording/)).toHaveCount(0);
+});
+
 // The hold is a timer in the overlay host, so these three run on Playwright's clock: it flows while the take starts (the Booth's own guards need real
 // time) and is paused before the key presses, then moved by exactly as much as the test says. No outcome depends on how fast the machine is (#3405).
 // The clock is moved on a few seconds to stop it: far enough that a slow machine's real time has not passed it by when the call arrives.

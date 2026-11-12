@@ -218,7 +218,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
         spec = {
           ...spec,
           title: 'Could not stop the take',
-          body: `${sentence} You can leave anyway, but it may keep recording.`.trim(),
+          body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can leave anyway, but it may keep recording.`.trim(),
           confirmLabel: 'Leave anyway',
           // A double-click on "Stop and leave" must not land on the "Leave anyway" that replaces it before the sentence can be read.
           armAfterMs: LEAVE_ANYWAY_ARM_MS,

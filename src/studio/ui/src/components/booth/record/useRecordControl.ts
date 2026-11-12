@@ -8,7 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
-import { limited, recordStartLimit } from './pressLimits';
+import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -63,6 +63,13 @@ export type RecordControlState = {
   stop: () => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
+  /** True while a stop is in flight and not yet answered: the narrator's Stop press, or a stop the app sends (`appStop`). A roll that lands then is for a take that is already over. */
+  stopping: () => boolean;
+  /**
+   * Runs a stop the app itself sends outside a press (the unheard take dropped, "Stop and leave"). The transport event the stop pushes is not a take that
+   * ended in the DAW, so it is not announced; a stop that did not go through is left to be heard as before (#3409).
+   */
+  appStop: <T extends { ok: boolean }>(stop: () => Promise<T>) => Promise<T>;
   /** Read the capabilities again, after a setting the Booth itself changed. */
   refresh: () => void;
   /** The visible Check again: a fresh read now, whatever a timer or an event last said. */
@@ -341,39 +348,57 @@ export function useRecordControl({
     };
   }, [unready, recording]);
 
+  // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
+  // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed
+  // (`endConfirmed`), and before saying what became of the take.
+  // The sentence for an end heard during a stop the app is sending: said if that stop did not go through, dropped if it did (`appStop`).
+  const heldSay = useRef<(() => void) | null>(null);
+  const announceTakeEnd = (hold = false) => {
+    const daw_ = capabilitiesRef.current?.daw;
+    const read = daw
+      .capabilities()
+      .then((c) => {
+        reachableRef.current = c.reachable;
+      })
+      .catch(() => {
+        reachableRef.current = false;
+      });
+    // Whether the end is believed is asked at once, held or not: the leave guard reads it (`endUnconfirmed`).
+    markEnd(read);
+    const say = () =>
+      void read.then(() => {
+        if (reachableRef.current === false) lostTake.current = true;
+        if (reachableRef.current === false) notifyRef.current(lostInDaw(daw_), TAKE_TOPIC);
+        else announceEnd(daw_);
+      });
+    // A stop the app is sending: the take ended all the same, but saying so waits until it answers (`appStop`).
+    if (hold) heldSay.current = say;
+    else say();
+  };
+  const announceTakeEndRef = useRef(announceTakeEnd);
+  announceTakeEndRef.current = announceTakeEnd;
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
   // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end.
   const heardRecording = useRef(false);
+  // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
+  const appStops = useRef(0);
+  const appStopReleases = useRef(new Set<() => void>());
+  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
       return;
     }
-    return daw.subscribeTransport?.((transport) => {
+    const unsubscribe = daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
       else if (heardRecording.current && !busy.current) {
         heardRecording.current = false;
         setRecording(false);
-        // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
-        // before the end is believed (`endConfirmed`), and before saying what became of the take.
-        const daw_ = capabilities?.daw;
-        const read = daw
-          .capabilities()
-          .then((c) => {
-            reachableRef.current = c.reachable;
-          })
-          .catch(() => {
-            reachableRef.current = false;
-          });
-        markEnd(read);
-        void read.then(() => {
-          if (reachableRef.current === false) lostTake.current = true;
-          if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-          else announceEnd(daw_);
-        });
+        announceTakeEndRef.current(appStops.current > 0);
       }
     });
+    return unsubscribe;
   }, [daw, recording, notify, capabilities?.daw]);
 
   // The transport is pushed only on a change, so one lost event would leave the REC pill wrong for ever. While a take runs the project's
@@ -399,22 +424,7 @@ export function useRecordControl({
           if (heardRecording.current || misses >= 3) {
             heardRecording.current = false;
             setRecording(false);
-            // A quiet DAW reads as stopped: ask whether it answers before saying the take ended there.
-            const daw_ = capabilitiesRef.current?.daw;
-            const read = daw
-              .capabilities()
-              .then((c) => {
-                reachableRef.current = c.reachable;
-              })
-              .catch(() => {
-                reachableRef.current = false;
-              });
-            markEnd(read);
-            void read.then(() => {
-              if (reachableRef.current === false) lostTake.current = true;
-              if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-              else announceEnd(daw_);
-            });
+            announceTakeEndRef.current(appStops.current > 0);
           }
         })
         // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
@@ -675,6 +685,49 @@ export function useRecordControl({
     setRecording(false);
   }, []);
 
+  const appStop = useCallback(async <T extends { ok: boolean }>(stopIt: () => Promise<T>): Promise<T> => {
+    appStops.current += 1;
+    // Released once, when the stop answers, fails, or has outlived its limit (a stop that never answers must not mute the end of every later take).
+    let released = false;
+    // 'unknown' is the page going away before the stop answered: what became of the stop is not known, so nothing is said about it.
+    const release = (outcome: 'ok' | 'failed' | 'unknown') => {
+      if (released) return;
+      released = true;
+      window.clearTimeout(timer);
+      appStopReleases.current.delete(drop);
+      appStops.current = Math.max(0, appStops.current - 1);
+      // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end. A stop that did not
+      // go through leaves the take running, and an end heard meanwhile is heard now.
+      if (outcome === 'ok') heardRecording.current = false;
+      if (appStops.current === 0) {
+        const say = heldSay.current;
+        heldSay.current = null;
+        if (outcome === 'failed') say?.();
+      }
+    };
+    const giveUp = () => release('failed');
+    const drop = () => release('unknown');
+    const timer = window.setTimeout(giveUp, PRESS_LIMITS_MS.recordStop);
+    appStopReleases.current.add(drop);
+    try {
+      const result = await stopIt();
+      release(result.ok ? 'ok' : 'failed');
+      return result;
+    } catch (error) {
+      release('failed');
+      throw error;
+    }
+  }, []);
+  // The page is gone: no stop still in flight may keep the next Booth's control from hearing a take end.
+  useEffect(
+    () => () => {
+      for (const drop of [...appStopReleases.current]) drop();
+    },
+    [],
+  );
+
+  const stopping = useCallback(() => appStops.current > 0 || (busy.current && recordingRef.current), []);
+
   const stop = useCallback(async () => {
     if (!recordingRef.current) return true;
     stopAccepted.current = false;
@@ -691,6 +744,8 @@ export function useRecordControl({
     endConfirmed,
     endUnconfirmed,
     stopped,
+    appStop,
+    stopping,
     stop,
     startedByApp: true,
     reason,
