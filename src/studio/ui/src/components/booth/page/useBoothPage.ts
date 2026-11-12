@@ -572,6 +572,8 @@ export function useBoothPage(options: BoothPageOptions) {
     takeSeq.current += 1;
     // The roll's timeout advice (press R again) is stale once the take is over.
     if (!recording) overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
+    // A new take is under way: the sentence about a past roll has been read.
+    else overlay.dismissTopic(ROLL_LANDED_TOPIC);
   }, [recording, overlay]);
   // How many rolls the DAW answered ok: a late refusal is dropped when a later roll went through.
   const rollsOk = useRef(0);
@@ -628,7 +630,7 @@ export function useBoothPage(options: BoothPageOptions) {
           if (!asked.value.ok) return asked.value;
           // Landed ok after the take it was for is over (Stop, Stop and leave, left the Booth, a newer take): nothing is logged or moved, and the narrator is told,
           // because the DAW's roll is stop, move, record again and may have left it recording.
-          if (!mounted.current || !latest.current.recording || take !== takeSeq.current) {
+          if (!mounted.current || !latest.current.recording || take !== takeSeq.current || control.stopping()) {
             landed();
             return { ok: false, changed: false, undoSteps: 0, message: '' };
           }

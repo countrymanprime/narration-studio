@@ -63,6 +63,8 @@ export type RecordControlState = {
   stop: () => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
+  /** True while a stop is in flight and not yet answered: the narrator's Stop press, or a stop the app sends (`appStop`). A roll that lands then is for a take that is already over. */
+  stopping: () => boolean;
   /**
    * Runs a stop the app itself sends outside a press (the unheard take dropped, "Stop and leave"). The transport event the stop pushes is not a take that
    * ended in the DAW, so it is not announced; a stop that did not go through is left to be heard as before (#3409).
@@ -740,6 +742,8 @@ export function useRecordControl({
     [],
   );
 
+  const stopping = useCallback(() => appStops.current > 0 || (busy.current && recordingRef.current), []);
+
   const stop = useCallback(async () => {
     if (!recordingRef.current) return true;
     stopAccepted.current = false;
@@ -757,6 +761,7 @@ export function useRecordControl({
     endUnconfirmed,
     stopped,
     appStop,
+    stopping,
     stop,
     startedByApp: true,
     reason,

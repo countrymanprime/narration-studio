@@ -867,6 +867,61 @@ describe('the roll of a take has a limit', () => {
     expect(page.recordStop).toHaveBeenCalledTimes(1);
   });
 
+  /** A take runs, R's roll is out inside its limit, and a stop the DAW answers only when `finishStop` is called is in flight. */
+  const rollWithStopPending = async (how: 'stop' | 'leave') => {
+    const page = mountBooth(fakeHost());
+    const roll = vi.spyOn(page.daw, 'roll');
+    let answer: (value: Awaited<ReturnType<typeof page.daw.roll>>) => void = () => {};
+    roll.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+    let finishStop: (value: Awaited<ReturnType<typeof page.daw.recordStop>>) => void = () => {};
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
+    page.recordStop.mockImplementationOnce(() => new Promise((resolve) => (finishStop = resolve)));
+    if (how === 'stop') await space();
+    else {
+      await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
+      await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
+    }
+    await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
+    await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    return { page, finishStop: () => act(async () => finishStop({ ok: true, changed: true, message: '', undoSteps: 0 })) };
+  };
+
+  for (const how of ['stop', 'leave'] as const) {
+    it(`a roll that answers while ${how === 'stop' ? 'Stop' : 'Stop and leave'} is still pending says it landed, not "Rolling again" (QA r5)`, async () => {
+      const { page, finishStop } = await rollWithStopPending(how);
+      await screen.findByText(LANDED);
+      expect(screen.queryByText(/Rolling again from/)).toBeNull();
+      await finishStop();
+      expect(screen.queryByText(/Rolling again from/)).toBeNull();
+      expect(page.recordStop).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('the landed sentence goes when a new take starts', async () => {
+    try {
+      const { page, lands } = await hungRoll();
+      await lands();
+      await screen.findByText(LANDED);
+      await space();
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      expect(screen.queryByText(LANDED)).not.toBeNull();
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(
+        page.overlay
+          .getSnapshot()
+          .toasts.map((toast) => toast.text)
+          .join('\n'),
+      ).not.toMatch(LANDED);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a refusal that lands after a later roll went through says nothing over the success (BRK late refusal)', async () => {
     try {
       const { page, roll, lands } = await hungRoll();

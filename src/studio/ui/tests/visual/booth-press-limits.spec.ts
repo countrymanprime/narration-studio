@@ -435,3 +435,32 @@ test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) =
   });
   expect(covered).toBe(false);
 });
+
+// #3409 (QA r5): a roll that answers while Stop is still pending is for a take that is already over: the late sentence, not "Rolling again".
+test('a roll that answers while Stop is still pending says the late sentence, not Rolling again', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 1_800));
+      },
+      readAloudRecordStop: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'stopped', message: '', undoPoints: 0 }), 3_000)),
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(1000);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/A roll the Booth stopped waiting for has landed\./).first()).toBeVisible({ timeout: 6000 });
+  await expect(page.getByText(/Rolling again from/)).toHaveCount(0);
+});
