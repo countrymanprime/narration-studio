@@ -346,6 +346,19 @@ describe('a stop the app sends outside a press (#3409)', () => {
     expect(said(view)).toEqual([]);
   });
 
+  it('that is pending while the take ends in the DAW: the take ends at once (the leave guard reads that), only the sentence waits', async () => {
+    const { view, emit } = await recordingView();
+    let finish: (result: { ok: boolean }) => void = () => {};
+    void view.result.current.appStop(() => new Promise<{ ok: boolean }>((resolve) => (finish = resolve)));
+    act(() => emit({ recording: false }));
+    await waitFor(() => expect(view.result.current.recording).toBe(false));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view)).toEqual([]);
+    await act(async () => finish({ ok: true }));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(said(view)).toEqual([]);
+  });
+
   it('that does not go through: the end the push told of is heard when the stop fails', async () => {
     const { view, emit } = await recordingView();
     await act(async () => {

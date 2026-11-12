@@ -348,6 +348,35 @@ export function useRecordControl({
     };
   }, [unready, recording]);
 
+  // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
+  // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed
+  // (`endConfirmed`), and before saying what became of the take.
+  // The sentence for an end heard during a stop the app is sending: said if that stop did not go through, dropped if it did (`appStop`).
+  const heldSay = useRef<(() => void) | null>(null);
+  const announceTakeEnd = (hold = false) => {
+    const daw_ = capabilitiesRef.current?.daw;
+    const read = daw
+      .capabilities()
+      .then((c) => {
+        reachableRef.current = c.reachable;
+      })
+      .catch(() => {
+        reachableRef.current = false;
+      });
+    // Whether the end is believed is asked at once, held or not: the leave guard reads it (`endUnconfirmed`).
+    markEnd(read);
+    const say = () =>
+      void read.then(() => {
+        if (reachableRef.current === false) lostTake.current = true;
+        if (reachableRef.current === false) notifyRef.current(lostInDaw(daw_), TAKE_TOPIC);
+        else announceEnd(daw_);
+      });
+    // A stop the app is sending: the take ended all the same, but saying so waits until it answers (`appStop`).
+    if (hold) heldSay.current = say;
+    else say();
+  };
+  const announceTakeEndRef = useRef(announceTakeEnd);
+  announceTakeEndRef.current = announceTakeEnd;
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
   // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end.
   const heardRecording = useRef(false);
@@ -355,50 +384,21 @@ export function useRecordControl({
   const appStops = useRef(0);
   const appStopReleases = useRef(new Set<() => void>());
   // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
-  const endHeldByAppStop = useRef(false);
-  const endHeard = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
       return;
     }
-    // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers.
-    const heardEnd = () => {
-      if (!heardRecording.current) return;
-      heardRecording.current = false;
-      setRecording(false);
-      // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
-      // before the end is believed (`endConfirmed`), and before saying what became of the take.
-      const daw_ = capabilities?.daw;
-      const read = daw
-        .capabilities()
-        .then((c) => {
-          reachableRef.current = c.reachable;
-        })
-        .catch(() => {
-          reachableRef.current = false;
-        });
-      markEnd(read);
-      void read.then(() => {
-        if (reachableRef.current === false) lostTake.current = true;
-        if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-        else announceEnd(daw_);
-      });
-    };
-    endHeard.current = heardEnd;
     const unsubscribe = daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
       else if (heardRecording.current && !busy.current) {
-        // A stop the app is sending: held until it answers. If it did not go through, the end is heard then (`appStop`).
-        if (appStops.current > 0) endHeldByAppStop.current = true;
-        else heardEnd();
+        heardRecording.current = false;
+        setRecording(false);
+        announceTakeEndRef.current(appStops.current > 0);
       }
     });
-    return () => {
-      endHeard.current = null;
-      unsubscribe?.();
-    };
+    return unsubscribe;
   }, [daw, recording, notify, capabilities?.daw]);
 
   // The transport is pushed only on a change, so one lost event would leave the REC pill wrong for ever. While a take runs the project's
@@ -420,31 +420,11 @@ export function useRecordControl({
             misses = 0;
             return;
           }
-          // A stop the app is sending: a stopped read meanwhile is that stop's, held until it answers like the transport push (`appStop`).
-          if (appStops.current > 0) {
-            if (heardRecording.current) endHeldByAppStop.current = true;
-            return;
-          }
           misses += 1;
           if (heardRecording.current || misses >= 3) {
             heardRecording.current = false;
             setRecording(false);
-            // A quiet DAW reads as stopped: ask whether it answers before saying the take ended there.
-            const daw_ = capabilitiesRef.current?.daw;
-            const read = daw
-              .capabilities()
-              .then((c) => {
-                reachableRef.current = c.reachable;
-              })
-              .catch(() => {
-                reachableRef.current = false;
-              });
-            markEnd(read);
-            void read.then(() => {
-              if (reachableRef.current === false) lostTake.current = true;
-              if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-              else announceEnd(daw_);
-            });
+            announceTakeEndRef.current(appStops.current > 0);
           }
         })
         // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
@@ -718,9 +698,11 @@ export function useRecordControl({
       // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end. A stop that did not
       // go through leaves the take running, and an end heard meanwhile is heard now.
       if (didStop) heardRecording.current = false;
-      const held = endHeldByAppStop.current;
-      if (appStops.current === 0) endHeldByAppStop.current = false;
-      if (!didStop && held && appStops.current === 0) endHeard.current?.();
+      if (appStops.current === 0) {
+        const say = heldSay.current;
+        heldSay.current = null;
+        if (!didStop) say?.();
+      }
     };
     const giveUp = () => release(false);
     const timer = window.setTimeout(giveUp, PRESS_LIMITS_MS.recordStop);
