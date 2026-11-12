@@ -22,7 +22,8 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
-import { limited } from '../record/pressLimits';
+import { limited, PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
+import { sentenceOr } from '../record/sentenceOr';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
@@ -129,6 +130,17 @@ export function useBoothPage(options: BoothPageOptions) {
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
+  // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed (`PRESS_TOPIC`: a newer one replaces it),
+  // and the press's notes ("Starting from ¶ 3") go with it (`PRESS_NOTE_TOPIC`).
+  const pressRefusal = useCallback(
+    (sentence: string) => {
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+      // A host that refuses with no words still ends the press with a sentence: the toast service drops a blank one.
+      overlay.toast(sentenceOr(sentence, 'The press was refused, so no take was started.'), { tone: 'error', topic: PRESS_TOPIC });
+    },
+    [overlay],
+  );
+
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
@@ -164,7 +176,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const { setSize } = text;
   const view = useRef<BrowseView>(null);
 
-  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => notify(b.reason)))(block), [notify]);
+  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => pressRefusal(b.reason)))(block), [pressRefusal]);
   // A take a DAW stopped is one history entry, so the shell's Undo and the take's toast take it back in the DAW; null once the take is told.
   const takeEntry = useRef<number | null>(null);
   const latestJournal = useRef(options.journal);
@@ -185,9 +197,14 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeAt = useRef(0);
   // Where the take began in the DAW, when it says: the roll counts from there. A plain take starts where the last one stopped, which
   // is not the end of the recording when later audio follows it.
-  const startedAt = useCallback((result: DawRecordStart) => {
-    if (result.position !== undefined) takeAt.current = result.position;
-  }, []);
+  const startedAt = useCallback(
+    (result: DawRecordStart) => {
+      if (result.position !== undefined) takeAt.current = result.position;
+      // A take is running: what an earlier press said about not starting one (and its Retry, which would stop this take) is no longer true.
+      overlay.dismissTopic(PRESS_TOPIC);
+    },
+    [overlay],
+  );
   const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake, onStarted: startedAt });
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
@@ -402,6 +419,8 @@ export function useBoothPage(options: BoothPageOptions) {
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     stoppedWhileStarting.current = false;
+    // A new press says its own outcome: an earlier press's refusal (and its Retry) goes.
+    overlay.dismissTopic(PRESS_TOPIC);
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.
@@ -409,7 +428,8 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!current()) return false;
     if (modelChecked.timedOut) {
       // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
-      overlay.toast('The speech model could not be checked in time, so no take was started.', { tone: 'error' });
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+      overlay.toast('The speech model could not be checked in time, so no take was started.', { tone: 'error', topic: PRESS_TOPIC });
       return false;
     }
     if (!modelChecked.value) return false;
@@ -419,7 +439,8 @@ export function useBoothPage(options: BoothPageOptions) {
     // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
     const micProblem = options.micProblem?.();
     if (micProblem) {
-      overlay.toast(micProblem, { tone: 'error' });
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+      overlay.toast(micProblem, { tone: 'error', topic: PRESS_TOPIC });
       return false;
     }
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
@@ -534,6 +555,7 @@ export function useBoothPage(options: BoothPageOptions) {
       const timedOut = 'timedOut' in heard && heard.timedOut;
       // A listening that never answered is its own sentence: the take ran meanwhile, so it is not said to have not started (the reason goes to the run log).
       if (timedOut) logUi('ui.record', 'Listening did not answer in time; the take it belonged to was dropped.');
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
       overlay.toast(
         timedOut
           ? kept
@@ -542,6 +564,7 @@ export function useBoothPage(options: BoothPageOptions) {
           : `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
         {
           tone: 'error',
+          topic: PRESS_TOPIC,
           action: retryAction(() => void retryTake.current()),
         },
       );
@@ -607,7 +630,10 @@ export function useBoothPage(options: BoothPageOptions) {
           voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null),
         );
         if (chosen.timedOut) {
-          if (token === pressToken.current) overlay.toast('The voice for this passage could not be set in time, so no take was started.', { tone: 'error' });
+          if (token === pressToken.current) {
+            overlay.dismissTopic(PRESS_NOTE_TOPIC);
+            overlay.toast('The voice for this passage could not be set in time, so no take was started.', { tone: 'error', topic: PRESS_TOPIC });
+          }
           return false;
         }
         const answer = chosen.value;
@@ -615,7 +641,7 @@ export function useBoothPage(options: BoothPageOptions) {
         if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
-          notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
+          pressRefusal(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
           return false;
         }
         return true;
@@ -634,10 +660,12 @@ export function useBoothPage(options: BoothPageOptions) {
       },
       logPunch: (punch) => setPunches((list) => [...list, punch]),
       notify,
+      refuse: pressRefusal,
     },
     { overlay },
   );
   const { hold } = roll;
+  const startParagraph = punchAt !== null && units[punchAt] ? bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1 : undefined;
   /**
    * The one way a narrator's control moves the reading: Resume at, the arrow keys, Next and Back one phrase, a word click, a find jump and the
    * toolbar. While a press is under way (the lookup, the checks, the record start) the take is about to record at the spot the press chose, so
@@ -1080,6 +1108,8 @@ export function useBoothPage(options: BoothPageOptions) {
     browse,
     setBrowse,
     punchAt,
+    /** The body paragraph (1-based) the chosen start is in, or undefined when none is chosen. */
+    startParagraph,
     text,
     control,
     paused,
@@ -1095,7 +1125,7 @@ export function useBoothPage(options: BoothPageOptions) {
       recordedSeconds: recorded + (recording ? seconds : 0),
       punches: punches.length,
       lastPunch: lastPunch ? `Rolled from ¶ ${lastPunch.paragraph + 1} · ${clock(lastPunch.seconds)}` : undefined,
-      nextRoll: punchAt !== null && units[punchAt] ? `Next roll starts from ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
+      nextRoll: startParagraph !== undefined ? `Next roll starts from ¶ ${startParagraph}` : undefined,
     },
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });

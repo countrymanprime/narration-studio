@@ -34,6 +34,27 @@ describe('useToastClearance', () => {
   });
 });
 
+describe('useToastClearance settling', () => {
+  it('re-measures after the bar own change settles: a reading taken mid-commit does not stay', async () => {
+    let height = 210;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ height }) as DOMRect);
+    function Chip({ shown }: { shown: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useToastClearance(ref, shown);
+      return <div ref={ref}>chip</div>;
+    }
+    const read = () => document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR);
+    const footer = render(<Bar />);
+    const chip = render(<Chip shown />);
+    height = 258;
+    // The chip goes: the cleanup reads a footer still at its transient height, then the layout settles at the real one.
+    chip.rerender(<Chip shown={false} />);
+    height = 210;
+    await waitFor(() => expect(read()).toBe('210px'));
+    footer.unmount();
+  });
+});
+
 describe('useToastClearance with several bars', () => {
   it('raises the toasts by all the bars at the bottom, so a notice above the footer stays uncovered, and lowers them as each goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {

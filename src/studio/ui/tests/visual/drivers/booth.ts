@@ -18,6 +18,27 @@ const SAMPLES = '?mockVoiceSamples=bible';
 const HEADINGS = '?mockManuscript=mixed';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
+// The DAW refuses the start with a sentence, as the mock's REAPER does with a locked track: a press ends with its refusal, and a start chosen with Start from here is kept.
+const REFUSAL = 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.';
+async function refusedStart(page: Page, dismiss: boolean): Promise<void> {
+  await page.addInitScript((sentence) => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStart: () => Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence }),
+    };
+  }, REFUSAL);
+  await readyToRecord(page);
+  await showChapterTop(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  const toast = page.locator('[data-toast-region] [data-tone="error"]');
+  await toast.waitFor();
+  if (dismiss) await toast.getByRole('button', { name: 'Dismiss message' }).click();
+  await record(page).and(page.locator(':not([aria-busy="true"])')).waitFor();
+}
+
 // A chapter with no linked track.
 const UNLINKED = '?mockReaperState=no_link';
 
@@ -114,6 +135,8 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  'chosen-start': (page) => refusedStart(page, true),
+  'refused-start': (page) => refusedStart(page, false),
   voices: async (page) => {
     await readyToRecord(page, '?mockVoiceFolders=1');
     await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();

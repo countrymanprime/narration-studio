@@ -84,6 +84,7 @@ export function BoothFooter({
   coldRead,
   voice,
   voiceFolders = false,
+  start,
 }: {
   record: ReactNode;
   seconds: number;
@@ -109,6 +110,11 @@ export function BoothFooter({
   voice?: ReactNode;
   /** The chapter records on a folder of voices: the footer hints show the voice keys. */
   voiceFolders?: boolean;
+  /**
+   * The chosen start's readout. It stands just above the footer's rim at the right (absolutely placed, taking no room in the footer's rows and no press), so the
+   * footer is the same height with or without it at every width and no control is covered; a row it could wrap onto, or a width it could outgrow, would move the reading area (#3319).
+   */
+  start?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
@@ -125,11 +131,13 @@ export function BoothFooter({
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
+  const startBox = useRef<HTMLDivElement>(null);
+  useToastClearance(startBox, Boolean(start));
   // One sentence at a time (alignment audit R3BO-5): why the text cannot follow the voice, in the warning colour, wins; Record's own reason
   // then stays only as its description (`aria-describedby`), not drawn beside it; so does a sentence a setup notice above already says (`quietWhy`).
   const shownWhy = why && !listenWhy && !quietWhy ? why : undefined;
   return (
-    <div ref={bar} className="flex flex-col">
+    <div ref={bar} className="relative flex flex-col">
       {/*
         One row from 1024 px: the controls, the sentence in the room between (wrapping inside it), the meter at the right edge. Narrower,
         the meter stays on the controls' row and the sentence takes the full row under them, so the footer is never a stack of
@@ -186,6 +194,15 @@ export function BoothFooter({
       <div className={GIVES_WAY_IN_A_SHORT_WINDOW}>
         <KeyHints id="bkeys" hints={hints} />
       </div>
+      {start ? (
+        // Entirely above the footer's rim, at the right, over the lowest 22 px of the reading area (full-strength text can lie there: its last word may be partly hidden):
+        // it intersects no control and takes no press, and it is after the controls in the order a screen reader reads. Its box (with a gap above it) is a bar the messages
+        // rise above, so one or two messages never lie over it. Three or four stacked in a very small window (320x300, 320x320, 360x500 and 384x500 with voice folders) can:
+        // the stack's cap (`--toast-reserve`, `ToastRegion`) keeps every message and button inside the window and wins over the readout, which is only a note.
+        <div ref={startBox} data-chosen-start-wrap="" className="pointer-events-none absolute right-[var(--page-gutter)] bottom-full z-[1] pt-2">
+          {start}
+        </div>
+      ) : null}
     </div>
   );
 }

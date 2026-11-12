@@ -178,6 +178,18 @@ export const FiveLongMessages: Story = {
     })),
   },
 };
+// A refusal as long as a pasted host error, with the action the Booth gives it: in a narrow window the action sits on a row under the text, and that row is
+// taken from the text's cap (#3322), so the toast and its first line stay inside the window.
+export const LongRefusalWithAction: Story = {
+  args: {
+    messages: [
+      {
+        ...failure(1, `${'REAPER refused to start recording because the armed track is locked. '.repeat(5)}Unlock it and try again.`),
+        action: { label: 'Check again', onAction: fn() },
+      },
+    ],
+  },
+};
 // A very long action label wraps inside a share of the toast (three lines at most); the message keeps room and Dismiss stays on screen.
 export const LongActionLabel: Story = {
   args: {
@@ -208,14 +220,21 @@ export const TwoToastsAboveTheBoothBars: Story = {
 };
 
 /** Every button of every toast is on screen: the story runs in the 320 x 300 window (the `tiny-window` tag), so the window is the one measured. */
-async function everyButtonOnScreen(toasts: number) {
+async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
   // Let the layout settle (the bars' variable, the toasts' share of the window) before measuring.
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   const buttons = [...document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')];
-  await expect(buttons).toHaveLength(toasts * 2);
+  await expect(buttons).toHaveLength(buttonCount);
   // The unit run has no layout (every size is 0, the window is its own): the measuring below is for the browser, where the story runs in the 320 x 300 window.
   if (buttons[0]!.getBoundingClientRect().width === 0) return false;
   await expect([window.innerWidth, window.innerHeight]).toEqual([320, 300]);
+  // The toasts themselves and their text start inside the window too: a message that loses its first lines above the top cannot be scrolled back to (#3322).
+  for (const el of document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone], [data-toast-region] [data-toast-text]')) {
+    await expect(
+      el.getBoundingClientRect().top,
+      `${el.hasAttribute('data-toast-text') ? 'a message text' : 'a toast'} is above the window`,
+    ).toBeGreaterThanOrEqual(0);
+  }
   for (const el of buttons) {
     const b = el.getBoundingClientRect();
     const name = el.getAttribute('aria-label') ?? el.textContent?.slice(0, 20) ?? 'button';
@@ -223,9 +242,24 @@ async function everyButtonOnScreen(toasts: number) {
     await expect(b.top, `${name} is above the window`).toBeGreaterThanOrEqual(0);
     await expect(b.bottom, `${name} is below the window`).toBeLessThanOrEqual(300);
     await expect(b.right, `${name} is right of the window`).toBeLessThanOrEqual(320);
+    // Nothing covers it: it is what a press at its centre reaches.
+    const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    await expect(hit !== null && el.contains(hit), `${name} is covered`).toBe(true);
   }
   return true;
 }
+// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four) above the Booth's bars: the stack gives the bars less room so each toast keeps its least height.
+export const FourToastsAboveTheBoothBars: Story = {
+  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+  args: {
+    messages: [
+      { ...failure(1, 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.'), action },
+      { ...info(2, 'Take saved.'), action: { label: 'Undo', onAction: fn() } },
+      { ...info(3, 'Check this recording against the script?'), action: { label: 'Check', onAction: fn() } },
+      info(4, 'Bookmark added.'),
+    ],
+  },
+};
 export const HugeWordInTinyWindow: Story = {
   ...HugeWord,
   tags: ['tiny-window'],
@@ -247,6 +281,21 @@ export const FiveLongMessagesInTinyWindow: Story = {
   tags: ['tiny-window'],
   play: async () => {
     await everyButtonOnScreen(5);
+  },
+};
+export const LongRefusalWithActionInTinyWindow: Story = {
+  ...LongRefusalWithAction,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(1);
+  },
+};
+export const FourToastsAboveTheBoothBarsInTinyWindow: Story = {
+  ...FourToastsAboveTheBoothBars,
+  tags: ['tiny-window'],
+  play: async () => {
+    // Three buttons carry an action and all four have Dismiss.
+    await everyButtonOnScreen(4, 7);
   },
 };
 export const LongActionLabelInTinyWindow: Story = {

@@ -20,6 +20,14 @@ describe('HeaderChip', () => {
     expect(screen.getByText('REAPER linked').style.borderColor).toBe('transparent');
   });
 
+  it('a readout has the surface fill and a dashed muted rim, so it does not read as a pressable chip', () => {
+    render(<HeaderChip readout>Starts ¶ 3</HeaderChip>);
+    const style = screen.getByText('Starts ¶ 3').style;
+    expect(style.background).toBe('var(--surface)');
+    expect(style.borderColor).toBe('var(--text-muted)');
+    expect(style.borderStyle).toBe('dashed');
+  });
+
   it('takes presses in a 32 px box when it is a button', () => {
     render(<HeaderChip onClick={() => undefined}>REAPER linked</HeaderChip>);
     expect(screen.getByRole('button', { name: 'REAPER linked' }).className).toContain('after:min-h-8');

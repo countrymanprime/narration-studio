@@ -25,6 +25,8 @@ export const REFLOW_VIEWPORT: Viewport = { name: 'reflow', width: 390, height: 8
 // Companion mode's window: the host narrows the app's one window
 // to 380 px (src/studio/desktop/bindings_companion.go's companionModeWidth) and pins it beside the DAW, so the companion rows are
 // judged at that width too, the way the narrator actually sees them. Not part of the matrix: rows opt in with `COMPANION`.
+export const SMALL_WINDOW_VIEWPORT: Viewport = { name: 'small-window', width: 360, height: 500 };
+
 export const COMPANION_VIEWPORT: Viewport = { name: 'companion', width: 380, height: 900 };
 
 // The Script page's full mock-02 layout: the chapter list, the reader and the rail show side by side from 1440 px (D85 on issue #509 - mock 02's own

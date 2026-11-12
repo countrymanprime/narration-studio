@@ -1,7 +1,7 @@
 // The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the rebuilt Booth
 // (docs/research/mockups/research-mock/src/pages/Booth.tsx), mounted at `/booth` by SN-O10, and the Companion, which has its own route.
 import type { StateEntry } from '../lib/types';
-import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, SIDE_PANEL_DEPENDS_ON_WIDTH } from './shared';
+import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, REFLOW_AND_SMALL_WINDOW, SIDE_PANEL_DEPENDS_ON_WIDTH } from './shared';
 
 export const boothStates: StateEntry[] = [
   {
@@ -10,6 +10,22 @@ export const boothStates: StateEntry[] = [
     description:
       "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, the \"Recorded through …\" chip (Chapter 1 is recorded through ¶ 14, #2633) and the REAPER setup chip, with no resume line since the chapter opens at ¶ 14, where its recording ends; the text full-bleed, scrolled to that paragraph, the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'chosen-start',
+    description:
+      'Booth after Start from here on a phrase the DAW refused to start on, the refusal dismissed (#3319): the start is kept and shown as the dashed readout "Starts ¶ n" standing just above the footer\'s rim at the right while the side panel is closed (1280 px and narrower, a drawer), and as "Next roll starts from ¶ n" in the panel\'s Last punch while it is open (wide); the phrase is tinted in the text, and the footer is the height it is with no start chosen (the top bar may gain the "Resume at" row, as it does on main whenever the reading moves)',
+    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
+    ...REFLOW_AND_SMALL_WINDOW,
+  },
+  {
+    page: 'booth',
+    state: 'refused-start',
+    description:
+      'Booth after the DAW refused the start (#3322): one error message with the refusal sentence and Check again above the footer, whole and inside the window (its action row under the text in a window of 24 rem or less); the sentence is not drawn again in the footer, which keeps its size, and no note about the start is beside it',
+    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
+    ...REFLOW_AND_SMALL_WINDOW,
   },
   {
     page: 'booth',

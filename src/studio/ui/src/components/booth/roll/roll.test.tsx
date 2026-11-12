@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
@@ -37,6 +38,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     moveTo: vi.fn(),
     logPunch: vi.fn(),
     notify: vi.fn(),
+    refuse: vi.fn(),
   };
   const session: RollSession = {
     capabilities,
@@ -129,7 +131,7 @@ describe('useRoll', () => {
     const roll = vi.fn(async (): Promise<DawResult> => ({ ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' }));
     const { hook, actions } = setup(SETUPS.reaper, {}, roll);
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith('No.');
+    expect(actions.refuse).toHaveBeenCalledWith('No.');
     expect(actions.logPunch).not.toHaveBeenCalled();
     expect(actions.moveTo).not.toHaveBeenCalled();
   });
@@ -153,7 +155,7 @@ describe('useRoll', () => {
     const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false });
     await act(() => hook.result.current.startFromHere(4));
     expect(actions.chooseStart).toHaveBeenCalledWith(4, true);
-    expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3');
+    expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3', PRESS_NOTE_TOPIC);
     expect(dialog()).toBeUndefined();
     expect(actions.roll).not.toHaveBeenCalled();
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
@@ -169,7 +171,7 @@ describe('useRoll', () => {
   it('a-dawless-or-rollless-setup-says-why: nothing rolls', async () => {
     const { hook, actions } = setup(SETUPS.reaperOff);
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
+    expect(actions.refuse).toHaveBeenCalledWith(SETUPS.reaperOff.capabilities.punch.message);
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
@@ -191,7 +193,7 @@ describe('useRoll', () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
     await act(() => hook.result.current.startTake());
     expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T');
-    expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.');
+    expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.', PRESS_NOTE_TOPIC);
     expect(actions.notify.mock.invocationCallOrder[0]).toBeLessThan(actions.beginTake.mock.invocationCallOrder[0]);
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
@@ -199,7 +201,7 @@ describe('useRoll', () => {
   it('a passage nobody recorded says the take goes on from the end', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 4 });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.");
+    expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.", PRESS_NOTE_TOPIC);
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
   });
 
@@ -214,15 +216,49 @@ describe('useRoll', () => {
     const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed since it was last checked.' };
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith(refused.message);
+    expect(actions.refuse).toHaveBeenCalledWith(refused.message);
     expect(actions.clearStart).toHaveBeenCalledTimes(1);
     expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '',
+    '   ',
+    '\u200B',
+    ' \u200B\u2060 ',
+    '\u034F',
+    '\u2800',
+    '\u3164',
+    '\uFE0F',
+    '\u{E0020}',
+    '\u17B4',
+    '\u007F',
+    '\u0605',
+    '\u070F',
+    '\uFFF9',
+    '\uFFFA',
+    '\uFFFB',
+    '\u0301',
+  ])('a refusal with a blank message (%j) says the default sentence', async (message) => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message };
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
+    await act(() => hook.result.current.startTake());
+    expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('Where this passage was recorded is not known, so no take was started.');
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('a real message wins over an invisible refused sentence', async () => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed.' };
+    const { hook, actions } = setup(SETUPS.reaper, { recording: true, phrase: 1 });
+    actions.roll.mockResolvedValue({ ok: false, changed: false, undoSteps: 0, refused: '\u2800', message: refused.message ?? '' } as never);
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('The recording has changed.');
   });
 
   it('a lookup that fails is a sentence and no take, never a guess', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => Promise.reject(new Error('down')) });
     await act(() => hook.result.current.startTake());
-    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
+    expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
     expect(actions.beginTake).not.toHaveBeenCalled();
   });
 
@@ -246,7 +282,7 @@ describe('useRoll', () => {
           await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
         expect(actions.clearStart).toHaveBeenCalledTimes(1);
         expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
@@ -266,7 +302,7 @@ describe('useRoll', () => {
           await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
         expect(actions.chooseStart).not.toHaveBeenCalled();
         expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
@@ -513,7 +549,7 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
         await vi.advanceTimersByTimeAsync(200);
       });
       // The first press ended with its sentence at the limit: the next one is a new press and asks the host again.
-      expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+      expect(actions.refuse).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
       act(() => void hook.result.current.startTake());
       expect(punchTarget).toHaveBeenCalledTimes(2);
     } finally {
@@ -981,7 +1017,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
       // Past a second limit nothing more happens: the lookup was asked once.
       await act(async () => void (await vi.advanceTimersByTimeAsync(LOOKUP_MS + 50)));
       expect(punchTarget).toHaveBeenCalledTimes(1);
-      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
+      expect(h.actions.refuse.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
       expect(h.actions.beginTake).not.toHaveBeenCalled();
       expect(h.actions.chooseStart).not.toHaveBeenCalled();
       expect(h.hook.result.current.lookingUp).toBe(false);
@@ -996,7 +1032,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
     const h = setup(noPunch, { recording: false, punchTarget });
     await act(() => h.hook.result.current.startFromHere(1));
     expect(punchTarget).toHaveBeenCalledTimes(1);
-    expect(h.actions.notify).toHaveBeenCalledExactlyOnceWith(refused.message);
+    expect(h.actions.refuse).toHaveBeenCalledExactlyOnceWith(refused.message);
     expect(h.actions.clearStart).toHaveBeenCalled();
     expect(h.actions.beginTake).not.toHaveBeenCalled();
   });
@@ -1008,8 +1044,8 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
     expect(punchTarget).toHaveBeenCalledTimes(1);
     expect(h.actions.chooseStart).toHaveBeenCalledExactlyOnceWith(1, true);
     expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
-    expect(h.actions.notify).toHaveBeenCalledWith('Starting from ¶ 1');
-    expect(h.actions.notify).toHaveBeenCalledWith(expect.stringContaining('was not recorded before'));
+    expect(h.actions.notify).toHaveBeenCalledWith('Starting from ¶ 1', PRESS_NOTE_TOPIC);
+    expect(h.actions.notify).toHaveBeenCalledWith(expect.stringContaining('was not recorded before'), PRESS_NOTE_TOPIC);
   });
 
   it('a recorded phrase: the sentence says the start was not used, and no take starts', async () => {
@@ -1034,7 +1070,7 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
       await act(() => pressed);
       expect(punchTarget).toHaveBeenCalledTimes(1);
       expect(h.actions.beginTake).not.toHaveBeenCalled();
-      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
+      expect(h.actions.refuse.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
       expect(h.hook.result.current.lookingUp).toBe(false);
     } finally {
       vi.useRealTimers();

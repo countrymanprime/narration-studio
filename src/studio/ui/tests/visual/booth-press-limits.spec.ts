@@ -10,11 +10,20 @@ import { goToPage } from './drivers/shared';
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(120_000);
 
-type Hung = 'modelCheck' | 'listening' | 'voiceChoice' | 'recordStart' | 'recordStartLate';
+type Hung = 'lookup' | 'modelCheck' | 'listening' | 'voiceChoice' | 'recordStart' | 'recordStartLate';
 type Calls = { stops: number; starts: number; hangs: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+/** How many places on screen say `text` (a message, the footer's sentence): a refusal is said once (#3322). A screen-reader-only description is not on screen. */
+const timesSaid = (page: Page, text: RegExp) =>
+  page.evaluate((source) => {
+    const pattern = new RegExp(source);
+    return [...document.querySelectorAll('body *')].filter((el) => {
+      const box = el.getBoundingClientRect();
+      return el.children.length === 0 && pattern.test(el.textContent ?? '') && box.width > 1 && box.height > 1;
+    }).length;
+  }, text.source);
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
 /** Opens the Booth with the named host call hanging once (the first press) and answering normally after; `recordStartLate` answers after 12 s. */
@@ -37,6 +46,7 @@ async function openWith(page: Page, hung: Hung): Promise<void> {
         return { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] };
       };
     }
+    if (which === 'lookup') overrides.boothPunchTarget = () => (hangOnce() ? new Promise(() => {}) : Promise.resolve({ outcome: 'found', start: 12, end: 20 }));
     if (which === 'listening') overrides.teleprompterStart = () => (hangOnce() ? new Promise(() => {}) : Promise.resolve({ status: 'started' }));
     if (which === 'voiceChoice') {
       overrides.boothPunchTarget = async () => ({ outcome: 'found', start: 12, end: 20, trackGuid: 'g1', trackName: 'Hero' });
@@ -73,6 +83,7 @@ test('a model check that never answers ends the press with a sentence, and the n
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/The speech model could not be checked in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time, so no take was started/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
   await page.keyboard.press('Space');
@@ -86,6 +97,7 @@ test('a DAW start that never answers ends the press with a sentence and Record i
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   // The overridden start never reached the mock DAW, so its recording state says nothing here: what counts is that no stop was sent for a take that never started.
   expect((await calls(page)).hangs).toBe(1);
@@ -99,6 +111,7 @@ test('a DAW start that answers after its limit is stopped, never left running', 
   await arm(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
   // The host answers at 12 s with a take; the Booth gave up at 10 s, so it stops that take.
   await expect.poll(async () => (await calls(page)).stops, { timeout: 8000 }).toBeGreaterThanOrEqual(1);
   await expect(stop(page)).toHaveCount(0);
@@ -110,9 +123,44 @@ test('a listening start that never answers ends the press with a sentence, and n
   await page.keyboard.press('Space');
   // The DAW starts meanwhile (Record reads Stop); the take is dropped when the listening gives up.
   await expect(page.getByText(/The take was taken back because the text could not follow your voice in time/).first()).toBeVisible({ timeout: 52_000 });
+  expect(await timesSaid(page, /The take was taken back because the text could not follow your voice in time/)).toBe(1);
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
+});
+
+test('a lookup of the chosen start that never answers ends the press with one error and no "Starting from" beside it', async ({ page }) => {
+  await openWith(page, 'lookup');
+  await arm(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /did not come back in time, so no take was started/)).toBe(1);
+  // The press's note about the start is gone with it, and the message is an error that stays until dismissed.
+  await expect(page.getByText(/Starting from/)).toHaveCount(0);
+  await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  expect(await dawRecording(page)).toBe(false);
+});
+
+test('a lookup refusal does not stay beside the take a later press starts', async ({ page }) => {
+  await openWith(page, 'lookup');
+  await arm(page);
+  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Start from here/ })
+    .first()
+    .click();
+  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  // "No take was started" beside a take that runs (and any Retry, which would stop it) is not true any more.
+  await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(0);
 });
 
 test('a voice choice that never answers ends a punch press with a sentence and starts no take', async ({ page }) => {
@@ -125,6 +173,7 @@ test('a voice choice that never answers ends a punch press with a sentence and s
     .click();
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /could not be set in time, so no take was started/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);
 });
@@ -185,6 +234,7 @@ test('a model check that answers missing after its limit opens no install questi
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time/)).toBe(1);
   await page.waitForTimeout(5000);
   await expect(installQuestion(page)).toHaveCount(0);
   expect(await sawInstallQuestion(page)).toBe(false);
@@ -195,6 +245,7 @@ test('Record pressed again after the limit records, and the late "not installed"
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
   await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /The speech model could not be checked in time/)).toBe(1);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(5000);

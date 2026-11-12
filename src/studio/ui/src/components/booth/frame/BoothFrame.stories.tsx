@@ -5,6 +5,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { defaultKeymap } from '../../../input/keymap';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
+import { ChosenStartChip } from '../resume/ChosenStartChip';
 
 const withApi: Decorator = (Story) => (
   <ApiProvider api={createMockApi()}>
@@ -39,6 +40,37 @@ export const Ready: Story = {
       <BoothFooter record={record} seconds={0} recording={false} mic={mic} roomTone="Room tone −58 dBFS" roomToneOk keymap={defaultKeymap()} />
     </div>
   ),
+};
+
+// A start is chosen and the side panel is closed: the readout stands above the footer's rim at the right, over the lowest 22 px of the text, and touches no control.
+export const ChosenStart: Story = {
+  args: { panelOpen: false },
+  render: (args) => (
+    <div className="w-full">
+      <BoothTop {...args} />
+      <div className="h-24 overflow-hidden px-6 py-2 font-serif text-3xl">
+        She was considering in her own mind whether the pleasure of making a daisy-chain would be worth the trouble
+      </div>
+      <BoothFooter
+        record={record}
+        seconds={0}
+        recording={false}
+        mic={mic}
+        roomTone="Room tone −58 dBFS"
+        roomToneOk
+        keymap={defaultKeymap()}
+        start={<ChosenStartChip paragraph={3} />}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const chip = canvasElement.querySelector('[data-chosen-start]');
+    await expect(chip).not.toBeNull();
+    // Unit run: no layout, nothing to measure; in the browser the readout is above the footer and clear of Record.
+    const box = chip!.closest('[role="group"]')!.getBoundingClientRect();
+    const rec = within(canvasElement).getByRole('button', { name: 'Record' }).getBoundingClientRect();
+    if (box.width > 0) await expect(box.bottom <= rec.top || box.right <= rec.left || box.left >= rec.right).toBe(true);
+  },
 };
 
 // A take runs: the REC pill and the timer.

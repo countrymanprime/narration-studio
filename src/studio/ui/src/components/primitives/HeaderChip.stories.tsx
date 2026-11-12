@@ -24,6 +24,8 @@ type Story = StoryObj<typeof meta>;
 export const Neutral: Story = {};
 // Mock 01's engine chip: "REAPER linked" on `--ok-soft` with an `--ok` dot.
 export const Success: Story = { args: { tone: 'success', dot: 'var(--ok)', children: 'REAPER linked · following Ch 7' } };
+// A readout beside pressable chips: the surface as its fill, a dashed rim in the muted text colour (the Booth's "Starts ¶ 3").
+export const Readout: Story = { args: { readout: true, children: 'Starts ¶ 3' } };
 export const Warning: Story = { args: { tone: 'warning', dot: 'var(--warn)', children: 'Wrong REAPER project open' } };
 export const QuietDot: Story = { args: { dot: 'var(--non-text)', children: 'No REAPER project linked' } };
 

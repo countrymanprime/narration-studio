@@ -166,7 +166,8 @@ for (const [name, modelCheckMs, lookupMs] of [
     await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);
-    await expect(page.getByText(/Starting from/)).toHaveCount(1);
+    // The press's notes are one message (#3322): "Starting from" or, once the lookup answered, "Recording over".
+    await expect(page.getByText(/Starting from|Recording over/)).toHaveCount(1);
     await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);

@@ -291,3 +291,29 @@ export async function closeOverlays(page: Page, presses = 3): Promise<boolean> {
   if (size) await page.mouse.move(size.width - 1, size.height - 1);
   return !(await anyOpen());
 }
+
+/**
+ * The toast guard (#3322): every toast showing, its text and each of its buttons start and end inside the window, so a message with an action and text that scrolls
+ * (a long refusal) never loses its first lines above the top edge, where its scroller cannot be reached, and its action and Dismiss stay in reach. A toast is
+ * allowed over an overlay (see `overlayProblems`); it is not allowed past the window.
+ */
+export async function toastProblems(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const problems: string[] = [];
+    const inside = (name: string, box: DOMRect) => {
+      if (box.left < 0 || box.top < 0 || box.right > window.innerWidth + 0.5 || box.bottom > window.innerHeight + 0.5)
+        problems.push(
+          `${name} leaves the window: ${[box.left, box.top, box.right, box.bottom].map(Math.round).join(', ')} in ${window.innerWidth}x${window.innerHeight}`,
+        );
+    };
+    for (const toast of document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone]')) {
+      const label = toast.querySelector('[data-toast-text]')?.textContent?.slice(0, 24) ?? 'a toast';
+      inside(`toast "${label}"`, toast.getBoundingClientRect());
+      const text = toast.querySelector<HTMLElement>('[data-toast-text]');
+      if (text) inside(`text of "${label}"`, text.getBoundingClientRect());
+      for (const button of toast.querySelectorAll('button'))
+        inside(`${button.getAttribute('aria-label') ?? button.textContent} of "${label}"`, button.getBoundingClientRect());
+    }
+    return problems;
+  });
+}

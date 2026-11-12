@@ -2891,15 +2891,15 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await settle();
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
+      // What the press said before the second one: its notes share a topic (#3322), so "Recording over" replaced "Starting from" and counts one message.
       const toastsBefore = said(page).length;
       await startFrom(7);
       await settle();
-      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, and the one new sentence is the refusal.
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(boothVoiceSet).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
       expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
-      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
       holder.release();
       await waitFor(() => expect(stopButton()).toBeTruthy());
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
@@ -3471,5 +3471,153 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
       await ready();
       await waitFor(() => expect(nextRoll()).toBeTruthy());
     });
+  });
+});
+
+// A press says its refusal once (#3322): as the message, not again in the footer, which keeps the sentence only as Record's description. And a start the
+// narrator chose is shown wherever the side panel is closed (#3319), as a chip in the top bar, so a kept start is never silent in a small window.
+describe('a refusal is said once and a chosen start is always shown (#3322, #3319)', () => {
+  const START = '?chapter=c1&para=p3&at=28';
+  const startFromUnit = async (unit: number) => {
+    const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+  };
+  /** The sentences a narrator can read now: the messages, and the footer's sentence unless it is only Record's description. */
+  const drawn = (page: ReturnType<typeof renderPage>) => [
+    ...page.overlay.getSnapshot().toasts.map((t) => t.text),
+    ...[...document.querySelectorAll('#brec-why, #blisten-why')].filter((el) => !el.classList.contains('sr-only')).map((el) => el.textContent ?? ''),
+  ];
+  const SENTENCES = {
+    'the DAW refuses the start': (daw: ReturnType<typeof renderPage>['daw']) =>
+      daw.recordStart.mockImplementationOnce(
+        async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+      ),
+    'the host call fails': (daw: ReturnType<typeof renderPage>['daw']) =>
+      daw.recordStart.mockImplementationOnce(async () => {
+        throw new Error('the bridge did not answer');
+      }),
+  };
+  for (const [name, arrange] of Object.entries(SENTENCES)) {
+    it(`${name}: the sentence is on screen once, and Record is still described by it`, async () => {
+      const page = renderPage({ search: START });
+      await ready();
+      arrange(page.daw);
+      await space();
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(true));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+      const sentence = page.overlay.getSnapshot().toasts.find((t) => t.tone === 'error')!.text;
+      expect(drawn(page).filter((text) => text.includes(sentence))).toHaveLength(1);
+      const described = document.getElementById(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-describedby') ?? 'none');
+      expect(described?.textContent).toContain(sentence);
+    });
+  }
+
+  it('a second refused press with another sentence replaces the first message: it never stacks', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    const refuse = (sentence: string) =>
+      page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: sentence, refused: sentence }) as never);
+    refuse('REAPER is not answering.');
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.length).toBe(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    refuse('The armed track is locked.');
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['The armed track is locked.']);
+  });
+
+  it('a press error is dismissed when a later press starts a take: its Retry would stop the take that runs', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+    );
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'REAPER is not answering.')).toBe(true));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.overlay.getSnapshot().toasts.filter((t) => t.tone === 'error')).toEqual([]);
+  });
+
+  it('a refusal with no words still says a sentence', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: '  ', refused: '' }) as never);
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error' && t.text.trim() !== '')).toBe(true));
+  });
+
+  describe('a refusal on the way to a take is the one message, an error that stays (#3322)', () => {
+    const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+    const alone = (page: ReturnType<typeof renderPage>, sentence: string) =>
+      expect(page.overlay.getSnapshot().toasts.map((t) => [t.text, t.tone])).toEqual([[sentence, 'error']]);
+    it('a lookup the host refuses after "Starting from" says the refusal alone', async () => {
+      const sentence = 'The recording check is out of date.';
+      const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, message: sentence })) } as never });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
+    it('a lookup that gave up at its limit says so alone, and as an error', async () => {
+      const sentence = 'Where this passage was recorded did not come back in time, so no take was started.';
+      const page = renderPage({
+        api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'failed', message: sentence })) } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+    });
+    it('a voice the host refuses to choose says the refusal alone', async () => {
+      const sentence = 'That voice is not on this chapter any more.';
+      const page = renderPage({
+        api: {
+          boothPunchTarget: vi.fn(async () => FOUND),
+          boothVoiceSet: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'stale', message: sentence })),
+        } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
+  });
+
+  it('a refused start leaves the refusal alone: the notes of the press ("Starting from", "Recording over") go', async () => {
+    const found = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+    const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => found), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' }) as never,
+    );
+    await startFromUnit(3);
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'Disk full.')).toBe(true));
+    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['Disk full.']);
+  });
+
+  it('a chosen start is shown once wherever the side panel is: a chip in the top bar while it is closed, its line in the panel while it is open', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' }) as never,
+    );
+    await startFromUnit(1);
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'Disk full.')).toBe(true));
+    const chip = () => screen.queryByRole('group', { name: /^Next roll starts from ¶ \d+$/ });
+    const panelLine = () => screen.queryByText(/^Next roll starts from ¶ \d+$/);
+    const toggle = () => screen.getByRole('button', { name: /side panel/i });
+    const open = () => toggle().getAttribute('aria-expanded') === 'true';
+    expect((chip() ? 1 : 0) + (panelLine() && open() ? 1 : 0)).toBe(1);
+    await userEvent.click(toggle());
+    expect((chip() ? 1 : 0) + (panelLine() && open() ? 1 : 0)).toBe(1);
+    expect(chip() !== null).toBe(!open());
   });
 });

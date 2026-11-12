@@ -8,6 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
+import { sentenceOr } from './sentenceOr';
 import { limited, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
@@ -53,6 +54,11 @@ export type RecordControlState = {
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
+  /**
+   * `reason` is the sentence of the last press (a refusal, a limit, a failure), which the press said as a message already: the footer keeps it for Record's
+   * description and does not draw it a second time (#3322). A standing reason (the gate, a read that failed) is not told by a press, so it is drawn.
+   */
+  told?: boolean;
   /** What stops a press now, or null when Record can start: the same precondition the press would be refused for. */
   gate: RecordBlock | null;
   disabled: boolean;
@@ -633,7 +639,10 @@ export function useRecordControl({
         } else {
           // A press the narrator has left behind ends quietly: no message on whatever page they are on now.
           if (starting && how?.current && !how.current()) return false;
-          const sentence = result.refused ?? result.message;
+          const sentence = sentenceOr(
+            result.refused,
+            sentenceOr(result.message, starting ? 'The DAW did not start recording.' : 'The DAW did not stop recording.'),
+          );
           setRefused({ chapterId, sentence });
           // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
           if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
@@ -694,6 +703,7 @@ export function useRecordControl({
     stop,
     startedByApp: true,
     reason,
+    told: !check && shown !== '',
     gate,
     disabled: !recording && (!!check || blind),
     toggle,
