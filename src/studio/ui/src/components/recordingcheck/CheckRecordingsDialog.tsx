@@ -259,6 +259,15 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
   const note = unmeasuredNote(audio.unmeasured);
   const blockedByDaw = !capability.available && !!capability.message;
 
+  // In a short window the dialog body is one scroll area that stays mounted across the form, the running view and a result, so each view starts at its top
+  // rather than where the last one was scrolled to (a Stop button or a verdict out of sight above the dialog).
+  const view = running ? 'running' : (viewing ?? 'form');
+  useEffect(() => {
+    const bodies = document.querySelectorAll('[role=dialog] [data-dialog-content]');
+    const scroller = bodies[bodies.length - 1]?.parentElement;
+    if (scroller) scroller.scrollTop = 0;
+  }, [view]);
+
   if (loadError) return <p role="alert">{loadError}</p>;
   if (!loaded || !choices) return <p aria-live="polite">Loading…</p>;
   if (running) return <RunningView chapters={chapters} run={run} model={engine?.label ?? model} onStop={stop} />;
@@ -348,7 +357,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
             }
           />
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 [@media(max-height:400px)]:sticky [@media(max-height:400px)]:bottom-0 [@media(max-height:400px)]:bg-[var(--surface)] [@media(max-height:400px)]:pt-2">
           <Button ref={keepFocusOnRemoval} variant="secondary" onClick={() => setViewing(undefined)}>
             Back to chapters
           </Button>
@@ -460,7 +469,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
         <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</p>
       </div>
       {/* Cancel and Check on one row at the right at every width (alignment audit XPF-19). */}
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 [@media(max-height:400px)]:sticky [@media(max-height:400px)]:bottom-0 [@media(max-height:400px)]:bg-[var(--surface)] [@media(max-height:400px)]:pt-2">
         <Button variant="secondary" onClick={close}>
           Cancel
         </Button>

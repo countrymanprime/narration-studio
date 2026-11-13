@@ -15,12 +15,15 @@ test('Check recordings at 320x300: the footer buttons come inside the dialog whe
   // The chapters to tick sit in a list; at 320x300 it was squeezed to 0 px, so no row could be seen or pressed however it was scrolled.
   const firstChapter = dialog.getByRole('checkbox').first();
   await firstChapter.scrollIntoViewIfNeeded();
-  const pressable = await firstChapter.evaluate((box) => {
-    const rect = box.getBoundingClientRect();
-    const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    return top !== null && (top === box || box.contains(top) || (top as HTMLElement).closest('label') === box.closest('label'));
+  // The nearest scroll area around the first chapter must have room to show rows: 0 px was the defect.
+  const room = await firstChapter.evaluate((box) => {
+    for (let node = box.parentElement; node && node.getAttribute('role') !== 'dialog'; node = node.parentElement) {
+      const overflow = getComputedStyle(node).overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight) return node.clientHeight;
+    }
+    return Infinity;
   });
-  expect(pressable, 'the first chapter can be seen and pressed').toBe(true);
+  expect(room, 'the scroll area around the chapters has room to show a row').toBeGreaterThanOrEqual(60);
   const run = dialog.getByRole('button', { name: /^Check \d+ chapters?$/ });
   await run.focus();
   const inside = await page.evaluate(() => {
@@ -38,4 +41,37 @@ test('Check recordings at 320x300: the footer buttons come inside the dialog whe
   const target = await run.boundingBox();
   await page.mouse.click(target!.x + target!.width / 2, target!.y + target!.height / 2);
   await expect(dialog.getByRole('button', { name: /Stop checking/ })).toBeVisible({ timeout: 10_000 });
+});
+
+// qa-breaker B1 and B3 on this change: the body is one scroll area that stays mounted across views, so a view must start at its top (Stop checking in
+// sight), and the footer stays in sight while the list scrolls (with thousands of chapters it was thousands of pixels away).
+test('Check recordings at 320x300: the footer stays in sight, and the running view starts at its top after a press far down the form', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 300 });
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: /Check recordings/ })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Check recordings' });
+  await dialog.waitFor({ timeout: 20_000 });
+  const run = dialog.getByRole('button', { name: /^Check \d+ chapters?$/ });
+  const within = (name: string | RegExp) =>
+    page.evaluate(
+      (source) => {
+        const popup = document.querySelector('[role=dialog]') as HTMLElement;
+        const box = popup.getBoundingClientRect();
+        const regex = new RegExp(source);
+        const target = [...popup.querySelectorAll('button')].find((button) => regex.test(button.textContent?.trim() ?? ''));
+        if (!target) return false;
+        const rect = target.getBoundingClientRect();
+        return rect.top >= box.top && rect.bottom <= box.bottom;
+      },
+      typeof name === 'string' ? name : name.source,
+    );
+  // At the top of the form, with the list unscrolled, the run button is already in sight (the footer sticks to the dialog's bottom).
+  expect(await within(/^Check \d+ chapters?$/), 'the run button is in sight without scrolling').toBe(true);
+  await run.focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog.getByRole('button', { name: /Stop checking/ })).toBeVisible({ timeout: 10_000 });
+  expect(await within(/Stop checking/), 'Stop checking is inside the dialog, not scrolled out above it').toBe(true);
 });
