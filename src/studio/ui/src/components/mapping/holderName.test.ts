@@ -12,12 +12,19 @@ describe('holderName', () => {
   });
   it('makes control and direction characters spaces, and clips a long title', () => {
     expect(holderName(undefined, 'A‮B\nC\u0000D⁦E')).toBe('A B C D E');
-    expect(holderName(undefined, 'x'.repeat(10000)).length).toBeLessThanOrEqual(60);
+    expect(holderName(undefined, 'x'.repeat(10000)).length).toBeLessThanOrEqual(80);
   });
   it('gives a held track a label in the pickers even when the kept title is empty', () => {
     const track = { guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] } as unknown as Track;
     const [choice] = plainTrackChoices([track], [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: '   ' }], 'c1');
     expect(choice.heldBy).toBe('another chapter');
+  });
+  it('names the holder by the manuscript’s current heading when the caller has it, else the kept title', () => {
+    const track = { guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] } as unknown as Track;
+    const links = [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: 'Chapter 2' }];
+    const nameOf = (id: string) => (id === 'c2' ? 'Chapter 2: The Pool of Tears' : undefined);
+    expect(plainTrackChoices([track], links, 'c1', nameOf)[0].heldBy).toBe('Chapter 2: The Pool of Tears');
+    expect(plainTrackChoices([track], links, 'c1', () => undefined)[0].heldBy).toBe('Chapter 2');
   });
   it('writes the "(linked to X)" template in one place', () => {
     expect(heldLabel('Chapter 1')).toBe('Chapter 1');

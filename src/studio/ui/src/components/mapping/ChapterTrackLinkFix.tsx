@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { MappingConfirm } from './MappingConfirm';
 
 /**
@@ -26,6 +27,7 @@ export function ChapterTrackLinkFix({
   onNavigate?: () => void;
 }) {
   const actions = useChapterLinkActions();
+  const nameOf = useChapterNameOf();
   const state = useChapterTrackState({ enabled: true });
   const confirming = usePendingAction();
   const listError = state.project ? '' : state.live.error;
@@ -44,6 +46,7 @@ export function ChapterTrackLinkFix({
       tracks={state.project.tracks}
       links={state.mappings}
       chapterId={chapter.id}
+      nameOf={nameOf}
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {

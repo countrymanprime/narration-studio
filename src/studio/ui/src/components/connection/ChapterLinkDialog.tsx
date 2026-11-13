@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -54,6 +55,9 @@ export function ChapterLinkDialog({
 }: ChapterLinkDialogProps) {
   const trackMap = usePort('chapterTrackMap');
   const actions = useChapterLinkActions();
+  const nameOf = useChapterNameOf();
+  const nameOfRef = useRef(nameOf);
+  nameOfRef.current = nameOf;
   const overlay = useOverlay();
   // The links are the app's one chapter-track state, not a snapshot of the dialog's own: a link made here shows on the Engine panel, the Booth
   // and Settings at once, and one made there shows here (#3350). Only the links are watched; the match is this chapter's own question.
@@ -87,7 +91,9 @@ export function ChapterLinkDialog({
         if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
         setChosen((current) =>
-          current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh ?? linksRef.current)),
+          current && match.tracks.some((t) => t.guid === current)
+            ? current
+            : bestChoice(trackChoices(match, fresh ?? linksRef.current, undefined, nameOfRef.current)),
         );
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
@@ -114,7 +120,7 @@ export function ChapterLinkDialog({
   }, [onCheckedAgain]);
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
-  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId) : []), [read, links, chapterId]);
+  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId, nameOf) : []), [read, links, chapterId, nameOf]);
   const held = choices.find((c) => c.guid === chosen && c.heldBy);
 
   const link = () => {

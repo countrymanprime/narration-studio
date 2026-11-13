@@ -7,7 +7,7 @@ import { describeApiError } from '../../api/errorMessage';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
  * longer in the manuscript", so none is silent or reads " was linked to that track" with no name (#3053). */
-function keptTitle(storedTitle: unknown): string | undefined {
+export function keptTitle(storedTitle: unknown): string | undefined {
   if (typeof storedTitle !== 'string') return undefined;
   // A title is text someone else wrote: control and bidi-override characters would reach a toast as they are, and a very long one would fill it.
   const clean = Array.from(storedTitle, (ch) => (isOddCharacter(ch.codePointAt(0) ?? 0) ? ' ' : ch))

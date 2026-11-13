@@ -14,6 +14,7 @@ import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -73,6 +74,7 @@ export function ChapterTrackPanel({
   const actions = useChapterLinkActions();
   // The tracks are the shared state's, the same ones the Engine list and the Booth show (REAPER's now, the saved file's when it is not open).
   const trackState = useChapterTrackState({ when: open });
+  const nameOf = useChapterNameOf();
   const tracks: Track[] | undefined = trackState.project?.tracks;
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
@@ -289,6 +291,7 @@ export function ChapterTrackPanel({
                   // A track another chapter holds is labelled "(linked to X)" before the press, as the Engine panel's picker does.
                   links={trackState.mappings}
                   chapterId={chapterId}
+                  nameOf={nameOf}
                   // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
                   linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
                   linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}
