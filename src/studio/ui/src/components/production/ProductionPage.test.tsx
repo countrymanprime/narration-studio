@@ -567,7 +567,8 @@ describe('the row menu keeps the features the mock has none for', () => {
       written = true;
       return base.chapterTrackSet(chapterId, trackGuid);
     };
-    const { notify } = await renderPage({ overrides: { chapterTrackLinks, chapterTrackMapList, chapterTrackSet } });
+    const onManuscriptChanged = vi.fn();
+    const { notify } = await renderPage({ overrides: { chapterTrackLinks, chapterTrackMapList, chapterTrackSet }, onManuscriptChanged });
     const row = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'track')?.unavailable).toBeUndefined());
     act(() =>
@@ -580,6 +581,8 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(notify.mock.calls.filter(([text]) => /linked/i.test(String(text)) && !/could not be read/.test(String(text)))).toHaveLength(1);
     expect(notify.mock.calls.filter(([, tone]) => tone === 'error')).toHaveLength(1);
     expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/^Error: /), 'error');
+    // The board still hears the change and reads its own state again, whatever the links read did.
+    await waitFor(() => expect(onManuscriptChanged).toHaveBeenCalled());
   });
 
   it('matches nothing outside the pipeline', async () => {
