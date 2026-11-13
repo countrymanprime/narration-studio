@@ -1,3 +1,4 @@
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
@@ -20,10 +21,6 @@ export type ChapterLinks = {
   rows: ChapterTrackRow[];
   /** Why the last read or change failed; empty when it did not. */
   error: string;
-  /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
-  notice: string;
-  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
-  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -85,7 +82,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const mappings: TrackMapping[] = trackState.mappings;
   const { applyMappings, refreshLinks, linksReadAt } = trackState;
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  // Who lost a track is toasted the moment the host answers, from here, not from a view that may have closed by then (#3398).
+  const overlay = useOverlay();
   const [busyChapterId, setBusyChapterId] = useState('');
   const [creatingChapterId, setCreatingChapterId] = useState(createGuard.pending?.chapterId ?? '');
   // Tracks create added that the caller's track list may not have read yet; dropped once it lists them, or once a read answered after the
@@ -133,7 +131,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
-    setNotice('');
     // Once the write has answered, a failure after it is the re-read's: the change was made and the narrator is told so.
     let written = false;
     write()
@@ -141,7 +138,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         written = true;
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
         const notice = (result as { displacedNotice?: string } | undefined)?.displacedNotice;
-        if (notice) setNotice(notice);
+        if (notice) overlay.toast(notice);
       })
       // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
       .then(() =>
@@ -247,6 +244,5 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  const clearNotice = () => setNotice('');
-  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
+  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
 }
