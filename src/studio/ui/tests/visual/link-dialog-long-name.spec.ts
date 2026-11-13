@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 // #3416 item 14: a very long chapter name took the whole Link a track dialog in a 320x300 window (body 0 px: the picker and Create button out of reach).
-// The name is clipped in the title and the title takes two lines in a short window, so the body keeps room to scroll and both actions stay in view.
+// The name is clipped in the title and the title is held to three lines in a short window (the full text is its hover hint), so the body keeps room to scroll and both actions stay in view. A title of three lines or fewer is as on main; the 360x500 case is a control (a window over 400 px tall is untouched).
 // The odd-titles book's third chapter has a 630-character title; Editing opens its link dialog by itself with the chapter unlinked.
 const SIZES = [
   { width: 320, height: 300 },
@@ -31,7 +31,7 @@ for (const size of SIZES) {
         innerHeight: window.innerHeight,
       };
     });
-    expect(measured.bodyHeight, 'the body has room for the picker to scroll into view').toBeGreaterThanOrEqual(50);
+    expect(measured.bodyHeight, 'the body has room for the picker to scroll into view').toBeGreaterThanOrEqual(30);
     expect(measured.overflowX).toBeLessThanOrEqual(0);
     expect(measured.closeBottom).toBeLessThanOrEqual(measured.innerHeight);
     expect(measured.linkBottom).toBeLessThanOrEqual(measured.innerHeight);
