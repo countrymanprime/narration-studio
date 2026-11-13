@@ -496,6 +496,8 @@ function BoothSession({
     recording: control.recording,
     notify: voiceToast,
     stopTake: page.stopTake,
+    // A cold read has no voice to record on: in that mode a voice key only chooses.
+    startTake: () => (page.coldRead.mode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });
