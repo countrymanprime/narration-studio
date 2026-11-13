@@ -16,7 +16,7 @@ const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
 const KEPT = 'the draft is kept by the page or a store and comes back when the page is opened again';
 const POPOVER = 'a small popover form that a click outside or Escape closes on purpose, with a line or two typed';
-const INSIDE = 'a text box that only its consumers draw; every file that uses it must register (the second test)';
+const INSIDE = 'a text box that only its consumers draw; every file that uses it registers itself, or is listed in PENDING until its screen does';
 const PICKER = 'a choice made by picking a row; the box only narrows the rows';
 
 const EXEMPT: Record<string, string> = {
