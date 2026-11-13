@@ -291,7 +291,12 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             rows={categoryRows(cat)}
             changed={resettableChangedIn(cat)}
             advancedOpen={Boolean(advanced[cat])}
-            onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
+            // Collapsing Advanced unmounts the rows under it, and a key pasted into the Merriam-Webster box among them, so closing it asks (#3456).
+            onToggleAdvanced={() => {
+              const toggle = () => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }));
+              if (advanced[cat]) guarded(toggle);
+              else toggle();
+            }}
             onReset={() => {
               if (resetting.current) return;
               resetting.current = true;

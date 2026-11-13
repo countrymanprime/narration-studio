@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 28 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 29 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 27 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
-const MOUNT_BUDGET = 27;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 27 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search; 27 to 28 for a pop to another hash of Settings.
+const MOUNT_BUDGET = 28;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1806,6 +1806,22 @@ describe('App Back and Forward', () => {
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(window.location.pathname).toBe('/settings');
       act(() => close());
+    });
+
+    it('a pop to the same Settings path with another hash asks over a held edit, and Cancel puts the address back (#3456)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      const before = window.location.pathname + window.location.hash;
+      act(() => {
+        window.history.pushState(null, '', '/settings#category-delivery');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(window.location.pathname + window.location.hash).toBe(before);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(keptEdit()).toBeTruthy();
     });
 
     it('a save that rejects with nothing useful says Not saved without the raw value (#3446 E5)', async () => {

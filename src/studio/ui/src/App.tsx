@@ -120,6 +120,11 @@ const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role
 // A build on a static host (the public site, src/web) cannot rewrite `/proof` to index.html and may open from any sub-path or a sandboxed frame:
 // its extension (appExtension.ts) asks for routes by the address hash. The popGuard below reads the pathname, so it reads the hash route there.
 const hashRouting = (): boolean => appExtension().hashRouting === true;
+/**
+ * What a pop leaves behind: the route, and on Settings the category in the hash too, because a link from another page and the jump menu move between
+ * Settings categories by the hash alone and that swaps the panel that holds an edit (#3456).
+ */
+const routeKey = (): string => (hashRouting() || window.location.pathname !== '/settings' ? routePath() : `${routePath()}${window.location.hash}`);
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
 // A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
@@ -136,6 +141,9 @@ const popGuard = {
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
+  /** The address the router is showing, to put back over an entry the router never numbered. */
+  href: '',
+  askPath: null as ((path: string) => void) | null,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -174,11 +182,11 @@ if (typeof window !== 'undefined') {
     }
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
-    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.route;
+    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routeKey() !== popGuard.route;
     const settled = !modalHolds && popGuard.askLeave !== null && settleFocusedField();
-    const settingsHolds = !settled && popGuard.dirty() && routePath() !== popGuard.route;
+    const settingsHolds = !settled && popGuard.dirty() && routeKey() !== popGuard.route;
     // A field just taken off the focus may be about to report an edit: the exit is decided again once it has (the same Back, asked of the shell).
-    const leaveHolds = !settingsHolds && routePath() !== popGuard.route && (settled || modalHolds || popGuard.leaveHeld());
+    const leaveHolds = !settingsHolds && routeKey() !== popGuard.route && (settled || modalHolds || popGuard.leaveHeld());
     const ask = settingsHolds
       ? popGuard.ask
       : modalHolds
@@ -186,6 +194,18 @@ if (typeof window !== 'undefined') {
         : settled
           ? (direction: 1 | -1) => void setTimeout(() => popGuard.askLeave?.(direction), SETTLE_MS)
           : popGuard.askLeave;
+    // An entry the router never numbered (a fragment typed or followed by hand) has no place to go back to, so its direction is unknown: the address is put back as it
+    // was and the move is asked as a move to that address (#3456).
+    const unnumbered = (window.history.state as { idx?: number } | null)?.idx === undefined;
+    if ((settingsHolds || settled) && routeKey() !== popGuard.route && unnumbered && popGuard.askPath && !popGuard.isOwnPop()) {
+      event.stopImmediatePropagation();
+      const target = window.location.pathname + window.location.hash;
+      window.history.replaceState({ ...(window.history.state as object | null), idx: popGuard.idx }, '', popGuard.href);
+      // A field taken off the focus may be about to report an edit, so the question is decided once it has.
+      if (settled) setTimeout(() => popGuard.askPath?.(target), SETTLE_MS);
+      else popGuard.askPath(target);
+      return;
+    }
     if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
       popGuard.idx = next;
       return;
@@ -830,11 +850,13 @@ function AppRoutes() {
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.askPath = (path) => guardedNavigateRef.current(path);
     popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
     popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
     return () => {
       popGuard.ask = null;
+      popGuard.askPath = null;
       popGuard.askLeave = null;
       popGuard.leaveHeld = () => false;
       popGuard.dirty = () => false;
@@ -913,8 +935,9 @@ function AppRoutes() {
   }, [setShell]);
   useEffect(() => {
     popGuard.idx = historyIdx();
-    popGuard.route = routePath();
-  }, [location.key]);
+    popGuard.route = routeKey();
+    popGuard.href = window.location.pathname + window.location.search + window.location.hash;
+  }, [location.key, location.hash]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
   // despite `preventDefault`, if that happens). The move already took effect; if it left

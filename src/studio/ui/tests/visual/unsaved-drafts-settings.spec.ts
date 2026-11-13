@@ -63,3 +63,43 @@ test.describe('at 320 x 300', () => {
     await expect(question).toContainText('before leaving?');
   });
 });
+
+// Collapsing Advanced unmounts the Merriam-Webster box, and the key pasted into it (#3456).
+test('collapsing Advanced over a pasted key asks, and Cancel keeps the key', async ({ page }) => {
+  await pasteKey(page);
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+});
+
+// A browser Back across hash-only Settings entries swaps the category under the key (#3456).
+test('browser Back over a hash-only Settings entry asks over a pasted key, and Cancel keeps the key and the pane', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Project');
+  await page.evaluate(() => {
+    window.location.hash = '#category-delivery';
+  });
+  await page.evaluate(() => {
+    window.location.hash = '#category-voice';
+  });
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
+  const before = page.url();
+  await page.goBack();
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  expect(page.url()).toBe(before);
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+});
+
+test('a typed hash change of Settings asks over a pasted key', async ({ page }) => {
+  await pasteKey(page);
+  await page.evaluate(() => {
+    window.location.hash = '#category-appearance';
+  });
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+});
