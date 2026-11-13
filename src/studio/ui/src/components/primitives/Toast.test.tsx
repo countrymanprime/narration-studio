@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
-import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
+import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_ERROR_MS, TOAST_INFO_MS, TOAST_MAX_MS, ToastRegion, toastLifetimeMs, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -74,12 +74,45 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(9);
   });
 
-  it('never dismisses an error by itself, however long it stays', () => {
+  it('keeps an error longer than an information message, and dismisses it at its own limit (#3431)', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(3)]} dismiss={dismiss} />);
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 20));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 2));
     expect(dismiss).not.toHaveBeenCalled();
-    expect(screen.getByText('Failure 3')).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - TOAST_INFO_MS * 2 - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(3);
+  });
+
+  it('holds an error while the pointer is on it or focus is in it, and gives it the full time again after', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(4)]} dismiss={dismiss} />);
+    const toast = screen.getByText('Failure 4').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 3));
+    expect(dismiss).not.toHaveBeenCalled();
+    fireEvent.pointerLeave(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
+  });
+
+  it('dismisses the toast that has focus on Escape, and leaves the key to it', () => {
+    const dismiss = vi.fn();
+    const outer = vi.fn();
+    render(
+      <div onKeyDown={outer}>
+        <ToastRegion messages={[failure(5), failure(6)]} dismiss={dismiss} />
+      </div>,
+    );
+    within(screen.getByText('Failure 6').closest('[data-tone]') as HTMLElement)
+      .getByRole('button', { name: 'Dismiss message' })
+      .focus();
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(6);
+    expect(outer).not.toHaveBeenCalled();
   });
 
   it('dismisses the message whose button was pressed', () => {
@@ -394,4 +427,72 @@ describe('ToastRegion inside a modal (issue 2949)', () => {
     screen.getByRole('button', { name: 'Done' }).focus();
     await tabInsideTrap(user);
   });
+});
+
+// #3431: every toast has a bounded lifetime. Whatever tone or `durationMs` a caller passes (none, zero, negative, NaN, Infinity, huge), the toast goes by TOAST_MAX_MS.
+describe('toast lifetime', () => {
+  const asks: Array<number | undefined> = [undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER, 1, TOAST_ACTION_MS];
+  for (const tone of ['info', 'error'] as const) {
+    for (const durationMs of asks) {
+      it(`${tone} with durationMs ${String(durationMs)} has a finite, positive lifetime of at most TOAST_MAX_MS, and is dismissed by then`, () => {
+        const message: ToastMessage = { id: 1, text: 'Lifetime check', tone, durationMs };
+        const stays = toastLifetimeMs(message);
+        expect(Number.isFinite(stays)).toBe(true);
+        expect(stays).toBeGreaterThan(0);
+        expect(stays).toBeLessThanOrEqual(TOAST_MAX_MS);
+        const dismiss = vi.fn();
+        render(<ToastRegion messages={[message]} dismiss={dismiss} />);
+        act(() => void vi.advanceTimersByTime(TOAST_MAX_MS));
+        expect(dismiss).toHaveBeenCalledWith(1);
+      });
+    }
+  }
+
+  it('gives an error a longer default than an information message', () => {
+    expect(toastLifetimeMs({ tone: 'error' })).toBe(TOAST_ERROR_MS);
+    expect(toastLifetimeMs({ tone: 'info' })).toBe(TOAST_INFO_MS);
+    expect(TOAST_ERROR_MS).toBeGreaterThan(TOAST_INFO_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: 1 })).toBe(TOAST_ERROR_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: TOAST_MAX_MS })).toBe(TOAST_MAX_MS);
+  });
+});
+
+describe('Escape on a focused toast', () => {
+  it('is not taken by a capture-phase Escape listener of the page: the listeners that close a panel skip a key from a toast (#3431)', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
+    const button = screen.getByRole('button', { name: 'Dismiss message' });
+    button.focus();
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    button.dispatchEvent(event);
+    // The key is the toast's: it is handled (default prevented) so a page-level Escape that checks `defaultPrevented` leaves it alone.
+    expect(event.defaultPrevented).toBe(true);
+  });
+});
+
+describe('a hold that starts while the toast fades', () => {
+  for (const tone of ['info', 'error'] as const) {
+    for (const how of ['pointer', 'focus'] as const) {
+      for (const offset of [0, 140, 149, 1]) {
+        it(`${tone}, ${how} at ${offset} ms before its end: visible again while held, and a full lifetime after release (#3431)`, () => {
+          const dismiss = vi.fn();
+          const stays = tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+          render(<ToastRegion messages={[{ id: 1, text: 'Held', tone }]} dismiss={dismiss} />);
+          const toast = screen.getByText('Held').closest('[data-tone]') as HTMLElement;
+          act(() => void vi.advanceTimersByTime(stays - Math.max(offset, 1)));
+          if (how === 'pointer') fireEvent.pointerEnter(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).focus());
+          act(() => void vi.advanceTimersByTime(1000));
+          expect(toast.className).not.toContain('opacity-0');
+          expect(dismiss).not.toHaveBeenCalled();
+          if (how === 'pointer') fireEvent.pointerLeave(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).blur());
+          act(() => void vi.advanceTimersByTime(stays - 1));
+          expect(dismiss).not.toHaveBeenCalled();
+          act(() => void vi.advanceTimersByTime(1));
+          expect(dismiss).toHaveBeenCalledWith(1);
+        });
+      }
+    }
+  }
 });

@@ -202,6 +202,24 @@ describe('the panel can be hidden', () => {
     }
   });
 
+  it('Escape on a focused toast does not close the drawer (#3431)', async () => {
+    matchMedia(true);
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: /side panel/i }));
+    const region = document.createElement('div');
+    region.setAttribute('data-toast-region', '');
+    const dismiss = document.createElement('button');
+    region.append(dismiss);
+    document.body.append(region);
+    try {
+      dismiss.focus();
+      await userEvent.keyboard('{Escape}');
+      expect(panel().hidden).toBe(false);
+    } finally {
+      region.remove();
+    }
+  });
+
   it('opens when a reference is shown', () => {
     matchMedia(true);
     const { rerender } = render(<Harness />);
