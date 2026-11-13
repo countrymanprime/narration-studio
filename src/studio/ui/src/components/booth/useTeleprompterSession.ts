@@ -426,7 +426,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
           const asset = find(catalog);
           if (asset && asset.installState !== 'installed') installedModels.current.delete(key);
         })
-        .catch(() => {});
+        .catch(() => installedModels.current.delete(key));
       return true;
     }
     try {

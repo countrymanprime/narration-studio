@@ -94,35 +94,29 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
-  'src/components/booth/page/useBoothPage.ts#3': no(
-    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
-  ),
-  'src/components/booth/page/useBoothPage.ts#4': no(RF),
-  'src/components/booth/page/useBoothPage.ts#5': no(
+  'src/components/booth/page/useBoothPage.ts#3': no(RF),
+  'src/components/booth/page/useBoothPage.ts#4': no(
     'Says that a take the narrator stopped while listening was still starting was kept without the text following it: nothing was lost and repeating changes nothing; Record is the control for the next take (#3321).',
   ),
-  'src/components/booth/page/useBoothPage.ts#6': yes(
+  'src/components/booth/page/useBoothPage.ts#5': yes(
     'Recording did not start because the text could not follow the voice and nothing was kept: Retry takes the same start again once the narrator has fixed the microphone or the model (there before this change).',
   ),
-  'src/components/booth/page/useBoothPage.ts#7': na(
+  'src/components/booth/page/useBoothPage.ts#6': na(
     'A status sentence, not a failed call: a roll the Booth stopped waiting for has landed and the narrator checks and stops the DAW there; the app does nothing to the DAW itself (#3409).',
   ),
-  'src/components/booth/page/useBoothPage.ts#8': no(
+  'src/components/booth/page/useBoothPage.ts#7': no(
     'A roll that lands after its limit and was refused (#3409): a roll is a DAW edit that applies to the take as it is now, and R on the page is the control for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#9': no(
+  'src/components/booth/page/useBoothPage.ts#8': no(
     'Ends a roll the DAW never answered (#3409): the take may still be recording, and R on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#10': no(
+  'src/components/booth/page/useBoothPage.ts#9': no(
     'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#11': no(
-    'Ends a cold read whose model check never answered (#3321): the cold read toggle stays on the page for the next try.',
-  ),
-  'src/components/booth/page/useBoothPage.ts#12': no(
+  'src/components/booth/page/useBoothPage.ts#10': no(
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#13': no(RC),
+  'src/components/booth/page/useBoothPage.ts#11': no(RC),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),
