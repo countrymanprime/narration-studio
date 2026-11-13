@@ -588,6 +588,25 @@ describe('CheckRecordingsDialog', () => {
       expect(await screen.findAllByText('Stop checking?')).toHaveLength(1);
     });
 
+    it('does not ask "Stop checking?" for an Escape pressed on a focused toast (#3431)', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      await userEvent.click(await screen.findByRole('button', { name: 'Check 1 chapter' }));
+      await screen.findByRole('region', { name: 'Check activity' });
+      const region = document.createElement('div');
+      region.setAttribute('data-toast-region', '');
+      const dismiss = document.createElement('button');
+      region.append(dismiss);
+      document.body.append(region);
+      try {
+        dismiss.focus();
+        await userEvent.keyboard('{Escape}');
+        expect(screen.queryByText('Stop checking?')).toBeNull();
+      } finally {
+        region.remove();
+      }
+    });
+
     it('says nothing needed re-checking when the first pass left nothing in doubt, and that there is no re-check when none was asked for', async () => {
       const { api, emit } = host();
       open(api, ['a']);
