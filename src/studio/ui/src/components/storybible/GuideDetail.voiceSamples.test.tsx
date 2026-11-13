@@ -59,8 +59,8 @@ describe('the Voice samples section of an entry', () => {
     const samples = await section();
     const references = await screen.findByText('Reference clips');
     expect(samples.compareDocumentPosition(references) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await screen.findByText('Hatter ref A');
-    expect(screen.queryByRole('button', { name: /^Play Hatter ref A/ })).toBeNull();
+    await screen.findByText('Hatter ref (moved)');
+    expect(screen.queryByRole('button', { name: /^Play Hatter ref/ })).toBeNull();
     expect(document.body.textContent).not.toContain('future integration');
   });
 

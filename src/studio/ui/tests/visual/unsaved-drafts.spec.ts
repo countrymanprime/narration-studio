@@ -128,3 +128,28 @@ test('the question from the navigation drawer holds the focus: Tab stays inside 
   await page.keyboard.press('Escape');
   await expect(question).toBeHidden();
 });
+
+// The focus rescue must not depend on timers: on a slow machine the drawer hands the focus back to its opener late, and Enter there reopened the drawer over the
+// question (#3446 D3). With the page's work slowed 20 times, the focus still ends inside the question, and Enter does not open the drawer.
+test('under a 20x CPU slowdown the question still holds the focus and Enter does not reopen the drawer', async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 600 });
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  const client = await page.context().newCDPSession(page);
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 20 });
+  await page
+    .getByRole('dialog', { name: /navigation/i })
+    .getByRole('button', { name: /^Script/ })
+    .click();
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => question.evaluate((node) => node.contains(document.activeElement)), { timeout: 20_000 }).toBe(true);
+  await page.keyboard.press('Enter');
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  await expect(page.getByRole('dialog', { name: /navigation/i })).toHaveCount(0);
+});

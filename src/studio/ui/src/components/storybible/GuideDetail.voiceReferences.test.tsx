@@ -56,6 +56,7 @@ describe('Story Bible character detail: voice references', () => {
     const user = userEvent.setup();
     renderDetail(alice);
     await findReferenceRow('Alice ref A');
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const regionSelect = await screen.findByRole('combobox', { name: 'Approve a region for Alice' });
     await user.selectOptions(regionSelect, 'March Hare ref A');
     await user.click(screen.getByRole('button', { name: 'Approve as reference' }));
@@ -68,6 +69,8 @@ describe('Story Bible character detail: voice references', () => {
     const user = userEvent.setup();
     renderDetail(alice);
     const row = await findReferenceRow('Alice ref A');
+    expect(within(row).queryByRole('button', { name: 'Revoke' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     await user.click(within(row).getByRole('button', { name: 'Revoke' }));
     await waitFor(() => expect(screen.queryAllByText('Alice ref A').some((el) => el.closest('li'))).toBe(false));
   });
@@ -88,6 +91,7 @@ describe('Story Bible character detail: dialogue cue attribution', () => {
     const user = userEvent.setup();
     const api = renderDetail(alice);
     expect(await screen.findByText('“Have some wine.”')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const select = screen.getByRole('combobox', { name: 'Speaker for “Have some wine.”' });
     await user.selectOptions(select, 'Alice');
     await waitFor(async () => expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')?.speaker_entity_id).toBe('alice'));

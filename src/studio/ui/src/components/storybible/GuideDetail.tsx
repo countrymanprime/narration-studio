@@ -23,7 +23,6 @@ import { Icon } from '../primitives/Icon';
 import { hearNameAction } from '../../icons.catalog';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { Button } from '../primitives/Button';
-import { Field } from '../primitives/Field';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Menu } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -502,6 +501,7 @@ export function GuideDetail({
     mutation.run('speaker-colour', async () => {
       try {
         await api.guideSetSpeakerColor(entity.id, index);
+        notify(`Speaker colour ${index === 0 ? 'set to Automatic' : 'changed'} for ${entity.canonical_name}.`);
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -1044,48 +1044,53 @@ export function GuideDetail({
 
         {speaks && (
           <>
-            <Field
+            <EntryText
               label="Personality notes"
-              textarea
-              disabled={editingDisabled}
               value={draft.personality}
-              onChange={(value) => setDraft({ ...draft, personality: value })}
+              editing={!editingDisabled}
+              onChange={(personality) => setDraft({ ...draft, personality })}
             />
             {!isNewDraft && (
               <>
-                <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
+                <SpeakerColourField
+                  entity={entity}
+                  speaks
+                  disabled={mutation.isBusy}
+                  readOnly={editingDisabled}
+                  onChange={(index) => void setSpeakerColour(index)}
+                />
                 {/* Each titled section below the fields is set off by the same rule as Properties, Relationships and Appears in (SBX-12);
                     a section with nothing to show draws no rule. */}
                 <div className={SECTION_RULE}>
                   <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
                 </div>
                 <div className={SECTION_RULE}>
-                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
+                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} readOnly={editingDisabled} />
                 </div>
                 <div className={SECTION_RULE}>
-                  <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                  <DialogueCueAttribution
+                    entity={entity}
+                    entities={entities}
+                    canSpeak={(category) => canSpeak(types, category)}
+                    notify={notify}
+                    readOnly={editingDisabled}
+                  />
                 </div>
               </>
             )}
           </>
         )}
         {entity.category === 'Place' && (
-          <Field
-            label="Location context"
-            textarea
-            disabled={editingDisabled}
-            value={draft.context}
-            onChange={(value) => setDraft({ ...draft, context: value })}
-          />
+          <EntryText label="Location context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Event' && (
-          <Field label="Timeline context" disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Timeline context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Item' && (
-          <Field label="Item context" textarea disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Item context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Lore' && (
-          <Field label="Lore context" textarea disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Lore context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
 
         {suggested}
