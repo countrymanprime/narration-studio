@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-type Extra = { stopTake?: () => Promise<boolean>; onNoTrack?: (key: number) => void; asking?: boolean };
+type Extra = { stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
   const api = given ?? createMockApi({}, seed);
@@ -138,6 +138,31 @@ describe("the Booth's voices", () => {
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
   });
 
+  it('a voice key with no take running starts the take once the host has accepted the voice; a pick from the list does not (#3430)', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const { hook } = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    await act(async () => hook.current.byKey(1));
+    await waitFor(() => expect(startTake).toHaveBeenCalledTimes(1));
+    expect(hook.current.current?.name).toBe('White Rabbit');
+    await act(async () => hook.current.choose(hook.current.voices[2]));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).toHaveBeenCalledTimes(1);
+  });
+
+  it('a voice key starts nothing when the host refuses the voice, or while a take runs', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const refused = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    refused.api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'No.' });
+    await act(async () => refused.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
+    cleanup();
+    const recording = await mount({ voiceFolders: true }, true, undefined, { startTake });
+    await act(async () => recording.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
+  });
+
   it('a refused choice is a toast and keeps the voice', async () => {
     const { api, notify, hook } = await mount({ voiceFolders: true });
     api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
@@ -145,6 +170,36 @@ describe("the Booth's voices", () => {
     await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(notify).toHaveBeenCalledWith('That track is not a voice of this chapter.', 'error');
     expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it("a voice the DAW would not arm is still chosen, and the DAW's refusal is a toast (#3429)", async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => ({
+      ...(await set(chapter, guid)),
+      armed: undefined,
+      reason: 'already_recording',
+      message: 'REAPER is already recording. The Booth will record on this voice, but the armed track in REAPER did not change.',
+    });
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('did not change'), 'error');
+    expect(hook.current.current?.key).toBe('1');
+  });
+
+  it('a voice the DAW armed is chosen with no toast (#3429)', async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const answers: unknown[] = [];
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => {
+      const answer = await set(chapter, guid);
+      answers.push(answer);
+      return answer;
+    };
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(answers).toEqual([expect.objectContaining({ outcome: 'selected', armed: true })]);
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'error');
   });
 
   it('a second key pressed while the host answers the first is sent after it: the last key wins', async () => {

@@ -64,6 +64,33 @@ func TestArmOnlyRefusesATrackThatIsGoneAndWhileRecording(t *testing.T) {
 	}
 }
 
+func TestArmLaneSendsArmLaneAndTellsTheRefusalsApart(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	answer := [][]string{{"ARMED", "", testTrack, "1", "1"}}
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		answer[0][1] = run(command)
+		return answer
+	})
+	got, err := actions.ArmLane(context.Background(), testTrack)
+	if err != nil || got != (Armed{TrackGUID: testTrack, Disarmed: 1, Changed: true}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if command := fake.commands()[0]; command[1] != "arm_lane" || command[3] != testTrack {
+		t.Fatalf("command = %v", command)
+	}
+	if !Experimental("arm_lane") {
+		t.Error("arm_lane must stay experimental until it is verified in a real REAPER")
+	}
+	answer = [][]string{{"TRACK_STALE", "", testTrack}}
+	if _, err := actions.ArmLane(context.Background(), testTrack); !errors.Is(err, ErrStale) {
+		t.Fatalf("err = %v, want ErrStale", err)
+	}
+	answer = [][]string{{"ERROR", "", "REAPER is recording. Stop recording first."}}
+	if _, err := actions.ArmLane(context.Background(), testTrack); !errors.Is(err, ErrRecording) {
+		t.Fatalf("err = %v, want ErrRecording", err)
+	}
+}
+
 func TestRecordStartAnswersWhereRecordingBeganAndTellsTheRefusalsApart(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	reply := func(command []string) [][]string {

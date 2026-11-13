@@ -10,7 +10,7 @@ export type ToastTone = 'info' | 'error';
 export type ToastAction = { label: string; onAction: () => void };
 /** The Retry a failure toast carries where repeating the action is safe (a start that the host guards or an idempotent save). */
 export const retryAction = (retry: () => void): ToastAction => ({ label: 'Retry', onAction: retry });
-/** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
+/** `durationMs` is how long a message stays when it needs a different time than its tone's (an Undo the narrator may want ten seconds for); `toastLifetimeMs` bounds it. */
 export type ToastMessage = {
   id: number;
   text: string;
@@ -22,20 +22,33 @@ export type ToastMessage = {
   /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
   undo?: { entry?: number };
 };
-/** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.
+/** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed or `TOAST_ERROR_MS` has passed.
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
  * leads with its warning glyph. */
 export type Notify = (text: string, tone?: ToastTone, action?: ToastAction, icon?: IconDefinition, durationMs?: number, topic?: string) => void;
 
-/** How long an information message stays. An error has no timer. */
+/** How long an information message stays. */
 export const TOAST_INFO_MS = 5_000;
+/** How long an error stays: longer than an information message, so it can be read and its Retry reached, but not for ever. */
+export const TOAST_ERROR_MS = 20_000;
+/** The longest any toast stays, whatever `durationMs` asks for. */
+export const TOAST_MAX_MS = 60_000;
 /** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
 /** How long an action has to put focus where it wants (the Schedule's restored row, after its Undo resolves) before focus is handed back to where it was. */
 // shortcut: a fixed wait, not the action's own promise (`onAction` returns nothing); upgrade when an action reports when it is done.
 export const ACTION_FOCUS_MS = 250;
+
+/** How long a message stays: its tone's time, or the `durationMs` it asked for when that is a positive number (an error is never shorter than its own default), and never more than `TOAST_MAX_MS`. Every toast has a timer, so none is made without a bounded lifetime. */
+export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs'>): number {
+  const asked = message.durationMs;
+  const base = message.tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+  const own = typeof asked === 'number' && Number.isFinite(asked) && asked > 0 ? asked : base;
+  // An error is never shorter than its default, whatever a caller asks: it stays longer than an information message.
+  return Math.min(message.tone === 'error' ? Math.max(own, base) : own, TOAST_MAX_MS);
+}
 
 function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {
   const [leaving, setLeaving] = useState(false);
@@ -51,9 +64,9 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
     watch.observe(el);
     return () => watch.disconnect();
   }, [message.text]);
-  const sticky = message.tone === 'error';
+  const isError = message.tone === 'error';
   const { id } = message;
-  const stays = message.durationMs ?? TOAST_INFO_MS;
+  const stays = toastLifetimeMs(message);
   // A pointer resting on the toast or focus inside it holds the timer; leaving starts the full time again, so a message is never taken from under a hand or a key.
   const hover = useRef(false);
   const focused = useRef(false);
@@ -77,14 +90,18 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
     );
   };
   useEffect(() => {
-    if (sticky || held) return;
+    // A hold that starts in the fade brings the toast back: it was not taken away, and it gets its full time again on release.
+    if (held) {
+      setLeaving(false);
+      return;
+    }
     const fade = window.setTimeout(() => setLeaving(true), stays - FADE_MS);
     const remove = window.setTimeout(() => dismiss(id), stays);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, sticky, stays, held]);
+  }, [dismiss, id, stays, held]);
   return (
     <div
       data-tone={message.tone}
@@ -96,6 +113,13 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         const from = event.relatedTarget;
         if (from instanceof HTMLElement && !event.currentTarget.contains(from)) origin.current = from;
       }}
+      onKeyDown={(event) => {
+        // Escape dismisses the toast that has focus, as its Dismiss button does; the key is the toast's, so it does not also close a dialog or leave the page.
+        if (event.key !== 'Escape' || !(event.target instanceof HTMLElement)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        settle(event.target, true);
+      }}
       onBlur={(event) => {
         if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
         focused.current = false;
@@ -106,8 +130,8 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
       className={`relative flex min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
-      {sticky && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
-      {sticky ? (
+      {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
+      {isError ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />

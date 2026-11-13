@@ -133,6 +133,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const [prompt, setPrompt] = useState<ModelPrompt>();
   // The last start found the speech model missing: kept after the question is answered, so a narrator who declined is still told why the text does not follow.
   const [modelMissing, setModelMissing] = useState(false);
+  // Engine/model pairs the host's asset list last called installed (#3432). The list is cheap when the manifest vouches for the files and reads every byte
+  // of every model when it does not, so a press never waits on it for a model already known to be there: it goes on and the list is read again behind it.
+  const installedModels = useRef(new Set<string>());
   // Where the next Start begins (the read-aloud dialog's resume card):
   // null is the top. Passed to the host as `startWord` (start at a word), so a resumed session
   // never reads from the top first.
@@ -309,6 +312,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       });
       if (result.status === 'asset_required') {
         setModelMissing(true);
+        installedModels.current.delete(`${engine}/${model}`);
         modelInstall.reset();
         setPrompt(result);
         return { ok: false, reason: 'the speech model is not downloaded' };
@@ -412,12 +416,27 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     abandoned?: () => boolean,
   ): Promise<boolean> => {
     if (!isEngine(which.engine)) return true;
+    const key = `${which.engine}/${which.model}`;
+    const find = (catalog: Awaited<ReturnType<typeof api.assetsList>>) => catalog.assets.find((item) => item.kind === which.engine && item.id === which.model);
+    if (installedModels.current.has(key)) {
+      // Known installed: no wait. The list is read again behind the press and only forgets the answer (the next press asks, and the question opens then).
+      void api
+        .assetsList()
+        .then((catalog) => {
+          const asset = find(catalog);
+          if (asset && asset.installState !== 'installed') installedModels.current.delete(key);
+        })
+        .catch(() => installedModels.current.delete(key));
+      return true;
+    }
     try {
       const catalog = await api.assetsList();
+      const asset = find(catalog);
+      if (asset?.installState === 'installed') installedModels.current.add(key);
       // The press gave up on this check (it said so and is over): a question opened now would arrive out of nowhere, or over a take that runs.
       if (abandoned?.()) return true;
-      const asset = catalog.assets.find((item) => item.kind === which.engine && item.id === which.model);
       if (!asset || asset.installState === 'installed') return true;
+      installedModels.current.delete(key);
       gate.current = { revert };
       setModelMissing(true);
       modelInstall.reset();

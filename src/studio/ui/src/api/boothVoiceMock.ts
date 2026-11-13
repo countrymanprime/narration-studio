@@ -167,7 +167,8 @@ export function createBoothVoiceMock(api: Deps) {
       const target = voices.find((voice) => voice.guid.toLowerCase() === trackGuid.toLowerCase());
       if (!target) return refused('not_a_voice', NOT_A_VOICE);
       chosen.set(chapterId, target.guid);
-      if (recording?.chapterId !== chapterId) return { outcome: 'selected', trackGuid: target.guid };
+      // The mock's DAW arms the chosen lane at once, as REAPER's arm_lane does while no take runs.
+      if (recording?.chapterId !== chapterId) return { outcome: 'selected', trackGuid: target.guid, armed: true };
       return { outcome: 'switched', trackGuid: target.guid, at: recording.from + (Date.now() - recording.since) / 1000 };
     },
     // As ReadAloudReaperState does for a chapter linked to a folder of voices: the arms read are its voice's, never the folder's.

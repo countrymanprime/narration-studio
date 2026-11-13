@@ -424,6 +424,13 @@ type VoiceSwitcher interface {
 	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
 }
 
+// LaneArmer is a Recorder that can arm the lane the Booth chose while no take runs, so the engine's armed track follows the app's
+// (#3429). Unlike ArmOnly, the engine puts nothing back at a stop: the arm is the narrator's choice. Refused while the engine records
+// (the take is switched with VoiceSwitcher); a track that is gone is a stale error. Only an engine with record-armed tracks (REAPER) has it.
+type LaneArmer interface {
+	ArmLane(ctx context.Context, trackGUID string) (Armed, error)
+}
+
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),
 // with a preview that writes nothing and an apply that writes only the folder depths the confirmed moves need, in one undo point.
 // chapterGUIDs are the tracks the app links to chapters; expected are the chapters a preview listed and the narrator confirmed.

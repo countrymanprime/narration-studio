@@ -53,7 +53,8 @@ export function BoothSidePanel({
   useEffect(() => {
     if (!drawer || !open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      // Escape on a toast that has focus dismisses that toast (`Toast`), not this panel.
+      if (event.key !== 'Escape' || event.defaultPrevented || (event.target instanceof Element && event.target.closest('[data-toast-region]'))) return;
       event.preventDefault();
       event.stopPropagation();
       onOpenChange(false);

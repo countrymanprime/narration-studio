@@ -480,28 +480,16 @@
     "replace": "  if true then\n    local arms = {}"
   },
   {
-    "name": "go_to a folder leaves its tracks unselected",
-    "file": "narration_track_select.lua",
-    "find": "  for _, member in ipairs(members) do\n    reaper.SetTrackSelected(member, true)\n  end\n",
-    "replace": ""
+    "name": "arm_lane re-arms while a record_start is waiting for REAPER",
+    "file": "narration_transport.lua",
+    "find": "  if recording() or (keep and state.recording and not state.recording.started) then",
+    "replace": "  if recording() then"
   },
   {
-    "name": "read_place names a folder for a partial selection of it",
-    "file": "narration_track_select.lua",
-    "find": "    local whole = #members > 0 and selected == #members + 1\n",
-    "replace": "    local whole = #members > 0\n"
-  },
-  {
-    "name": "read_place names a folder when a selected track is outside it",
-    "file": "narration_track_select.lua",
-    "find": "      whole = whole and chosen[member] == true\n",
-    "replace": ""
-  },
-  {
-    "name": "go_to end on a folder ignores the tracks inside it",
-    "file": "narration_track_select.lua",
-    "find": "      target = math.max(target, track_end(member))\n",
-    "replace": ""
+    "name": "arm_lane leaves the arms to be put back at the stop",
+    "file": "narration_transport.lua",
+    "find": "  if keep then\n",
+    "replace": "  if false then\n"
   },
   {
     "name": "recording starts with another track armed",
@@ -524,7 +512,7 @@
   {
     "name": "arms change while REAPER records",
     "file": "narration_transport.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
+    "find": "  if recording() or (keep and state.recording and not state.recording.started) then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
     "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')"
   },
   {
@@ -3704,5 +3692,29 @@
     "file": "narration_save_project.lua",
     "find": "  return math.floor(reaper.GetPlayState() / 4) % 2 == 1",
     "replace": "  return reaper.GetPlayState() == 4"
+  },
+  {
+    "name": "go_to a folder leaves its tracks unselected",
+    "file": "narration_track_select.lua",
+    "find": "  for _, member in ipairs(members) do\n    reaper.SetTrackSelected(member, true)\n  end\n",
+    "replace": ""
+  },
+  {
+    "name": "read_place names a folder for a partial selection of it",
+    "file": "narration_track_select.lua",
+    "find": "    local whole = #members > 0 and selected == #members + 1\n",
+    "replace": "    local whole = #members > 0\n"
+  },
+  {
+    "name": "read_place names a folder when a selected track is outside it",
+    "file": "narration_track_select.lua",
+    "find": "      whole = whole and chosen[member] == true\n",
+    "replace": ""
+  },
+  {
+    "name": "go_to end on a folder ignores the tracks inside it",
+    "file": "narration_track_select.lua",
+    "find": "      target = math.max(target, track_end(member))\n",
+    "replace": ""
   }
 ]

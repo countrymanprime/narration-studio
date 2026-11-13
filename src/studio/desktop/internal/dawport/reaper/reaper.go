@@ -44,7 +44,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectState: dawport.Supported,
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
-	// bridge's experimentalCommands: chapter_track_state, select_track, track_create; arm_only, record_start, record_stop; punch_to,
+	// bridge's experimentalCommands: chapter_track_state, select_track, track_create; arm_only, arm_lane, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range, fx_range_params, fx_range_set_param, fx_range_bypass; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
 	// reduce_range_gain; repair_click; last_action, undo_last; monitor_level (declared with the edit rows below).
@@ -132,6 +132,7 @@ var commandCapability = map[string]dawport.Capability{
 	"stop_play":                  dawport.CapTransportSync,
 	"watch_transport":            dawport.CapTransportSync,
 	"arm_only":                   dawport.CapRecord,
+	"arm_lane":                   dawport.CapRecord,
 	"record_start":               dawport.CapRecord,
 	"record_stop":                dawport.CapRecord,
 	"switch_voice":               dawport.CapRecord,
@@ -436,6 +437,9 @@ type puncher struct {
 	*bridge.Actions
 	allowed func(dawport.Capability) error
 }
+
+var _ dawport.LaneArmer = (*bridge.Actions)(nil)
+var _ dawport.VoiceSwitcher = (*bridge.Actions)(nil)
 
 var _ dawport.Puncher = puncher{}
 
