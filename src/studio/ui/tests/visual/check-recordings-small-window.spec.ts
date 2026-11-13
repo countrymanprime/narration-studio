@@ -98,12 +98,20 @@ for (const size of [
       await page.keyboard.press('Tab');
       const hidden = await page.evaluate(() => {
         const focused = document.activeElement as HTMLElement | null;
-        if (!focused || !focused.closest('[role=dialog]')) return null;
-        const rect = focused.getBoundingClientRect();
-        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-        return top === focused || focused.contains(top) || top?.closest('label') === focused.closest('label')
-          ? null
-          : (focused.getAttribute('aria-label') ?? focused.textContent ?? focused.tagName).trim().slice(0, 40);
+        const popup = document.querySelector('[role=dialog]');
+        if (!focused || !popup?.contains(focused)) return null;
+        let footer: Element | null =
+          [...popup.querySelectorAll('button')]
+            .find((button) => /^(Cancel|Check \d+ chapters?|Back to chapters|Done)$/.test(button.textContent?.trim() ?? ''))
+            ?.closest('div') ?? null;
+        while (footer && getComputedStyle(footer).position !== 'sticky') footer = footer.parentElement;
+        // A scroll area that holds the footer is focusable itself; it is not a control the footer covers.
+        if (!footer || footer.contains(focused) || focused.contains(footer)) return null;
+        // The focus ring is drawn a few pixels outside the control: any overlap of that ring box with the footer is a covered control.
+        const ring = focused.getBoundingClientRect();
+        const bar = footer.getBoundingClientRect();
+        const overlaps = ring.bottom + 3 > bar.top && ring.top - 3 < bar.bottom;
+        return overlaps ? (focused.getAttribute('aria-label') ?? focused.textContent ?? focused.tagName).trim().slice(0, 40) : null;
       });
       if (hidden) covered.push(`${step}: ${hidden}`);
     }
