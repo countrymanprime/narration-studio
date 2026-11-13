@@ -207,7 +207,7 @@ describe('an edit typed and not accepted is a draft the question cannot save (#3
     const u = userEvent.setup();
     await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
     await u.type(screen.getByRole('textbox', { name: 'Edit name' }), 'Jr');
-    expect(drafts.held.map((entry) => entry.saveable)).toEqual([false]);
+    expect(drafts.heldNow().map((entry) => entry.saveable)).toEqual([false]);
     // Save & continue never accepts for the narrator and never drops the edit (#3400 D1): the edit comes back as kept, still held, so the shell stays.
     const outcome = await drafts.save();
     expect(outcome.kept.map((entry) => entry.brief)).toEqual(['a suggestion edit']);
