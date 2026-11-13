@@ -441,15 +441,17 @@ describe('speaker colour field in the entry', () => {
   it('puts the colour back to Automatic with one host call', async () => {
     const api = createMockApi();
     const call = vi.spyOn(api, 'guideSetSpeakerColor');
+    const notify = vi.fn();
     const row = { ...WIRE_ENTITIES.find((entity) => entity.category === 'Character' && !entity.locked)!, speaker_color: 3 };
     render(
       <ApiProvider api={api}>
-        <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+        <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={notify} goToManuscript={vi.fn()} />
       </ApiProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(await screen.findByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
     await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Speaker colour set to Automatic.'));
   });
 
   it('is not offered on a place', () => {
