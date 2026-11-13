@@ -476,7 +476,7 @@ export function GuideDetail({
     mutation.run('speaker-colour', async () => {
       try {
         await api.guideSetSpeakerColor(entity.id, index);
-        notify(index === 0 ? 'Speaker colour set to Automatic.' : 'Speaker colour changed.');
+        notify(`Speaker colour ${index === 0 ? 'set to Automatic' : 'changed'} for ${entity.canonical_name}.`);
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');

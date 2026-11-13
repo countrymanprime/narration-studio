@@ -451,7 +451,7 @@ describe('speaker colour field in the entry', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(await screen.findByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
     await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Speaker colour set to Automatic.'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Speaker colour set to Automatic for ${row.canonical_name}.`));
   });
 
   it('is not offered on a place', () => {
