@@ -69,4 +69,46 @@ describe('ChapterTrackLinkFix (#3413)', () => {
     await userEvent.click(within(document.body).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
   });
+
+  // The qa-breaker on #3417 (B3): the prompt sits in an overlay dialog that outlives the project's provider.
+  it('says the project is no longer open when the state it reads is gone, not reading for good', async () => {
+    const api = createMockApi();
+    const { rerender } = render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <ChapterTrackLinkFix chapter={chapter} notify={() => {}} onLinked={() => {}} />
+          </ChapterTrackStateProvider>
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    await picker();
+    // The dialog is drawn by the overlay host, outside the provider; the provider goes with the project.
+    rerender(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ChapterTrackLinkFix chapter={chapter} notify={() => {}} onLinked={() => {}} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/no longer open/)).toBeTruthy();
+    expect(screen.queryByText(/Reading the REAPER tracks/)).toBeNull();
+  });
+
+  it('says the project is no longer open when another project is opened under the prompt', async () => {
+    const api = createMockApi();
+    const tree = (folder: string) => (
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ChapterTrackStateProvider projectFolder={folder} enabled notify={() => {}}>
+            <ChapterTrackLinkFix chapter={chapter} notify={() => {}} onLinked={() => {}} />
+          </ChapterTrackStateProvider>
+        </ApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(tree('C:/Projects/Alice'));
+    await picker();
+    rerender(tree('C:/Projects/Other'));
+    expect(await screen.findByText(/no longer open/)).toBeTruthy();
+  });
 });

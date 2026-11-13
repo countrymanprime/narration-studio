@@ -4,14 +4,32 @@ import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
-import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
 import { ResolveShell } from './ResolveShell';
 import { destinationFor } from '../engine/destination';
 import { useVoiceLayout } from '../engine/voiceLayout';
+
+/** How long the track match may take: a host that never answers ends in the failed state, where adding a track is offered, not in reading for good. */
+const MATCH_LIMIT_MS = 8000;
+function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; at: number };
 
@@ -32,6 +50,8 @@ export type ChapterLinkDialogProps = {
   onLinked: (result: ChapterTrackSetResult, created?: Extract<ChapterTrackCreateResult, { outcome: 'created' }>) => void;
   /** Check again was pressed, so the page can read the chapter again too (the link may have been made elsewhere). */
   onCheckedAgain?: () => void;
+  /** Where focus goes when the dialog closes and nothing had it at open (it opens by itself): the chip that reopens it. */
+  returnFocus?: () => HTMLElement | null;
   onClose: () => void;
 };
 
@@ -42,7 +62,7 @@ export type ChapterLinkDialogProps = {
  */
 export function ChapterLinkDialog({
   chapterId,
-  chapterName,
+  chapterName: rawChapterName,
   sentence,
   dawName,
   missing = false,
@@ -50,8 +70,11 @@ export function ChapterLinkDialog({
   create,
   onLinked,
   onCheckedAgain,
+  returnFocus,
   onClose,
 }: ChapterLinkDialogProps) {
+  // A long name would take the whole dialog, a blank one would leave the title with no subject (#3416).
+  const chapterName = dialogChapterName(rawChapterName);
   const trackMap = usePort('chapterTrackMap');
   const actions = useChapterLinkActions();
   const overlay = useOverlay();
@@ -75,7 +98,7 @@ export function ChapterLinkDialog({
     // A links read that fails after the match answered leaves the picker as it was, with the failure said under it, not the whole dialog failed.
     let linksFailure = '';
     Promise.all([
-      trackMap.chapterTrackMatch(chapterId),
+      withTimeout(trackMap.chapterTrackMatch(chapterId), MATCH_LIMIT_MS, `${dawName} did not answer in ${MATCH_LIMIT_MS / 1000} s`),
       refreshLinks().catch((error: unknown) => {
         linksFailure = apiErrorMessage(error);
         return undefined;
@@ -95,8 +118,17 @@ export function ChapterLinkDialog({
     return () => {
       live = false;
     };
-  }, [trackMap, chapterId, asked, refreshLinks]);
+  }, [trackMap, chapterId, asked, refreshLinks, dawName]);
 
+  const readingRef = useRef(true);
+  readingRef.current = read.status === 'loading';
+  // Another project opened under this dialog (or the project closed): its chapter is not in what is read now, and a link would be written to the
+  // wrong project, so the dialog goes away rather than offering it (#3416).
+  const projectNow = useChapterTrackProject();
+  const openedFor = useRef(projectNow);
+  useEffect(() => {
+    if (projectNow !== openedFor.current) onClose();
+  }, [projectNow, onClose]);
   const linksRef = useRef(links);
   linksRef.current = links;
   // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
@@ -108,7 +140,11 @@ export function ChapterLinkDialog({
     [],
   );
   const checkAgain = useCallback(() => {
+    // Presses while a check is out are ignored: five presses would start five reads and five page re-reads.
+    if (readingRef.current) return;
+    readingRef.current = true;
     setRefused(null);
+    setRead({ status: 'loading' });
     setAsked((n) => n + 1);
     onCheckedAgain?.();
   }, [onCheckedAgain]);
@@ -175,10 +211,11 @@ export function ChapterLinkDialog({
       title={title}
       description={sentence}
       onClose={onClose}
+      returnFocus={returnFocus}
       primary={
         createFirst ? createAction : { label: dest.linkButton, onPress: link, pending: linking, disabled: !chosen || read.status !== 'ready' || creating }
       }
-      secondary={{ label: 'Check again', onPress: checkAgain }}
+      secondary={{ label: 'Check again', onPress: checkAgain, pending: read.status === 'loading' }}
     >
       {read.status === 'loading' && <p role="status">Reading the {dawName} tracks…</p>}
       {read.status === 'failed' && (
