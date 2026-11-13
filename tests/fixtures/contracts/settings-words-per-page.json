@@ -23,7 +23,7 @@
       "isSet": false,
       "key": "follow_chapter_in_daw",
       "kind": "bool",
-      "label": "The DAW follows the chapter you go to",
+      "label": "DAW follows the Booth’s chapter",
       "value": ""
     }
   ]
