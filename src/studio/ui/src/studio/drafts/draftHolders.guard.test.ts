@@ -256,3 +256,36 @@ describe('a control on the page that replaces a draft holder asks first (#3404)'
     expect(missing).toEqual([]);
   });
 });
+
+// A dialog that closes itself and then navigates loses its place when the narrator answers Cancel on the unsaved question: the dialog is gone and the move did not
+// happen. The close goes in the navigate's `after` (#3446 E6).
+describe('a handler does not close its dialog before a guarded navigate (#3446 E6)', () => {
+  test('no component calls close() or onClose() straight before navigate(', () => {
+    const offenders = files(components, /\.tsx$/)
+      .filter((path) => !SKIPPED.test(key(path)))
+      .filter((path) => /\b(?:close|onClose)\(\);\s*(?:navigate|go)\(/.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(offenders, 'pass the close as navigate(path, { after: close }) so it runs only once the move goes ahead').toEqual([]);
+  });
+});
+
+// A holder's save has to leave the editor clean by the time it resolves (`UnsavedDraft.save`); `holderContract.ts` checks that, and every screen that registers an
+// editor proves it. The proof is a test under the same top-level folder of `components/` that imports the helper, so a new holder cannot skip it (#3446 E2).
+describe('every screen that registers a draft proves its holders meet the save contract (#3446 E2)', () => {
+  test('a folder with a useUnsavedDraft call has a test that imports holderContract', () => {
+    const folders = new Set(
+      files(components, /\.tsx$/)
+        .filter((path) => !SKIPPED.test(key(path)) && JOINS.test(code(readFileSync(path, 'utf8'))))
+        .map((path) => key(path).split('/')[0]!),
+    );
+    const proven = new Set(
+      files(components, /\.test\.tsx?$/)
+        .filter((path) => /holderContract/.test(readFileSync(path, 'utf8')))
+        .map((path) => key(path).split('/')[0]!),
+    );
+    expect(
+      [...folders].filter((folder) => !proven.has(folder)),
+      'call expectHolderCleanAfterSave from a test of the holder (studio/drafts/holderContract.ts)',
+    ).toEqual([]);
+  });
+});
