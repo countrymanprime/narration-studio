@@ -28,9 +28,13 @@ export function SpeakerColourField({ entity, speaks, onChange, disabled, readOnl
   const hues = Array.from({ length: SPEAKER_COLOR_COUNT }, (_, at) => ({ value: String(at + 1), label: HUE_NAMES[at] }));
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor={readOnly ? undefined : 'speaker-colour'} className="text-[0.82rem] font-medium text-[var(--text-muted)]">
-        Speaker colour
-      </label>
+      {readOnly ? (
+        <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">Speaker colour</span>
+      ) : (
+        <label htmlFor="speaker-colour" className="text-[0.82rem] font-medium text-[var(--text-muted)]">
+          Speaker colour
+        </label>
+      )}
       <Swatch colour={`speaker-${chosen}` as SwatchColour} />
       {readOnly ? (
         <span className="text-sm">{entity.speaker_color ? HUE_NAMES[chosen - 1] : `Automatic (${HUE_NAMES[automatic - 1]})`}</span>

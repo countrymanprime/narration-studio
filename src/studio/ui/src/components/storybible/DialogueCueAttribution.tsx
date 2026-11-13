@@ -87,9 +87,11 @@ export function DialogueCueAttribution({
                 {cue.corrected ? 'Corrected' : cue.speaker_source === 'unknown' ? 'Unattributed' : 'Attributed'}
               </span>
               {readOnly ? (
-                <span className="text-sm">
-                  {speakerOptions.find((option) => option.value === (cue.speaker_entity_id ?? UNKNOWN_SPEAKER))?.label ?? 'Unknown'}
-                </span>
+                cue.speaker_entity_id && (
+                  <span className="text-sm">
+                    {speakerOptions.find((option) => option.value === (cue.speaker_entity_id ?? UNKNOWN_SPEAKER))?.label ?? 'Unknown'}
+                  </span>
+                )
               ) : (
                 <Select
                   label={`Speaker for “${cue.quote_text}”`}

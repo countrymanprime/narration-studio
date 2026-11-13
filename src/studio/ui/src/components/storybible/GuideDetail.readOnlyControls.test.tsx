@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Guards the class behind #3447: an entry opens read-only, so no text box, select, colour picker, checkbox, radio or toggle
-// may be enabled until Edit is pressed, for every entry type.
+// may be drawn, enabled or not (a switched-off field still looks like one), until Edit is pressed, for every entry type.
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -14,7 +14,7 @@ const CONTROLS = 'input, textarea, select, [role="combobox"], [role="switch"], [
 // Deliberate exceptions: none. Mark reviewed, Play and Lock/Unlock are buttons that act on the entry, not fields that hold input.
 const EXCEPTIONS: string[] = [];
 
-function enabledControls(root: HTMLElement): string[] {
+function drawnControls(root: HTMLElement): string[] {
   return [...root.querySelectorAll<HTMLElement>(CONTROLS)]
     .filter(
       (el) =>
@@ -34,7 +34,7 @@ describe.each([
   ['queens-garden', 'Event'],
   ['queens-garden', 'Lore'],
 ])('read-only %s as %s', (id, category) => {
-  it('has no enabled field', async () => {
+  it('draws no field', async () => {
     const entity = { ...WIRE_ENTITIES.find((row) => row.id === id)!, category };
     const { container } = render(
       <ApiProvider api={createMockApi()}>
@@ -43,6 +43,6 @@ describe.each([
     );
     await screen.findByRole('heading', { name: entity.canonical_name });
     await waitFor(() => expect(screen.queryByText(/loading/i)).toBeNull());
-    expect(enabledControls(container)).toEqual([]);
+    expect(drawnControls(container)).toEqual([]);
   });
 });

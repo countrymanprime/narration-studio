@@ -21,7 +21,6 @@ import { Icon } from '../primitives/Icon';
 import { hearNameAction } from '../../icons.catalog';
 import { Dot, StatusBadge, badgeClass, badgeStyle } from '../primitives/StatusBadge';
 import { Button } from '../primitives/Button';
-import { Field } from '../primitives/Field';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Menu } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -1019,12 +1018,11 @@ export function GuideDetail({
 
         {speaks && (
           <>
-            <Field
+            <EntryText
               label="Personality notes"
-              textarea
-              disabled={editingDisabled}
               value={draft.personality}
-              onChange={(value) => setDraft({ ...draft, personality: value })}
+              editing={!editingDisabled}
+              onChange={(personality) => setDraft({ ...draft, personality })}
             />
             {!isNewDraft && (
               <>
@@ -1057,22 +1055,16 @@ export function GuideDetail({
           </>
         )}
         {entity.category === 'Place' && (
-          <Field
-            label="Location context"
-            textarea
-            disabled={editingDisabled}
-            value={draft.context}
-            onChange={(value) => setDraft({ ...draft, context: value })}
-          />
+          <EntryText label="Location context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Event' && (
-          <Field label="Timeline context" disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Timeline context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Item' && (
-          <Field label="Item context" textarea disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Item context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
         {entity.category === 'Lore' && (
-          <Field label="Lore context" textarea disabled={editingDisabled} value={draft.context} onChange={(value) => setDraft({ ...draft, context: value })} />
+          <EntryText label="Lore context" value={draft.context} editing={!editingDisabled} onChange={(context) => setDraft({ ...draft, context })} />
         )}
 
         {suggested}
