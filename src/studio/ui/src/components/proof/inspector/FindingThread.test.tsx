@@ -81,6 +81,18 @@ describe('holders-render-clean-after-their-save', () => {
   });
 });
 
+describe('an edit cleared to nothing', () => {
+  it('is still held, with nothing to save, so the question offers Discard only (#3400 L2)', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: '   ' } });
+    const held = registry.heldNow();
+    expect(held.length).toBe(1);
+    expect(held[0]!.saveable).toBe(false);
+  });
+});
+
 describe('notes-on-this-finding', () => {
   it('starts empty and adds a note as mine or as the proofer’s reply', async () => {
     const { api, id } = await setup();

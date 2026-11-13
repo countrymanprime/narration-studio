@@ -42,12 +42,13 @@ function Message({
   });
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft(`finding-note-edit-${message.id}`, {
-    dirty: draft !== undefined && draft.trim() !== '' && draft !== message.text,
+    // An edit cleared to nothing is still held text, with nothing to save (a note cannot be empty): the question offers Keep editing and Discard only (#3400 L2).
+    dirty: draft !== undefined && draft !== message.text,
     label: `your edit of ${message.who === 'you' ? 'your' : 'the proofer’s'} note`,
     brief: 'your note edit',
     kind: 'finding-note-edit',
-    many: (n) => `${plural(n, 'edit')} of notes`,
-    save: saveEdit,
+    many: (n) => `${plural(n, 'note edit')}`,
+    save: draft !== undefined && draft.trim() === '' ? undefined : saveEdit,
     discard: () => setDraft(undefined),
   });
   if (draft !== undefined)
@@ -123,7 +124,7 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
   useUnsavedDraft('finding-note-reply', {
     dirty: reply.trim() !== '',
     label: 'the note you are writing',
-    brief: 'your note',
+    brief: 'your new note',
     kind: 'finding-note-reply',
     many: (n) => `${plural(n, 'note')} you are writing`,
     save: saveReply,

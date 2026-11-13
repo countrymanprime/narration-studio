@@ -287,8 +287,10 @@ export function ProofPage({
   }, [findings, shown]);
 
   // A note written in the Inspector is dropped by another note or chapter, which replaces what the Inspector shows; the narrator's own moves ask first (#3404).
-  // The page's own moves (the first note chosen when none is, the step after a decision, Undo's return) are not asked.
+  // The page's own moves (the first note chosen when none is, the step after a decision) are not asked; Undo's return to a note is, since it replaces the Inspector too.
   const guarded = useGuardedAction();
+  const guardedRef = useRef(guarded);
+  guardedRef.current = guarded;
   const pickNote = useCallback(
     (id: string) => {
       if (id !== selectedRef.current) guarded(() => select(id));
@@ -324,12 +326,16 @@ export function ProofPage({
         },
         afterUndo: (back) => {
           replace(back);
-          select(request.id);
           announcePickupListChanged();
-          // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
-          const home = chapterOf(before);
-          if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
           setReload((n) => n + 1);
+          // Going back to the note replaces the Inspector, and with it a note typed on the one now open, so that move asks first (#3400 D1):
+          // the decision is taken back either way, and Cancel leaves the narrator where they are.
+          guardedRef.current(() => {
+            select(request.id);
+            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
+            const home = chapterOf(before);
+            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
+          });
         },
       });
       // The Inspector tells a stale decision from any other failure by what the host threw, so that is what it gets back.
