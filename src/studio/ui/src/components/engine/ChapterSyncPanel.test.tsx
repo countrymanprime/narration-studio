@@ -154,6 +154,55 @@ describe('ChapterSyncPanel', () => {
     expect(select.value).toBe(free.guid);
   });
 
+  it('links a track the sync did not suggest, taken from another chapter, and says who lost it by the current heading', async () => {
+    const [held, free] = WIRE_TRACKS_PROJECT.tracks;
+    const holder = WIRE_CHAPTERS[0];
+    const heldLink = { ...wireLink(held.guid, holder.id), chapterTitle: 'Kept long ago' };
+    const chapterTrackSet = vi.fn(async (_chapterId: string, trackGuid: string) => ({
+      documentId: 'doc',
+      link: {},
+      displaced: { ...heldLink, trackGuid },
+      mappings: [],
+    }));
+    const notify = vi.fn();
+    const api = createMockApi(
+      { chapterSyncPreview: async () => JSON.parse(JSON.stringify(needsYouPreview()).replaceAll('g5a', free.guid)), chapterTrackSet } as never,
+      { chapterTrackMappings: [heldLink] },
+    );
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={notify} onChanged={() => {}} />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await screen.findByText('Needs you (1)');
+    const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
+    await waitFor(() => expect(Array.from(select.options).some((option) => option.textContent?.includes('(linked to'))).toBe(true));
+    fireEvent.change(select, { target: { value: held.guid } });
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c5', held.guid));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Track linked. ${headingName(holder)} was linked to that track and is now not linked.`));
+  });
+
+  it('shows "Choose a track" and keeps Link off when the suggested track is not in the project', async () => {
+    const api = createMockApi({ chapterSyncPreview: async () => needsYouPreview() }, {});
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await screen.findByText('Needs you (1)');
+    const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
+    // 'g5a' is not one of the project's tracks: once the tracks are read the pick is empty and Link waits.
+    await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Choose a track'));
+    expect(
+      screen.getByRole('button', { name: 'Link' }).getAttribute('disabled') ?? screen.getByRole('button', { name: 'Link' }).getAttribute('aria-disabled'),
+    ).not.toBeNull();
+  });
+
   it('names the saved file and splits automatic links from the narrator’s in the summary', async () => {
     render(
       <ApiProvider api={createMockApi({}, { chapterSync: 'activity' })}>

@@ -441,7 +441,7 @@ how many you linked: "8 chapters linked automatically, 1 by you"), **Background 
 links you already made are kept); while it is off the same place has **Turn on**, drawn as the switch's other position, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
-right track from every track of the project (the sync's own suggestion first, and a track another chapter holds says so, “Click Track (linked to Chapter 2: The Pool of Tears)”) and press the link icon (**Link this track**), the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
+right track from every track of the project (the sync's own suggestion first, and a track another chapter holds says so, “Click Track (linked to Chapter 2: The Pool of Tears)”) and press **Link**, the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
 recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.

@@ -14,7 +14,7 @@ import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { TrackSelect } from '../mapping/TrackSelect';
-import { plainTrackChoices, type TrackChoice } from '../mapping/trackChoices';
+import { holderName, holderOf, plainTrackChoices, type TrackChoice } from '../mapping/trackChoices';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -239,7 +239,16 @@ function syncChoices(
   const best = item.best?.trackGuid ?? item.candidates[0]?.trackGuid;
   const ranked = item.candidates.map((candidate) => candidate.trackGuid);
   if (all.length === 0)
-    return item.candidates.map((candidate) => ({ guid: candidate.trackGuid, name: candidate.trackName, best: candidate.trackGuid === best }));
+    // The candidates alone, but a track another chapter holds still says so from the links the state has read.
+    return item.candidates.map((candidate) => {
+      const holder = holderOf(mappings, candidate.trackGuid, item.chapterId);
+      return {
+        guid: candidate.trackGuid,
+        name: candidate.trackName,
+        best: candidate.trackGuid === best,
+        ...(holder ? { heldBy: holderName(nameOf(holder.chapterId), holder.chapterTitle) } : {}),
+      };
+    });
   const marked = all.map((choice) => ({ ...choice, best: choice.guid === best }));
   return [...ranked.flatMap((guid) => marked.filter((choice) => choice.guid === guid)), ...marked.filter((choice) => !ranked.includes(choice.guid))];
 }
