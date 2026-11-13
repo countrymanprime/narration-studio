@@ -4,9 +4,10 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawPlace } from '../../../api/contracts/daw';
+import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
-import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useFollowChapterInDaw, useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 
 afterEach(() => {
   cleanup();
@@ -102,7 +103,7 @@ describe('useFollowDawOnOpen', () => {
 });
 
 describe('useMoveDawOnOpen', () => {
-  const base = { enabled: true, chapterId: 'c-1', canFollow: true, target: { where: 'end' } as const };
+  const base = { enabled: true, follow: true, chapterId: 'c-1', canFollow: true, target: { where: 'end' } as const };
 
   it('moves the DAW to the end of the chapter, once', async () => {
     const dawGoToChapter = vi.fn(async () => moved);
@@ -156,5 +157,64 @@ describe('useMoveDawOnOpen', () => {
     const sayFailure = vi.fn();
     renderHook(() => useMoveDawOnOpen({ ...base, say: sayFailure }), { wrapper: wrapperFor({ dawGoToChapter: failing }) });
     await waitFor(() => expect(sayFailure).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('Booth.follow_chapter_in_daw (#3427)', () => {
+  const base = { enabled: true, chapterId: 'c-1', canFollow: true, target: { where: 'end' } as const };
+
+  it('moves nothing while the setting is off or not read yet, and moves once it is on', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useMoveDawOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, follow: false as boolean | undefined },
+      wrapper: wrapperFor({ dawGoToChapter }),
+    });
+    await act(async () => {});
+    rerender({ ...base, follow: undefined });
+    await act(async () => {});
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+    rerender({ ...base, follow: true });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c-1', 'end', 0));
+  });
+
+  const fieldsWith = (effectiveValue: string): Record<string, ScopedSettingField[]> => ({
+    Booth: [
+      {
+        key: 'follow_chapter_in_daw',
+        label: 'x',
+        kind: 'bool',
+        choices: [],
+        value: effectiveValue,
+        isSet: true,
+        effectiveValue,
+        effectiveSource: 'repo default',
+      },
+    ],
+  });
+
+  it.each([
+    ['true', true],
+    ['false', false],
+  ])('reads the setting %s from the global scope', async (value, expected) => {
+    const settingsForScope = vi.fn(async () => fieldsWith(value));
+    const { result } = renderHook(() => useFollowChapterInDaw(), { wrapper: wrapperFor({ settingsForScope }) });
+    expect(result.current).toBeUndefined();
+    await waitFor(() => expect(result.current).toBe(expected));
+    expect(settingsForScope).toHaveBeenCalledWith('global');
+  });
+
+  it('is on when the setting is missing or cannot be read, the default', async () => {
+    const missing = renderHook(() => useFollowChapterInDaw(), {
+      wrapper: wrapperFor({ settingsForScope: vi.fn(async (): Promise<Record<string, ScopedSettingField[]>> => ({})) }),
+    });
+    await waitFor(() => expect(missing.result.current).toBe(true));
+    const failing = renderHook(() => useFollowChapterInDaw(), {
+      wrapper: wrapperFor({
+        settingsForScope: vi.fn(async () => {
+          throw new Error('host down');
+        }),
+      }),
+    });
+    await waitFor(() => expect(failing.result.current).toBe(true));
   });
 });

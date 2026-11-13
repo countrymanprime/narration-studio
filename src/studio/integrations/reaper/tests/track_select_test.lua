@@ -157,3 +157,83 @@ H.test('go_to opens no undo block: a cursor move is not project data', function(
   s:send('go_to', 'g1', chapter.guid, 'end', '')
   H.eq(#s.fake.undo, 0)
 end)
+
+-- A chapter folder and its voices (#3427) ---------------------------------------------------------------------------
+
+-- Chapter 1 (a folder) holds Narrator and Queen; a nested folder "Crowd" holds Guard; Chapter 2 is a plain track after it.
+local function folder_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local t = {}
+  t.chapter = s.fake:add_track('Chapter 1')
+  t.narrator = s.fake:add_track('Narrator')
+  t.queen = s.fake:add_track('Queen')
+  t.crowd = s.fake:add_track('Crowd')
+  t.guard = s.fake:add_track('Guard')
+  t.next = s.fake:add_track('Chapter 2')
+  t.chapter.folder_depth, t.crowd.folder_depth, t.guard.folder_depth = 1, 1, -2
+  s.fake:add_item(t.chapter, { position = 0, length = 30 })
+  return s, t
+end
+
+local function selection(t)
+  local out = {}
+  for _, track in ipairs({ t.chapter, t.narrator, t.queen, t.crowd, t.guard, t.next }) do
+    out[#out + 1] = track.selected and 1 or 0
+  end
+  return out
+end
+
+H.test('go_to a folder selects it and every track inside it, nested folders included, and no other', function()
+  local s, t = folder_session()
+  t.next.selected = true
+  s:send('go_to', 'g1', t.chapter.guid, 'end', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', '{00000001-0000-4000-8000-000000000001}', '30' } })
+  H.eq(selection(t), { 1, 1, 1, 1, 1, 0 })
+end)
+
+H.test('go_to a track that is not a folder selects only that track', function()
+  local s, t = folder_session()
+  s:send('go_to', 'g1', t.narrator.guid, 'at', '4')
+  H.eq(selection(t), { 0, 1, 0, 0, 0, 0 })
+end)
+
+H.test('go_to a nested folder selects it and its own tracks only', function()
+  local s, t = folder_session()
+  s:send('go_to', 'g1', t.crowd.guid, 'end', '')
+  H.eq(selection(t), { 0, 0, 0, 1, 1, 0 })
+end)
+
+H.test('go_to a folder that is gone selects nothing in its place', function()
+  local s, t = folder_session()
+  t.queen.selected = true
+  s:send('go_to', 'g1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}', 'end', '')
+  H.eq(selection(t), { 0, 0, 1, 0, 0, 0 })
+end)
+
+H.test('read_place names the folder when exactly it and everything inside it is selected', function()
+  local s, t = folder_session()
+  s:send('go_to', 'g1', t.chapter.guid, 'end', '')
+  s:send('read_place', 'p1')
+  H.eq(s:events()[2], { 'PLACE', 'p1', '{00000001-0000-4000-8000-000000000001}', '5', '30' })
+end)
+
+H.test('read_place names none when the selection is the folder and only some of its tracks', function()
+  local s, t = folder_session()
+  t.chapter.selected, t.narrator.selected = true, true
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', '', '2', '0' } })
+end)
+
+H.test('read_place names none when the selection is the folder, all its tracks and one track outside', function()
+  local s, t = folder_session()
+  t.chapter.selected, t.narrator.selected, t.queen.selected, t.crowd.selected, t.guard.selected, t.next.selected = true, true, true, true, true, true
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', '', '6', '0' } })
+end)
+
+H.test('read_place names none for two unrelated tracks, as before', function()
+  local s, t = folder_session()
+  t.narrator.selected, t.next.selected = true, true
+  s:send('read_place', 'p1')
+  H.eq(s:events(), { { 'PLACE', 'p1', '', '2', '0' } })
+end)
