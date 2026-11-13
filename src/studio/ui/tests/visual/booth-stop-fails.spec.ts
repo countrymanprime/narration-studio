@@ -83,3 +83,42 @@ test('the sentence goes when the Booth is left, and is not there when it is ente
   await page.waitForTimeout(1000);
   await expect(page.getByText(SENTENCE)).toHaveCount(0);
 });
+
+/** Escape, then "Stop and leave" (the question about the running listening), to Script. */
+async function stopAndLeave(page: Page): Promise<void> {
+  await page.keyboard.press('Escape');
+  const leave = page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /^(Stop and leave|Leave)/ })
+    .first();
+  if (await leave.isVisible({ timeout: 1500 }).catch(() => false)) await leave.click();
+  await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
+}
+const STILL_OPEN = /Quit and reopen the app to be sure/;
+
+test('leaving with "Stop and leave" while every stop is refused says on the next page that the microphone may be open', async ({ page }) => {
+  await openBooth(page, 99);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await stopAndLeave(page);
+  await expect(page.getByText(STILL_OPEN)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0);
+});
+
+test('leaving with "Stop and leave" when the stop is taken says nothing', async ({ page }) => {
+  await openBooth(page, 2);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await stopAndLeave(page);
+  await page.waitForTimeout(3000);
+  await expect(page.getByText(STILL_OPEN)).toHaveCount(0);
+});
+
+test('Retry says it is trying and then that listening stopped, and Record has focus again', async ({ page }) => {
+  await openBooth(page, 2);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.getByText('Listening stopped.')).toBeVisible({ timeout: 8000 });
+  await expect(record(page)).toBeFocused({ timeout: 3000 });
+});

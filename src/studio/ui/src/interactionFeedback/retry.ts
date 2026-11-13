@@ -117,7 +117,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
   'src/components/booth/page/useBoothPage.ts#11': no(RC),
-  'src/components/booth/listening/useStopFailedSentence.ts#1': yes(
+  'src/components/booth/listening/useStopFailedSentence.ts#1': no(
+    'Says the microphone may still be open after the Booth was left with the stop refused (#3409): nothing on the page the narrator is on can stop that session, and a Retry from there could end a newer one; the sentence says to quit and reopen the app.',
+  ),
+  'src/components/booth/listening/useStopFailedSentence.ts#2': yes(
     'Stopping the listening session again is safe because the Retry is checked against its session first: it sends nothing unless that session is still the one running, with no start or take since and the Booth still there; the toast carries Retry (#3409).',
   ),
   'src/components/booth/page/useBoothPage.ts#12': no(

@@ -148,6 +148,12 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   // The `starts` count the stop that failed meant, and whether a Retry of it is out: a Retry is only sent for that session, and only once at a time.
   const failedStart = useRef(-1);
   const retrying = useRef(false);
+  // Set when the last `stopHost` found nothing left to stop (the session ended, or was taken by something newer) and sent no second stop.
+  const skipped = useRef(false);
+  // The narrator left asking for the stop (once set it stays): the page they land on says if that stop fails, so the Booth does not say an earlier failure again.
+  const leaving = useRef(false);
+  // A Retry of the stop-failed sentence: out ('trying'), or answered by the host ('stopped'); the sentence says each.
+  const [stopRetry, setStopRetry] = useState<'idle' | 'trying' | 'stopped'>('idle');
   const [prompt, setPrompt] = useState<ModelPrompt>();
   // The last start found the speech model missing: kept after the question is answered, so a narrator who declined is still told why the text does not follow.
   const [modelMissing, setModelMissing] = useState(false);
@@ -361,43 +367,73 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    * is set, unless this hook is gone (an unmount's stop that fails is unknown, not failed, and says nothing). The second stop is sent only if the session it
    * meant is still the one the host runs: nothing was started since and no press holds a claim on a session (a take that joined it would lose its listening).
    */
-  const stopHost = useCallback(async (): Promise<boolean> => {
-    const attempt = () =>
-      new Promise<boolean>((resolve) => {
-        const ended = () => finish(true);
-        const finish = (ok: boolean) => {
-          clearTimeout(timer);
-          stopWaiters.current.delete(ended);
-          resolve(ok);
-        };
-        const timer = setTimeout(() => {
-          logUi('ui.record', 'The host did not answer a stop of the listening session in time.');
-          finish(false);
-        }, STOP_CALL_MS);
-        // The host saying the session has ended is the answer, whatever the call returns.
-        stopWaiters.current.add(ended);
-        api.teleprompterStop().then(
-          () => finish(true),
-          (reason: unknown) => {
-            logUi('ui.record', `The host refused to stop the listening session: ${apiErrorMessage(reason)}`);
+  const stopHost = useCallback(
+    async (asked?: 'leave'): Promise<boolean> => {
+      skipped.current = false;
+      const attempt = () =>
+        new Promise<boolean>((resolve) => {
+          const ended = () => finish(true);
+          const finish = (ok: boolean) => {
+            clearTimeout(timer);
+            stopWaiters.current.delete(ended);
+            resolve(ok);
+          };
+          const timer = setTimeout(() => {
+            logUi('ui.record', 'The host did not answer a stop of the listening session in time.');
             finish(false);
-          },
-        );
-      });
-    const before = starts.current;
-    if (await attempt()) return true;
-    await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_MS));
-    if (!alive.current) return false;
-    // The session ended meanwhile, or is not the one the first stop meant: nothing to stop.
-    if (!ACTIVE_PHASES.includes(hostPhase.current) || starts.current !== before || hasListeningClaim()) return true;
-    if (await attempt()) return true;
-    if (alive.current) {
-      failedStart.current = before;
-      setStopFailed(true);
-    }
-    return false;
-  }, [api]);
+          }, STOP_CALL_MS);
+          // The host saying the session has ended is the answer, whatever the call returns.
+          stopWaiters.current.add(ended);
+          api.teleprompterStop().then(
+            () => finish(true),
+            (reason: unknown) => {
+              logUi('ui.record', `The host refused to stop the listening session: ${apiErrorMessage(reason)}`);
+              finish(false);
+            },
+          );
+        });
+      const before = starts.current;
+      if (await attempt()) return true;
+      await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_MS));
+      // A stop the narrator asked for by leaving ("Stop and leave", Exit) is retried after this hook is gone too: the host's own state says whether anything is left.
+      // Any other stop of a gone hook is not (it is unknown, not failed, and says nothing).
+      const nothingLeft = () => {
+        skipped.current = true;
+        return true;
+      };
+      if (asked === 'leave') {
+        const host = await api.teleprompterState().catch(() => null);
+        if (host && !ACTIVE_PHASES.includes(host.phase)) return nothingLeft();
+      } else {
+        if (!alive.current) return false;
+        // The session ended meanwhile: nothing to stop.
+        if (!ACTIVE_PHASES.includes(hostPhase.current)) return nothingLeft();
+      }
+      // Not the session the first stop meant (something was started or taken since): it is not stopped here.
+      if (starts.current !== before || hasListeningClaim()) return nothingLeft();
+      if (await attempt()) return true;
+      if (alive.current) {
+        failedStart.current = before;
+        setStopFailed(true);
+      }
+      return false;
+    },
+    [api],
+  );
   const stop = () => void stopHost();
+  /**
+   * The stop of a narrator who leaves the page asking for it ("Stop and leave", Exit): sent once more after a refusal even though this hook is about to go,
+   * and `onFailed` is called, once, when it is refused twice after the hook is gone, so the next page can say the microphone may still be open.
+   */
+  const stopForLeave = useCallback(
+    (onFailed: () => void) => {
+      leaving.current = true;
+      void stopHost('leave').then((ok) => {
+        if (!ok && !alive.current) onFailed();
+      });
+    },
+    [stopHost],
+  );
   /**
    * The Retry of the stop-failed sentence. It sends the stop again only if the session it meant is still the one the host runs, under the conditions the
    * automatic second stop has: this hook still there, the session not ended, nothing started since, no press holding a claim on it (a take that joined it
@@ -408,11 +444,17 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     if (retrying.current) return;
     const meant = alive.current && ACTIVE_PHASES.includes(hostPhase.current) && starts.current === failedStart.current && !hasListeningClaim();
     setStopFailed(false);
-    if (!meant) return;
+    if (!meant) {
+      setStopRetry('idle');
+      return;
+    }
     retrying.current = true;
-    void stopHost().finally(() => {
-      retrying.current = false;
-    });
+    setStopRetry('trying');
+    void stopHost()
+      .then((ok) => alive.current && setStopRetry(ok && !skipped.current ? 'stopped' : 'idle'))
+      .finally(() => {
+        retrying.current = false;
+      });
   }, [stopHost]);
   /**
    * A press took the running session (a take that joined it, with or without a claim): the sentence about a stop that failed no longer describes it, and
@@ -642,7 +684,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     status,
     error,
     stopFailed,
+    stopRetry,
     retryStop,
+    stopForLeave,
+    leaving,
+    subscribeState: api.subscribeTeleprompterState,
     sessionJoined,
     prompt,
     modelMissing,

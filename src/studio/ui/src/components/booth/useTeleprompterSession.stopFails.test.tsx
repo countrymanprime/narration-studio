@@ -199,6 +199,18 @@ describe('a stop the host refuses', () => {
       expect(hook.result.current.stopFailed).toBe(true);
     });
 
+    it('is in flight until the host answers, even a late 13 s answer, then says it stopped', async () => {
+      const { hook, state, elapse } = await failTwice(['refuse', 'refuse', 'hang', 'ok']);
+      act(() => hook.result.current.retryStop());
+      expect(hook.result.current.stopRetry).toBe('trying');
+      await elapse(12_000);
+      expect(hook.result.current.stopRetry).toBe('trying');
+      await elapse(2000);
+      expect(hook.result.current.stopRetry).toBe('stopped');
+      expect(hook.result.current.stopFailed).toBe(false);
+      await state({ ...IDLE, phase: 'stopped' });
+    });
+
     it('sent twice at once is sent once', async () => {
       const { hook, teleprompterStop, elapse } = await failTwice(['refuse', 'refuse', 'ok']);
       act(() => {

@@ -78,12 +78,9 @@ export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, a
     // layout is centred.
     <div className={`w-full min-w-0 space-y-4 ${dense ? '' : fullBleed ? 'max-w-[68.25rem]' : 'mx-auto max-w-3xl'}`}>
       {header}
-      {(t.error || t.stopFailed || t.host.phase === 'error') && (
+      {(t.error || t.host.phase === 'error') && (
         <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-          {t.error ||
-            (t.stopFailed
-              ? 'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on.'
-              : t.host.message)}
+          {t.error || t.host.message}
         </p>
       )}
       {t.rows.length > 0 &&

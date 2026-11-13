@@ -38,6 +38,10 @@ const SCRIPT: TeleprompterEvent = {
   ],
 };
 
+/** A stop the host takes after this long (a test sets it once the refusals are over). */
+const stopDelay = { ms: 0 };
+afterEach(() => (stopDelay.ms = 0));
+
 /** A host whose stop is refused for the first `refusals` calls, as a host busy with its sidecar's exit is. */
 function mountBooth(refusals: number) {
   let state: TeleprompterState = IDLE;
@@ -59,6 +63,7 @@ function mountBooth(refusals: number) {
       refused += 1;
       throw new Error('the host is busy');
     }
+    if (stopDelay.ms) await new Promise((resolve) => setTimeout(resolve, stopDelay.ms));
     publish({ phase: 'stopped' });
   });
   const overlay = createOverlayService();
@@ -161,9 +166,70 @@ describe('a listening stop the host refuses', () => {
     const [toast] = toasts(page);
     page.view.unmount();
     expect(toasts(page)).toHaveLength(0);
+    expect(toasts(page)).toHaveLength(0);
     const calls = page.teleprompterStop.mock.calls.length;
     await act(async () => toast.action?.onAction());
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+  });
+
+  it('says on the page the narrator lands on that the microphone may still be open, when the Booth is left with the sentence up (no Retry there)', async () => {
+    const page = mountBooth(9);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    expect(toasts(page)[0].durationMs).toBe(60_000);
+    page.view.unmount();
+    const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+    expect(left).toHaveLength(1);
+    expect(left[0].tone).toBe('error');
+    expect(left[0].action).toBeUndefined();
+    expect(toasts(page).filter((toast) => toast.action)).toHaveLength(0);
+    // The host then reports the session ended: the sentence about an open microphone goes.
+    await act(async () => void page.publish({ phase: 'stopped' }));
+    expect(page.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen/.test(toast.text))).toBe(false);
+  });
+
+  it('says it on the next page when "Stop and leave" (Escape on a cold read) is refused twice, and says nothing when the stop is taken', async () => {
+    for (const [refusals, said] of [
+      [9, true],
+      [0, false],
+    ] as const) {
+      cleanup();
+      forgetListeningClaims();
+      const page = mountBooth(refusals);
+      await ready();
+      await chooseCold();
+      await act(async () => void fireEvent.click(main()));
+      await waitFor(() => expect(main().textContent).toBe('Stop'));
+      await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
+      await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled());
+      page.view.unmount();
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3000))));
+      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+      expect(left).toHaveLength(said ? 1 : 0);
+      if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const [toast] = toasts(page);
+    const topicToasts = () => page.overlay.getSnapshot().toasts.filter((item) => item.topic === 'booth-listening-stop-failed');
+    // What the narrator sees from the press on: never nothing in between, so a Retry does not read as a flicker or a false success.
+    const seen: string[][] = [];
+    page.overlay.subscribe(() => seen.push(topicToasts().map((item) => item.text)));
+    // The toast's own button has focus when it is pressed (this test draws no toast region, so one stands in).
+    const region = document.body.appendChild(document.createElement('div'));
+    region.setAttribute('data-toast-region', '');
+    const held = region.appendChild(document.createElement('button'));
+    held.focus();
+    stopDelay.ms = 400;
+    await act(async () => toast.action?.onAction());
+    await waitFor(() => expect(topicToasts().map((item) => item.text)).toEqual(['Listening stopped.']));
+    expect(seen.flat()).toContain('Trying to stop listening again…');
+    expect(seen.filter((texts) => texts.length === 0)).toEqual([]);
+    await waitFor(() => expect(document.activeElement).toBe(main()), { timeout: 2000 });
   });
 
   it('takes the sentence down when the next press starts listening, and a Retry from it stops nothing', async () => {

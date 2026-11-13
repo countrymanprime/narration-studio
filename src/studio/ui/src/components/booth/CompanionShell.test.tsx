@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { overlay } from '../../overlay/overlayService';
 import type { NarrationApi } from '../../types';
 import type { DawTransport } from '../../api/contracts/daw';
 import { CommandRouter, CommandScope } from '../../input/router';
@@ -23,7 +24,11 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     paused: false,
     modelMissing: false,
     stopFailed: false,
+    stopRetry: 'idle',
     retryStop: vi.fn(),
+    stopForLeave: vi.fn(),
+    leaving: { current: false },
+    subscribeState: () => () => {},
     sessionJoined: vi.fn(),
     pause: vi.fn(),
     session: initialSession,
@@ -128,12 +133,18 @@ describe('CompanionShell', () => {
     expect(api.companionModeExit).toHaveBeenCalledTimes(1);
   });
 
-  it('says in the panel that the microphone may still be open when the reading could not be stopped (#3409)', () => {
-    renderCompanion({ session: baseSession({ stopFailed: true }) });
-    const alert = screen.getAllByRole('alert').find((node) => /could not be stopped/.test(node.textContent ?? ''));
-    expect(alert?.textContent).toBe(
-      'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on.',
-    );
+  it('says in a toast, outside the scrolling script, that the microphone may still be open, with Retry (#3409)', () => {
+    const retryStop = vi.fn();
+    renderCompanion({ session: baseSession({ stopFailed: true, retryStop }) });
+    const toast = overlay.getSnapshot().toasts.find((item) => /could not stop listening/.test(item.text));
+    expect(toast?.text).toBe('The Booth could not stop listening, so your microphone may still be open. Press Retry.');
+    expect(toast?.tone).toBe('error');
+    toast?.action?.onAction();
+    expect(retryStop).toHaveBeenCalledTimes(1);
+    // Nothing is drawn in the script's own pane (the voice moves the reader away from the top of it).
+    expect(screen.queryByText(/could not be stopped/)).toBeNull();
+    cleanup();
+    expect(overlay.getSnapshot().toasts.some((item) => /Press Retry/.test(item.text))).toBe(false);
   });
 
   it('says so, and stays usable, when the window could not be narrowed and pinned', async () => {

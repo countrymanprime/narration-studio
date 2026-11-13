@@ -26,7 +26,7 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { limited } from '../record/pressLimits';
-import { useStopFailedSentence } from '../listening/useStopFailedSentence';
+import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useStopFailedSentence';
 
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
@@ -156,7 +156,7 @@ export function useBoothPage(options: BoothPageOptions) {
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
-  useStopFailedSentence(overlay, session.stopFailed, session.retryStop);
+  useStopFailedSentence(overlay, session);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
@@ -1069,11 +1069,16 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
+  // A leave that asked for the stop and was refused twice: said on the page the narrator lands on (this page is gone by then).
+  const sayStillOpen = useCallback(() => sayListeningStillOpen(overlay, latest.current.session.subscribeState), [overlay]);
   const exit = useCallback(() => {
     // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
     if (!latest.current.takeOut && latest.current.coldRead) {
-      latest.current.session.stop();
+      // The leave's own stop: the claims on the session end with it, so the retry is not held back by them.
+      endColdClaim();
+      endTakeClaim();
+      latest.current.session.stopForLeave(sayStillOpen);
       navigate(exitTo);
       return;
     }
@@ -1088,10 +1093,12 @@ export function useBoothPage(options: BoothPageOptions) {
         void leave(exitTo, navigate);
         return;
       }
-      latest.current.session.stop();
+      endColdClaim();
+      endTakeClaim();
+      latest.current.session.stopForLeave(sayStillOpen);
       navigate(exitTo);
     });
-  }, [leave, exitTo, navigate, overlay]);
+  }, [leave, exitTo, navigate, overlay, sayStillOpen, endColdClaim, endTakeClaim]);
   const goTo = useCallback((next: string) => leave(next, navigate), [leave, navigate]);
 
   // Cold read (#2251 item 13): listen and follow with the ghost, record nothing. Off by default, unavailable during a take; only this

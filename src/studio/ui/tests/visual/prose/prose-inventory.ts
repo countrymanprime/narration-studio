@@ -63,11 +63,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
-    file: 'components/booth/ReadAlongView.tsx',
-    text: 'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on.',
-    class: 'error',
-  },
-  {
     file: 'components/booth/record/RecordSetup.tsx',
     text: 'A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
     class: 'error',
