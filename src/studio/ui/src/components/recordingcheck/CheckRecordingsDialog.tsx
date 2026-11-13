@@ -349,7 +349,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
           />
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <Button variant="secondary" onClick={() => setViewing(undefined)}>
+          <Button ref={keepFocusOnRemoval} variant="secondary" onClick={() => setViewing(undefined)}>
             Back to chapters
           </Button>
           <Button variant="primary" onClick={close}>
@@ -411,7 +411,13 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
                           </Checkbox>
                         </div>
                         {hasResult ? (
-                          <Button variant="ghost" size="sm" aria-label={`Show result: ${headingName(chapter)}`} onClick={() => setViewing(chapter.id)}>
+                          <Button
+                            ref={keepFocusOnRemoval}
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Show result: ${headingName(chapter)}`}
+                            onClick={() => setViewing(chapter.id)}
+                          >
                             Show result
                           </Button>
                         ) : null}

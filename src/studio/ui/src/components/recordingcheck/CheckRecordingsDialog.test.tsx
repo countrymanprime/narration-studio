@@ -171,8 +171,16 @@ describe('CheckRecordingsDialog', () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
     emit({ runId: 'run-2', phase: 'complete' });
     expect(await within(dialog).findByRole('button', { name: 'Check again' })).toBeTruthy();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Back to chapters' }));
-    expect(await within(dialog).findByRole('button', { name: 'Show result: Chapter a' })).toBeTruthy();
+    // The qa-breaker on #3460: Back to chapters and Show result leave the page as the view changes; focus stays in the dialog.
+    const back = within(dialog).getByRole('button', { name: 'Back to chapters' });
+    back.focus();
+    await userEvent.keyboard('{Enter}');
+    const show = await within(dialog).findByRole('button', { name: 'Show result: Chapter a' });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    show.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Show result: Chapter a' })).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
   it('asks-before-downloading-a-missing-model-and-checks-once-it-is-installed', async () => {
