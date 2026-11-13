@@ -66,6 +66,8 @@ export function describeHeld(held: readonly DraftLabel[], room = ROOM): string {
  * rest cannot be saved and only a Discard drops text; the sentence names them (#3400).
  */
 export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { body: string; canSave: boolean } {
+  // What was held went away while the question was open (an editor closed itself): there is nothing to name, and nothing to lose by going on.
+  if (held.length === 0) return { body: 'There is nothing left to save or discard.', canSave: true };
   const end = leaving ? 'leaving' : 'going on';
   const saveable = held.filter((draft) => draft.saveable);
   const loose = held.filter((draft) => !draft.saveable);
@@ -77,12 +79,26 @@ export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { b
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
- * What Save & continue does once the saves are done (#3400 D1). It goes on only when everything that could be saved was, and nothing is left that cannot be:
- * a draft with no save of its own keeps the narrator where they are, with its text, and the message names it. Only Discard & continue drops text.
- * `undefined` is a Settings save that did not finish, which stays without a message of its own (the field said why).
+ * What Save & continue does once the saves are done (#3400 D1). It goes on only when everything that could be saved was, and nothing else is held: a draft
+ * that said it did not save, one with no save of its own, or one that became held while the saves ran keeps the narrator where they are, with its text, and
+ * the message names it. Only Discard & continue drops text. `undefined` is a Settings save that did not finish, which stays without a message of its own.
  */
-export function saveVerdict(outcome: { saved: boolean; kept: readonly DraftLabel[] } | undefined): { proceed: boolean; message?: string } {
-  if (!outcome?.saved) return { proceed: false };
-  if (outcome.kept.length > 0) return { proceed: false, message: `${capital(describeHeld(outcome.kept))} cannot be saved yet, so you are still here.` };
-  return { proceed: true };
+export function saveVerdict(
+  outcome: { saved: boolean; failed?: readonly DraftLabel[]; kept: readonly DraftLabel[]; late?: readonly DraftLabel[] } | undefined,
+): { proceed: boolean; message?: string } {
+  if (!outcome) return { proceed: false };
+  const { failed = [], kept, late = [] } = outcome;
+  if (outcome.saved && kept.length === 0 && late.length === 0) return { proceed: true };
+  const parts = [
+    failed.length > 0 ? `${describeHeld(failed)} did not save` : '',
+    kept.length > 0 ? `${describeHeld(kept)} cannot be saved yet` : '',
+    late.length > 0 ? `${describeHeld(late)} changed while saving` : '',
+  ].filter(Boolean);
+  return { proceed: false, message: parts.length > 0 ? `${capital(parts.join('; '))}, so you are still here.` : undefined };
+}
+
+/** The same for Discard & continue: a draft that could not be dropped keeps the narrator where they are, and the message says what went and what is still here. */
+export function discardVerdict(outcome: { failed: readonly DraftLabel[] }): { proceed: boolean; message?: string } {
+  if (outcome.failed.length === 0) return { proceed: true };
+  return { proceed: false, message: `${capital(describeHeld(outcome.failed))} could not be discarded and is still here. The rest was discarded.` };
 }

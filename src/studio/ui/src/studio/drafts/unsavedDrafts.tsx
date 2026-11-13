@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, type NavigateOptions } from 'react-router-dom';
+import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useHref, useNavigate, type NavigateOptions } from 'react-router-dom';
 import type { DraftLabel, HeldDraft } from './draftSentence';
 
 // The registry of drafts: text a page holds that is not saved yet and that leaving the page, or switching what the editor shows, would drop (#3400). A
@@ -68,22 +68,32 @@ type Registry = {
   join: (id: string, draft: () => UnsavedDraft) => void;
   leave: (id: string) => void;
   /**
-   * Saves every held draft that can be saved; one call in flight at a time, so a second press shares the first's answer. A draft that says it did not save
-   * ends it with `saved: false`; one that throws, or takes longer than `SAVE_LIMIT_MS`, rejects. Either way the text stays, and the next call starts afresh.
-   * A draft with nothing to save is never dropped here: it comes back in `kept`, and the shell stays where it is (#3400: only a Discard drops text).
+   * Saves every held draft that can be saved; one call in flight at a time, so a second press shares the first's answer, and a draft whose own save is still
+   * in flight (one the question stopped waiting for) is not sent again. A draft that says it did not save is named in `failed` and the rest are still tried;
+   * one that throws, or a call that takes longer than `SAVE_LIMIT_MS`, rejects. Either way the text stays, and the next call starts afresh.
+   * Nothing is dropped here (#3400: only a Discard drops text): a draft with nothing to save comes back in `kept`, and a draft that became held while the
+   * saves ran in `late`, and the shell stays where it is.
    */
   save: () => Promise<SaveResult>;
-  discard: () => void;
+  /** Drops every held draft; one that throws is named in `failed` and the rest are still dropped. */
+  discard: () => DiscardResult;
   /** The shell sets these: `ask` runs `run` now, or after the question when something is held; `go` is the shell's guarded move. */
   setShell: (shell: Shell | null) => void;
   ask: (run: () => void, options?: AskOptions) => void;
   go: (to: string, state?: unknown) => boolean;
 };
-/** What `save` found: whether every draft that can be saved is saved, and the held drafts that cannot be saved from here, which are still held. */
-export type SaveResult = { saved: boolean; kept: readonly HeldDraft[] };
+/**
+ * What `save` found. `saved`: every draft that can be saved did save. `failed`: those that said they did not. `kept`: the held drafts that cannot be saved from
+ * here. `late`: drafts that became held after the saves began. All of `failed`, `kept` and `late` are still held, so the shell stays.
+ */
+export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: readonly HeldDraft[]; late: readonly HeldDraft[] };
+/** What `discard` found: the drafts whose discard threw, which are still held. */
+export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
 export type AskOptions = { settle?: boolean };
 type Shell = { ask: (run: () => void, options?: AskOptions) => void; go: (to: string, state?: unknown) => void };
+
+const toHeld = ({ label, brief, kind, many, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined });
 
 const DraftsContext = createContext<Registry | undefined>(undefined);
 
@@ -99,7 +109,7 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
       [...drafts.current.values()]
         .map((read) => read())
         .filter((draft) => draft.dirty)
-        .map(({ label, brief, kind, many, save }): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined })),
+        .map(toHeld),
     [],
   );
   const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
@@ -125,22 +135,53 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     },
     [publish],
   );
+  // A save the question stopped waiting for (the limit) is still running: the next press shares it, for a holder that does not share its own save too.
+  const inflight = useRef(new Map<string, Promise<boolean>>());
   const save = useCallback(() => {
     if (saving.current) return saving.current;
     const saved = (async (): Promise<SaveResult> => {
+      const entries = [...drafts.current].map(([id, read]) => [id, read()] as const).filter(([, draft]) => draft.dirty);
+      const started = new Set(entries.map(([id]) => id));
       // A draft with no save of its own (a new entry with no category) is not saved here, and not dropped either: it stays held and the shell stays put.
-      const kept = heldNow().filter((entry) => !entry.saveable);
-      for (const draft of dirtyNow().filter((entry) => entry.save)) if (!(await draft.save!())) return { saved: false, kept };
-      return { saved: true, kept };
+      const kept = entries.filter(([, draft]) => !draft.save).map(([, draft]) => toHeld(draft));
+      const failed: HeldDraft[] = [];
+      let tried = 0;
+      for (const [id, draft] of entries) {
+        if (!draft.save) continue;
+        // A long run of instant saves, each clearing its editor, would nest React's updates past its limit; a macrotask now and then lets them settle.
+        if (tried > 0 && tried % 25 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        tried += 1;
+        let request = inflight.current.get(id);
+        if (!request) {
+          request = draft.save().finally(() => inflight.current.delete(id));
+          inflight.current.set(id, request);
+        }
+        if (!(await request)) failed.push(toHeld(draft));
+      }
+      // What became held while the saves ran (a late reply, a restored draft) was never asked about.
+      const late = [...drafts.current]
+        .filter(([id]) => !started.has(id))
+        .map(([, read]) => read())
+        .filter((draft) => draft.dirty)
+        .map(toHeld);
+      return { saved: failed.length === 0, failed, kept, late };
     })();
     const run = withinSaveLimit(saved).finally(() => {
       saving.current = null;
     });
     saving.current = run;
     return run;
-  }, [heldNow, dirtyNow]);
-  const discard = useCallback(() => {
-    for (const draft of dirtyNow()) draft.discard();
+  }, []);
+  const discard = useCallback((): DiscardResult => {
+    const failed: HeldDraft[] = [];
+    for (const draft of dirtyNow()) {
+      try {
+        draft.discard();
+      } catch {
+        failed.push(toHeld(draft));
+      }
+    }
+    return { failed };
   }, [dirtyNow]);
   const setShell = useCallback((next: Shell | null) => {
     shell.current = next;
@@ -191,7 +232,14 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
 export function useUnsavedDrafts(): Pick<Registry, 'held' | 'heldNow' | 'save' | 'discard' | 'setShell'> {
   const registry = useContext(DraftsContext);
   return useMemo(
-    () => registry ?? { held: [], heldNow: () => [], save: async () => ({ saved: true, kept: [] }), discard: () => {}, setShell: () => {} },
+    () =>
+      registry ?? {
+        held: [],
+        heldNow: () => [],
+        save: async () => ({ saved: true, failed: [], kept: [], late: [] }),
+        discard: () => ({ failed: [] }),
+        setShell: () => {},
+      },
     [registry],
   );
 }
@@ -206,4 +254,28 @@ export function useGuardedNavigate(): (to: string, options?: NavigateOptions) =>
   const go = useContext(DraftsContext)?.go;
   const navigate = useNavigate();
   return useCallback((to, options) => (go?.(to, options?.state) ? undefined : navigate(to, options)), [go, navigate]);
+}
+
+/**
+ * The router's `Link` for a link that leaves the page: a real anchor (so the address shows, and a middle click or Ctrl+click opens it as usual), whose plain
+ * click takes the shell's guarded move. A router `Link` navigates on its own and skips the question (#3446 B3).
+ */
+export function GuardedLink({ to, onClick, children, ...rest }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { to: string }) {
+  const href = useHref(to);
+  const go = useGuardedNavigate();
+  return (
+    <a
+      {...rest}
+      href={href}
+      onClick={(event) => {
+        onClick?.(event);
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || rest.target === '_blank')
+          return;
+        event.preventDefault();
+        go(to);
+      }}
+    >
+      {children}
+    </a>
+  );
 }

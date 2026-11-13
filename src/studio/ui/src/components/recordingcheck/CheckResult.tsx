@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
@@ -154,9 +154,9 @@ export function ReasonBlock({
                 {page.label}
               </EnginePanelLink>
             ) : (
-              <Link key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
+              <GuardedLink key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
                 {page.label}
-              </Link>
+              </GuardedLink>
             ),
           )}
         </div>

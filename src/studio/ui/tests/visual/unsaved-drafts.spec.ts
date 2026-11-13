@@ -95,3 +95,36 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
   await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Discard & continue' }).click();
   await expect(picker(page)).toBeVisible();
 });
+
+// Below 860 px the navigation is a drawer. It closes a moment after a page is picked and hands the focus back to its opener, outside the question; the question
+// takes the focus back, whichever variant it is (#3446 B2).
+test('the question from the navigation drawer holds the focus: Tab stays inside it and Escape closes it', async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 600 });
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page
+    .getByRole('dialog', { name: /navigation/i })
+    .getByRole('button', { name: /^Script/ })
+    .click();
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toBeVisible();
+  await expect.poll(() => question.evaluate((node) => node.contains(document.activeElement)), { timeout: 3000 }).toBe(true);
+  for (let step = 0; step < 6; step += 1) {
+    await page.keyboard.press('Tab');
+    // The dialog's own focus guard (an empty span at the edge of the trap) is the one stop outside the dialog that is allowed; the page behind never is.
+    const where = await question.evaluate((node) => {
+      const active = document.activeElement;
+      return node.contains(active) || (active instanceof HTMLSpanElement && (active.textContent ?? '') === '')
+        ? 'ok'
+        : `${active?.tagName}: ${active?.textContent?.slice(0, 40)}`;
+    });
+    expect(where, `Tab ${step + 1}`).toBe('ok');
+  }
+  await page.keyboard.press('Escape');
+  await expect(question).toBeHidden();
+});

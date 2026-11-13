@@ -152,6 +152,33 @@ describe('a link out of a page goes through the guarded navigate (#3400)', () =>
   });
 });
 
+// The router's `<Link>` navigates on its own too, so a link that leaves a page whose editor holds text must be a `GuardedLink` (#3446 B3). A file that still
+// renders the router's own is listed with the reason leaving by it loses nothing, or with the screen whose change converts it.
+const ROUTER_LINK = /<(Link|NavLink)\b/;
+const NO_DRAFT_PAGE = 'a link on a page that holds no draft: nothing there is lost by leaving';
+const LINK_EXEMPT: Record<string, string> = {
+  'editing/EditingCheckPanel.tsx': NO_DRAFT_PAGE,
+  'production/PickupListCount.tsx': NO_DRAFT_PAGE,
+  'production/CreditsRowPanel.tsx': NO_DRAFT_PAGE,
+  'production/ProofPickupNotes.tsx': NO_DRAFT_PAGE,
+  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
+  'proof/checkcard/FindingRow.tsx': SCREEN('Proof'),
+};
+describe("a link that leaves a page is a GuardedLink, not the router's Link (#3446 B3)", () => {
+  const linking = files(components)
+    .filter((path) => !SKIPPED.test(key(path)))
+    .map((path) => ({ name: key(path), source: readFileSync(path, 'utf8') }))
+    .filter(({ source }) => ROUTER_LINK.test(code(source)));
+  test('no file renders the router Link without a reviewed reason', () => {
+    const undecided = linking.filter(({ name }) => !(name in LINK_EXEMPT)).map(({ name }) => name);
+    expect(undecided, 'use GuardedLink (studio/drafts/unsavedDrafts.tsx), or add the file to LINK_EXEMPT with the reason').toEqual([]);
+  });
+  test('a file in LINK_EXEMPT still renders it', () => {
+    const names = new Set(linking.map(({ name }) => name));
+    expect(Object.keys(LINK_EXEMPT).filter((name) => !names.has(name))).toEqual([]);
+  });
+});
+
 // A holder is also lost without any exit from the page: a control on the same page that unmounts or replaces it (another rail tab, another finding, a search that
 // swaps the pane for its results, Add entry over an edited entry) drops the typed text with no question (#3404). Every file that registers a draft therefore
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
