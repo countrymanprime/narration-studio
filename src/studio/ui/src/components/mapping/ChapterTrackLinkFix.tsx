@@ -1,9 +1,10 @@
+import { useRef } from 'react';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
-import { useChapterTrackState, useHasChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { useChapterTrackState, useChapterTrackProject } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { MappingConfirm } from './MappingConfirm';
 
@@ -27,10 +28,13 @@ export function ChapterTrackLinkFix({
 }) {
   const actions = useChapterLinkActions();
   const state = useChapterTrackState({ enabled: true });
-  const hasState = useHasChapterTrackState();
+  // The project this prompt opened for: if it is closed or another is opened under it, its chapter is not in what is read now.
+  const projectNow = useChapterTrackProject();
+  const openedFor = useRef(projectNow);
+  const projectGone = projectNow === null || projectNow !== openedFor.current;
   const confirming = usePendingAction();
   // The project was closed under this dialog: there is nothing left to read, so it says so rather than reading for good.
-  if (!hasState) return <p role="status">This project is no longer open, so its tracks cannot be read. Close this and open the project again.</p>;
+  if (projectGone) return <p role="status">This project is no longer open, so its tracks cannot be read. Close this and open the project again.</p>;
   const listError = state.project ? '' : state.live.error;
   if (listError)
     return (

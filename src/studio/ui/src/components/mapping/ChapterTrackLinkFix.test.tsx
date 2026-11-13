@@ -94,4 +94,21 @@ describe('ChapterTrackLinkFix (#3413)', () => {
     expect(await screen.findByText(/no longer open/)).toBeTruthy();
     expect(screen.queryByText(/Reading the REAPER tracks/)).toBeNull();
   });
+
+  it('says the project is no longer open when another project is opened under the prompt', async () => {
+    const api = createMockApi();
+    const tree = (folder: string) => (
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <ChapterTrackStateProvider projectFolder={folder} enabled notify={() => {}}>
+            <ChapterTrackLinkFix chapter={chapter} notify={() => {}} onLinked={() => {}} />
+          </ChapterTrackStateProvider>
+        </ApiProvider>
+      </MemoryRouter>
+    );
+    const { rerender } = render(tree('C:/Projects/Alice'));
+    await picker();
+    rerender(tree('C:/Projects/Other'));
+    expect(await screen.findByText(/no longer open/)).toBeTruthy();
+  });
 });

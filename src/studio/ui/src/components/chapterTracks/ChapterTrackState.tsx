@@ -73,9 +73,9 @@ const EMPTY: ChapterTrackState = {
 
 /** What a screen asks the state to read: the tracks with the links (`tracks`), or the links alone (`links`: the Audacity panel, which has no REAPER tracks to read). */
 type WatchKind = 'tracks' | 'links' | 'detail';
-type Watch = { state: ChapterTrackState; watch: (kind: WatchKind) => () => void; defaultWants: boolean };
+type Watch = { state: ChapterTrackState; watch: (kind: WatchKind) => () => void; defaultWants: boolean; projectFolder: string };
 
-const NO_WATCH: Watch = { state: EMPTY, watch: () => () => {}, defaultWants: true };
+const NO_WATCH: Watch = { state: EMPTY, watch: () => () => {}, defaultWants: true, projectFolder: '' };
 /** The default of the context: no provider above. */
 const NO_PROVIDER: Watch = { ...NO_WATCH };
 const ChapterTrackStateContext = createContext<Watch>(NO_PROVIDER);
@@ -322,7 +322,7 @@ export function ChapterTrackStateProvider({
           },
     [projectFolder, reading, live, linksStale, mappings, details, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks, readDocumentId],
   );
-  const value = useMemo(() => ({ state, watch, defaultWants: enabled }), [state, watch, enabled]);
+  const value = useMemo(() => ({ state, watch, defaultWants: enabled, projectFolder }), [state, watch, enabled, projectFolder]);
   useEffect(() => {
     setMounted(value);
     return () => {
@@ -355,13 +355,14 @@ export function useChapterTrackState({
 }
 
 /**
- * Whether a project's chapter-track state is mounted for this component: in a provider above it or, for an overlay dialog, the app's registered
- * one. It is false after the project is closed under an open dialog, where "no state" must not read as "not read yet" (#3416).
+ * The project folder whose chapter-track state this component reads (in a provider above it or, for an overlay dialog, the app's registered one),
+ * or null when none is mounted. A prompt that outlives its project sees null, or another folder than the one it opened for (#3416).
  */
-export function useHasChapterTrackState(): boolean {
+export function useChapterTrackProject(): string | null {
   const inTree = useContext(ChapterTrackStateContext);
   const registered = useSyncExternalStore(subscribeMounted, readMounted);
-  return inTree !== NO_PROVIDER || registered !== undefined;
+  if (inTree !== NO_PROVIDER) return inTree.projectFolder;
+  return registered ? registered.projectFolder : null;
 }
 
 /** The app shell's two per-project readers, the voice setup and the chapter-track state, mounted together. */
