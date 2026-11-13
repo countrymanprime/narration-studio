@@ -482,7 +482,7 @@
   {
     "name": "arm_lane re-arms while a record_start is waiting for REAPER",
     "file": "narration_transport.lua",
-    "find": "  if recording() or (keep and state.recording) then",
+    "find": "  if recording() or (keep and state.recording and not state.recording.started) then",
     "replace": "  if recording() then"
   },
   {
@@ -512,7 +512,7 @@
   {
     "name": "arms change while REAPER records",
     "file": "narration_transport.lua",
-    "find": "  if recording() or (keep and state.recording) then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
+    "find": "  if recording() or (keep and state.recording and not state.recording.started) then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')",
     "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')"
   },
   {

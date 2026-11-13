@@ -157,13 +157,47 @@ func TestAVoiceTheDAWWillNotArmIsStillChosenAndTheRefusalIsInTheAnswer(t *testin
 		t.Run(name, func(t *testing.T) {
 			host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 			got := boothVoiceSet(t, host, &fakeLaneRecorder{laneErr: refusal.err}, ids[0], voiceQueenTrack)
-			if got.Outcome != "selected" || got.TrackGUID != voiceQueenTrack || got.Armed || got.Reason != refusal.reason || !strings.Contains(got.Message, "did not change") {
+			if got.Outcome != "selected" || got.TrackGUID != voiceQueenTrack || got.Armed || got.Reason != refusal.reason || got.Message == "" {
 				t.Fatalf("got %+v, want selected, not armed, reason %q and a sentence", got, refusal.reason)
 			}
 			if again := boothVoiceGet(t, host, ids[0]); again.TrackGUID != voiceQueenTrack {
 				t.Fatalf("the choice must stand when the DAW refuses: %+v", again)
 			}
 		})
+	}
+}
+
+func TestAVoiceChosenWhileTheLinkedDAWIsNotAnsweringIsChosenAndSaysSo(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.reachability = nil
+	got := boothVoiceSet(t, host, nil, ids[0], voiceQueenTrack)
+	if got.Outcome != "selected" || got.Armed || got.Reason != reaperNotRunning || !strings.Contains(got.Message, "not answering") {
+		t.Fatalf("got %+v, want selected, not armed, and the DAW not answering said", got)
+	}
+}
+
+func TestAVoiceChosenWhileATakeIsStartingIsRefusedAndNeverArmed(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{}
+	defer host.startingRecording()()
+	got := boothVoiceSet(t, host, fake, ids[0], voiceQueenTrack)
+	if got.Outcome != "refused" || got.Reason != "starting" || len(fake.laneArmed) != 0 {
+		t.Fatalf("got %+v, armed %v; want refused, nothing armed", got, fake.laneArmed)
+	}
+	if again := boothVoiceGet(t, host, ids[0]); again.TrackGUID == voiceQueenTrack {
+		t.Fatalf("a refused choice must not be kept: %+v", again)
+	}
+}
+
+func TestTheSentenceForAVoiceTheDAWWillNotArmNamesTheVoiceNotTheChapterLink(t *testing.T) {
+	for name, err := range map[string]error{"gone": &bridge.TrackStaleError{GUID: voiceQueenTrack}, "timeout": context.DeadlineExceeded} {
+		host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+		got := boothVoiceSet(t, host, &fakeLaneRecorder{laneErr: err}, ids[0], voiceQueenTrack)
+		for _, bad := range []string{"Nothing started", "Link it again", "linked to this chapter"} {
+			if strings.Contains(got.Message, bad) {
+				t.Errorf("%s: %q must not say %q", name, got.Message, bad)
+			}
+		}
 	}
 }
 

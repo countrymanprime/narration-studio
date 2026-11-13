@@ -38,6 +38,7 @@ const BOOTH_VOICE_REASONS = [
   'not_our_recording',
   'already_recording',
   'playing',
+  'starting',
 ] as const;
 
 /** `BoothVoiceSet` and `BoothVoiceGet` (src/studio/desktop/bindings_booth_voice.go). */

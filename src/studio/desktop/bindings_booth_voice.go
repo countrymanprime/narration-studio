@@ -335,8 +335,18 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	}
 	name := readAloudAdapterName(svc)
 	if !h.readAloudRecordingFor(chapterID) {
+		if h.recordStarting() {
+			// The take is arming and starting on the voice it had: arming another lane now would move it or drop the arms to put back.
+			return boothVoiceRefused("starting", "A take is starting. Choose the voice once it has started."), nil
+		}
 		svc.boothVoices.choose(chapterID, target)
-		return armChosenLane(ctx, name, recorder, target), nil
+		chosen := armChosenLane(ctx, name, recorder, target)
+		if status := reaperStatus(svc); recorder == nil && status.Connection == reaperNotRunning {
+			// A linked DAW that is not answering cannot arm the lane: say so, the choice stands.
+			chosen.Reason = reaperNotRunning
+			chosen.Message = fmt.Sprintf("%s is not answering, so its armed track did not change. The Booth records on the voice you chose.", name)
+		}
+		return chosen, nil
 	}
 	switcher, ok := recorder.(dawport.VoiceSwitcher)
 	if recorder == nil || !ok {
@@ -374,7 +384,14 @@ func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, 
 	if _, err := armer.ArmLane(ctx, target); err != nil {
 		refusal := readAloudRecordRefusal(name, err)
 		chosen.Reason = refusal.Reason
-		chosen.Message = fmt.Sprintf("%s The Booth will record on this voice, but the armed track in %s did not change.", refusal.Message, name)
+		switch refusal.Reason {
+		case readAloudTrackMissing:
+			chosen.Message = fmt.Sprintf("That voice track is no longer in the %s project, so it could not be armed. The Booth still records on it if it comes back.", name)
+		case "timeout":
+			chosen.Message = fmt.Sprintf("%s did not confirm within 3 seconds, so the armed track may not match the voice. The Booth records on the voice you chose.", name)
+		default:
+			chosen.Message = fmt.Sprintf("%s The Booth records on the voice you chose, but the armed track in %s did not change.", refusal.Message, name)
+		}
 		return chosen
 	}
 	chosen.Armed = true

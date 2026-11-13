@@ -635,7 +635,7 @@ local function arm_only(session_dir, state, run_id, guid_text, keep)
   end
   -- state.recording is set from the moment record_start presses record, before GetPlayState reports it: a lane armed in that window
   -- would move the take to another track and drop the arms to put back.
-  if recording() or (keep and state.recording) then
+  if recording() or (keep and state.recording and not state.recording.started) then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
   end

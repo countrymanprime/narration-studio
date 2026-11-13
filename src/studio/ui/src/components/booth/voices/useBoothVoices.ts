@@ -237,7 +237,11 @@ export function useBoothVoices({
             if (answer.reason === 'not_a_voice' || answer.reason === 'track_missing') refreshAll();
           } else if (answer.trackGuid) {
             // The voice is chosen, but the DAW would not arm it (#3429): say so, the Booth's arm dot reads the DAW's real arms.
-            if (answer.outcome === 'selected' && answer.message) notify(answer.message, 'error');
+            if (answer.outcome === 'selected' && answer.message) {
+              notify(answer.message, 'error');
+              // A voice track the DAW no longer has: the voices this page lists are not the project's any more.
+              if (answer.reason === 'track_missing') refreshAll();
+            }
             const guid = answer.trackGuid;
             setHostVoice((last) => ({ chapterId, guid, added: last.chapterId === chapterId ? last.added : [] }));
           }

@@ -279,11 +279,30 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudVoiceStartTimeout)
 	defer cancel()
+	defer h.startingRecording()()
 	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
 	return encodeBinding(result, err)
+}
+
+// startingRecording marks a record start in flight until the returned func runs, so BoothVoiceSet does not arm a lane under it.
+func (h *Host) startingRecording() func() {
+	h.mu.Lock()
+	h.readAloudStarting++
+	h.mu.Unlock()
+	return func() {
+		h.mu.Lock()
+		h.readAloudStarting--
+		h.mu.Unlock()
+	}
+}
+
+func (h *Host) recordStarting() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.readAloudStarting > 0
 }
 
 // puncherFrom asks svc's DAW port resolver for the punch role, as recorderFrom asks for Record: nil when there is no
@@ -309,6 +328,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 	recorder := recorderFrom(svc)
 	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudVoiceStartTimeout)
 	defer cancel()
+	defer h.startingRecording()()
 	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)

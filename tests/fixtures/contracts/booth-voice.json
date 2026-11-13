@@ -35,7 +35,7 @@
   "selected_daw_refused": {
     "outcome": "selected",
     "reason": "already_recording",
-    "message": "REAPER is already recording. The Booth will record on this voice, but the armed track in REAPER did not change.",
+    "message": "REAPER is already recording. The Booth records on the voice you chose, but the armed track in REAPER did not change.",
     "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000003}"
   },
   "switched": {

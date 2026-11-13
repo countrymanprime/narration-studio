@@ -45,7 +45,8 @@ export type BoothVoice = {
     | 'timeout'
     | 'not_our_recording'
     | 'already_recording'
-    | 'playing';
+    | 'playing'
+    | 'starting';
   message?: string;
   trackGuid?: string;
   /** `selected` from `BoothVoiceSet` only: the DAW's armed track is now this voice (#3429). When the DAW refused, `reason` and `message`
