@@ -162,8 +162,15 @@ describe('CheckRecordingsDialog', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(await within(dialog).findByText('Text present')).toBeTruthy();
     expect(within(dialog).getByText(/Checked .* with the small Whisper model/)).toBeTruthy();
-    expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
     expect(within(dialog).getByRole('button', { name: 'Open in Editing' })).toBeTruthy();
+    // #3416 item 28: Check again leaves the page as the run starts; keyboard focus stays in the dialog.
+    const again = within(dialog).getByRole('button', { name: 'Check again' });
+    again.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    emit({ runId: 'run-2', phase: 'complete' });
+    expect(await within(dialog).findByRole('button', { name: 'Check again' })).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Back to chapters' }));
     expect(await within(dialog).findByRole('button', { name: 'Show result: Chapter a' })).toBeTruthy();
   });
