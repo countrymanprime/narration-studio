@@ -1,3 +1,4 @@
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -341,7 +342,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
             goToParagraph={(index) => leave(credits ? scriptPath(shown.id) : scriptPath(shown.id, index))}
             openWorkspace={() => leave(addressPath({ page: 'editing', chapter: shown.id }))}
             actions={
-              <Button disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
+              <Button ref={keepFocusOnRemoval} disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
                 {checked ? 'Check again' : 'Check recording'}
               </Button>
             }
@@ -457,7 +458,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
         <Button variant="secondary" onClick={close}>
           Cancel
         </Button>
-        <Button variant="primary" disabled={ids.length === 0 || blocked || blockedByDaw} onClick={() => begin(ids)}>
+        <Button ref={keepFocusOnRemoval} variant="primary" disabled={ids.length === 0 || blocked || blockedByDaw} onClick={() => begin(ids)}>
           {label}
         </Button>
       </div>

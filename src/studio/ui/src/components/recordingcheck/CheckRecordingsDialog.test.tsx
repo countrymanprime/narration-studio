@@ -119,6 +119,19 @@ describe('CheckRecordingsDialog', () => {
     await waitFor(() => expect(starts).toEqual([{ id: 'credits-opening', model: 'small' }]));
   });
 
+  // #3416 item 28: the run button leaves the page as the run starts; focus stays in the dialog instead of falling to <body>.
+  it('keeps keyboard focus in the dialog when the run button goes away as the check starts', async () => {
+    const { api } = host();
+    open(api, ['a']);
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    const run = within(dialog).getByRole('button', { name: 'Check 1 chapter' });
+    run.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Check 1 chapter' })).toBeNull());
+    expect(document.body.contains(document.activeElement) && document.activeElement !== document.body).toBe(true);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it('shows-the-full-report-after-a-single-chapter-run-with-go-to-paragraph-and-check-again', async () => {
     const { api, results, emit } = host();
     open(api, ['a']);
