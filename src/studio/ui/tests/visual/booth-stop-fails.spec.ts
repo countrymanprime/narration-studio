@@ -262,3 +262,24 @@ test('Ctrl+Alt+C to the Companion with the sentence up tries the stop once more,
   await page.waitForTimeout(3000);
   await expect(page.getByText(STILL_OPEN)).toHaveCount(0);
 });
+
+for (const how of ['refused', 'hung'] as const) {
+  test(`leaving with the jump menu while a Retry that the host ${how === 'refused' ? 'refuses again' : 'never answers'} is out says the microphone may be open`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    // Stops 1 and 2 (the take's end) are refused at once; every later one is refused, after 20 s (past the call's 12 s limit) in the hung case.
+    await openBooth(page, 99, how === 'hung' ? 20_000 : 0);
+    await recordThenStop(page);
+    await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await page.keyboard.press('Control+KeyK');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Script');
+    await page
+      .getByRole('option', { name: /Script/ })
+      .first()
+      .click();
+    await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
+    await expect(page.getByText(STILL_OPEN)).toBeVisible({ timeout: 60_000 });
+  });
+}

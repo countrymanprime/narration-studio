@@ -168,7 +168,8 @@ describe('a listening stop the host refuses', () => {
     const [toast] = toasts(page);
     page.view.unmount();
     expect(toasts(page)).toHaveLength(0);
-    expect(toasts(page)).toHaveLength(0);
+    // The way out sends its own stop(s); what the old Retry does after those is nothing more.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2500))));
     const calls = page.teleprompterStop.mock.calls.length;
     await act(async () => toast.action?.onAction());
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
@@ -322,6 +323,34 @@ describe('a listening stop the host refuses', () => {
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(second.teleprompterStop).toHaveBeenCalled());
     await waitFor(() => expect(second.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen|could not stop listening/.test(toast.text))).toBe(false));
+  });
+
+  it('says on the next page that the microphone may be open when the Booth is left while a refused Retry is out', async () => {
+    const page = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const [toast] = toasts(page);
+    await act(async () => toast.action?.onAction());
+    // The Retry is out (its second stop waits 1.5 s) and the narrator leaves.
+    page.view.unmount();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1), {
+      timeout: 6000,
+    });
+  });
+
+  it('sends no stop at all when the host ended the session and another started in the same moment the Booth was left with the sentence up', async () => {
+    const page = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const calls = page.teleprompterStop.mock.calls.length;
+    act(() => {
+      page.publish({ phase: 'stopped' });
+      page.publish({ phase: 'running' });
+      page.view.unmount();
+    });
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+    expect(page.overlay.getSnapshot().toasts.some((item) => /Quit and reopen/.test(item.text))).toBe(false);
   });
 
   it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {

@@ -750,3 +750,55 @@ describe('Dialog returnFocus for a dialog that opened by itself', () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'The chip' })));
   });
 });
+
+// #3416 item 27: a dialog removed together with the thing that opened it (a link made takes away the notice, and the Booth's Record that had focus
+// when the dialog came up is off until then) hands focus to <main>, not <body>.
+describe('Dialog removed together with its parent', () => {
+  function WithParent() {
+    const [shown, setShown] = useState(false);
+    const [linked, setLinked] = useState(false);
+    return (
+      <div>
+        <main tabIndex={-1} data-testid="landmark">
+          <button disabled={!linked} onClick={() => setShown(true)}>
+            Record
+          </button>
+          <button onClick={() => setShown(true)}>Open</button>
+        </main>
+        {shown && (
+          <section>
+            <Dialog
+              dismissOnOutsidePress={false}
+              title="Link"
+              onClose={() => setShown(false)}
+              actions={
+                <Button
+                  onClick={() => {
+                    setLinked(false);
+                    setShown(false);
+                  }}
+                >
+                  Link track
+                </Button>
+              }
+            >
+              <p>Body</p>
+            </Dialog>
+          </section>
+        )}
+      </div>
+    );
+  }
+  it('focus lands on the page landmark when the opener is off and the whole parent goes', async () => {
+    render(<WithParent />);
+    // The dialog opens from a control that is off by the time it closes.
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    await userEvent.click(opener);
+    opener.setAttribute('disabled', '');
+    const action = await screen.findByRole('button', { name: 'Link track' });
+    action.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('landmark')));
+  });
+});

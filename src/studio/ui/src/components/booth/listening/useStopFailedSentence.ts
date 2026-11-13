@@ -43,7 +43,7 @@ type Session = {
   /** Counts the stops the host took. */
   stopTaken: number;
   /** A stop asked for by leaving: retried after the page is gone, `onFailed` called when it is refused twice then. */
-  stopForLeave: (onFailed: () => void) => void;
+  stopForLeave: (onFailed: () => void, options?: { unlessEnded?: boolean }) => void;
   /** True once the narrator left asking for the stop (its own failure is said by `sayListeningStillOpen`). */
   leaving: { current: boolean };
   subscribeState: (listener: (state: TeleprompterState) => void) => () => void;
@@ -76,6 +76,9 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
   leaving.current = session.leaving;
   const failed = useRef(stopFailed);
   failed.current = stopFailed;
+  // A Retry that is out is a stop that failed too, as far as leaving goes: the sentence is down while it runs, but the microphone is as open as before.
+  const retrying = useRef(stopRetry);
+  retrying.current = stopRetry;
   useEffect(() => {
     if (stopFailed) {
       said.current = true;
@@ -111,7 +114,8 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
       overlay.dismissTopic(STOP_FAILED_TOPIC);
       // Left with the sentence up (a link, Ctrl+Alt+C, Back): the stop was refused, but no stop was asked for the way out, so it is tried once more now, and said on
       // the next page only if that is refused too. A leave's own stop that is still out says its own result.
-      if (failed.current && !leaving.current.current) leaveStop.current(() => sayListeningStillOpen(overlay, watch.current));
+      if ((failed.current || retrying.current === 'trying') && !leaving.current.current)
+        leaveStop.current(() => sayListeningStillOpen(overlay, watch.current), { unlessEnded: true });
     },
     [overlay],
   );
