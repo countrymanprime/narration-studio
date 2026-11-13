@@ -730,7 +730,13 @@ describe('Dialog returnFocus for a dialog that opened by itself', () => {
           <button>The chip</button>
         </main>
         {open && (
-          <Dialog title="Self" onClose={() => setOpen(false)} returnFocus={() => document.querySelector('button')} actions={<Button>Go</Button>}>
+          <Dialog
+            dismissOnOutsidePress={false}
+            title="Self"
+            onClose={() => setOpen(false)}
+            returnFocus={() => document.querySelector('button')}
+            actions={<Button>Go</Button>}
+          >
             <p>Body</p>
           </Dialog>
         )}
