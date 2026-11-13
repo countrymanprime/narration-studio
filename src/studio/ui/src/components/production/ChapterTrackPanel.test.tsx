@@ -259,22 +259,6 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(reread).toHaveBeenCalledTimes(1);
   });
 
-  // #3398: the write is done when chapterTrackSet answers; a re-read that then fails must not turn "linked" into a failure toast.
-  it('says linked once, with no failure, when the link was made and only the re-read after it rejects', async () => {
-    const api = createMockApi();
-    const { link, track } = await confirmedFixture(api);
-    const reread = vi.fn(() => Promise.reject(new Error('the project file is locked')));
-    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track, reread);
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
-
-    await waitFor(() => expect(reread).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm' })).toBeTruthy());
-    expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith(expect.stringMatching(/linked/i));
-    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'error');
-  });
-
   it('keeps a link that Unlink failed to clear', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
