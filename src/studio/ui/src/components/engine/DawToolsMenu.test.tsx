@@ -25,8 +25,6 @@ function links(overrides: Partial<ChapterLinks> = {}): ChapterLinks {
     mappings: [],
     rows: [],
     error: '',
-    notice: '',
-    clearNotice: () => {},
     busyChapterId: '',
     creatingChapterId: '',
     set: () => {},
