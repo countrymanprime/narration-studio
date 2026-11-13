@@ -32,7 +32,6 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
 - `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
-- `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/VoicesCard.tsx`
