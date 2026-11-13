@@ -59,21 +59,30 @@ export function trackChoices(
   nameOf?: ChapterNameOf,
 ): TrackChoice[] {
   const named = new Map(match.tracks.map((t) => [t.guid, trackName(t.name, t.index)]));
-  const summaries = new Map(match.tracks.map((t) => [t.guid, t]));
   const ranked = match.candidates.filter((c) => named.has(c.trackGuid)).map((c) => c.trackGuid);
-  const order = [...ranked, ...match.tracks.map((t) => t.guid).filter((g) => !ranked.includes(g))];
   const best = match.status === 'ambiguous' || match.status === 'none' ? null : (match.track?.trackGuid ?? ranked[0] ?? null);
-  return order.map((guid) => {
-    const holder = holderOf(links, guid, chapterId);
-    const summary = summaries.get(guid);
+  const inProjectOrder = match.tracks.map((t): TrackChoice => {
+    const holder = holderOf(links, t.guid, chapterId);
     return {
-      guid,
-      name: named.get(guid) ?? guid,
-      best: guid === best,
-      ...(summary ? placement(summary) : {}),
+      guid: t.guid,
+      name: named.get(t.guid) ?? t.guid,
+      best: false,
+      ...placement(t),
       ...(holder ? { heldBy: holderName(nameOf?.(holder.chapterId), holder.chapterTitle) } : {}),
     };
   });
+  return rankedChoices(inProjectOrder, ranked, best);
+}
+
+/**
+ * Puts the ranked tracks first, in rank order (each once, and only those the list has), then every other track in the order given, and marks `best`.
+ * The one ordering every picker with a ranking uses: the Link a track dialog (the matcher's candidates) and the sync panel (the sync's).
+ */
+export function rankedChoices(choices: readonly TrackChoice[], ranked: readonly string[], best: string | null): TrackChoice[] {
+  const byGuid = new Map(choices.map((choice) => [choice.guid, choice]));
+  const first = [...new Set(ranked)].flatMap((guid) => byGuid.get(guid) ?? []);
+  const firstGuids = new Set(first.map((choice) => choice.guid));
+  return [...first, ...choices.filter((choice) => !firstGuids.has(choice.guid))].map((choice) => ({ ...choice, best: choice.guid === best }));
 }
 
 /** The part of a confirmed link that says which chapter holds a track. */
