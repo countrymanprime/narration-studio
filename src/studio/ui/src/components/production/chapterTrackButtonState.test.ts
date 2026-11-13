@@ -116,9 +116,11 @@ describe('followLiveTracks', () => {
   });
 });
 
-// The class guard of #3415: the Engine row, the Booth, the DAW tools and the Link chapters dialog read a chapter's link through `chapterTrackRows`; the
+// The class guard of #3415: the Engine row, the Link chapters dialog and the DAW tools read a chapter's link through `chapterTrackRows`; the
 // board, its row menu and the chapter track panel read it through `followLiveTracks`. Whatever REAPER's track list does, the two must say the same:
-// the same Missing state and the same name.
+// the same Missing state and the same name. This holds the two derivations to each other; the rendered drives are the ProductionPage test (the board's
+// cell and the row menu on a deleted track) and the Engine tests. The Booth, the Editing page and Proof read the link elsewhere (`linkStateOf`,
+// the host) and are not in this guard: tracked on #3416.
 describe('every surface says the same about a track renamed or deleted in REAPER (#3415)', () => {
   const link: ChapterTrackLink = {
     ...base,
