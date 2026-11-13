@@ -1028,17 +1028,23 @@ export function GuideDetail({
             />
             {!isNewDraft && (
               <>
-                <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || locked} onChange={(index) => void setSpeakerColour(index)} />
+                <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || editingDisabled} onChange={(index) => void setSpeakerColour(index)} />
                 {/* Each titled section below the fields is set off by the same rule as Properties, Relationships and Appears in (SBX-12);
                     a section with nothing to show draws no rule. */}
                 <div className={SECTION_RULE}>
                   <EntryVoiceSamples entity={entity} entities={entities} types={types} canManage={editing && canEdit} player={samplePlayer} notify={notify} />
                 </div>
                 <div className={SECTION_RULE}>
-                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} />
+                  <VoiceReferencesSection characterId={entity.id} characterLabel={entity.canonical_name} notify={notify} readOnly={editingDisabled} />
                 </div>
                 <div className={SECTION_RULE}>
-                  <DialogueCueAttribution entity={entity} entities={entities} canSpeak={(category) => canSpeak(types, category)} notify={notify} />
+                  <DialogueCueAttribution
+                    entity={entity}
+                    entities={entities}
+                    canSpeak={(category) => canSpeak(types, category)}
+                    notify={notify}
+                    readOnly={editingDisabled}
+                  />
                 </div>
               </>
             )}

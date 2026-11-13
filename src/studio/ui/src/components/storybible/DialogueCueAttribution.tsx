@@ -20,12 +20,15 @@ export function DialogueCueAttribution({
   entities,
   canSpeak,
   notify,
+  readOnly = false,
 }: {
   entity: GuideEntity;
   entities: GuideEntity[];
   /** Whether an entry of this category can speak, by its type's Can speak flag: only those are offered as a cue's speaker. */
   canSpeak: (category: string) => boolean;
   notify: Notify;
+  /** An entry's read view shows who each cue is attributed to; changing it comes with Edit. */
+  readOnly?: boolean;
 }) {
   const api = useApi();
   const journal = useJournalOrOwn();
@@ -86,7 +89,7 @@ export function DialogueCueAttribution({
               <Select
                 label={`Speaker for “${cue.quote_text}”`}
                 value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
-                disabled={mutation.isBusy}
+                disabled={readOnly || mutation.isBusy}
                 onChange={(value) => void correct(cue, value)}
                 options={speakerOptions}
               />
