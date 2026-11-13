@@ -3,6 +3,7 @@ import type { ManuscriptChapter, TrackMapping } from '../../types';
 import { headingName } from '../../chapterHeading';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
+import { describeApiError } from '../../api/errorMessage';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
  * longer in the manuscript", so none is silent or reads " was linked to that track" with no name (#3053). */
@@ -15,6 +16,10 @@ function keptTitle(storedTitle: unknown): string | undefined {
     .trim();
   if (!clean) return undefined;
   return clean.length > MAX_TITLE ? `${clean.slice(0, MAX_TITLE - 1)}…` : clean;
+}
+/** A chapter's name as the Link a track dialog and the sentences around it say it: cleaned and clipped like a kept title, and "This chapter" when blank. */
+export function dialogChapterName(name: string): string {
+  return keptTitle(name) ?? 'This chapter';
 }
 /** A control character or a bidi override/isolate mark. */
 function isOddCharacter(code: number): boolean {
@@ -39,6 +44,13 @@ export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: 
   const name = keptTitle(nameOf?.(displaced.chapterId)) ?? keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript';
   return `${name} was linked to that track and is now not linked.`;
 }
+
+/**
+ * What to say when a change to the links (a link, an unlink) was written and reading the list again failed: the change was made, so the narrator is
+ * not told it failed. The Chapter links list and the Link chapters dialog run the write and the re-read in one chain, so this is where the two
+ * are told apart (#3398).
+ */
+export const changedButUnread = (reason: unknown): string => `The change was made, but the list could not be read again: ${describeApiError(reason)}`;
 
 /** A link written: the host's answer, and the sentence for the chapter that lost the track, or '' when the track was free. */
 async function manuscriptNames(manuscript: {

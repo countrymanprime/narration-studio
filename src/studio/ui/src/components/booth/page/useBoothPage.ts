@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
 import { usePedalSpace } from '../../../input/usePedalSpace';
+import { keyLayerOpen } from '../../../input/targets';
+import { releaseFocusToPage } from '../releaseFocusToPage';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
@@ -115,6 +117,14 @@ export type BoothPageOptions = {
 let pressIds = 0;
 const pagesOnScreen: Array<(press: number) => void> = [];
 const tellPageUnfollowed = (press: number): void => pagesOnScreen[pagesOnScreen.length - 1]?.(press);
+// A start that answers after its page was left must not stop a session a Booth mounted since is following (that page made no claim of its own): the
+// Booth on screen that shows that same take takes the claim over, and its take's end lets the session go. False when none does.
+// "The same take" is the chapter the start was asked for: a Booth on another chapter follows something else, and the session is then let go as before. A
+// newer take of this app is not handed it either: a page that made its own claim for it owns the session (`ownsListening`), and a take that ended and was
+// replaced while no Booth was open cannot be told apart (nothing on screen names a DAW take).
+const takeOverFollowers: Array<(claim: ListeningClaim, recordId: string) => boolean> = [];
+const handListeningToPageOnScreen = (claim: ListeningClaim, recordId: string): boolean =>
+  takeOverFollowers[takeOverFollowers.length - 1]?.(claim, recordId) ?? false;
 /** How long a report waits for the page to show the take it is about (the next chapter's page adopts a take from the DAW's next word). */
 const UNFOLLOWED_WAIT_MS = 10_000;
 const UNFOLLOWED_TOPIC = 'booth-take-unfollowed';
@@ -300,16 +310,20 @@ export function useBoothPage(options: BoothPageOptions) {
   }, []);
   /** Ends a cold read and answers once its session has gone, so the take's own session can start; the ghost goes at once. */
   const coldClaim = useRef<ListeningClaim | null>(null);
+  // The session being ended is the cold read's: its claim goes with it. A newer claim (the adopted take's, made before the cold read is ended) keeps the
+  // session in the claims, so the cold read's is removed by itself and never lingers as a stale owner.
+  const endColdClaim = useCallback(() => {
+    if (!releaseListening(coldClaim.current)) unclaimListening(coldClaim.current);
+    coldClaim.current = null;
+  }, []);
   const endColdRead = useCallback(async (): Promise<boolean> => {
     const now = latest.current;
     if (!now.coldRead) return false;
     setEndingColdRead(true);
-    // The session being ended is the cold read's: its claim goes with it, before a take's press claims the next one.
-    releaseListening(coldClaim.current);
-    coldClaim.current = null;
+    endColdClaim();
     await now.session.stopAndWait();
     return true;
-  }, []);
+  }, [endColdClaim]);
 
   // Record from here: the place the Script named is where the reading starts and the next take begins.
   const startedFrom = useRef(false);
@@ -775,15 +789,31 @@ export function useBoothPage(options: BoothPageOptions) {
   const ownFailed = useRef(false);
   // The takes that have begun on this page so far: a continuation that waits checks its take is still the newest.
   const adoptedTakes = useRef(0);
+  const recordIdNow = useRef(recordId);
+  recordIdNow.current = recordId;
+  const handedClaim = useRef<ListeningClaim | null>(null);
   const [ownStarted, setOwnStarted] = useState(0);
   const unfollowedSaid = useRef(false);
   useEffect(() => {
     mounted.current = true;
     const report = (press: number) => setUnfollowed((last) => Math.max(last ?? 0, press));
     pagesOnScreen.push(report);
+    const takeOver = (claim: ListeningClaim, recordId: string): boolean => {
+      if (!latest.current.recording || recordIdNow.current !== recordId) return false;
+      takeClaim.current = claim;
+      handedClaim.current = claim;
+      // The session is this take's now: a stop of its own that failed earlier is not to be retried under it, nor its sentence kept.
+      latest.current.session.sessionJoined();
+      return true;
+    };
+    takeOverFollowers.push(takeOver);
     return () => {
       mounted.current = false;
+      // A claim handed to this Booth ends with it: the take can end while the narrator is away, and nothing would then release the session.
+      if (handedClaim.current !== null && releaseListening(handedClaim.current)) latest.current.session.stop();
+      handedClaim.current = null;
       pagesOnScreen.splice(pagesOnScreen.indexOf(report), 1);
+      takeOverFollowers.splice(takeOverFollowers.indexOf(takeOver), 1);
       overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
   }, [overlay]);
@@ -796,13 +826,16 @@ export function useBoothPage(options: BoothPageOptions) {
     ownFollowed.current = false;
     // The session this start brings up is this page's, through a claim (`listeningClaims.ts`), so a late answer lets go only what it started.
     const claim = claimListening();
+    const forChapter = recordIdNow.current;
     void begin()
       .then((result) => {
         if (result === null || !result.ok) unclaimListening(claim);
         // The take ended, or the Booth was left, while the start was out (a host answers a start it was asked to stop once it is up): the session it
         // brought up follows nothing, and nothing else would stop it. The take that is still this one keeps the claim, and its end lets the session go.
         else if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) {
-          if (releaseListening(claim)) latest.current.session.stop();
+          // A Booth mounted since (the narrator left and came back while the take recorded) follows that take: it takes the claim over, stops nothing here.
+          const handedOver = !mounted.current && ownsListening(claim) && handListeningToPageOnScreen(claim, forChapter);
+          if (!handedOver && releaseListening(claim)) latest.current.session.stop();
         } else takeClaim.current = claim;
         ownFollowed.current = result?.ok === true && ownsListening(claim);
         // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.
@@ -1073,8 +1106,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (now.coldRead) {
       setEndingColdRead(true);
       // The cold read's own stop: its claim ends with it.
-      releaseListening(coldClaim.current);
-      coldClaim.current = null;
+      endColdClaim();
       now.session.stop();
       return;
     }
@@ -1121,12 +1153,12 @@ export function useBoothPage(options: BoothPageOptions) {
       }
       const started = listening.value;
       if (started.ok) coldClaim.current = mine;
-      else if (!gone()) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
+      else if (!gone()) overlay.toast(`Cold read did not start: ${(started.reason || 'listening failed').replace(/[.\s]+$/, '')}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
       setColdStarting(false);
     }
-  }, [notify, overlay, realWord]);
+  }, [endColdClaim, notify, overlay, realWord]);
   // Another chapter is another text: the cold read of this one ends. Leaving the Booth ends it too, however the Booth is left.
   useEffect(
     () => () => {
@@ -1183,6 +1215,19 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
+  // Alt+Space (#3445): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
+  // from Record a cold read, from Cold read a take. Nothing new while a take or a cold read runs or is starting, or while a popup or a question has
+  // the keyboard (the router lets an Alt chord through a popup, so this says no to it here).
+  const switchMode = useCallback(async () => {
+    const now = latest.current;
+    if (now.takeOut || now.coldRead || coldReadStarting.current || starting.current || keyLayerOpen()) return;
+    releaseFocusToPage();
+    const cold = !now.coldMode;
+    setColdMode(cold);
+    if (cold) await toggleColdRead();
+    else await toggleTake();
+  }, [toggleColdRead, toggleTake]);
+  useCommand('booth.mode.switch', () => void switchMode());
   useCommand('reading.toggle', () => void pressMain());
   usePedalSpace(pressMain);
   useCommand('booth.phrase.next', () => moveReading(nextPhrase(latest.current.units, latest.current.at)));

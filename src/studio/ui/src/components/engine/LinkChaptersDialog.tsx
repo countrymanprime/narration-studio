@@ -24,6 +24,7 @@ import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineId
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -182,10 +183,6 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     return unsubscribe;
   }, [api]);
 
-  // The notice is the last takeover's, kept by the shared reader: a dialog opening anew starts without it, so it is never repeated for a change this session did not make.
-  const { clearNotice } = links;
-  useEffect(() => clearNotice(), []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const failure = requestError || (state.phase === 'error' ? state.message : '');
   const stampError = lastAction === 'stamp' ? failure : '';
   const readError = lastAction === 'read' ? failure : '';
@@ -269,11 +266,6 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           <ToolResult tone="danger" message={links.error} />
         </div>
       )}
-      {links.notice && (
-        <div className="mb-3">
-          <ToolResult tone="warning" message={links.notice} />
-        </div>
-      )}
       {state.phase === 'stamping' && (
         <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
           {state.message}
@@ -305,7 +297,12 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const options = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
+            const options = own.map((option) => {
+              const holder = option.value ? holderOf(links.mappings, option.value, chapter.id) : undefined;
+              return holder ? { ...option, label: heldLabel(option.label, holderName(undefined, holder.chapterTitle)) } : option;
+            });
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
