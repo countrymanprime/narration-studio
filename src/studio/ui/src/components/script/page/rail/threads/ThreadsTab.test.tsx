@@ -7,6 +7,8 @@ import { ApiProvider } from '../../../../../api/ApiContext';
 import type { Mark } from '../../../../../api/contracts/marks';
 import { createMockApi } from '../../../../../api/mockApi';
 import { overlay } from '../../../../../overlay/overlayService';
+import { expectHolderCleanAfterSave } from '../../../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../../types';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
@@ -41,6 +43,12 @@ async function seed() {
   return { note, query };
 }
 
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
+
 function Probe() {
   [view, setView] = useScriptView((state) => state);
   return null;
@@ -52,11 +60,14 @@ function mount(props: Partial<ThreadsTabProps> = {}) {
     <ApiProvider api={api}>
       <StudioProvider>
         <TooltipProvider>
-          <Probe />
-          {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
-          <main tabIndex={-1}>
-            <ThreadsTab chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
-          </main>
+          <UnsavedDraftsProvider>
+            <RegistryProbe />
+            <Probe />
+            {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+            <main tabIndex={-1}>
+              <ThreadsTab chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
+            </main>
+          </UnsavedDraftsProvider>
         </TooltipProvider>
       </StudioProvider>
     </ApiProvider>,
@@ -162,6 +173,31 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
     await user.click(card(query.id).getByRole('button', { name: 'Reply' }));
     expect(toast).toHaveBeenCalledWith('Write the reply or note first.');
     expect(reply).not.toHaveBeenCalled();
+  });
+});
+
+describe('holders-render-clean-after-their-save', () => {
+  it('a reply typed under a note renders clean once the registry has saved it', async () => {
+    const { note } = await seed();
+    const { user } = mount();
+    await user.type(await screen.findByRole('textbox', { name: 'Add to this note' }), 'A reply');
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+    expect((await marks()).find((mark) => mark.id === note.id)?.thread.at(-1)?.text).toBe('A reply');
+  });
+
+  it('an edited message renders clean once the registry has saved it', async () => {
+    const { query } = await seed();
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(query.id).getAllByRole('button', { name: 'Edit this message' }).at(-1)!);
+    const box = card(query.id).getByRole('textbox', { name: 'Edit message' });
+    await user.clear(box);
+    await user.type(box, 'Changed wording');
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
   });
 });
 

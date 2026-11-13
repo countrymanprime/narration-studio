@@ -12,6 +12,8 @@ import type { PronunciationOnlineResult } from '../../../../../api/contracts/pro
 import { createMockApi } from '../../../../../api/mockApi';
 import { useScriptView } from '../../data/useScriptData';
 import { overlay } from '../../../../../overlay/overlayService';
+import { expectHolderCleanAfterSave } from '../../../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../../types';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
@@ -322,18 +324,34 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     useEffect(() => update({ word }), [update, word]);
     return null;
   }
+  let registry: ReturnType<typeof useUnsavedDrafts>;
+  function RegistryProbe() {
+    registry = useUnsavedDrafts();
+    return null;
+  }
   function mountWithWord(word: string) {
     return render(
       <ApiProvider api={api}>
         <StudioProvider>
           <TooltipProvider>
-            <ShowWord word={word} />
-            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+            <UnsavedDraftsProvider>
+              <RegistryProbe />
+              <ShowWord word={word} />
+              <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+            </UnsavedDraftsProvider>
           </TooltipProvider>
         </StudioProvider>
       </ApiProvider>,
     );
   }
+
+  it('a typed pronunciation renders clean once the registry has saved it (the holder contract)', async () => {
+    mountWithWord('Dinah');
+    await userEvent.type(await screen.findByLabelText('Pronunciation of Dinah for my dictionary'), 'DY-nuh');
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+  });
 
   it('shows what each dictionary says, with its source and Hear, and offers no save while one has it', async () => {
     const preview = vi.spyOn(api, 'pronunciationPreview');
