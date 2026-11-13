@@ -331,7 +331,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
       navigate(path);
     };
     return (
-      <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:36rem)]:max-h-none">
+      <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:36rem)]:max-h-none [@media(max-height:36rem)]:[&_:is(a,button,input,select,summary,[tabindex])]:scroll-mb-14">
         <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto [@media(max-height:36rem)]:overflow-visible">
           <h3 className={`m-0 ${SECTION_LABEL}`}>{headingName(shown)}</h3>
           {run.seen[shown.id] && endedAt !== undefined ? (
@@ -383,7 +383,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
 
   // The dialog's 80dvh less its header and the body's padding (6.75rem) and its border: one scroll area for the form, the footer always shown.
   return (
-    <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:36rem)]:max-h-none">
+    <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:36rem)]:max-h-none [@media(max-height:36rem)]:[&_:is(a,button,input,select,summary,[tabindex])]:scroll-mb-14">
       <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto [@media(max-height:36rem)]:overflow-visible">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">

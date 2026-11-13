@@ -78,3 +78,35 @@ test('Check recordings at 320x300: the footer stays in sight, and the running vi
   await expect(dialog.getByRole('button', { name: /Stop checking/ })).toBeVisible({ timeout: 10_000 });
   expect(await within(/Stop checking/), 'Stop checking is inside the dialog, not scrolled out above it').toBe(true);
 });
+
+// ux review: the sticky footer must not sit over a control that has keyboard focus (the focus ring was the original #3416 item 41 complaint).
+for (const size of [
+  { width: 800, height: 500 },
+  { width: 320, height: 300 },
+]) {
+  test(`Check recordings at ${size.width}x${size.height}: Tab never leaves the focused control under the footer`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/');
+    await page
+      .getByRole('button', { name: /Check recordings/ })
+      .first()
+      .click();
+    const dialog = page.getByRole('dialog', { name: 'Check recordings' });
+    await dialog.waitFor({ timeout: 20_000 });
+    const covered: string[] = [];
+    for (let step = 0; step < 45; step += 1) {
+      await page.keyboard.press('Tab');
+      const hidden = await page.evaluate(() => {
+        const focused = document.activeElement as HTMLElement | null;
+        if (!focused || !focused.closest('[role=dialog]')) return null;
+        const rect = focused.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        return top === focused || focused.contains(top) || top?.closest('label') === focused.closest('label')
+          ? null
+          : (focused.getAttribute('aria-label') ?? focused.textContent ?? focused.tagName).trim().slice(0, 40);
+      });
+      if (hidden) covered.push(`${step}: ${hidden}`);
+    }
+    expect(covered, 'controls covered by the sticky footer when focused').toEqual([]);
+  });
+}
