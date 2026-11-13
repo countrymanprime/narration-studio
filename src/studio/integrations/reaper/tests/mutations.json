@@ -480,6 +480,12 @@
     "replace": "  if true then\n    local arms = {}"
   },
   {
+    "name": "arm_lane leaves the arms to be put back at the stop",
+    "file": "narration_transport.lua",
+    "find": "  if keep then\n",
+    "replace": "  if false then\n"
+  },
+  {
     "name": "recording starts with another track armed",
     "file": "narration_transport.lua",
     "find": "  elseif armed_tracks[1] ~= target then",

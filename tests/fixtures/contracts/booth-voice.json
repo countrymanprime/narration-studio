@@ -27,6 +27,17 @@
     "outcome": "selected",
     "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000003}"
   },
+  "selected_armed": {
+    "outcome": "selected",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000003}",
+    "armed": true
+  },
+  "selected_daw_refused": {
+    "outcome": "selected",
+    "reason": "already_recording",
+    "message": "REAPER is already recording. The Booth will record on this voice, but the armed track in REAPER did not change.",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000003}"
+  },
   "switched": {
     "outcome": "switched",
     "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000002}",

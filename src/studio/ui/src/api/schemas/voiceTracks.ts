@@ -47,6 +47,7 @@ export const boothVoiceSchema = z
     reason: z.enum(BOOTH_VOICE_REASONS).optional(),
     message: z.string().optional(),
     trackGuid: z.string().optional(),
+    armed: z.boolean().optional(),
     at: z.number().nonnegative().optional(),
     added: z.array(boothVoiceTrackSchema).optional(),
   })

@@ -26,12 +26,16 @@ const (
 )
 
 // BoothVoice is what BoothVoiceSet did. Outcome is "selected" (the next take records on TrackGUID), "switched" (the take this
-// app started records on TrackGUID from At, project seconds) or "refused" (Reason and Message say why; nothing changed).
+// app started records on TrackGUID from At, project seconds) or "refused" (Reason and Message say why; nothing changed). A "selected"
+// answer also says what happened in the DAW (#3429): Armed, the DAW's armed track is now the voice; or Reason and Message, the DAW
+// refused to arm it (the Booth still records on the voice, but the DAW's arms are as they were); neither, the DAW was not asked
+// (no DAW linked, or an engine with no armed tracks).
 type BoothVoice struct {
 	Outcome   string   `json:"outcome"`
 	Reason    string   `json:"reason,omitempty"`
 	Message   string   `json:"message,omitempty"`
 	TrackGUID string   `json:"trackGuid,omitempty"`
+	Armed     bool     `json:"armed,omitempty"`
 	At        *float64 `json:"at,omitempty"`
 	// Added is BoothVoiceGet's list of the voices the Booth added to the chapter's folder this session that the saved project does not
 	// hold yet (BoothVoiceAdd): the page lists them after the folder's saved children.
@@ -329,11 +333,11 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	if target == "" {
 		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW."), nil
 	}
+	name := readAloudAdapterName(svc)
 	if !h.readAloudRecordingFor(chapterID) {
 		svc.boothVoices.choose(chapterID, target)
-		return BoothVoice{Outcome: "selected", TrackGUID: target}, nil
+		return armChosenLane(ctx, name, recorder, target), nil
 	}
-	name := readAloudAdapterName(svc)
 	switcher, ok := recorder.(dawport.VoiceSwitcher)
 	if recorder == nil || !ok {
 		return boothVoiceRefused(readAloudUnsupported, fmt.Sprintf("%s cannot change the recording voice during a take from this app. Stop, then choose the voice.", name)), nil
@@ -343,7 +347,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		// The take is over (the narrator stopped it in the DAW): the voice is the next take's.
 		h.clearReadAloudRecording()
 		svc.boothVoices.choose(chapterID, target)
-		return BoothVoice{Outcome: "selected", TrackGUID: target}, nil
+		return armChosenLane(ctx, name, recorder, target), nil
 	}
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {
@@ -356,6 +360,25 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	svc.boothVoices.choose(chapterID, target)
 	at := switched.At
 	return BoothVoice{Outcome: "switched", TrackGUID: target, At: &at}, nil
+}
+
+// armChosenLane makes the DAW's armed track the voice the Booth just chose, while no take runs, so the app and the DAW agree (#3429).
+// The choice stands whatever the DAW answers: a refusal is in the answer's Reason and Message, never silent. A recorder that cannot arm
+// a lane (none linked, or an engine without armed tracks) is not asked.
+func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string) BoothVoice {
+	chosen := BoothVoice{Outcome: "selected", TrackGUID: target}
+	armer, ok := recorder.(dawport.LaneArmer)
+	if recorder == nil || !ok {
+		return chosen
+	}
+	if _, err := armer.ArmLane(ctx, target); err != nil {
+		refusal := readAloudRecordRefusal(name, err)
+		chosen.Reason = refusal.Reason
+		chosen.Message = fmt.Sprintf("%s The Booth will record on this voice, but the armed track in %s did not change.", refusal.Message, name)
+		return chosen
+	}
+	chosen.Armed = true
+	return chosen
 }
 
 // BoothVoiceSet chooses the voice the Booth records chapterID on, by the voice track's GUID, which must be a direct child of the

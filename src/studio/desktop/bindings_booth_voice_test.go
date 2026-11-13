@@ -97,6 +97,24 @@ func (f *fakeVoiceRecorder) SwitchVoice(_ context.Context, guid string) (dawport
 	return dawport.VoiceSwitched{TrackGUID: guid, At: 42.5}, nil
 }
 
+// fakeLaneRecorder is a Recorder that can also arm a lane while no take runs (the REAPER adapter's ArmLane).
+type fakeLaneRecorder struct {
+	fakeVoiceRecorder
+	laneArmed []string
+	laneErr   error
+}
+
+var _ dawport.LaneArmer = (*fakeLaneRecorder)(nil)
+
+func (f *fakeLaneRecorder) ArmLane(_ context.Context, guid string) (dawport.Armed, error) {
+	f.calls = append(f.calls, "ArmLane")
+	f.laneArmed = append(f.laneArmed, guid)
+	if f.laneErr != nil {
+		return dawport.Armed{}, f.laneErr
+	}
+	return dawport.Armed{TrackGUID: guid, Changed: true}, nil
+}
+
 func boothVoiceSet(t *testing.T, host *Host, recorder dawport.Recorder, chapterID, guid string) BoothVoice {
 	t.Helper()
 	got, err := host.boothVoiceSetIn(context.Background(), host.services(), recorder, chapterID, guid)
@@ -113,6 +131,61 @@ func recordStartWithVoice(t *testing.T, host *Host, recorder dawport.Recorder, c
 		t.Fatal(err)
 	}
 	return result
+}
+
+func TestAVoiceChosenWhileStoppedIsArmedInTheDAWAtOnce(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{}
+	got := boothVoiceSet(t, host, fake, ids[0], voiceQueenTrack)
+	if got.Outcome != "selected" || got.TrackGUID != voiceQueenTrack || !got.Armed || got.Message != "" {
+		t.Fatalf("got %+v, want selected and armed", got)
+	}
+	if len(fake.laneArmed) != 1 || fake.laneArmed[0] != voiceQueenTrack {
+		t.Fatalf("armed %v, want the Queen voice once", fake.laneArmed)
+	}
+}
+
+func TestAVoiceTheDAWWillNotArmIsStillChosenAndTheRefusalIsInTheAnswer(t *testing.T) {
+	for name, refusal := range map[string]struct {
+		err    error
+		reason string
+	}{
+		"recording": {bridge.ErrRecording, "already_recording"},
+		"gone":      {&bridge.TrackStaleError{GUID: voiceQueenTrack}, readAloudTrackMissing},
+		"timeout":   {context.DeadlineExceeded, "timeout"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+			got := boothVoiceSet(t, host, &fakeLaneRecorder{laneErr: refusal.err}, ids[0], voiceQueenTrack)
+			if got.Outcome != "selected" || got.TrackGUID != voiceQueenTrack || got.Armed || got.Reason != refusal.reason || !strings.Contains(got.Message, "did not change") {
+				t.Fatalf("got %+v, want selected, not armed, reason %q and a sentence", got, refusal.reason)
+			}
+			if again := boothVoiceGet(t, host, ids[0]); again.TrackGUID != voiceQueenTrack {
+				t.Fatalf("the choice must stand when the DAW refuses: %+v", again)
+			}
+		})
+	}
+}
+
+func TestAVoiceChosenWithNoLaneArmerOrNoDAWIsSelectedWithoutAskingTheDAW(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	if got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack); got.Armed || got.Message != "" || got.Outcome != "selected" {
+		t.Fatalf("recorder without lanes: %+v", got)
+	}
+	if got := boothVoiceSet(t, host, nil, ids[0], voiceNarratorTrack); got.Armed || got.Message != "" || got.Outcome != "selected" {
+		t.Fatalf("no recorder: %+v", got)
+	}
+}
+
+func TestAVoiceChosenAfterTheTakeEndedInTheDAWIsArmedToo(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{}
+	fake.switchErr = bridge.ErrNotOurRecording
+	host.setReadAloudRecording(ids[0], fake)
+	got := boothVoiceSet(t, host, fake, ids[0], voiceQueenTrack)
+	if got.Outcome != "selected" || !got.Armed {
+		t.Fatalf("got %+v", got)
+	}
 }
 
 func TestARecordStartInAVoiceFolderArmsTheNarratorVoiceNotTheFolder(t *testing.T) {
@@ -364,6 +437,9 @@ func TestContractBoothVoice(t *testing.T) {
 	answers["flat"] = boothVoiceSet(t, flat, &fakeVoiceRecorder{}, flatIDs[0], voiceQueenTrack)
 	answers["get_selected"] = boothVoiceGet(t, host, ids[0])
 	answers["get_flat"] = boothVoiceGet(t, flat, flatIDs[0])
+	lanes, laneIDs := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	answers["selected_armed"] = boothVoiceSet(t, lanes, &fakeLaneRecorder{}, laneIDs[0], voiceQueenTrack)
+	answers["selected_daw_refused"] = boothVoiceSet(t, lanes, &fakeLaneRecorder{laneErr: bridge.ErrRecording}, laneIDs[0], voiceQueenTrack)
 	contractfile.Check(t, "booth-voice", answers)
 }
 

@@ -129,7 +129,7 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 		return readAloudRefused("other_armed", fmt.Sprintf("Another track than this chapter's is armed in %s.", name))
 	case errors.Is(err, bridge.ErrPlaying):
 		return readAloudRefused("playing", fmt.Sprintf("%s is playing: stop it first.", name))
-	case errors.Is(err, bridge.ErrAlreadyRecording), errors.Is(err, bridge.ErrPunchWhileRecording):
+	case errors.Is(err, bridge.ErrAlreadyRecording), errors.Is(err, bridge.ErrRecording), errors.Is(err, bridge.ErrPunchWhileRecording):
 		return readAloudRefused("already_recording", fmt.Sprintf("%s is already recording.", name))
 	case errors.Is(err, bridge.ErrRecordingDidNotStart):
 		return readAloudRefused("did_not_start", fmt.Sprintf("%s did not start recording.", name))

@@ -132,6 +132,7 @@ var commandCapability = map[string]dawport.Capability{
 	"stop_play":                  dawport.CapTransportSync,
 	"watch_transport":            dawport.CapTransportSync,
 	"arm_only":                   dawport.CapRecord,
+	"arm_lane":                   dawport.CapRecord,
 	"record_start":               dawport.CapRecord,
 	"record_stop":                dawport.CapRecord,
 	"switch_voice":               dawport.CapRecord,

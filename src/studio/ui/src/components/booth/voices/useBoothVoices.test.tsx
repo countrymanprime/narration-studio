@@ -147,6 +147,36 @@ describe("the Booth's voices", () => {
     expect(hook.current.current?.name).toBe('Narrator');
   });
 
+  it("a voice the DAW would not arm is still chosen, and the DAW's refusal is a toast (#3429)", async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => ({
+      ...(await set(chapter, guid)),
+      armed: undefined,
+      reason: 'already_recording',
+      message: 'REAPER is already recording. The Booth will record on this voice, but the armed track in REAPER did not change.',
+    });
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('did not change'), 'error');
+    expect(hook.current.current?.key).toBe('1');
+  });
+
+  it('a voice the DAW armed is chosen with no toast (#3429)', async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const answers: unknown[] = [];
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => {
+      const answer = await set(chapter, guid);
+      answers.push(answer);
+      return answer;
+    };
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(answers).toEqual([expect.objectContaining({ outcome: 'selected', armed: true })]);
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'error');
+  });
+
   it('a second key pressed while the host answers the first is sent after it: the last key wins', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const set = api.boothVoiceSet.bind(api);
