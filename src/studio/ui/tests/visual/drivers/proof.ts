@@ -1,7 +1,7 @@
 // How to reach each `proof` state (the rebuilt Proof page) in STATE_CATALOG (see app.drivers.ts).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, closeDawDialogOnArrival, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, closeDawDialogOnArrival, confirmDialog, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' });
 const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
@@ -123,6 +123,16 @@ export const proofDrivers: Record<string, Driver> = {
       .getByLabel(/takes at this spot/)
       .first()
       .waitFor();
+  },
+  // A note typed on a finding waits for Add note, so leaving with it asks first (#3400).
+  'note-leave-confirm': async (page) => {
+    await openProof(page);
+    await inspector(page)
+      .getByRole('region', { name: 'Notes on this finding' })
+      .getByRole('textbox', { name: 'Add a note' })
+      .fill('Is this the room or a misread?');
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
   'note-thread': async (page) => {
     await openProof(page);

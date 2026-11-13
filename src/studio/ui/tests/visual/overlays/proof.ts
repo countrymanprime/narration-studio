@@ -24,6 +24,7 @@ export const proofCases: OverlayCase[] = [
     },
   },
   fromState('proof', 'check-checking'),
+  fromState('proof', 'note-leave-confirm'),
   fromState('proof', 'daw-tools-menu', 'menu'),
   { ...fromState('proof', 'inspector-repair-menu', 'menu'), afterNarrowing: reopenRepairMenu },
 ];

@@ -70,7 +70,6 @@ const EXEMPT: Record<string, string> = {
 // entries here and lists the controls that replace them in HOLDER_REPLACED_BY. The map is empty when the last screen is in.
 const SCREEN = (screen: string) => `joins the registry in the ${screen} change of #3400; until then leaving it still drops the text`;
 const PENDING: Record<string, string> = {
-  'proof/inspector/FindingThread.tsx': SCREEN('Proof'),
   'script/page/rail/threads/MessageEditor.tsx': SCREEN('Script'),
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
@@ -127,8 +126,6 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
   '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
-  'proof/PreviewPanel.tsx': SCREEN('Proof'),
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
   'storybible/Guide.tsx': SCREEN('Story Bible'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
   'storybible/voicesamples/RoutedVoiceSamplesSection.tsx': SCREEN('Story Bible'),
@@ -159,8 +156,6 @@ const ROUTER_LINK = /<(Link|NavLink)\b/;
 const NO_DRAFT_PAGE = 'a link on a page that holds no draft: nothing there is lost by leaving';
 const LINK_EXEMPT: Record<string, string> = {
   'production/CreditsRowPanel.tsx': NO_DRAFT_PAGE,
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
-  'proof/checkcard/FindingRow.tsx': SCREEN('Proof'),
 };
 describe("a link that leaves a page is a GuardedLink, not the router's Link (#3446 B3)", () => {
   const linking = files(components)
@@ -182,7 +177,15 @@ describe("a link that leaves a page is a GuardedLink, not the router's Link (#34
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
-const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {};
+const PROOF_MOVES: Replacer[] = [
+  { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
+];
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'proof/inspector/FindingThread.tsx': PROOF_MOVES,
+};
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)

@@ -1779,6 +1779,13 @@
   },
   {
     "page": "proof",
+    "state": "note-leave-confirm",
+    "viewport": "desktop",
+    "docName": "proof-note-leave-confirm",
+    "caption": "Proof - leaving with a note typed and not added asks Unsaved changes, names the note, and offers Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "proof",
     "state": "note-thread",
     "viewport": "desktop",
     "docName": "proof-note-thread",

@@ -151,6 +151,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'note-leave-confirm',
+    description:
+      'Proof, a note typed on the first finding and not added, and another page pressed in the navigation: the Unsaved changes confirm names the note, with its three actions, over the page',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
     state: 'note-thread',
     description:
       "Proof, all chapters, the first note with a thread: a note of your own and a proofer's reply under Notes on this finding, with Proofer replied chosen for the next one",
