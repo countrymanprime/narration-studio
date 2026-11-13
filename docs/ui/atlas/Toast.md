@@ -30,6 +30,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 ## Used by
 
 - `src/App.tsx`
+- `src/components/booth/listening/useStopFailedSentence.ts`
 - `src/components/booth/page/BoothNextPage.tsx`
 - `src/components/booth/page/useBoothPage.ts`
 - `src/components/booth/passagemap/usePassageMapWriter.ts`
