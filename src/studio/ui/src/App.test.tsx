@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 21 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 24 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog.
-const MOUNT_BUDGET = 20;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 23 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
+const MOUNT_BUDGET = 23;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1542,6 +1542,20 @@ describe('App Back and Forward', () => {
     };
     const headerSwitch = () => fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
     const keptEdit = () => within(screen.getByRole('region', { name: 'Recording check' })).getByDisplayValue('7');
+    // A Merriam-Webster key pasted into its box and not saved is held text of Settings that is not one of its saved fields (#3400).
+    const openKeyBox = async (overrides: Parameters<typeof renderApp>[0] = {}) => {
+      renderApp(overrides);
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
+      const categories = await screen.findByRole('navigation', { name: 'Settings categories' });
+      fireEvent.click(within(categories).getByRole('button', { name: /^Voice & pronunciation/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+      const box = (await screen.findByLabelText('Merriam-Webster key')) as HTMLInputElement;
+      fireEvent.change(box, { target: { value: 'pasted-key-123' } });
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+      return box;
+    };
+    const pastedKey = () => (screen.getByLabelText('Merriam-Webster key') as HTMLInputElement).value;
 
     it('Switch project from Settings with unsaved changes asks Unsaved settings first, and Keep editing leaves the picker closed', async () => {
       await dirtySettings();
@@ -1578,6 +1592,13 @@ describe('App Back and Forward', () => {
         question: async () => screen.findByText('Save or discard changes before leaving Settings?'),
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
         stillHeld: () => expect(keptEdit()).toBeTruthy(),
+        page: '/settings',
+      },
+      'a pasted Merriam-Webster key': {
+        hold: async () => void (await openKeyBox()),
+        question: async () => screen.findByText('Save or discard the key you pasted before leaving?'),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect(pastedKey()).toBe('pasted-key-123'),
         page: '/settings',
       },
       'a recording Booth': {
@@ -1648,6 +1669,41 @@ describe('App Back and Forward', () => {
         }
       });
     }
+
+    it('Switch project over a pasted key: Save & continue saves the key and opens the picker, and the question names it under "Unsaved settings" (#3400)', async () => {
+      const pronunciationOnlineKeySet = vi.fn(createMockApi().pronunciationOnlineKeySet);
+      await openKeyBox({ pronunciationOnlineKeySet });
+      headerSwitch();
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved settings' });
+      expect(within(question).getByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(pronunciationOnlineKeySet).toHaveBeenCalledWith('pasted-key-123');
+    });
+
+    it('a pasted key asks before another category and before the search swaps the pane, and Discard & continue drops it without saving (#3400)', async () => {
+      const pronunciationOnlineKeySet = vi.fn(createMockApi().pronunciationOnlineKeySet);
+      await openKeyBox({ pronunciationOnlineKeySet });
+      const categories = screen.getByRole('navigation', { name: 'Settings categories' });
+      fireEvent.click(within(categories).getByRole('button', { name: /^Appearance & keys/ }));
+      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(pastedKey()).toBe('pasted-key-123');
+      fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'k' } });
+      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(pastedKey()).toBe('pasted-key-123');
+      // A link to another category changes only the hash and replaces the panel just the same: the engine panel's Recording settings, pressed over Settings.
+      fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
+      const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+      fireEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+      expect(pronunciationOnlineKeySet).not.toHaveBeenCalled();
+    });
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
     // sits outside the app's own tree and so needs the registry above it.

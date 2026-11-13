@@ -248,7 +248,9 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved settings** with "Save or discard the key you pasted before leaving?", **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
+
+![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved settings, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
 
 ## Models and downloads
 

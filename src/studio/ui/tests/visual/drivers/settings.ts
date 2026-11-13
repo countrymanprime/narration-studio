@@ -698,6 +698,15 @@ export const settingsDrivers: Record<string, Driver> = {
     await confirmDialog(page, 'Unsaved settings').waitFor();
   },
 
+  'key-navigate-away-confirm': async (page) => {
+    // A key pasted into its box waits for Save key, so leaving with it asks first, and the question names it (#3400).
+    await openSettings(page, 'Voice & pronunciation');
+    await page.getByRole('button', { name: /Advanced/ }).click();
+    await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved settings').waitFor();
+  },
+
   // ---- Search and filters
   'search-results': async (page) => {
     await openSettings(page);

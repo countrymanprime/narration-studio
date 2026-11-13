@@ -1000,7 +1000,10 @@ function AppRoutes() {
 
   const moveTo = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
-    if (nextPath !== location.pathname && pageHolds()) {
+    // A link to another Settings category is a change of the hash alone, and it replaces the panel that holds the edit.
+    const switchesSettingsCategory =
+      nextPath === location.pathname && nextPath === '/settings' && next.includes('#') && `#${next.split('#')[1]}` !== location.hash;
+    if ((nextPath !== location.pathname || switchesSettingsCategory) && pageHolds()) {
       setPendingMove({ kind: 'path', path: next, state });
       return;
     }
