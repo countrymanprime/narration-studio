@@ -1,3 +1,4 @@
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
@@ -5,7 +6,7 @@ import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
-import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -20,10 +21,6 @@ export type ChapterLinks = {
   rows: ChapterTrackRow[];
   /** Why the last read or change failed; empty when it did not. */
   error: string;
-  /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
-  notice: string;
-  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
-  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -83,9 +80,10 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // wants only the links; the tracks are the caller's.
   const trackState = useChapterTrackState({ enabled, tracks: false });
   const mappings: TrackMapping[] = trackState.mappings;
-  const { applyMappings, refreshLinks } = trackState;
+  const { applyMappings, refreshLinks, linksReadAt } = trackState;
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  // Who lost a track is toasted the moment the host answers, from here, not from a view that may have closed by then (#3398).
+  const overlay = useOverlay();
   const [busyChapterId, setBusyChapterId] = useState('');
   const [creatingChapterId, setCreatingChapterId] = useState(createGuard.pending?.chapterId ?? '');
   // Tracks create added that the caller's track list may not have read yet; dropped once it lists them, or once a read answered after the
@@ -93,6 +91,15 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
+  // A change was written and the list could not be read again since: the next failed read says so too (the change callback re-runs the read).
+  const staleAfterChange = useRef(false);
+  // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes the "change was made but not read" line away: the list
+  // under it is current again.
+  useEffect(() => {
+    if (!staleAfterChange.current) return;
+    staleAfterChange.current = false;
+    setError('');
+  }, [linksReadAt]);
 
   const reload = useCallback(async () => {
     const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
@@ -105,10 +112,12 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     reload().then(
       () => {
         // A later read that answers takes the failure of an earlier one away (a host that recovered).
+        staleAfterChange.current = false;
         if (active) setError('');
       },
       (reason) => {
-        if (active) setError(apiErrorMessage(reason));
+        // After a change that was made, a list that still cannot be read says so, not just the host's error.
+        if (active) setError(staleAfterChange.current ? changedButUnread(reason) : apiErrorMessage(reason));
       },
     );
     return () => {
@@ -122,16 +131,29 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
-    setNotice('');
+    // Once the write has answered, a failure after it is the re-read's: the change was made and the narrator is told so.
+    let written = false;
     write()
       .then((result) => {
+        written = true;
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
         const notice = (result as { displacedNotice?: string } | undefined)?.displacedNotice;
-        if (notice) setNotice(notice);
+        if (notice) overlay.toast(notice);
       })
-      .then(() => reload())
+      // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
+      .then(() =>
+        reload().then(
+          () => {
+            staleAfterChange.current = false;
+          },
+          (reason: unknown) => {
+            staleAfterChange.current = true;
+            setError(changedButUnread(reason));
+          },
+        ),
+      )
       .then(() => onChanged())
-      .catch((reason) => setError(apiErrorMessage(reason)))
+      .catch((reason) => setError(written ? changedButUnread(reason) : apiErrorMessage(reason)))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
@@ -222,6 +244,5 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  const clearNotice = () => setNotice('');
-  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
+  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
 }

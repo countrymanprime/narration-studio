@@ -10,6 +10,8 @@ import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { createOverlayService } from '../../overlay/overlayService';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { LineIdentityState, NarrationApi, Track } from '../../types';
 
 afterEach(cleanup);
@@ -22,14 +24,18 @@ function Dialog({ onClose, tracks = WIRE_TRACKS_PROJECT.tracks }: { onClose: () 
 
 function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, onClose = vi.fn(), tracks?: Track[]) {
   const api = createMockApi(overrides, initial);
+  const service = createOverlayService();
+  const toast = vi.spyOn(service, 'toast');
   render(
     <ApiProvider api={api}>
-      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-        <Dialog onClose={onClose} tracks={tracks} />
-      </ChapterTrackStateProvider>
+      <OverlayProvider service={service}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Dialog onClose={onClose} tracks={tracks} />
+        </ChapterTrackStateProvider>
+      </OverlayProvider>
     </ApiProvider>,
   );
-  return { api, onClose };
+  return { api, onClose, toast };
 }
 
 describe('LinkChaptersDialog', () => {
@@ -121,6 +127,67 @@ describe('LinkChaptersDialog', () => {
     expect(labels).not.toContain('Chapter 1');
   });
 
+  // #3398: the write and the re-read are two things; a list that cannot be read again after the link was made must not read as a failed link.
+  it('says the change was made when only the re-read after it fails', async () => {
+    const user = userEvent.setup();
+    let failReads = false;
+    const real = createMockApi();
+    const { api } = renderDialog({
+      chapterTrackMapList: async () => {
+        if (failReads) throw new Error('REAPER did not answer');
+        return real.chapterTrackMapList();
+      },
+    });
+    const first = WIRE_CHAPTERS[0];
+    const tracks = (await api.tracksList()).tracks;
+    const picker = await screen.findByRole('combobox', { name: `Track for ${first.title}` });
+    failReads = true;
+    await user.selectOptions(picker, tracks[0].guid);
+    expect(await screen.findByText(/The change was made, but the list could not be read again: .*REAPER did not answer/)).toBeTruthy();
+  });
+
+  it('labels a holder by a clean name: never empty, and without control or direction characters', async () => {
+    const user = userEvent.setup();
+    const { api } = renderDialog();
+    const [first, second] = WIRE_CHAPTERS;
+    const tracks = (await api.tracksList()).tracks;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[0].guid);
+    const other = await screen.findByRole('combobox', { name: `Track for ${second.title}` });
+    const labelled = await waitFor(() => {
+      const option = within(other)
+        .getAllByRole('option')
+        .find((o) => /\(linked to /.test(o.textContent ?? ''));
+      if (!option) throw new Error('no holder label yet');
+      return option.textContent ?? '';
+    });
+    expect(labelled).not.toMatch(/\(linked to \s*\)/);
+    // eslint-disable-next-line no-control-regex
+    expect(labelled).not.toMatch(/[\u0000-\u001f\u202a-\u202e\u2066-\u2069]/);
+  });
+
+  // #3398: picking a track another chapter holds moves it, so the option says who holds it before the pick, as the Chapter links list does.
+  it('labels a track another chapter holds in the other chapters’ pickers', async () => {
+    const user = userEvent.setup();
+    const { api } = renderDialog();
+    const [first, second] = WIRE_CHAPTERS;
+    const tracks = (await api.tracksList()).tracks;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[0].guid);
+    const other = await screen.findByRole('combobox', { name: `Track for ${second.title}` });
+    await waitFor(() =>
+      expect(
+        within(other)
+          .getAllByRole('option')
+          .some((option) => /\(linked to /.test(option.textContent ?? '')),
+      ).toBe(true),
+    );
+    const own = screen.getByRole('combobox', { name: `Track for ${first.title}` });
+    expect(
+      within(own)
+        .getAllByRole('option')
+        .some((option) => /\(linked to /.test(option.textContent ?? '')),
+    ).toBe(false);
+  });
+
   it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
     const user = userEvent.setup();
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
@@ -157,7 +224,7 @@ describe('LinkChaptersDialog', () => {
   // #3053: the host moves a track that another chapter holds (`displaced`); the dialog said nothing, so that chapter went to "Not linked" unseen.
   it('says which chapter a picked track was taken from, and that it is now not linked', async () => {
     const user = userEvent.setup();
-    renderDialog();
+    const { toast } = renderDialog();
     const [first, second] = WIRE_CHAPTERS;
     const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
 
@@ -167,8 +234,8 @@ describe('LinkChaptersDialog', () => {
 
     await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
 
-    const notice = await screen.findByText(new RegExp(`${first.title}.*is now not linked`));
-    expect(notice).toBeTruthy();
+    // A toast, not a banner in the dialog: it outlives the dialog (owner answer on #3398).
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`${first.title}.*is now not linked`))));
     expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe('');
   });
 
@@ -308,11 +375,15 @@ describe('LinkChaptersDialog', () => {
         </>
       );
     }
+    const service = createOverlayService();
+    const toast = vi.spyOn(service, 'toast');
     render(
       <ApiProvider api={api}>
-        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-          <Reopen />
-        </ChapterTrackStateProvider>
+        <OverlayProvider service={service}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <Reopen />
+          </ChapterTrackStateProvider>
+        </OverlayProvider>
       </ApiProvider>,
     );
     const [first, second] = WIRE_CHAPTERS;
@@ -320,11 +391,12 @@ describe('LinkChaptersDialog', () => {
     await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), track);
     await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe(track));
     await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
-    expect(await screen.findByText(/is now not linked/)).toBeTruthy();
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     await user.click(screen.getAllByRole('button', { name: 'Close' })[0]);
     await user.click(screen.getByRole('button', { name: 'toggle' }));
     await screen.findByRole('combobox', { name: `Track for ${first.title}` });
-    expect(screen.queryByText(/is now not linked/)).toBeNull();
+    // The toast was raised once, when the pick was made; opening again does not raise it again.
+    expect(toast).toHaveBeenCalledTimes(1);
   });
 
   it('hides the previous empty-read line when the next Read is refused (qa-breaker 4)', async () => {
