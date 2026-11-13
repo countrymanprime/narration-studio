@@ -11,7 +11,7 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
-import { SAVE_LIMIT_MS } from './studio/drafts/unsavedDrafts';
+import { SAVE_LIMIT_MS, useGuardedNavigate } from './studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1403,10 +1403,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 18 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 20 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm).
-const MOUNT_BUDGET = 17;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 19 for the engine panel link and an overlay dialog's link from dirty Settings.
+const MOUNT_BUDGET = 19;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1647,6 +1647,38 @@ describe('App Back and Forward', () => {
         }
       });
     }
+
+    // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
+    // sits outside the app's own tree and so needs the registry above it.
+    it('the engine panel Open in Proof from dirty Settings asks Unsaved settings first and stays on Settings', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      await rowAction(await linkChapterOne(), 'Open in Proof');
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(window.location.pathname).toBe('/settings');
+    });
+
+    it('a link inside an overlay dialog from dirty Settings asks too (the overlay host draws outside the app tree)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      const Link = () => {
+        const navigate = useGuardedNavigate();
+        return <button onClick={() => navigate('/proof')}>Go to Proof</button>;
+      };
+      let close = () => {};
+      act(() => {
+        close = overlay.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'A dialog with a link', render: () => <Link /> });
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(window.location.pathname).toBe('/settings');
+      // The overlay service is module-wide: close the probe so the cases after this one do not find a dialog on screen.
+      act(() => close());
+    });
 
     // Save & continue is one press that cannot be cancelled or repeated while it runs, and a save that fails or never answers leaves the narrator where they are
     // with what they typed (#3400).

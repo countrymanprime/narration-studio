@@ -13,7 +13,7 @@ import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import { UnsavedDraftsProvider, useUnsavedDrafts, withinSaveLimit, SaveTimeout, type AskOptions } from './studio/drafts/unsavedDrafts';
-import { describeHeld, draftQuestion } from './studio/drafts/draftSentence';
+import { draftQuestion, saveVerdict } from './studio/drafts/draftSentence';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -157,7 +157,6 @@ const settleFocusedField = (): boolean => {
 let settledField: HTMLElement | undefined;
 /** How long a blur's commit takes to reach the shell's dirty flags (a state update, then the effects that report it) before the exit is decided. */
 const SETTLE_MS = 40;
-const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', (event) => {
@@ -203,11 +202,12 @@ export function App({ journal }: { journal?: Journal } = {}) {
       <StudioProvider journal={journal}>
         {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
         <div className="relative h-full">
-          <OverlayProvider>
-            <UnsavedDraftsProvider>
+          {/* The registry sits above the overlay host, which draws after its children: a dialog's own links (Check recordings) reach the guarded move too. */}
+          <UnsavedDraftsProvider>
+            <OverlayProvider>
               <AppRoutes />
-            </UnsavedDraftsProvider>
-          </OverlayProvider>
+            </OverlayProvider>
+          </UnsavedDraftsProvider>
         </div>
       </StudioProvider>
     </Router>
@@ -981,10 +981,7 @@ function AppRoutes() {
 
   const moveTo = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
-    // A link to another Settings category is a change of the hash alone, and it replaces the panel that holds the edit.
-    const switchesSettingsCategory =
-      nextPath === location.pathname && nextPath === '/settings' && next.includes('#') && `#${next.split('#')[1]}` !== location.hash;
-    if ((nextPath !== location.pathname || switchesSettingsCategory) && pageHolds()) {
+    if (nextPath !== location.pathname && pageHolds()) {
       setPendingMove({ kind: 'path', path: next, state });
       return;
     }
@@ -1106,11 +1103,10 @@ function AppRoutes() {
             const outcome = settingsSaved ? await drafts.save() : undefined;
             // Cancel, or another question, came while this was saving: the move is no longer the one that was asked for.
             if (token !== moveToken.current) return;
-            if (!outcome?.saved) return cancelPendingMove();
-            // Save & continue never drops text (#3400): a draft that cannot be saved from here keeps the narrator where they are, with what they typed, and
-            // the message says which. Only Discard & continue drops it.
-            if (outcome.kept.length > 0) {
-              overlay.toast(`${capital(describeHeld(outcome.kept))} cannot be saved yet, so you are still here.`);
+            // Save & continue never drops text (#3400): `saveVerdict` says whether to go on, and otherwise which draft could not be saved.
+            const verdict = saveVerdict(outcome);
+            if (!verdict.proceed) {
+              if (verdict.message) overlay.toast(verdict.message);
               return cancelPendingMove();
             }
             setSettingsDirty(false);
