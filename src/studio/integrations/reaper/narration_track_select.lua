@@ -10,12 +10,13 @@
 -- Events: TRACK_SELECTED|run|guid, or TRACK_STALE|run|guid.
 --
 -- The same file holds the pair the Booth follows the narrator with. read_place answers PLACE|run|guid|selected|cursor: the
--- one selected track (empty when none or several are selected, so a caller never guesses) and the edit cursor in project
--- seconds. It changes nothing. go_to selects a track and puts the edit cursor at its end ('end') or at a time ('at'),
+-- one selected track (empty when none or several are selected, except a folder with everything inside it, below, so a caller
+-- never guesses) and the edit cursor in project seconds. It changes nothing. go_to selects a track and puts the edit cursor at
+-- its end ('end'; for a folder, the latest end of its own items and of every track inside it) or at a time ('at'),
 -- answering PLACE_SET|run|guid|cursor, or TRACK_STALE for a track that is gone. Like select_track it opens no undo block and
 -- never seeks or starts playback. A folder track is selected together with every track inside it (a chapter and its voices, #3427),
 -- and read_place names that folder when exactly it and all of its descendants are selected, so what go_to selected reads back as
--- the one place it moved to. Any other selection of several tracks is still named by none.
+-- the one place it moved to. Any other selection of several tracks is named by none.
 
 local core = ...
 local event = core.event
@@ -136,9 +137,17 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
     event(session_dir, 'TRACK_STALE', run_id, guid_text)
     return
   end
-  local target = where == 'end' and track_end(track) or seconds
+  local members = folder_members(track)
+  local target = seconds
+  if where == 'end' then
+    -- A chapter's recordings sit on its voices, so a folder's end is the latest end among it and the tracks inside it.
+    target = track_end(track)
+    for _, member in ipairs(members) do
+      target = math.max(target, track_end(member))
+    end
+  end
   reaper.SetOnlyTrackSelected(track)
-  for _, member in ipairs(folder_members(track)) do
+  for _, member in ipairs(members) do
     reaper.SetTrackSelected(member, true)
   end
   reaper.SetEditCurPos(target, true, false)
