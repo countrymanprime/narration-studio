@@ -354,6 +354,16 @@ export function useChapterTrackState({
   return wants ? state : EMPTY;
 }
 
+/**
+ * Whether a project's chapter-track state is mounted for this component: in a provider above it or, for an overlay dialog, the app's registered
+ * one. It is false after the project is closed under an open dialog, where "no state" must not read as "not read yet" (#3416).
+ */
+export function useHasChapterTrackState(): boolean {
+  const inTree = useContext(ChapterTrackStateContext);
+  const registered = useSyncExternalStore(subscribeMounted, readMounted);
+  return inTree !== NO_PROVIDER || registered !== undefined;
+}
+
 /** The app shell's two per-project readers, the voice setup and the chapter-track state, mounted together. */
 export function ProjectTrackProviders({ children, ...state }: { projectFolder: string; enabled: boolean; notify: Notify; children: ReactNode }) {
   return (

@@ -68,6 +68,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'error',
   },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
+  {
+    file: 'components/mapping/ChapterTrackLinkFix.tsx',
+    text: 'This project is no longer open, so its tracks cannot be read. Close this and open the project again.',
+    class: 'error',
+  },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },

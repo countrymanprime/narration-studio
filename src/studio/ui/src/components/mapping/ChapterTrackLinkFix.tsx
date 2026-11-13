@@ -3,7 +3,7 @@ import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
-import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { useChapterTrackState, useHasChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { MappingConfirm } from './MappingConfirm';
 
@@ -27,7 +27,10 @@ export function ChapterTrackLinkFix({
 }) {
   const actions = useChapterLinkActions();
   const state = useChapterTrackState({ enabled: true });
+  const hasState = useHasChapterTrackState();
   const confirming = usePendingAction();
+  // The project was closed under this dialog: there is nothing left to read, so it says so rather than reading for good.
+  if (!hasState) return <p role="status">This project is no longer open, so its tracks cannot be read. Close this and open the project again.</p>;
   const listError = state.project ? '' : state.live.error;
   if (listError)
     return (

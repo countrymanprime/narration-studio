@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../primitives/Button';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { plainTrackChoices } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
 import type { Track, TrackMapping } from '../../types';
@@ -90,7 +91,7 @@ export function MappingConfirm({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
-      <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
+      <Button ref={keepFocusOnRemoval} variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>
       {hasLink && (
