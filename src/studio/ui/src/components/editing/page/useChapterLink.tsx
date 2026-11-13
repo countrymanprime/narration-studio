@@ -8,6 +8,7 @@ import { useOpenOnce } from '../../connection/useOpenOnce';
 import type { ChapterAudio } from './chapterSource';
 import { isLinkProblem } from './NoAudioBanner';
 import { noAudioText } from './noAudioText';
+import { dialogChapterName } from '../../chapterTracks/useChapterLinkActions';
 
 /**
  * The chapter-not-linked mark and dialog for the Editing page. The indicator replaces the banner; the dialog opens by itself once for the chapter
@@ -32,7 +33,7 @@ export function useChapterLink({
   const problem = isLinkProblem(audio, daw);
   const state = useOpenOnce(problem ? `chapter-unlinked:${chapterId}:${audio.kind}` : null, hold);
   if (!problem || daw === null || audio.kind === 'ready' || audio.kind === 'empty') return { indicator: null, dialog: null };
-  const text = noAudioText(audio, chapterName, daw, layout);
+  const text = noAudioText(audio, dialogChapterName(chapterName), daw, layout);
   return {
     indicator: (
       <ConnectionIndicator
@@ -55,6 +56,7 @@ export function useChapterLink({
         missing={audio.kind === 'missing'}
         onLinked={onReread}
         onCheckedAgain={onReread}
+        returnFocus={() => document.querySelector<HTMLElement>('#noaudio button')}
         onClose={state.close}
       />
     ) : null,
