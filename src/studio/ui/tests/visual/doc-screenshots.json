@@ -862,6 +862,13 @@
   },
   {
     "page": "storybible",
+    "state": "entry-leave-confirm",
+    "viewport": "desktop",
+    "docName": "storybible-entry-leave-confirm",
+    "caption": "Story Bible - leaving an entry with an edit not saved asks Unsaved changes, with Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "storybible",
     "state": "entry-editing",
     "viewport": "desktop",
     "docName": "storybible-entry-editing",

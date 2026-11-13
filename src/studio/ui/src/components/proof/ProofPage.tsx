@@ -3,6 +3,7 @@ import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
+import { useGuardedAction } from '../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
@@ -285,6 +286,23 @@ export function ProofPage({
     return all.filter((id) => visible.has(id));
   }, [findings, shown]);
 
+  // A note written in the Inspector is dropped by another note or chapter, which replaces what the Inspector shows; the narrator's own moves ask first (#3404).
+  // The page's own moves (the first note chosen when none is, the step after a decision, Undo's return) are not asked.
+  const guarded = useGuardedAction();
+  const pickNote = useCallback(
+    (id: string) => {
+      if (id !== selectedRef.current) guarded(() => select(id));
+    },
+    [guarded, select],
+  );
+  const pickChapter = useCallback(
+    (next: string) => {
+      if (next !== (scopeRef.current.all ? ALL_CHAPTERS : scopeRef.current.scope)) guarded(() => choose(next));
+    },
+    [guarded, choose],
+  );
+  const pickStep = useCallback((direction: -1 | 1) => guarded(() => step(direction)), [guarded, step]);
+
   const replace = useCallback((next: Finding) => setFindings((list) => list.map((f) => (f.id === next.id ? held(next) : f))), []);
   // A decision is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does (mock `decideNote` over `act`). Undo puts the
   // decision back and the selection with it. The same decision again with nothing typed is no decision: no entry, no toast.
@@ -334,12 +352,13 @@ export function ProofPage({
       setReload((n) => n + 1);
       if (decided && entry !== undefined) {
         const after = order[order.indexOf(next.id) + 1];
-        if (after) select(after);
+        // The decision is saved; stepping on would drop a note typed under this one, so that asks.
+        if (after) guarded(() => select(after));
         overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
       }
       announcePickupListChanged();
     },
-    [order, replace, select, overlay, journal],
+    [order, replace, select, overlay, journal, guarded],
   );
 
   const chapterNotes = useMemo(() => (chapter ? findings.filter((f) => chapterOf(f) === chapter.id) : []), [findings, chapter]);
@@ -403,20 +422,20 @@ export function ProofPage({
     requestAnimationFrame(() => inspectorPanel.current?.scrollIntoView?.({ block: 'start' }));
   }, [selectedId, chapter?.id]);
 
-  useProofKeys({ order, selectedId, select, step, allChapters: all, toAllChapters: () => choose(ALL_CHAPTERS) });
+  useProofKeys({ order, selectedId, select: pickNote, step: pickStep, allChapters: all, toAllChapters: () => pickChapter(ALL_CHAPTERS) });
   useProofPageCommands({
     chapters,
     scope,
     openIn: (id) => strip.find((tile) => tile.id === id)?.open ?? 0,
     selectedId,
-    choose,
+    choose: pickChapter,
     checkReason: checkGate,
     onCheck: (ids) => openCheckRecordings(ids),
   });
   useNoteContextMenu({
     findings,
     selectedId: () => selectedRef.current,
-    select,
+    select: pickNote,
     goToScript,
     goToBooth,
   });
@@ -435,8 +454,8 @@ export function ProofPage({
       value={chapter ? chapter.id : ALL_CHAPTERS}
       allowAll
       stepKeys={['←', '→']}
-      onChange={choose}
-      onStep={step}
+      onChange={pickChapter}
+      onStep={pickStep}
     />
   );
   const hints = footerHints('proof', keymap, undefined, undefined, new Set(all ? [] : ['chapterView' as const]));
@@ -474,7 +493,7 @@ export function ProofPage({
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <SectionLabel>Open notes, by chapter</SectionLabel>
-                <ChapterStrip chapters={strip} current={current} onChooseChapter={choose} />
+                <ChapterStrip chapters={strip} current={current} onChooseChapter={pickChapter} />
               </div>
             ) : (
               <>
@@ -532,9 +551,12 @@ export function ProofPage({
                 const open = opening.current;
                 opening.current = false;
                 if (open && stacked) revealInspector.current = true;
-                select(id);
-                const note = findings.find((f) => f.id === id);
-                if (open && all && note && chapterOf(note)) choose(chapterOf(note));
+                if (id === selectedRef.current) return;
+                guarded(() => {
+                  select(id);
+                  const note = findings.find((f) => f.id === id);
+                  if (open && all && note && chapterOf(note)) choose(chapterOf(note));
+                });
               }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
               // Over all chapters there is no check card, so the notes panel carries the one Check recordings (the dialog opens with the unchecked chapters ticked);
@@ -558,7 +580,7 @@ export function ProofPage({
                 finding={selected}
                 api={inspectorApi}
                 order={order}
-                onSelect={select}
+                onSelect={pickNote}
                 onChanged={changed}
                 decisionClock={decisionClock}
                 onOpenScript={goToScript}

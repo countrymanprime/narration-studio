@@ -236,7 +236,7 @@ proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote
 and press **Add note**, which sits beside the box. Each note has a line with who wrote it, when (the date and time as
 the rest of the app writes them) and the pencil and bin, and the note under it at the full width; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
-and stay with the note when a check runs again.
+and stay with the note when a check runs again. A note typed and not yet added, or an edit of one not yet saved, is asked about when you leave Proof, and also when you pick another note or chapter, or step to the next note after a decision, which would replace the note box (**Unsaved changes**, with **Save & continue**, **Discard & continue** and **Cancel**).
 
 ![Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next](../../images/ui/proof-note-thread.webp)
 

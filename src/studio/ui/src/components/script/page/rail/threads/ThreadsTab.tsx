@@ -3,6 +3,7 @@ import type { Mark } from '../../../../../api/contracts/marks';
 import { overlay } from '../../../../../overlay/overlayService';
 import { useJournal } from '../../../../../studio/StudioProvider';
 import { Button } from '../../../../primitives/Button';
+import { useGuardedAction } from '../../../../../studio/drafts/unsavedDrafts';
 import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import type { NoteActions } from './NoteCard';
 import { copyQuery } from './copyQuery';
@@ -24,6 +25,8 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
   const journal = useJournal();
   const [selectedId, update] = useScriptView((state) => state.sel);
   const [editing] = useScriptView((state) => state.aedit);
+  // Editing another message replaces the editor that holds a typed edit, so it asks first (#3404).
+  const guarded = useGuardedAction();
 
   const shown = useMemo(() => marks.inChapter(chapterId), [chapterId, marks]);
 
@@ -52,7 +55,7 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
       onReply: async (id, who, text) => (await commands.reply(id, who, text)) !== null,
       onResolve: (id, who, text) => commands.resolve(id, who, text),
       onReopen: (id) => commands.setStatus(id, 'open'),
-      onEdit: (id, index) => update({ aedit: `${id}:${index}` }),
+      onEdit: (id, index) => guarded(() => update({ aedit: `${id}:${index}` })),
       onCancelEdit: () => update({ aedit: null }),
       async onSaveEdit(id, index, text) {
         const saved = await commands.editMessage(id, index, text);
@@ -61,7 +64,7 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
       },
       onDeleteMessage: (id, index) => commands.deleteMessage(id, index),
     }),
-    [commands, journal, update, onShowInText, lineOf],
+    [commands, journal, update, onShowInText, lineOf, guarded],
   );
 
   if (marks.status === 'error' && marks.value === undefined) {

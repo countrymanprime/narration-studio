@@ -1,3 +1,5 @@
+import { plural } from '../../../../plural';
+import { useUnsavedDraft } from '../../../../studio/drafts/unsavedDrafts';
 import { useEffect, useRef, useState } from 'react';
 import type { ExtractionDecision, ExtractionSuggestion } from '../../../../api/contracts/extraction';
 import { Icon } from '../../../primitives/Icon';
@@ -50,18 +52,29 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
   }, [editing]);
 
   // One decision at a time: the pressed button is busy and the others ignore a press until the host answers.
-  const decide = async (run: () => Promise<boolean>): Promise<void> => {
-    if (busy) return;
+  const decide = async (run: () => Promise<boolean>): Promise<boolean> => {
+    if (busy) return false;
     setBusy(true);
     try {
-      if (await run()) setEditing(false);
+      const done = await run();
+      if (done) setEditing(false);
+      return done;
     } finally {
       setBusy(false);
     }
   };
-  const save = (): void => {
-    if (text.trim()) void decide(() => decisions.accept(suggestion.id, text));
-  };
+  const saveEdit = (): Promise<boolean> => (text.trim() ? decide(() => decisions.accept(suggestion.id, text)) : Promise.resolve(false));
+  const save = (): void => void saveEdit();
+  // An edit not yet accepted is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  useUnsavedDraft(`suggestion-edit-${suggestion.id}`, {
+    dirty: editing && text.trim() !== '' && text !== editableText(suggestion.payload),
+    label: `your edit of the ${kind.toLowerCase()} suggestion`,
+    brief: 'a suggestion edit',
+    kind: 'suggestion-edit',
+    many: (n) => `${plural(n, 'edit')} of suggestions`,
+    // Saving the edit is Save and accept, a decision the narrator makes with that button: the question cannot make it, so it only offers to keep or drop the edit.
+    discard: () => setEditing(false),
+  });
 
   return (
     <li data-sug={suggestion.id} data-status={suggestion.status}>

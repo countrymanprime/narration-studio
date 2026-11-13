@@ -48,7 +48,7 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
-recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved settings**), or a take recording in the Booth (**Stop recording?**).
+recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved settings**, which includes a credits template not yet saved), text typed in an editor of another page and not yet saved, such as a Story Bible entry being edited or a note being written (**Unsaved changes**, also when a link out of that page is pressed, such as Open in Proof in the engine panel; **Save & continue** gives up after 15 seconds if a save does not answer, and the question keeps its **Cancel** and **Discard & continue**), or a take recording in the Booth (**Stop recording?**).
 
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
@@ -127,10 +127,14 @@ under it — when there is nowhere to go: Back on the first page you opened in t
 have gone Back at least once. Switching to a different project starts a fresh history; Back does not cross into
 the project you left.
 
-Back and Forward respect the same checks the nav does: leaving unsaved changes in [Settings](settings.md) asks
+Back and Forward respect the same checks the nav does: leaving unsaved changes in [Settings](settings.md), or unsaved text in an editor on another page, asks
 first, and leaving a chapter's [Proof view](proof.md#the-chapter-view) while a comparison is under way or
 showing results resets it the same way. They only move between pages — closing a slide-over, the previous
 chapter, or the previous Story Bible entry are not Back steps.
+
+A browser Back (or Alt+Left) while a dialog is open does not leave the page: the dialog and what you typed stay.
+
+A box that saves when you click or Tab out of it saves what you typed before any of these moves, even when the move comes from a key and the cursor is still in the box.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
 **This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.

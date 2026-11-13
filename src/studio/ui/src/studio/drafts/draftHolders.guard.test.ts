@@ -1,0 +1,248 @@
+// @vitest-environment node
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
+import { describe, expect, test } from 'vitest';
+
+// #3400: an editor that holds text the narrator has typed and not saved, on a page that is not a modal, loses it when the narrator leaves by the nav, Back,
+// Alt+Left, the jump menu or Switch project - unless it joins the registry in `unsavedDrafts.tsx`, which makes every exit ask. This scan lists every component
+// that draws a text box and fails for one that neither calls `useUnsavedDraft` nor sits in EXEMPT below with the reason leaving it loses nothing. A new editor
+// therefore cannot be added without someone deciding which it is. App.test.tsx drives the registered holders through every exit.
+//
+// The reasons are a closed set, each a fact a reviewer can check:
+const MODAL =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
+const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
+const AT_ONCE = 'applies each change as it is made, so there is no draft';
+const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
+const KEPT = 'the draft is kept by the page or a store and comes back when the page is opened again';
+const POPOVER = 'a small popover form that a click outside or Escape closes on purpose, with a line or two typed';
+const INSIDE = 'a text box that only its consumers draw; every file that uses it must register (the second test)';
+const PICKER = 'a choice made by picking a row; the box only narrows the rows';
+
+const EXEMPT: Record<string, string> = {
+  'booth/frame/LevelsMenu.tsx': AT_ONCE,
+  'booth/voices/WhoIsInDialog.tsx': MODAL,
+  'credits/CreditsSetupDialog.tsx': MODAL,
+  'delivery/profile/CommitBox.tsx': BLUR,
+  'editing/backups/BackupsInspector.tsx': BLUR,
+  'editing/cleanup/CleanupInspector.tsx': BLUR,
+  'editing/effects/CoverageStrip.tsx': BLUR,
+  'editing/effects/EffectSettings.tsx': BLUR,
+  'editing/menu/marks/NoteDialog.tsx': MODAL,
+  'editing/range/replace/ReplaceDialog.tsx': MODAL,
+  'editing/voicesample/VoiceSampleDialog.tsx': MODAL,
+  'engine/ChapterTagsDialog.tsx': MODAL,
+  'engine/RenderConfigDialog.tsx': MODAL,
+  'layout/JumpMenu.tsx': FILTER,
+  'master/MasterToSpecPanel.tsx': 'a chapter title edited in the mastering job, which the job keeps as typed and sends with the run',
+  'master/MasteringApprovalDialog.tsx': MODAL,
+  'pickups/list/AddPickup.tsx': POPOVER,
+  'project/NewProjectDialog.tsx': MODAL,
+  'proof/CompareRun.tsx': AT_ONCE,
+  'proof/ProoferSheet.tsx': 'a file chooser, no text',
+  'proof/inspector/Inspector.tsx': KEPT,
+  'proof/notes/NotesPanel.tsx': FILTER,
+  'proof/proofOptions/ProofOptions.tsx': BLUR,
+  'schedule/ContractPanel.tsx': BLUR,
+  'schedule/MilestoneDialog.tsx': MODAL,
+  'schedule/MilestoneTable.tsx': BLUR,
+  'script/bookmarks/ui/BookmarkEditor.tsx': 'a popover that saves label and note when a field loses focus or the popover closes',
+  'script/page/rail/threads/NoteTextarea.tsx': INSIDE,
+  'script/page/tools/select/MarkComposer.tsx': MODAL,
+  'script/page/tools/select/MarksDialog.tsx': MODAL,
+  'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
+  'settings/DeliveryProfileEditor.tsx': MODAL,
+  'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
+  'settings/controls/ShortcutsBody.tsx': FILTER,
+  'settings/page/SettingsPage.tsx': FILTER,
+  'settings/page/StoryBibleTypesPanel.tsx': BLUR,
+  'settings/row/ValueControl.tsx': BLUR,
+  'storybible/EntryText.tsx': INSIDE,
+  'storybible/Guide.tsx': FILTER,
+  'storybible/PropertiesSection.tsx': INSIDE,
+  'storybible/VoiceReferencesSection.tsx': 'the optional note of an approval that is not made until Approve; one short phrase beside a region choice',
+  'storybible/source/NamePronunciation.tsx': BLUR,
+  'storybible/suggested/import/ImportDialog.tsx': MODAL,
+  'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL,
+};
+
+const srcRoot = join(__dirname, '..', '..');
+const components = join(srcRoot, 'components');
+const TEXT_BOX = /<(Field|TextField|TagInput|NumberInput|SearchField|DateField|textarea|input|NoteTextarea|EntryText)\b/;
+const JOINS = /\buseUnsavedDraft\(/;
+/** The source with comments taken out, so a mention of the hook in prose does not count as calling it. */
+const code = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+const SKIPPED = /\.(test|stories)\.tsx$|^primitives\//;
+const SKIPPED_NAV = /\.(test|stories)\.tsx?$/;
+
+function files(dir: string, pattern = /\.tsx$/): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    return entry.isDirectory() ? files(path, pattern) : pattern.test(entry.name) ? [path] : [];
+  });
+}
+const key = (path: string) => relative(components, path).split(sep).join('/');
+const drawing = files(components)
+  .map((path) => ({ name: key(path), source: readFileSync(path, 'utf8') }))
+  .filter(({ name, source }) => !SKIPPED.test(name) && TEXT_BOX.test(source));
+
+describe('every editor that draws a text box either joins the unsaved-drafts registry or says why leaving loses nothing (#3400)', () => {
+  test('no component draws a text box without deciding', () => {
+    const undecided = drawing.filter(({ name, source }) => !JOINS.test(code(source)) && !(name in EXEMPT)).map(({ name }) => name);
+    expect(undecided, 'call useUnsavedDraft (see studio/drafts/unsavedDrafts.tsx), or add the file to EXEMPT with the reason').toEqual([]);
+  });
+
+  test('a file in EXEMPT still draws a text box and does not also register', () => {
+    const names = new Map(drawing.map(({ name, source }) => [name, source]));
+    const stale = Object.keys(EXEMPT).filter((name) => !names.has(name) || JOINS.test(code(names.get(name)!)));
+    expect(stale, 'delete the entry: the file no longer draws a text box, or it registers now').toEqual([]);
+  });
+});
+
+// A link that leaves a page must take the shell's guarded move, or the question is skipped and the draft goes (#3400: the Story Bible's Find in the
+// manuscript, the engine panel's Open in Proof, Script's More fields). The router's own `navigate` is for a redirect that holds nothing.
+const ROUTER_NAVIGATE = /\buseNavigate\(/;
+const NAVIGATE_EXEMPT: Record<string, string> = {
+  'booth/companion/CompanionPage.tsx': 'the companion window, which holds no draft',
+  'layout/AddressGate.tsx': 'a replace to a safe page when the address cannot be shown; the page it replaces holds nothing',
+  'layout/NotFoundPage.tsx': 'a replace from a page that does not exist; it holds nothing',
+  'script/page/ScriptPage.tsx':
+    "replaces the address inside the Script page (a find or a deep link cleared) and the empty state's import link; the guarded links use useGuardedNavigate",
+  'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
+  '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
+  '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
+};
+describe('a link out of a page goes through the guarded navigate (#3400)', () => {
+  const sources = files(srcRoot, /\.tsx?$/)
+    .map((path) => ({ name: relative(components, path).split(sep).join('/'), source: readFileSync(path, 'utf8') }))
+    .filter(({ name }) => !SKIPPED_NAV.test(name) && !name.startsWith('../App.tsx'))
+    .filter(({ source }) => ROUTER_NAVIGATE.test(code(source)));
+  test('no file calls the router navigate without a reviewed reason', () => {
+    const undecided = sources.filter(({ name }) => !(name in NAVIGATE_EXEMPT)).map(({ name }) => name);
+    expect(undecided, 'use useGuardedNavigate (studio/drafts/unsavedDrafts.tsx), or add the file to NAVIGATE_EXEMPT with the reason').toEqual([]);
+  });
+  test('a file in NAVIGATE_EXEMPT still calls it', () => {
+    const names = new Set(sources.map(({ name }) => name));
+    expect(Object.keys(NAVIGATE_EXEMPT).filter((name) => !names.has(name))).toEqual([]);
+  });
+  test("no editor registers a draft inside the Booth, whose exits ask the Booth's own question first", () => {
+    const inBooth = files(join(components, 'booth'), /\.tsx?$/).filter((path) => JOINS.test(code(readFileSync(path, 'utf8'))));
+    expect(inBooth.map(key)).toEqual([]);
+  });
+});
+
+// A holder is also lost without any exit from the page: a control on the same page that unmounts or replaces it (another rail tab, another finding, a search that
+// swaps the pane for its results, Add entry over an edited entry) drops the typed text with no question (#3404). Every file that registers a draft therefore
+// lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
+// without listing what replaces it, and a listed control cannot lose its question without this failing.
+type Replacer = { file: string; control: string; asks: RegExp };
+const SETTINGS_PANE: Replacer[] = [
+  { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
+  {
+    file: 'settings/page/SettingsPage.tsx',
+    control: 'a search or filter that shows, changes or clears the results',
+    asks: /else guarded\(apply, \{ settle: false \}\)/,
+  },
+];
+const STORY_BIBLE_DETAIL: Replacer[] = [
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
+];
+const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
+const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
+const PROOF_MOVES: Replacer[] = [
+  { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
+];
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'proof/inspector/FindingThread.tsx': PROOF_MOVES,
+  'script/page/rail/threads/MessageEditor.tsx': [
+    RAIL_TABS,
+    { file: 'script/page/rail/threads/ThreadsTab.tsx', control: 'editing another message', asks: /onEdit: \(id, index\) => guarded\(/ },
+  ],
+  'script/page/rail/threads/NoteCard.tsx': [RAIL_TABS, RAIL_LOOKUP],
+  'script/page/rail/words/WordCard.tsx': [
+    RAIL_TABS,
+    RAIL_LOOKUP,
+    { file: 'script/page/rail/words/WordsTab.tsx', control: 'another word in the chapter list', asks: /word !== row\.key && guarded\(/ },
+  ],
+  'settings/CreditsPanel.tsx': [
+    ...SETTINGS_PANE,
+    { file: 'settings/CreditsPanel.tsx', control: 'another template', asks: /onChange=\{\(id\) => id !== selectedId && guarded\(/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'New', asks: /guarded\(newTemplate\)/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'Duplicate', asks: /guarded\(\(\) => void duplicateTemplate\(\)\)/ },
+    { file: 'settings/controls/CreditsBody.tsx', control: 'Close credits editor', asks: /editing \? guarded\(\(\) => setEditing\(false\)\)/ },
+  ],
+  'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
+  'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
+};
+
+describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
+  const holders = files(components)
+    .filter((path) => !SKIPPED.test(key(path)) && JOINS.test(code(readFileSync(path, 'utf8'))))
+    .map(key);
+
+  test('every holder lists what replaces it', () => {
+    const unlisted = holders.filter((name) => !(name in HOLDER_REPLACED_BY));
+    expect(unlisted, 'add the file to HOLDER_REPLACED_BY with the controls that unmount or replace it, each asking through useGuardedAction').toEqual([]);
+    expect(
+      Object.keys(HOLDER_REPLACED_BY).filter((name) => !holders.includes(name)),
+      'a listed file no longer registers a draft',
+    ).toEqual([]);
+  });
+
+  test('each listed control asks through useGuardedAction at the call it names', () => {
+    const missing: string[] = [];
+    for (const [holder, replacers] of Object.entries(HOLDER_REPLACED_BY)) {
+      for (const { file, control, asks } of replacers) {
+        const source = code(readFileSync(join(components, file), 'utf8'));
+        if (!/\buseGuardedAction\(\)/.test(source)) missing.push(`${holder}: ${control} (${file} does not call useGuardedAction)`);
+        else if (!asks.test(source)) missing.push(`${holder}: ${control} (${file} no longer asks at ${asks})`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+// What shows in the Script rail is changed through `useShowInRail` (which asks), the tab strip or the word list (which ask themselves); a file that writes the tab,
+// word or entry to the view store directly would skip the question.
+const RAIL_VIEW_WRITE = /\b(?:update|updateView)\(\{[^}]*\b(?:tab|word|entryId)\b/;
+const RAIL_WRITE_EXEMPT: Record<string, string> = {
+  'script/page/layout/RailPanel.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/words/WordsTab.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/bible/BibleTab.tsx':
+    'picks an entry on the Story Bible tab, whose cards hold no typed text: the Words and Notes cards are not mounted there',
+};
+describe('the Script rail view is written through the question (#3404)', () => {
+  test('no file writes the rail tab, word or entry to the view store without asking', () => {
+    const writers = files(join(components, 'script'), /\.tsx?$/)
+      .filter((path) => !SKIPPED_NAV.test(path))
+      .filter((path) => RAIL_VIEW_WRITE.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(
+      writers.filter((name) => !(name in RAIL_WRITE_EXEMPT)),
+      'use useShowInRail (script/page/data/useShowInRail.ts)',
+    ).toEqual([]);
+    expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
+  });
+});
+
+// The search and the filter swap the Settings pane for the results, and clearing them swaps it back (#3404): every write of the page's category, query or filter
+// is either inside the guarded `showCategory` / `changeSearch`, or the link effect that a link already asked for in `moveTo`. A new writer fails this until it is listed.
+describe('the Settings pane is swapped only through the question (#3404)', () => {
+  const page = code(readFileSync(join(components, 'settings/page/SettingsPage.tsx'), 'utf8'));
+  const writes = (setter: string) => [...page.matchAll(new RegExp(`\\b${setter}\\(`, 'g'))].length;
+  test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
+    expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
+  });
+  test('showCategory asks, and so does every change of the search or filter', () => {
+    expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
+    expect(page).toMatch(/onChange=\{changeQuery\}/);
+    expect(page).toMatch(/changeFilter\(next as Filter\)/);
+  });
+});

@@ -1,5 +1,8 @@
+import { plural } from '../../../../../plural';
 import { useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
+import { shortName } from '../../../../../studio/drafts/draftSentence';
+import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
@@ -72,14 +75,27 @@ export function NoteCard({
   }, [active]);
 
   const send = async (act: NoteActions['onReply']) => {
-    if (await act(mark.id, who, reply.trim())) setReply('');
+    const sent = await act(mark.id, who, reply.trim());
+    if (sent) setReply('');
+    return sent;
   };
+  const sendReply = useSharedSave(() => send(actions.onReply));
+  // A reply typed and not yet added is held text: leaving the page asks first (#3400).
+  useUnsavedDraft(`script-note-reply-${mark.id}`, {
+    dirty: reply.trim() !== '',
+    label: `your reply on “${shortName(quote || line, 18)}”`,
+    brief: 'your reply',
+    kind: 'script-note-reply',
+    many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,
+    save: sendReply,
+    discard: () => setReply(''),
+  });
   const addReply = () => {
     if (!reply.trim()) {
       overlay.toast('Write the reply or note first.');
       return;
     }
-    void send(actions.onReply);
+    void sendReply();
   };
 
   return (
