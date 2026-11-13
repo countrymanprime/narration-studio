@@ -48,7 +48,7 @@ function setup(answers: Answer[]) {
   const another = () => renderHook(() => useTeleprompterSession({ chapterId: 'c-0001', chapter: undefined, migrateLegacyDevice: false }), { wrapper });
   const state = (next: TeleprompterState) => act(() => onState(next));
   const elapse = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
-  return { hook, another, teleprompterStop, teleprompterStart, state, elapse };
+  return { hook, another, listenerCount: () => listeners.size, teleprompterStop, teleprompterStart, state, elapse };
 }
 
 beforeEach(() => {
@@ -279,6 +279,16 @@ describe('a stop the host refuses', () => {
     });
   });
 
+  it('leaves no state listener behind after a stop refused twice', async () => {
+    const { hook, state, elapse, listenerCount } = setup(['refuse', 'refuse']);
+    await state(RUNNING);
+    const baseline = listenerCount();
+    act(() => hook.result.current.stop());
+    await elapse(3000);
+    expect(hook.result.current.stopFailed).toBe(true);
+    expect(listenerCount()).toBe(baseline);
+  });
+
   describe('a stop asked for by leaving', () => {
     const leaveRefused = async (answers: Answer[]) => {
       const rig = setup(answers);
@@ -291,10 +301,11 @@ describe('a stop the host refuses', () => {
     };
 
     it('is sent again after the page is gone, and said (once) when refused twice', async () => {
-      const { teleprompterStop, elapse, onFailed } = await leaveRefused(['refuse', 'refuse']);
+      const { teleprompterStop, elapse, onFailed, listenerCount } = await leaveRefused(['refuse', 'refuse']);
       await elapse(3000);
       expect(teleprompterStop).toHaveBeenCalledTimes(2);
       expect(onFailed).toHaveBeenCalledTimes(1);
+      expect(listenerCount()).toBe(0);
     });
 
     it('is not sent again once a press joined the session after the leave (it would stop the take under its listening)', async () => {

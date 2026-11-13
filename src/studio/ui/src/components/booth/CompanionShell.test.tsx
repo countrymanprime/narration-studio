@@ -26,6 +26,7 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     modelMissing: false,
     stopFailed: false,
     stopRetry: 'idle',
+    stopTaken: 0,
     retryStop: vi.fn(),
     stopForLeave: vi.fn(),
     leaving: { current: false },

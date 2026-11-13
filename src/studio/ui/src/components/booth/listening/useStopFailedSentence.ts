@@ -40,6 +40,10 @@ type Session = {
   stopFailed: boolean;
   stopRetry: 'idle' | 'trying' | 'stopped';
   retryStop: () => void;
+  /** Counts the stops the host took. */
+  stopTaken: number;
+  /** A stop asked for by leaving: retried after the page is gone, `onFailed` called when it is refused twice then. */
+  stopForLeave: (onFailed: () => void) => void;
   /** True once the narrator left asking for the stop (its own failure is said by `sayListeningStillOpen`). */
   leaving: { current: boolean };
   subscribeState: (listener: (state: TeleprompterState) => void) => () => void;
@@ -53,8 +57,17 @@ type Session = {
  * once more (`sayListeningStillOpen`). Only a sentence this page said is ever dismissed.
  */
 export function useStopFailedSentence(overlay: Overlay, session: Session): void {
-  const { stopFailed, stopRetry } = session;
+  const { stopFailed, stopRetry, stopTaken } = session;
+  const leaveStop = useRef(session.stopForLeave);
+  leaveStop.current = session.stopForLeave;
   const said = useRef(false);
+  // A stop the host took ends the reason for a sentence said on another page too (the leave sentence outlives its Booth): the first render is not one.
+  const taken = useRef(stopTaken);
+  useEffect(() => {
+    if (taken.current === stopTaken) return;
+    taken.current = stopTaken;
+    if (!said.current) overlay.dismissTopic(STOP_FAILED_TOPIC);
+  }, [overlay, stopTaken]);
   const again = useRef(session.retryStop);
   again.current = session.retryStop;
   const watch = useRef(session.subscribeState);
@@ -75,7 +88,8 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
           // The toast hands focus to another toast's button: the narrator's place is Record.
           window.setTimeout(() => {
             const active = document.activeElement;
-            if (!active || active === document.body || active.closest('[data-toast-region]')) document.getElementById('brec')?.focus();
+            if (!active || active === document.body || active.closest('[data-toast-region]'))
+              (document.getElementById('brec') ?? document.querySelector<HTMLElement>('button[aria-label="Stop reading"]'))?.focus();
           }, 400);
         }),
       });
@@ -95,7 +109,9 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
       if (!said.current) return;
       said.current = false;
       overlay.dismissTopic(STOP_FAILED_TOPIC);
-      if (failed.current && !leaving.current.current) sayListeningStillOpen(overlay, watch.current);
+      // Left with the sentence up (a link, Ctrl+Alt+C, Back): the stop was refused, but no stop was asked for the way out, so it is tried once more now, and said on
+      // the next page only if that is refused too. A leave's own stop that is still out says its own result.
+      if (failed.current && !leaving.current.current) leaveStop.current(() => sayListeningStillOpen(overlay, watch.current));
     },
     [overlay],
   );

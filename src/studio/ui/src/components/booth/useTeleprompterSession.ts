@@ -156,7 +156,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const retrying = useRef(false);
   // Set when the last `stopHost` found nothing left to stop (the session ended, or was taken by something newer) and sent no second stop.
   const skipped = useRef(false);
-  // The narrator left asking for the stop (once set it stays): the page they land on says if that stop fails, so the Booth does not say an earlier failure again.
+  // Counts the stops the host took, so a sentence about an open microphone from before them (one said on another page) can go.
+  const [stopTaken, setStopTaken] = useState(0);
+  // A stop the narrator asked for by leaving is out: the page they land on says if it fails, so the Booth does not say an earlier failure meanwhile.
   const leaving = useRef(false);
   // A Retry of the stop-failed sentence: out ('trying'), or answered by the host ('stopped'); the sentence says each.
   const [stopRetry, setStopRetry] = useState<'idle' | 'trying' | 'stopped'>('idle');
@@ -399,6 +401,10 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
             },
           );
         });
+      const took = () => {
+        if (alive.current) setStopTaken((n) => n + 1);
+        return true;
+      };
       const before = starts.current;
       const epochBefore = sessionEpoch;
       // The host says the session ended between the first stop and its retry: whatever runs then is another session, which the retry must not stop. The hook's own
@@ -408,7 +414,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         if (!ACTIVE_PHASES.includes(state.phase)) endedSeen = true;
       });
       try {
-        if (await attempt()) return true;
+        if (await attempt()) return took();
         await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_MS));
         // A stop the narrator asked for by leaving ("Stop and leave", Exit) is retried after this hook is gone too: the host's own state says whether anything is left.
         // Any other stop of a gone hook is not (it is unknown, not failed, and says nothing).
@@ -426,7 +432,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         }
         // Not the session the first stop meant (something was started or taken since): it is not stopped here.
         if (endedSeen || starts.current !== before || sessionEpoch !== epochBefore || hasListeningClaim()) return nothingLeft();
-        if (await attempt()) return true;
+        if (await attempt()) return took();
         if (alive.current) {
           failedStart.current = before;
           setStopFailed(true);
@@ -451,6 +457,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     (onFailed: () => void) => {
       leaving.current = true;
       void stopHost('leave').then((ok) => {
+        leaving.current = false;
         if (!ok && !alive.current) onFailed();
       });
     },
@@ -710,6 +717,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     stopRetry,
     retryStop,
     stopForLeave,
+    stopTaken,
     leaving,
     subscribeState: api.subscribeTeleprompterState,
     sessionJoined,

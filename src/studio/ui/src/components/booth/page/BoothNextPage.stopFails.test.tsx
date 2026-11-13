@@ -43,7 +43,7 @@ const stopDelay = { ms: 0 };
 afterEach(() => (stopDelay.ms = 0));
 
 /** A host whose stop is refused for the first `refusals` calls, as a host busy with its sidecar's exit is. */
-function mountBooth(refusals: number) {
+function mountBooth(refusals: number, shared?: ReturnType<typeof createOverlayService>) {
   let state: TeleprompterState = IDLE;
   const states = new Set<(next: TeleprompterState) => void>();
   const events = new Set<(event: TeleprompterEvent) => void>();
@@ -66,7 +66,7 @@ function mountBooth(refusals: number) {
     if (stopDelay.ms) await new Promise((resolve) => setTimeout(resolve, stopDelay.ms));
     publish({ phase: 'stopped' });
   });
-  const overlay = createOverlayService();
+  const overlay = shared ?? createOverlayService();
   const daw = dawFor('reaper');
   const transport = new Set<(next: { recording: boolean }) => void>();
   daw.subscribeTransport = ((listener: (next: { recording: boolean }) => void) => {
@@ -96,6 +96,8 @@ function mountBooth(refusals: number) {
   return {
     view,
     overlay,
+    daw,
+    listenerCount: () => states.size,
     teleprompterStop,
     publish,
     teleprompterStart,
@@ -178,8 +180,11 @@ describe('a listening stop the host refuses', () => {
     await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
     expect(toasts(page)[0].durationMs).toBe(60_000);
     page.view.unmount();
+    // The way out tries the stop once more (and again after 1.5 s) before it says so.
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1), {
+      timeout: 5000,
+    });
     const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
-    expect(left).toHaveLength(1);
     expect(left[0].tone).toBe('error');
     expect(left[0].action).toBeUndefined();
     expect(toasts(page).filter((toast) => toast.action)).toHaveLength(0);
@@ -240,6 +245,83 @@ describe('a listening stop the host refuses', () => {
       // The leave's own stop is retried after the page is gone.
       if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it('says the microphone may be open when the narrator, after a "Stop and leave" the DAW refused and "Keep recording", ends the take and then leaves', async () => {
+    const page = mountBooth(99);
+    const real = page.daw.recordStop.bind(page.daw);
+    let refuse = true;
+    page.daw.recordStop = (async (...args: Parameters<typeof real>) => {
+      if (refuse) {
+        refuse = false;
+        return { ok: false, changed: false, message: 'REAPER is busy', undoSteps: 0, refused: 'REAPER is busy' };
+      }
+      return real(...args);
+    }) as typeof page.daw.recordStop;
+    await ready();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(main().textContent).toBe('Stop'));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    const answer = async (yes: boolean) => {
+      const dialog = await waitFor(() => {
+        const entry = page.overlay.getSnapshot().dialogs[0];
+        expect(entry).toBeTruthy();
+        return entry;
+      });
+      await act(async () => {
+        if (dialog.kind === 'confirm') dialog.answer(yes);
+      });
+    };
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
+    await answer(true);
+    // The DAW refused: "Could not stop the take"; the narrator keeps recording.
+    await waitFor(() =>
+      expect(page.overlay.getSnapshot().dialogs[0]?.kind === 'confirm' && page.overlay.getSnapshot().dialogs[0].spec.title).toBe('Could not stop the take'),
+    );
+    await answer(false);
+    // The narrator ends the take themselves; the listening stop is refused twice and the sentence shows.
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(toasts(page).length).toBeGreaterThan(0), { timeout: 6000 });
+    page.view.unmount();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
+  });
+
+  it('leaves no state listener behind after a stop refused twice, and says the leave stop it sent when the Booth goes with the sentence up (Ctrl+Alt+C, a link)', async () => {
+    const page = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const calls = page.teleprompterStop.mock.calls.length;
+    page.view.unmount();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    // The way out tried the stop once more (and once more after 1.5 s), then said it.
+    expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
+    // Only the leave sentence's own watcher is left (it waits for the host to end the session); the Booth's and the stops' are gone.
+    expect(page.listenerCount()).toBe(1);
+    await act(async () => void page.publish({ phase: 'stopped' }));
+    expect(page.listenerCount()).toBe(0);
+  });
+
+  it('takes the leave sentence down on the next page when a stop is taken there', async () => {
+    const first = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(first)).toHaveLength(1), { timeout: 4000 });
+    first.view.unmount();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    expect(first.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen/.test(toast.text))).toBe(true);
+    // The host recovers: a take in a new Booth on the same overlay ends and its stop is taken.
+    cleanup();
+    forgetListeningClaims();
+    forgetAppTake();
+    const second = mountBooth(0, first.overlay);
+    await ready();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(main().textContent).toBe('Stop'));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(second.teleprompterStop).toHaveBeenCalled());
+    await waitFor(() => expect(second.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen|could not stop listening/.test(toast.text))).toBe(false));
   });
 
   it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {

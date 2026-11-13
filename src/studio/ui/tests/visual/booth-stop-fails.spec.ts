@@ -182,9 +182,11 @@ async function openCompanionWithRefusedStops(page: Page, refusals: number): Prom
 test('in the Companion the stop-failed message can be used: it is not inert, Retry is clicked and reached with Shift+Tab', async ({ page }) => {
   await openCompanionWithRefusedStops(page, 2);
   await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 12_000 });
-  const retry = page.getByRole('button', { name: 'Retry' });
+  // Found by its text, not its role: an inert or aria-hidden Retry has no role in the page, and this must fail at once, not by timeout.
+  const retry = page.locator('button', { hasText: /^Retry$/ });
+  await expect(retry).toHaveCount(1);
   const inert = await retry.evaluate((el) => !!el.closest('[inert], [aria-hidden="true"]'));
-  expect(inert).toBe(false);
+  expect(inert, 'the Companion made the toast with Retry inert or hidden').toBe(false);
   // The toast follows the Companion in the page, so Shift+Tab from its start reaches the toast's buttons first.
   const reached = new Set<string>();
   for (let i = 0; i < 6; i += 1) {
@@ -218,4 +220,45 @@ test('a leave retry is not sent once the narrator is back and a take joined the 
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(4000);
   expect(await stops(page)).toBe(3);
+});
+
+test('after a "Stop and leave" the DAW refused and "Keep recording", ending the take and leaving still says the microphone may be open', async ({ page }) => {
+  await openBooth(page, 99);
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(1500);
+  await page.evaluate(() =>
+    (window as unknown as { __NARRATION_MOCK_DAW__?: { refuseNextRecord: (m: string, w: string) => void } }).__NARRATION_MOCK_DAW__?.refuseNextRecord(
+      'Disk full.',
+      'stop',
+    ),
+  );
+  await page.keyboard.press('Escape');
+  await page.getByRole('alertdialog').getByRole('button', { name: /^Stop/ }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 12_000 });
+  await refused.getByRole('button', { name: /Keep recording|Cancel/ }).click();
+  // The narrator ends the take themselves; the listening stops are refused twice and the sentence shows.
+  await page.keyboard.press('Space');
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 12_000 });
+  // Leaves by the jump menu (a plain move, no question), as the narrator who stayed and carried on might.
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('Script');
+  await page
+    .getByRole('option', { name: /Script/ })
+    .first()
+    .click();
+  await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
+  await expect(page.getByText(STILL_OPEN)).toBeVisible({ timeout: 15_000 });
+});
+
+test('Ctrl+Alt+C to the Companion with the sentence up tries the stop once more, and says it only if that is refused too', async ({ page }) => {
+  await openBooth(page, 2);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await page.keyboard.press('Control+Alt+KeyC');
+  await page.getByRole('heading', { level: 1, name: 'Companion' }).waitFor({ timeout: 8000 });
+  await expect.poll(() => stops(page), { timeout: 8000 }).toBe(3);
+  await page.waitForTimeout(3000);
+  await expect(page.getByText(STILL_OPEN)).toHaveCount(0);
 });

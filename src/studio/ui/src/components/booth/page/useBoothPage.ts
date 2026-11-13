@@ -1004,7 +1004,20 @@ export function useBoothPage(options: BoothPageOptions) {
           next &&
             ((path) => {
               askedByShell.current = true;
-              return next(path);
+              const verdict = next(path);
+              // The narrator stayed (Keep recording, Cancel): no leave is under way, so a take that ends soon is not a leave's.
+              if (verdict !== 'allow' && verdict.decide) {
+                const decide = verdict.decide;
+                return {
+                  ...verdict,
+                  decide: async () => {
+                    const go = await decide();
+                    if (!go) askedByShell.current = false;
+                    return go;
+                  },
+                };
+              }
+              return verdict;
             }),
         ),
     }),
