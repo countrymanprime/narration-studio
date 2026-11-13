@@ -11,6 +11,7 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
+import { SAVE_LIMIT_MS } from './studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1402,9 +1403,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 14 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 18 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-const MOUNT_BUDGET = 13;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm).
+const MOUNT_BUDGET = 17;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1645,6 +1647,98 @@ describe('App Back and Forward', () => {
         }
       });
     }
+
+    // Save & continue is one press that cannot be cancelled or repeated while it runs, and a save that fails or never answers leaves the narrator where they are
+    // with what they typed (#3400).
+    const slowSettingsSave = () => {
+      const real = createMockApi();
+      const release = { run: () => {} };
+      const saveSettings = vi.fn(async (...args: Parameters<typeof real.saveSettings>) => {
+        await new Promise<void>((resolve) => (release.run = resolve));
+        return real.saveSettings(...args);
+      });
+      return { saveSettings, release };
+    };
+
+    it('Save & continue over a slow save cannot be cancelled or pressed twice, saves once and then leaves (#3400)', async () => {
+      const { saveSettings, release } = slowSettingsSave();
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      headerSwitch();
+      const save = await screen.findByRole('button', { name: 'Save & continue' });
+      fireEvent.click(save);
+      fireEvent.click(save);
+      expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+      expect((screen.getByRole('button', { name: 'Discard & continue' }) as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      release.run();
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(saveSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('Save & continue stays on Settings with the edit kept when a field fails to save (#3400)', async () => {
+      const saveSettings = vi.fn(async () => {
+        throw new Error('Disk full');
+      });
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      headerSwitch();
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      await waitFor(() => expect(saveSettings).toHaveBeenCalled());
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      expect(window.location.pathname).toBe('/settings');
+      expect(keptEdit()).toBeTruthy();
+    });
+
+    it('a save that never answers gives Cancel and Discard & continue back after its limit, with the edit kept (#3400)', async () => {
+      const saveSettings = vi.fn(() => new Promise<never>(() => {}));
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        headerSwitch();
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+        });
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(false));
+        expect(await screen.findByText('Saving is taking too long. What you typed is still here.')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        expect(keptEdit()).toBeTruthy();
+        // Discard & continue still leaves after a save that never answered.
+        headerSwitch();
+        fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+        await screen.findByRole('heading', { name: 'Choose your project' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    // A field that saves on blur keeps its text as a draft until the caret leaves; an exit that unmounts the page never sends that blur (#3400).
+    it('Alt+Left in a Settings box that saves when it loses focus saves what was typed first', async () => {
+      const saveSettings = vi.fn(createMockApi().saveSettings);
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
+      const categories = await screen.findByRole('navigation', { name: 'Settings categories' });
+      fireEvent.click(within(categories).getByRole('button', { name: /^Project/ }));
+      const box = await screen.findByRole('textbox', { name: /Narrator name/ });
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+      box.focus();
+      fireEvent.change(box, { target: { value: 'Ada Reader' } });
+      fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
+      await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('General', 'global', { narrator_name: 'Ada Reader' }));
+    });
 
     it('Switch project from Settings: Save & continue saves the edit and opens the picker', async () => {
       const saveSettings = vi.fn(createMockApi().saveSettings);

@@ -171,6 +171,22 @@ The journal is `studio/journal/createJournal.ts` ([The journal and undo](ui-stat
 
 Tests: `components/layout/HistoryPanel.test.tsx`, `studio/journal/createJournal.test.ts`, `studio/journal/leaveGuard.test.ts`.
 
+## Unsaved drafts
+
+Text a page holds that is not saved yet, and that leaving the page or switching what the editor shows would drop, goes through one registry (`studio/drafts/unsavedDrafts.tsx`, #3400). An editor with a Save of its own calls `useUnsavedDraft(id, { dirty, label, save, discard })`; `save` is left out for a draft that cannot be saved from where it is (a new entry before a category is chosen). `App.tsx` asks the registry before every exit it guards (the nav, Back and Forward, the jump menu, Switch project, the project picker, a browser `popstate`) and puts one question: **Save & continue**, **Discard & continue**, **Cancel** (or **Keep editing** when nothing held can be saved). A change inside a page that would unmount or replace an editor (another Settings category, another row) wraps itself in `useGuardedAction`, and a link that leaves the page uses `useGuardedNavigate`, so both ask the same question. Settings' own edited fields keep their separate registry (`SettingsFormsProvider`), because they save as a form; the question names them beside the drafts.
+
+Rules the mechanism keeps:
+
+- **Save & continue never drops text.** It saves every draft that can be saved. A draft with no `save`, a save that returns false, a save that throws and a save that does not answer within `SAVE_LIMIT_MS` (15 s) all keep the narrator where they are with the text; a message says which. Only **Discard & continue** drops. `save()` returns `{ saved, kept }`, where `kept` lists the drafts that cannot be saved from here.
+- **One save at a time.** An editor wraps its save in `useSharedSave`, so its own Save button and the question share one request; a save the question stopped waiting for is not sent again.
+- **Exits decide after the focused field has reported.** A box that saves when it loses focus keeps its text as a draft until the caret leaves, and a page that goes away never sends that blur. The shell blurs the focused text field and decides 40 ms later (`SETTLE_MS`), so the exit sees the edit the blur committed. A browser Back while a dialog is open is put back.
+- **The sentence is bounded.** `draftQuestion` (`studio/drafts/draftSentence.ts`) builds the question so it fits the dialog at 320 x 300: names are cut, identical kinds are counted, and past that it falls back to a count.
+- **The title follows the page, the sentence follows what is held.** On Settings the title is "Unsaved settings", elsewhere "Unsaved changes". With only Settings' fields held the sentence keeps its old words ("Save or discard changes before leaving Settings?"); with a draft held, on any page, it names it.
+
+`studio/drafts/draftHolders.guard.test.ts` keeps the class closed: a component that draws a text box must register or be listed in `EXEMPT` with the reason leaving it loses nothing, a router `navigate` that leaves a page must be `useGuardedNavigate` or listed, and every registered holder lists the controls that replace it, each of which must ask. Editors that are not registered yet are listed in `PENDING` under the screen whose change registers them; the entry is deleted in that change.
+
+Tests: `studio/drafts/unsavedDrafts.test.tsx`, `studio/drafts/draftSentence.test.ts`, `studio/drafts/draftHolders.guard.test.ts`, `App.test.tsx` (Save & continue over a slow, failing and silent save), `tests/visual/unsaved-drafts.spec.ts`.
+
 ## Rail and layout bands
 
 `AppShell` (`components/layout/AppShell.tsx`) draws the rail, the header and `<main>`. The same `navigation` markup fills the wide rail and the `NavDrawer` primitive used below `md`.
