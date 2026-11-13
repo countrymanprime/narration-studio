@@ -57,11 +57,11 @@ describe('the question put to the narrator (#3404)', () => {
     expect(draftQuestion([row], true)).toEqual({ body: 'Discard a relationship you started before leaving?', canSave: false });
   });
 
-  it('keeps the saveable draft saveable when another cannot be saved, and names the other as not saved yet, not as discarded (#3400 D1)', () => {
+  it('takes Save away when any draft cannot be saved: Save & continue saves all or nothing (#3400 D1)', () => {
     const row = held('a relationship you started', { brief: 'a relationship', saveable: false });
     const { body, canSave } = draftQuestion([entry('Alice'), row], true);
-    expect(canSave).toBe(true);
-    expect(body).toBe('Save or discard your entry edit? Not saved yet: a relationship.');
+    expect(canSave).toBe(false);
+    expect(body).toBe('Discard your entry edit and a relationship before leaving?');
   });
 
   it('never grows past what the dialog shows at 320 x 300, whatever the names and however many', () => {
@@ -101,7 +101,7 @@ describe('what Save & continue does after the saves (#3400 D1)', () => {
     const row = held('a relationship you started', { brief: 'a relationship', saveable: false });
     expect(saveVerdict({ saved: true, kept: [row] })).toEqual({
       proceed: false,
-      message: 'A relationship you started cannot be saved yet, so you are still here.',
+      message: 'A relationship you started cannot be saved yet, so nothing was saved and you are still here.',
     });
   });
 
