@@ -1738,6 +1738,9 @@ describe('App Back and Forward', () => {
       fireEvent.change(box, { target: { value: 'Ada Reader' } });
       fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
       await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('General', 'global', { narrator_name: 'Ada Reader' }));
+      // The move itself is waited for: the exit is decided 40 ms after the blur, and a test that ended before that left the
+      // deferred Back to run against a torn-down tree.
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
     });
 
     it('Switch project from Settings: Save & continue saves the edit and opens the picker', async () => {
