@@ -51,9 +51,12 @@ configure({ asyncUtilTimeout: 12_000 });
 
 // How many times a test has mounted the whole app since the counter was last cleared; the Back/Forward block checks it against its budget.
 let appMounts = 0;
+// Whether this process has mounted the app yet: the first mount pays the cold start (see the Back/Forward block's warm-up).
+let appEverMounted = false;
 
 function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}, journal?: Journal) {
   appMounts += 1;
+  appEverMounted = true;
   const api = createMockApi(overrides, initial);
   const tree = (
     <ThemeProvider>
@@ -1399,11 +1402,18 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 14 of them with it), a test that renders `<App />`
+// directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
 const MOUNT_BUDGET = 13;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
   beforeAll(async () => {
+    // A full-file run has mounted the app many times by now: the warm-up would be pure cost there.
+    if (appEverMounted) {
+      appMounts = 0;
+      return;
+    }
     // A hook runs before the file's per-test reset, so the previous describe's last page is still the address.
     resetDocument();
     try {
@@ -1558,6 +1568,7 @@ describe('App Back and Forward', () => {
       'Switch project from the header': () => headerSwitch(),
       'Switch project from the jump menu': () => runFromJump('Switch project…'),
     };
+    let boothJournal: Journal | undefined;
     const holders = {
       'dirty Settings': {
         hold: dirtySettings,
@@ -1569,6 +1580,7 @@ describe('App Back and Forward', () => {
       'a recording Booth': {
         hold: async () => {
           const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+          boothJournal = journal;
           renderApp({}, {}, journal);
           await screen.findByRole('heading', { level: 1, name: 'Production' });
           fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
@@ -1580,21 +1592,28 @@ describe('App Back and Forward', () => {
         },
         question: async () => screen.findByRole('alertdialog', { name: /Stop recording/ }),
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Keep recording' })),
-        stillHeld: () => undefined,
+        // The leave guard is still set: the journal still answers a move with a question (the answer App's own guards read).
+        stillHeld: () => expect(boothJournal!.checkLeave('')).not.toBe('allow'),
         page: '/script',
       },
     };
-    // The hold (a mount plus the walk to the page) is the dominant cost of a case, so it is paid once per holder. Every exit ends where it began: the
-    // question closed, the page and the address where they were, the held thing still held (the asserts below), which is what lets the next exit start
-    // from the same state. A red case can therefore turn the exits after it red too: read the first failure.
-    // The hold gets the test limit as its own: under load it takes as long as a case did before.
+    // The hold (a mount plus the walk to the page) is the dominant cost of a case, so it is paid once per holder. Every exit ends where it began, and the
+    // case checks that it did (the end state below), which is what lets the next exit start from the same state. What it does not restore or check is
+    // focus: after a jump-menu exit the focus is on the page's main region and not on the heading the hold left it on.
+    // A red case would turn the exits after it red for the wrong reason, so after the first red exit of a holder the rest are skipped, naming it.
+    // The hold gets the test limit as its own limit: hooks have 10 s by default, and under load a hold takes as long as a whole case did before. This
+    // is a hook's limit, not a case's (vite.config.ts keeps one uniform limit for cases).
     const HOLD_TIMEOUT = 15_000;
+    const historyPosition = () => ({ idx: (window.history.state as { idx?: number } | null)?.idx, length: window.history.length });
     for (const [holderName, holder] of Object.entries(holders)) {
       describe(holderName, () => {
+        let held: ReturnType<typeof historyPosition>;
+        let firstRed = '';
         beforeAll(async () => {
           appKeptAcrossTests = true;
           resetDocument();
           await holder.hold();
+          held = historyPosition();
         }, HOLD_TIMEOUT);
         afterAll(() => {
           unmountKeptApp();
@@ -1603,16 +1622,25 @@ describe('App Back and Forward', () => {
         });
         for (const [exitName, exit] of Object.entries(exits)) {
           // Back and Go to Production from the page that holds a Booth/Settings with history to go back to; the table drives each one on the page it holds.
-          it(`${exitName} from ${holderName} asks its question, and keeping leaves the page and the picker closed`, async () => {
-            await exit();
-            await holder.question();
-            expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
-            holder.keep();
-            await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-            // The address is put back by the pop recovery's own navigation, which can land a render after the question closes (CI saw '/' here): wait for it.
-            await waitFor(() => expect(window.location.pathname).toBe(holder.page));
-            expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
-            holder.stillHeld();
+          it(`${exitName} from ${holderName} asks its question, and keeping leaves the page and the picker closed`, async (context) => {
+            if (firstRed) context.skip(`an earlier exit failed first: ${firstRed}; the shared app is no longer where the hold left it`);
+            try {
+              await exit();
+              await holder.question();
+              expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+              holder.keep();
+              await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+              // The address is put back by the pop recovery's own navigation, which can land a render after the question closes (CI saw '/' here): wait for it.
+              await waitFor(() => expect(window.location.pathname).toBe(holder.page));
+              expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+              holder.stillHeld();
+              // The end state the next exit starts from: the same place in the history, and no jump menu left open.
+              expect(historyPosition()).toEqual(held);
+              expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull();
+            } catch (error) {
+              firstRed = exitName;
+              throw error;
+            }
           });
         }
       });
