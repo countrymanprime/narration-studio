@@ -79,6 +79,36 @@ test.describe('a lane key then Enter', () => {
     });
   }
 
+  for (const via of ['Record options', 'Record options after Escape', 'Next chapter', 'Previous chapter']) {
+    test(`a lane key with ${via} focused takes focus off it, so Enter stops the take`, async ({ page }) => {
+      await openBooth(page);
+      const target = page.getByRole('button', { name: via.startsWith('Record options') ? 'Record options' : new RegExp(`^${via}`) }).first();
+      if (via.endsWith('after Escape')) {
+        await target.click();
+        await page.keyboard.press('Escape');
+      } else await target.focus();
+      await expect(target).toBeFocused();
+      await page.keyboard.press('Numpad1');
+      await expect(stopButton(page)).toBeVisible();
+      expect(await enterSwallowed(page)).toBe(false);
+      await pastStartGuard(page);
+      await page.keyboard.press('Enter');
+      await expect(stopButton(page)).toHaveCount(0);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+    });
+  }
+
+  test('in cold read mode a lane key only chooses the voice', async ({ page }) => {
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Numpad1');
+    await expect(voiceButton(page)).toContainText('White Rabbit');
+    await page.waitForTimeout(500);
+    await expect(stopButton(page)).toHaveCount(0);
+  });
+
   test('a key with no track asks who is in it, and focus is on the dialog, then back on the page when it closes', async ({ page }) => {
     await openBooth(page);
     await page.keyboard.press('Numpad7');

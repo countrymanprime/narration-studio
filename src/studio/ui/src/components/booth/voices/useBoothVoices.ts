@@ -17,12 +17,13 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 export const VOICE_CONTROL_ID = 'bvoice';
 
 /**
- * A voice key is Record's neighbour on the numpad, so the Enter that follows it must reach the page. Focus left on the voice button (after a
- * pick from its list, or a Tab) would make that Enter open the list instead of starting or pausing the take, so a voice key takes focus off it.
+ * A voice key is Record's neighbour on the numpad, so the Enter that follows it must reach the page. A button left focused (the voice button after a
+ * pick or a Tab, Record options, a chapter arrow) keeps Enter and would be pressed or opened instead of starting or stopping the take, so a voice key
+ * hands focus from any button to the page's <main> (focusable, not tabbable).
  */
-function releaseVoiceControl(): void {
+function releaseFocusToPage(): void {
   const focused = document.activeElement;
-  if (focused instanceof HTMLElement && focused.id === VOICE_CONTROL_ID) focused.blur();
+  if (focused instanceof HTMLButtonElement) document.querySelector<HTMLElement>('main')?.focus();
 }
 
 export type BoothVoices = {
@@ -296,7 +297,7 @@ export function useBoothVoices({
 
   const byKey = useCallback(
     (n: number) => {
-      releaseVoiceControl();
+      releaseFocusToPage();
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -322,7 +323,7 @@ export function useBoothVoices({
           if (!stopped) return;
           const now = latest.current;
           const chosen = now.voices.find((each) => each.key === String(key));
-          if (chosen) choose(chosen);
+          if (chosen) choose(chosen, true);
           else if (!now.asking) now.onNoTrack?.(key);
         })
         .catch((reason: unknown) => notify(describeApiError(reason), 'error'))
@@ -416,7 +417,7 @@ export function useBoothVoices({
 
   const step = useCallback(
     (by: 1 | -1) => {
-      releaseVoiceControl();
+      releaseFocusToPage();
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {
