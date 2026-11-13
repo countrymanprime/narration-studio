@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 26 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 28 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 25 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
-const MOUNT_BUDGET = 25;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 27 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
+const MOUNT_BUDGET = 27;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1806,6 +1806,63 @@ describe('App Back and Forward', () => {
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(window.location.pathname).toBe('/settings');
       act(() => close());
+    });
+
+    it('a save that rejects with nothing useful says Not saved without the raw value (#3446 E5)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Rejects = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-rejects', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () => Promise.reject(undefined),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Rejects />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      expect(await screen.findByText('Not saved. What you typed is still here.')).toBeTruthy();
+      expect(screen.queryByText(/undefined/)).toBeNull();
+      act(() => close());
+    });
+
+    it('a dialog that closes itself on a guarded link stays open after Cancel and closes once the move goes ahead (#3446 E6)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-after', { dirty: text !== '', label: 'your reply', discard: () => setText('') });
+        return null;
+      };
+      let close = () => {};
+      const Leave = () => {
+        const navigate = useGuardedNavigate();
+        return <button onClick={() => navigate('/proof', { after: () => close() })}>Leave and close</button>;
+      };
+      act(() => {
+        close = overlay.open({
+          kind: 'dialog',
+          dismissOnOutsidePress: false,
+          title: 'A dialog that closes on leaving',
+          render: () => (
+            <>
+              <Holder />
+              <Leave />
+            </>
+          ),
+        });
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Leave and close' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Unsaved changes' })).toBeNull());
+      expect(screen.getByRole('button', { name: 'Leave and close' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Leave and close' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Leave and close' })).toBeNull());
+      expect(window.location.pathname).toBe('/proof');
     });
 
     it('the question closes itself and the move goes on when what was held goes away while it is open (#3446)', async () => {

@@ -157,6 +157,13 @@ const settleFocusedField = (): boolean => {
 let settledField: HTMLElement | undefined;
 /** How long a blur's commit takes to reach the shell's dirty flags (a state update, then the effects that report it) before the exit is decided. */
 const SETTLE_MS = 40;
+/** A key press on the way to stay inside this window of the question opening is the echo of the press that asked, not an answer. */
+const ECHO_MS = 300;
+/** "Not saved: <why>." when the error says why in words, else "Not saved." (a rejection with nothing, an object or an empty message has no reason to show). */
+const notSaved = (error: unknown): string => {
+  const why = isWireError(error) || error instanceof Error ? apiErrorMessage(error).trim() : typeof error === 'string' ? error.trim() : '';
+  return why ? `Not saved: ${why}.` : 'Not saved.';
+};
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', (event) => {
@@ -878,9 +885,25 @@ function AppRoutes() {
       focusKeep();
     };
     document.addEventListener('focusin', rescue);
+    // A click on the backdrop drops the focus to <body>, which fires no focusin: after any pointer press, put it back inside the question (#3459 L1).
+    const afterPointer = () => void setTimeout(focusKeep, 0);
+    document.addEventListener('pointerup', afterPointer, true);
+    // The way to stay has the focus when the question opens, so a second Enter or Space from the press that asked would answer it at once and the narrator would
+    // never see it. A key press on that button in the first 300 ms is an echo, not an answer (#3446 E7). A click is not touched: a mouse click is a decision.
+    const openedAt = Date.now();
+    const echo = (event: KeyboardEvent) => {
+      if ((event.key !== 'Enter' && event.key !== ' ') || Date.now() - openedAt >= ECHO_MS) return;
+      if (event.target instanceof Element && event.target.closest('[data-stay-button]')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    for (const type of ['keydown', 'keyup'] as const) document.addEventListener(type, echo, true);
     return () => {
       timers.forEach(clearTimeout);
       document.removeEventListener('focusin', rescue);
+      document.removeEventListener('pointerup', afterPointer, true);
+      for (const type of ['keydown', 'keyup'] as const) document.removeEventListener(type, echo, true);
     };
   }, [questionOpen]);
   const { setShell } = drafts;
@@ -1171,9 +1194,7 @@ function AppRoutes() {
             // The text is where it was typed either way. A save that is only slow may still land, so that is not called a failure.
             if (token === moveToken.current)
               overlay.toast(
-                error instanceof SaveTimeout
-                  ? 'Saving is taking too long. What you typed is still here.'
-                  : `Not saved: ${apiErrorMessage(error)}. What you typed is still here.`,
+                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `${notSaved(error)} What you typed is still here.`,
                 {
                   tone: 'error',
                 },
