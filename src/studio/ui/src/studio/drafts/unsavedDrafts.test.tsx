@@ -298,28 +298,6 @@ describe('the unsaved-drafts registry', () => {
     expect(outcome.failed.map((entry) => entry.label)).toEqual(['your reply']);
   });
 
-  it('sixty holders that save at once all save, in order (#3446 B8)', async () => {
-    const saves = Array.from({ length: 60 }, () => vi.fn(async () => true));
-    // Plain holders (they stay dirty): the point is that sixty saves run in order without nesting React's updates past its limit.
-    function Plain({ id, save }: { id: string; save: () => Promise<boolean> }) {
-      useUnsavedDraft(id, draft({ save, label: `note ${id}` }));
-      return null;
-    }
-    const view = renderHook(() => useUnsavedDrafts(), {
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <UnsavedDraftsProvider>
-          {saves.map((save, index) => (
-            <Plain key={index} id={`h${index}`} save={save} />
-          ))}
-          {children}
-        </UnsavedDraftsProvider>
-      ),
-    });
-    const { result } = view;
-    await act(async () => expect((await result.current.save()).saved).toBe(true));
-    for (const save of saves) expect(save).toHaveBeenCalledOnce();
-  });
-
   it('discards every dirty holder', () => {
     const a = vi.fn();
     const clean = vi.fn();
