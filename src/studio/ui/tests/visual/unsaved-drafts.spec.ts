@@ -116,3 +116,39 @@ test('the question opened from the keyboard shows a focus ring on the way to sta
   });
   expect(outline).toEqual({ style: 'solid', width: '2px' });
 });
+
+// Cancel has the focus when the question opens, so the second Enter of a double press must not answer it before the narrator has seen it (#3446 E7).
+test('a second Enter within 300 ms of the one that asked does not dismiss the question', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.getByRole('button', { name: 'Production' }).first().focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toBeVisible();
+  await page.waitForTimeout(600);
+  await expect(question).toBeVisible();
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(question).toHaveCount(0);
+});
+
+// A click on the backdrop drops the focus to <body>; it goes back to the way to stay, so Tab and Enter start from the question (#3459 L1).
+test('a click on the backdrop leaves the focus inside the question', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.keyboard.press('Alt+ArrowLeft');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toBeVisible();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.mouse.click(5, 450);
+    await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  }
+});

@@ -250,9 +250,51 @@ describe('the Settings pane is swapped only through the question (#3404)', () =>
   test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
     expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
   });
+  test('collapsing Advanced asks, since it unmounts the rows under it (#3456)', () => {
+    expect(page).toMatch(/if \(advanced\[cat\]\) guarded\(toggle\)/);
+    expect(writes('setAdvanced')).toBe(2);
+  });
+  test('a hash-only change of Settings (a pop, a typed address) is decided by the pop guard on the route and the hash, not the route alone (#3456)', () => {
+    const app = code(readFileSync(join(srcRoot, 'App.tsx'), 'utf8'));
+    expect(app).not.toMatch(/routePath\(\) !== popGuard\.route/);
+    expect(app).toMatch(/routeKey\(\) !== popGuard\.route/);
+  });
   test('showCategory asks, and so does every change of the search or filter', () => {
     expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
     expect(page).toMatch(/onChange=\{changeQuery\}/);
     expect(page).toMatch(/changeFilter\(next as Filter\)/);
+  });
+});
+
+// A dialog that closes itself and then navigates loses its place when the narrator answers Cancel on the unsaved question: the dialog is gone and the move did not
+// happen. The close goes in the navigate's `after` (#3446 E6).
+describe('a handler does not close its dialog before a guarded navigate (#3446 E6)', () => {
+  test('no component calls close() or onClose() straight before navigate(', () => {
+    const offenders = files(components, /\.tsx$/)
+      .filter((path) => !SKIPPED.test(key(path)))
+      .filter((path) => /\b(?:close|onClose)\(\);\s*(?:navigate|go)\(/.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(offenders, 'pass the close as navigate(path, { after: close }) so it runs only once the move goes ahead').toEqual([]);
+  });
+});
+
+// A holder's save has to leave the editor clean by the time it resolves (`UnsavedDraft.save`); `holderContract.ts` checks that, and every screen that registers an
+// editor proves it. The proof is a test under the same top-level folder of `components/` that imports the helper, so a new holder cannot skip it (#3446 E2).
+describe('every screen that registers a draft proves its holders meet the save contract (#3446 E2)', () => {
+  test('a folder with a useUnsavedDraft call has a test that imports holderContract', () => {
+    const folders = new Set(
+      files(components, /\.tsx$/)
+        .filter((path) => !SKIPPED.test(key(path)) && JOINS.test(code(readFileSync(path, 'utf8'))))
+        .map((path) => key(path).split('/')[0]!),
+    );
+    const proven = new Set(
+      files(components, /\.test\.tsx?$/)
+        .filter((path) => /holderContract/.test(readFileSync(path, 'utf8')))
+        .map((path) => key(path).split('/')[0]!),
+    );
+    expect(
+      [...folders].filter((folder) => !proven.has(folder)),
+      'call expectHolderCleanAfterSave from a test of the holder (studio/drafts/holderContract.ts)',
+    ).toEqual([]);
   });
 });

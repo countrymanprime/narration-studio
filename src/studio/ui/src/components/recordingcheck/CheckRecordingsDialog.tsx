@@ -316,10 +316,8 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
     const result = loaded.results[shown.id];
     const checked = result?.state === 'current' || result?.state === 'stale';
     const credits = isCreditsChapter(shown);
-    const leave = (path: string) => {
-      close();
-      navigate(path);
-    };
+    // The dialog closes only once the move goes ahead: Cancel on the unsaved question leaves the narrator where they were, with the dialog open (#3400 E6).
+    const leave = (path: string) => navigate(path, { after: close });
     return (
       <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
         <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto">
