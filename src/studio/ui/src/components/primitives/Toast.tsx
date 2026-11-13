@@ -19,8 +19,6 @@ export type ToastMessage = {
   icon?: IconDefinition;
   topic?: string;
   durationMs?: number;
-  /** How many times the same message was raised again while this one showed: the same toast, its time starting over (so a focused toast is not unmounted). */
-  again?: number;
   /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
   undo?: { entry?: number };
 };
@@ -103,7 +101,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, stays, held, message.again]);
+  }, [dismiss, id, stays, held]);
   return (
     <div
       data-tone={message.tone}

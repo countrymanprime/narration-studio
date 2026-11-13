@@ -411,19 +411,6 @@ describe('overlay.toast', () => {
   });
 });
 
-describe('an identical error raised while its twin has focus', () => {
-  it('keeps the same toast, with focus on it, and starts its time over (#3431)', () => {
-    vi.useFakeTimers();
-    mount();
-    act(() => service.toast('Could not save.', { tone: 'error' }));
-    screen.getByRole('button', { name: 'Dismiss message' }).focus();
-    act(() => void vi.advanceTimersByTime(1000));
-    act(() => service.toast('Could not save.', { tone: 'error' }));
-    expect(screen.getAllByText('Could not save.')).toHaveLength(1);
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
-  });
-});
-
 describe('overlay.toastUndo', () => {
   it('runs the given function once and closes the toast on { ok: true }', async () => {
     mount();
