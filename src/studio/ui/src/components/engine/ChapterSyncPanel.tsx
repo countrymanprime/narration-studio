@@ -16,6 +16,7 @@ import { SectionLabel } from '../primitives/SectionLabel';
 import { TrackSelect } from '../mapping/TrackSelect';
 import { holderName, holderOf, plainTrackChoices, type TrackChoice } from '../mapping/trackChoices';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { trackName } from '../tracks/trackName';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { StatusBadge } from '../primitives/StatusBadge';
 import {
@@ -183,20 +184,25 @@ export function ChapterSyncPanel({
             return (
               <InsetCard key={item.chapterId} tone="accent" className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">{item.chapterTitle}</div>
+                  <div className="font-medium">{nameOf(item.chapterId) ?? item.chapterTitle}</div>
                   <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                     {chapterSyncPanelReasonText(item)}
                   </div>
                 </div>
                 {choices.length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full min-w-0 items-center gap-2">
                     <TrackSelect
                       label={`Track for ${item.chapterTitle}`}
                       choices={choices}
+                      fullWidth
                       value={selected}
                       onChange={(value) => setPicked((current) => ({ ...current, [item.chapterId]: value }))}
                     />
-                    <Button pending={linkingChapterId === item.chapterId} disabled={!selected} onClick={() => void link(item.chapterId, selected)}>
+                    <Button
+                      pending={linkingChapterId === item.chapterId}
+                      disabledReason={selected ? '' : 'Choose a track for this chapter first'}
+                      onClick={() => void link(item.chapterId, selected)}
+                    >
                       Link
                     </Button>
                   </div>
@@ -237,14 +243,14 @@ function syncChoices(
 ): TrackChoice[] {
   const all = tracks && tracks.length > 0 ? plainTrackChoices(tracks, mappings, item.chapterId, nameOf) : [];
   const best = item.best?.trackGuid ?? item.candidates[0]?.trackGuid;
-  const ranked = item.candidates.map((candidate) => candidate.trackGuid);
+  const ranked = [...new Set(item.candidates.map((candidate) => candidate.trackGuid))];
   if (all.length === 0)
     // The candidates alone, but a track another chapter holds still says so from the links the state has read.
     return item.candidates.map((candidate) => {
       const holder = holderOf(mappings, candidate.trackGuid, item.chapterId);
       return {
         guid: candidate.trackGuid,
-        name: candidate.trackName,
+        name: trackName(candidate.trackName, candidate.trackIndex),
         best: candidate.trackGuid === best,
         ...(holder ? { heldBy: holderName(nameOf(holder.chapterId), holder.chapterTitle) } : {}),
       };
