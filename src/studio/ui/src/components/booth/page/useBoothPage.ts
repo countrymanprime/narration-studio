@@ -774,6 +774,9 @@ export function useBoothPage(options: BoothPageOptions) {
       setBrowse(false);
       takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
+      // A take begun while a session runs (the DAW's own Record joins it, with no claim and no start) holds that session: a stop that failed before it is
+      // not to be retried under it, nor its sentence kept.
+      if (now.session.active) now.session.sessionJoined();
       // The press starts this take's listening itself (beginOnce), after any cold read it is ending.
       if (listenStarting.current) return;
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.

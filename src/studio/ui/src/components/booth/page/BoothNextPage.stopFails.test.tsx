@@ -62,6 +62,12 @@ function mountBooth(refusals: number) {
     publish({ phase: 'stopped' });
   });
   const overlay = createOverlayService();
+  const daw = dawFor('reaper');
+  const transport = new Set<(next: { recording: boolean }) => void>();
+  daw.subscribeTransport = ((listener: (next: { recording: boolean }) => void) => {
+    transport.add(listener);
+    return () => transport.delete(listener);
+  }) as unknown as typeof daw.subscribeTransport;
   const host: Partial<NarrationApi> = {
     teleprompterStart,
     teleprompterStop,
@@ -78,11 +84,18 @@ function mountBooth(refusals: number) {
   };
   const api = pageApi({ passageMapRecordRun: async () => [], ...host });
   const view = render(
-    <BoothHost api={api} daw={dawFor('reaper')} journal={newJournal()} overlay={overlay}>
+    <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <BoothNextPage hasManuscript navigate={vi.fn()} />
     </BoothHost>,
   );
-  return { view, overlay, teleprompterStop, publish, teleprompterStart };
+  return {
+    view,
+    overlay,
+    teleprompterStop,
+    publish,
+    teleprompterStart,
+    pushTransport: (next: { recording: boolean }) => transport.forEach((listener) => listener(next)),
+  };
 }
 
 const main = () => document.getElementById('brec') as HTMLButtonElement;
@@ -194,6 +207,21 @@ describe('a listening stop the host refuses', () => {
     const calls = page.teleprompterStop.mock.calls.length;
     await act(async () => old.action?.onAction());
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+  });
+
+  it("a take the DAW begins elsewhere is not the Booth's: Record says so, and the sentence and its Retry stay for the session that is still open", async () => {
+    const page = mountBooth(2);
+    await ready();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(main().textContent).toBe('Stop'));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 5000 });
+    await act(async () => page.pushTransport({ recording: true }));
+    // The page did not adopt it (no Stop button): the take is REAPER's own, the Booth follows nothing, and the open microphone is still the Booth's to close.
+    await waitFor(() => expect(document.body.textContent).toMatch(/already recording/i));
+    expect(main().textContent).toBe('Record');
+    expect(toasts(page)).toHaveLength(1);
   });
 
   it('says nothing when the Booth is left while the stop is refused (the release is unknown, not failed)', async () => {

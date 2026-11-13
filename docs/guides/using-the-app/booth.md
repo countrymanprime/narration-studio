@@ -610,6 +610,7 @@ when you came in, the Booth did not start that take and does not stop it, and le
 | "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
 | "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
 | "The Booth could not stop listening, so your microphone may still be open." | The Booth asked the listening to stop, was refused, and asked once more. Press **Retry** in the message; it asks again only if that listening is still the one running. If the microphone stays on, quit and reopen the app. |
+| In the Companion: "The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on." | The panel asked the reading to stop and was refused. Press **Stop reading** again. If the microphone stays on, quit and reopen the app. |
 | **Undo** says to use Edit > Undo in the DAW | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)). |
 | The Booth does not record in Audacity | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md). |
 
