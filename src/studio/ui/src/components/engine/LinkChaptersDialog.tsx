@@ -24,6 +24,7 @@ import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineId
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -299,9 +300,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
             const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
+            const known = chapterNameLookup(links.chapters);
             const options = own.map((option) => {
               const holder = option.value ? holderOf(links.mappings, option.value, chapter.id) : undefined;
-              return holder ? { ...option, label: heldLabel(option.label, holderName(undefined, holder.chapterTitle)) } : option;
+              return holder ? { ...option, label: heldLabel(option.label, holderName(known(holder.chapterId), holder.chapterTitle)) } : option;
             });
             return (
               <TableRow key={chapter.id}>

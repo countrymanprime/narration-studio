@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/chapterTracks/useChapterNameOf.ts#1':
+    'Reads the manuscript\'s chapter headings only to name the chapter that holds a track in a picker\'s "(linked to X)": a failed read leaves the title the host kept with the link, which is a name too, and nothing the narrator pressed depends on it.',
   'src/components/chapterTracks/ChapterTrackState.tsx#1':
     "The quiet re-read of the links detail after a change made on a screen that already has its answer (`applyMappings`): the change itself is shown, and a failed re-read marks the state stale and is retried by the next poll or the screen's own refresh, which reports a failure.",
   'src/components/chapterTracks/ChapterTrackState.tsx#2':

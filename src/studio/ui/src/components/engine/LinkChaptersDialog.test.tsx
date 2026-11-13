@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { useChapterLinks } from './useChapterLinks';
 import { VoiceLayoutContext } from './voiceLayout';
+import { headingName } from '../../chapterHeading';
+import { trackName } from '../tracks/trackName';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -180,6 +182,12 @@ describe('LinkChaptersDialog', () => {
           .some((option) => /\(linked to /.test(option.textContent ?? '')),
       ).toBe(true),
     );
+    // The holder is named as the manuscript names it now (the heading with its subtitle), as the toast and the chapter's own row do.
+    expect(
+      within(other)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toContain(`${trackName(tracks[0].name, tracks[0].index)} (linked to ${headingName(first)})`);
     const own = screen.getByRole('combobox', { name: `Track for ${first.title}` });
     expect(
       within(own)

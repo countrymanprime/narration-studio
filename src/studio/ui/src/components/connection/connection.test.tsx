@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_CHAPTERS } from '../../api/mockFixtures';
+import { headingName } from '../../chapterHeading';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { createOverlayService } from '../../overlay/overlayService';
@@ -653,6 +655,63 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     expect(screen.getByLabelText('Links elsewhere').textContent).toBe('');
     await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
     await waitFor(() => expect(screen.getByLabelText('Links elsewhere').textContent).toBe('c3>{T-2}'));
+  });
+
+  // #3398 answer 3: the label before the pick and the sentence after it name the holder by the same current heading, whatever title the host kept.
+  it('names the holder by the manuscript’s current heading in the option and in the toast alike', async () => {
+    const service = createOverlayService();
+    const chapter = WIRE_CHAPTERS[0];
+    const heldByListed = { ...held, chapterId: chapter.id, chapterTitle: 'Kept long ago' };
+    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => ({
+      documentId: 'd',
+      link: { trackGuid, chapterId, chapterTitle: 'Chapter 3', confirmedAt: '' },
+      displaced: heldByListed,
+      mappings: [],
+    }));
+    render(
+      <ApiProvider
+        api={createMockApi({
+          chapterTrackMatch: async () => match(),
+          chapterTrackMapList: async () => ({ documentId: 'd', mappings: [heldByListed] }),
+          chapterTrackSet,
+        })}
+      >
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+              <ConnectionResolveDialog
+                variant="chapter-unlinked"
+                chapterId="c3"
+                chapterName="Chapter 3"
+                sentence="s"
+                dawName="REAPER"
+                onLinked={vi.fn()}
+                onClose={vi.fn()}
+              />
+            </ChapterTrackStateProvider>
+          </OverlayProvider>
+        </TooltipProvider>
+      </ApiProvider>,
+    );
+    const select = await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    const heading = headingName(chapter);
+    await waitFor(() => expect(within(select).getByRole('option', { name: new RegExp(`linked to ${heading}`) })).toBeTruthy());
+    await userEvent.selectOptions(select, '{T-2}');
+    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+    await waitFor(() =>
+      expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual([`Track linked. ${heading} was linked to that track and is now not linked.`]),
+    );
+  });
+
+  it('Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now', async () => {
+    const base = createMockApi();
+    const manuscriptChapters = vi.fn(() => base.manuscriptChapters());
+    open({ chapterTrackMatch: async () => match(), manuscriptChapters });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await waitFor(() => expect(manuscriptChapters).toHaveBeenCalled());
+    const before = manuscriptChapters.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(manuscriptChapters.mock.calls.length).toBeGreaterThan(before));
   });
 
   it('a link changed in another screen shows in the dialog at once', async () => {
