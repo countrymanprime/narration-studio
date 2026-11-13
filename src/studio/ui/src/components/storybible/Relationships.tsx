@@ -273,8 +273,8 @@ export function Relationships({
   const started = drafts.filter((row) => row.label.trim() !== '' || row.otherId !== '').length;
   useUnsavedDraft('story-bible-relationship-rows', {
     dirty: editing && started > 0,
-    label: started > 1 ? `${started} relationships you started` : 'a relationship you started',
-    brief: started > 1 ? `${started} relationships` : 'a relationship',
+    label: `${started === 1 ? 'a relationship' : plural(started, 'relationship')} you started`,
+    brief: started === 1 ? 'a relationship' : plural(started, 'relationship'),
     kind: 'relationship-rows',
     many: (n) => `${plural(n, 'relationship')} you started`,
     discard: () => setDrafts([]),
