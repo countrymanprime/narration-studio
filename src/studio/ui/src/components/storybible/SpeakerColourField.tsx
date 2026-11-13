@@ -1,4 +1,5 @@
 import { SPEAKER_COLOR_COUNT, speakerColorIndex } from '../primitives/speakerColor';
+import { FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { Swatch, type SwatchColour } from '../primitives/Swatch';
 import type { GuideEntity } from '../../types';
@@ -29,9 +30,9 @@ export function SpeakerColourField({ entity, speaks, onChange, disabled, readOnl
   return (
     <div className="flex items-center gap-2">
       {readOnly ? (
-        <span className="text-[0.82rem] font-medium text-[var(--text-muted)]">Speaker colour</span>
+        <span className={FIELD_LABEL_CLASSES}>Speaker colour</span>
       ) : (
-        <label htmlFor="speaker-colour" className="text-[0.82rem] font-medium text-[var(--text-muted)]">
+        <label htmlFor="speaker-colour" className={FIELD_LABEL_CLASSES}>
           Speaker colour
         </label>
       )}

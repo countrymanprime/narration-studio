@@ -18,13 +18,13 @@ test("Story Bible / an entry's fields are all off until Edit, for every entry", 
     const body = page.getByRole('group', { name: entity.canonical_name });
     await body.waitFor();
     await page.waitForTimeout(400); // the self-fetching sections (reference clips, dialogue cues) fill in
-    const enabled = await body.evaluate((root) =>
+    const drawn = await body.evaluate((root) =>
       [
         ...root.querySelectorAll<HTMLElement>(
           'input, textarea, select, [role="combobox"], [role="switch"], [role="checkbox"], [role="radio"], [contenteditable="true"]',
         ),
-      ].map((el) => el.getAttribute('aria-label') ?? el.id ?? el.tagName),
+      ].map((el) => el.getAttribute('aria-label') || el.id || el.tagName),
     );
-    expect(enabled, `${entity.canonical_name} (${entity.category}) read-only`).toEqual([]);
+    expect(drawn, `${entity.canonical_name} (${entity.category}) read-only`).toEqual([]);
   }
 });

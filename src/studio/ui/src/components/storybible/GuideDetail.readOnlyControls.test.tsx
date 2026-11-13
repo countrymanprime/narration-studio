@@ -16,13 +16,6 @@ const EXCEPTIONS: string[] = [];
 
 function drawnControls(root: HTMLElement): string[] {
   return [...root.querySelectorAll<HTMLElement>(CONTROLS)]
-    .filter(
-      (el) =>
-        !(el as HTMLInputElement).disabled &&
-        el.getAttribute('aria-disabled') !== 'true' &&
-        !(el as HTMLInputElement).readOnly &&
-        el.getAttribute('aria-readonly') !== 'true',
-    )
     .map((el) => el.getAttribute('aria-label') || el.id || el.tagName.toLowerCase())
     .filter((name) => !EXCEPTIONS.includes(name));
 }
