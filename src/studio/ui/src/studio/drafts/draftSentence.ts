@@ -15,8 +15,6 @@ export type HeldDraft = DraftLabel & { saveable: boolean };
  * body beside the buttons). Past it the phrase falls back to the nameless briefs, then to a count.
  */
 const ROOM = 34;
-/** The room each of the two phrases gets when the question names what it saves and what it cannot save. */
-const ROOM_EACH = 17;
 const MAX_ITEMS = 3;
 const MAX_NAME = 20;
 
@@ -62,18 +60,16 @@ export function describeHeld(held: readonly DraftLabel[], room = ROOM): string {
 
 /**
  * The question put when the narrator is about to leave, or go on to something that replaces the editor: its sentence and whether Save is offered.
- * Every draft saveable: "Save or discard …". None: "Discard …", with a way to keep editing. Some: Save & continue saves those and then stays, because the
- * rest cannot be saved and only a Discard drops text; the sentence names them (#3400).
+ * Every draft saveable: "Save or discard …". Any that cannot be saved: "Discard …", with a way to keep editing, and no Save (#3400 D1: only a Discard drops text).
  */
 export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { body: string; canSave: boolean } {
   // What was held went away while the question was open (an editor closed itself): there is nothing to name, and nothing to lose by going on.
   if (held.length === 0) return { body: 'There is nothing left to save or discard.', canSave: true };
   const end = leaving ? 'leaving' : 'going on';
-  const saveable = held.filter((draft) => draft.saveable);
-  const loose = held.filter((draft) => !draft.saveable);
-  if (saveable.length === 0) return { body: `Discard ${describeHeld(loose)} before ${end}?`, canSave: false };
-  if (loose.length === 0) return { body: `Save or discard ${describeHeld(saveable)} before ${end}?`, canSave: true };
-  return { body: `Save or discard ${describeHeld(saveable, ROOM_EACH)}? Not saved yet: ${describeHeld(loose, ROOM_EACH)}.`, canSave: true };
+  // Save & continue saves all or nothing: saving an editor can close it, and with it a draft beside it that cannot be saved (an entry's Save leaves edit mode and
+  // takes a half-filled relationship row along). So one draft that cannot be saved takes Save away; the narrator keeps editing, or discards.
+  if (held.some((draft) => !draft.saveable)) return { body: `Discard ${describeHeld(held)} before ${end}?`, canSave: false };
+  return { body: `Save or discard ${describeHeld(held)} before ${end}?`, canSave: true };
 }
 
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -88,6 +84,9 @@ export function saveVerdict(
 ): { proceed: boolean; message?: string } {
   if (!outcome) return { proceed: false };
   const { failed = [], kept, late = [] } = outcome;
+  // Nothing is saved while a draft that cannot be saved is held (the registry skips the saves), so the message says so.
+  if (kept.length > 0 && failed.length === 0 && late.length === 0)
+    return { proceed: false, message: `${capital(describeHeld(kept))} cannot be saved yet, so nothing was saved and you are still here.` };
   if (outcome.saved && kept.length === 0 && late.length === 0) return { proceed: true };
   const parts = [
     failed.length > 0 ? `${describeHeld(failed)} did not save` : '',
