@@ -86,7 +86,10 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
     // Each opening reads once more; the mock refuses every read after the first.
     await user.keyboard('{Escape}');
     await open(user);
-    expect((await screen.findAllByText(/The REAPER tracks could not be read again/)).length).toBeGreaterThan(0);
+    const said = await screen.findAllByText(/The REAPER tracks could not be read again/);
+    expect(said.length).toBeGreaterThan(0);
+    // The host's reason ends in a full stop of its own; the sentence does not double it.
+    expect(said.every((node) => !node.textContent?.includes('..'))).toBe(true);
   });
 
   it('keeps both entries for an Audacity project, off, each saying what Audacity cannot do', async () => {
