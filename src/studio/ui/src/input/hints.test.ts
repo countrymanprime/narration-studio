@@ -50,6 +50,7 @@ describe('footerHints', () => {
   it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
+      { keys: ['Alt', 'Space'], label: 'Record / cold read', id: 'hint-booth.mode.switch' },
       { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
       { keys: ['Right-click'], label: 'Start from here' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
