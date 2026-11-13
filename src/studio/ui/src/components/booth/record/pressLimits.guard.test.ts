@@ -47,11 +47,11 @@ const OTHER_AWAITS: ReadonlyArray<{ head: string; why: string }> = [
 describe('a model check the press gave up on never opens its question', () => {
   // Record and the cold read both give up on the check at its limit; a call that is not handed `over` would open the install question afterwards and
   // close it again (#3320). So every ensureModel call in the Booth page passes the third argument.
-  it('every session.ensureModel( call in useBoothPage.ts is given the over token', () => {
+  it('every session.ensureModel( call in useBoothPage.ts is given the over token (directly, or inside `abandoned`)', () => {
     const text = readFileSync(join(BOOTH, 'page/useBoothPage.ts'), 'utf8');
     const calls = [...text.matchAll(/session\.ensureModel\(([^)]*)\)/g)];
     expect(calls.length).toBeGreaterThanOrEqual(2);
-    for (const call of calls) expect(call[1], call[0]).toMatch(/\bover\b/);
+    for (const call of calls) expect(call[1], call[0]).toMatch(/\b(over|abandoned)\b/);
   });
 });
 

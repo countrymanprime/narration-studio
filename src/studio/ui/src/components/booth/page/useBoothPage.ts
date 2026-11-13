@@ -409,7 +409,11 @@ export function useBoothPage(options: BoothPageOptions) {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.
-    const modelChecked = await limited('modelCheck', (over) => latest.current.session.ensureModel(undefined, undefined, over));
+    const modelChecked = await limited('modelCheck', (over) => {
+      // Given up on by the limit, or left by a chapter change: a question opened now would arrive over another chapter.
+      const abandoned = () => over() || !current();
+      return latest.current.session.ensureModel(undefined, undefined, abandoned);
+    });
     if (!current()) return false;
     // A check that has not answered by its limit claims nothing, as a list that cannot be read claims nothing: the press goes on, and the listening start
     // (which says `asset_required` for a missing model) is the authority. A slow check means files to read, so the model is there (#3432).
@@ -984,7 +988,10 @@ export function useBoothPage(options: BoothPageOptions) {
     const gone = () => token !== pressToken.current;
     try {
       // A check the cold read gave up on never opens the install question (`over`), as for a Record press.
-      const modelChecked = await limited('modelCheck', (over) => now.session.ensureModel(undefined, undefined, over));
+      const modelChecked = await limited('modelCheck', (over) => {
+        const abandoned = () => over() || gone();
+        return now.session.ensureModel(undefined, undefined, abandoned);
+      });
       // Said only where the narrator still is: a Booth left or a chapter changed meanwhile ends the cold read quietly.
       if (gone()) return;
       if (!modelChecked.timedOut && !modelChecked.value) return;
