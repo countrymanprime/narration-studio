@@ -22,6 +22,7 @@ const PRESS: ReadonlyArray<{ file: string; call: string; stage: PressStage }> = 
   { file: 'record/useRecordControl.ts', call: 'daw.recordStop()', stage: 'recordStop' },
 ];
 
+// A start marked `/* adopted take */` is the page's own listening for a take it picked up from the DAW (no press awaits it; `followAdoptedTake` tracks it).
 /** The functions of the press that are scanned for awaits, from the text that opens one to the text that follows it. */
 const SCANNED: ReadonlyArray<readonly [file: string, from: string, to: string]> = [
   ['page/useBoothPage.ts', 'const beginOnce', '\n  // The press under way'],
@@ -59,7 +60,9 @@ describe('every host call a Record press awaits has a limit', () => {
   for (const { file, call, stage } of PRESS) {
     it(`${call} in ${file} is limited by '${stage}'`, () => {
       const lines = readFileSync(join(BOOTH, file), 'utf8').split('\n');
-      const at = lines.flatMap((line, index) => (line.includes(call) && !line.trimStart().startsWith('//') && !line.includes('void ') ? [index] : []));
+      const at = lines.flatMap((line, index) =>
+        line.includes(call) && !line.trimStart().startsWith('//') && !line.includes('void ') && !line.includes('/* adopted take */') ? [index] : [],
+      );
       expect(at.length, `${call} is not in ${file} any more: update this list`).toBeGreaterThan(0);
       for (const index of at) {
         // The `limited(` that opens the statement is on the call's own line or a few lines above it (prettier wraps the call onto its own lines).

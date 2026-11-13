@@ -22,6 +22,7 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { limited } from '../record/pressLimits';
 
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
@@ -105,6 +106,17 @@ export type BoothPageOptions = {
   /** With the app's own recorder: the sentence for why no microphone can be used right now (none chosen among several, none listed, the chosen one gone), or null. A take does not begin while it is set. */
   micProblem?: () => string | null;
 };
+
+// A press outlives the page that began it: a chapter change mounts the next chapter's page, which adopts a take still recording. The press acts on nothing
+// then; when its listening ended without following the take (it failed, or was let go) it tells the Booth page that is on screen now (`tellPageUnfollowed`),
+// and that page, which reads its own take and session, decides whether the narrator is told. The registry holds the pages' callbacks, not what is true.
+// `pressIds` only orders the presses of all pages, so a page can tell that one of its own began after the press that is reporting.
+let pressIds = 0;
+const pagesOnScreen: Array<(press: number) => void> = [];
+const tellPageUnfollowed = (press: number): void => pagesOnScreen[pagesOnScreen.length - 1]?.(press);
+/** How long a report waits for the page to show the take it is about (the next chapter's page adopts a take from the DAW's next word). */
+const UNFOLLOWED_WAIT_MS = 10_000;
+const UNFOLLOWED_TOPIC = 'booth-take-unfollowed';
 
 /**
  * The Booth page's behaviour over its parts: the reading position (from the voice while listening, else the keys and clicks), one take
@@ -406,6 +418,8 @@ export function useBoothPage(options: BoothPageOptions) {
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     stoppedWhileStarting.current = false;
+    const press = ++pressIds;
+    newestPress.current = press;
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.
@@ -519,6 +533,8 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!current()) {
       // The listening this press owns is let go, once; one a newer press joined is that press's now.
       letGo();
+      // The listening ended without following the take and this press no longer owns the take: it acts on nothing, and the page on screen decides.
+      if (started) tellPageUnfollowed(press);
       return started;
     }
     if (stoppedWhileStarting.current) {
@@ -746,16 +762,58 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     [recordId, cancelStart],
   );
+  // The newest press this page began, and the report of a press left behind by a chapter change whose listening ended without following its take.
+  const newestPress = useRef(0);
+  const [unfollowed, setUnfollowed] = useState<number | null>(null);
+  // The session this page started for a take it adopted: in flight, and whether it came up. Either way the take is this page's to follow, not the report's.
+  const ownStart = useRef(false);
+  const ownFollowed = useRef(false);
+  const ownFailed = useRef(false);
+  // The takes that have begun on this page so far: a continuation that waits checks its take is still the newest.
+  const adoptedTakes = useRef(0);
+  const [ownStarted, setOwnStarted] = useState(0);
+  const unfollowedSaid = useRef(false);
   useEffect(() => {
     mounted.current = true;
+    const report = (press: number) => setUnfollowed((last) => Math.max(last ?? 0, press));
+    pagesOnScreen.push(report);
     return () => {
       mounted.current = false;
+      pagesOnScreen.splice(pagesOnScreen.indexOf(report), 1);
       overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
   }, [overlay]);
   // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
   const startPending = !recording && (roll.lookingUp || beginning);
 
+  // The listening this page starts for a take it adopted from the DAW: in flight, whether it came up, whether it failed (null: nothing was asked for).
+  const followAdoptedTake = (take: number, begin: () => Promise<{ ok: boolean; reason: string } | null>): void => {
+    ownStart.current = true;
+    ownFollowed.current = false;
+    // The session this start brings up is this page's, through a claim (`listeningClaims.ts`), so a late answer lets go only what it started.
+    const claim = claimListening();
+    void begin()
+      .then((result) => {
+        if (result === null || !result.ok) unclaimListening(claim);
+        // The take ended, or the Booth was left, while the start was out (a host answers a start it was asked to stop once it is up): the session it
+        // brought up follows nothing, and nothing else would stop it. The take that is still this one keeps the claim, and its end lets the session go.
+        else if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) {
+          if (releaseListening(claim)) latest.current.session.stop();
+        } else takeClaim.current = claim;
+        ownFollowed.current = result?.ok === true && ownsListening(claim);
+        // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.
+        ownFailed.current = result !== null && !result.ok && !/already running/i.test(result.reason);
+      })
+      .catch((error: unknown) => {
+        unclaimListening(claim);
+        ownFailed.current = true;
+        logUi('ui.record', `The listening for an adopted take could not be asked for: ${apiErrorMessage(error)}`);
+      })
+      .finally(() => {
+        ownStart.current = false;
+        setOwnStarted((n) => n + 1);
+      });
+  };
   // A take started or ended: the timer, the listening session and the passage map's run follow the Record control.
   const was = useRef(recording);
   useEffect(() => {
@@ -764,6 +822,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
+      const take = ++adoptedTakes.current;
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
       setTakeNote('');
       setPaused(false);
@@ -773,11 +832,19 @@ export function useBoothPage(options: BoothPageOptions) {
       // The press starts this take's listening itself (beginOnce), after any cold read it is ending.
       if (listenStarting.current) return;
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
+      // Either way the page asks for a listening of its own for the take it adopted, and a report about a left-behind press waits for the answer
+      // (`ownStart` is set before the cold read's stop is awaited, so the gap between the two sessions is not read as nothing following the take).
       if (now.coldRead) {
         const from = realWord();
-        void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
+        followAdoptedTake(take, async () => {
+          await endColdRead();
+          // The cold read's stop can take seconds: the take may have ended meanwhile (the DAW stopped it, or Stop was pressed), another may have begun, or the
+          // Booth may have been left. This continuation then owns no take, and starts nothing (it would leave a session running with nothing to follow).
+          if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) return null;
+          return latest.current.session.canStart ? latest.current.session.start({ startWord: from }) /* adopted take */ : null;
+        });
       } else if (!now.session.active && now.session.canStart) {
-        void now.session.start();
+        followAdoptedTake(take, () => now.session.start() /* adopted take */);
       }
       return;
     }
@@ -817,6 +884,31 @@ export function useBoothPage(options: BoothPageOptions) {
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
   }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId]);
+  // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
+  // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
+  const { active: sessionActive } = session;
+  // This effect is declared after the one that starts a take's session, so in the commit that adopts a take it already sees that session in flight.
+  useEffect(() => {
+    if (!recording) {
+      overlay.dismissTopic(UNFOLLOWED_TOPIC);
+      ownFollowed.current = false;
+      ownFailed.current = false;
+      unfollowedSaid.current = false;
+    }
+    if (unfollowed === null) return;
+    if (newestPress.current > unfollowed) return setUnfollowed(null);
+    if (!recording) {
+      const forget = setTimeout(() => setUnfollowed(null), UNFOLLOWED_WAIT_MS);
+      return () => clearTimeout(forget);
+    }
+    if (ownStart.current) return;
+    if (ownFollowed.current) return setUnfollowed(null);
+    if (sessionActive) return;
+    setUnfollowed(null);
+    // The page's own listening for the take failed too and said so: one sentence is enough.
+    if (!ownFailed.current && !unfollowedSaid.current) sayTakeUnfollowed(overlay);
+    unfollowedSaid.current = true;
+  }, [unfollowed, recording, sessionActive, ownStarted, overlay]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
@@ -1222,4 +1314,12 @@ function holdWhileMenuOpen(hold: () => () => void): () => void {
   observer.observe(document.body, { childList: true, subtree: true });
   queueMicrotask(check);
   return done;
+}
+
+/** The listening of a take ended without following it after its press was left behind by a chapter change, and the take still records here. */
+function sayTakeUnfollowed(overlay: Pick<OverlayService, 'toast'>): void {
+  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record again.', {
+    tone: 'error',
+    topic: UNFOLLOWED_TOPIC,
+  });
 }
