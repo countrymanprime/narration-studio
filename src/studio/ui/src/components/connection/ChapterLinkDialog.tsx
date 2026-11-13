@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -83,6 +84,10 @@ export function ChapterLinkDialog({
   const { mappings: links, applyMappings, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false });
   const [read, setRead] = useState<Read>({ status: 'loading' });
   const [asked, setAsked] = useState(0);
+  // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
+  const nameOf = useChapterNameOf(true, asked);
+  const nameOfRef = useRef(nameOf);
+  nameOfRef.current = nameOf;
   const [chosen, setChosen] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
@@ -110,7 +115,9 @@ export function ChapterLinkDialog({
         if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
         setChosen((current) =>
-          current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, fresh ?? linksRef.current)),
+          current && match.tracks.some((t) => t.guid === current)
+            ? current
+            : bestChoice(trackChoices(match, fresh ?? linksRef.current, undefined, nameOfRef.current)),
         );
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
@@ -150,14 +157,14 @@ export function ChapterLinkDialog({
   }, [onCheckedAgain]);
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
-  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId) : []), [read, links, chapterId]);
+  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId, nameOf) : []), [read, links, chapterId, nameOf]);
   const held = choices.find((c) => c.guid === chosen && c.heldBy);
 
   const link = () => {
     if (!chosen || linking) return;
     setLinking(true);
     setRefused(null);
-    actions.set(chapterId, chosen).then(
+    actions.set(chapterId, chosen, nameOf).then(
       ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
         applyMappings(result.mappings);

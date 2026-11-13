@@ -6,6 +6,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useChapterTrackState, useChapterTrackProject } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { MappingConfirm } from './MappingConfirm';
 
 /**
@@ -27,6 +28,7 @@ export function ChapterTrackLinkFix({
   onNavigate?: () => void;
 }) {
   const actions = useChapterLinkActions();
+  const nameOf = useChapterNameOf();
   const state = useChapterTrackState({ enabled: true });
   // The project this prompt opened for: if it is closed or another is opened under it, its chapter is not in what is read now.
   const projectNow = useChapterTrackProject();
@@ -51,12 +53,13 @@ export function ChapterTrackLinkFix({
       tracks={state.project.tracks}
       links={state.mappings}
       chapterId={chapter.id}
+      nameOf={nameOf}
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
+            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid, nameOf);
             notify(linkedNotice);
             state.applyMappings(result.mappings);
             await onLinked();
