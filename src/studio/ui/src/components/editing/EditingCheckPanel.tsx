@@ -133,7 +133,7 @@ function Results({
                   <GuardedLink
                     className={`font-semibold underline ${HIT_AREA}`}
                     to={addressPath({ page: 'editing', chapter: chapterId, drawer: 'cleanup' })}
-                    onClick={close}
+                    onNavigate={close}
                   >
                     Clean up in Editing
                   </GuardedLink>{' '}

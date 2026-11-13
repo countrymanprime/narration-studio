@@ -1,4 +1,4 @@
-import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
+import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useHref, useNavigate, type NavigateOptions } from 'react-router-dom';
 import type { DraftLabel, HeldDraft } from './draftSentence';
 
@@ -85,7 +85,9 @@ type Registry = {
   /** The shell sets these: `ask` runs `run` now, or after the question when something is held; `go` is the shell's guarded move. */
   setShell: (shell: Shell | null) => void;
   ask: (run: () => void, options?: AskOptions) => void;
-  go: (to: string, state?: unknown) => boolean;
+  go: (to: string, state?: unknown, after?: () => void) => boolean;
+  /** Changes whenever what is held may have changed; the shell reads it only to re-render. */
+  version: number;
 };
 /**
  * What `save` found. `saved`: every draft that can be saved did save. `failed`: those that said they did not. `kept`: the held drafts that cannot be saved from
@@ -96,7 +98,7 @@ export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: r
 export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
 export type AskOptions = { settle?: boolean };
-type Shell = { ask: (run: () => void, options?: AskOptions) => void; go: (to: string, state?: unknown) => void };
+type Shell = { ask: (run: () => void, options?: AskOptions) => void; go: (to: string, state?: unknown, after?: () => void) => void };
 
 const toHeld = ({ label, brief, kind, many, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined });
 
@@ -108,6 +110,8 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   const drafts = useRef(new Map<string, () => UnsavedDraft>());
   const shell = useRef<Shell | null>(null);
   const saving = useRef<Promise<SaveResult> | null>(null);
+  // Bumped on every join and leave (an editor's `dirty` changing is a join), so the shell re-renders when what is held changes and a question open over it can notice.
+  const [version, setVersion] = useState(0);
   const heldNow = useCallback(
     (): HeldDraft[] =>
       [...drafts.current.values()]
@@ -119,9 +123,11 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
   const join = useCallback((id: string, draft: () => UnsavedDraft) => {
     drafts.current.set(id, draft);
+    setVersion((current) => current + 1);
   }, []);
   const leave = useCallback((id: string) => {
     drafts.current.delete(id);
+    setVersion((current) => current + 1);
   }, []);
   // A save the question stopped waiting for (the limit) is still running: the next press shares it, for a holder that does not share its own save too.
   const inflight = useRef(new Map<string, Promise<boolean>>());
@@ -182,12 +188,15 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     shell.current = next;
   }, []);
   const ask = useCallback((run: () => void, options?: AskOptions) => (shell.current ? shell.current.ask(run, options) : run()), []);
-  const go = useCallback((to: string, state?: unknown) => {
+  const go = useCallback((to: string, state?: unknown, after?: () => void) => {
     if (!shell.current) return false;
-    shell.current.go(to, state);
+    shell.current.go(to, state, after);
     return true;
   }, []);
-  const value = useMemo(() => ({ heldNow, join, leave, save, discard, setShell, ask, go }), [heldNow, join, leave, save, discard, setShell, ask, go]);
+  const value = useMemo(
+    () => ({ heldNow, join, leave, save, discard, setShell, ask, go, version }),
+    [version, heldNow, join, leave, save, discard, setShell, ask, go],
+  );
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;
 }
 
@@ -201,7 +210,7 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
   latest.current = draft;
   const join = registry?.join;
   const leave = registry?.leave;
-  const { dirty, label, brief, kind, many } = draft;
+  const { dirty, label, brief, kind } = draft;
   const saveable = draft.save !== undefined;
   // Two editors of one kind may be mounted at once (two findings' note boxes), so the registry's key is the editor's own as well as its name.
   const own = useId();
@@ -213,7 +222,8 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
       save: latest.current.save ? () => latest.current.save?.() ?? Promise.resolve(false) : undefined,
       discard: () => latest.current.discard(),
     }));
-  }, [join, key, dirty, label, brief, kind, many, saveable]);
+    // `many` is a function the editor makes anew on every render: it is read through `latest`, and is not a reason to join again.
+  }, [join, key, dirty, label, brief, kind, saveable]);
   useEffect(() => {
     if (!leave) return;
     return () => leave(key);
@@ -226,7 +236,6 @@ export function useUnsavedDrafts(): Pick<Registry, 'heldNow' | 'save' | 'discard
   return useMemo(
     () =>
       registry ?? {
-        held: [],
         heldNow: () => [],
         save: async () => ({ saved: true, failed: [], kept: [], late: [] }),
         discard: () => ({ failed: [] }),
@@ -242,17 +251,30 @@ export function useGuardedAction(): (run: () => void, options?: AskOptions) => v
 }
 
 /** The router's `navigate` for a link that leaves the page: it takes the shell's guarded move, so the unsaved question and the Booth's leave question apply. */
-export function useGuardedNavigate(): (to: string, options?: NavigateOptions) => void {
+export function useGuardedNavigate(): (to: string, options?: NavigateOptions & { after?: () => void }) => void {
   const go = useContext(DraftsContext)?.go;
   const navigate = useNavigate();
-  return useCallback((to, options) => (go?.(to, options?.state) ? undefined : navigate(to, options)), [go, navigate]);
+  return useCallback(
+    (to, options) => {
+      if (go?.(to, options?.state, options?.after)) return;
+      navigate(to, options);
+      options?.after?.();
+    },
+    [go, navigate],
+  );
 }
 
 /**
  * The router's `Link` for a link that leaves the page: a real anchor (so the address shows, and a middle click or Ctrl+click opens it as usual), whose plain
- * click takes the shell's guarded move. A router `Link` navigates on its own and skips the question (#3446 B3).
+ * click takes the shell's guarded move. `onNavigate` is the caller's side effect of the move (closing a panel): it runs only when the move goes ahead. A router `Link` navigates on its own and skips the question (#3446 B3).
  */
-export function GuardedLink({ to, onClick, children, ...rest }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { to: string }) {
+export function GuardedLink({
+  to,
+  onClick,
+  onNavigate,
+  children,
+  ...rest
+}: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & { to: string; onNavigate?: () => void }) {
   const href = useHref(to);
   const go = useGuardedNavigate();
   return (
@@ -266,7 +288,7 @@ export function GuardedLink({ to, onClick, children, ...rest }: Omit<AnchorHTMLA
         // click (Meta off a Mac) would load the address in this tab and drop what is typed with no question, so it is a plain click.
         if (event.ctrlKey || event.shiftKey || event.altKey || (event.metaKey && isMac())) return;
         event.preventDefault();
-        go(to);
+        go(to, { after: onNavigate });
       }}
     >
       {children}

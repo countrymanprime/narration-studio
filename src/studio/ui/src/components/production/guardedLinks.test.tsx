@@ -30,8 +30,8 @@ describe('the links inside Check recordings ask like the nav does', () => {
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole('link', { name: 'Open Proof' }));
-    expect(go).toHaveBeenLastCalledWith('/proof?chapter=ch%201', undefined);
+    expect(go).toHaveBeenLastCalledWith('/proof?chapter=ch%201', undefined, undefined);
     fireEvent.click(screen.getByRole('link', { name: 'Open pickups' }));
-    expect(go).toHaveBeenLastCalledWith('/pickups', undefined);
+    expect(go).toHaveBeenLastCalledWith('/pickups', undefined, undefined);
   });
 });
