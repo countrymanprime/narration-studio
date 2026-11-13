@@ -13,7 +13,7 @@ import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import { UnsavedDraftsProvider, useUnsavedDrafts, withinSaveLimit, SaveTimeout, type AskOptions } from './studio/drafts/unsavedDrafts';
-import { describeHeld, draftQuestion, type HeldDraft } from './studio/drafts/draftSentence';
+import { describeHeld, draftQuestion } from './studio/drafts/draftSentence';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -157,8 +157,6 @@ const settleFocusedField = (): boolean => {
 let settledField: HTMLElement | undefined;
 /** How long a blur's commit takes to reach the shell's dirty flags (a state update, then the effects that report it) before the exit is decided. */
 const SETTLE_MS = 40;
-/** Settings' edited fields, named in the question beside any draft held with them: they always save. */
-const SETTINGS_HELD: HeldDraft = { label: 'your settings changes', brief: 'settings changes', saveable: true };
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
@@ -1062,13 +1060,11 @@ function AppRoutes() {
   // Leaving with an edit not yet saved asks first, wherever it is held: Settings (drawn in the shell, or in the frame for no project) or an editor's draft.
   // The title says "settings" only on the Settings page, so the question never says it for an entry or a note.
   const onSettings = location.pathname === '/settings';
-  // The sentence names everything held, Settings' fields included; with only Settings' fields held it keeps its old words (the fallback in `body` below).
-  const question =
-    pendingMove && !(settingsHeld && heldDrafts.length === 0)
-      ? draftQuestion([...(settingsHeld ? [SETTINGS_HELD] : []), ...heldDrafts], pendingMove.kind !== 'action')
-      : undefined;
+  // Settings' own fields are a form and may be many, so with edits in them the question keeps Settings' older sentence (the fallback in `body` below). A draft
+  // held instead (a credits template, a pasted key) is named, on Settings as anywhere else, so the narrator can tell what they are about to lose (#3400 D4).
+  const question = pendingMove && !settingsHeld ? draftQuestion(drafts.heldNow(), pendingMove.kind !== 'action') : undefined;
   // Save is offered when Settings holds edits (they always save) or when any held draft can be saved; otherwise the only ways on are to keep editing or discard.
-  const canSave = question?.canSave ?? true;
+  const canSave = settingsHeld || (question?.canSave ?? true);
   const discardMove = (move: PendingMove) => {
     const token = moveToken.current;
     setResolving(true);
