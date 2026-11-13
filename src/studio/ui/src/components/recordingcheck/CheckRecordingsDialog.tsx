@@ -1,4 +1,5 @@
 import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { CoverageEngines, CoverageReason, CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
@@ -341,14 +342,14 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
             goToParagraph={(index) => leave(credits ? scriptPath(shown.id) : scriptPath(shown.id, index))}
             openWorkspace={() => leave(addressPath({ page: 'editing', chapter: shown.id }))}
             actions={
-              <Button disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
+              <Button ref={keepFocusOnRemoval} disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
                 {checked ? 'Check again' : 'Check recording'}
               </Button>
             }
           />
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <Button variant="secondary" onClick={() => setViewing(undefined)}>
+          <Button ref={keepFocusOnRemoval} variant="secondary" onClick={() => setViewing(undefined)}>
             Back to chapters
           </Button>
           <Button variant="primary" onClick={close}>
@@ -410,7 +411,13 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
                           </Checkbox>
                         </div>
                         {hasResult ? (
-                          <Button variant="ghost" size="sm" aria-label={`Show result: ${headingName(chapter)}`} onClick={() => setViewing(chapter.id)}>
+                          <Button
+                            ref={keepFocusOnRemoval}
+                            variant="ghost"
+                            size="sm"
+                            aria-label={`Show result: ${headingName(chapter)}`}
+                            onClick={() => setViewing(chapter.id)}
+                          >
                             Show result
                           </Button>
                         ) : null}
@@ -457,7 +464,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
         <Button variant="secondary" onClick={close}>
           Cancel
         </Button>
-        <Button variant="primary" disabled={ids.length === 0 || blocked || blockedByDaw} onClick={() => begin(ids)}>
+        <Button ref={keepFocusOnRemoval} variant="primary" disabled={ids.length === 0 || blocked || blockedByDaw} onClick={() => begin(ids)}>
           {label}
         </Button>
       </div>

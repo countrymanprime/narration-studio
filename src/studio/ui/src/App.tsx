@@ -218,7 +218,7 @@ export function App({ journal }: { journal?: Journal } = {}) {
 // (unsaved Settings, leaving a Proof chapter view with a run) apply to both the same way (`guardedNavigate` and
 // `attemptDelta` in `App`).
 type PendingMove =
-  | { kind: 'path'; path: string; state?: unknown }
+  | { kind: 'path'; path: string; state?: unknown; after?: () => void }
   | { kind: 'delta'; direction: 1 | -1 }
   | { kind: 'picker' }
   // A change inside the page that would drop a draft (another Settings category, another entry, Close on an editor): `run` is the change.
@@ -633,7 +633,7 @@ function AppRoutes() {
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
-  const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
+  const guardedNavigateRef = useRef<(next: string, state?: unknown, after?: () => void) => void>(() => {});
   // Opening the project picker draws it in place of the shell, which takes the page down: it is an exit like any other, so a page's leave guard asks
   // first (the Booth while a take records or a start is out). Set below, where the guard's answer is read.
   const guardedPickerRef = useRef<() => void>(() => {});
@@ -847,13 +847,20 @@ function AppRoutes() {
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
   // few times over the first moments, on Keep editing when that is the way to stay and on Cancel otherwise (#3404, and #3446 B2 for every variant).
   const questionOpen = pendingMove !== undefined;
+  // What was held went away while the question was open (an editor closed itself): there is nothing left to ask about or to lose, so the move goes on.
+  const nothingLeftToAsk = pendingMove !== undefined && !resolving && !settingsHeld && drafts.heldNow().length === 0;
+  useEffect(() => {
+    if (!nothingLeftToAsk || !pendingMove) return;
+    resolvePendingMove(pendingMove);
+    setPendingMove(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the move is read when the question has just emptied.
+  }, [nothingLeftToAsk]);
   useEffect(() => {
     if (!questionOpen) return;
     const focusKeep = () => {
       const question = document.querySelector('[role="alertdialog"]');
       if (!question || question.contains(document.activeElement)) return;
-      const buttons = [...question.querySelectorAll('button')];
-      (buttons.find((button) => button.textContent === 'Keep editing') ?? buttons.find((button) => button.textContent === 'Cancel'))?.focus();
+      question.querySelector<HTMLElement>('[data-stay-button]')?.focus();
     };
     const timers = [0, 60, 250, 600].map((ms) => setTimeout(focusKeep, ms));
     // Fixed timers are not enough on a slow machine: whenever the focus lands outside the question while it is open (the drawer's close handing it back to its
@@ -878,7 +885,7 @@ function AppRoutes() {
   }, [questionOpen]);
   const { setShell } = drafts;
   useEffect(() => {
-    setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state) => guardedNavigateRef.current(to, state) });
+    setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state, after) => guardedNavigateRef.current(to, state, after) });
     return () => setShell(null);
   }, [setShell]);
   useEffect(() => {
@@ -953,20 +960,21 @@ function AppRoutes() {
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
   // The page's own question when it has one (the Booth's stops the take and keeps the narrator in the Booth when the DAW refuses), else the plain confirm.
   const answerLeave = (verdict: Exclude<ReturnType<typeof journal.checkLeave>, 'allow'>) => (verdict.decide ? verdict.decide() : overlay.confirm(verdict.ask));
-  const guardedMove = (next: string, state?: unknown) => {
+  // `after` is the caller's side effect of the move (closing the panel the link was in): it runs only when the move goes ahead, never when the question is cancelled.
+  const guardedMove = (next: string, state?: unknown, after?: () => void) => {
     // A box that saves on blur reports its edit a moment after it loses the focus: the exit is decided then, with the flags it set.
     if (settleFocusedField()) {
-      setTimeout(() => guardedNavigateRef.current(next, state), SETTLE_MS);
+      setTimeout(() => guardedNavigateRef.current(next, state, after), SETTLE_MS);
       return;
     }
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
     if (verdict === 'allow') {
-      moveTo(next, state);
+      moveTo(next, state, after);
       return;
     }
     void answerLeave(verdict).then((confirmed) => {
-      if (confirmed) moveTo(next, state);
+      if (confirmed) moveTo(next, state, after);
     });
   };
   // The one-argument form is what pages receive as a prop, so a caller that passes it on as a callback never hands it a second argument as state.
@@ -998,14 +1006,15 @@ function AppRoutes() {
   };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
-  const moveTo = (next: string, state?: unknown) => {
+  const moveTo = (next: string, state?: unknown, after?: () => void) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     if (nextPath !== location.pathname && pageHolds()) {
-      setPendingMove({ kind: 'path', path: next, state });
+      setPendingMove({ kind: 'path', path: next, state, after });
       return;
     }
     if (leavesCompareRun(location.pathname, nextPath.split('?')[0], data.transcript.phase)) void api.transcriptReset().catch(() => {});
     navigate(next, state === undefined ? undefined : { state });
+    after?.();
   };
 
   // Back and Forward run the same two guards as the nav: dirty Settings asks first, leaving
@@ -1126,9 +1135,10 @@ function AppRoutes() {
       body={question?.body ?? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`}
       confirmLabel={canSave ? 'Save & continue' : 'Discard & continue'}
       confirmVariant={canSave ? 'primary' : 'danger'}
-      // With nothing that can be saved there is one way to stay, and it is the safe one: the focus starts on it.
+      // The way to stay is Cancel, or Keep editing when nothing can be saved.
       cancelLabel={canSave ? 'Cancel' : 'Keep editing'}
-      focusCancel={!canSave}
+      // The way to stay (Cancel, or Keep editing) always takes the focus first: Enter never discards or saves by default.
+      focusCancel
       pending={resolving}
       {...(canSave ? { danger: () => discardMove(pendingMove), dangerLabel: 'Discard & continue' } : { danger: undefined, dangerLabel: undefined })}
       confirm={() => {
@@ -1158,7 +1168,9 @@ function AppRoutes() {
             // The text is where it was typed either way. A save that is only slow may still land, so that is not called a failure.
             if (token === moveToken.current)
               overlay.toast(
-                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `Not saved: ${apiErrorMessage(error)}`,
+                error instanceof SaveTimeout
+                  ? 'Saving is taking too long. What you typed is still here.'
+                  : `Not saved: ${apiErrorMessage(error)}. What you typed is still here.`,
                 {
                   tone: 'error',
                 },
@@ -1482,8 +1494,10 @@ function AppRoutes() {
     settledField = undefined;
     if (move.kind === 'picker') setProjectPickerOpen(true);
     else if (move.kind === 'action') move.run();
-    else if (move.kind === 'path') navigate(move.path, move.state === undefined ? undefined : { state: move.state });
-    else if (move.direction === -1) history.back();
+    else if (move.kind === 'path') {
+      navigate(move.path, move.state === undefined ? undefined : { state: move.state });
+      move.after?.();
+    } else if (move.direction === -1) history.back();
     else history.forward();
   }
 }
