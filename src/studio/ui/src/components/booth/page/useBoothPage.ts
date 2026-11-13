@@ -114,6 +114,10 @@ export type BoothPageOptions = {
 let pressIds = 0;
 const pagesOnScreen: Array<(press: number) => void> = [];
 const tellPageUnfollowed = (press: number): void => pagesOnScreen[pagesOnScreen.length - 1]?.(press);
+// A start that answers after its page was left must not stop a session a Booth mounted since is following (that page made no claim of its own): the
+// Booth on screen that shows a recording take takes the claim over, and its take's end lets the session go. False when none shows one.
+const takeOverFollowers: Array<(claim: ListeningClaim) => boolean> = [];
+const handListeningToPageOnScreen = (claim: ListeningClaim): boolean => takeOverFollowers[takeOverFollowers.length - 1]?.(claim) ?? false;
 /** How long a report waits for the page to show the take it is about (the next chapter's page adopts a take from the DAW's next word). */
 const UNFOLLOWED_WAIT_MS = 10_000;
 const UNFOLLOWED_TOPIC = 'booth-take-unfollowed';
@@ -302,8 +306,9 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     if (!now.coldRead) return false;
     setEndingColdRead(true);
-    // The session being ended is the cold read's: its claim goes with it, before a take's press claims the next one.
-    releaseListening(coldClaim.current);
+    // The session being ended is the cold read's: its claim goes with it, before a take's press claims the next one. A newer claim (the adopted take's,
+    // made before this runs) keeps the session in the claims, so the cold read's is removed by itself and never lingers as a stale owner.
+    if (!releaseListening(coldClaim.current)) unclaimListening(coldClaim.current);
     coldClaim.current = null;
     await now.session.stopAndWait();
     return true;
@@ -777,9 +782,16 @@ export function useBoothPage(options: BoothPageOptions) {
     mounted.current = true;
     const report = (press: number) => setUnfollowed((last) => Math.max(last ?? 0, press));
     pagesOnScreen.push(report);
+    const takeOver = (claim: ListeningClaim): boolean => {
+      if (!latest.current.recording) return false;
+      takeClaim.current = claim;
+      return true;
+    };
+    takeOverFollowers.push(takeOver);
     return () => {
       mounted.current = false;
       pagesOnScreen.splice(pagesOnScreen.indexOf(report), 1);
+      takeOverFollowers.splice(takeOverFollowers.indexOf(takeOver), 1);
       overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
   }, [overlay]);
@@ -798,7 +810,9 @@ export function useBoothPage(options: BoothPageOptions) {
         // The take ended, or the Booth was left, while the start was out (a host answers a start it was asked to stop once it is up): the session it
         // brought up follows nothing, and nothing else would stop it. The take that is still this one keeps the claim, and its end lets the session go.
         else if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) {
-          if (releaseListening(claim)) latest.current.session.stop();
+          // A Booth mounted since (the narrator left and came back while the take recorded) follows that take: it takes the claim over, stops nothing here.
+          const handedOver = !mounted.current && ownsListening(claim) && handListeningToPageOnScreen(claim);
+          if (!handedOver && releaseListening(claim)) latest.current.session.stop();
         } else takeClaim.current = claim;
         ownFollowed.current = result?.ok === true && ownsListening(claim);
         // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.

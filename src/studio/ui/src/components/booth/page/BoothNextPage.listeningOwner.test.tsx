@@ -1256,6 +1256,53 @@ describe('a press the narrator left behind by changing chapter, whose take still
     expect(host.phase()).toBe('running');
   });
 
+  describe('the late start of an adopted take whose Booth was left and opened again (break D)', () => {
+    /** The page that adopted the take asks for listening (held), is left with Leave anyway, and a new Booth mounts on the take that still records. */
+    const leaveAndReturn = async () => {
+      const host = fakeHost();
+      host.quietFailures();
+      let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
+      const { page } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+      await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+      page.view.unmount();
+      const back = mountBooth(host, page.daw);
+      await screen.findByRole('button', { name: /^Stop$/ });
+      return { host, own, back };
+    };
+
+    it('keeps the listening the Booth that came back is following: the old start answers ok and nothing is stopped', async () => {
+      const { host, own } = await leaveAndReturn();
+      host.teleprompterStop.mockClear();
+      await own();
+      await settle();
+      expect(host.teleprompterStop).not.toHaveBeenCalled();
+      expect(host.phase()).toBe('running');
+    });
+
+    it('the take that ends later lets the handed-over listening go', async () => {
+      const { host, own, back } = await leaveAndReturn();
+      await own();
+      await settle();
+      skipStartGuard();
+      await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
+      await waitFor(() => expect(back.recordStop).toHaveBeenCalled());
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+      await waitFor(() => expect(host.phase()).not.toBe('running'));
+    });
+
+    it('with no Booth left the late start is still stopped', async () => {
+      const host = fakeHost();
+      host.quietFailures();
+      let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
+      const { page } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+      await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+      page.view.unmount();
+      await own();
+      await settle();
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+    });
+  });
+
   describe('the adopting page is in a cold read (att16 K1)', () => {
     /** A report is held on a page with no take; the narrator starts a cold read there; the DAW then reports the take, so the page ends the cold read and listens for it. */
     const adoptDuringColdRead = async (ownStart: 'comes up' | 'fails' | 'refused') => {
