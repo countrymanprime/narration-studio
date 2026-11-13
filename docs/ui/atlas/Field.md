@@ -51,6 +51,6 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/controls/MwKeyBody.tsx`
 - `src/components/storybible/EntryText.tsx`
-- `src/components/storybible/GuideDetail.tsx`
+- `src/components/storybible/SpeakerColourField.tsx`
 - `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
 - `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`

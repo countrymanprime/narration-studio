@@ -215,6 +215,8 @@ A linked track whose audio cannot play (a source file missing on disk, or an ite
 
 ### REAPER tools
 
+If REAPER stops answering after the tools have read its tracks, the tools go off and say the tracks could not be read again; they come back when a read succeeds.
+
 When the project has tracks, the REAPER tools sit in their own card under the project, one icon each; hold the pointer on one for its name. **Link chapters to tracks** and
 **Prepare the chapter render** change the project open in REAPER, through the app's bridge
 REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the

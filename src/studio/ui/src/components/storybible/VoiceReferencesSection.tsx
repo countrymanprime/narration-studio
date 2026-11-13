@@ -17,7 +17,18 @@ import { clock } from '../../clock';
  * comparison or audition here, only approval).
  * Self-fetching (the pattern of the Story Bible's other sections): its own data source, independent of the entity edit form.
  */
-export function VoiceReferencesSection({ characterId, characterLabel, notify }: { characterId: string; characterLabel: string; notify: Notify }) {
+export function VoiceReferencesSection({
+  characterId,
+  characterLabel,
+  notify,
+  readOnly = false,
+}: {
+  characterId: string;
+  characterLabel: string;
+  notify: Notify;
+  /** An entry's read view lists the approved clips only; Revoke and the approve row come with Edit. */
+  readOnly?: boolean;
+}) {
   const api = useApi();
   const mutation = usePendingAction();
   const [regions, setRegions] = useState<CharacterRegion[]>();
@@ -92,38 +103,42 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
                 </div>
               </div>
               {reference.changedSinceApproval && <StatusBadge tone="warning" label="Changed since approval" />}
-              <Button variant="secondary" pending={mutation.isPending(`revoke:${reference.id}`)} onClick={() => void revoke(reference)}>
-                Revoke
-              </Button>
+              {!readOnly && (
+                <Button variant="secondary" pending={mutation.isPending(`revoke:${reference.id}`)} onClick={() => void revoke(reference)}>
+                  Revoke
+                </Button>
+              )}
             </InsetCard>
           ))}
         </ul>
       )}
       {/* One row where there is room (the region 14 rem, the note the rest, then the button), else the three stacked at one width,
           never a staircase of three widths (SBX-11). */}
-      <div className="@container mt-2">
-        <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
-          <Select
-            fullWidth
-            label={`Approve a region for ${characterLabel}`}
-            value={regionGuid}
-            onChange={setRegionGuid}
-            options={[
-              { value: '', label: 'Choose a region…' },
-              ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
-            ]}
-          />
-          <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
-          <Button
-            variant="secondary"
-            disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
-            pending={mutation.isPending('approve')}
-            onClick={() => void approve()}
-          >
-            Approve as reference
-          </Button>
+      {!readOnly && (
+        <div className="@container mt-2">
+          <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
+            <Select
+              fullWidth
+              label={`Approve a region for ${characterLabel}`}
+              value={regionGuid}
+              onChange={setRegionGuid}
+              options={[
+                { value: '', label: 'Choose a region…' },
+                ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
+              ]}
+            />
+            <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
+            <Button
+              variant="secondary"
+              disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
+              pending={mutation.isPending('approve')}
+              onClick={() => void approve()}
+            >
+              Approve as reference
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

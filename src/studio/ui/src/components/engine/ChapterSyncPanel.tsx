@@ -52,10 +52,11 @@ export function ChapterSyncPanel({
   const state = useChapterSync(api);
   // The picker offers every track of the project, each labelled with the chapter that holds it, as the other pickers do (owner answer 2 on #3398):
   // the shared state's tracks and links, so a link made elsewhere shows here, and the names the manuscript's current headings.
-  const nameOf = useChapterNameOf();
   const [preview, setPreview] = useState<ChapterSyncPreview>();
   // Read only while there is a Needs-you list to pick from, and never for another DAW's project.
   const trackState = useChapterTrackState({ enabled: daw.daw === 'REAPER', when: (preview?.needsYou.length ?? 0) > 0 });
+  // The picker's "(linked to X)" and the sentence after a Link name a chapter by the same current heading.
+  const nameOf = useChapterNameOf(Boolean(preview?.needsYou.length));
   const [toggling, setToggling] = useState(false);
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
@@ -127,7 +128,7 @@ export function ChapterSyncPanel({
     setLinkingChapterId(chapterId);
     try {
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
-      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
       notify(linkedNotice);
       await loadPreview();
       onChanged();

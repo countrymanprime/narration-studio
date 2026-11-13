@@ -1,4 +1,4 @@
-import { focusPageMain } from '../../primitives/focusReturn';
+import { releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
@@ -16,16 +16,6 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 
 /** The id of the Booth's voice button. */
 export const VOICE_CONTROL_ID = 'bvoice';
-
-/**
- * A voice key is Record's neighbour on the numpad, so the Enter that follows it must reach the page. A button left focused (the voice button after a
- * pick or a Tab, Record options, a chapter arrow) keeps Enter and would be pressed or opened instead of starting or stopping the take, so a voice key
- * hands focus from any button to the page's <main> (focusable, not tabbable).
- */
-function releaseFocusToPage(): void {
-  const focused = document.activeElement;
-  if (focused instanceof HTMLButtonElement) focusPageMain();
-}
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */

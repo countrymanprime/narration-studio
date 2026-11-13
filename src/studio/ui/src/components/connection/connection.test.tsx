@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
+import { useState } from 'react';
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_CHAPTERS } from '../../api/mockFixtures';
+import { headingName } from '../../chapterHeading';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { createOverlayService } from '../../overlay/overlayService';
@@ -513,6 +516,88 @@ describe('the not-linked dialog', () => {
     expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull();
   });
 
+  // #3416: a match read that never answers ends in the failed state (with Create offered) instead of reading for good.
+  it('a track-match read that never answers fails after its limit, and still offers to create the track', async () => {
+    vi.useFakeTimers();
+    try {
+      view(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise(() => {}) });
+      expect(screen.getByText(/Reading the REAPER tracks/)).toBeTruthy();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8100);
+      });
+      expect(screen.getByRole('alert').textContent).toMatch(/could not be read: REAPER did not answer in 8 s/);
+      expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Check again shows it is working and ignores presses meanwhile: three presses start one read', async () => {
+    let release: (m: ChapterTrackMatch) => void = () => {};
+    const chapterTrackMatch = vi
+      .fn<() => Promise<ChapterTrackMatch>>()
+      .mockResolvedValueOnce(match())
+      .mockImplementation(() => new Promise((resolve) => (release = resolve)));
+    const onCheckedAgain = vi.fn();
+    view(<ConnectionResolveDialog {...link({ onCheckedAgain })} />, { chapterTrackMatch });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    const again = screen.getByRole('button', { name: 'Check again' });
+    await userEvent.click(again);
+    await userEvent.click(again);
+    await userEvent.click(again);
+    expect(chapterTrackMatch).toHaveBeenCalledTimes(2);
+    expect(onCheckedAgain).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Reading the REAPER tracks/)).toBeTruthy();
+    await act(async () => release(match()));
+    expect(await screen.findByRole('combobox', { name: 'Track for Chapter 3' })).toBeTruthy();
+  });
+
+  it('a blank or very long chapter name still gives the title a subject and a bounded length', async () => {
+    const { unmount } = view(<ConnectionResolveDialog {...link({ chapterName: '   ' })} />);
+    expect((await screen.findAllByText(/^This chapter /)).length).toBeGreaterThan(0);
+    unmount();
+    view(<ConnectionResolveDialog {...link({ chapterName: 'x'.repeat(5000) })} />);
+    const heading = await screen.findByRole('heading');
+    expect((heading.textContent ?? '').length).toBeLessThan(200);
+  });
+
+  it('closing hands focus to the opener the page names, not to <main>', async () => {
+    const chip = document.createElement('button');
+    document.body.appendChild(chip);
+    const main = document.createElement('main');
+    main.tabIndex = -1;
+    document.body.appendChild(main);
+    function Host() {
+      const [open, setOpen] = useState(true);
+      return open ? <ConnectionResolveDialog {...link({ returnFocus: () => chip, onClose: () => setOpen(false) })} /> : null;
+    }
+    view(<Host />);
+    await screen.findByRole('dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(chip));
+    chip.remove();
+    main.remove();
+  });
+
+  it('goes away when another project opens under it, so no link is written to the wrong project', async () => {
+    const onClose = vi.fn();
+    const api = createMockApi({ chapterTrackMatch: async () => match() });
+    const tree = (folder: string) => (
+      <ApiProvider api={api}>
+        <TooltipProvider>
+          <ChapterTrackStateProvider projectFolder={folder} enabled notify={() => {}}>
+            <ConnectionResolveDialog {...link({ onClose })} />
+          </ChapterTrackStateProvider>
+        </TooltipProvider>
+      </ApiProvider>
+    );
+    const { rerender } = render(tree('C:/Projects/Alice'));
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(onClose).not.toHaveBeenCalled();
+    rerender(tree('C:/Projects/Other'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
   it('shows long, right-to-left and emoji names whole', async () => {
     const name = 'الفصل الأول 🎙️ ' + 'x'.repeat(200);
     view(<ConnectionResolveDialog {...link()} />, {
@@ -570,6 +655,63 @@ describe('the not-linked dialog on the shared chapter-track state', () => {
     expect(screen.getByLabelText('Links elsewhere').textContent).toBe('');
     await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
     await waitFor(() => expect(screen.getByLabelText('Links elsewhere').textContent).toBe('c3>{T-2}'));
+  });
+
+  // #3398 answer 3: the label before the pick and the sentence after it name the holder by the same current heading, whatever title the host kept.
+  it('names the holder by the manuscript’s current heading in the option and in the toast alike', async () => {
+    const service = createOverlayService();
+    const chapter = WIRE_CHAPTERS[0];
+    const heldByListed = { ...held, chapterId: chapter.id, chapterTitle: 'Kept long ago' };
+    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => ({
+      documentId: 'd',
+      link: { trackGuid, chapterId, chapterTitle: 'Chapter 3', confirmedAt: '' },
+      displaced: heldByListed,
+      mappings: [],
+    }));
+    render(
+      <ApiProvider
+        api={createMockApi({
+          chapterTrackMatch: async () => match(),
+          chapterTrackMapList: async () => ({ documentId: 'd', mappings: [heldByListed] }),
+          chapterTrackSet,
+        })}
+      >
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+              <ConnectionResolveDialog
+                variant="chapter-unlinked"
+                chapterId="c3"
+                chapterName="Chapter 3"
+                sentence="s"
+                dawName="REAPER"
+                onLinked={vi.fn()}
+                onClose={vi.fn()}
+              />
+            </ChapterTrackStateProvider>
+          </OverlayProvider>
+        </TooltipProvider>
+      </ApiProvider>,
+    );
+    const select = await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    const heading = headingName(chapter);
+    await waitFor(() => expect(within(select).getByRole('option', { name: new RegExp(`linked to ${heading}`) })).toBeTruthy());
+    await userEvent.selectOptions(select, '{T-2}');
+    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+    await waitFor(() =>
+      expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual([`Track linked. ${heading} was linked to that track and is now not linked.`]),
+    );
+  });
+
+  it('Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now', async () => {
+    const base = createMockApi();
+    const manuscriptChapters = vi.fn(() => base.manuscriptChapters());
+    open({ chapterTrackMatch: async () => match(), manuscriptChapters });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await waitFor(() => expect(manuscriptChapters).toHaveBeenCalled());
+    const before = manuscriptChapters.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(manuscriptChapters.mock.calls.length).toBeGreaterThan(before));
   });
 
   it('a link changed in another screen shows in the dialog at once', async () => {

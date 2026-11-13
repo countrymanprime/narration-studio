@@ -455,6 +455,16 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Booth',
     surfaces: ['help', 'settings'],
   },
+  // Alt+Space switches the main button to the other mode and starts it at once (Record to Cold read, Cold read to Record); nothing new while a take or a cold read runs.
+  // It is the one Alt+Space of the window: Windows opens the window menu on it, so the router's preventDefault is what keeps that menu shut.
+  {
+    id: 'booth.mode.switch',
+    label: 'Switch between Record and Cold read, and start',
+    scope: 'booth',
+    defaults: [key('Space', ['Alt'])],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
   {
     id: 'booth.phrase.next',
     label: 'Next phrase',

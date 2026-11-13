@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import type { ManuscriptChapter, TrackMapping } from '../../types';
-import { headingName } from '../../chapterHeading';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
+import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
@@ -17,6 +17,10 @@ export function keptTitle(storedTitle: unknown): string | undefined {
   if (!clean) return undefined;
   return clean.length > MAX_TITLE ? `${clean.slice(0, MAX_TITLE - 1)}…` : clean;
 }
+/** A chapter's name as the Link a track dialog and the sentences around it say it: cleaned and clipped like a kept title, and "This chapter" when blank. */
+export function dialogChapterName(name: string): string {
+  return keptTitle(name) ?? 'This chapter';
+}
 /** A control character or a bidi override/isolate mark. */
 function isOddCharacter(code: number): boolean {
   return (
@@ -25,7 +29,18 @@ function isOddCharacter(code: number): boolean {
     code === 0x200e ||
     code === 0x200f ||
     (code >= 0x202a && code <= 0x202e) ||
-    (code >= 0x2066 && code <= 0x2069)
+    (code >= 0x2066 && code <= 0x2069) ||
+    // Zero-width, soft-hyphen and blank-glyph characters draw nothing: a title made only of them must fall back, not name nobody.
+    code === 0x00ad ||
+    code === 0x115f ||
+    code === 0x1160 ||
+    code === 0x180e ||
+    (code >= 0x200b && code <= 0x200d) ||
+    code === 0x2060 ||
+    code === 0x2800 ||
+    code === 0x3164 ||
+    code === 0xfeff ||
+    code === 0xffa0
   );
 }
 /** The longest chapter title a sentence quotes. */
@@ -53,11 +68,7 @@ async function manuscriptNames(manuscript: {
   manuscriptChapters: () => Promise<ManuscriptChapter[]>;
 }): Promise<((chapterId: string) => string | undefined) | undefined> {
   try {
-    const chapters = await manuscript.manuscriptChapters();
-    return (chapterId) => {
-      const known = chapters.find((chapter) => chapter.id === chapterId);
-      return known ? headingName(known) : undefined;
-    };
+    return chapterNameLookup(await manuscript.manuscriptChapters());
   } catch {
     return undefined;
   }

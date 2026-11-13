@@ -105,6 +105,7 @@ describe('the Booth rows', () => {
       'booth.phrase.prev': ['ArrowUp', 'Backspace'],
       'booth.word.next': ['ArrowRight'],
       'booth.word.prev': ['ArrowLeft'],
+      'booth.mode.switch': ['Alt+Space'],
       'booth.roll': ['KeyR'],
       'booth.view.down': ['PageDown'],
       'booth.view.up': ['PageUp'],
@@ -134,13 +135,24 @@ describe('the Booth rows', () => {
     // Space stays the first gesture (the footer hint draws it); Enter and numpad Enter are the same action for the numpad (#3039).
     expect(codes('reading.toggle')).toEqual(['Space', 'Enter', 'NumpadEnter']);
     for (const code of ['Space', 'Enter', 'NumpadEnter']) {
-      const rows = COMMAND_CATALOG.filter((row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === code));
+      // A plain press: Alt+Space is a different gesture, the mode switch (#3445), checked below.
+      const rows = COMMAND_CATALOG.filter(
+        (row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === code && gesture.modifiers.length === 0),
+      );
       expect(
         rows.map((row) => row.id),
         code,
       ).toEqual(['reading.toggle']);
     }
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
+  });
+
+  it('alt-space-switches-the-mode: Alt+Space is the one booth row with a modified Space, the Record / Cold read switch (#3445)', () => {
+    const rows = COMMAND_CATALOG.filter(
+      (row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === 'Space' && gesture.modifiers.length > 0),
+    );
+    expect(rows.map((row) => row.id)).toEqual(['booth.mode.switch']);
+    expect(findCommand('booth.mode.switch')?.defaults).toEqual([expect.objectContaining({ code: 'Space', modifiers: ['Alt'] })]);
   });
 
   it('no-f-or-p-bindings: no booth row binds F or P, so nothing is flagged or sent to Pickups from the Booth', () => {

@@ -58,6 +58,8 @@ export type FooterSurface = 'booth' | 'proof';
  * The footers' specs, in the order of the mock's key hints. A spec may name only an id the catalogue has (`hints.test.ts`
  * fails otherwise), so the Editing footer joins this table in the slice that adds its commands.
  */
+// The Booth footer lists no row for `booth.mode.switch` (Alt+Space): it is one row at the widths it was before, and a hint would wrap it below about 1274 px.
+// The key is in the shortcut sheet (?) and Settings (`hints.test.ts` pins the footer's list).
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop' },
