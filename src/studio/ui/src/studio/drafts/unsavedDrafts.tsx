@@ -1,4 +1,4 @@
-import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
 import { useHref, useNavigate, type NavigateOptions } from 'react-router-dom';
 import type { DraftLabel, HeldDraft } from './draftSentence';
 
@@ -57,6 +57,10 @@ export type UnsavedDraft = DraftLabel & {
   /**
    * Saves the draft; resolves true when it is saved (the editor says why in its own words when it is not, and the narrator stays). Absent for a draft that
    * cannot be saved from here (a new Story Bible entry needs a category chosen first): the question then offers only to keep editing or discard.
+   *
+   * Contract: resolve true only once the editor renders clean. The registry reads the editor `SETTLE_AFTER_SAVE_MS` after the saves and treats anything still
+   * dirty as held again, so an editor that turns clean later (a store refresh after the save resolved) would stop every Save & continue with "changed while
+   * saving". Each screen proves its holder meets it.
    */
   save?: () => Promise<boolean>;
   /** Drops the draft. The page is about to go, so this only has to settle what must not outlive it. */
@@ -64,8 +68,6 @@ export type UnsavedDraft = DraftLabel & {
 };
 
 type Registry = {
-  /** The held drafts, in the order they were first held, each with whether the question can save it. */
-  held: readonly HeldDraft[];
   /** What is held right now, read from the editors themselves and not from the last render: an edit committed a moment ago (a box that saves on blur) counts. */
   heldNow: () => readonly HeldDraft[];
   join: (id: string, draft: () => UnsavedDraft) => void;
@@ -87,7 +89,7 @@ type Registry = {
 };
 /**
  * What `save` found. `saved`: every draft that can be saved did save. `failed`: those that said they did not. `kept`: the held drafts that cannot be saved from
- * here. `late`: drafts that became held after the saves began. All of `failed`, `kept` and `late` are still held, so the shell stays.
+ * here. `late`: anything else still held after the saves. All of `failed`, `kept` and `late` are still held, so the shell stays.
  */
 export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: readonly HeldDraft[]; late: readonly HeldDraft[] };
 /** What `discard` found: the drafts whose discard threw, which are still held. */
@@ -106,7 +108,6 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   const drafts = useRef(new Map<string, () => UnsavedDraft>());
   const shell = useRef<Shell | null>(null);
   const saving = useRef<Promise<SaveResult> | null>(null);
-  const [held, setHeld] = useState<readonly HeldDraft[]>([]);
   const heldNow = useCallback(
     (): HeldDraft[] =>
       [...drafts.current.values()]
@@ -116,28 +117,12 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     [],
   );
   const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
-  const publish = useCallback(() => {
-    const labels = heldNow();
-    setHeld((current) =>
-      current.length === labels.length && current.every((entry, index) => entry.label === labels[index]!.label && entry.saveable === labels[index]!.saveable)
-        ? current
-        : labels,
-    );
-  }, [heldNow]);
-  const join = useCallback(
-    (id: string, draft: () => UnsavedDraft) => {
-      drafts.current.set(id, draft);
-      publish();
-    },
-    [publish],
-  );
-  const leave = useCallback(
-    (id: string) => {
-      drafts.current.delete(id);
-      publish();
-    },
-    [publish],
-  );
+  const join = useCallback((id: string, draft: () => UnsavedDraft) => {
+    drafts.current.set(id, draft);
+  }, []);
+  const leave = useCallback((id: string) => {
+    drafts.current.delete(id);
+  }, []);
   // A save the question stopped waiting for (the limit) is still running: the next press shares it, for a holder that does not share its own save too.
   const inflight = useRef(new Map<string, Promise<boolean>>());
   const save = useCallback(() => {
@@ -202,10 +187,7 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     shell.current.go(to, state);
     return true;
   }, []);
-  const value = useMemo(
-    () => ({ held, heldNow, join, leave, save, discard, setShell, ask, go }),
-    [held, heldNow, join, leave, save, discard, setShell, ask, go],
-  );
+  const value = useMemo(() => ({ heldNow, join, leave, save, discard, setShell, ask, go }), [heldNow, join, leave, save, discard, setShell, ask, go]);
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;
 }
 
@@ -239,7 +221,7 @@ export function useUnsavedDraft(id: string, draft: UnsavedDraft): void {
 }
 
 /** For the app shell: what is held now, the one Save and the one Discard that reach every holder, and the hooks it plugs its guarded moves into. */
-export function useUnsavedDrafts(): Pick<Registry, 'held' | 'heldNow' | 'save' | 'discard' | 'setShell'> {
+export function useUnsavedDrafts(): Pick<Registry, 'heldNow' | 'save' | 'discard' | 'setShell'> {
   const registry = useContext(DraftsContext);
   return useMemo(
     () =>

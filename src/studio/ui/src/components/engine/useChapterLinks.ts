@@ -1,9 +1,9 @@
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { usePort } from '../../ports/usePort';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
 import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
@@ -72,10 +72,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const actions = useChapterLinkActions();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   // A chapter the manuscript no longer lists is named by the title the host kept with its link (displacedSentence).
-  const nameOf = (chapterId: string) => {
-    const known = chapters.find((chapter) => chapter.id === chapterId);
-    return known ? headingName(known) : undefined;
-  };
+  const nameOf = chapterNameLookup(chapters);
   // The links are the shared state's (#3269): read once for every screen, so the table, the dialog and the Booth cannot disagree. This hook
   // wants only the links; the tracks are the caller's.
   const trackState = useChapterTrackState({ enabled, tracks: false });

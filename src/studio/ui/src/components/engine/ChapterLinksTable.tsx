@@ -20,6 +20,7 @@ import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
+import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { useVoiceLayout } from './voiceLayout';
 import { destinationFor } from './destination';
 import { LINK_STATE_LABEL, linkStateLabel } from '../chapterTracks/chapterLink';
@@ -65,6 +66,7 @@ const NARROW_ROW =
 // success the row shows the link at once, a toast says what was made, and the live track list is read again so it lists it.
 export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks; notify: Notify; live?: LiveTracks }) {
   const { tracks, chapters, mappings, rows, error, busyChapterId, creatingChapterId } = links;
+  const nameOf = chapterNameLookup(chapters);
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
   // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
@@ -136,6 +138,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
                 row={row}
                 tracks={tracks}
                 mappings={mappings}
+                nameOf={nameOf}
                 busy={busyChapterId === row.chapter.id}
                 creating={creatingChapterId === row.chapter.id}
                 createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
@@ -218,6 +221,7 @@ function ChapterLinkRow({
   row,
   tracks,
   mappings,
+  nameOf,
   busy,
   creating,
   createLocked,
@@ -230,6 +234,8 @@ function ChapterLinkRow({
   row: ChapterTrackRow;
   tracks: Track[];
   mappings: TrackMapping[];
+  /** Names a chapter by the manuscript's current heading, for "(linked to X)". */
+  nameOf: (chapterId: string) => string | undefined;
   busy: boolean;
   creating: boolean;
   /** Another chapter's create is in flight: this row's button is off until it ends (walkthrough F1). */
@@ -244,7 +250,7 @@ function ChapterLinkRow({
   const navigate = useGuardedNavigate();
   // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
   const folders = useVoiceLayout() === 'folders';
-  const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
+  const choices = plainTrackChoices(tracks, mappings, row.chapter.id, nameOf);
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
   // The track the check re-reads: the chapter's one link. A chapter with several has none, so any pick replaces them.
