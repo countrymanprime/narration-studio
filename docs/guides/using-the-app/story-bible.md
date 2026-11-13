@@ -193,7 +193,7 @@ An entry whose type can speak (Character, unless you change it under **Story Bib
 Personality notes: **Voice samples** ([below](#voice-samples)), **Reference clips** and **Dialogue cues**. None of them judges your reading - they only
 track what you've marked or approved and who a line of dialogue is attributed to; there is no acoustic comparison or "drift" flag in the app yet.
 
-Read-only, an entry's speaker colour and each cue's speaker are greyed out, and the reference clips show no approve row or Revoke; press Edit to change any of them.
+Read-only, an entry shows its speaker colour and each cue's speaker as text, and the reference clips have no approve row or Revoke; press Edit to change any of them.
 
 **Reference clips** lists the REAPER regions you've approved as a voice reference for this
 character. In edit mode, choose a region from the picker (the regions of the saved REAPER project), add an

@@ -86,13 +86,19 @@ export function DialogueCueAttribution({
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {cue.corrected ? 'Corrected' : cue.speaker_source === 'unknown' ? 'Unattributed' : 'Attributed'}
               </span>
-              <Select
-                label={`Speaker for “${cue.quote_text}”`}
-                value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
-                disabled={readOnly || mutation.isBusy}
-                onChange={(value) => void correct(cue, value)}
-                options={speakerOptions}
-              />
+              {readOnly ? (
+                <span className="text-sm">
+                  {speakerOptions.find((option) => option.value === (cue.speaker_entity_id ?? UNKNOWN_SPEAKER))?.label ?? 'Unknown'}
+                </span>
+              ) : (
+                <Select
+                  label={`Speaker for “${cue.quote_text}”`}
+                  value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
+                  disabled={mutation.isBusy}
+                  onChange={(value) => void correct(cue, value)}
+                  options={speakerOptions}
+                />
+              )}
             </div>
           </InsetCard>
         ))}

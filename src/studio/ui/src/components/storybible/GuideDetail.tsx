@@ -1028,7 +1028,13 @@ export function GuideDetail({
             />
             {!isNewDraft && (
               <>
-                <SpeakerColourField entity={entity} speaks disabled={mutation.isBusy || editingDisabled} onChange={(index) => void setSpeakerColour(index)} />
+                <SpeakerColourField
+                  entity={entity}
+                  speaks
+                  disabled={mutation.isBusy}
+                  readOnly={editingDisabled}
+                  onChange={(index) => void setSpeakerColour(index)}
+                />
                 {/* Each titled section below the fields is set off by the same rule as Properties, Relationships and Appears in (SBX-12);
                     a section with nothing to show draws no rule. */}
                 <div className={SECTION_RULE}>
