@@ -368,33 +368,6 @@ describe('the not-linked dialog', () => {
     await waitFor(() => expect(props.onLinked).toHaveBeenCalledOnce());
   });
 
-  // #3398: the write is done when chapterTrackSet answers; a failing read of the links after it is not "The link could not be made".
-  it('hands over the made link with no failure line when only the links read after it rejects', async () => {
-    const service = createOverlayService();
-    let written = false;
-    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => {
-      written = true;
-      return { documentId: 'd', link: { trackGuid, chapterId, chapterTitle: 'Chapter 3', confirmedAt: '' }, displaced: null, mappings: [] };
-    });
-    const chapterTrackMapList = vi.fn(async () => {
-      if (written) throw new Error('the project file is locked');
-      return { documentId: 'd', mappings: [] };
-    });
-    const props = link();
-    view(
-      <OverlayProvider service={service}>
-        <ConnectionResolveDialog {...props} />
-      </OverlayProvider>,
-      { chapterTrackMatch: async () => match(), chapterTrackSet, chapterTrackMapList } as Partial<NarrationApi>,
-    );
-    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
-    await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
-    await waitFor(() => expect(props.onLinked).toHaveBeenCalledOnce());
-    expect(chapterTrackSet).toHaveBeenCalledOnce();
-    expect(screen.queryByText(/could not be made/i)).toBeNull();
-    expect(service.getSnapshot().toasts.filter((t) => t.tone === 'error')).toEqual([]);
-  });
-
   // #3365: the dialog dropped the displaced chapter, so another chapter silently became unlinked.
   it('names the chapter that lost the track when the chosen track was held', async () => {
     const service = createOverlayService();

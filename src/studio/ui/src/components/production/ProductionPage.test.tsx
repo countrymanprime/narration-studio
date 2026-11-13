@@ -551,6 +551,37 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
+  // #3398: the link is written and "Track linked." said; the read after it fails. The narrator is told the change was made, once, never that the link failed.
+  it('says the link was made, and that the list could not be read again, when only the read after a link rejects', async () => {
+    const base = createMockApi();
+    let written = false;
+    const chapterTrackLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'matched' as const })) };
+    };
+    const chapterTrackMapList = async () => {
+      if (written) throw new Error('the project file is locked');
+      return base.chapterTrackMapList();
+    };
+    const chapterTrackSet = async (chapterId: string, trackGuid: string) => {
+      written = true;
+      return base.chapterTrackSet(chapterId, trackGuid);
+    };
+    const { notify } = await renderPage({ overrides: { chapterTrackLinks, chapterTrackMapList, chapterTrackSet } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'track')?.unavailable).toBeUndefined());
+    act(() =>
+      contextItemsFor(row)
+        ?.find((item) => item.key === 'track')
+        ?.onSelect(),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The change was made, but the list could not be read again'), 'error'));
+    expect(notify.mock.calls.filter(([text]) => /linked/i.test(String(text)) && !/could not be read/.test(String(text)))).toHaveLength(1);
+    expect(notify.mock.calls.filter(([, tone]) => tone === 'error')).toHaveLength(1);
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/^Error: /), 'error');
+  });
+
   it('matches nothing outside the pipeline', async () => {
     await renderPage();
     await pipeline();
