@@ -271,7 +271,9 @@ export const engineDrivers: Record<string, Driver> = {
   'live-tracks-stale': async (page) => {
     // The mock answers the first live read and refuses every later one (see main.tsx): Refresh fails, the header says it can't tell and
     // when it last read the tracks, and the failure is a toast.
-    await page.goto('/?mockLiveTracks=failing');
+    // Boots on a page that reads no REAPER tracks of its own: Production keeps them read while it is shown, so the one answer the mock gives would go to
+    // the board and the panel would open already stale.
+    await page.goto('/delivery?mockLiveTracks=failing');
     await settlePage(page);
     const panel = await openEnginePanel(page);
     const links = panel.getByRole('region', { name: 'Chapter links' });
