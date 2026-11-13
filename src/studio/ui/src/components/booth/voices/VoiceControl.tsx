@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Voice } from '../../engine/voices';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
@@ -8,7 +8,7 @@ import { SearchList } from '../../primitives/SearchList';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
-import type { BoothVoices } from './useBoothVoices';
+import { VOICE_CONTROL_ID, type BoothVoices } from './useBoothVoices';
 import { keyName, lineCount, voiceName, type WhoCharacter } from './whoIsIn';
 import { StatusBadge } from '../../primitives/StatusBadge';
 
@@ -92,6 +92,8 @@ export function VoiceControl({
   onUseFor?: (character: WhoCharacter) => void;
 }) {
   const [query, setQuery] = useState('');
+  // Set by a pick, read when the list closes (`finalFocus`).
+  const picked = useRef(false);
   const needle = query.trim().toLocaleLowerCase();
   const missing = useMemo(() => noTrack.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle)), [noTrack, needle]);
   const grouped = noTrack.length > 0;
@@ -153,7 +155,18 @@ export function VoiceControl({
     if (!next) setQuery('');
     onOpenChange(next);
   };
+  // A pick hands focus to the page, not back to this button: Enter or Space after a pick is Record's key, and on this button it would open the list again.
+  const finalFocus = () => {
+    if (!picked.current) return true;
+    picked.current = false;
+    // <main> is focusable but not tabbable, so handed to Base UI it would pick its first tabbable (the header's chapter button): focus it here, a tick after the popup has gone.
+    const page = document.querySelector<HTMLElement>('main');
+    if (!page) return true;
+    window.setTimeout(() => page.focus(), 0);
+    return false;
+  };
   const pick = (guid: string) => {
+    picked.current = true;
     if (guid.startsWith(CHARACTER)) {
       const character = noTrack.find((each) => `${CHARACTER}${each.id}` === guid);
       changeOpen(false);
@@ -171,10 +184,11 @@ export function VoiceControl({
       side="top"
       align="start"
       fitToWindow
+      finalFocus={finalFocus}
       open={open}
       onOpenChange={changeOpen}
       trigger={
-        <Button id="bvoice" variant="secondary" pending={choosing} title={tip}>
+        <Button id={VOICE_CONTROL_ID} variant="secondary" pending={choosing} title={tip}>
           <span className="flex max-w-[18rem] min-w-0 items-center gap-2 normal-case">
             {/* The name a screen reader says holds what is drawn ("Voice: Num 0 Narrator Armed in REAPER"), so a spoken command finds it. */}
             <span className="sr-only">Voice: </span>

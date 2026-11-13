@@ -364,7 +364,7 @@ named **Narrator**. A track another chapter is linked to is never one of the voi
 
 Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
-previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
+previous voice. With no take running, a voice key (**Num 0** to **Num 9**, **Num +**, **Num −**) also starts the take on that voice once REAPER has accepted it; choosing from the list only selects. Either way the next **Enter** or **Space** is Record's: a voice key or a pick from the list leaves focus on the page, not on the voice control, so it does not reopen the list. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
 and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the

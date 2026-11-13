@@ -496,6 +496,7 @@ function BoothSession({
     recording: control.recording,
     notify: voiceToast,
     stopTake: page.stopTake,
+    startTake: page.pressMain,
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });

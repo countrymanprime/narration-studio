@@ -13,6 +13,18 @@ import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 import { chapterLink } from '../../chapterTracks/chapterLink';
 
+/** The id of the Booth's voice button. */
+export const VOICE_CONTROL_ID = 'bvoice';
+
+/**
+ * A voice key is Record's neighbour on the numpad, so the Enter that follows it must reach the page. Focus left on the voice button (after a
+ * pick from its list, or a Tab) would make that Enter open the list instead of starting or pausing the take, so a voice key takes focus off it.
+ */
+export function releaseVoiceControl(): void {
+  const focused = document.activeElement;
+  if (focused instanceof HTMLElement && focused.id === VOICE_CONTROL_ID) focused.blur();
+}
+
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
   voices: Voice[];
@@ -56,6 +68,7 @@ export function useBoothVoices({
   recording,
   notify,
   stopTake,
+  startTake,
   onNoTrack,
   asking = false,
 }: {
@@ -64,6 +77,8 @@ export function useBoothVoices({
   notify: (text: string, tone?: 'error' | 'info', action?: ToastAction) => void;
   /** Stops the take this app runs, as the Stop press does (the take is kept); resolves true once it has stopped. */
   stopTake?: () => Promise<boolean>;
+  /** Starts a take on the voice a key chose, once the host has accepted it: a voice key pressed with no take running records at once. */
+  startTake?: () => Promise<unknown>;
   /** A key with no track behind it, pressed or answered once no take runs: the page asks who is in it. */
   onNoTrack?: (key: number) => void;
   /** The page's "Who is in Num N?" is open: a voice key does nothing until it closes. */
@@ -221,16 +236,22 @@ export function useBoothVoices({
 
   // The voice the host is answering for, and the one pressed since: a press while the host answers is not dropped but sent next, and
   // only the last of several such presses is (a narrator who presses Num 1 then Num 2 means Num 2).
+  const recordingNow = useRef(recording);
+  recordingNow.current = recording;
+  // Set by a voice key pressed with no take running; the answer to the choice starts the take (see `send`).
+  const recordOnChoice = useRef(false);
   const sending = useRef<Voice | undefined>(undefined);
   const queued = useRef<Voice | undefined>(undefined);
 
   const send = useCallback(
     (voice: Voice) => {
       sending.current = voice;
+      let accepted = false;
       setChoosing(true);
       voiceTracks
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
+          accepted = answer.outcome !== 'refused';
           if (answer.outcome === 'refused') {
             notify(answer.message ?? 'The voice was not changed.', 'error');
             // The voices this page lists are not the saved project's any more: read them again.
@@ -245,15 +266,21 @@ export function useBoothVoices({
           sending.current = undefined;
           const next = queued.current;
           queued.current = undefined;
-          if (next && next.guid !== voice.guid) send(next);
-          else setChoosing(false);
+          if (next && next.guid !== voice.guid) return send(next);
+          setChoosing(false);
+          // A key pressed with no take running: the take starts on the voice the host now records on, unless a take began meanwhile.
+          const start = recordOnChoice.current;
+          recordOnChoice.current = false;
+          if (start && accepted && !recordingNow.current) void startTake?.();
         });
     },
-    [voiceTracks, chapterId, notify, refreshAll],
+    [voiceTracks, chapterId, notify, refreshAll, startTake],
   );
 
   const choose = useCallback(
-    (voice: Voice) => {
+    (voice: Voice, fromKey = false) => {
+      // Only a key records at once, and only when no take runs (a take that runs is switched live); a pick from the list leaves Record to the narrator.
+      if (fromKey && !recordingNow.current) recordOnChoice.current = true;
       // A voice chosen is the voice recorded: the stand-in for a character with no track ends.
       setStandIn(null);
       if (sending.current) queued.current = voice;
@@ -269,6 +296,7 @@ export function useBoothVoices({
 
   const byKey = useCallback(
     (n: number) => {
+      releaseVoiceControl();
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -281,7 +309,7 @@ export function useBoothVoices({
         return;
       }
       const voice = voices.find((each) => each.key === String(n));
-      if (voice) return choose(voice);
+      if (voice) return choose(voice, true);
       // Decision C as the owner changed it (#2839): a key with no track asks who is in it, while stopped and during a take; a take
       // this app runs is stopped first, as the Stop press stops it, so nothing recorded is lost.
       if (!recording || !stopTake) return onNoTrack?.(n);
@@ -388,6 +416,7 @@ export function useBoothVoices({
 
   const step = useCallback(
     (by: 1 | -1) => {
+      releaseVoiceControl();
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {
@@ -400,7 +429,7 @@ export function useBoothVoices({
         0,
         voices.findIndex((voice) => voice.guid === from?.guid),
       );
-      choose(voices[(at + by + voices.length) % voices.length]);
+      choose(voices[(at + by + voices.length) % voices.length], true);
     },
     [voices, current, choose, notify, linkKind, setup.layout],
   );

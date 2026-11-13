@@ -47,6 +47,7 @@ export function Popover({
   onOpenChange,
   fitToWindow = false,
   focusPopup = false,
+  finalFocus,
   sideOffset = 12,
   compact = false,
   children,
@@ -72,6 +73,8 @@ export function Popover({
   // Open with focus on the popup itself rather than its first control, so a key pressed just after opening (Enter from a footswitch) presses
   // nothing inside: for a popup whose first control can take the narrator elsewhere. Tab still moves into the controls.
   focusPopup?: boolean;
+  // Where focus goes when it closes (Base UI's `finalFocus`): by default back to the trigger. A caller whose trigger would swallow the key that follows a pick (Enter reopening it) sends focus to the page.
+  finalFocus?: (closeType: string) => boolean | HTMLElement | null | void;
   children: ReactNode;
 }) {
   const popup = useRef<HTMLDivElement>(null);
@@ -102,6 +105,7 @@ export function Popover({
           <BasePopover.Popup
             ref={popup}
             initialFocus={focusPopup ? popup : undefined}
+            finalFocus={finalFocus}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
             className={`max-h-[var(--available-height)] w-max ${compact ? COMPACT_WIDTH : WIDTH} overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
