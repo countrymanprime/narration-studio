@@ -170,6 +170,22 @@ describe("a link that leaves a page is a GuardedLink, not the router's Link (#34
   });
 });
 
+// A link drawn inside a dialog or panel that opens over every page (Check recordings and its report, the engine panel's Editing check) leaves a page that may hold a
+// draft, so it is a `GuardedLink` and never in `LINK_EXEMPT` (#3446 D2). These files are the ones such a dialog draws.
+const OVERLAY_HOSTED = [
+  'recordingcheck/CheckResult.tsx',
+  'editing/EditingCheckPanel.tsx',
+  'production/ProofPickupNotes.tsx',
+  'production/PickupListCount.tsx',
+  'production/RecordingCheckReport.tsx',
+];
+describe('a link inside a dialog that opens over every page is a GuardedLink (#3446 D2)', () => {
+  test('none of those files renders the router Link or sits in LINK_EXEMPT', () => {
+    const offenders = OVERLAY_HOSTED.filter((name) => ROUTER_LINK.test(code(readFileSync(join(components, name), 'utf8'))) || name in LINK_EXEMPT);
+    expect(offenders, 'use GuardedLink (studio/drafts/unsavedDrafts.tsx) and drop the LINK_EXEMPT entry').toEqual([]);
+  });
+});
+
 // A holder is also lost without any exit from the page: a control on the same page that unmounts or replaces it (another rail tab, another finding, a search that
 // swaps the pane for its results, Add entry over an edited entry) drops the typed text with no question (#3404). Every file that registers a draft therefore
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
