@@ -456,3 +456,16 @@ describe('toast lifetime', () => {
     expect(toastLifetimeMs({ tone: 'error', durationMs: TOAST_MAX_MS })).toBe(TOAST_MAX_MS);
   });
 });
+
+describe('Escape on a focused toast', () => {
+  it('is not taken by a capture-phase Escape listener of the page: the listeners that close a panel skip a key from a toast (#3431)', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
+    const button = screen.getByRole('button', { name: 'Dismiss message' });
+    button.focus();
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    button.dispatchEvent(event);
+    // The key is the toast's: it is handled (default prevented) so a page-level Escape that checks `defaultPrevented` leaves it alone.
+    expect(event.defaultPrevented).toBe(true);
+  });
+});

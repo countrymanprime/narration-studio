@@ -112,6 +112,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       onKeyDown={(event) => {
         // Escape dismisses the toast that has focus, as its Dismiss button does; the key is the toast's, so it does not also close a dialog or leave the page.
         if (event.key !== 'Escape' || !(event.target instanceof HTMLElement)) return;
+        event.preventDefault();
         event.stopPropagation();
         settle(event.target, true);
       }}

@@ -49,7 +49,7 @@ type ToastOptions = {
   /** Leads an information message with the glyph of what it is about; an error always leads with its warning glyph. */
   icon?: ToastMessage['icon'];
   topic?: string;
-  /** How long an information message stays, when longer than the usual five seconds. */ durationMs?: number;
+  /** How long the message stays when it needs a different time than its tone's (an error is never shorter than its default; no toast outlasts `TOAST_MAX_MS`). */ durationMs?: number;
 };
 
 /** An open layer. The primitive that draws it owns focus, stacking and Escape; this is only what to draw and who to tell. */
