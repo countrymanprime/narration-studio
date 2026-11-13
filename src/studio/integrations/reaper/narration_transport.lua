@@ -1,4 +1,4 @@
--- Recording in REAPER for the Read Aloud control bar, over the bridge: arm_only, record_start and record_stop
+-- Recording in REAPER for the Read Aloud control bar, over the bridge: arm_only, arm_lane (the Booth's voice choice), record_start and record_stop
 -- (the calls are in
 -- docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers
 -- as the chunk argument. The read side (which tracks are armed, whether REAPER records) is chapter_track_state in
@@ -20,6 +20,9 @@
 -- They are put back when a recording this bridge started stops, whether record_stop stops it or the narrator stops it
 -- in REAPER (a short defer watch notices), and only where an arm is still what arm_only left it: an arm the narrator
 -- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block.
+--
+-- arm_lane is arm_only for the Booth's lane choice while no take runs: the same arming, but the arms become the
+-- narrator's, so nothing is remembered and a later stop leaves the lane armed (the app and the DAW stay in agreement, #3429).
 --
 -- record_start records only when REAPER is stopped and exactly one track is armed, the named one. record_stop stops
 -- only the recording this bridge started (RECORD_NOT_OURS otherwise). Neither calls Main_OnCommand: recording starts
@@ -625,12 +628,14 @@ local function watch_tick(session_dir, state)
   event(session_dir, 'TRANSPORT', '', play_state, string.format('%.6f', reaper.GetPlayPosition() or 0), string.format('%.6f', cursor))
 end
 
-local function arm_only(session_dir, state, run_id, guid_text)
+local function arm_only(session_dir, state, run_id, guid_text, keep)
   if not reaper.APIExists('CountTracks') or not reaper.APIExists('SetMediaTrackInfo_Value') then
     event(session_dir, 'ERROR', run_id, 'This REAPER version cannot arm tracks.')
     return
   end
-  if recording() then
+  -- state.recording is set from the moment record_start presses record, before GetPlayState reports it: a lane armed in that window
+  -- would move the take to another track and drop the arms to put back.
+  if recording() or (keep and state.recording and not state.recording.started) then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
   end
@@ -659,7 +664,12 @@ local function arm_only(session_dir, state, run_id, guid_text)
       disarmed, changed = disarmed + 1, true
     end
   end
-  event(session_dir, 'ARMED', run_id, state.saved_arms.target, disarmed, changed and 1 or 0)
+  local target_guid = state.saved_arms.target
+  if keep then
+    -- arm_lane: the arms are the narrator's now, so nothing is put back at a stop.
+    state.saved_arms = nil
+  end
+  event(session_dir, 'ARMED', run_id, target_guid, disarmed, changed and 1 or 0)
 end
 
 -- How many defer cycles record_start waits for GetPlayState to report recording after pressing record (about a second
@@ -904,6 +914,9 @@ return function(registry)
   local state = {}
   registry.register('arm_only', function(ctx, args)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '')
+  end)
+  registry.register('arm_lane', function(ctx, args)
+    arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true)
   end)
   registry.register('record_start', function(ctx, args)
     record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '')

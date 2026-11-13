@@ -6522,7 +6522,7 @@ describe('the voice tracks bindings', () => {
     expect((await api.boothVoiceSet(chapterId, '{F0LD-V01CE}')).reason).toBe('not_a_voice');
     const selected = await api.boothVoiceSet(chapterId, '{v01ce-rabb1t}');
     expectMatches(boothVoiceSchema, selected, 'mock booth voice (selected)');
-    expect(selected).toEqual({ outcome: 'selected', trackGuid: '{V01CE-RABB1T}' });
+    expect(selected).toEqual({ outcome: 'selected', trackGuid: '{V01CE-RABB1T}', armed: true });
     const started = await api.readAloudRecordStart(chapterId);
     expect(started.trackGuid).toBe('{V01CE-RABB1T}');
     const switched = await api.boothVoiceSet(chapterId, '{V01CE-EXTRAS}');
