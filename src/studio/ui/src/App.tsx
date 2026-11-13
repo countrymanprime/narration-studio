@@ -1157,7 +1157,7 @@ function AppRoutes() {
             // Save & continue never drops text (#3400): `saveVerdict` says whether to go on, and otherwise which draft could not be saved.
             const verdict = saveVerdict(outcome);
             if (!verdict.proceed) {
-              if (verdict.message) overlay.toast(verdict.message);
+              if (verdict.message) overlay.toast(`${verdict.message} What you typed is still here.`, { tone: 'error' });
               return cancelPendingMove();
             }
             setSettingsDirty(false);
