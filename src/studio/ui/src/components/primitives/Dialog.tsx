@@ -1,3 +1,12 @@
+/** Focuses the first of these that takes it: a disabled control, or one that left the page, does not, and focus must not fall to <body> for want of one. */
+function focusFirst(targets: readonly (HTMLElement | null | undefined)[]): void {
+  for (const target of targets) {
+    if (!target?.isConnected) continue;
+    target.focus({ preventScroll: true });
+    if (document.activeElement === target) return;
+  }
+}
+
 import { markDialogClosed } from './dialogClosed';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
@@ -156,7 +165,28 @@ export function Dialog({
   // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
   // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
+  // Whether Base UI handed focus back as the dialog closed; when the dialog goes with its parent instead, this stays false (see the cleanup below).
+  const handedBack = useRef(false);
+  const latest = useRef({ returnFocus, stayOnBody });
+  latest.current = { returnFocus, stayOnBody };
+  // A dialog that is removed together with the thing around it (a link made takes away the notice that opened its dialog, chip and all) never gets its
+  // close hand-back, and focus would fall to <body>. Hand it back the same way, a tick later, only when focus is on nothing.
+  useEffect(
+    () => () => {
+      if (handedBack.current) return;
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (active && active !== document.body && active.isConnected) return;
+        if (latest.current.stayOnBody && (!opener || opener === document.body)) return;
+        const named = latest.current.returnFocus?.();
+        const useOpener = opener?.isConnected && opener !== document.body && !(opener.tagName === 'MAIN' && named?.isConnected);
+        focusFirst([useOpener ? opener : named, document.querySelector<HTMLElement>('main')]);
+      }, 0);
+    },
+    [opener],
+  );
   const finalFocus = () => {
+    handedBack.current = true;
     const named = returnFocus?.();
     // The action that closed this dialog already moved focus to its destination (a jump menu result focuses what it went to): leave it there.
     const now = document.activeElement;
@@ -181,7 +211,9 @@ export function Dialog({
       const active = document.activeElement;
       const nowhere =
         !active || active === document.body || !active.isConnected || popupRef.current?.contains(active) || (landmark && active.tagName === 'MAIN');
-      if (nowhere && back.isConnected) back.focus({ preventScroll: true });
+      // The page may have drawn its landmark again meanwhile, or the opener may be a control that is off now (the Booth's Record before a link is made):
+      // <main> is the last stop, so focus does not fall to <body>.
+      if (nowhere) focusFirst([back, document.querySelector<HTMLElement>('main')]);
     }, 0);
     return false;
   };
