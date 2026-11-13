@@ -79,6 +79,19 @@ test.describe('a lane key then Enter', () => {
     });
   }
 
+  test('a lane key with the skip link focused takes focus off it, so Enter stops the take instead of following the link', async ({ page }) => {
+    await openBooth(page);
+    const skip = page.getByRole('link', { name: 'Skip to content' });
+    await skip.focus();
+    await expect(skip).toBeFocused();
+    await page.keyboard.press('Numpad1');
+    await expect(stopButton(page)).toBeVisible();
+    expect(await enterSwallowed(page)).toBe(false);
+    await pastStartGuard(page);
+    await page.keyboard.press('Enter');
+    await expect(stopButton(page)).toHaveCount(0);
+  });
+
   for (const via of ['Record options', 'Record options after Escape', 'Next chapter', 'Previous chapter']) {
     test(`a lane key with ${via} focused takes focus off it, so Enter stops the take`, async ({ page }) => {
       await openBooth(page);

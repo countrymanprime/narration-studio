@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { DawResult } from '../../../api/contracts/daw';
 import { usePedalSpace } from '../../../input/usePedalSpace';
+import { keyLayerOpen } from '../../../input/targets';
+import { releaseFocusToPage } from '../releaseFocusToPage';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
@@ -1114,7 +1116,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
       const started = listening.value;
       if (started.ok) coldClaim.current = mine;
-      else if (!gone()) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
+      else if (!gone()) overlay.toast(`Cold read did not start: ${(started.reason || 'listening failed').replace(/[.\s]+$/, '')}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
       setColdStarting(false);
@@ -1176,6 +1178,19 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
+  // Alt+Space (#3445): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
+  // from Record a cold read, from Cold read a take. Nothing new while a take or a cold read runs or is starting, or while a popup or a question has
+  // the keyboard (the router lets an Alt chord through a popup, so this says no to it here).
+  const switchMode = useCallback(async () => {
+    const now = latest.current;
+    if (now.takeOut || now.coldRead || coldReadStarting.current || starting.current || keyLayerOpen()) return;
+    releaseFocusToPage();
+    const cold = !now.coldMode;
+    setColdMode(cold);
+    if (cold) await toggleColdRead();
+    else await toggleTake();
+  }, [toggleColdRead, toggleTake]);
+  useCommand('booth.mode.switch', () => void switchMode());
   useCommand('reading.toggle', () => void pressMain());
   usePedalSpace(pressMain);
   useCommand('booth.phrase.next', () => moveReading(nextPhrase(latest.current.units, latest.current.at)));
