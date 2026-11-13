@@ -83,7 +83,10 @@ export function limited<T>(
     const work = typeof start === 'function' ? start(() => over) : start;
     const timer = setTimeout(() => {
       over = true;
-      logUi('ui.record.limit', `press stage=${stage} limit=${ms}ms reached; the press ended`);
+      logUi(
+        'ui.record.limit',
+        `press stage=${stage} limit=${ms}ms reached; ${stage === 'modelCheck' ? 'the press went on without the answer' : 'the press ended'}`,
+      );
       resolve({ timedOut: true });
     }, ms);
     work.then(

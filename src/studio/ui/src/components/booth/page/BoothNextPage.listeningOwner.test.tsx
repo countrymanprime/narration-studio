@@ -7,11 +7,13 @@ import { useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/hostWindow', () => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
+vi.mock('../../../api/uiLog', () => ({ logUi: vi.fn() }));
 vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('../takeTone')>()), playTakeTone: vi.fn(async () => {}) }));
 
 import type { TeleprompterEvent, TeleprompterStartOptions } from '../../../api/contracts/teleprompter';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { NarrationApi, TeleprompterState } from '../../../types';
+import { logUi } from '../../../api/uiLog';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { forgetListeningClaims } from '../listening/listeningClaims';
@@ -478,6 +480,30 @@ describe('a model check that is slow never ends a press with no take (#3432)', (
       await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalled());
       await waitFor(() => expect(page.recordStart).toHaveBeenCalled());
       expect(screen.queryByText(/could not be checked in time/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Record keeps its pending look the whole time a slow check is out, and the run log says the press went on (#3432)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      const assetsList = vi.fn(() => new Promise(() => {}));
+      const page = mountBooth(host, undefined, { assetsList: assetsList as never });
+      await ready();
+      await space();
+      await waitFor(() => expect(assetsList).toHaveBeenCalled());
+      expect(main().getAttribute('aria-busy')).toBe('true');
+      await act(() => vi.advanceTimersByTimeAsync(1_500));
+      expect(main().getAttribute('aria-busy')).toBe('true');
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.modelCheck - 2_000));
+      expect(main().getAttribute('aria-busy')).toBe('true');
+      expect(page.recordStart).not.toHaveBeenCalled();
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await waitFor(() => expect(page.recordStart).toHaveBeenCalled());
+      expect(logUi).toHaveBeenCalledWith('ui.record.limit', expect.stringContaining('stage=modelCheck'));
+      expect(logUi).toHaveBeenCalledWith('ui.record.limit', expect.stringContaining('the press went on'));
     } finally {
       vi.useRealTimers();
     }
