@@ -60,14 +60,6 @@ describe('who owns the host listening session', () => {
     expect(releaseListening(press)).toBe(false);
     expect(ownsListening(cold)).toBe(true);
   });
-  it('a cold read claim ended under a newer adopted claim that then fails leaves no owner behind', () => {
-    const cold = claimListening();
-    const adopted = claimListening();
-    // The cold read's end cannot release it (it is not the newest), so it is removed by itself.
-    if (!releaseListening(cold)) unclaimListening(cold);
-    unclaimListening(adopted);
-    expect(joinListening()).toBeNull();
-  });
   it('a session that ended some other way has no owner', () => {
     const press = claimListening();
     forgetListeningClaims();

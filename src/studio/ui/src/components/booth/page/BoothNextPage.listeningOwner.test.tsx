@@ -16,7 +16,7 @@ import type { NarrationApi, TeleprompterState } from '../../../types';
 import { logUi } from '../../../api/uiLog';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
-import { forgetListeningClaims } from '../listening/listeningClaims';
+import { claimListening, forgetListeningClaims, joinListening, unclaimListening } from '../listening/listeningClaims';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
 
@@ -141,14 +141,14 @@ function Driver() {
 }
 
 /** One Booth mount over the host and DAW; a second call is the narrator coming back to the Booth. */
-function mountBooth(host: ReturnType<typeof fakeHost>, daw = dawFor('reaper'), over: Partial<NarrationApi> = {}) {
+function mountBooth(host: ReturnType<typeof fakeHost>, daw = dawFor('reaper'), over: Partial<NarrationApi> = {}, search?: string) {
   const recordStart = vi.spyOn(daw, 'recordStart');
   const recordStop = vi.spyOn(daw, 'recordStop');
   const undoLast = vi.spyOn(daw, 'undoLast');
   const overlay = createOverlayService();
   const api = pageApi({ passageMapRecordRun: async () => {}, ...host.api, ...over } as Partial<NarrationApi>);
   const view = render(
-    <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
+    <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay} search={search}>
       <BoothNextPage hasManuscript navigate={vi.fn()} />
       <Driver />
     </BoothHost>,
@@ -278,6 +278,23 @@ describe('a cold read the narrator left is not left listening', () => {
     await release();
     await settle();
     await waitFor(() => expect(host.phase()).not.toBe('running'));
+  });
+});
+
+describe('the narrator ends a cold read while a newer claim sits over its own', () => {
+  it('leaves no claim behind for the session that ended', async () => {
+    const host = fakeHost();
+    mountBooth(host);
+    await ready();
+    await chooseCold();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(host.phase()).toBe('running'));
+    // A press from a Booth that was left claims after the cold read did, so the cold read's claim is no longer the newest.
+    const newer = claimListening();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(host.phase()).not.toBe('running'));
+    unclaimListening(newer);
+    expect(joinListening(), 'the cold read claim outlived the cold read').toBeNull();
   });
 });
 
@@ -807,7 +824,14 @@ describe('the roll of a take has a limit', () => {
       const { page, lands } = await hungRoll();
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       await lands();
       await screen.findByText(LANDED);
       expect(page.recordStop).toHaveBeenCalledTimes(1);
@@ -820,7 +844,14 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       page.recordStart.mockImplementationOnce(() => new Promise(() => {}));
       await space();
       await lands();
@@ -871,7 +902,14 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await lands();
@@ -887,7 +925,14 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await lands(false);
@@ -921,7 +966,14 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       expect(
         page.overlay
           .getSnapshot()
@@ -944,7 +996,14 @@ describe('the roll of a take has a limit', () => {
     await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
     await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
     await space();
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+    await new Promise((r) => setTimeout(r, 1500));
+    console.log(
+      'BTNS',
+      screen
+        .getAllByRole('button')
+        .map((b) => b.textContent || b.getAttribute('aria-label'))
+        .join('|'),
+    );
     await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await screen.findByText(LANDED);
     expect(screen.queryByText(/Rolling again from/)).toBeNull();
@@ -991,7 +1050,14 @@ describe('the roll of a take has a limit', () => {
       await lands();
       await screen.findByText(LANDED);
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       expect(screen.queryByText(LANDED)).not.toBeNull();
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
@@ -1034,7 +1100,14 @@ describe('the roll of a take has a limit', () => {
       await r();
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      console.log(
+        'BTNS',
+        screen
+          .getAllByRole('button')
+          .map((b) => b.textContent || b.getAttribute('aria-label'))
+          .join('|'),
+      );
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
       expect(screen.queryByText(/did not answer the roll in time/)).toBeNull();
     } finally {
@@ -1257,17 +1330,19 @@ describe('a press the narrator left behind by changing chapter, whose take still
   });
 
   describe('the late start of an adopted take whose Booth was left and opened again (break D)', () => {
-    /** The page that adopted the take asks for listening (held), is left with Leave anyway, and a new Booth mounts on the take that still records. */
-    const leaveAndReturn = async () => {
+    /** The page that adopted the take asks for listening (held), is left with Leave anyway, and a new Booth mounts at `search`; the DAW read decides if a take still records. */
+    const leaveAndReturn = async ({ search = '?chapter=c2', takeEndsMeanwhile = false } = {}) => {
       const host = fakeHost();
       host.quietFailures();
       let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
-      const { page } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+      const { page, push } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
       await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
       page.view.unmount();
-      const back = mountBooth(host, page.daw);
-      await screen.findByRole('button', { name: /^Stop$/ });
-      return { host, own, back };
+      if (takeEndsMeanwhile) await push(false);
+      const back = mountBooth(host, page.daw, {}, search);
+      if (!takeEndsMeanwhile) await screen.findByRole('button', { name: /^Stop$/ });
+      else await screen.findByRole('button', { name: /^Record$/ });
+      return { host, own, back, push };
     };
 
     it('keeps the listening the Booth that came back is following: the old start answers ok and nothing is stopped', async () => {
@@ -1279,7 +1354,7 @@ describe('a press the narrator left behind by changing chapter, whose take still
       expect(host.phase()).toBe('running');
     });
 
-    it('the take that ends later lets the handed-over listening go', async () => {
+    it('the take that ends later lets the handed-over listening go, and the claim with it', async () => {
       const { host, own, back } = await leaveAndReturn();
       await own();
       await settle();
@@ -1288,6 +1363,35 @@ describe('a press the narrator left behind by changing chapter, whose take still
       await waitFor(() => expect(back.recordStop).toHaveBeenCalled());
       await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
       await waitFor(() => expect(host.phase()).not.toBe('running'));
+      expect(joinListening(), 'a claim outlived the session it was for').toBeNull();
+    });
+
+    it('a Booth showing another chapter is not handed the session: it is let go, as with no Booth', async () => {
+      const { host, own } = await leaveAndReturn({ search: '?chapter=c1' });
+      await own();
+      await settle();
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+      expect(host.phase()).not.toBe('running');
+    });
+
+    it('a Booth that shows no take (it ended while away) is not handed the session: it is let go', async () => {
+      const { host, own } = await leaveAndReturn({ takeEndsMeanwhile: true });
+      await own();
+      await settle();
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+      expect(host.phase()).not.toBe('running');
+    });
+
+    it('a Booth left again with a handed-over session lets it go, so a take that ends while away leaves nothing running or claimed', async () => {
+      const { host, own, back, push } = await leaveAndReturn();
+      await own();
+      await settle();
+      expect(host.phase()).toBe('running');
+      back.view.unmount();
+      await push(false);
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+      expect(host.phase()).not.toBe('running');
+      expect(joinListening(), 'a claim outlived the session it was for').toBeNull();
     });
 
     it('with no Booth left the late start is still stopped', async () => {

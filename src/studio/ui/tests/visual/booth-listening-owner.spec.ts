@@ -569,8 +569,30 @@ for (const [name, cold, ignoreStop] of [
 }
 
 // att19 break D: the Booth is left with Leave anyway while the adopted listening start is out, and the narrator comes back to the take that still records.
-// The start answers ok for a page that is gone; the Booth that came back follows that take, so the answer must not stop the session.
-test("an adopted take's late start answer keeps the listening when the Booth was left with Leave anyway and came back", async ({ page }) => {
+// The start answers ok for a page that is gone; the Booth that came back follows that take, so the answer must not stop the session. A Booth that shows
+// another chapter follows something else, and one that was left again has nobody to hand the session to: both let it go.
+type Held = {
+  __recording: boolean;
+  __failStops: number;
+  __transport: Set<(transport: unknown) => void>;
+  __refuseListening: Array<(ok: boolean) => void>;
+  __phase: () => string;
+};
+const setDawRecording = (page: Page, recording: boolean) =>
+  page.evaluate((on) => {
+    const w = window as unknown as Held;
+    w.__recording = on;
+    w.__transport.forEach((listener) => listener({ playing: on, recording: on, position: 1 }));
+  }, recording);
+const phaseOf = (page: Page) => page.evaluate(() => (window as unknown as Held).__phase());
+const gotoBooth = (page: Page, chapter: string) =>
+  page.evaluate((id) => {
+    window.history.pushState(null, '', `/booth?chapter=${id}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, chapter);
+
+/** The adopted take's listening start is held; the Booth is left with Leave anyway; the narrator comes back to `chapter` with the take still recording. */
+const leaveDuringAdoptedStartAndReturn = async (page: Page, chapter: string) => {
   await page.addInitScript(installHeldTake);
   await page.goto('/');
   await settlePage(page);
@@ -579,10 +601,9 @@ test("an adopted take's late start answer keeps the listening when the Booth was
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
   await page.evaluate(() => {
-    (window as unknown as { __recording: boolean }).__recording = false;
-    window.history.pushState(null, '', '/booth?chapter=chapter-2');
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    (window as unknown as Held).__recording = false;
   });
+  await gotoBooth(page, 'chapter-2');
   const question = page.getByRole('alertdialog');
   await question.getByRole('button', { name: /^Stop and leave/ }).click();
   const anyway = question.getByRole('button', { name: /^Leave anyway/ });
@@ -590,13 +611,9 @@ test("an adopted take's late start answer keeps the listening when the Booth was
   await page.waitForTimeout(600);
   await anyway.click();
   await expect(page).toHaveURL(/chapter=chapter-2/);
-  await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](false));
-  await page.evaluate(() => {
-    const w = window as unknown as { __recording: boolean; __failStops: number; __transport: Set<(transport: unknown) => void> };
-    w.__failStops = 2;
-    w.__recording = true;
-    w.__transport.forEach((listener) => listener({ playing: true, recording: true, position: 1 }));
-  });
+  await page.evaluate(() => (window as unknown as Held).__refuseListening[0](false));
+  await page.evaluate(() => void ((window as unknown as Held).__failStops = 3));
+  await setDawRecording(page, true);
   // The page's own listening for the adopted take is asked for and held. The narrator leaves again (REAPER does not answer the stop) and comes back.
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 10_000 }).toBe(2);
   await page.keyboard.press('Escape');
@@ -606,17 +623,41 @@ test("an adopted take's late start answer keeps the listening when the Booth was
   await anyway.click();
   await expect(page.getByRole('heading', { level: 1, name: 'Script' })).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(1000);
-  await page.evaluate(() => {
-    window.history.pushState(null, '', '/booth?chapter=chapter-2');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  });
+  await gotoBooth(page, chapter);
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  return { anyway, question };
+};
+const answerHeldStart = (page: Page) => page.evaluate(() => (window as unknown as Held).__refuseListening[1](true));
+
+test("an adopted take's late start answer keeps the listening when the Booth was left with Leave anyway and came back", async ({ page }) => {
+  await leaveDuringAdoptedStartAndReturn(page, 'chapter-2');
   const stopsBefore = (await calls(page)).listeningStops;
-  await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[1](true));
+  await answerHeldStart(page);
   await page.waitForTimeout(1500);
-  expect(await page.evaluate(() => (window as unknown as { __phase: () => string }).__phase()), 'the late answer stopped the listening a Booth follows').toBe(
-    'running',
-  );
+  expect(await phaseOf(page), 'the late answer stopped the listening a Booth follows').toBe('running');
   expect((await calls(page)).listeningStops).toBe(stopsBefore);
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
+});
+
+test('a late start answer does not hand its listening to a Booth showing a take in another chapter', async ({ page }) => {
+  await leaveDuringAdoptedStartAndReturn(page, 'chapter-3');
+  const stopsBefore = (await calls(page)).listeningStops;
+  await answerHeldStart(page);
+  await expect.poll(() => phaseOf(page), { timeout: 5000 }).not.toBe('running');
+  expect((await calls(page)).listeningStops).toBeGreaterThan(stopsBefore);
+});
+
+test('a listening handed to a Booth that is then left with Leave anyway is let go, so a take that ends while away leaves nothing running', async ({ page }) => {
+  const { anyway, question } = await leaveDuringAdoptedStartAndReturn(page, 'chapter-2');
+  await answerHeldStart(page);
+  await page.waitForTimeout(500);
+  expect(await phaseOf(page)).toBe('running');
+  await page.keyboard.press('Escape');
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
+  await expect(anyway).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(600);
+  await anyway.click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Script' })).toBeVisible({ timeout: 8000 });
+  await setDawRecording(page, false);
+  await expect.poll(() => phaseOf(page), { timeout: 5000 }).not.toBe('running');
 });
