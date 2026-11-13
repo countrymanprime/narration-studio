@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterItemsByNearestLink, chapterTrackOf } from '../../api/chapterTrackItems';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
@@ -186,6 +187,15 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // The notice is the last takeover's, kept by the shared reader: a dialog opening anew starts without it, so it is never repeated for a change this session did not make.
   const { clearNotice } = links;
   useEffect(() => clearNotice(), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // A pick that takes a track from another chapter says so as a toast, as every other picker does (owner answer on #3398): it outlives the dialog,
+  // so closing it right after the pick does not lose who lost the track.
+  const overlay = useOverlay();
+  // A notice already held when the dialog opens is an earlier session's, which was toasted then.
+  const earlier = useRef(links.notice);
+  useEffect(() => {
+    if (!links.notice) earlier.current = '';
+    else if (links.notice !== earlier.current) overlay.toast(links.notice);
+  }, [links.notice, overlay]);
 
   const failure = requestError || (state.phase === 'error' ? state.message : '');
   const stampError = lastAction === 'stamp' ? failure : '';
@@ -268,11 +278,6 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       {links.error && (
         <div className="mb-3">
           <ToolResult tone="danger" message={links.error} />
-        </div>
-      )}
-      {links.notice && (
-        <div className="mb-3">
-          <ToolResult tone="warning" message={links.notice} />
         </div>
       )}
       {state.phase === 'stamping' && (

@@ -10,6 +10,8 @@ import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { createOverlayService } from '../../overlay/overlayService';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { LineIdentityState, NarrationApi, Track } from '../../types';
 
 afterEach(cleanup);
@@ -22,14 +24,18 @@ function Dialog({ onClose, tracks = WIRE_TRACKS_PROJECT.tracks }: { onClose: () 
 
 function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, onClose = vi.fn(), tracks?: Track[]) {
   const api = createMockApi(overrides, initial);
+  const service = createOverlayService();
+  const toast = vi.spyOn(service, 'toast');
   render(
     <ApiProvider api={api}>
-      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-        <Dialog onClose={onClose} tracks={tracks} />
-      </ChapterTrackStateProvider>
+      <OverlayProvider service={service}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Dialog onClose={onClose} tracks={tracks} />
+        </ChapterTrackStateProvider>
+      </OverlayProvider>
     </ApiProvider>,
   );
-  return { api, onClose };
+  return { api, onClose, toast };
 }
 
 describe('LinkChaptersDialog', () => {
@@ -218,7 +224,7 @@ describe('LinkChaptersDialog', () => {
   // #3053: the host moves a track that another chapter holds (`displaced`); the dialog said nothing, so that chapter went to "Not linked" unseen.
   it('says which chapter a picked track was taken from, and that it is now not linked', async () => {
     const user = userEvent.setup();
-    renderDialog();
+    const { toast } = renderDialog();
     const [first, second] = WIRE_CHAPTERS;
     const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
 
@@ -228,8 +234,8 @@ describe('LinkChaptersDialog', () => {
 
     await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
 
-    const notice = await screen.findByText(new RegExp(`${first.title}.*is now not linked`));
-    expect(notice).toBeTruthy();
+    // A toast, not a banner in the dialog: it outlives the dialog (owner answer on #3398).
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`${first.title}.*is now not linked`))));
     expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe('');
   });
 
@@ -369,11 +375,15 @@ describe('LinkChaptersDialog', () => {
         </>
       );
     }
+    const service = createOverlayService();
+    const toast = vi.spyOn(service, 'toast');
     render(
       <ApiProvider api={api}>
-        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-          <Reopen />
-        </ChapterTrackStateProvider>
+        <OverlayProvider service={service}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <Reopen />
+          </ChapterTrackStateProvider>
+        </OverlayProvider>
       </ApiProvider>,
     );
     const [first, second] = WIRE_CHAPTERS;
@@ -381,11 +391,12 @@ describe('LinkChaptersDialog', () => {
     await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), track);
     await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe(track));
     await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
-    expect(await screen.findByText(/is now not linked/)).toBeTruthy();
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     await user.click(screen.getAllByRole('button', { name: 'Close' })[0]);
     await user.click(screen.getByRole('button', { name: 'toggle' }));
     await screen.findByRole('combobox', { name: `Track for ${first.title}` });
-    expect(screen.queryByText(/is now not linked/)).toBeNull();
+    // The toast was raised once, when the pick was made; opening again does not raise it again.
+    expect(toast).toHaveBeenCalledTimes(1);
   });
 
   it('hides the previous empty-read line when the next Read is refused (qa-breaker 4)', async () => {
