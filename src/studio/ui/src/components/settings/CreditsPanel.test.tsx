@@ -3,17 +3,28 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { expectHolderCleanAfterSave } from '../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { withoutCredits } from '../../chapterKinds';
 import { CreditsPanel } from './CreditsPanel';
 
 afterEach(cleanup);
+
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
 
 function renderPanel(overrides: Parameters<typeof createMockApi>[0] = {}) {
   const api = createMockApi(overrides);
   const notify = vi.fn();
   render(
     <ApiProvider api={api}>
-      <CreditsPanel notify={notify} />
+      <UnsavedDraftsProvider>
+        <RegistryProbe />
+        <CreditsPanel notify={notify} />
+      </UnsavedDraftsProvider>
     </ApiProvider>,
   );
   return { api, notify };
@@ -70,6 +81,17 @@ describe('CreditsPanel', () => {
     fireEvent.change(body, { target: { value: '[Title], read by [Narrator].' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
     await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === '[Title], read by [Narrator].')).toBe(true));
+  });
+
+  it('a template edit renders clean once the registry has saved it (the holder contract)', async () => {
+    const { api } = renderPanel();
+    await screen.findByRole('combobox', { name: 'Template' });
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body') as HTMLTextAreaElement, { target: { value: '[Title], held by the registry.' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+    expect((await api.creditsTemplates()).some((template) => template.body === '[Title], held by the registry.')).toBe(true);
   });
 
   it('offers the chapter announcement kind and previews it for the first chapter, filling [Chapter] and [Chapter Title]', async () => {
