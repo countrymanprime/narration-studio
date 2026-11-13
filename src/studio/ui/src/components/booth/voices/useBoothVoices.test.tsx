@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-type Extra = { stopTake?: () => Promise<boolean>; onNoTrack?: (key: number) => void; asking?: boolean };
+type Extra = { stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
   const api = given ?? createMockApi({}, seed);
@@ -136,6 +136,31 @@ describe("the Booth's voices", () => {
     expect(hook.current.linkKind).toBe(kind);
     expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
+  });
+
+  it('a voice key with no take running starts the take once the host has accepted the voice; a pick from the list does not (#3430)', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const { hook } = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    await act(async () => hook.current.byKey(1));
+    await waitFor(() => expect(startTake).toHaveBeenCalledTimes(1));
+    expect(hook.current.current?.name).toBe('White Rabbit');
+    await act(async () => hook.current.choose(hook.current.voices[2]));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).toHaveBeenCalledTimes(1);
+  });
+
+  it('a voice key starts nothing when the host refuses the voice, or while a take runs', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const refused = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    refused.api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'No.' });
+    await act(async () => refused.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
+    cleanup();
+    const recording = await mount({ voiceFolders: true }, true, undefined, { startTake });
+    await act(async () => recording.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
   });
 
   it('a refused choice is a toast and keeps the voice', async () => {
