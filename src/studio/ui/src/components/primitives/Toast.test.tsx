@@ -469,3 +469,30 @@ describe('Escape on a focused toast', () => {
     expect(event.defaultPrevented).toBe(true);
   });
 });
+
+describe('a hold that starts while the toast fades', () => {
+  for (const tone of ['info', 'error'] as const) {
+    for (const how of ['pointer', 'focus'] as const) {
+      for (const offset of [0, 140, 149, 1]) {
+        it(`${tone}, ${how} at ${offset} ms before its end: visible again while held, and a full lifetime after release (#3431)`, () => {
+          const dismiss = vi.fn();
+          const stays = tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+          render(<ToastRegion messages={[{ id: 1, text: 'Held', tone }]} dismiss={dismiss} />);
+          const toast = screen.getByText('Held').closest('[data-tone]') as HTMLElement;
+          act(() => void vi.advanceTimersByTime(stays - Math.max(offset, 1)));
+          if (how === 'pointer') fireEvent.pointerEnter(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).focus());
+          act(() => void vi.advanceTimersByTime(1000));
+          expect(toast.className).not.toContain('opacity-0');
+          expect(dismiss).not.toHaveBeenCalled();
+          if (how === 'pointer') fireEvent.pointerLeave(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).blur());
+          act(() => void vi.advanceTimersByTime(stays - 1));
+          expect(dismiss).not.toHaveBeenCalled();
+          act(() => void vi.advanceTimersByTime(1));
+          expect(dismiss).toHaveBeenCalledWith(1);
+        });
+      }
+    }
+  }
+});

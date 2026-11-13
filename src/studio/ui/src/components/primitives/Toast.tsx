@@ -19,6 +19,8 @@ export type ToastMessage = {
   icon?: IconDefinition;
   topic?: string;
   durationMs?: number;
+  /** How many times the same message was raised again while this one showed: the same toast, its time starting over (so a focused toast is not unmounted). */
+  again?: number;
   /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
   undo?: { entry?: number };
 };
@@ -90,14 +92,18 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
     );
   };
   useEffect(() => {
-    if (held) return;
+    // A hold that starts in the fade brings the toast back: it was not taken away, and it gets its full time again on release.
+    if (held) {
+      setLeaving(false);
+      return;
+    }
     const fade = window.setTimeout(() => setLeaving(true), stays - FADE_MS);
     const remove = window.setTimeout(() => dismiss(id), stays);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, stays, held]);
+  }, [dismiss, id, stays, held, message.again]);
   return (
     <div
       data-tone={message.tone}

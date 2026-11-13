@@ -35,6 +35,6 @@ describe('toasts have one mechanism and every toast has a bounded lifetime (#343
     const timer = toast.slice(toast.indexOf('const fade = window.setTimeout'), toast.indexOf('const fade = window.setTimeout') + 200);
     expect(timer).toContain('stays');
     // Only a pointer on the toast or focus in it may hold the timer.
-    expect(toast).toMatch(/useEffect\(\(\) => \{\n\s+if \(held\) return;/);
+    expect(toast).toMatch(/useEffect\(\(\) => \{\n(?:\s+\/\/[^\n]*\n)?\s+if \(held\) \{\n\s+setLeaving\(false\);\n\s+return;\n\s+\}/);
   });
 });

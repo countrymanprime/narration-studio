@@ -152,7 +152,10 @@ export function createOverlayService(): OverlayService {
     // back the newest change; History still holds the earlier ones.
     const again = (old: ToastMessage) =>
       (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
-    const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
+    const replaced = snapshot.toasts.find(again);
+    // The same toast again keeps its id (and so its element and any focus on it) and starts its time over.
+    const next = replaced && !replaced.undo && !undo ? { ...message, id: replaced.id, again: (replaced.again ?? 0) + 1 } : message;
+    const queue = [...snapshot.toasts.filter((old) => !again(old)), next];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
       // The oldest plain notice goes first: a toast with an action (an Undo) is something to press, so a burst of notices does not take it.
       const older = queue.slice(0, -1);
