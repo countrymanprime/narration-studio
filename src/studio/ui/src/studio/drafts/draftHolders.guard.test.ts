@@ -75,7 +75,6 @@ const PENDING: Record<string, string> = {
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
-  'settings/controls/MwKeyBody.tsx': SCREEN('Settings'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
   'storybible/Relationships.tsx': SCREEN('Story Bible'),
   'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
@@ -157,7 +156,17 @@ describe('a link out of a page goes through the guarded navigate (#3400)', () =>
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
-const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {};
+const SETTINGS_PANE: Replacer[] = [
+  { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
+  {
+    file: 'settings/page/SettingsPage.tsx',
+    control: 'a search or filter that shows, changes or clears the results',
+    asks: /else guarded\(apply, \{ settle: false \}\)/,
+  },
+];
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+};
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)
@@ -183,5 +192,20 @@ describe('a control on the page that replaces a draft holder asks first (#3404)'
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// The search and the filter swap the Settings pane for the results, and clearing them swaps it back (#3404): every write of the page's category, query or filter
+// is either inside the guarded `showCategory` / `changeSearch`, or the link effect that a link already asked for in `moveTo`. A new writer fails this until it is listed.
+describe('the Settings pane is swapped only through the question (#3404)', () => {
+  const page = code(readFileSync(join(components, 'settings/page/SettingsPage.tsx'), 'utf8'));
+  const writes = (setter: string) => [...page.matchAll(new RegExp(`\\b${setter}\\(`, 'g'))].length;
+  test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
+    expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
+  });
+  test('showCategory asks, and so does every change of the search or filter', () => {
+    expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
+    expect(page).toMatch(/onChange=\{changeQuery\}/);
+    expect(page).toMatch(/changeFilter\(next as Filter\)/);
   });
 });
