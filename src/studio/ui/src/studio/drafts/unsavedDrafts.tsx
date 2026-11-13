@@ -9,6 +9,9 @@ import type { DraftLabel, HeldDraft } from './draftSentence';
 // link that leaves the page through `useGuardedNavigate`, so both ask the same question. Settings' own fields keep their separate registry
 // (`SettingsFormsProvider`), because they save as a form; this one is for every other editor with a Save of its own.
 
+/** How long the registry waits after the saves for the editors to render what they cleared, before it reads what is still held. */
+const SETTLE_AFTER_SAVE_MS = 30;
+
 /** How long a save may take before the question stops waiting for it: the narrator gets the buttons back, and the text stays where it was typed. */
 export const SAVE_LIMIT_MS = 15_000;
 
@@ -141,12 +144,12 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     if (saving.current) return saving.current;
     const saved = (async (): Promise<SaveResult> => {
       const entries = [...drafts.current].map(([id, read]) => [id, read()] as const).filter(([, draft]) => draft.dirty);
-      const started = new Set(entries.map(([id]) => id));
       // A draft with no save of its own (a new entry with no category) is not saved here, and not dropped either: it stays held and the shell stays put.
       const kept = entries.filter(([, draft]) => !draft.save).map(([, draft]) => toHeld(draft));
       // All or nothing: saving an editor can close it and a draft beside it that cannot be saved with it, so while one is held nothing is saved.
       if (kept.length > 0) return { saved: false, failed: [], kept, late: [] };
       const failed: HeldDraft[] = [];
+      const failedIds = new Set<string>();
       let tried = 0;
       for (const [id, draft] of entries) {
         if (!draft.save) continue;
@@ -158,11 +161,16 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
           request = draft.save().finally(() => inflight.current.delete(id));
           inflight.current.set(id, request);
         }
-        if (!(await request)) failed.push(toHeld(draft));
+        if (!(await request)) {
+          failed.push(toHeld(draft));
+          failedIds.add(id);
+        }
       }
-      // What became held while the saves ran (a late reply, a restored draft) was never asked about.
+      // What is held now that is not a save that failed was never asked about: a draft that became held while the saves ran (a late reply, a restored draft), and
+      // one that was dirty again right after its own save. The editors need a moment to render what the saves cleared before they can be read.
+      await new Promise<void>((resolve) => setTimeout(resolve, SETTLE_AFTER_SAVE_MS));
       const late = [...drafts.current]
-        .filter(([id]) => !started.has(id))
+        .filter(([id]) => !failedIds.has(id))
         .map(([, read]) => read())
         .filter((draft) => draft.dirty)
         .map(toHeld);
@@ -271,8 +279,10 @@ export function GuardedLink({ to, onClick, children, ...rest }: Omit<AnchorHTMLA
       href={href}
       onClick={(event) => {
         onClick?.(event);
-        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || rest.target === '_blank')
-          return;
+        if (event.defaultPrevented || event.button !== 0 || rest.target === '_blank') return;
+        // The browser opens a new tab or window for Ctrl, Shift and, on a Mac, Cmd: the page and its drafts stay where they are. Alt downloads. Any other modified
+        // click (Meta off a Mac) would load the address in this tab and drop what is typed with no question, so it is a plain click.
+        if (event.ctrlKey || event.shiftKey || event.altKey || (event.metaKey && isMac())) return;
         event.preventDefault();
         go(to);
       }}
@@ -281,3 +291,5 @@ export function GuardedLink({ to, onClick, children, ...rest }: Omit<AnchorHTMLA
     </a>
   );
 }
+
+const isMac = (): boolean => typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);

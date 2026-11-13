@@ -154,12 +154,10 @@ describe('a link out of a page goes through the guarded navigate (#3400)', () =>
 // The router's `<Link>` navigates on its own too, so a link that leaves a page whose editor holds text must be a `GuardedLink` (#3446 B3). A file that still
 // renders the router's own is listed with the reason leaving by it loses nothing, or with the screen whose change converts it.
 const ROUTER_LINK = /<(Link|NavLink)\b/;
+// Not for a link drawn inside an overlay dialog (Check recordings opens over every page, Proof, Script and Editing included): those are GuardedLinks.
 const NO_DRAFT_PAGE = 'a link on a page that holds no draft: nothing there is lost by leaving';
 const LINK_EXEMPT: Record<string, string> = {
-  'editing/EditingCheckPanel.tsx': NO_DRAFT_PAGE,
-  'production/PickupListCount.tsx': NO_DRAFT_PAGE,
   'production/CreditsRowPanel.tsx': NO_DRAFT_PAGE,
-  'production/ProofPickupNotes.tsx': NO_DRAFT_PAGE,
   'proof/ProofChapterPage.tsx': SCREEN('Proof'),
   'proof/checkcard/FindingRow.tsx': SCREEN('Proof'),
 };

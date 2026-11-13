@@ -13,7 +13,7 @@ import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import { UnsavedDraftsProvider, useUnsavedDrafts, withinSaveLimit, SaveTimeout, type AskOptions } from './studio/drafts/unsavedDrafts';
-import { discardVerdict, draftQuestion, saveVerdict } from './studio/drafts/draftSentence';
+import { discardVerdict, draftQuestion, saveVerdict, SETTINGS_HELD } from './studio/drafts/draftSentence';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -856,7 +856,25 @@ function AppRoutes() {
       (buttons.find((button) => button.textContent === 'Keep editing') ?? buttons.find((button) => button.textContent === 'Cancel'))?.focus();
     };
     const timers = [0, 60, 250, 600].map((ms) => setTimeout(focusKeep, ms));
-    return () => timers.forEach(clearTimeout);
+    // Fixed timers are not enough on a slow machine: whenever the focus lands outside the question while it is open (the drawer's close handing it back to its
+    // opener, a late focus move), it is put back at once, so Enter or Space cannot reopen the drawer over the question (#3446 D3).
+    const rescue = (event: FocusEvent) => {
+      const question = document.querySelector('[role="alertdialog"]');
+      const target = event.target;
+      if (
+        !question ||
+        !(target instanceof Node) ||
+        question.contains(target) ||
+        (target instanceof Element && target.closest('[role="dialog"], [role="alertdialog"]'))
+      )
+        return;
+      focusKeep();
+    };
+    document.addEventListener('focusin', rescue);
+    return () => {
+      timers.forEach(clearTimeout);
+      document.removeEventListener('focusin', rescue);
+    };
   }, [questionOpen]);
   const { setShell } = drafts;
   useEffect(() => {
@@ -1063,9 +1081,14 @@ function AppRoutes() {
   const onSettings = location.pathname === '/settings';
   // Settings' own fields are a form and may be many, so with edits in them the question keeps Settings' older sentence (the fallback in `body` below). A draft
   // held instead (a credits template, a pasted key) is named, on Settings as anywhere else, so the narrator can tell what they are about to lose (#3400 D4).
-  const question = pendingMove && !settingsHeld ? draftQuestion(drafts.heldNow(), pendingMove.kind !== 'action') : undefined;
-  // Save is offered when Settings holds edits (they always save) or when any held draft can be saved; otherwise the only ways on are to keep editing or discard.
-  const canSave = settingsHeld || (question?.canSave ?? true);
+  // With a draft that cannot be saved held, Save & continue would save nothing (all or nothing), so the question is Discard-only and names Settings' fields too.
+  const looseHeld = drafts.heldNow().some((draft) => !draft.saveable);
+  const question =
+    pendingMove && (!settingsHeld || looseHeld)
+      ? draftQuestion([...(settingsHeld ? [SETTINGS_HELD] : []), ...drafts.heldNow()], pendingMove.kind !== 'action')
+      : undefined;
+  // Save is offered unless something held cannot be saved; Settings' fields alone always save.
+  const canSave = question?.canSave ?? true;
   // Settings' own save has no shared request of its own: a second Save & continue after the limit would send it again while the first never answered.
   const saveSettingsOnce = (): Promise<boolean> => {
     if (!settingsSaving.current) {

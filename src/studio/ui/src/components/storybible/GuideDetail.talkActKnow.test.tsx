@@ -45,7 +45,7 @@ describe('Story Bible: how they talk, act and know', () => {
       ]),
     );
     expect(await screen.findByText('How they talk')).toBeTruthy();
-    expect(screen.getByText('Clipped')).toBeTruthy();
+    expect(await screen.findByText('Clipped')).toBeTruthy();
     expect(screen.getByText('How they act')).toBeTruthy();
     expect(screen.getByText('What they know')).toBeTruthy();
     // They are the Script rail's rows, not a second copy in the Properties table.
@@ -71,7 +71,7 @@ describe('Story Bible: how they talk, act and know', () => {
     await swapped.guideTypeSetSpeaks('Character', false);
     renderDetail(place(), swapped);
     expect(await screen.findByText('How they talk')).toBeTruthy();
-    expect(screen.getByText('kept as a property')).toBeTruthy();
+    expect(await screen.findByText('kept as a property')).toBeTruthy();
     expect(screen.queryByRole('table', { name: 'Properties' })?.textContent ?? '').not.toContain('kept as a property');
     cleanup();
     renderDetail(character([{ key: 'says', value: 'Clipped' }]), swapped);

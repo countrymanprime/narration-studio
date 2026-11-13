@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { HIT_AREA } from '../primitives/hitArea';
 import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
 
@@ -16,9 +16,9 @@ export function PickupListCount({ available, remaining }: { available: boolean; 
     <div className={PICKUP_SOURCE_ROW}>
       <span>Pickup list: {available ? `${remaining ?? 0} open (project-wide)` : 'open REAPER to count'}</span>
       {available && (
-        <Link to="/pickups" className={`flex-none font-semibold underline ${HIT_AREA}`}>
+        <GuardedLink to="/pickups" className={`flex-none font-semibold underline ${HIT_AREA}`}>
           Open pickups
-        </Link>
+        </GuardedLink>
       )}
     </div>
   );

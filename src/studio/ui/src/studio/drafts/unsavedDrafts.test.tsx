@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, renderHook } from '@testing-library/react';
-import { useEffect, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
+import { useEffect, useState, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -17,8 +18,20 @@ import {
   type UnsavedDraft,
 } from './unsavedDrafts';
 
+/** A holder that, like a real editor, is clean once its save returned true. */
 function Holder({ id, draft }: { id: string; draft: UnsavedDraft }) {
-  useUnsavedDraft(id, draft);
+  const [saved, setSaved] = useState(false);
+  useUnsavedDraft(id, {
+    ...draft,
+    dirty: draft.dirty && !saved,
+    save: draft.save
+      ? async () => {
+          const done = await draft.save!();
+          if (done) flushSync(() => setSaved(true));
+          return done;
+        }
+      : undefined,
+  });
   return null;
 }
 function Install({ shell }: { shell: { ask: (run: () => void) => void; go: (to: string, state?: unknown) => void } }) {
@@ -155,6 +168,88 @@ describe('the unsaved-drafts registry', () => {
     }
   });
 
+  it('a draft that is dirty again right after its own save is reported in late (#3446 D1)', async () => {
+    function Again() {
+      const [text, setText] = useState('typed');
+      useUnsavedDraft('again', {
+        dirty: text !== '',
+        label: 'your reply',
+        save: async () => {
+          flushSync(() => setText(''));
+          queueMicrotask(() => flushSync(() => setText('typed again')));
+          return true;
+        },
+        discard: () => setText(''),
+      });
+      return null;
+    }
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
+    const Registry = () => {
+      registry = useUnsavedDrafts();
+      return null;
+    };
+    render(
+      <UnsavedDraftsProvider>
+        <Again />
+        <Registry />
+      </UnsavedDraftsProvider>,
+    );
+    await act(async () => {
+      const outcome = await registry.save();
+      expect(outcome.saved).toBe(true);
+      expect(outcome.late.map((entry) => entry.label)).toEqual(['your reply']);
+    });
+  });
+
+  it('a draft that saved and stayed clean is not reported (the editors get a moment to render what the save cleared)', async () => {
+    function Clears() {
+      const [text, setText] = useState('typed');
+      useUnsavedDraft('clears', {
+        dirty: text !== '',
+        label: 'your reply',
+        save: async () => (flushSync(() => setText('')), true),
+        discard: () => setText(''),
+      });
+      return null;
+    }
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
+    const Registry = () => {
+      registry = useUnsavedDrafts();
+      return null;
+    };
+    render(
+      <UnsavedDraftsProvider>
+        <Clears />
+        <Registry />
+      </UnsavedDraftsProvider>,
+    );
+    await act(async () => expect(await registry.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
+  });
+
+  describe('GuardedLink modifier clicks (#3446 D5)', () => {
+    it.each([
+      ['plain', {}, true],
+      ['ctrl', { ctrlKey: true }, false],
+      ['shift', { shiftKey: true }, false],
+      ['alt', { altKey: true }, false],
+      // Meta is a new tab only on a Mac; here (jsdom) it would load the address in this tab, so it is a plain click.
+      ['meta off a Mac', { metaKey: true }, true],
+      ['middle button', { button: 1 }, false],
+    ] as const)('%s click: guarded move = %s', (_name, init, guarded) => {
+      const go = vi.fn();
+      const view = render(
+        <MemoryRouter>
+          <UnsavedDraftsProvider>
+            <Install shell={{ ask: vi.fn(), go }} />
+            <GuardedLink to="/proof">Proof</GuardedLink>
+          </UnsavedDraftsProvider>
+        </MemoryRouter>,
+      );
+      fireEvent.click(view.getByRole('link', { name: 'Proof' }), init);
+      expect(go).toHaveBeenCalledTimes(guarded ? 1 : 0);
+    });
+  });
+
   it('discard keeps going after a holder whose discard throws, and names it (#3446 B7)', () => {
     const second = vi.fn();
     const { result } = setup({
@@ -176,7 +271,22 @@ describe('the unsaved-drafts registry', () => {
 
   it('sixty holders that save at once all save, in order (#3446 B8)', async () => {
     const saves = Array.from({ length: 60 }, () => vi.fn(async () => true));
-    const { result } = setup(Object.fromEntries(saves.map((save, index) => [`h${index}`, draft({ save, label: `note ${index}` })])));
+    // Plain holders (they stay dirty): the point is that sixty saves run in order without nesting React's updates past its limit.
+    function Plain({ id, save }: { id: string; save: () => Promise<boolean> }) {
+      useUnsavedDraft(id, draft({ save, label: `note ${id}` }));
+      return null;
+    }
+    const view = renderHook(() => useUnsavedDrafts(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <UnsavedDraftsProvider>
+          {saves.map((save, index) => (
+            <Plain key={index} id={`h${index}`} save={save} />
+          ))}
+          {children}
+        </UnsavedDraftsProvider>
+      ),
+    });
+    const { result } = view;
     await act(async () => expect((await result.current.save()).saved).toBe(true));
     for (const save of saves) expect(save).toHaveBeenCalledOnce();
   });
@@ -317,7 +427,17 @@ describe('the unsaved-drafts registry', () => {
     function Editor({ request, press }: { request: () => Promise<boolean>; press: { current: () => Promise<boolean> } }) {
       const save = useSharedSave(request);
       press.current = save;
-      useUnsavedDraft('editor', { dirty: true, label: 'your text', save, discard: () => {} });
+      const [saved, setSaved] = useState(false);
+      useUnsavedDraft('editor', {
+        dirty: !saved,
+        label: 'your text',
+        save: async () => {
+          const done = await save();
+          if (done) flushSync(() => setSaved(true));
+          return done;
+        },
+        discard: () => {},
+      });
       return null;
     }
     const mountEditor = (request: () => Promise<boolean>) => {
@@ -370,7 +490,10 @@ describe('the unsaved-drafts registry', () => {
         });
         expect(request).toHaveBeenCalledOnce();
         finish(true);
-        await act(async () => expect(await second).toEqual({ saved: true, failed: [], kept: [], late: [] }));
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(100);
+          expect(await second).toEqual({ saved: true, failed: [], kept: [], late: [] });
+        });
       } finally {
         vi.useRealTimers();
       }

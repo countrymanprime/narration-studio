@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState, type ReactNode } from 'react';
 import { withoutCredits } from './chapterKinds';
 import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createRoot } from 'react-dom/client';
@@ -11,7 +12,7 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
-import { SAVE_LIMIT_MS, useGuardedNavigate } from './studio/drafts/unsavedDrafts';
+import { SAVE_LIMIT_MS, useGuardedNavigate, useUnsavedDraft } from './studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1403,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 23 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 24 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 19 for the engine panel link and an overlay dialog's link from dirty Settings; 19 to 22 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
-const MOUNT_BUDGET = 22;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 23 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
+const MOUNT_BUDGET = 23;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1733,6 +1734,77 @@ describe('App Back and Forward', () => {
       expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
       expect(window.location.pathname).toBe('/settings');
       // The overlay service is module-wide: close the probe so the cases after this one do not find a dialog on screen.
+      act(() => close());
+    });
+
+    // No real editor registers in this change, so a dialog the overlay host draws (inside the registry's provider) carries test holders; its link is a guarded
+    // one that asks over dirty Settings.
+    const ProbeDialog = ({ children }: { children: ReactNode }) => {
+      const navigate = useGuardedNavigate();
+      return (
+        <div>
+          {children}
+          <button onClick={() => navigate('/proof')}>Go to Proof</button>
+        </div>
+      );
+    };
+    const NoSaveHolder = () => {
+      useUnsavedDraft('probe-nosave', { dirty: true, label: 'a relationship you started', brief: 'a relationship', discard: () => {} });
+      return null;
+    };
+    const DirtyAgainHolder = ({ onSave }: { onSave: () => void }) => {
+      const [text, setText] = useState('a late reply');
+      useUnsavedDraft('probe-again', {
+        dirty: text !== '',
+        label: 'your reply',
+        save: async () => {
+          onSave();
+          // Saved and cleared, then typed into again straight away.
+          setText('');
+          queueMicrotask(() => setText('typed again'));
+          return true;
+        },
+        discard: () => setText(''),
+      });
+      return null;
+    };
+    const openProbe = (holder: ReactNode) => {
+      let close = () => {};
+      act(() => {
+        close = overlay.open({
+          kind: 'dialog',
+          dismissOnOutsidePress: false,
+          title: 'A dialog with holders',
+          render: () => <ProbeDialog>{holder}</ProbeDialog>,
+        });
+      });
+      return close;
+    };
+
+    it('over dirty Settings: a holder that cannot be saved makes the question Discard-only (#3446 D4), and a holder dirty again after its own save keeps the narrator (#3446 D1)', async () => {
+      const saveSettings = vi.fn(createMockApi().saveSettings);
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      // D4: a draft with no save beside Settings' own edit: no Save, and the sentence names both.
+      let close = openProbe(<NoSaveHolder />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Discard settings edits and a relationship before leaving?')).toBeTruthy();
+      const question = screen.getByRole('alertdialog');
+      expect(within(question).queryByRole('button', { name: 'Save & continue' })).toBeNull();
+      fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      act(() => close());
+      // D1: a holder whose save returns true and that is typed into again at once is still held, so the exit does not go on.
+      const onSave = vi.fn();
+      close = openProbe(<DirtyAgainHolder onSave={onSave} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(await screen.findByText(/Your reply changed while saving, so you are still here\./)).toBeTruthy();
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(window.location.pathname).toBe('/settings');
       act(() => close());
     });
 
