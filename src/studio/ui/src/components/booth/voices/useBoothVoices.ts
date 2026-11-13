@@ -1,3 +1,4 @@
+import { focusPageMain } from '../../primitives/focusReturn';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
@@ -23,7 +24,7 @@ export const VOICE_CONTROL_ID = 'bvoice';
  */
 function releaseFocusToPage(): void {
   const focused = document.activeElement;
-  if (focused instanceof HTMLButtonElement) document.querySelector<HTMLElement>('main')?.focus();
+  if (focused instanceof HTMLButtonElement) focusPageMain();
 }
 
 export type BoothVoices = {
