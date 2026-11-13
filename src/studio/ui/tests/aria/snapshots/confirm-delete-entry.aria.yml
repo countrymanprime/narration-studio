@@ -7,8 +7,8 @@
 - alert
 - status
 - alertdialog "Delete entry":
-    - heading "Delete entry" [level=2]
-    - button "Close"
-    - paragraph: /Delete “Alice”/
-    - button "Cancel"
-    - button "Delete entry"
+  - heading "Delete entry" [level=2]
+  - button "Close"
+  - paragraph: /Delete “Alice”/
+  - button "Cancel"
+  - button "Delete entry"
