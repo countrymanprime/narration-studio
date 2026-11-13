@@ -109,6 +109,8 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
     quietFailures: () => void (quietFailure = true),
     /** The host's session is up, as a start made by a later page would leave it. */
     forceRunning: () => act(async () => void publish({ phase: 'running' })),
+    /** A cold read is up on the host, as one the narrator started on this page would be. */
+    forceColdRunning: () => act(async () => void publish({ phase: 'running', coldRead: true })),
     /** The host reads idle, as when the session a page would have joined is gone. */
     forceIdle: () => act(async () => void publish({ phase: 'idle' })),
     /** The next start does not answer until the returned function is called. */
@@ -1223,6 +1225,55 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await waitFor(() => expect(host.phase()).toBe('running'));
     await settle();
     expect(said(toast)).toEqual([]);
+  });
+
+  describe('the adopting page is in a cold read (att16 K1)', () => {
+    /** A report is held on a page with no take; the narrator starts a cold read there; the DAW then reports the take, so the page ends the cold read and listens for it. */
+    const adoptDuringColdRead = async (ownStart: 'comes up' | 'fails' | 'refused') => {
+      const host = fakeHost();
+      host.quietFailures();
+      const { control, page, push } = await changeChapterDuringStart('refused', host, { adoptLate: true });
+      const toast = toasted(page);
+      await control.refuseIdle();
+      await settle();
+      await host.forceColdRunning();
+      // The listening the adopting page asks for once the cold read has ended.
+      let release: () => Promise<void> = async () => {};
+      if (ownStart === 'refused')
+        host.teleprompterStart.mockImplementationOnce(async () => Promise.reject(new Error('a teleprompter session is already running')));
+      else {
+        const held = host.holdNextStart();
+        release = ownStart === 'comes up' ? () => held() : () => held.refuse();
+      }
+      await push(true);
+      await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+      return { host, page, toast, release };
+    };
+
+    it('does not say the take is unheard when the page ends the cold read and its own listening for the take comes up', async () => {
+      const { host, toast, release } = await adoptDuringColdRead('comes up');
+      await settle();
+      // The cold read has ended and the new start is not answered yet: nothing follows the take for this moment, and nothing is said.
+      expect(said(toast)).toEqual([]);
+      await release();
+      await waitFor(() => expect(host.phase()).toBe('running'));
+      await settle();
+      expect(said(toast)).toEqual([]);
+    });
+
+    it('does not add the sentence when that listening fails and says so itself', async () => {
+      const { toast, release } = await adoptDuringColdRead('fails');
+      await release();
+      await settle();
+      expect(said(toast)).toEqual([]);
+    });
+
+    it('says the sentence once when the listening is refused with nothing running', async () => {
+      const { toast } = await adoptDuringColdRead('refused');
+      await settle();
+      await screen.findByText(UNHEARD);
+      expect(said(toast)).toHaveLength(1);
+    });
   });
 
   it.each([

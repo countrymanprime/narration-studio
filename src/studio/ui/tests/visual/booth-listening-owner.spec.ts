@@ -271,22 +271,29 @@ const installHeldTake = () => {
   w.__transport = new Set();
   // The host's one session, published as the real host does: the next chapter's page sees it starting and asks for none of its own.
   let phase = 'idle';
+  let coldRead = false;
   const phases = new Set<(state: unknown) => void>();
   const publish = (next: string) => {
     phase = next;
     phases.forEach((listener) => listener(state()));
   };
-  const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead: false, script: null, position: null });
+  const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead, script: null, position: null });
   const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
   w.__NARRATION_MOCK_OVERRIDES__ = {
     subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
     dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
     teleprompterState: async () => state(),
     subscribeTeleprompterState: (listener: (state: unknown) => void) => (phases.add(listener), () => phases.delete(listener)),
-    teleprompterStart: () =>
+    teleprompterStart: (options?: { coldRead?: boolean }) =>
       new Promise((resolve, reject) => {
         w.__calls.listeningStarts += 1;
         if (phase === 'starting' || phase === 'running') return reject(new Error('a teleprompter session is already running'));
+        coldRead = Boolean(options?.coldRead);
+        // A cold read comes up at once; a take's listening is held for the test to answer.
+        if (coldRead) {
+          publish('running');
+          return resolve({ status: 'started' });
+        }
         publish('starting');
         w.__refuseListening.push((ok) => {
           publish(ok ? 'running' : 'error');
@@ -296,7 +303,10 @@ const installHeldTake = () => {
       }),
     teleprompterStop: async () => {
       w.__calls.listeningStops += 1;
-      if (phase === 'running') publish('stopped');
+      if (phase === 'running') {
+        coldRead = false;
+        publish('stopped');
+      }
     },
     readAloudRecordStart: async () => {
       w.__recording = true;
@@ -391,4 +401,50 @@ test('a report that waits for adoption says nothing when the page then starts it
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
   await page.waitForTimeout(1500);
   await expect(page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.')).toHaveCount(0);
+});
+
+// att16 K1: the report waits on a page with no take; the narrator starts a cold read there; the DAW then reports the take, the page ends the cold read and
+// listens for the take, and that listening follows it: the sentence is never said, not even in the moment between the cold read's end and the new start.
+test('a report that waits for adoption says nothing when the adopting page ends a cold read and its own listening follows the take', async ({ page }) => {
+  await page.addInitScript(installHeldTake);
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await page.keyboard.press('Space');
+  const stop = page.getByRole('button', { name: /^Stop$/ });
+  await expect(stop).toBeVisible({ timeout: 8000 });
+  await page.evaluate(() => {
+    (window as unknown as { __recording: boolean }).__recording = false;
+    window.history.pushState(null, '', '/booth?chapter=chapter-2');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const question = page.getByRole('alertdialog');
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
+  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+  await expect(anyway).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(600);
+  await anyway.click();
+  await expect(page).toHaveURL(/chapter=chapter-2/);
+  await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](false));
+  // A cold read on this page, then the DAW reports the take.
+  await page.getByRole('button', { name: 'Record options' }).click();
+  await page.getByRole('radiogroup', { name: 'Main button' }).getByRole('radio', { name: 'Cold read' }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Cold read', exact: true }).click();
+  await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(2);
+  await page.evaluate(() => {
+    const w = window as unknown as { __recording: boolean; __transport: Set<(transport: unknown) => void> };
+    w.__recording = true;
+    w.__transport.forEach((listener) => listener({ playing: true, recording: true, position: 1 }));
+  });
+  // The cold read ends and the page asks for the take's own listening.
+  await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(3);
+  const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
+  await page.waitForTimeout(1000);
+  await expect(sentence).toHaveCount(0);
+  // It follows the take.
+  await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[1](true));
+  await page.waitForTimeout(1000);
+  await expect(sentence).toHaveCount(0);
 });

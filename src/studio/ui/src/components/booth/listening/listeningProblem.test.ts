@@ -5,6 +5,12 @@ import { listeningProblem } from './listeningProblem';
 const base = { error: '', canStart: true, startReason: 'Start reading', device: 'USB Mic', devicesLoading: false, settingsLoaded: true };
 
 describe('listeningProblem', () => {
+  it('drops a refusal that said a session was already running once no session is up', () => {
+    const refused = { ...base, error: 'a teleprompter session is already running' };
+    expect(listeningProblem({ ...refused, host: { phase: 'idle', message: '' } })).toBeUndefined();
+    expect(listeningProblem({ ...refused, host: { phase: 'starting', message: '' } })).toContain('already running');
+  });
+
   it('says nothing when the text can follow, or while the microphones and the saved choice are still read', () => {
     expect(listeningProblem(base)).toBeUndefined();
     expect(listeningProblem({ ...base, canStart: false, device: '', startReason: 'Choose a microphone first.', devicesLoading: true })).toBeUndefined();

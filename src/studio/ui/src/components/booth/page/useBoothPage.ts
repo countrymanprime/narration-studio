@@ -784,6 +784,25 @@ export function useBoothPage(options: BoothPageOptions) {
   // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
   const startPending = !recording && (roll.lookingUp || beginning);
 
+  // The listening this page starts for a take it adopted from the DAW: in flight, whether it came up, whether it failed (null: nothing was asked for).
+  const followAdoptedTake = (begin: () => Promise<{ ok: boolean; reason: string } | null>): void => {
+    ownStart.current = true;
+    ownFollowed.current = false;
+    void begin()
+      .then((result) => {
+        ownFollowed.current = result?.ok === true;
+        // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.
+        ownFailed.current = result !== null && !result.ok && !/already running/i.test(result.reason);
+      })
+      .catch((error: unknown) => {
+        ownFailed.current = true;
+        logUi('ui.record', `The listening for an adopted take could not be asked for: ${apiErrorMessage(error)}`);
+      })
+      .finally(() => {
+        ownStart.current = false;
+        setOwnStarted((n) => n + 1);
+      });
+  };
   // A take started or ended: the timer, the listening session and the passage map's run follow the Record control.
   const was = useRef(recording);
   useEffect(() => {
@@ -801,27 +820,16 @@ export function useBoothPage(options: BoothPageOptions) {
       // The press starts this take's listening itself (beginOnce), after any cold read it is ending.
       if (listenStarting.current) return;
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
+      // Either way the page asks for a listening of its own for the take it adopted, and a report about a left-behind press waits for the answer
+      // (`ownStart` is set before the cold read's stop is awaited, so the gap between the two sessions is not read as nothing following the take).
       if (now.coldRead) {
         const from = realWord();
-        void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
+        followAdoptedTake(async () => {
+          await endColdRead();
+          return latest.current.session.canStart ? latest.current.session.start({ startWord: from }) /* adopted take */ : null;
+        });
       } else if (!now.session.active && now.session.canStart) {
-        // A take adopted from the DAW is followed by a session this page starts itself; a report about a left-behind press waits for its answer.
-        ownStart.current = true;
-        void now.session
-          .start()
-          .then((result) => {
-            ownFollowed.current = result.ok;
-            // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.
-            ownFailed.current = !result.ok && !/already running/i.test(result.reason);
-          })
-          .catch((error: unknown) => {
-            ownFailed.current = true;
-            logUi('ui.record', `The listening for an adopted take could not be asked for: ${apiErrorMessage(error)}`);
-          })
-          .finally(() => {
-            ownStart.current = false;
-            setOwnStarted((n) => n + 1);
-          });
+        followAdoptedTake(() => now.session.start() /* adopted take */);
       }
       return;
     }
