@@ -17,6 +17,10 @@ export function keptTitle(storedTitle: unknown): string | undefined {
   if (!clean) return undefined;
   return clean.length > MAX_TITLE ? `${clean.slice(0, MAX_TITLE - 1)}…` : clean;
 }
+/** A chapter's name as the Link a track dialog and the sentences around it say it: cleaned and clipped like a kept title, and "This chapter" when blank. */
+export function dialogChapterName(name: string): string {
+  return keptTitle(name) ?? 'This chapter';
+}
 /** A control character or a bidi override/isolate mark. */
 function isOddCharacter(code: number): boolean {
   return (
