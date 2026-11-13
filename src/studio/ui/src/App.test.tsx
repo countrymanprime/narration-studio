@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { withoutCredits } from './chapterKinds';
 import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRoot } from 'react-dom/client';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { chapterName } from './chapterName';
 import { ApiProvider } from './api/ApiContext';
@@ -10,7 +11,7 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
-import { createJournal } from './studio/journal/createJournal';
+import { createJournal, type Journal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
 import { bootstrapSchema } from './api/schemas/system';
@@ -28,12 +29,19 @@ import { outwaitEcho } from './components/primitives/outwaitEcho';
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
 // starts at "/".
-beforeEach(() => {
+const resetDocument = () => {
   window.history.replaceState(null, '', '/');
   // The title is set by an effect and outlives a test: one test's last page must not read as the next test's first.
   document.title = '';
   // The overlay service is the app's one module-level store, and the app's toasts go through it: one test's messages must not show in the next.
   for (const toast of overlay.getSnapshot().toasts) overlay.dismissToast(toast.id);
+};
+// True only while a `describe` keeps one mounted app across its tests (the Back/Forward table of exits): the reset waits for that describe's
+// `afterAll`, and `renderApp` mounts the app outside Testing Library's bookkeeping, which test-setup.ts unmounts after every test.
+let appKeptAcrossTests = false;
+let unmountKeptApp = () => {};
+beforeEach(() => {
+  if (!appKeptAcrossTests) resetDocument();
 });
 afterEach(cleanup);
 
@@ -41,18 +49,33 @@ afterEach(cleanup);
 // default of test-setup.ts, so its waits get more room (still under `testTimeout`, 15 s). A wait ends as soon as it holds.
 configure({ asyncUtilTimeout: 12_000 });
 
-function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}) {
+// How many times a test has mounted the whole app since the counter was last cleared; the Back/Forward block checks it against its budget.
+let appMounts = 0;
+
+function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}, journal?: Journal) {
+  appMounts += 1;
   const api = createMockApi(overrides, initial);
-  render(
+  const tree = (
     <ThemeProvider>
       <ApiProvider api={api}>
         {/* Matches main.tsx's tree: App calls useCommand for nav.back/nav.forward, which throws outside a <CommandRouter>. */}
         <CommandRouter>
-          <App />
+          <App journal={journal} />
         </CommandRouter>
       </ApiProvider>
-    </ThemeProvider>,
+    </ThemeProvider>
   );
+  if (!appKeptAcrossTests) {
+    render(tree);
+    return api;
+  }
+  const container = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(container);
+  act(() => root.render(tree));
+  unmountKeptApp = () => {
+    act(() => root.unmount());
+    container.remove();
+  };
   return api;
 }
 
@@ -71,13 +94,23 @@ async function jumpRow(label: string) {
   return screen.findByRole('option', { name: new RegExp(`^${label}`) });
 }
 const runFromJump = async (label: string) => fireEvent.click(await jumpRow(label));
-// Whether a command is off in the jump menu right now: opens the menu, reads the row and closes it again.
-async function jumpRowIsOff(label: string) {
-  const off = (await jumpRow(label)).getAttribute('aria-disabled') === 'true';
+// Whether each command is off in the jump menu right now, and the row's text (its reason when off): opens the menu once, types each label in turn,
+// reads its row and closes the menu again. One opening for several commands costs one menu render and one close, not one of each per command.
+async function jumpRowsRead(...labels: string[]) {
+  const rows: { off: boolean; text: string }[] = [];
+  const first = await jumpRow(labels[0]!);
+  rows.push({ off: first.getAttribute('aria-disabled') === 'true', text: first.textContent ?? '' });
+  for (const label of labels.slice(1)) {
+    fireEvent.change(screen.getByRole('combobox', { name: 'Jump menu' }), { target: { value: `> ${label}` } });
+    const row = await screen.findByRole('option', { name: new RegExp(`^${label}`) });
+    rows.push({ off: row.getAttribute('aria-disabled') === 'true', text: row.textContent ?? '' });
+  }
   fireEvent.keyDown(screen.getByRole('combobox', { name: 'Jump menu' }), { key: 'Escape' });
   await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
-  return off;
+  return rows;
 }
+// Whether a command is off in the jump menu right now: opens the menu, reads the row and closes it again.
+const jumpRowIsOff = async (label: string) => (await jumpRowsRead(label))[0]!.off;
 
 // A project with no imported manuscript but a manuscript file in its folder.
 const bootstrapWithCandidate = (manuscriptCandidate: { path: string; name: string }) => async () => ({
@@ -1362,25 +1395,69 @@ describe('App jump-menu Settings categories', () => {
 
 // Page-level Back and Forward (jump-menu commands and Alt+Left / Alt+Right, no header buttons), their shortcuts, and the two guards they share with
 // the nav (unsaved Settings, leaving Proofing).
+// Cost budget for this block (#3422). Each case mounts the whole app, and a mount plus the walk to a page that holds something is most of a case's
+// time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
+// and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
+// holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
+const MOUNT_BUDGET = 13;
 describe('App Back and Forward', () => {
-  it('are off with a reason on the first page and enable after moving, one page at a time', async () => {
+  // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
+  // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
+  beforeAll(async () => {
+    // A hook runs before the file's per-test reset, so the previous describe's last page is still the address.
+    resetDocument();
+    try {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      await jumpRowsRead('Back');
+      fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
+      await screen.findByRole('heading', { name: 'Script' });
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+      await runFromJump('Back');
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+    } finally {
+      cleanup();
+      resetDocument();
+      appMounts = 0;
+    }
+  }, 30_000);
+  afterAll(() => {
+    expect(appMounts).toBeLessThanOrEqual(MOUNT_BUDGET);
+  });
+
+  // Two cases and not one walk: a case that does both is the longest in the block and the first to pass the test limit on a busy runner.
+  it('are off with a reason on the first page', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(await jumpRowIsOff('Back')).toBe(true);
-    expect(await jumpRowIsOff('Forward')).toBe(true);
-    expect((await jumpRow('Back')).textContent).toContain('No earlier page in this project');
-    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Jump menu' }), { key: 'Escape' });
+    const [back, forward] = await jumpRowsRead('Back', 'Forward');
+    expect(back!.off).toBe(true);
+    expect(forward!.off).toBe(true);
+    expect(back!.text).toContain('No earlier page in this project');
+  });
 
+  it('enable after moving, one page at a time', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
-    await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
-
-    await runFromJump('Back');
+    // Back is on (its row is not disabled) once the move has settled, and is run from that same opening of the menu.
+    await waitFor(async () => {
+      const row = await jumpRow('Back');
+      if (row.getAttribute('aria-disabled') === 'true') {
+        fireEvent.keyDown(screen.getByRole('combobox', { name: 'Jump menu' }), { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+        throw new Error('Back is still off');
+      }
+      fireEvent.click(row);
+    });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     // The location updates at once; `useAppHistory`'s own `idx` (and so the off state) settles one
     // render later, once its effect has run - real for a person, imperceptible, but needs a wait here.
-    await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(true));
-    await waitFor(async () => expect(await jumpRowIsOff('Forward')).toBe(false));
+    await waitFor(async () => {
+      const [backNow, forwardNow] = await jumpRowsRead('Back', 'Forward');
+      expect(backNow!.off).toBe(true);
+      expect(forwardNow!.off).toBe(false);
+    });
 
     await runFromJump('Forward');
     await screen.findByRole('heading', { name: 'Script' });
@@ -1492,15 +1569,7 @@ describe('App Back and Forward', () => {
       'a recording Booth': {
         hold: async () => {
           const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
-          render(
-            <ThemeProvider>
-              <ApiProvider api={createMockApi()}>
-                <CommandRouter>
-                  <App journal={journal} />
-                </CommandRouter>
-              </ApiProvider>
-            </ThemeProvider>,
-          );
+          renderApp({}, {}, journal);
           await screen.findByRole('heading', { level: 1, name: 'Production' });
           fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
           await screen.findByRole('heading', { name: 'Script' });
@@ -1515,22 +1584,38 @@ describe('App Back and Forward', () => {
         page: '/script',
       },
     };
+    // The hold (a mount plus the walk to the page) is the dominant cost of a case, so it is paid once per holder. Every exit ends where it began: the
+    // question closed, the page and the address where they were, the held thing still held (the asserts below), which is what lets the next exit start
+    // from the same state. A red case can therefore turn the exits after it red too: read the first failure.
+    // The hold gets the test limit as its own: under load it takes as long as a case did before.
+    const HOLD_TIMEOUT = 15_000;
     for (const [holderName, holder] of Object.entries(holders)) {
-      for (const [exitName, exit] of Object.entries(exits)) {
-        // Back and Go to Production from the page that holds a Booth/Settings with history to go back to; the table drives each one on the page it holds.
-        it(`${exitName} from ${holderName} asks its question, and keeping leaves the page and the picker closed`, async () => {
+      describe(holderName, () => {
+        beforeAll(async () => {
+          appKeptAcrossTests = true;
+          resetDocument();
           await holder.hold();
-          await exit();
-          await holder.question();
-          expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
-          holder.keep();
-          await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-          // The address is put back by the pop recovery's own navigation, which can land a render after the question closes (CI saw '/' here): wait for it.
-          await waitFor(() => expect(window.location.pathname).toBe(holder.page));
-          expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
-          holder.stillHeld();
+        }, HOLD_TIMEOUT);
+        afterAll(() => {
+          unmountKeptApp();
+          appKeptAcrossTests = false;
+          resetDocument();
         });
-      }
+        for (const [exitName, exit] of Object.entries(exits)) {
+          // Back and Go to Production from the page that holds a Booth/Settings with history to go back to; the table drives each one on the page it holds.
+          it(`${exitName} from ${holderName} asks its question, and keeping leaves the page and the picker closed`, async () => {
+            await exit();
+            await holder.question();
+            expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+            holder.keep();
+            await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+            // The address is put back by the pop recovery's own navigation, which can land a render after the question closes (CI saw '/' here): wait for it.
+            await waitFor(() => expect(window.location.pathname).toBe(holder.page));
+            expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+            holder.stillHeld();
+          });
+        }
+      });
     }
 
     it('Switch project from Settings: Save & continue saves the edit and opens the picker', async () => {
