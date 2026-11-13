@@ -257,47 +257,68 @@ test('a session stop the host never finishes: the next Record says the text cann
   expect((await calls(page)).listeningStarts).toBe(2);
 });
 
+const installHeldTake = () => {
+  const w = window as unknown as {
+    __calls: Calls;
+    __recording: boolean;
+    __refuseListening: Array<(ok: boolean) => void>;
+    __transport: Set<(transport: unknown) => void>;
+    __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>;
+  };
+  w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
+  w.__recording = false;
+  w.__refuseListening = [];
+  w.__transport = new Set();
+  // The host's one session, published as the real host does: the next chapter's page sees it starting and asks for none of its own.
+  let phase = 'idle';
+  const phases = new Set<(state: unknown) => void>();
+  const publish = (next: string) => {
+    phase = next;
+    phases.forEach((listener) => listener(state()));
+  };
+  const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead: false, script: null, position: null });
+  const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+  w.__NARRATION_MOCK_OVERRIDES__ = {
+    subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
+    dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
+    teleprompterState: async () => state(),
+    subscribeTeleprompterState: (listener: (state: unknown) => void) => (phases.add(listener), () => phases.delete(listener)),
+    teleprompterStart: () =>
+      new Promise((resolve, reject) => {
+        w.__calls.listeningStarts += 1;
+        if (phase === 'starting' || phase === 'running') return reject(new Error('a teleprompter session is already running'));
+        publish('starting');
+        w.__refuseListening.push((ok) => {
+          publish(ok ? 'running' : 'error');
+          if (ok) resolve({ status: 'started' });
+          else reject(new Error('The microphone is in use by another application.'));
+        });
+      }),
+    teleprompterStop: async () => {
+      w.__calls.listeningStops += 1;
+      if (phase === 'running') publish('stopped');
+    },
+    readAloudRecordStart: async () => {
+      w.__recording = true;
+      setTimeout(push, 20);
+      return { outcome: 'started', position: 0, message: '' };
+    },
+    readAloudRecordStop: async () => {
+      w.__calls.stops += 1;
+      // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
+      if (w.__calls.stops === 1) throw new Error('REAPER did not answer.');
+      w.__recording = false;
+      return { outcome: 'stopped', message: '', undoPoints: 0 };
+    },
+  };
+};
+
 // #3409: the narrator left a take recording on purpose (the stop failed, then "Leave anyway") and changed chapter while the take's listening was still
 // starting. The next chapter's page adopts the take; the listening then fails. The take is not stopped behind the narrator, and the Booth says that the
 // text could not follow it. (The fake DAW reports the project as recording once its start answered; none of this is real REAPER.)
 for (const ending of ['fails', 'comes up and is let go'] as const) {
   test(`a chapter left with a take recording, whose listening then ${ending}, says the text could not follow the take and stops nothing`, async ({ page }) => {
-    await page.addInitScript(() => {
-      const w = window as unknown as {
-        __calls: Calls;
-        __recording: boolean;
-        __refuseListening: Array<(ok: boolean) => void>;
-        __transport: Set<(transport: unknown) => void>;
-        __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>;
-      };
-      w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
-      w.__recording = false;
-      w.__refuseListening = [];
-      w.__transport = new Set();
-      const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
-      w.__NARRATION_MOCK_OVERRIDES__ = {
-        subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
-        dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
-        teleprompterStart: () =>
-          new Promise((resolve, reject) => {
-            w.__calls.listeningStarts += 1;
-            w.__refuseListening.push((ok) => (ok ? resolve({ status: 'started' }) : reject(new Error('The microphone is in use by another application.'))));
-          }),
-        teleprompterStop: async () => void (w.__calls.listeningStops += 1),
-        readAloudRecordStart: async () => {
-          w.__recording = true;
-          setTimeout(push, 20);
-          return { outcome: 'started', position: 0, message: '' };
-        },
-        readAloudRecordStop: async () => {
-          w.__calls.stops += 1;
-          // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
-          if (w.__calls.stops === 1) throw new Error('REAPER did not answer.');
-          w.__recording = false;
-          return { outcome: 'stopped', message: '', undoPoints: 0 };
-        },
-      };
-    });
+    await page.addInitScript(installHeldTake);
     await page.goto('/');
     await settlePage(page);
     await goToPage(page, 'Booth');
@@ -335,3 +356,39 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     await expect(sentence).toHaveCount(0);
   });
 }
+
+// att15 N1d: the stale press's listening fails while the next chapter's page shows no take (the DAW reads stopped), and the DAW then pushes the same take:
+// the page adopts it and starts the listening that follows it, so the report that waited for it says nothing.
+test('a report that waits for adoption says nothing when the page then starts its own listening and it follows', async ({ page }) => {
+  await page.addInitScript(installHeldTake);
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await page.keyboard.press('Space');
+  const stop = page.getByRole('button', { name: /^Stop$/ });
+  await expect(stop).toBeVisible({ timeout: 8000 });
+  await page.evaluate(() => {
+    (window as unknown as { __recording: boolean }).__recording = false;
+    window.history.pushState(null, '', '/booth?chapter=chapter-2');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const question = page.getByRole('alertdialog');
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
+  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+  await expect(anyway).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(600);
+  await anyway.click();
+  await expect(page).toHaveURL(/chapter=chapter-2/);
+  await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](false));
+  // The same take is reported by the DAW: the page adopts it and asks for its own listening, which stays out.
+  await page.evaluate(() => {
+    const w = window as unknown as { __recording: boolean; __transport: Set<(transport: unknown) => void> };
+    w.__recording = true;
+    w.__transport.forEach((listener) => listener({ playing: true, recording: true, position: 1 }));
+  });
+  await expect(stop).toBeVisible({ timeout: 8000 });
+  await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
+  await page.waitForTimeout(1500);
+  await expect(page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.')).toHaveCount(0);
+});

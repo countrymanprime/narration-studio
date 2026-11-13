@@ -1028,7 +1028,11 @@ describe('a press the narrator left behind by changing chapter, whose take still
    * A take records and its listening is out; the chapter is changed through the address and the stop is answered as the test says. The DAW pushes that it
    * records once the next chapter's page is up, so that page adopts the take as it would from the real DAW.
    */
-  const changeChapterDuringStart = async (stop: 'refused' | 'ok', host = fakeHost(), { idleAtChange = false, beforeChange = () => {} } = {}) => {
+  const changeChapterDuringStart = async (
+    stop: 'refused' | 'ok',
+    host = fakeHost(),
+    { idleAtChange = false, adoptLate = false, beforeChange = () => {} } = {},
+  ) => {
     const control = host.holdNextStart();
     const daw = dawFor('reaper');
     const listeners = new Set<(transport: { recording: boolean; playing: boolean; position: number }) => void>();
@@ -1050,7 +1054,8 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await ready();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
-    await push(true);
+    // The DAW reads recording from the start, unless the test has the next chapter's page adopt the take later.
+    if (!adoptLate) await push(true);
     // The host reads idle as the chapter changes, so the page that adopts the take asks for a session of its own.
     if (idleAtChange) await host.forceIdle();
     beforeChange();
@@ -1129,7 +1134,51 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await control.refuse();
     await settle();
     expect(said(toast)).toEqual([]);
+    // The page's own session ends later with the take still recording: the held report was about a press, not about that session.
+    await host.forceIdle();
+    await settle();
+    expect(said(toast)).toEqual([]);
     expect(page.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a report that waits for adoption says nothing when the page then starts its own listening and it follows (att15 N1d)', async () => {
+    const host = fakeHost();
+    host.quietFailures();
+    // The next chapter's page mounts with the DAW reading stopped, so the stale press's report waits on a page that shows no take.
+    const { control, page, push } = await changeChapterDuringStart('refused', host, { adoptLate: true });
+    const toast = toasted(page);
+    await control.refuseIdle();
+    await settle();
+    expect(said(toast)).toEqual([]);
+    // The DAW then pushes the same take: the page adopts it and starts the listening that follows it.
+    await push(true);
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(host.phase()).toBe('running'));
+    await settle();
+    expect(said(toast)).toEqual([]);
+  });
+
+  it.each([
+    ['9.9 s', 9_900, true],
+    ['10.1 s', 10_100, false],
+  ])('a report waits 10 s for the page to adopt the take: adopted at %s, then the session settles', async (_name, wait, spoken) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      host.quietFailures();
+      const { control, page, push } = await changeChapterDuringStart('refused', host, { adoptLate: true });
+      const toast = toasted(page);
+      await control.refuse();
+      await act(() => vi.advanceTimersByTimeAsync(wait));
+      await push(true);
+      await settle();
+      // The host still reads starting (the press's own session), so the page starts none and waits for it to settle.
+      await host.forceIdle();
+      await settle();
+      expect(said(toast).length).toBe(spoken ? 1 : 0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("adds nothing when the next chapter's own listening failed and said so: one sentence", async () => {
