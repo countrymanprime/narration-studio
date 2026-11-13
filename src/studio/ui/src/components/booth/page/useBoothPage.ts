@@ -787,16 +787,25 @@ export function useBoothPage(options: BoothPageOptions) {
   const startPending = !recording && (roll.lookingUp || beginning);
 
   // The listening this page starts for a take it adopted from the DAW: in flight, whether it came up, whether it failed (null: nothing was asked for).
-  const followAdoptedTake = (begin: () => Promise<{ ok: boolean; reason: string } | null>): void => {
+  const followAdoptedTake = (take: number, begin: () => Promise<{ ok: boolean; reason: string } | null>): void => {
     ownStart.current = true;
     ownFollowed.current = false;
+    // The session this start brings up is this page's, through a claim (`listeningClaims.ts`), so a late answer lets go only what it started.
+    const claim = claimListening();
     void begin()
       .then((result) => {
-        ownFollowed.current = result?.ok === true;
+        if (result === null || !result.ok) unclaimListening(claim);
+        // The take ended, or the Booth was left, while the start was out (a host answers a start it was asked to stop once it is up): the session it
+        // brought up follows nothing, and nothing else would stop it. The take that is still this one keeps the claim, and its end lets the session go.
+        else if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) {
+          if (releaseListening(claim)) latest.current.session.stop();
+        } else takeClaim.current = claim;
+        ownFollowed.current = result?.ok === true && ownsListening(claim);
         // A start refused because the host's session is already up (the press's own, still starting) is not a failure of this page's listening.
         ownFailed.current = result !== null && !result.ok && !/already running/i.test(result.reason);
       })
       .catch((error: unknown) => {
+        unclaimListening(claim);
         ownFailed.current = true;
         logUi('ui.record', `The listening for an adopted take could not be asked for: ${apiErrorMessage(error)}`);
       })
@@ -827,7 +836,7 @@ export function useBoothPage(options: BoothPageOptions) {
       // (`ownStart` is set before the cold read's stop is awaited, so the gap between the two sessions is not read as nothing following the take).
       if (now.coldRead) {
         const from = realWord();
-        followAdoptedTake(async () => {
+        followAdoptedTake(take, async () => {
           await endColdRead();
           // The cold read's stop can take seconds: the take may have ended meanwhile (the DAW stopped it, or Stop was pressed), another may have begun, or the
           // Booth may have been left. This continuation then owns no take, and starts nothing (it would leave a session running with nothing to follow).
@@ -835,7 +844,7 @@ export function useBoothPage(options: BoothPageOptions) {
           return latest.current.session.canStart ? latest.current.session.start({ startWord: from }) /* adopted take */ : null;
         });
       } else if (!now.session.active && now.session.canStart) {
-        followAdoptedTake(() => now.session.start() /* adopted take */);
+        followAdoptedTake(take, () => now.session.start() /* adopted take */);
       }
       return;
     }

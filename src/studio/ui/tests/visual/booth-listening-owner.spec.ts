@@ -269,9 +269,11 @@ const installHeldTake = () => {
   w.__recording = false;
   w.__refuseListening = [];
   w.__transport = new Set();
+  (w as unknown as { __ignoreStop: boolean }).__ignoreStop = false;
   // The host's one session, published as the real host does: the next chapter's page sees it starting and asks for none of its own.
   let phase = 'idle';
   let coldRead = false;
+  (w as unknown as { __phase: () => string }).__phase = () => phase;
   const phases = new Set<(state: unknown) => void>();
   const publish = (next: string) => {
     phase = next;
@@ -303,6 +305,11 @@ const installHeldTake = () => {
       }),
     teleprompterStop: async () => {
       w.__calls.listeningStops += 1;
+      // A host ignores a stop while its session is still starting (service.go: no child process yet); the default here ends it at once.
+      if (phase === 'starting') {
+        if (!(w as unknown as { __ignoreStop: boolean }).__ignoreStop) publish('stopped');
+        return;
+      }
       if (phase === 'running') {
         // A cold read takes its time to wind down, as a sidecar still decoding does.
         if (coldRead) await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -503,5 +510,60 @@ for (const meanwhile of ['the take ends', 'the Booth is left'] as const) {
     }
     await page.waitForTimeout(4500);
     expect((await calls(page)).listeningStarts).toBe(2);
+  });
+}
+
+// att18 break C: the take ends while the adopted listening start is still out. A host that ignores a stop while it starts (or honours it at once and then
+// answers the start ok) leaves a session running with no take, so the page lets it go when the start answers.
+for (const [name, cold, ignoreStop] of [
+  ['after a cold read, the host honours the stop at once', true, false],
+  ['after a cold read, the host ignores a stop while starting', true, true],
+  ['with no cold read, the host ignores a stop while starting', false, true],
+] as const) {
+  test(`a take that ends while its adopted listening start is in flight leaves no session running (${name})`, async ({ page }) => {
+    await page.addInitScript(installHeldTake);
+    await page.addInitScript((ignore) => void ((window as unknown as { __ignoreStop: boolean }).__ignoreStop = ignore), ignoreStop);
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    await page.evaluate(() => {
+      (window as unknown as { __recording: boolean }).__recording = false;
+      window.history.pushState(null, '', '/booth?chapter=chapter-2');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    const question = page.getByRole('alertdialog');
+    await question.getByRole('button', { name: /^Stop and leave/ }).click();
+    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await expect(anyway).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(600);
+    await anyway.click();
+    await expect(page).toHaveURL(/chapter=chapter-2/);
+    await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](false));
+    if (cold) {
+      await page.getByRole('button', { name: 'Record options' }).click();
+      await page.getByRole('radiogroup', { name: 'Main button' }).getByRole('radio', { name: 'Cold read' }).click();
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Cold read', exact: true }).click();
+      await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(2);
+    }
+    await page.evaluate(() => {
+      const w = window as unknown as { __recording: boolean; __transport: Set<(transport: unknown) => void> };
+      w.__recording = true;
+      w.__transport.forEach((listener) => listener({ playing: true, recording: true, position: 1 }));
+    });
+    // The page's own listening for the adopted take is asked for (after the cold read's 2.5 s stop, if there is one) and is held.
+    await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 10_000 }).toBe(cold ? 3 : 2);
+    // The narrator stops the take while that start is out, and then the host answers it ok.
+    await page.getByRole('button', { name: /^Stop$/ }).click();
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toHaveCount(0, { timeout: 8000 });
+    await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[1](true));
+    await page.waitForTimeout(1500);
+    expect(
+      await page.evaluate(() => (window as unknown as { __phase: () => string }).__phase()),
+      'a session came up with no take and was left running',
+    ).not.toBe('running');
   });
 }

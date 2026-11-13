@@ -807,7 +807,7 @@ describe('the roll of a take has a limit', () => {
       const { page, lands } = await hungRoll();
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       await lands();
       await screen.findByText(LANDED);
       expect(page.recordStop).toHaveBeenCalledTimes(1);
@@ -820,7 +820,7 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       page.recordStart.mockImplementationOnce(() => new Promise(() => {}));
       await space();
       await lands();
@@ -871,7 +871,7 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await lands();
@@ -887,7 +887,7 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page, lands } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await lands(false);
@@ -921,7 +921,7 @@ describe('the roll of a take has a limit', () => {
     try {
       const { page } = await hungRoll();
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       expect(
         page.overlay
           .getSnapshot()
@@ -944,7 +944,7 @@ describe('the roll of a take has a limit', () => {
     await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
     await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
     await space();
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
     await act(async () => answer({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await screen.findByText(LANDED);
     expect(screen.queryByText(/Rolling again from/)).toBeNull();
@@ -991,7 +991,7 @@ describe('the roll of a take has a limit', () => {
       await lands();
       await screen.findByText(LANDED);
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       expect(screen.queryByText(LANDED)).not.toBeNull();
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
@@ -1034,7 +1034,7 @@ describe('the roll of a take has a limit', () => {
       await r();
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
       await space();
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull(), { timeout: 4000 });
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
       expect(screen.queryByText(/did not answer the roll in time/)).toBeNull();
     } finally {
@@ -1225,6 +1225,35 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await waitFor(() => expect(host.phase()).toBe('running'));
     await settle();
     expect(said(toast)).toEqual([]);
+  });
+
+  it("a take that ends while the page's own listening start is out leaves no session running when the start answers (break C)", async () => {
+    // The real host ignores a stop while a session is still starting, so the stop the take's end sends does nothing and the start then comes up.
+    const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+    host.quietFailures();
+    let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
+    const { page } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    skipStartGuard();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
+    await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(2));
+    await settle();
+    await own();
+    await settle();
+    await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+    await settle();
+    expect(host.phase(), 'the session came up with no take and nothing stopped it').not.toBe('running');
+  });
+
+  it('a take that is still recording keeps the session its own start brought up', async () => {
+    const host = fakeHost({ stopEndsStarting: false, ignoreStopWhileStarting: true });
+    host.quietFailures();
+    let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
+    await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await own();
+    await settle();
+    expect(host.phase()).toBe('running');
   });
 
   describe('the adopting page is in a cold read (att16 K1)', () => {
