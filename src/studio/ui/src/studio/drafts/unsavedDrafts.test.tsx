@@ -206,7 +206,7 @@ describe('the unsaved-drafts registry', () => {
     expect(slow).toHaveBeenCalledOnce();
   });
 
-  it('says which held drafts have nothing to save, saves the rest, and reports the others as kept and still held (#3400 D1)', async () => {
+  it('while a draft with nothing to save is held, nothing is saved at all, and it is reported as kept and still held (#3400 D1)', async () => {
     const saved = vi.fn(async () => true);
     const row = vi.fn();
     const { result } = setup({ a: draft({ save: saved, label: 'your entry' }), b: draft({ save: undefined, label: 'a new row', discard: row }) });
@@ -216,13 +216,13 @@ describe('the unsaved-drafts registry', () => {
     ]);
     await act(async () => {
       const outcome = await result.current.save();
-      expect(outcome.saved).toBe(true);
+      expect(outcome.saved).toBe(false);
       expect(outcome.kept.map((entry) => entry.label)).toEqual(['a new row']);
     });
-    expect(saved).toHaveBeenCalledOnce();
-    // Saving never drops text: the draft with nothing to save is untouched, and still held.
+    // Saving the entry could close it and take the row along, so neither is saved and neither is dropped.
+    expect(saved).not.toHaveBeenCalled();
     expect(row).not.toHaveBeenCalled();
-    expect(result.current.heldNow().map((entry) => entry.label)).toContain('a new row');
+    expect(result.current.heldNow().map((entry) => entry.label)).toEqual(['your entry', 'a new row']);
   });
 
   it('a draft that cannot be saved is dropped only by an explicit discard (#3400 D1)', () => {

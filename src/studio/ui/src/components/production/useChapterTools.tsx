@@ -13,7 +13,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -62,7 +62,14 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   // Each chapter's link state is the app's one chapter-track state, not a read of this board's own: a chapter linked or created in the Engine
   // panel shows here at once (#3355), and a change made here shows there.
-  const { details: trackLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  const { details: savedLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  // The links are read from the saved project; the tracks the Engine list and the Booth show are REAPER's now. A chapter linked to a track deleted or
+  // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
+  const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
+  const trackLinks = useMemo(
+    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    [savedLinks, liveTracks],
+  );
   const [open, setOpen] = useState<Open>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
@@ -119,14 +126,20 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   );
 
   // The row menu's "Show in <DAW>" (#2826): selects the chapter's linked track there, the chapter track panel's Select call.
+  // One select at a time: Enter held or pressed three times asks REAPER once, as the panel's button does on a double click.
+  const selecting = useRef(false);
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
+      if (selecting.current) return;
+      selecting.current = true;
       try {
         const result = await showInDaw({ workspace: api, findings: api, chapterTrackMap: api }, { kind: 'chapter', trackGuid }, dawName);
         if (result?.failed) notify(result.message, 'error');
         else if (result) notify(result.message);
       } catch (error) {
         notify(describeApiError(error), 'error');
+      } finally {
+        selecting.current = false;
       }
     },
     [api, notify],
@@ -191,7 +204,13 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const chapter = find(row.id);
         const missing = chapter ? undefined : 'The chapter list is still loading';
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
-        const trackGuid = showableTrackGuid(links?.chapters.find((entry) => entry.chapterId === row.id));
+        const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
+        const trackGuid = showableTrackGuid(entry);
+        // A linked track REAPER no longer has is said to be missing, not "not linked" (the panel and the Engine row say so).
+        const noTrack =
+          entry && chapterTrackButtonState(entry).kind === 'missing'
+            ? 'The track linked to this chapter is missing from the project: choose another from the audio engine panel'
+            : 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
@@ -202,8 +221,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           {
             key: 'goto',
             label: showInDawLabel(dawTarget.name),
-            unavailable:
-              dawTarget.unavailable ?? (trackGuid ? undefined : 'No chapter track is linked to this chapter yet: link one from the audio engine panel'),
+            unavailable: dawTarget.unavailable ?? (trackGuid ? undefined : noTrack),
             onSelect: () => trackGuid && void select(trackGuid, dawTarget.name),
           },
           {

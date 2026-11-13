@@ -71,8 +71,8 @@ type Registry = {
    * Saves every held draft that can be saved; one call in flight at a time, so a second press shares the first's answer, and a draft whose own save is still
    * in flight (one the question stopped waiting for) is not sent again. A draft that says it did not save is named in `failed` and the rest are still tried;
    * one that throws, or a call that takes longer than `SAVE_LIMIT_MS`, rejects. Either way the text stays, and the next call starts afresh.
-   * Nothing is dropped here (#3400: only a Discard drops text): a draft with nothing to save comes back in `kept`, and a draft that became held while the
-   * saves ran in `late`, and the shell stays where it is.
+   * Nothing is dropped here (#3400: only a Discard drops text): while a draft with nothing to save is held nothing is saved at all, and it comes back in
+   * `kept`; a draft that became held while the saves ran comes back in `late`; the shell stays where it is.
    */
   save: () => Promise<SaveResult>;
   /** Drops every held draft; one that throws is named in `failed` and the rest are still dropped. */
@@ -144,6 +144,8 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
       const started = new Set(entries.map(([id]) => id));
       // A draft with no save of its own (a new entry with no category) is not saved here, and not dropped either: it stays held and the shell stays put.
       const kept = entries.filter(([, draft]) => !draft.save).map(([, draft]) => toHeld(draft));
+      // All or nothing: saving an editor can close it and a draft beside it that cannot be saved with it, so while one is held nothing is saved.
+      if (kept.length > 0) return { saved: false, failed: [], kept, late: [] };
       const failed: HeldDraft[] = [];
       let tried = 0;
       for (const [id, draft] of entries) {
