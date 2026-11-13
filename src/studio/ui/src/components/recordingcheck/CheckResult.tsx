@@ -154,7 +154,7 @@ export function ReasonBlock({
                 {page.label}
               </EnginePanelLink>
             ) : (
-              <GuardedLink key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
+              <GuardedLink key={page.label} to={page.path} onNavigate={onNavigate} className="text-sm font-semibold underline">
                 {page.label}
               </GuardedLink>
             ),

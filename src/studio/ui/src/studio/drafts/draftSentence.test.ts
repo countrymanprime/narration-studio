@@ -146,3 +146,16 @@ describe('what Discard & continue does after the discards (#3446 B7)', () => {
     });
   });
 });
+
+describe('wording the breaker found (#3446, #3457)', () => {
+  it('an entry edit beside a suggestion edit still names both, not "2 unsaved changes"', () => {
+    const suggestion = held('your edit of the alias suggestion', { brief: 'a suggestion edit', saveable: false });
+    const entryEdit = held('your changes to Alice', { brief: 'your entry edit' });
+    expect(draftQuestion([entryEdit, suggestion], true).body).toBe('Discard your entry edit and a suggestion edit before leaving?');
+  });
+
+  it('several half-filled relationship rows read in the plural', () => {
+    const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
+    expect(draftQuestion([rows], true).body).toBe('Discard 3 relationships you started before leaving?');
+  });
+});
