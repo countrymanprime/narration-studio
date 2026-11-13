@@ -260,71 +260,78 @@ test('a session stop the host never finishes: the next Record says the text cann
 // #3409: the narrator left a take recording on purpose (the stop failed, then "Leave anyway") and changed chapter while the take's listening was still
 // starting. The next chapter's page adopts the take; the listening then fails. The take is not stopped behind the narrator, and the Booth says that the
 // text could not follow it. (The fake DAW reports the project as recording once its start answered; none of this is real REAPER.)
-test('a chapter left with a take recording, whose listening then fails, says the text could not follow the take and stops nothing', async ({ page }) => {
-  await page.addInitScript(() => {
-    const w = window as unknown as {
-      __calls: Calls;
-      __recording: boolean;
-      __refuseListening: Array<() => void>;
-      __transport: Set<(transport: unknown) => void>;
-      __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>;
-    };
-    w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
-    w.__recording = false;
-    w.__refuseListening = [];
-    w.__transport = new Set();
-    const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
-    w.__NARRATION_MOCK_OVERRIDES__ = {
-      subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
-      dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
-      teleprompterStart: () =>
-        new Promise((_resolve, reject) => {
-          w.__calls.listeningStarts += 1;
-          w.__refuseListening.push(() => reject(new Error('The microphone is in use by another application.')));
-        }),
-      teleprompterStop: async () => void (w.__calls.listeningStops += 1),
-      readAloudRecordStart: async () => {
-        w.__recording = true;
-        setTimeout(push, 20);
-        return { outcome: 'started', position: 0, message: '' };
-      },
-      readAloudRecordStop: async () => {
-        w.__calls.stops += 1;
-        // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
-        if (w.__calls.stops === 1) throw new Error('REAPER did not answer.');
-        w.__recording = false;
-        return { outcome: 'stopped', message: '', undoPoints: 0 };
-      },
-    };
+for (const ending of ['fails', 'comes up and is let go'] as const) {
+  test(`a chapter left with a take recording, whose listening then ${ending}, says the text could not follow the take and stops nothing`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        __calls: Calls;
+        __recording: boolean;
+        __refuseListening: Array<(ok: boolean) => void>;
+        __transport: Set<(transport: unknown) => void>;
+        __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>;
+      };
+      w.__calls = { stops: 0, listeningStops: 0, listeningStarts: 0 };
+      w.__recording = false;
+      w.__refuseListening = [];
+      w.__transport = new Set();
+      const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+      w.__NARRATION_MOCK_OVERRIDES__ = {
+        subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
+        dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
+        teleprompterStart: () =>
+          new Promise((resolve, reject) => {
+            w.__calls.listeningStarts += 1;
+            w.__refuseListening.push((ok) => (ok ? resolve({ status: 'started' }) : reject(new Error('The microphone is in use by another application.'))));
+          }),
+        teleprompterStop: async () => void (w.__calls.listeningStops += 1),
+        readAloudRecordStart: async () => {
+          w.__recording = true;
+          setTimeout(push, 20);
+          return { outcome: 'started', position: 0, message: '' };
+        },
+        readAloudRecordStop: async () => {
+          w.__calls.stops += 1;
+          // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
+          if (w.__calls.stops === 1) throw new Error('REAPER did not answer.');
+          w.__recording = false;
+          return { outcome: 'stopped', message: '', undoPoints: 0 };
+        },
+      };
+    });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await page.keyboard.press('Space');
+    const stop = page.getByRole('button', { name: /^Stop$/ });
+    await expect(stop).toBeVisible({ timeout: 8000 });
+    await page.evaluate(() => {
+      window.history.pushState(null, '', '/booth?chapter=chapter-2');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    const question = page.getByRole('alertdialog');
+    await question.getByRole('button', { name: /^Stop and leave/ }).click();
+    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await expect(anyway).toBeVisible({ timeout: 8000 });
+    // The button ignores a press for a moment after it appears (a double-click on the one it replaced).
+    await page.waitForTimeout(600);
+    await anyway.click();
+    await expect(page).toHaveURL(/chapter=chapter-2/);
+    await expect(stop).toBeVisible({ timeout: 8000 });
+    await page.evaluate(
+      (ok) => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](ok),
+      ending === 'comes up and is let go',
+    );
+    const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
+    await expect(sentence).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/Recording did not start/)).toHaveCount(0);
+    // Nothing stopped the take behind the narrator; Stop is theirs and works.
+    expect((await calls(page)).stops).toBe(1);
+    await expect(stop).toBeVisible();
+    await stop.click();
+    await expect(record(page)).toBeVisible({ timeout: 8000 });
+    expect((await calls(page)).stops).toBe(2);
+    // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
+    await expect(sentence).toHaveCount(0);
   });
-  await page.goto('/');
-  await settlePage(page);
-  await goToPage(page, 'Booth');
-  await expect(record(page)).toBeEnabled();
-  await page.keyboard.press('Space');
-  const stop = page.getByRole('button', { name: /^Stop$/ });
-  await expect(stop).toBeVisible({ timeout: 8000 });
-  await page.evaluate(() => {
-    window.history.pushState(null, '', '/booth?chapter=chapter-2');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  });
-  const question = page.getByRole('alertdialog');
-  await question.getByRole('button', { name: /^Stop and leave/ }).click();
-  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
-  await expect(anyway).toBeVisible({ timeout: 8000 });
-  // The button ignores a press for a moment after it appears (a double-click on the one it replaced).
-  await page.waitForTimeout(600);
-  await anyway.click();
-  await expect(page).toHaveURL(/chapter=chapter-2/);
-  await expect(stop).toBeVisible({ timeout: 8000 });
-  await page.evaluate(() => (window as unknown as { __refuseListening: Array<() => void> }).__refuseListening[0]());
-  const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
-  await expect(sentence).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/Recording did not start/)).toHaveCount(0);
-  // Nothing stopped the take behind the narrator; Stop is theirs and works.
-  expect((await calls(page)).stops).toBe(1);
-  await expect(stop).toBeVisible();
-  await stop.click();
-  await expect(record(page)).toBeVisible({ timeout: 8000 });
-  expect((await calls(page)).stops).toBe(2);
-});
+}

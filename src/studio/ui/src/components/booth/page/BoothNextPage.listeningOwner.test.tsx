@@ -115,7 +115,15 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
       let fail = () => {};
       gates.push(new Promise<void>((resolve, reject) => ((release = resolve), (fail = () => reject(new Error('the microphone is in use'))))));
       const answer = () => act(async () => release());
-      return Object.assign(answer, { refuse: () => act(async () => fail()) });
+      return Object.assign(answer, {
+        refuse: () => act(async () => fail()),
+        /** The host reads idle and the start is refused in the same turn, as a host whose phase push and reply arrive together. */
+        refuseIdle: () =>
+          act(async () => {
+            publish({ phase: 'idle' });
+            fail();
+          }),
+      });
     },
   };
 }
@@ -1020,11 +1028,19 @@ describe('a press the narrator left behind by changing chapter, whose take still
    * A take records and its listening is out; the chapter is changed through the address and the stop is answered as the test says. The DAW pushes that it
    * records once the next chapter's page is up, so that page adopts the take as it would from the real DAW.
    */
-  const changeChapterDuringStart = async (stop: 'refused' | 'ok', host = fakeHost()) => {
+  const changeChapterDuringStart = async (stop: 'refused' | 'ok', host = fakeHost(), { idleAtChange = false, beforeChange = () => {} } = {}) => {
     const control = host.holdNextStart();
     const daw = dawFor('reaper');
     const listeners = new Set<(transport: { recording: boolean; playing: boolean; position: number }) => void>();
-    const push = (recording: boolean) => act(async () => listeners.forEach((listener) => listener({ recording, playing: recording, position: 1 })));
+    let dawRecording = false;
+    // The DAW's project read agrees with what it pushed, so a long wait in a test is not read as the take ending.
+    const projectState = daw.projectState.bind(daw);
+    daw.projectState = (async () => ({ ...(await projectState()), playState: dawRecording ? 'recording' : 'stopped' })) as typeof daw.projectState;
+    const push = (recording: boolean) =>
+      act(async () => {
+        dawRecording = recording;
+        listeners.forEach((listener) => listener({ recording, playing: recording, position: 1 }));
+      });
     daw.subscribeTransport = ((listener: (transport: { recording: boolean; playing: boolean; position: number }) => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -1035,6 +1051,9 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     await push(true);
+    // The host reads idle as the chapter changes, so the page that adopts the take asks for a session of its own.
+    if (idleAtChange) await host.forceIdle();
+    beforeChange();
     await act(async () => driver.go('/booth?chapter=c2'));
     await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
     await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
@@ -1065,20 +1084,67 @@ describe('a press the narrator left behind by changing chapter, whose take still
     expect(screen.queryByText(/Recording did not start/)).toBeNull();
   });
 
+  it('says it when the host reads idle and the start is refused in the same turn (the page reads its own session when it settles)', async () => {
+    const host = fakeHost();
+    host.quietFailures();
+    const { control, push } = await changeChapterDuringStart('refused', host);
+    await push(true);
+    await control.refuseIdle();
+    await screen.findByText(UNHEARD);
+  });
+
+  it('says it when the listening comes up after Leave anyway and is let go: the take records and nothing follows it', async () => {
+    const { control, page, push } = await changeChapterDuringStart('refused');
+    await push(true);
+    await control();
+    await screen.findByText(UNHEARD);
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('says it once the session a listening that never answered left starting has settled', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      host.quietFailures();
+      const { page, push } = await changeChapterDuringStart('refused', host);
+      const toast = toasted(page);
+      await push(true);
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.listening + 5));
+      // The host is still `starting`: the take may yet be followed, so nothing is said.
+      expect(said(toast)).toEqual([]);
+      await host.forceIdle();
+      await screen.findByText(UNHEARD);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('is silent when the session the next chapter started for the adopted take is up: the take is followed', async () => {
     const host = fakeHost();
     host.quietFailures();
-    const { control, page, push } = await changeChapterDuringStart('refused', host);
+    const { control, page } = await changeChapterDuringStart('refused', host, { idleAtChange: true });
     const toast = toasted(page);
-    // The host reads idle when the next chapter's page adopts the take, so that page starts a session of its own, and it comes up.
-    await host.forceIdle();
-    await push(true);
     await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(host.phase()).toBe('running'));
     await control.refuse();
     await settle();
     expect(said(toast)).toEqual([]);
     expect(page.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds nothing when the next chapter's own listening failed and said so: one sentence", async () => {
+    const host = fakeHost();
+    host.quietFailures();
+    let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
+    const { control, page } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+    const toast = toasted(page);
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await own.refuse();
+    await host.forceIdle();
+    await control.refuse();
+    await settle();
+    expect(said(toast)).toEqual([]);
+    expect(said(toast)).toEqual([]);
   });
 
   it('is silent when REAPER or the narrator ended the take before the listening failed', async () => {
@@ -1088,6 +1154,23 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await settle();
     await push(false);
     await settle();
+    await control.refuse();
+    await settle();
+    expect(said(toast)).toEqual([]);
+  });
+
+  it('is silent when the take ended in the DAW while no Booth was open: the Booth opened after shows no take', async () => {
+    const host = fakeHost();
+    const control = host.holdNextStart();
+    const first = mountBooth(host);
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    first.view.unmount();
+    // The narrator ends the take in the DAW and opens the Booth again; the DAW reports nothing recording.
+    const second = mountBooth(host);
+    const toast = toasted(second);
+    await ready();
     await control.refuse();
     await settle();
     expect(said(toast)).toEqual([]);
@@ -1108,6 +1191,15 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await control.refuse();
     await settle();
     expect(said(toast)).toEqual([]);
+  });
+
+  it('goes when the take ends: the sentence does not stay beside "Stopped. Recorded"', async () => {
+    const { control, push } = await changeChapterDuringStart('refused');
+    await push(true);
+    await control.refuse();
+    await screen.findByText(UNHEARD);
+    await push(false);
+    await waitFor(() => expect(screen.queryByText(UNHEARD)).toBeNull());
   });
 
   it('a Booth that is gone says nothing: the sentence names a Stop that is not on the page the narrator is on', async () => {

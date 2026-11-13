@@ -133,8 +133,6 @@ let lastStartAt = 0;
 // older start finds a newer one running and stops nothing (the DAW would have refused the older one), so it never ends the take that Booth began (#3320).
 let startsSent = 0;
 let runningStart = 0;
-/** Whether a take this app started has not been seen to end: a press left behind by a chapter change reads it to tell whether its take still records. */
-export const appTakeRuns = (): boolean => appTakeRunning;
 /** Forgets a take the app started; for tests that share the module. */
 export const forgetAppTake = (): void => {
   startsSent = 0;
