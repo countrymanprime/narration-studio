@@ -134,7 +134,7 @@ export function useBoothPage(options: BoothPageOptions) {
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
-  useStopFailedSentence(overlay, session.stopFailed, session.stop);
+  useStopFailedSentence(overlay, session.stopFailed, session.retryStop);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
@@ -453,6 +453,8 @@ export function useBoothPage(options: BoothPageOptions) {
     // The session this press owns (`listeningClaims.ts`): one it starts, or one a cancelled press began that this press joined. It lets the session go
     // only while it is still the owner, so a press that outlived its Booth never ends the listening of the press after it.
     const claim = listen ? claimListening() : joinListening();
+    // The press now holds the session: a stop-failed sentence from before it no longer describes it, and its Retry would stop the take's listening.
+    latest.current.session.clearStopFailed();
     // Past its limit the start has not answered: the session may still come up, and a stop sent now would reach a host that is not listening yet. The
     // claim is kept for the late answer (below), which is the one that lets it go.
     let unanswered = false;

@@ -82,7 +82,7 @@ function mountBooth(refusals: number) {
       <BoothNextPage hasManuscript navigate={vi.fn()} />
     </BoothHost>,
   );
-  return { view, overlay, teleprompterStop };
+  return { view, overlay, teleprompterStop, publish, teleprompterStart };
 }
 
 const main = () => document.getElementById('brec') as HTMLButtonElement;
@@ -127,6 +127,42 @@ describe('a listening stop the host refuses', () => {
     await act(async () => toast.action?.onAction());
     await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(3));
     await waitFor(() => expect(toasts(page)).toHaveLength(0));
+  });
+
+  it('is said again when Retry is refused twice too, and Retry pressed twice at once stops once', async () => {
+    const page = mountBooth(4);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await act(async () => {
+      toasts(page)[0].action?.onAction();
+      toasts(page)[0]?.action?.onAction();
+    });
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(4);
+  });
+
+  it('takes the sentence down when the Booth that said it is left, and a Retry from it sends nothing', async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const [toast] = toasts(page);
+    page.view.unmount();
+    expect(toasts(page)).toHaveLength(0);
+    const calls = page.teleprompterStop.mock.calls.length;
+    await act(async () => toast.action?.onAction());
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+  });
+
+  it('takes the sentence down when the next press starts listening, and a Retry from it stops nothing', async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const [toast] = toasts(page);
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(toasts(page)).toHaveLength(0));
+    const calls = page.teleprompterStop.mock.calls.length;
+    await act(async () => toast.action?.onAction());
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
   });
 
   it('says nothing when the Booth is left while the stop is refused (the release is unknown, not failed)', async () => {

@@ -168,4 +168,65 @@ describe('a stop the host refuses', () => {
     expect(released).toBe(true);
     expect(hook.result.current.stopFailed).toBe(true);
   });
+
+  describe('Retry', () => {
+    const failTwice = async (answers: Answer[]) => {
+      const rig = setup(answers);
+      await rig.state(RUNNING);
+      act(() => rig.hook.result.current.stop());
+      await rig.elapse(3000);
+      expect(rig.hook.result.current.stopFailed).toBe(true);
+      return rig;
+    };
+
+    it('sends the stop again, and says it again when that is refused twice', async () => {
+      const { hook, teleprompterStop, elapse } = await failTwice(['refuse', 'refuse', 'refuse', 'refuse']);
+      act(() => hook.result.current.retryStop());
+      expect(hook.result.current.stopFailed).toBe(false);
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(4);
+      expect(hook.result.current.stopFailed).toBe(true);
+    });
+
+    it('sent twice at once is sent once', async () => {
+      const { hook, teleprompterStop, elapse } = await failTwice(['refuse', 'refuse', 'ok']);
+      act(() => {
+        hook.result.current.retryStop();
+        hook.result.current.retryStop();
+      });
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(3);
+    });
+
+    it('sends nothing when a newer session was asked for since', async () => {
+      const { hook, teleprompterStop, elapse } = await failTwice(['refuse', 'refuse', 'ok']);
+      await act(async () => void (await hook.result.current.start()));
+      act(() => hook.result.current.retryStop());
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(2);
+      expect(hook.result.current.stopFailed).toBe(false);
+    });
+
+    it('sends nothing when a press holds a claim on the session', async () => {
+      const { hook, teleprompterStop, elapse } = await failTwice(['refuse', 'refuse', 'ok']);
+      claimListening();
+      act(() => hook.result.current.retryStop());
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(2);
+      expect(hook.result.current.stopFailed).toBe(false);
+    });
+
+    it('is taken down by a press that joins the session (clearStopFailed)', async () => {
+      const { hook } = await failTwice(['refuse', 'refuse']);
+      act(() => hook.result.current.clearStopFailed());
+      expect(hook.result.current.stopFailed).toBe(false);
+    });
+
+    it('sends nothing when the session has ended', async () => {
+      const { hook, state, teleprompterStop } = await failTwice(['refuse', 'refuse', 'ok']);
+      await state({ ...IDLE, phase: 'stopped' });
+      act(() => hook.result.current.retryStop());
+      expect(teleprompterStop).toHaveBeenCalledTimes(2);
+    });
+  });
 });

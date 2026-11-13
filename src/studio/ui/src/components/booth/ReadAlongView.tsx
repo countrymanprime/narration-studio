@@ -82,7 +82,7 @@ export function ReadAlongView({ session: t, follow, header, marks, onOpenMark, a
         <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
           {t.error ||
             (t.stopFailed
-              ? 'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if it stays on.'
+              ? 'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on.'
               : t.host.message)}
         </p>
       )}

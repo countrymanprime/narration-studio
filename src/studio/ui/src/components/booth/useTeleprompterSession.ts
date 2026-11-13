@@ -48,7 +48,10 @@ export const ACTIVE_PHASES: TeleprompterPhase[] = ['starting', 'running', 'stopp
 const IDLE_STATE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null };
 /** How long a stop that waits gives the host: its grace before it kills the sidecar (service.go `defaultGrace`, 8 s) and a second more. */
 const STOP_WAIT_MS = 9_000;
-/** A stop call the host has not answered by now (past its own 8 s grace) counts as refused. */
+/**
+ * A stop call the binding has not answered by now counts as refused: a limit for a transport that never answers. The real host's `TeleprompterStop` cannot
+ * return an error and returns at once (the service kills the sidecar after its 8 s grace in a goroutine), so this only bounds a call that hangs.
+ */
 const STOP_CALL_MS = 12_000;
 /** A refused stop is sent once more after this, if the session is still the one it meant (#3409). */
 const STOP_RETRY_MS = 1_500;
@@ -142,6 +145,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const alive = useRef(true);
   // How many sessions this hook has asked for: a refused stop is not sent again once a newer session was asked for.
   const starts = useRef(0);
+  // The `starts` count the stop that failed meant, and whether a Retry of it is out: a Retry is only sent for that session, and only once at a time.
+  const failedStart = useRef(-1);
+  const retrying = useRef(false);
   const [prompt, setPrompt] = useState<ModelPrompt>();
   // The last start found the speech model missing: kept after the question is answered, so a narrator who declined is still told why the text does not follow.
   const [modelMissing, setModelMissing] = useState(false);
@@ -385,10 +391,31 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     // The session ended meanwhile, or is not the one the first stop meant: nothing to stop.
     if (!ACTIVE_PHASES.includes(hostPhase.current) || starts.current !== before || hasListeningClaim()) return true;
     if (await attempt()) return true;
-    if (alive.current) setStopFailed(true);
+    if (alive.current) {
+      failedStart.current = before;
+      setStopFailed(true);
+    }
     return false;
   }, [api]);
   const stop = () => void stopHost();
+  /**
+   * The Retry of the stop-failed sentence. It sends the stop again only if the session it meant is still the one the host runs, under the conditions the
+   * automatic second stop has: this hook still there, the session not ended, nothing started since, no press holding a claim on it (a take that joined it
+   * would lose its listening). Otherwise nothing is sent: the reason for the sentence is gone. `stopFailed` clears first, so a Retry that is refused twice
+   * raises the sentence again. A second press while one is out does nothing.
+   */
+  const retryStop = useCallback(() => {
+    if (retrying.current) return;
+    const meant = alive.current && ACTIVE_PHASES.includes(hostPhase.current) && starts.current === failedStart.current && !hasListeningClaim();
+    setStopFailed(false);
+    if (!meant) return;
+    retrying.current = true;
+    void stopHost().finally(() => {
+      retrying.current = false;
+    });
+  }, [stopHost]);
+  /** A press took the session (joined it): the sentence about the stop that failed no longer describes it. */
+  const clearStopFailed = useCallback(() => setStopFailed(false), []);
   /**
    * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
    * never says, so a take is never held behind it. Answers at once when nothing runs.
@@ -609,6 +636,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     status,
     error,
     stopFailed,
+    retryStop,
+    clearStopFailed,
     prompt,
     modelMissing,
     modelInstall,

@@ -23,6 +23,8 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     paused: false,
     modelMissing: false,
     stopFailed: false,
+    retryStop: vi.fn(),
+    clearStopFailed: vi.fn(),
     pause: vi.fn(),
     session: initialSession,
     coldRead: false,
@@ -124,6 +126,14 @@ describe('CompanionShell', () => {
     expect(api.companionModeExit).not.toHaveBeenCalled();
     unmount();
     expect(api.companionModeExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('says in the panel that the microphone may still be open when the reading could not be stopped (#3409)', () => {
+    renderCompanion({ session: baseSession({ stopFailed: true }) });
+    const alert = screen.getAllByRole('alert').find((node) => /could not be stopped/.test(node.textContent ?? ''));
+    expect(alert?.textContent).toBe(
+      'The reading could not be stopped, so your microphone may still be open. Press Stop again, or quit and reopen the app if the microphone stays on.',
+    );
   });
 
   it('says so, and stays usable, when the window could not be narrowed and pinned', async () => {
