@@ -429,7 +429,7 @@ A chapter edited since it was recorded loses the places that named its old words
 word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
-the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
+the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example _Recorded through "said the Queen" (45%)_, and says _about_ when the
 figure comes from the track's length.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
@@ -440,7 +440,7 @@ A chapter that is partly recorded opens at the word after the recording ends, so
 agree and no resume line is drawn. Once you move elsewhere in the chapter, the top bar offers **Resume at ¶ n** and says where it
 read that from: the DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place back to
 where the recording ends; nothing starts until you press Record. With none of those, it offers the place the chapter opened at,
-*where your recording ends* or *where you left off*, so you can go back to it.
+_where your recording ends_ or _where you left off_, so you can go back to it.
 
 ![Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends](../../images/ui/booth-waiting.webp)
 
@@ -471,10 +471,10 @@ pause, starts the sound about a third of a second later, and takes the pause bac
 
 A sample is refused, with a sentence, in two cases:
 
-| Shown | What it means | What to do |
-| --- | --- | --- |
-| "Not while recording. Stop the take first." | A take is recording, and a sample through your speakers would be heard by the microphone. The play buttons are off, and their hint says so. | Stop the take. |
-| "Can't tell whether a take is recording (last heard 12 s ago)." with **Check again** | The DAW has gone quiet, so the Booth cannot tell whether it is recording. | Press **Check again**, or look in the DAW. |
+| Shown                                                                                | What it means                                                                                                                               | What to do                                 |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| "Not while recording. Stop the take first."                                          | A take is recording, and a sample through your speakers would be heard by the microphone. The play buttons are off, and their hint says so. | Stop the take.                             |
+| "Can't tell whether a take is recording (last heard 12 s ago)." with **Check again** | The DAW has gone quiet, so the Booth cannot tell whether it is recording.                                                                   | Press **Check again**, or look in the DAW. |
 
 A sample whose audio file is missing is listed with **Audio file missing** and does not play; the Story Bible says what to do. If a sample cannot be loaded, it
 stops with a message.
@@ -562,7 +562,7 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
 reading session, with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys
-that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. A chapter recorded part way opens with *Continuing at "…the next words"*, the same place the Booth opens it at (the word after the last one recorded), and **Play** starts there. **Change** listens to the end of the recording to find a different start (the choices below), and **Start from the top** reads from the beginning. A chapter with nothing recorded, or recorded to the end, goes straight to those choices. After **Stop reading**, the "Where you stopped" choices come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
+that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. A chapter recorded part way opens with _Continuing at "…the next words"_, the same place the Booth opens it at (the word after the last one recorded), and **Play** starts there. **Change** listens to the end of the recording to find a different start (the choices below), and **Start from the top** reads from the beginning. A chapter with nothing recorded, or recorded to the end, goes straight to those choices. After **Stop reading**, the "Where you stopped" choices come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
 place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
 scroll. The script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
@@ -601,16 +601,17 @@ when you came in, the Booth did not start that take and does not stop it, and le
 
 ## If something goes wrong
 
-| What you see | What it means and what to do |
-| --- | --- |
-| Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
-| **Not linked to a track** | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)). |
-| **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
-| **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
-| "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
-| "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
-| **Undo** says to use Edit > Undo in the DAW | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)). |
-| The Booth does not record in Audacity | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md). |
+| What you see                                                                | What it means and what to do                                                                                                                                                                          |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Record looks off and the footer says why                                    | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records.                                                                                      |
+| **Not linked to a track**                                                   | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)).                                                                          |
+| **REAPER not connected** or **REAPER not answering**                        | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
+| **REAPER has a different project open**                                     | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked.                                                               |
+| "REAPER is already recording. Stop it in REAPER before recording here."     | A take you started in REAPER is running. Stop it there; Record is ready again at once.                                                                                                                |
+| "The text cannot follow your voice yet"                                     | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to).           |
+| "The Booth could not stop listening, so your microphone may still be open." | The Booth asked the listening to stop, was refused, and asked once more. Press **Retry** in the message. If the microphone stays open, quit and reopen the app.                                       |
+| **Undo** says to use Edit > Undo in the DAW                                 | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)).                                                                                |
+| The Booth does not record in Audacity                                       | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md).                                                            |
 
 ## What next
 

@@ -117,6 +117,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
   'src/components/booth/page/useBoothPage.ts#11': no(RC),
+  'src/components/booth/listening/useStopFailedSentence.ts#1': yes(
+    'Stopping the listening session again is safe (the host ends whatever runs, and nothing is left to press: the take is over); the toast carries Retry (#3409).',
+  ),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),

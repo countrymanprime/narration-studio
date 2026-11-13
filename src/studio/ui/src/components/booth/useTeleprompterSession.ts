@@ -6,6 +6,9 @@ import { buildRows, creditsRows, hydrateSession, initialSession, previewRows, re
 import { usePacedCursor } from './usePacedCursor';
 import type { InputSource } from './listening/listeningMic';
 import { PRESS_LIMITS_MS } from './record/pressLimits';
+import { hasListeningClaim } from './listening/listeningClaims';
+import { apiErrorMessage } from '../../api/errorMessage';
+import { logUi } from '../../api/uiLog';
 import type {
   ManuscriptChapter,
   ManuscriptParagraph,
@@ -45,6 +48,10 @@ export const ACTIVE_PHASES: TeleprompterPhase[] = ['starting', 'running', 'stopp
 const IDLE_STATE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null };
 /** How long a stop that waits gives the host: its grace before it kills the sidecar (service.go `defaultGrace`, 8 s) and a second more. */
 const STOP_WAIT_MS = 9_000;
+/** A stop call the host has not answered by now (past its own 8 s grace) counts as refused. */
+const STOP_CALL_MS = 12_000;
+/** A refused stop is sent once more after this, if the session is still the one it meant (#3409). */
+const STOP_RETRY_MS = 1_500;
 
 function sessionReducer(session: Session, action: SessionAction): Session {
   switch (action.kind) {
@@ -130,6 +137,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   const [session, dispatch] = useReducer(sessionReducer, initialSession);
   const [loaded, setLoaded] = useState<{ chapterId: string; paragraphs: ManuscriptParagraph[] }>();
   const [error, setError] = useState('');
+  // The host refused (or never answered) a stop, twice: the session may still be running with the microphone open. Said by the page, once.
+  const [stopFailed, setStopFailed] = useState(false);
+  const alive = useRef(true);
+  // How many sessions this hook has asked for: a refused stop is not sent again once a newer session was asked for.
+  const starts = useRef(0);
   const [prompt, setPrompt] = useState<ModelPrompt>();
   // The last start found the speech model missing: kept after the question is answered, so a narrator who declined is still told why the text does not follow.
   const [modelMissing, setModelMissing] = useState(false);
@@ -184,6 +196,13 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   hostPhase.current = host.phase;
 
   useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const stopEvents = api.subscribeTeleprompterEvent((event) => dispatch({ kind: 'event', event }));
     const stopState = api.subscribeTeleprompterState((next) => {
       setHost(next);
@@ -192,6 +211,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         setEpoch((last) => ({ count: last.count + 1, at: startedAt.current }));
       }
       if (!ACTIVE_PHASES.includes(next.phase)) {
+        setStopFailed(false);
         stopWaiters.current.forEach((done) => done());
         stopWaiters.current.clear();
       }
@@ -297,6 +317,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    */
   const start = async (options: { coldRead?: boolean; startWord?: number | null } = {}): Promise<{ ok: boolean; reason: string }> => {
     setError('');
+    setStopFailed(false);
+    starts.current += 1;
     setModelMissing(false);
     const from = options.startWord === undefined ? startWordRef.current : options.startWord;
     startedAt.current = from ?? 0;
@@ -327,7 +349,46 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       startedAt.current = 0;
     }
   };
-  const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));
+  /**
+   * Asks the host to end the session it runs, and sends the stop once more if it was refused or never answered (#3409): a session left running keeps the microphone
+   * open and a later start finds it "already running". True when the host took the stop or said the session had ended. After the second failure `stopFailed`
+   * is set, unless this hook is gone (an unmount's stop that fails is unknown, not failed, and says nothing). The second stop is sent only if the session it
+   * meant is still the one the host runs: nothing was started since and no press holds a claim on a session (a take that joined it would lose its listening).
+   */
+  const stopHost = useCallback(async (): Promise<boolean> => {
+    const attempt = () =>
+      new Promise<boolean>((resolve) => {
+        const ended = () => finish(true);
+        const finish = (ok: boolean) => {
+          clearTimeout(timer);
+          stopWaiters.current.delete(ended);
+          resolve(ok);
+        };
+        const timer = setTimeout(() => {
+          logUi('ui.record', 'The host did not answer a stop of the listening session in time.');
+          finish(false);
+        }, STOP_CALL_MS);
+        // The host saying the session has ended is the answer, whatever the call returns.
+        stopWaiters.current.add(ended);
+        api.teleprompterStop().then(
+          () => finish(true),
+          (reason: unknown) => {
+            logUi('ui.record', `The host refused to stop the listening session: ${apiErrorMessage(reason)}`);
+            finish(false);
+          },
+        );
+      });
+    const before = starts.current;
+    if (await attempt()) return true;
+    await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_MS));
+    if (!alive.current) return false;
+    // The session ended meanwhile, or is not the one the first stop meant: nothing to stop.
+    if (!ACTIVE_PHASES.includes(hostPhase.current) || starts.current !== before || hasListeningClaim()) return true;
+    if (await attempt()) return true;
+    if (alive.current) setStopFailed(true);
+    return false;
+  }, [api]);
+  const stop = () => void stopHost();
   /**
    * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
    * never says, so a take is never held behind it. Answers at once when nothing runs.
@@ -369,8 +430,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   /** Ends a session the host runs or is starting, if there is one: for a press that gave up on a session nobody else owns. */
   const stopIfRunning = useCallback(async (): Promise<void> => {
     const state = await api.teleprompterState().catch(() => null);
-    if (state && ACTIVE_PHASES.includes(state.phase)) await api.teleprompterStop().catch((reason) => setError(errorText(reason)));
-  }, [api]);
+    if (state && ACTIVE_PHASES.includes(state.phase)) await stopHost();
+  }, [api, stopHost]);
   const stopAndWait = useCallback((): Promise<void> => {
     if (!ACTIVE_PHASES.includes(hostPhase.current)) return Promise.resolve();
     return new Promise<void>((resolve) => {
@@ -381,12 +442,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         resolve();
       }
       stopWaiters.current.add(done);
-      void api.teleprompterStop().catch((reason) => {
-        setError(errorText(reason));
-        done();
-      });
+      void stopHost().then((ok) => ok || done());
     });
-  }, [api]);
+  }, [stopHost]);
   // Pause (true) or resume (false) a running session's listening without ending it: the phase stays `running`, so `active` and every "is a session running" check stay as they are; only
   // `host.paused` changes. Flags are kept on Stop only (docs/architecture/findings-contract.md unchanged).
   const pause = (paused: boolean) => void api.teleprompterPause(paused).catch((reason) => setError(errorText(reason)));
@@ -550,6 +608,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     active,
     status,
     error,
+    stopFailed,
     prompt,
     modelMissing,
     modelInstall,

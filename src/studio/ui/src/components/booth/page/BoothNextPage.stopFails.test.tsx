@@ -1,0 +1,144 @@
+// @vitest-environment jsdom
+// #3409: a listening session the host would not stop keeps the microphone open. The Booth sends the stop once more, and says it once if that is refused
+// too, with a Retry that sends it again.
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../../api/hostWindow', () => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
+vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('../takeTone')>()), playTakeTone: vi.fn(async () => {}) }));
+
+import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
+import { createOverlayService } from '../../../overlay/overlayService';
+import type { NarrationApi, TeleprompterState } from '../../../types';
+import { forgetListeningClaims } from '../listening/listeningClaims';
+import { forgetAppTake } from '../record/useRecordControl';
+import { BoothNextPage } from './BoothNextPage';
+import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
+
+beforeEach(() => {
+  forgetAppTake();
+  forgetListeningClaims();
+});
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  window.localStorage.clear();
+});
+
+const IDLE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, paused: false, coldRead: false, script: null, position: null };
+const SCRIPT: TeleprompterEvent = {
+  type: 'script',
+  chapter: { id: 'c1', title: 'Chapter One' },
+  tokens: 36,
+  spans: [
+    { kind: 'title', id: 'c1', index: null, start: 0, count: 2 },
+    { kind: 'paragraph', id: 'p1', index: 0, start: 2, count: 11 },
+    { kind: 'paragraph', id: 'p2', index: 1, start: 13, count: 13 },
+    { kind: 'paragraph', id: 'p3', index: 2, start: 26, count: 10 },
+  ],
+};
+
+/** A host whose stop is refused for the first `refusals` calls, as a host busy with its sidecar's exit is. */
+function mountBooth(refusals: number) {
+  let state: TeleprompterState = IDLE;
+  const states = new Set<(next: TeleprompterState) => void>();
+  const events = new Set<(event: TeleprompterEvent) => void>();
+  const publish = (next: Partial<TeleprompterState>) => {
+    state = { ...state, ...next };
+    states.forEach((listener) => listener(state));
+  };
+  let refused = 0;
+  const teleprompterStart = vi.fn(async (options: { coldRead?: boolean }) => {
+    publish({ phase: 'starting', chapter: 'c1', engine: 'whisper', coldRead: Boolean(options.coldRead) });
+    publish({ phase: 'running' });
+    events.forEach((listener) => listener(SCRIPT));
+    return { status: 'started' as const };
+  });
+  const teleprompterStop = vi.fn(async () => {
+    if (refused < refusals) {
+      refused += 1;
+      throw new Error('the host is busy');
+    }
+    publish({ phase: 'stopped' });
+  });
+  const overlay = createOverlayService();
+  const host: Partial<NarrationApi> = {
+    teleprompterStart,
+    teleprompterStop,
+    teleprompterSaveFlags: async () => [],
+    teleprompterState: async () => state,
+    subscribeTeleprompterState: (listener: (next: TeleprompterState) => void) => {
+      states.add(listener);
+      return () => states.delete(listener);
+    },
+    subscribeTeleprompterEvent: (listener: (event: TeleprompterEvent) => void) => {
+      events.add(listener);
+      return () => events.delete(listener);
+    },
+  };
+  const api = pageApi({ passageMapRecordRun: async () => [], ...host });
+  const view = render(
+    <BoothHost api={api} daw={dawFor('reaper')} journal={newJournal()} overlay={overlay}>
+      <BoothNextPage hasManuscript navigate={vi.fn()} />
+    </BoothHost>,
+  );
+  return { view, overlay, teleprompterStop };
+}
+
+const main = () => document.getElementById('brec') as HTMLButtonElement;
+const ready = async () => {
+  await screen.findByText('Nobody', { exact: false });
+  await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
+};
+const chooseCold = async () => {
+  await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
+  const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+  await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Cold read' })));
+  await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+  await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Main button' })).toBeNull());
+};
+/** Starts a cold read and presses its Stop. */
+async function coldReadThenStop() {
+  await ready();
+  await chooseCold();
+  await act(async () => void fireEvent.click(main()));
+  await waitFor(() => expect(main().textContent).toBe('Stop'));
+  await act(async () => void fireEvent.click(main()));
+}
+const SENTENCE = /The Booth could not stop listening, so your microphone may still be open/;
+const toasts = (page: ReturnType<typeof mountBooth>) => page.overlay.getSnapshot().toasts.filter((toast) => SENTENCE.test(toast.text));
+
+describe('a listening stop the host refuses', () => {
+  it('is sent once more and nothing is said when the second is taken', async () => {
+    const page = mountBooth(1);
+    await coldReadThenStop();
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(2), { timeout: 4000 });
+    expect(toasts(page)).toHaveLength(0);
+  });
+
+  it('is said once, in plain words with Retry, when the second is refused too, and Retry stops it', async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(2);
+    const [toast] = toasts(page);
+    expect(toast.tone).toBe('error');
+    expect(toast.text).not.toMatch(/host is busy/);
+    await act(async () => toast.action?.onAction());
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(toasts(page)).toHaveLength(0));
+  });
+
+  it('says nothing when the Booth is left while the stop is refused (the release is unknown, not failed)', async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    // Leaving may send a stop of its own; whatever it sends is not sent again, and its refusal is not said.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    const afterLeaving = page.teleprompterStop.mock.calls.length;
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2200))));
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(afterLeaving);
+    expect(toasts(page)).toHaveLength(0);
+  });
+});

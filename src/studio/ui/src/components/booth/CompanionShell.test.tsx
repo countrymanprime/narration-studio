@@ -22,6 +22,7 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     host: { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null },
     paused: false,
     modelMissing: false,
+    stopFailed: false,
     pause: vi.fn(),
     session: initialSession,
     coldRead: false,
