@@ -1139,9 +1139,8 @@ function AppRoutes() {
         void (async () => {
           try {
             // Settings' fields first, then the drafts; the first that does not save keeps the narrator where they are (each says why in its own words).
-            // All or nothing: while a draft that cannot be saved is held, Settings' fields are not saved either (the registry saves none of its own).
-            const loose = drafts.heldNow().filter((draft) => !draft.saveable);
-            const settingsSaved = loose.length > 0 || !settingsHeld || (await withinSaveLimit(saveSettingsOnce()));
+            // The question offers no Save while a draft that cannot be saved is held (all or nothing), so Settings' fields are only saved here when nothing blocks.
+            const settingsSaved = !settingsHeld || (await withinSaveLimit(saveSettingsOnce()));
             const outcome = settingsSaved ? await drafts.save() : undefined;
             // Cancel, or another question, came while this was saving: the move is no longer the one that was asked for.
             if (token !== moveToken.current) return;

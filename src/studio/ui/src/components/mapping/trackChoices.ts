@@ -1,33 +1,19 @@
 import type { ChapterTrackMatch, TrackMapping } from '../../api/contracts/chapterTrackMap';
 import type { Track } from '../../types';
 import { trackName } from '../tracks/trackName';
+import { keptTitle } from '../chapterTracks/useChapterLinkActions';
 
 /**
- * The name a track's holder is shown by in "(linked to X)": the manuscript's name when the caller has it, else the title the host kept with the link,
- * with control and direction characters made spaces and a long one clipped, else "another chapter" (an empty name left the label off, or read "linked
- * to " with no one). One rule for every picker (#3398).
+ * The name a track's holder is shown by in "(linked to X)": the manuscript's current heading when the caller has it, else the title the host kept with
+ * the link, cleaned and clipped by the one rule the takeover sentence uses (`keptTitle`), else "another chapter" (an empty name left the label off,
+ * or read "linked to " with no one). One rule and one source for every picker (#3398).
  */
 export function holderName(current: string | undefined, kept: string | undefined): string {
-  const clean = (text: string | undefined) => {
-    if (typeof text !== 'string') return '';
-    const spaced = Array.from(text, (ch) => {
-      const code = ch.codePointAt(0) ?? 0;
-      return code < 0x20 ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        (code >= 0x2066 && code <= 0x2069)
-        ? ' '
-        : ch;
-    })
-      .join('')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return spaced.length > 60 ? `${spaced.slice(0, 59)}…` : spaced;
-  };
-  return clean(current) || clean(kept) || 'another chapter';
+  return keptTitle(current) ?? keptTitle(kept) ?? 'another chapter';
 }
+
+/** Names a chapter by the manuscript's current heading, when the caller has the manuscript (`useChapterNameOf`). */
+export type ChapterNameOf = (chapterId: string) => string | undefined;
 
 /** The link of a track another chapter holds, or undefined: every picker finds a holder here, so none disagrees with another about who it is. */
 export const holderOf = <T extends { trackGuid: string; chapterId: string }>(links: readonly T[], trackGuid: string, chapterId?: string): T | undefined =>
@@ -66,7 +52,12 @@ const placement = (t: Placed): Pick<TrackChoice, 'index' | 'depth' | 'isFolder' 
  * first, then every other track in project order. Only the closest track is preselected, and a tie or no match preselects nothing: the narrator
  * picks. `links` (every confirmed link) says which tracks another chapter holds.
  */
-export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapping[] = [], chapterId = match.chapterId): TrackChoice[] {
+export function trackChoices(
+  match: ChapterTrackMatch,
+  links: readonly TrackMapping[] = [],
+  chapterId = match.chapterId,
+  nameOf?: ChapterNameOf,
+): TrackChoice[] {
   const named = new Map(match.tracks.map((t) => [t.guid, trackName(t.name, t.index)]));
   const summaries = new Map(match.tracks.map((t) => [t.guid, t]));
   const ranked = match.candidates.filter((c) => named.has(c.trackGuid)).map((c) => c.trackGuid);
@@ -80,7 +71,7 @@ export function trackChoices(match: ChapterTrackMatch, links: readonly TrackMapp
       name: named.get(guid) ?? guid,
       best: guid === best,
       ...(summary ? placement(summary) : {}),
-      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
+      ...(holder ? { heldBy: holderName(nameOf?.(holder.chapterId), holder.chapterTitle) } : {}),
     };
   });
 }
@@ -92,7 +83,7 @@ type TrackHolder = Pick<TrackMapping, 'trackGuid' | 'chapterId' | 'chapterTitle'
  * The same choices for a list of tracks with no match behind it (the engine panel's Chapter links, the recording check): project order, nothing
  * preselected. `links` and `chapterId` name the tracks another chapter holds, as `trackChoices` does.
  */
-export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string): TrackChoice[] =>
+export const plainTrackChoices = (tracks: readonly Track[], links: readonly TrackHolder[] = [], chapterId?: string, nameOf?: ChapterNameOf): TrackChoice[] =>
   tracks.map((t) => {
     const holder = holderOf(links, t.guid, chapterId);
     return {
@@ -100,7 +91,7 @@ export const plainTrackChoices = (tracks: readonly Track[], links: readonly Trac
       name: trackName(t.name, t.index),
       best: false,
       ...placement(t),
-      ...(holder ? { heldBy: holderName(undefined, holder.chapterTitle) } : {}),
+      ...(holder ? { heldBy: holderName(nameOf?.(holder.chapterId), holder.chapterTitle) } : {}),
     };
   });
 
