@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { OverlayHost } from '../../../overlay/OverlayHost';
+import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { Finding, NarrationApi } from '../../../types';
@@ -21,19 +23,28 @@ function Host({ api, initial }: { api: NarrationApi; initial: Finding }) {
   return <FindingThread finding={finding} api={api} onChanged={setFinding} />;
 }
 
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
+
 async function setup(journal?: Journal) {
   const api = createMockApi();
   const [first] = (await api.findingsList({})).findings;
   render(
     <ApiProvider api={api}>
       <TooltipProvider>
-        {journal ? (
-          <StudioProvider journal={journal}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          {journal ? (
+            <StudioProvider journal={journal}>
+              <Host api={api} initial={first!} />
+            </StudioProvider>
+          ) : (
             <Host api={api} initial={first!} />
-          </StudioProvider>
-        ) : (
-          <Host api={api} initial={first!} />
-        )}
+          )}
+        </UnsavedDraftsProvider>
         <OverlayHost />
       </TooltipProvider>
     </ApiProvider>,
@@ -48,6 +59,27 @@ const addNote = async (text: string, who?: 'Proofer replied' | 'My note') => {
   fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
   await waitFor(() => expect(messages().some((m) => m.includes(text))).toBe(true));
 };
+
+describe('holders-render-clean-after-their-save', () => {
+  it('a note typed and not added renders clean once the registry has saved it', async () => {
+    const { api, id } = await setup();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Add a note' }), { target: { value: 'Typed, not added' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+    expect((await api.findingsGet(id)).review.thread?.at(-1)?.text).toBe('Typed, not added');
+  });
+
+  it('an edited note renders clean once the registry has saved it', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: 'Second wording' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+  });
+});
 
 describe('notes-on-this-finding', () => {
   it('starts empty and adds a note as mine or as the proofer’s reply', async () => {
