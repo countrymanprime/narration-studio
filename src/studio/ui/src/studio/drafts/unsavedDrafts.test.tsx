@@ -62,19 +62,19 @@ function setup(initial: Record<string, UnsavedDraft>) {
 describe('the unsaved-drafts registry', () => {
   it('holds nothing without a holder, and a holder outside the provider is a no-op', () => {
     const { result } = renderHook(() => useUnsavedDrafts(), { wrapper });
-    expect(result.current.held).toEqual([]);
+    expect(result.current.heldNow()).toEqual([]);
     expect(() => render(<Holder id="alone" draft={draft()} />)).not.toThrow();
   });
 
   it('names a dirty holder, and not a clean one', () => {
     const { result } = setup({ a: draft({ label: 'your note' }), b: draft({ dirty: false, label: 'your entry' }) });
-    expect(result.current.held.map((entry) => entry.label)).toEqual(['your note']);
+    expect(result.current.heldNow().map((entry) => entry.label)).toEqual(['your note']);
   });
 
   it('forgets a holder when it unmounts', () => {
-    let held: readonly string[] = [];
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
     const Probe = () => {
-      held = useUnsavedDrafts().held.map((entry) => entry.label);
+      registry = useUnsavedDrafts();
       return null;
     };
     const tree = (shown: boolean) => (
@@ -84,9 +84,9 @@ describe('the unsaved-drafts registry', () => {
       </UnsavedDraftsProvider>
     );
     const view = render(tree(true));
-    expect(held).toEqual(['your note']);
+    expect(registry.heldNow().map((entry) => entry.label)).toEqual(['your note']);
     view.rerender(tree(false));
-    expect(held).toEqual([]);
+    expect(registry.heldNow()).toEqual([]);
   });
 
   it('a holder that says it did not save is named in failed, and the rest are still tried (#3446 B5)', async () => {
@@ -250,6 +250,35 @@ describe('the unsaved-drafts registry', () => {
     });
   });
 
+  it('a holder that turns clean a few milliseconds after its save resolves is not reported as held (the wait after the saves, #3446)', async () => {
+    // The editor clears itself from a timer after save() resolved, as a store refresh would: read at once it would still be dirty.
+    function Slowly() {
+      const [text, setText] = useState('typed');
+      useUnsavedDraft('slowly', {
+        dirty: text !== '',
+        label: 'your reply',
+        save: async () => {
+          setTimeout(() => flushSync(() => setText('')), 10);
+          return true;
+        },
+        discard: () => setText(''),
+      });
+      return null;
+    }
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
+    const Registry = () => {
+      registry = useUnsavedDrafts();
+      return null;
+    };
+    render(
+      <UnsavedDraftsProvider>
+        <Slowly />
+        <Registry />
+      </UnsavedDraftsProvider>,
+    );
+    await act(async () => expect(await registry.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
+  });
+
   it('discard keeps going after a holder whose discard throws, and names it (#3446 B7)', () => {
     const second = vi.fn();
     const { result } = setup({
@@ -320,7 +349,7 @@ describe('the unsaved-drafts registry', () => {
     const saved = vi.fn(async () => true);
     const row = vi.fn();
     const { result } = setup({ a: draft({ save: saved, label: 'your entry' }), b: draft({ save: undefined, label: 'a new row', discard: row }) });
-    expect(result.current.held.map((entry) => [entry.label, entry.saveable])).toEqual([
+    expect(result.current.heldNow().map((entry) => [entry.label, entry.saveable])).toEqual([
       ['your entry', true],
       ['a new row', false],
     ]);
@@ -362,7 +391,7 @@ describe('the unsaved-drafts registry', () => {
         </UnsavedDraftsProvider>
       ),
     });
-    expect(view.result.current.held).toHaveLength(2);
+    expect(view.result.current.heldNow()).toHaveLength(2);
     act(() => view.result.current.discard());
     expect(discards[0]).toHaveBeenCalledOnce();
     expect(discards[1]).toHaveBeenCalledOnce();
