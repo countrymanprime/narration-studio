@@ -481,6 +481,23 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
+  // #3415: the board's links are read from the saved project; REAPER's tracks now say whether a linked track is still there.
+  it('keeps Show in REAPER off for a track deleted in REAPER since the save, as the Engine row and the panel say Track missing', async () => {
+    const base = createMockApi({}, { chapterSync: 'activity' });
+    const links = await base.chapterTrackLinks();
+    const linkedGuid = links.chapters.find((chapter) => chapter.status === 'confirmed')?.links[0]?.trackGuid;
+    expect(linkedGuid).toBeTruthy();
+    const tracksLive = async () => {
+      const answer = await base.tracksLive();
+      return { ...answer, project: { ...answer.project, tracks: answer.project.tracks.filter((track) => track.guid !== linkedGuid) } };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, tracksLive }, initial: { chapterSync: 'activity' } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/));
+  });
+
   it('keeps Show in REAPER off for a track that is not in the saved project, as the chapter track panel does (#3168)', async () => {
     const base = createMockApi();
     const chapterTrackLinks = async () => {

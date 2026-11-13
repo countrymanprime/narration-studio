@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ChapterTrackLink } from '../../types';
+import type { ChapterTrackLink, ManuscriptChapter, Track, TrackMapping } from '../../types';
+import { chapterTrackRows } from '../engine/chapterTrackRows';
 import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 
 const base: ChapterTrackLink = {
@@ -112,5 +113,36 @@ describe('followLiveTracks', () => {
     const renamed = followLiveTracks(confirmed, [{ guid: '{T}', name: 'New Name' }]);
     expect(renamed.track?.trackName).toBe('New Name');
     expect(followLiveTracks(confirmed, [{ guid: '{T}', name: 'CHAPTER SIX' }])).toBe(confirmed);
+  });
+});
+
+// The class guard of #3415: the Engine row, the Booth, the DAW tools and the Link chapters dialog read a chapter's link through `chapterTrackRows`; the
+// board, its row menu and the chapter track panel read it through `followLiveTracks`. Whatever REAPER's track list does, the two must say the same:
+// the same Missing state and the same name.
+describe('every surface says the same about a track renamed or deleted in REAPER (#3415)', () => {
+  const link: ChapterTrackLink = {
+    ...base,
+    status: 'confirmed',
+    track,
+    links: [{ trackGuid: '{T}', chapterId: 'c-1', chapterTitle: 'Chapter 6', confirmedAt: '2026-01-01T00:00:00Z' }],
+  };
+  const chapter = { id: 'c-1', title: 'Chapter 6', subtitle: '', kind: 'narration' } as unknown as ManuscriptChapter;
+  const mappings = link.links as unknown as TrackMapping[];
+  const live = (tracks: { guid: string; name: string }[]) => tracks.map((t, index) => ({ ...t, index, items: [] }) as unknown as Track);
+
+  const scenarios: [string, { guid: string; name: string }[]][] = [
+    ['unchanged', [{ guid: '{T}', name: 'CHAPTER SIX' }]],
+    ['renamed', [{ guid: '{T}', name: 'Renamed in REAPER' }]],
+    ['deleted', [{ guid: '{Other}', name: 'Other' }]],
+    ['all tracks deleted', []],
+  ];
+
+  it.each(scenarios)('%s', (_name, tracks) => {
+    const [row] = chapterTrackRows([chapter], live(tracks), mappings);
+    const followed = chapterTrackButtonState(followLiveTracks(link, tracks));
+    expect(followed.kind === 'missing').toBe(row.state === 'missing');
+    if (followed.kind === 'linked' || followed.kind === 'renamed') expect(followed.trackName).toBe(row.trackName);
+    // Show in REAPER is on exactly when the Engine row says Linked.
+    expect(showableTrackGuid(followLiveTracks(link, tracks)) !== undefined).toBe(row.state === 'linked');
   });
 });

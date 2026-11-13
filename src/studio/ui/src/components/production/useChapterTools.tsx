@@ -13,7 +13,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { showableTrackGuid } from './chapterTrackButtonState';
+import { followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -62,7 +62,14 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   // Each chapter's link state is the app's one chapter-track state, not a read of this board's own: a chapter linked or created in the Engine
   // panel shows here at once (#3355), and a change made here shows there.
-  const { details: trackLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  const { details: savedLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  // The links are read from the saved project; the tracks the Engine list and the Booth show are REAPER's now. A chapter linked to a track deleted or
+  // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
+  const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
+  const trackLinks = useMemo(
+    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    [savedLinks, liveTracks],
+  );
   const [open, setOpen] = useState<Open>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
