@@ -3,6 +3,7 @@ import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { flushSync } from 'react-dom';
 import { useEffect, useState, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { expectHolderCleanAfterSave } from './holderContract';
 import { describe, expect, it, vi } from 'vitest';
 import {
   SAVE_LIMIT_MS,
@@ -223,7 +224,60 @@ describe('the unsaved-drafts registry', () => {
         <Registry />
       </UnsavedDraftsProvider>,
     );
-    await act(async () => expect(await registry.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
+    await act(async () => expectHolderCleanAfterSave(() => registry.save()));
+  });
+
+  it("a GuardedLink's onNavigate runs only when the move goes ahead: not before the question, never after Cancel (#3446 E1)", () => {
+    const onNavigate = vi.fn();
+    let proceed: (() => void) | undefined;
+    // The shell asks first: it hands back the `after` it was given, to run only if the narrator goes on.
+    const go = vi.fn((_to: string, _state?: unknown, after?: () => void) => {
+      proceed = after;
+    });
+    const view = render(
+      <MemoryRouter>
+        <UnsavedDraftsProvider>
+          <Install shell={{ ask: vi.fn(), go }} />
+          <GuardedLink to="/proof" onNavigate={onNavigate}>
+            Proof
+          </GuardedLink>
+        </UnsavedDraftsProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(view.getByRole('link', { name: 'Proof' }));
+    expect(go).toHaveBeenCalledOnce();
+    expect(onNavigate).not.toHaveBeenCalled();
+    // Cancel: the shell never runs `after`.
+    expect(onNavigate).not.toHaveBeenCalled();
+    // Discard or Save & continue: the shell runs it once the move goes ahead.
+    proceed?.();
+    expect(onNavigate).toHaveBeenCalledOnce();
+  });
+
+  it('a GuardedLink with a target of _blank, or a Cmd click on a Mac, is left to the browser (#3446)', () => {
+    const go = vi.fn();
+    const view = render(
+      <MemoryRouter>
+        <UnsavedDraftsProvider>
+          <Install shell={{ ask: vi.fn(), go }} />
+          <GuardedLink to="/proof" target="_blank">
+            Elsewhere
+          </GuardedLink>
+          <GuardedLink to="/pickups">Pickups</GuardedLink>
+        </UnsavedDraftsProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(view.getByRole('link', { name: 'Elsewhere' }));
+    expect(go).not.toHaveBeenCalled();
+    const platform = Object.getOwnPropertyDescriptor(Navigator.prototype, 'platform');
+    Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
+    try {
+      fireEvent.click(view.getByRole('link', { name: 'Pickups' }), { metaKey: true });
+      expect(go).not.toHaveBeenCalled();
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).platform;
+      if (platform) Object.defineProperty(Navigator.prototype, 'platform', platform);
+    }
   });
 
   describe('GuardedLink modifier clicks (#3446 D5)', () => {
@@ -277,6 +331,37 @@ describe('the unsaved-drafts registry', () => {
       </UnsavedDraftsProvider>,
     );
     await act(async () => expect(await registry.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
+  });
+
+  it('a draft that failed to save is named in failed only, not again in late (#3446)', async () => {
+    const { result } = setup({ a: draft({ save: async () => false, label: 'your reply' }) });
+    await act(async () => {
+      const outcome = await result.current.save();
+      expect(outcome.failed.map((entry) => entry.label)).toEqual(['your reply']);
+      expect(outcome.late).toEqual([]);
+    });
+  });
+
+  it('a save that resolved true but whose editor is still dirty after the wait is reported, never moved past (#3446 E2)', async () => {
+    function Stubborn() {
+      useUnsavedDraft('stubborn', { dirty: true, label: 'your reply', save: async () => true, discard: () => {} });
+      return null;
+    }
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
+    const Registry = () => {
+      registry = useUnsavedDrafts();
+      return null;
+    };
+    render(
+      <UnsavedDraftsProvider>
+        <Stubborn />
+        <Registry />
+      </UnsavedDraftsProvider>,
+    );
+    await act(async () => {
+      const outcome = await registry.save();
+      expect(outcome.late.map((entry) => entry.label)).toEqual(['your reply']);
+    });
   });
 
   it('discard keeps going after a holder whose discard throws, and names it (#3446 B7)', () => {
@@ -550,7 +635,7 @@ describe('the unsaved-drafts registry', () => {
       };
       render(withShell(<Probe />, { ask: vi.fn(), go }));
       navigate('/proof', { state: { from: 'here' } });
-      expect(go).toHaveBeenCalledWith('/proof', { from: 'here' });
+      expect(go).toHaveBeenCalledWith('/proof', { from: 'here' }, undefined);
     });
   });
 
@@ -568,7 +653,7 @@ describe('the unsaved-drafts registry', () => {
       const link = view.getByRole('link', { name: 'Proof' });
       expect(link.getAttribute('href')).toBe('/proof');
       fireEvent.click(link);
-      expect(go).toHaveBeenCalledWith('/proof', undefined);
+      expect(go).toHaveBeenCalledWith('/proof', undefined, undefined);
       go.mockClear();
       fireEvent.click(link, { ctrlKey: true });
       expect(go).not.toHaveBeenCalled();

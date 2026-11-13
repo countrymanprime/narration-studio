@@ -20,7 +20,7 @@ export type HeldDraft = DraftLabel & { saveable: boolean };
  * The most characters the words naming what is held may take, so the whole question stays inside the dialog at 320 x 300 (it measures two lines of
  * body beside the buttons). Past it the phrase falls back to the nameless briefs, then to a count.
  */
-const ROOM = 34;
+const ROOM = 38;
 const MAX_ITEMS = 3;
 const MAX_NAME = 20;
 
