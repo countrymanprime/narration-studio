@@ -769,6 +769,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const ownStart = useRef(false);
   const ownFollowed = useRef(false);
   const ownFailed = useRef(false);
+  // The takes that have begun on this page so far: a continuation that waits checks its take is still the newest.
+  const adoptedTakes = useRef(0);
   const [ownStarted, setOwnStarted] = useState(0);
   const unfollowedSaid = useRef(false);
   useEffect(() => {
@@ -811,6 +813,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
+      const take = ++adoptedTakes.current;
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
       setTakeNote('');
       setPaused(false);
@@ -826,6 +829,9 @@ export function useBoothPage(options: BoothPageOptions) {
         const from = realWord();
         followAdoptedTake(async () => {
           await endColdRead();
+          // The cold read's stop can take seconds: the take may have ended meanwhile (the DAW stopped it, or Stop was pressed), another may have begun, or the
+          // Booth may have been left. This continuation then owns no take, and starts nothing (it would leave a session running with nothing to follow).
+          if (!mounted.current || !latest.current.recording || adoptedTakes.current !== take) return null;
           return latest.current.session.canStart ? latest.current.session.start({ startWord: from }) /* adopted take */ : null;
         });
       } else if (!now.session.active && now.session.canStart) {

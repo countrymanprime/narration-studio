@@ -304,6 +304,8 @@ const installHeldTake = () => {
     teleprompterStop: async () => {
       w.__calls.listeningStops += 1;
       if (phase === 'running') {
+        // A cold read takes its time to wind down, as a sidecar still decoding does.
+        if (coldRead) await new Promise((resolve) => setTimeout(resolve, 2500));
         coldRead = false;
         publish('stopped');
       }
@@ -448,3 +450,58 @@ test('a report that waits for adoption says nothing when the adopting page ends 
   await page.waitForTimeout(1000);
   await expect(sentence).toHaveCount(0);
 });
+
+// att17 breaks A and B: the page waits for the cold read to end before it listens for the take it adopted. If the take ends meanwhile, or the Booth is left,
+// the listening is not started: it would leave a session running with no take to follow and no control to stop it.
+for (const meanwhile of ['the take ends', 'the Booth is left'] as const) {
+  test(`an adopted take's listening is not started when ${meanwhile} while the cold read winds down`, async ({ page }) => {
+    await page.addInitScript(installHeldTake);
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+    await page.evaluate(() => {
+      (window as unknown as { __recording: boolean }).__recording = false;
+      window.history.pushState(null, '', '/booth?chapter=chapter-2');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    const question = page.getByRole('alertdialog');
+    await question.getByRole('button', { name: /^Stop and leave/ }).click();
+    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await expect(anyway).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(600);
+    await anyway.click();
+    await expect(page).toHaveURL(/chapter=chapter-2/);
+    await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](false));
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radiogroup', { name: 'Main button' }).getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Cold read', exact: true }).click();
+    await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(2);
+    await page.evaluate(() => {
+      const w = window as unknown as { __recording: boolean; __transport: Set<(transport: unknown) => void> };
+      w.__recording = true;
+      w.__transport.forEach((listener) => listener({ playing: true, recording: true, position: 1 }));
+    });
+    // The page asks the cold read to end (its stop takes 2.5 s here), and meanwhile:
+    await expect.poll(async () => (await calls(page)).listeningStops, { timeout: 8000 }).toBeGreaterThanOrEqual(1);
+    if (meanwhile === 'the take ends') {
+      await page.evaluate(() => {
+        const w = window as unknown as { __recording: boolean; __transport: Set<(transport: unknown) => void> };
+        w.__recording = false;
+        w.__transport.forEach((listener) => listener({ playing: false, recording: false, position: 1 }));
+      });
+    } else {
+      await page.keyboard.press('Escape');
+      await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: /^Stop and leave/ })
+        .click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Script' })).toBeVisible({ timeout: 8000 });
+    }
+    await page.waitForTimeout(4500);
+    expect((await calls(page)).listeningStarts).toBe(2);
+  });
+}

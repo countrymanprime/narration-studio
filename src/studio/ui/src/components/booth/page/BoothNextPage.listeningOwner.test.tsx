@@ -1250,6 +1250,54 @@ describe('a press the narrator left behind by changing chapter, whose take still
       return { host, page, toast, release };
     };
 
+    /** The adopting page ends a cold read whose stop takes a while: `host.finishStop()` answers it. */
+    const adoptWithSlowColdStop = async () => {
+      const host = fakeHost();
+      host.quietFailures();
+      host.holdStops();
+      const { control, page, push } = await changeChapterDuringStart('refused', host, { adoptLate: true });
+      await control.refuseIdle();
+      await settle();
+      await host.forceColdRunning();
+      await push(true);
+      await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
+      return { host, page, push };
+    };
+    const noSessionStarted = async (host: ReturnType<typeof fakeHost>) => {
+      await host.finishStop();
+      await settle();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Only the press's own start was ever made; nothing listens, and the host is not left running.
+      expect(host.teleprompterStart).toHaveBeenCalledTimes(1);
+      expect(host.phase()).not.toBe('running');
+    };
+
+    it('an adopted take that ends before the cold read stop answers starts no session', async () => {
+      const { host, push } = await adoptWithSlowColdStop();
+      await push(false);
+      await noSessionStarted(host);
+    });
+
+    it("an adopted take's listening is not started after the Booth is left", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const { host, page } = await adoptWithSlowColdStop();
+        page.view.unmount();
+        // The hook's wait for the stop gives up on its own after a while, as it does when a host never says the session ended.
+        await act(() => vi.advanceTimersByTimeAsync(STOP_WAIT_FOR_TEST));
+        await noSessionStarted(host);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('Stop pressed while the page waits for the cold read to end starts no session', async () => {
+      const { host } = await adoptWithSlowColdStop();
+      skipStartGuard();
+      await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
+      await noSessionStarted(host);
+    });
+
     it('does not say the take is unheard when the page ends the cold read and its own listening for the take comes up', async () => {
       const { host, toast, release } = await adoptDuringColdRead('comes up');
       await settle();
