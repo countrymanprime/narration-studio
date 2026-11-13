@@ -461,6 +461,47 @@ describe('a cold read the narrator left behind says nothing on the page they are
   });
 });
 
+describe('a model check that is slow never ends a press with no take (#3432)', () => {
+  const INSTALLED = { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] };
+
+  it('a check that has not answered by its limit lets the press go on: the take starts and no sentence says it did not', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      const assetsList = vi.fn(() => new Promise(() => {}));
+      const page = mountBooth(host, undefined, { assetsList: assetsList as never });
+      await ready();
+      await space();
+      await waitFor(() => expect(assetsList).toHaveBeenCalled());
+      expect(page.recordStart).not.toHaveBeenCalled();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.modelCheck + 5));
+      await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalled());
+      await waitFor(() => expect(page.recordStart).toHaveBeenCalled());
+      expect(screen.queryByText(/could not be checked in time/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a check that answers late with the model missing opens no question over the take', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const host = fakeHost();
+      let answer: (list: unknown) => void = () => {};
+      const assetsList = vi.fn(() => new Promise((resolve) => (answer = resolve)));
+      const page = mountBooth(host, undefined, { assetsList: assetsList as never });
+      await ready();
+      await space();
+      await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.modelCheck + 5));
+      await waitFor(() => expect(page.recordStart).toHaveBeenCalled());
+      await act(async () => answer({ ...INSTALLED, assets: [{ kind: 'whisper', id: 'tiny', installState: 'not_installed', displayName: 'Tiny' }] }));
+      expect(screen.queryByRole('dialog', { name: /Download local/ })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('a joiner that waits for a session another press is starting (#3320)', () => {
   // Press A starts the session and its start is held; the narrator leaves, comes back and presses again (B joins and waits).
   // `slowStart`: the joiner's DAW start takes 8 s, so the chapter can still be changed while it is out.

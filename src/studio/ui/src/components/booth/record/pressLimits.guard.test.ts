@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PRESS_LIMITS_MS, recordStartLimit, type PressStage } from './pressLimits';
+import { MODEL_CHECK_MEASURED_MS, PRESS_LIMITS_MS, PRESS_LIMIT_BASIS, recordStartLimit, type PressStage } from './pressLimits';
 
 // #3321: a Record press never waits on a host call without a limit. Every host call the press awaits before or during the start is listed here
 // with the stage that bounds it; the test finds each call in its source and requires it to sit inside `limited('<stage>', ...)`. A new await in
@@ -120,6 +120,18 @@ describe('each limit is above the host call it waits for', () => {
   });
   it('a roll: rollTimeout', () => {
     expect(PRESS_LIMITS_MS.roll).toBeGreaterThanOrEqual(seconds('bindings_daw_roll.go', 'rollTimeout') + MARGIN_MS);
+  });
+  it('the Booth voice choice: readAloudVoiceStartTimeout (the record start timeout plus the live track list wait)', () => {
+    expect(PRESS_LIMITS_MS.voiceChoice).toBeGreaterThanOrEqual(
+      seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') + seconds('tracks_live.go', 'tracksLiveTimeout') + MARGIN_MS,
+    );
+  });
+  it('the model check is above the measured cost of reading every model, with a margin for a cold disk (#3432)', () => {
+    expect(PRESS_LIMITS_MS.modelCheck).toBeGreaterThanOrEqual(MODEL_CHECK_MEASURED_MS * 7);
+  });
+  it('every limit states its basis', () => {
+    for (const stage of Object.keys(PRESS_LIMITS_MS)) expect(PRESS_LIMIT_BASIS[stage as PressStage]?.length, stage).toBeGreaterThan(20);
+    expect(Object.keys(PRESS_LIMIT_BASIS).sort()).toEqual(Object.keys(PRESS_LIMITS_MS).sort());
   });
   it('the Booth picks recordStartInApp for the app recorder and recordStart for a DAW engine', () => {
     expect(recordStartLimit(true)).toBe('recordStartInApp');

@@ -3,12 +3,16 @@ import { logUi } from '../../../api/uiLog';
 /**
  * How long each wait in a Record press may take before the press ends with a sentence and Record is free again (#3321). The DAW start, the in-app
  * recorder's start and the listening start are each longer than the host's own limit for that call (`pressLimits.guard.test.ts` reads those from the Go
- * source), so a host that answers in its own time is never cut off. The model check, the project check and the voice choice have no host limit of their
- * own: their 8 s was chosen, not measured. A slow first model check (hashing, antivirus) would end at 8 s with "no take was started".
+ * source), so a host that answers in its own time is never cut off. Every stage has its basis in `PRESS_LIMIT_BASIS` (`pressLimits.guard.test.ts` requires one).
+ * A limit only bounds a host that never answers; it never decides that the speech model is missing (#3432): a model check that outlasts it lets the press go on.
  */
 export const PRESS_LIMITS_MS = {
-  /** The asset list that says whether the speech model is on this computer. */
-  modelCheck: 8_000,
+  /**
+   * The asset list that says whether the speech model is on this computer. When no manifest vouches for the files the host reads every byte of every catalog
+   * model (5.3 GB for the five Whisper models): `go test ./internal/assets -bench State` took 4.46 s of that on a warm page cache, 54 µs with manifests. A disk
+   * that is cold or scanned is slower, so the limit is that measurement ×7 (`MODEL_CHECK_MEASURED_MS`). A press does not wait on it for a model already known installed.
+   */
+  modelCheck: 31_500,
   /** The project check (`bootstrap`) that says the DAW has the linked project open. */
   projectCheck: 8_000,
   /**
@@ -31,6 +35,22 @@ export const PRESS_LIMITS_MS = {
 } as const;
 
 export type PressStage = keyof typeof PRESS_LIMITS_MS;
+
+/** The measured cost the model-check limit is built from: reading every catalog model once, warm cache (`internal/assets/state_bench_test.go`, #3432). */
+export const MODEL_CHECK_MEASURED_MS = 4_460;
+
+/** Why each limit is what it is: a host limit it is above, or a measurement. `pressLimits.guard.test.ts` requires a basis for every stage. */
+export const PRESS_LIMIT_BASIS: Record<PressStage, string> = {
+  modelCheck: 'measured: reading every catalog model in full is 4.46 s warm (state_bench_test.go); limit is ×7 for a cold or scanned disk',
+  projectCheck: 'measured: Host.Bootstrap takes 6-85 µs (local reads and cached DAW facts, no wait on the DAW); 8 s only bounds a host that never answers',
+  listening: 'host limit: defaultGrace + 2 s + listeningWait (read from the Go source by the guard)',
+  recordStart: 'host limit: readAloudRecordStartTimeout + tracksLiveTimeout (read from the Go source by the guard)',
+  recordStartInApp: 'host limit: recorderDevicesTimeout (read from the Go source by the guard)',
+  recordStop: "host limit: the bridge's DefaultAnswerTimeout, 3 s (internal/bridge/navigation.go); this is the start's limit",
+  undoLast: 'host limit: undoLastTimeout, 12 s',
+  roll: 'host limit: rollTimeout (read from the Go source by the guard)',
+  voiceChoice: 'host limit: BoothVoiceSet runs under readAloudVoiceStartTimeout, 6 s (read from the Go source by the guard)',
+};
 
 /** The limit of the DAW's start of the take: the app's own recorder takes longer than a DAW engine to answer. */
 export const recordStartLimit = (inApp: boolean): PressStage => (inApp ? 'recordStartInApp' : 'recordStart');
