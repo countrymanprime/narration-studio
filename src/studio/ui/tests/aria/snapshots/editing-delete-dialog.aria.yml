@@ -3,20 +3,20 @@
 # Live regions stay in the tree on purpose (an error raised from inside a dialog is still announced): the zoom readout, the Editing
 # overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
 - main:
-  - region "Script editor":
-    - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
+    - region "Script editor":
+        - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
 - status: /4 words selected, 0:\d+ to 0:\d+/
 - alert
 - status
 - dialog "Delete 4 words and their audio?":
-  - heading "Delete 4 words and their audio?" [level=2]
-  - button "Close"
-  - radiogroup "What happens to the gap":
-    - radio /^Close the gap/ [checked]
-    - radio /^Leave .* of room tone/
-  - combobox "Crossfade at the join"
-  - combobox "Keep audio at each edge of the cut"
-  - checkbox "Keep the cut audio on a muted track (Cuts)"
-  - paragraph: /one undo step in REAPER/
-  - button "Cancel"
-  - button "Delete 4 words and audio"
+    - heading "Delete 4 words and their audio?" [level=2]
+    - button "Close"
+    - radiogroup "What happens to the gap":
+        - radio /^Close the gap/ [checked]
+        - radio /^Leave .* of room tone/
+    - combobox "Crossfade at the join"
+    - combobox "Keep audio at each edge of the cut"
+    - checkbox "Keep the cut audio on a muted track (Cuts)"
+    - paragraph: /one undo step in REAPER/
+    - button "Cancel"
+    - button "Delete 4 words and audio"

@@ -10,25 +10,25 @@
 - alert
 - status
 - dialog "Check recordings":
-  - heading "Check recordings" [level=2]
-  - button "Close"
-  - 'heading "Chapter 4: The Rabbit Sends in a Little Bill" [level=3]'
-  - paragraph: /Based on the saved REAPER project, file modified Sep \d+, \d+, \d+:\d+ AM\./
-  - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
-  - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
-  - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
-  - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace \d+\/min words a minute/
-  - button "Check again"
-  - button "Open in Editing"
-  - region "Pickups (0)":
-    - heading "Pickups (0)" [level=3]
-    - paragraph: None from this check.
-    - text: "Pickup notes (Proof): none waiting"
-    - link "Open Proof":
-      - /url: /proof?chapter=chapter-4
-    - text: "Pickup list: 3 open (project-wide)"
-    - link "Open pickups":
-      - /url: /pickups
-  - button /Paragraph detail \d+ of \d+ fully read/
-  - button "Back to chapters"
-  - button "Done"
+    - heading "Check recordings" [level=2]
+    - button "Close"
+    - 'heading "Chapter 4: The Rabbit Sends in a Little Bill" [level=3]'
+    - paragraph: /Based on the saved REAPER project, file modified Sep \d+, \d+, \d+:\d+ AM\./
+    - paragraph: /Checked Sep \d+, \d+, \d+:\d+ AM with the small Whisper model\./
+    - 'heading /Not complete: paragraphs \d+ to \d+: \d+ words not read\./ [level=3]'
+    - paragraph: /Recorded to paragraph \d+ of \d+ \(\d+ words left\)\./
+    - text: /Text present \d+% \d+,\d+ of \d+,\d+ words Paragraphs \d+ of \d+ fully read Audio checked \d+:\d+ in 1 item Pace \d+\/min words a minute/
+    - button "Check again"
+    - button "Open in Editing"
+    - region "Pickups (0)":
+        - heading "Pickups (0)" [level=3]
+        - paragraph: None from this check.
+        - text: 'Pickup notes (Proof): none waiting'
+        - link "Open Proof":
+            - /url: /proof?chapter=chapter-4
+        - text: 'Pickup list: 3 open (project-wide)'
+        - link "Open pickups":
+            - /url: /pickups
+    - button /Paragraph detail \d+ of \d+ fully read/
+    - button "Back to chapters"
+    - button "Done"

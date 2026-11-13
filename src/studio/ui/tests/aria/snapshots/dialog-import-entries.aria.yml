@@ -8,14 +8,14 @@
 - alert
 - status
 - dialog "Import entries":
-  - heading "Import entries" [level=2]
-  - text: Story Bible
-  - heading "Import entries" [level=2]
-  - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
-  - button "Cancel"
-  - button "Choose a file…"
-  - button "Copy prompt"
-  - button "Show example"
-  - textbox "Paste JSON or CSV":
-    - /placeholder: Or paste JSON (or CSV) here
-  - button "Add to the Story Bible" [disabled]
+    - heading "Import entries" [level=2]
+    - text: Story Bible
+    - heading "Import entries" [level=2]
+    - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
+    - button "Cancel"
+    - button "Choose a file…"
+    - button "Copy prompt"
+    - button "Show example"
+    - textbox "Paste JSON or CSV":
+        - /placeholder: Or paste JSON (or CSV) here
+    - button "Add to the Story Bible" [disabled]

@@ -4,10 +4,10 @@
 - alert
 - status
 - dialog "Undo history":
-  - heading "Undo history" [level=3]
-  - button "Close"
-  - paragraph: Nothing to undo yet.
-  - paragraph:
-    - img "Ctrl"
-    - img "Z"
-    - text: undoes the newest change
+    - heading "Undo history" [level=3]
+    - button "Close"
+    - paragraph: Nothing to undo yet.
+    - paragraph:
+        - img "Ctrl"
+        - img "Z"
+        - text: undoes the newest change

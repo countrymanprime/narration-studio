@@ -9,28 +9,28 @@
 - alert
 - status
 - dialog "Create chapter regions":
-  - heading "Create chapter regions" [level=2]
-  - button "Close"
-  - paragraph: /Plan one REAPER region per chapter with a confirmed track link/
-  - text: Opening credits track
-  - combobox "Opening credits track":
-    - option "None"
-    - option "Chapter 2" [selected]
-  - text: Closing credits track
-  - combobox "Closing credits track":
-    - option "None" [selected]
-  - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
-  - table "Chapter regions":
-    - rowgroup:
-      - row "Region Track Start End Status"
-    - rowgroup:
-      - row /^Opening credits Chapter 2/:
-        - cell "New region"
-      - row /^Chapter 1 Chapter 1/:
-        - cell "New region"
-  - region /Not planned \(\d+\)/:
-    - heading /Not planned \(\d+\)/ [level=3]
-    - list:
-      - listitem: /^No track is linked to this chapter\. Chapter 2, Chapter 3/
-  - button "Cancel"
-  - button "Create 2 regions"
+    - heading "Create chapter regions" [level=2]
+    - button "Close"
+    - paragraph: /Plan one REAPER region per chapter with a confirmed track link/
+    - text: Opening credits track
+    - combobox "Opening credits track":
+        - option "None"
+        - option "Chapter 2" [selected]
+    - text: Closing credits track
+    - combobox "Closing credits track":
+        - option "None" [selected]
+    - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
+    - table "Chapter regions":
+        - rowgroup:
+            - row "Region Track Start End Status"
+        - rowgroup:
+            - row /^Opening credits Chapter 2/:
+                - cell "New region"
+            - row /^Chapter 1 Chapter 1/:
+                - cell "New region"
+    - region /Not planned \(\d+\)/:
+        - heading /Not planned \(\d+\)/ [level=3]
+        - list:
+            - listitem: /^No track is linked to this chapter\. Chapter 2, Chapter 3/
+    - button "Cancel"
+    - button "Create 2 regions"

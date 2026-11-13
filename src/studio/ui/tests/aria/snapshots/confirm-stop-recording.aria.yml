@@ -4,13 +4,13 @@
 # The Booth's one voice-sample announcer (SamplePlayerAnnouncement) is a polite live region under <main>, so it stays exposed behind the
 # modal like the toast regions and is empty here: nothing is playing, and a sample is refused during a take.
 - main:
-  - paragraph
+    - paragraph
 - status
 - alert
 - status
 - alertdialog "Stop recording?":
-  - heading "Stop recording?" [level=2]
-  - button "Close"
-  - paragraph: /is recording\. Leaving the Booth stops it/
-  - button "Keep recording"
-  - button "Stop and leave"
+    - heading "Stop recording?" [level=2]
+    - button "Close"
+    - paragraph: /is recording\. Leaving the Booth stops it/
+    - button "Keep recording"
+    - button "Stop and leave"

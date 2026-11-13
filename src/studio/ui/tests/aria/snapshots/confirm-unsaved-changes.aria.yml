@@ -1,12 +1,12 @@
 - main:
-  - paragraph
+    - paragraph
 - status
 - alert
 - status
 - alertdialog "Unsaved changes":
-  - heading "Unsaved changes" [level=2]
-  - button "Close"
-  - paragraph: Save or discard your changes to Alice before leaving?
-  - button "Cancel"
-  - button "Discard & continue"
-  - button "Save & continue"
+    - heading "Unsaved changes" [level=2]
+    - button "Close"
+    - paragraph: Save or discard your changes to Alice before leaving?
+    - button "Cancel"
+    - button "Discard & continue"
+    - button "Save & continue"

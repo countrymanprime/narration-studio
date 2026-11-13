@@ -1713,8 +1713,9 @@ describe('App Back and Forward', () => {
       expect(screen.getByDisplayValue('Mr Fox')).toBeTruthy();
     });
 
-    // D1, whole app: a draft that cannot be saved blocks the exit and keeps its text; only Discard & continue drops it.
-    it('an entry edit beside a relationship row that cannot be saved: Save & continue saves the entry, stays, keeps the row and names it; Discard & continue then leaves (#3400 D1)', async () => {
+    // D1, whole app: a draft that cannot be saved blocks the exit and keeps its text; only Discard & continue drops it. Saving the entry would close the editor and
+    // take the half-filled relationship row with it, so the question offers no Save at all while one is held.
+    it('an entry edit beside a relationship row that cannot be saved: the question offers no Save, Keep editing keeps both, and only Discard & continue drops them (#3400 D1)', async () => {
       const guideEdit = vi.fn(createMockApi().guideEdit);
       await openStoryBible({ guideEdit });
       await typeEntryEdit();
@@ -1724,18 +1725,25 @@ describe('App Back and Forward', () => {
       // The words are kept when the box is left (the exit takes the focus off it first).
       fireEvent.blur(rows[rows.length - 1]!);
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText(/^Save or discard your .+\? Not saved yet: a relationship\.$/)).toBeTruthy();
-      fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
-      // The entry was saved, and the narrator stays: nothing was dropped, and the message says what could not be saved.
-      await waitFor(() => expect(guideEdit).toHaveBeenCalled());
-      expect(await screen.findByText(/A relationship you started cannot be saved yet, so you are still here\./)).toBeTruthy();
+      expect(await screen.findByText(/^Discard your .+ and a relationship before leaving\?$/)).toBeTruthy();
+      const question = screen.getByRole('alertdialog');
+      expect(
+        within(question)
+          .getAllByRole('button')
+          .map((button) => button.textContent)
+          .filter(Boolean),
+      ).toEqual(['Keep editing', 'Discard & continue']);
+      fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      // Nothing was saved and nothing was dropped.
+      expect(guideEdit).not.toHaveBeenCalled();
       expect(window.location.pathname).toBe('/story-bible');
+      expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
       expect(screen.getAllByRole('combobox', { name: 'Relationship' }).some((box) => (box as HTMLSelectElement).value === 'friend of')).toBe(true);
-      // Only an explicit Discard drops it.
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
       fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
       await screen.findByRole('heading', { level: 1, name: 'Production' });
+      expect(guideEdit).not.toHaveBeenCalled();
     });
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
