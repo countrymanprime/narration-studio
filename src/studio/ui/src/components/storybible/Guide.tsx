@@ -3,7 +3,8 @@ import { subscribePronunciationChanged } from '../../studio/commands/pronounce';
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useGuardedAction, useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { GuideEntity, GuideType } from '../../types';
 import { CommandScope } from '../../input/router';
@@ -95,7 +96,8 @@ export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
   const api = useApi();
   const location = useLocation();
-  const routerNavigate = useNavigate();
+  const routerNavigate = useGuardedNavigate();
+  const guarded = useGuardedAction();
   // The entry a hand-off asked for (`#<entity id>`), read by the typed address module. A malformed address is the route gate's to show;
   // here it asks for nothing.
   const asked = useMemo(() => readAddress('story-bible', { search: location.search, hash: location.hash }), [location.search, location.hash]);
@@ -265,20 +267,24 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // No backend record is created here - see GuideDetail's isNewDraft prop.
   // Navigating away or picking a different row just discards this, matching
   // a "doesn't exist until saved" model instead of create-then-delete.
-  const addEntity = () => {
-    const base = 'New entity';
-    const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
-    // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
-    let next = 2;
-    while (taken(`${base} ${next}`)) next += 1;
-    const name = taken(base) ? `${base} ${next}` : base;
-    setPendingNewEntity({ name });
-  };
-  const selectRow = (id?: string) => {
-    setPendingNewEntity(undefined);
-    setLooseId(null);
-    setSelectedId(id);
-  };
+  // It replaces the entry being edited, so it asks first when that holds text (#3404).
+  const addEntity = () =>
+    guarded(() => {
+      const base = 'New entity';
+      const taken = (text: string) => rows.some((row) => row.canonical_name.toLowerCase() === text.toLowerCase());
+      // The first number nobody has used, not one past the row count (which skipped numbers once entries had been deleted).
+      let next = 2;
+      while (taken(`${base} ${next}`)) next += 1;
+      const name = taken(base) ? `${base} ${next}` : base;
+      setPendingNewEntity({ name });
+    });
+  // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
+  const selectRow = (id?: string) =>
+    guarded(() => {
+      setPendingNewEntity(undefined);
+      setLooseId(null);
+      setSelectedId(id);
+    });
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({
@@ -474,7 +480,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   // Below the two-pane width the entry opens under the table: bring it into view so the press visibly does something.
                   if (window.matchMedia?.('(max-width: 1023px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
                 }}
-                onOpenLoose={setLooseId}
+                onOpenLoose={(id) => guarded(() => setLooseId(id))}
                 empty={empty}
                 words={searchWords(query)}
                 handle={tableRef}

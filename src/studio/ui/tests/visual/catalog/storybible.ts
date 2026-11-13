@@ -1,6 +1,6 @@
 // The `storybible` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const storybibleStates: StateEntry[] = [
   // Story Bible
@@ -82,6 +82,20 @@ export const storybibleStates: StateEntry[] = [
     state: 'entry-unlocked',
     description: 'Story Bible, an unlocked entry (read-only until Edit)',
     sameAs: { of: 'storybible/entity-selected', reason: 'The fixture entity a fresh selection lands on is unlocked, so selecting it is this state.' },
+  },
+  {
+    page: 'storybible',
+    state: 'entry-leave-confirm',
+    description:
+      'Story Bible, an entry in edit mode with a change typed in its description and another page pressed in the navigation: the Unsaved changes confirm with its three actions',
+    ...REFLOW,
+  },
+  {
+    page: 'storybible',
+    state: 'new-entry-leave-confirm',
+    description:
+      'Story Bible, a new entry named in the form and another page pressed in the navigation: the Unsaved changes confirm with Keep editing and Discard & continue (nothing to save yet)',
+    ...REFLOW,
   },
   { page: 'storybible', state: 'entry-editing', description: 'Story Bible, an unlocked entry in edit mode (Save and Cancel shown)' },
   {

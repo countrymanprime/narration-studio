@@ -1403,10 +1403,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 20 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 24 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 19 for the engine panel link and an overlay dialog's link from dirty Settings.
-const MOUNT_BUDGET = 19;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 19 for the engine panel link and an overlay dialog's link from dirty Settings; 19 to 23 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, and the unsaveable relationship row.
+const MOUNT_BUDGET = 23;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1579,6 +1579,22 @@ describe('App Back and Forward', () => {
         stillHeld: () => expect(keptEdit()).toBeTruthy(),
         page: '/settings',
       },
+      // Typed text in an editor that is not Settings waits for its own Save, and every such editor joins the same registry (#3400).
+      'a Story Bible entry being edited': {
+        hold: async () => {
+          renderApp();
+          await screen.findByRole('heading', { level: 1, name: 'Production' });
+          fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]!);
+          await screen.findAllByText('Alice');
+          fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+          fireEvent.change(await screen.findByRole('textbox', { name: 'Description' }), { target: { value: 'Typed but not saved.' } });
+          await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+        },
+        question: async () => screen.findByText(/^Save or discard your changes to .+ before leaving\?$/),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.'),
+        page: '/story-bible',
+      },
       'a recording Booth': {
         hold: async () => {
           const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
@@ -1647,6 +1663,80 @@ describe('App Back and Forward', () => {
         }
       });
     }
+
+    const openStoryBible = async (overrides: Parameters<typeof renderApp>[0] = {}) => {
+      renderApp(overrides);
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]!);
+      await screen.findAllByText('Alice');
+    };
+    const typeEntryEdit = async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Description' }), { target: { value: 'Typed but not saved.' } });
+    };
+
+    it('a Story Bible entry being edited asks before Find in the manuscript, another row and Add entry; Cancel keeps the text (#3400)', async () => {
+      await openStoryBible();
+      await typeEntryEdit();
+      fireEvent.click(screen.getByRole('button', { name: 'Find in the manuscript' }));
+      expect(await screen.findByText(/^Save or discard your changes to .+ before leaving\?$/)).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(window.location.pathname).toBe('/story-bible');
+      const rows = screen.getAllByRole('row').filter((row) => row.hasAttribute('data-row'));
+      fireEvent.click(rows[rows.length - 1]!);
+      expect(await screen.findByText(/^Save or discard your changes to .+ before going on\?$/)).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
+      expect(await screen.findByText(/^Save or discard your changes to .+ before going on\?$/)).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+    });
+
+    it('a new Story Bible entry with a typed name asks with one way to stay and one to discard, and no word about saving (#3400)', async () => {
+      await openStoryBible();
+      fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
+      fireEvent.change(await screen.findByDisplayValue(/New entity/), { target: { value: 'Mr Fox' } });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
+      expect(await screen.findByText('Discard the new entry “Mr Fox” before leaving?')).toBeTruthy();
+      const question = screen.getByRole('alertdialog');
+      expect(
+        within(question)
+          .getAllByRole('button')
+          .map((button) => button.textContent)
+          .filter(Boolean),
+      ).toEqual(['Keep editing', 'Discard & continue']);
+      fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.getByDisplayValue('Mr Fox')).toBeTruthy();
+    });
+
+    // D1, whole app: a draft that cannot be saved blocks the exit and keeps its text; only Discard & continue drops it.
+    it('an entry edit beside a relationship row that cannot be saved: Save & continue saves the entry, stays, keeps the row and names it; Discard & continue then leaves (#3400 D1)', async () => {
+      const guideEdit = vi.fn(createMockApi().guideEdit);
+      await openStoryBible({ guideEdit });
+      await typeEntryEdit();
+      fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
+      const rows = screen.getAllByRole('combobox', { name: 'Relationship' });
+      fireEvent.change(rows[rows.length - 1]!, { target: { value: 'friend of' } });
+      // The words are kept when the box is left (the exit takes the focus off it first).
+      fireEvent.blur(rows[rows.length - 1]!);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
+      expect(await screen.findByText(/^Save or discard your .+\? Not saved yet: a relationship\.$/)).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Save & continue' }));
+      // The entry was saved, and the narrator stays: nothing was dropped, and the message says what could not be saved.
+      await waitFor(() => expect(guideEdit).toHaveBeenCalled());
+      expect(await screen.findByText(/A relationship you started cannot be saved yet, so you are still here\./)).toBeTruthy();
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(window.location.pathname).toBe('/story-bible');
+      expect(screen.getAllByRole('combobox', { name: 'Relationship' }).some((box) => (box as HTMLSelectElement).value === 'friend of')).toBe(true);
+      // Only an explicit Discard drops it.
+      fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+    });
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
     // sits outside the app's own tree and so needs the registry above it.

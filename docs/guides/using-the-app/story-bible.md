@@ -21,7 +21,7 @@ description, for a type that can speak **How they talk**, **How they act** and *
 properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in (never the opening or closing credits, which hold no names), each with a
 button that opens it in the [Script](script.md). **Rescan** beside the Appears in heading looks for the entry's names in the text again. The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
 magnifier button lights the name in the Script's text. Press Edit (the pencil) to change the entry, then Save
-(or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Read-only, **How they talk**, **How they act** and **What they know** with nothing written share one "Not written yet" line, and an entry with no properties says "No properties yet." with no table. Locked entries can't be edited until
+(or Cancel); leaving the Story Bible, Find in the manuscript, **Add entry**, or opening another entry with an edit unsaved asks **Unsaved changes** first, with **Save & continue**, **Discard & continue** and **Cancel**. A new entry whose name you typed before choosing a category is not made until you choose one, so it cannot be saved: the question then offers only **Keep editing** and **Discard & continue**, and says "Discard" where the others say "Save or discard". A suggestion's text edited and not yet accepted is the same: **Save and accept** on the suggestion is the decision, so the question never accepts it for you. When an edit to an entry sits beside something that cannot be saved (a relationship row with its words typed and no entry chosen), **Save & continue** saves the edit and the question says the row will be discarded. Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Read-only, **How they talk**, **How they act** and **What they know** with nothing written share one "Not written yet" line, and an entry with no properties says "No properties yet." with no table. Locked entries can't be edited until
 unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.
 
@@ -41,6 +41,8 @@ dropped. Properties are kept when you scan the manuscript again, and the summary
 Script lists them too.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
+
+![Story Bible - leaving an entry with an edit not saved asks Unsaved changes, with Save & continue, Discard & continue and Cancel](../../images/ui/storybible-entry-leave-confirm.webp)
 
 Entries the scan isn't sure what kind they are get the **Needs Review** kind, in amber (the colour of anything still to check);
 choose the right kind from the menu beside the name. An entry or a name the scan flagged shows a

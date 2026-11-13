@@ -1,7 +1,9 @@
+import { shortName } from '../../studio/drafts/draftSentence';
+import { useGuardedNavigate, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useInRouterContext, useNavigate } from 'react-router-dom';
+import { useInRouterContext } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faCodeMerge, faFloppyDisk, faLock, faLockOpen, faPen, faRotate, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
@@ -182,7 +184,7 @@ function EntryFrame({
 
 /** The entry's header button that opens the Script page's Find on its name. Drawn only inside the router, which every page has. */
 function FindInManuscript({ name }: { name: string }) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
       <IconButton label="Find in the manuscript" onClick={() => navigate(addressPath({ page: 'script', find: name }))}>
@@ -353,6 +355,26 @@ export function GuideDetail({
     onCommandTaken?.();
   });
 
+  // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
+  // The entry's own Save and the question's Save & continue share one request (#3404).
+  const saveEntryShared = useSharedSave(() => saveEntryRef.current?.() ?? Promise.resolve(true));
+  useUnsavedDraft('story-bible-entry', {
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
+    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry', 16)}`,
+    brief: 'your entry edit',
+    save: saveEntryShared,
+    discard: () => setEditing(false),
+  });
+
+  // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
+  useUnsavedDraft('story-bible-new-entry', {
+    dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
+    label: `the new entry “${shortName(draft.name, 18)}”`,
+    brief: 'a new entry',
+    discard: () => onDiscardNewDraft?.(),
+  });
+
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
   const locked = entity.locked;
   // Entries open read-only: Edit reveals the form controls and Save.
@@ -366,16 +388,16 @@ export function GuideDetail({
     setDraft(draftOf(entity, speaks));
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
-  const saveEntry = () => {
+  const saveEntry = async (): Promise<boolean> => {
     const problem = propertyProblem(draft.properties, speaks);
     if (problem) {
       setPropertyError(problem);
-      return;
+      return false;
     }
     const nameIssue = nameProblem(draft.name);
     if (nameIssue) {
       setNameError(nameIssue);
-      return;
+      return false;
     }
     const saved = propertiesOf(entity, speaks);
     const properties = speaks ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
@@ -387,8 +409,11 @@ export function GuideDetail({
       context: draft.context,
     };
     if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
-    void save('save', values, 'Entry saved.').then((saved) => saved && setEditing(false));
+    const done = await save('save', values, 'Entry saved.');
+    if (done) setEditing(false);
+    return done;
   };
+  saveEntryRef.current = saveEntry;
   // An entry cannot be saved with no name or with one another entry has (the mock's renameEntry).
   const nameProblem = (name: string) => {
     if (!name.trim()) return 'Give this entry a name.';
@@ -795,7 +820,7 @@ export function GuideDetail({
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
                   disabledReason={busyReason('save')}
-                  onClick={saveEntry}
+                  onClick={() => void saveEntryShared()}
                   variant="primary"
                 >
                   <FontAwesomeIcon icon={faFloppyDisk} />

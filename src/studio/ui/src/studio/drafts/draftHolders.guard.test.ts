@@ -76,9 +76,6 @@ const PENDING: Record<string, string> = {
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
   'settings/controls/MwKeyBody.tsx': SCREEN('Settings'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/Relationships.tsx': SCREEN('Story Bible'),
-  'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
 };
 const DECIDED: Record<string, string> = { ...EXEMPT, ...PENDING };
 
@@ -129,9 +126,6 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
   'proof/PreviewPanel.tsx': SCREEN('Proof'),
   'proof/ProofChapterPage.tsx': SCREEN('Proof'),
-  'storybible/Guide.tsx': SCREEN('Story Bible'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/voicesamples/RoutedVoiceSamplesSection.tsx': SCREEN('Story Bible'),
 };
 describe('a link out of a page goes through the guarded navigate (#3400)', () => {
   const sources = files(srcRoot, /\.tsx?$/)
@@ -184,7 +178,16 @@ describe("a link that leaves a page is a GuardedLink, not the router's Link (#34
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
-const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {};
+const STORY_BIBLE_DETAIL: Replacer[] = [
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
+];
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
+  'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
+};
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)
