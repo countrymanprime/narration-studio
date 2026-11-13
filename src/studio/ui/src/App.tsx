@@ -847,13 +847,20 @@ function AppRoutes() {
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
   // few times over the first moments, on Keep editing when that is the way to stay and on Cancel otherwise (#3404, and #3446 B2 for every variant).
   const questionOpen = pendingMove !== undefined;
+  // What was held went away while the question was open (an editor closed itself): there is nothing left to ask about or to lose, so the move goes on.
+  const nothingLeftToAsk = pendingMove !== undefined && !resolving && !settingsHeld && drafts.heldNow().length === 0;
+  useEffect(() => {
+    if (!nothingLeftToAsk || !pendingMove) return;
+    resolvePendingMove(pendingMove);
+    setPendingMove(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the move is read when the question has just emptied.
+  }, [nothingLeftToAsk]);
   useEffect(() => {
     if (!questionOpen) return;
     const focusKeep = () => {
       const question = document.querySelector('[role="alertdialog"]');
       if (!question || question.contains(document.activeElement)) return;
-      const buttons = [...question.querySelectorAll('button')];
-      (buttons.find((button) => button.textContent === 'Keep editing') ?? buttons.find((button) => button.textContent === 'Cancel'))?.focus();
+      question.querySelector<HTMLElement>('[data-stay-button]')?.focus();
     };
     const timers = [0, 60, 250, 600].map((ms) => setTimeout(focusKeep, ms));
     // Fixed timers are not enough on a slow machine: whenever the focus lands outside the question while it is open (the drawer's close handing it back to its
@@ -1126,9 +1133,10 @@ function AppRoutes() {
       body={question?.body ?? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`}
       confirmLabel={canSave ? 'Save & continue' : 'Discard & continue'}
       confirmVariant={canSave ? 'primary' : 'danger'}
-      // With nothing that can be saved there is one way to stay, and it is the safe one: the focus starts on it.
+      // The way to stay is Cancel, or Keep editing when nothing can be saved.
       cancelLabel={canSave ? 'Cancel' : 'Keep editing'}
-      focusCancel={!canSave}
+      // The way to stay (Cancel, or Keep editing) always takes the focus first: Enter never discards or saves by default.
+      focusCancel
       pending={resolving}
       {...(canSave ? { danger: () => discardMove(pendingMove), dangerLabel: 'Discard & continue' } : { danger: undefined, dangerLabel: undefined })}
       confirm={() => {
@@ -1158,7 +1166,9 @@ function AppRoutes() {
             // The text is where it was typed either way. A save that is only slow may still land, so that is not called a failure.
             if (token === moveToken.current)
               overlay.toast(
-                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `Not saved: ${apiErrorMessage(error)}`,
+                error instanceof SaveTimeout
+                  ? 'Saving is taking too long. What you typed is still here.'
+                  : `Not saved: ${apiErrorMessage(error)}. What you typed is still here.`,
                 {
                   tone: 'error',
                 },

@@ -95,3 +95,24 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
   await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Discard & continue' }).click();
   await expect(picker(page)).toBeVisible();
 });
+
+// The way to stay takes the focus when the question opens, and a keyboard user must see which button Enter presses: script focus is not always :focus-visible,
+// so the stay button draws its ring whenever it is focused (#3446, ux-reviewer).
+test('the question opened from the keyboard shows a focus ring on the way to stay', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.keyboard.press('Alt+ArrowLeft');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question).toBeVisible();
+  const cancel = question.getByRole('button', { name: 'Cancel' });
+  await expect(cancel).toBeFocused();
+  const outline = await cancel.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { style: style.outlineStyle, width: style.outlineWidth };
+  });
+  expect(outline).toEqual({ style: 'solid', width: '2px' });
+});

@@ -1,4 +1,4 @@
-import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
+import { createContext, type AnchorHTMLAttributes, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useHref, useNavigate, type NavigateOptions } from 'react-router-dom';
 import type { DraftLabel, HeldDraft } from './draftSentence';
 
@@ -86,6 +86,8 @@ type Registry = {
   setShell: (shell: Shell | null) => void;
   ask: (run: () => void, options?: AskOptions) => void;
   go: (to: string, state?: unknown) => boolean;
+  /** Changes whenever what is held may have changed; the shell reads it only to re-render. */
+  version: number;
 };
 /**
  * What `save` found. `saved`: every draft that can be saved did save. `failed`: those that said they did not. `kept`: the held drafts that cannot be saved from
@@ -108,6 +110,8 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   const drafts = useRef(new Map<string, () => UnsavedDraft>());
   const shell = useRef<Shell | null>(null);
   const saving = useRef<Promise<SaveResult> | null>(null);
+  // Bumped on every join and leave (an editor's `dirty` changing is a join), so the shell re-renders when what is held changes and a question open over it can notice.
+  const [version, setVersion] = useState(0);
   const heldNow = useCallback(
     (): HeldDraft[] =>
       [...drafts.current.values()]
@@ -119,9 +123,11 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
   const join = useCallback((id: string, draft: () => UnsavedDraft) => {
     drafts.current.set(id, draft);
+    setVersion((current) => current + 1);
   }, []);
   const leave = useCallback((id: string) => {
     drafts.current.delete(id);
+    setVersion((current) => current + 1);
   }, []);
   // A save the question stopped waiting for (the limit) is still running: the next press shares it, for a holder that does not share its own save too.
   const inflight = useRef(new Map<string, Promise<boolean>>());
@@ -187,7 +193,10 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     shell.current.go(to, state);
     return true;
   }, []);
-  const value = useMemo(() => ({ heldNow, join, leave, save, discard, setShell, ask, go }), [heldNow, join, leave, save, discard, setShell, ask, go]);
+  const value = useMemo(
+    () => ({ heldNow, join, leave, save, discard, setShell, ask, go, version }),
+    [version, heldNow, join, leave, save, discard, setShell, ask, go],
+  );
   return <DraftsContext.Provider value={value}>{children}</DraftsContext.Provider>;
 }
 
@@ -226,7 +235,6 @@ export function useUnsavedDrafts(): Pick<Registry, 'heldNow' | 'save' | 'discard
   return useMemo(
     () =>
       registry ?? {
-        held: [],
         heldNow: () => [],
         save: async () => ({ saved: true, failed: [], kept: [], late: [] }),
         discard: () => ({ failed: [] }),

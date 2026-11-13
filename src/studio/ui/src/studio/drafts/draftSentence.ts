@@ -11,7 +11,7 @@ export type DraftLabel = { label: string; brief?: string; kind?: string; many?: 
  * Settings' own edited fields, named in the question only when a draft that cannot be saved is held beside them (#3446 D4): then the question is Discard-only and has
  * to say everything it would drop. With only Settings' fields (or fields beside saveable drafts) the question keeps Settings' older sentence.
  */
-export const SETTINGS_HELD: HeldDraft = { label: 'your settings changes', brief: 'settings edits', saveable: true };
+export const SETTINGS_HELD: HeldDraft = { label: 'your settings edits', brief: 'settings edits', saveable: true };
 
 /** A held draft, and whether the question can save it (a new Story Bible entry has no category yet, so it can only be kept or discarded). */
 export type HeldDraft = DraftLabel & { saveable: boolean };
