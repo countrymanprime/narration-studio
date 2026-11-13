@@ -45,9 +45,13 @@ export type BoothVoice = {
     | 'timeout'
     | 'not_our_recording'
     | 'already_recording'
-    | 'playing';
+    | 'playing'
+    | 'starting';
   message?: string;
   trackGuid?: string;
+  /** `selected` from `BoothVoiceSet` only: the DAW's armed track is now this voice (#3429). When the DAW refused, `reason` and `message`
+   * say so on a `selected` answer: the Booth still records on the voice, but the DAW's arms did not change. */
+  armed?: boolean;
   at?: number;
   /** `BoothVoiceGet` only: the voices the Booth added to the chapter's folder this session (`BoothVoiceAdd`) that the saved project
    * does not hold yet. The page lists them after the folder's saved children until the narrator saves in the DAW. */

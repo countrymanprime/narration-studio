@@ -423,14 +423,15 @@ export function useBoothPage(options: BoothPageOptions) {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.
-    const modelChecked = await limited('modelCheck', (over) => latest.current.session.ensureModel(undefined, undefined, over));
+    const modelChecked = await limited('modelCheck', (over) => {
+      // Given up on by the limit, or left by a chapter change: a question opened now would arrive over another chapter.
+      const abandoned = () => over() || !current();
+      return latest.current.session.ensureModel(undefined, undefined, abandoned);
+    });
     if (!current()) return false;
-    if (modelChecked.timedOut) {
-      // Not knowing whether the model is there is not a reason to record: nothing starts and the press is over.
-      overlay.toast('The speech model could not be checked in time, so no take was started.', { tone: 'error' });
-      return false;
-    }
-    if (!modelChecked.value) return false;
+    // A check that has not answered by its limit claims nothing, as a list that cannot be read claims nothing: the press goes on, and the listening start
+    // (which says `asset_required` for a missing model) is the authority. A slow check means files to read, so the model is there (#3432).
+    if (!modelChecked.timedOut && !modelChecked.value) return false;
     // Each wait can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
@@ -1056,11 +1057,13 @@ export function useBoothPage(options: BoothPageOptions) {
     const gone = () => token !== pressToken.current;
     try {
       // A check the cold read gave up on never opens the install question (`over`), as for a Record press.
-      const modelChecked = await limited('modelCheck', (over) => now.session.ensureModel(undefined, undefined, over));
+      const modelChecked = await limited('modelCheck', (over) => {
+        const abandoned = () => over() || gone();
+        return now.session.ensureModel(undefined, undefined, abandoned);
+      });
       // Said only where the narrator still is: a Booth left or a chapter changed meanwhile ends the cold read quietly.
       if (gone()) return;
-      if (modelChecked.timedOut) return overlay.toast('The speech model could not be checked in time, so the cold read was not started.', { tone: 'error' });
-      if (!modelChecked.value) return;
+      if (!modelChecked.timedOut && !modelChecked.value) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
       const mine = claimListening();
       const letGo = () => {

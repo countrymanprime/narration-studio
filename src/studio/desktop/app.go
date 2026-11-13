@@ -130,6 +130,10 @@ type Host struct {
 	// ServiceShutdown knows whether to stop one before the app quits.
 	// +checklocks:mu
 	readAloudRecordingChapter string
+	// readAloudStarting counts ReadAloudRecordStart / ReadAloudRecordStartAt calls in flight: from the press until the chapter is held as
+	// recording (or the start failed). A voice chosen meanwhile is not armed in the DAW (#3429): the take is arming and starting on the old voice.
+	// +checklocks:mu
+	readAloudStarting int
 	// voiceSamplesRevision rises with every change to the voice samples this process makes (bindings_voicesamples.go): the
 	// voice_samples_changed event's payload, so a page that missed an event still sees that something changed.
 	voiceSamplesRevision atomic.Int64

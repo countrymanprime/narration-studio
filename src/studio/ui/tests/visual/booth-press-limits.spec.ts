@@ -67,16 +67,14 @@ async function openWith(page: Page, hung: Hung): Promise<void> {
 }
 const arm = (page: Page) => page.evaluate(() => ((window as unknown as { __armed: boolean }).__armed = true));
 
-test('a model check that never answers ends the press with a sentence, and the next press records', async ({ page }) => {
+// #3432: a model check that outlasts its limit is "unknown", not "missing": the press goes on and the listening start is the authority.
+test('a model check that never answers does not end the press: after its limit the take records and no sentence says it did not', async ({ page }) => {
   await openWith(page, 'modelCheck');
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/The speech model could not be checked in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
-  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
-  expect(await dawRecording(page)).toBe(false);
-  await page.keyboard.press('Space');
-  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
 });
 
@@ -131,8 +129,8 @@ test('a voice choice that never answers ends a punch press with a sentence and s
 
 // A model check that answers "not installed" after the press gave up on it opens no install question, on its own or over a take the narrator
 // started meanwhile (the question exists so that no take begins behind it).
-async function openWithLateModelCheck(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+async function openWithLateModelCheck(page: Page, answerAfterMs = 60_000): Promise<void> {
+  await page.addInitScript((answerAfter) => {
     const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
     w.__armed = false;
     const missing = {
@@ -156,11 +154,11 @@ async function openWithLateModelCheck(page: Page): Promise<void> {
         const empty = { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] as unknown[] };
         if (!w.__armed) return empty;
         w.__armed = false;
-        await new Promise((resolve) => setTimeout(resolve, 12_000));
+        await new Promise((resolve) => setTimeout(resolve, answerAfter));
         return { ...empty, assets: { find: () => missing } };
       },
     };
-  });
+  }, answerAfterMs);
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -180,24 +178,13 @@ const watchInstallQuestion = (page: Page) =>
   });
 const sawInstallQuestion = (page: Page) => page.evaluate(() => (window as unknown as { __sawInstall: boolean }).__sawInstall);
 
-test('a model check that answers missing after its limit opens no install question', async ({ page }) => {
+test('a model check that answers missing after its limit opens no install question over the take', async ({ page }) => {
   await openWithLateModelCheck(page);
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
-  await page.waitForTimeout(5000);
-  await expect(installQuestion(page)).toHaveCount(0);
-  expect(await sawInstallQuestion(page)).toBe(false);
-});
-
-test('Record pressed again after the limit records, and the late "not installed" answer opens no question over the take', async ({ page }) => {
-  await openWithLateModelCheck(page);
-  await watchInstallQuestion(page);
-  await page.keyboard.press('Space');
-  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
-  await page.keyboard.press('Space');
-  await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await page.waitForTimeout(5000);
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
+  await page.waitForTimeout(8000);
   await expect(installQuestion(page)).toHaveCount(0);
   expect(await sawInstallQuestion(page)).toBe(false);
   expect(await dawRecording(page)).toBe(true);
