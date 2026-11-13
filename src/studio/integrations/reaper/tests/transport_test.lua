@@ -118,6 +118,32 @@ H.test('arm_lane needs the track APIs', function()
   H.eq(s:events(), { { 'ERROR', 'a1', 'This REAPER version cannot arm tracks.' } })
 end)
 
+H.test('arm_lane twice for the same track changes nothing the second time', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_lane', 'a1', chapter.guid)
+  s:send('arm_lane', 'a2', chapter.guid)
+  H.eq(s:events()[2], { 'ARMED', 'a2', chapter.guid, '0', '0' })
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
+H.test('arm_lane is refused while a record_start waits for REAPER to report recording, and the take keeps its track', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('arm_lane', 'a2', other.guid)
+  local events = s:events()
+  H.eq(events[#events], { 'ERROR', 'a2', 'REAPER is recording. Stop recording first.' })
+  H.eq(arms(s), { 1, 0, 0 })
+  for _ = 1, 3 do
+    s:tick()
+  end
+  events = s:events()
+  H.eq(events[#events], { 'RECORD_STARTED', 'r1', chapter.guid, '0.000000' })
+end)
+
 H.test('arm_lane keeps the lane armed after a take: a stop puts back nothing the Booth chose', function()
   local s, chapter, other = new_session()
   other.armed = true

@@ -1,4 +1,4 @@
--- Recording in REAPER for the Read Aloud control bar, over the bridge: arm_only, record_start and record_stop
+-- Recording in REAPER for the Read Aloud control bar, over the bridge: arm_only, arm_lane (the Booth's voice choice), record_start and record_stop
 -- (the calls are in
 -- docs/research/reaper-api-for-planned-commands.md). Loaded by narration_ui_bridge.lua, which passes the shared helpers
 -- as the chunk argument. The read side (which tracks are armed, whether REAPER records) is chapter_track_state in
@@ -633,7 +633,9 @@ local function arm_only(session_dir, state, run_id, guid_text, keep)
     event(session_dir, 'ERROR', run_id, 'This REAPER version cannot arm tracks.')
     return
   end
-  if recording() then
+  -- state.recording is set from the moment record_start presses record, before GetPlayState reports it: a lane armed in that window
+  -- would move the take to another track and drop the arms to put back.
+  if recording() or (keep and state.recording) then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
   end
