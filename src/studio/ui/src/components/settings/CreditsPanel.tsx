@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
+import { useGuardedAction, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
@@ -24,6 +25,7 @@ function templateLabel(template: { name: string; kind: string }): string {
   // A name that is the kind ("Chapter announcement") or already says it is not followed by the kind again (alignment audit R3SE2-6).
   return name === kind.toLowerCase() || name.includes(`(${kind.toLowerCase()})`) ? template.name : `${template.name} (${kind})`;
 }
+const NEW_TEMPLATE_NAME = 'New template';
 const KIND_OPTIONS = [
   { value: 'opening', label: 'Opening' },
   { value: 'closing', label: 'Closing' },
@@ -95,6 +97,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  const guarded = useGuardedAction();
   const selected = templates.find((template) => template.id === selectedId);
 
   const load = useCallback(async () => {
@@ -157,7 +160,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     };
   }, [api, draftBody, draftKind, values]);
 
-  const saveTemplate = async () => {
+  const saveTemplateNow = async (): Promise<boolean> => {
     setBusy(true);
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
@@ -165,6 +168,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       projectDataChanged();
       await load();
       setSelectedId(saved.id);
+      return true;
     } catch (error) {
       // Saving the same template again writes the same body, so it is safe to repeat.
       notify(
@@ -172,13 +176,29 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         'error',
         retryAction(() => void saveTemplate()),
       );
+      return false;
     } finally {
       setBusy(false);
     }
   };
+  // The editor's Save and the question's Save & continue share one request: pressing both sends one (#3404).
+  const saveTemplate = useSharedSave(saveTemplateNow);
+  // The template editor holds a draft that waits for Save template (the project values below save as they are typed), so leaving the page asks (#3400).
+  // A New template with nothing typed, or an edit put back as it was, holds nothing.
+  const draftHeld =
+    templateDirty &&
+    (selected
+      ? draftName !== selected.name || draftKind !== selected.kind || draftBody !== selected.body
+      : draftBody !== '' || draftName !== NEW_TEMPLATE_NAME);
+  useUnsavedDraft('credits-template', {
+    dirty: draftHeld,
+    label: 'your credit template edit',
+    save: saveTemplate,
+    discard: () => setTemplateDirty(false),
+  });
   const newTemplate = () => {
     setSelectedId('');
-    setDraftName('New template');
+    setDraftName(NEW_TEMPLATE_NAME);
     setDraftKind('opening');
     setDraftBody('');
     setTemplateDirty(true);
@@ -204,6 +224,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       await api.deleteCreditsTemplate(selected.id);
       notify('Credit template deleted.');
+      // Deleting the template takes the text typed for it along: the button is the narrator's answer, so it does not ask to save a template about to go (#3404).
+      setTemplateDirty(false);
       projectDataChanged();
       await load();
     } catch (error) {
@@ -275,14 +297,21 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             <Select
               label="Template"
               value={selectedId}
-              onChange={setSelectedId}
+              onChange={(id) => id !== selectedId && guarded(() => setSelectedId(id))}
               fullWidth
               options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
             />
-            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={newTemplate}>
+            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={() => guarded(newTemplate)}>
               New
             </Button>
-            <Button variant="secondary" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void duplicateTemplate()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={!selected || busy}
+              pending={busy}
+              onClick={() => guarded(() => void duplicateTemplate())}
+            >
               Duplicate
             </Button>
             <Button variant="danger" size="sm" type="button" disabled={!selected || busy} pending={busy} onClick={() => void deleteTemplate()}>
