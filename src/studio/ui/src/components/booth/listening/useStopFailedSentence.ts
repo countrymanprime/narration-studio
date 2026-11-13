@@ -17,14 +17,11 @@ export function useStopFailedSentence(overlay: Pick<OverlayService, 'toast' | 'd
   useEffect(() => {
     if (stopFailed) {
       said.current = true;
-      overlay.toast(
-        'The Booth could not stop listening, so your microphone may still be open. Press Retry, or quit and reopen the app if the microphone stays on.',
-        {
-          tone: 'error',
-          topic: STOP_FAILED_TOPIC,
-          action: retryAction(() => again.current()),
-        },
-      );
+      overlay.toast('The Booth could not stop listening, so your microphone may still be open. Press Retry.', {
+        tone: 'error',
+        topic: STOP_FAILED_TOPIC,
+        action: retryAction(() => again.current()),
+      });
     } else if (said.current) {
       said.current = false;
       overlay.dismissTopic(STOP_FAILED_TOPIC);

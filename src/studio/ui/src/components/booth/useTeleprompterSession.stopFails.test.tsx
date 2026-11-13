@@ -136,6 +136,17 @@ describe('a stop the host refuses', () => {
     expect(hook.result.current.stopFailed).toBe(false);
   });
 
+  it('is not sent again when a take joined the session after the refusal, with no claim (it would stop the take under its listening)', async () => {
+    const { hook, state, teleprompterStop, elapse } = setup(['refuse', 'ok']);
+    await state(RUNNING);
+    act(() => hook.result.current.stop());
+    await elapse(350);
+    act(() => hook.result.current.sessionJoined());
+    await elapse(5000);
+    expect(teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.stopFailed).toBe(false);
+  });
+
   it('says nothing and is not sent again when the hook is gone (an unmount release is unknown, not failed)', async () => {
     const { hook, state, teleprompterStop, elapse } = setup(['refuse', 'refuse']);
     await state(RUNNING);
@@ -216,10 +227,18 @@ describe('a stop the host refuses', () => {
       expect(hook.result.current.stopFailed).toBe(false);
     });
 
-    it('is taken down by a press that joins the session (clearStopFailed)', async () => {
+    it('is taken down by a press that joins the session (sessionJoined)', async () => {
       const { hook } = await failTwice(['refuse', 'refuse']);
-      act(() => hook.result.current.clearStopFailed());
+      act(() => hook.result.current.sessionJoined());
       expect(hook.result.current.stopFailed).toBe(false);
+    });
+
+    it('from a sentence of an earlier hook sends nothing to a newer session', async () => {
+      const rig = await failTwice(['refuse', 'refuse', 'ok']);
+      rig.hook.unmount();
+      act(() => rig.hook.result.current.retryStop());
+      await rig.elapse(3000);
+      expect(rig.teleprompterStop).toHaveBeenCalledTimes(2);
     });
 
     it('sends nothing when the session has ended', async () => {

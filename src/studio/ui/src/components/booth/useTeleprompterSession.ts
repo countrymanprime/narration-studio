@@ -414,8 +414,14 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       retrying.current = false;
     });
   }, [stopHost]);
-  /** A press took the session (joined it): the sentence about the stop that failed no longer describes it. */
-  const clearStopFailed = useCallback(() => setStopFailed(false), []);
+  /**
+   * A press took the running session (a take that joined it, with or without a claim): the sentence about a stop that failed no longer describes it, and
+   * neither the automatic retry nor a Retry may stop it. A join counts like a start for them (`starts`).
+   */
+  const sessionJoined = useCallback(() => {
+    starts.current += 1;
+    setStopFailed(false);
+  }, []);
   /**
    * Stops the session and answers once the host says it has ended (a new session can start then), or after STOP_WAIT_MS when the host
    * never says, so a take is never held behind it. Answers at once when nothing runs.
@@ -637,7 +643,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     error,
     stopFailed,
     retryStop,
-    clearStopFailed,
+    sessionJoined,
     prompt,
     modelMissing,
     modelInstall,

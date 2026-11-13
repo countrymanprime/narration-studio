@@ -57,3 +57,29 @@ test('a listening stop refused twice is said once, with Retry, and Retry stops i
   await expect.poll(() => stops(page), { timeout: 8000 }).toBe(3);
   await expect(page.getByText(SENTENCE)).toHaveCount(0, { timeout: 8000 });
 });
+
+test('a Retry refused twice more says the sentence again', async ({ page }) => {
+  await openBooth(page, 4);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect.poll(() => stops(page), { timeout: 8000 }).toBe(4);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+});
+
+test('the sentence goes when the Booth is left, and is not there when it is entered again', async ({ page }) => {
+  await openBooth(page, 2);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await page.keyboard.press('Escape');
+  const leave = page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /^(Stop and leave|Leave)/ })
+    .first();
+  if (await leave.isVisible({ timeout: 1500 }).catch(() => false)) await leave.click();
+  await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
+  await expect(page.getByText(SENTENCE)).toHaveCount(0);
+  await goToPage(page, 'Booth');
+  await page.waitForTimeout(1000);
+  await expect(page.getByText(SENTENCE)).toHaveCount(0);
+});

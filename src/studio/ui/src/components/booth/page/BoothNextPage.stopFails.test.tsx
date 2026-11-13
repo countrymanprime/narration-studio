@@ -165,6 +165,37 @@ describe('a listening stop the host refuses', () => {
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
   });
 
+  it('does not stop the session a take joined 0.35 s after the refused stop (no claim held, no start made)', async () => {
+    const page = mountBooth(1);
+    await ready();
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(main().textContent).toBe('Stop'));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(async () => void fireEvent.click(main()));
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(main().textContent).toMatch(/Record|Stop/));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
+    const starts = page.teleprompterStart.mock.calls.length;
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2500))));
+    // The press joined the running session (no new start) and the automatic retry was not sent under it.
+    expect(page.teleprompterStart).toHaveBeenCalledTimes(starts);
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(toasts(page)).toHaveLength(0);
+  });
+
+  it("a sentence of an earlier Booth goes when that Booth is left, so a later session's Retry is never its Retry", async () => {
+    const page = mountBooth(2);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const [old] = toasts(page);
+    page.view.unmount();
+    await act(async () => void page.publish({ phase: 'stopped' }));
+    expect(toasts(page)).toHaveLength(0);
+    const calls = page.teleprompterStop.mock.calls.length;
+    await act(async () => old.action?.onAction());
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+  });
+
   it('says nothing when the Booth is left while the stop is refused (the release is unknown, not failed)', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
