@@ -40,3 +40,17 @@ export function escapeClosesPanel(close: () => void, opener: () => HTMLElement |
     opener()?.focus();
   };
 }
+
+/**
+ * For a popup that closes on a pick: hands focus to the page's <main> a tick after it has gone (<main> is focusable but not tabbable, so handed to Base UI it would
+ * pick its first tabbable, the header's button), unless the pick already put focus somewhere (a dialog it opened). Returns what Base UI's `finalFocus` expects.
+ */
+export function handFocusToPage(): boolean {
+  const page = document.querySelector<HTMLElement>('main');
+  if (!page) return true;
+  window.setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body || !active.isConnected) page.focus();
+  }, 0);
+  return false;
+}

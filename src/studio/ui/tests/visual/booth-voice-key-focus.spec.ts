@@ -115,6 +115,16 @@ test.describe('a lane key then Enter', () => {
     await expect(list(page)).toHaveCount(0);
   });
 
+  test('a character with no track picked from the list does not hand focus to the page behind the dialog it opens', async ({ page }) => {
+    await openBooth(page);
+    await voiceButton(page).click();
+    await page.getByRole('option').last().click();
+    await expect(page.getByRole('dialog', { name: /^Who records / })).toBeVisible();
+    await page.waitForTimeout(400);
+    // The pick opens a dialog; the list's focus hand-off to the page is for a voice pick only and must not run behind it.
+    expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe('MAIN');
+  });
+
   test('Escape on the list still returns focus to the voice button', async ({ page }) => {
     await openBooth(page);
     await voiceButton(page).click();

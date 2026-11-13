@@ -92,7 +92,7 @@ export function VoiceControl({
   onUseFor?: (character: WhoCharacter) => void;
 }) {
   const [query, setQuery] = useState('');
-  // Set by a pick, read when the list closes (`finalFocus`).
+  // Set by a voice pick, read as the list closes (`focusPageOnClose`): a character pick opens a dialog, which takes focus itself.
   const picked = useRef(false);
   const needle = query.trim().toLocaleLowerCase();
   const missing = useMemo(() => noTrack.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle)), [noTrack, needle]);
@@ -156,17 +156,7 @@ export function VoiceControl({
     onOpenChange(next);
   };
   // A pick hands focus to the page, not back to this button: Enter or Space after a pick is Record's key, and on this button it would open the list again.
-  const finalFocus = () => {
-    if (!picked.current) return true;
-    picked.current = false;
-    // <main> is focusable but not tabbable, so handed to Base UI it would pick its first tabbable (the header's chapter button): focus it here, a tick after the popup has gone.
-    const page = document.querySelector<HTMLElement>('main');
-    if (!page) return true;
-    window.setTimeout(() => page.focus(), 0);
-    return false;
-  };
   const pick = (guid: string) => {
-    picked.current = true;
     if (guid.startsWith(CHARACTER)) {
       const character = noTrack.find((each) => `${CHARACTER}${each.id}` === guid);
       changeOpen(false);
@@ -174,6 +164,7 @@ export function VoiceControl({
       return;
     }
     const voice = voices.find((each) => each.guid === guid);
+    picked.current = true;
     if (voice) onChoose(voice);
     changeOpen(false);
   };
@@ -184,7 +175,11 @@ export function VoiceControl({
       side="top"
       align="start"
       fitToWindow
-      finalFocus={finalFocus}
+      focusPageOnClose={() => {
+        const was = picked.current;
+        picked.current = false;
+        return was;
+      }}
       open={open}
       onOpenChange={changeOpen}
       trigger={
