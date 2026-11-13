@@ -73,3 +73,16 @@ export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { b
   if (loose.length === 0) return { body: `Save or discard ${describeHeld(saveable)} before ${end}?`, canSave: true };
   return { body: `Save or discard ${describeHeld(saveable, ROOM_EACH)}? Not saved yet: ${describeHeld(loose, ROOM_EACH)}.`, canSave: true };
 }
+
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * What Save & continue does once the saves are done (#3400 D1). It goes on only when everything that could be saved was, and nothing is left that cannot be:
+ * a draft with no save of its own keeps the narrator where they are, with its text, and the message names it. Only Discard & continue drops text.
+ * `undefined` is a Settings save that did not finish, which stays without a message of its own (the field said why).
+ */
+export function saveVerdict(outcome: { saved: boolean; kept: readonly DraftLabel[] } | undefined): { proceed: boolean; message?: string } {
+  if (!outcome?.saved) return { proceed: false };
+  if (outcome.kept.length > 0) return { proceed: false, message: `${capital(describeHeld(outcome.kept))} cannot be saved yet, so you are still here.` };
+  return { proceed: true };
+}

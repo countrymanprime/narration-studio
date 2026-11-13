@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeHeld, draftQuestion, shortName, type DraftLabel, type HeldDraft } from './draftSentence';
+import { describeHeld, draftQuestion, saveVerdict, shortName, type DraftLabel, type HeldDraft } from './draftSentence';
 
 const one = (label: string, over: Partial<DraftLabel> = {}): DraftLabel => ({ label, ...over });
 const held = (label: string, over: Partial<HeldDraft> = {}): HeldDraft => ({ label, saveable: true, ...over });
@@ -89,5 +89,24 @@ describe('the question put to the narrator (#3404)', () => {
         }
       }
     }
+  });
+});
+
+describe('what Save & continue does after the saves (#3400 D1)', () => {
+  it('goes on when everything saved and nothing is left that cannot be saved', () => {
+    expect(saveVerdict({ saved: true, kept: [] })).toEqual({ proceed: true });
+  });
+
+  it('stays, and names the draft, when one cannot be saved, even though the rest saved', () => {
+    const row = held('a relationship you started', { brief: 'a relationship', saveable: false });
+    expect(saveVerdict({ saved: true, kept: [row] })).toEqual({
+      proceed: false,
+      message: 'A relationship you started cannot be saved yet, so you are still here.',
+    });
+  });
+
+  it('stays, with no message of its own, when a save said it did not save or Settings did not finish', () => {
+    expect(saveVerdict({ saved: false, kept: [] })).toEqual({ proceed: false });
+    expect(saveVerdict(undefined)).toEqual({ proceed: false });
   });
 });
