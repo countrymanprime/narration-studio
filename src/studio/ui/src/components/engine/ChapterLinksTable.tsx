@@ -20,6 +20,7 @@ import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
+import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { useVoiceLayout } from './voiceLayout';
 import { destinationFor } from './destination';
 import { LINK_STATE_LABEL, linkStateLabel } from '../chapterTracks/chapterLink';
@@ -65,10 +66,7 @@ const NARROW_ROW =
 // success the row shows the link at once, a toast says what was made, and the live track list is read again so it lists it.
 export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks; notify: Notify; live?: LiveTracks }) {
   const { tracks, chapters, mappings, rows, error, busyChapterId, creatingChapterId } = links;
-  const nameOf = (chapterId: string) => {
-    const known = chapters.find((chapter) => chapter.id === chapterId);
-    return known ? headingName(known) : undefined;
-  };
+  const nameOf = chapterNameLookup(chapters);
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
   // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).

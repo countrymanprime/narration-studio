@@ -163,7 +163,7 @@ export function ChapterLinkDialog({
     if (!chosen || linking) return;
     setLinking(true);
     setRefused(null);
-    actions.set(chapterId, chosen).then(
+    actions.set(chapterId, chosen, nameOf).then(
       ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
         applyMappings(result.mappings);

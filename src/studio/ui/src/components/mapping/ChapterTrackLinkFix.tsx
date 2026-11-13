@@ -59,7 +59,7 @@ export function ChapterTrackLinkFix({
         void confirming.run('confirm', async () => {
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
-            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid);
+            const { result, linkedNotice } = await actions.set(chapter.id, trackGuid, nameOf);
             notify(linkedNotice);
             state.applyMappings(result.mappings);
             await onLinked();

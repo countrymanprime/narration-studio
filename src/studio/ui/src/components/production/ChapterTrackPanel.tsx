@@ -74,7 +74,7 @@ export function ChapterTrackPanel({
   const actions = useChapterLinkActions();
   // The tracks are the shared state's, the same ones the Engine list and the Booth show (REAPER's now, the saved file's when it is not open).
   const trackState = useChapterTrackState({ when: open });
-  const nameOf = useChapterNameOf();
+  const nameOf = useChapterNameOf(open);
   const tracks: Track[] | undefined = trackState.project?.tracks;
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
@@ -102,7 +102,7 @@ export function ChapterTrackPanel({
   const link_ = async (trackGuid: string) => {
     setBusy(true);
     try {
-      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
       notify(linkedNotice);
       await onChanged();
     } catch (error) {

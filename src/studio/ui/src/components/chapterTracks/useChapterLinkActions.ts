@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import type { ManuscriptChapter, TrackMapping } from '../../types';
-import { headingName } from '../../chapterHeading';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
+import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
@@ -57,11 +57,7 @@ async function manuscriptNames(manuscript: {
   manuscriptChapters: () => Promise<ManuscriptChapter[]>;
 }): Promise<((chapterId: string) => string | undefined) | undefined> {
   try {
-    const chapters = await manuscript.manuscriptChapters();
-    return (chapterId) => {
-      const known = chapters.find((chapter) => chapter.id === chapterId);
-      return known ? headingName(known) : undefined;
-    };
+    return chapterNameLookup(await manuscript.manuscriptChapters());
   } catch {
     return undefined;
   }
