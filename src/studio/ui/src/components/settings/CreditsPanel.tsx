@@ -165,6 +165,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       notify('Credit template saved.');
+      // Saved: the editor holds nothing now, whatever the list says when it is read again (the registry reads the editor as clean once this resolves).
+      setTemplateDirty(false);
       projectDataChanged();
       await load();
       setSelectedId(saved.id);

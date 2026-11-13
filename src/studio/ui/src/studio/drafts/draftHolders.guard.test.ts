@@ -74,7 +74,6 @@ const PENDING: Record<string, string> = {
   'script/page/rail/threads/MessageEditor.tsx': SCREEN('Script'),
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
-  'settings/CreditsPanel.tsx': SCREEN('Credits'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
   'storybible/Relationships.tsx': SCREEN('Story Bible'),
   'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
@@ -191,6 +190,13 @@ const SETTINGS_PANE: Replacer[] = [
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
   'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'settings/CreditsPanel.tsx': [
+    ...SETTINGS_PANE,
+    { file: 'settings/CreditsPanel.tsx', control: 'another template', asks: /onChange=\{\(id\) => id !== selectedId && guarded\(/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'New', asks: /guarded\(newTemplate\)/ },
+    { file: 'settings/CreditsPanel.tsx', control: 'Duplicate', asks: /guarded\(\(\) => void duplicateTemplate\(\)\)/ },
+    { file: 'settings/controls/CreditsBody.tsx', control: 'Close credits editor', asks: /editing \? guarded\(\(\) => setEditing\(false\)\)/ },
+  ],
 };
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
