@@ -40,6 +40,12 @@ const SCRIPT: TeleprompterEvent = {
 
 /** A stop the host takes after this long (a test sets it once the refusals are over). */
 const stopDelay = { ms: 0 };
+/** How the host answers a read of its state: at once, never, or only when the test lets it (with the state as it was when asked). */
+const stateRead: { mode: 'now' | 'hang' | 'late'; release: () => void } = { mode: 'now', release: () => {} };
+afterEach(() => {
+  stateRead.mode = 'now';
+  stateRead.release = () => {};
+});
 afterEach(() => (stopDelay.ms = 0));
 
 /** A host whose stop is refused for the first `refusals` calls, as a host busy with its sidecar's exit is. */
@@ -77,7 +83,14 @@ function mountBooth(refusals: number, shared?: ReturnType<typeof createOverlaySe
     teleprompterStart,
     teleprompterStop,
     teleprompterSaveFlags: async () => [],
-    teleprompterState: async () => state,
+    teleprompterState: () => {
+      if (stateRead.mode === 'hang') return new Promise<TeleprompterState>(() => {});
+      if (stateRead.mode === 'late') {
+        const asked = state;
+        return new Promise<TeleprompterState>((resolve) => (stateRead.release = () => resolve(asked)));
+      }
+      return Promise.resolve(state);
+    },
     subscribeTeleprompterState: (listener: (next: TeleprompterState) => void) => {
       states.add(listener);
       return () => states.delete(listener);
@@ -352,6 +365,42 @@ describe('a listening stop the host refuses', () => {
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
     expect(page.overlay.getSnapshot().toasts.some((item) => /Quit and reopen/.test(item.text))).toBe(false);
   });
+
+  it('a state read that never answers at the leave still sends the stop and says the sentence', async () => {
+    const page = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    const calls = page.teleprompterStop.mock.calls.length;
+    stateRead.mode = 'hang';
+    page.view.unmount();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1), {
+      timeout: 15_000,
+    });
+    // Both stops of the way out were sent although neither look at the host was ever answered.
+    expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
+  }, 25_000);
+
+  it("the session ends and a new one starts while the leave's state read is out: no stop is sent", async () => {
+    const page = mountBooth(99);
+    await coldReadThenStop();
+    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    stateRead.mode = 'late';
+    page.view.unmount();
+    // What the page's own release sent at the moment it went (the session was still the old one then) is not counted.
+    const calls = page.teleprompterStop.mock.calls.length;
+    // While the read is out the old session ends and another starts; the read then answers with the host as it was (the old session, running).
+    await act(async () => {
+      page.publish({ phase: 'stopped' });
+      page.publish({ phase: 'starting' });
+      page.publish({ phase: 'running' });
+    });
+    await act(async () => {
+      stateRead.release();
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    });
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
+    expect(page.overlay.getSnapshot().toasts.some((item) => /Quit and reopen/.test(item.text))).toBe(false);
+  }, 15_000);
 
   it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {
     const page = mountBooth(2);

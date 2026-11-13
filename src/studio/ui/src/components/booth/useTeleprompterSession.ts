@@ -54,6 +54,8 @@ const STOP_WAIT_MS = 9_000;
  */
 const STOP_CALL_MS = 12_000;
 /** A refused stop is sent once more after this, if the session is still the one it meant (#3409). */
+/** How long a look at the host's state may take before a stop asked for by leaving goes on without it. */
+const STATE_READ_MS = 3_000;
 const STOP_RETRY_MS = 1_500;
 
 /**
@@ -415,23 +417,40 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         skipped.current = true;
         return true;
       }
-      // A stop asked for by leaving looks at the host first too: a session that already ended, or that is not running, has nothing to stop.
-      if (asked === 'leave') {
-        const host = await api.teleprompterState().catch(() => null);
-        if (host && !ACTIVE_PHASES.includes(host.phase)) {
-          skipped.current = true;
-          return true;
-        }
-      }
       const before = starts.current;
       const epochBefore = sessionEpoch;
       // The host says the session ended between the first stop and its retry: whatever runs then is another session, which the retry must not stop. The hook's own
-      // listener may be gone (a leave), so this one lives as long as the stop does.
+      // listener may be gone (a leave), so this one lives as long as the stop does, and it is registered before anything is read: a read that is slow to answer
+      // describes the host as it was when it was asked.
       let endedSeen = false;
       const off = api.subscribeTeleprompterState((state) => {
         if (!ACTIVE_PHASES.includes(state.phase)) endedSeen = true;
       });
+      // A look at the host for a stop asked for by leaving: bounded, so a read that never answers is "unknown" and the stop is sent (nothing may wait on it for ever).
+      const readHost = (): Promise<TeleprompterState | null> =>
+        new Promise((resolve) => {
+          const timer = setTimeout(() => resolve(null), STATE_READ_MS);
+          api.teleprompterState().then(
+            (state) => {
+              clearTimeout(timer);
+              resolve(state);
+            },
+            () => {
+              clearTimeout(timer);
+              resolve(null);
+            },
+          );
+        });
       try {
+        // A stop asked for by leaving looks at the host first too: a session that already ended, or that is not running, has nothing to stop, and neither has one
+        // that ended (and may have been replaced) while this was asking.
+        if (asked === 'leave') {
+          const host = await readHost();
+          if (endedSeen || (host && !ACTIVE_PHASES.includes(host.phase))) {
+            skipped.current = true;
+            return true;
+          }
+        }
         if (await attempt()) return took();
         await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_MS));
         // A stop the narrator asked for by leaving ("Stop and leave", Exit) is retried after this hook is gone too: the host's own state says whether anything is left.
@@ -441,7 +460,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
           return true;
         };
         if (asked === 'leave') {
-          const host = await api.teleprompterState().catch(() => null);
+          const host = await readHost();
           if (host && !ACTIVE_PHASES.includes(host.phase)) return nothingLeft();
         } else {
           if (!alive.current) return false;
