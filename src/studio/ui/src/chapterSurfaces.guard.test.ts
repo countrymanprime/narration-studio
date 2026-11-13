@@ -23,6 +23,7 @@ const COVERED: Record<string, readonly string[]> = {
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
   'components/masterqc/page/MasterPage.tsx': ['components/masterqc/page/Page.test.tsx'],
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
+  'components/chapterTracks/useChapterNameOf.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
   'studio/slots.ts': ['components/layout/useGoToCommands.test.tsx', 'components/layout/AddressGate.test.tsx', 'components/delivery/page/DeliveryPage.test.tsx'],
