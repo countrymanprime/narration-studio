@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 24 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 26 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 23 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
-const MOUNT_BUDGET = 23;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 25 for the Settings screen of #3400: a pasted key held through the exits table, saved once, and kept or discarded over a category and the search.
+const MOUNT_BUDGET = 25;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1805,6 +1805,56 @@ describe('App Back and Forward', () => {
       expect(await screen.findByText(/Your reply changed while saving, so you are still here\./)).toBeTruthy();
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(window.location.pathname).toBe('/settings');
+      act(() => close());
+    });
+
+    it('the question closes itself and the move goes on when what was held goes away while it is open (#3446)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let clear: () => void = () => {};
+      const Clears = () => {
+        const [text, setText] = useState('typed');
+        clear = () => setText('');
+        useUnsavedDraft('probe-clears', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Clears />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard your reply before leaving?')).toBeTruthy();
+      act(() => clear());
+      await waitFor(() => expect(window.location.pathname).toBe('/proof'));
+      await waitFor(() => expect(screen.queryByText('Save or discard your reply before leaving?')).toBeNull(), { timeout: 3000 });
+      act(() => close());
+    });
+
+    it("the question's sentence follows what is held while it is open: a holder joining that cannot be saved turns it Discard-only (#3446 E3)", async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let hold: () => void = () => {};
+      const Saveable = () => {
+        useUnsavedDraft('probe-saveable', { dirty: true, label: 'your reply', save: async () => true, discard: () => {} });
+        return null;
+      };
+      const Joins = () => {
+        const [on, setOn] = useState(false);
+        hold = () => setOn(true);
+        useUnsavedDraft('probe-joins', { dirty: on, label: 'a note you started', brief: 'a note', discard: () => {} });
+        return null;
+      };
+      const close = openProbe(
+        <>
+          <Saveable />
+          <Joins />
+        </>,
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard your reply before leaving?')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Save & continue' })).toBeTruthy();
+      act(() => hold());
+      expect(await screen.findByText('Discard your reply and a note you started before leaving?')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Save & continue' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Unsaved changes' })).toBeNull());
       act(() => close());
     });
 
