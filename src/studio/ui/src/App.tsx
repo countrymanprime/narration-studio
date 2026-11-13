@@ -13,7 +13,7 @@ import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
 import { UnsavedDraftsProvider, useUnsavedDrafts, withinSaveLimit, SaveTimeout, type AskOptions } from './studio/drafts/unsavedDrafts';
-import { draftQuestion, saveVerdict } from './studio/drafts/draftSentence';
+import { discardVerdict, draftQuestion, saveVerdict } from './studio/drafts/draftSentence';
 import { useUndoToastLifetime } from './studio/useUndoToastLifetime';
 import type { Journal } from './studio/journal/createJournal';
 import { MANUSCRIPT_CHANGED } from './studio/slots';
@@ -295,6 +295,7 @@ function AppRoutes() {
   const drafts = useUnsavedDrafts();
   // The answer being waited for: Cancel (or a new question) moves the token on, so a Save & continue that finishes after it does not leave.
   const moveToken = useRef(0);
+  const settingsSaving = useRef<Promise<boolean> | null>(null);
   const [resolving, setResolving] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove>();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -843,20 +844,20 @@ function AppRoutes() {
     if (pageHolds()) setPendingMove({ kind: 'action', run });
     else run();
   };
-  // With nothing to save the question opens on Keep editing. A navigation drawer that was open closes a moment later and hands the focus back to its opener
-  // outside the question, so the focus is put back inside it a few times over the first moments (#3404).
-  const heldDrafts = drafts.heldNow();
-  const keepEditingOpen = pendingMove !== undefined && !settingsHeld && heldDrafts.length > 0 && heldDrafts.every((draft) => !draft.saveable);
+  // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
+  // few times over the first moments, on Keep editing when that is the way to stay and on Cancel otherwise (#3404, and #3446 B2 for every variant).
+  const questionOpen = pendingMove !== undefined;
   useEffect(() => {
-    if (!keepEditingOpen) return;
+    if (!questionOpen) return;
     const focusKeep = () => {
       const question = document.querySelector('[role="alertdialog"]');
       if (!question || question.contains(document.activeElement)) return;
-      [...question.querySelectorAll('button')].find((button) => button.textContent === 'Keep editing')?.focus();
+      const buttons = [...question.querySelectorAll('button')];
+      (buttons.find((button) => button.textContent === 'Keep editing') ?? buttons.find((button) => button.textContent === 'Cancel'))?.focus();
     };
     const timers = [0, 60, 250, 600].map((ms) => setTimeout(focusKeep, ms));
     return () => timers.forEach(clearTimeout);
-  }, [keepEditingOpen]);
+  }, [questionOpen]);
   const { setShell } = drafts;
   useEffect(() => {
     setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state) => guardedNavigateRef.current(to, state) });
@@ -1065,14 +1066,30 @@ function AppRoutes() {
   const question = pendingMove && !settingsHeld ? draftQuestion(drafts.heldNow(), pendingMove.kind !== 'action') : undefined;
   // Save is offered when Settings holds edits (they always save) or when any held draft can be saved; otherwise the only ways on are to keep editing or discard.
   const canSave = settingsHeld || (question?.canSave ?? true);
+  // Settings' own save has no shared request of its own: a second Save & continue after the limit would send it again while the first never answered.
+  const saveSettingsOnce = (): Promise<boolean> => {
+    if (!settingsSaving.current) {
+      settingsSaving.current = (settingsActions.current?.save() ?? Promise.resolve(true)).finally(() => {
+        settingsSaving.current = null;
+      });
+    }
+    return settingsSaving.current;
+  };
   const discardMove = (move: PendingMove) => {
     const token = moveToken.current;
     setResolving(true);
     void (async () => {
       try {
         if (settingsHeld) await withinSaveLimit(settingsActions.current?.discard() ?? Promise.resolve());
-        drafts.discard();
+        const { failed } = drafts.discard();
         if (token !== moveToken.current) return;
+        // A draft that could not be dropped keeps the narrator where they are, and the message says what went and what is still here.
+        const verdict = discardVerdict({ failed });
+        if (!verdict.proceed) {
+          setSettingsDirty(false);
+          overlay.toast(verdict.message!, { tone: 'error' });
+          return cancelPendingMove();
+        }
         setSettingsDirty(false);
         resolvePendingMove(move);
         setPendingMove(undefined);
@@ -1102,7 +1119,7 @@ function AppRoutes() {
         void (async () => {
           try {
             // Settings' fields first, then the drafts; the first that does not save keeps the narrator where they are (each says why in its own words).
-            const settingsSaved = !settingsHeld || (await withinSaveLimit(settingsActions.current?.save() ?? Promise.resolve(true)));
+            const settingsSaved = !settingsHeld || (await withinSaveLimit(saveSettingsOnce()));
             const outcome = settingsSaved ? await drafts.save() : undefined;
             // Cancel, or another question, came while this was saving: the move is no longer the one that was asked for.
             if (token !== moveToken.current) return;
@@ -1120,7 +1137,7 @@ function AppRoutes() {
             // The text is where it was typed either way. A save that is only slow may still land, so that is not called a failure.
             if (token === moveToken.current)
               overlay.toast(
-                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `Not saved: ${describeApiError(error)}`,
+                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `Not saved: ${apiErrorMessage(error)}`,
                 {
                   tone: 'error',
                 },

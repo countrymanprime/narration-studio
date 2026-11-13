@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeHeld, draftQuestion, saveVerdict, shortName, type DraftLabel, type HeldDraft } from './draftSentence';
+import { describeHeld, discardVerdict, draftQuestion, saveVerdict, shortName, type DraftLabel, type HeldDraft } from './draftSentence';
 
 const one = (label: string, over: Partial<DraftLabel> = {}): DraftLabel => ({ label, ...over });
 const held = (label: string, over: Partial<HeldDraft> = {}): HeldDraft => ({ label, saveable: true, ...over });
@@ -108,5 +108,41 @@ describe('what Save & continue does after the saves (#3400 D1)', () => {
   it('stays, with no message of its own, when a save said it did not save or Settings did not finish', () => {
     expect(saveVerdict({ saved: false, kept: [] })).toEqual({ proceed: false });
     expect(saveVerdict(undefined)).toEqual({ proceed: false });
+  });
+});
+
+describe('edge cases the breaker found (#3446)', () => {
+  it('B4: when nothing is held any more the question names nothing and says so', () => {
+    expect(draftQuestion([], true)).toEqual({ body: 'There is nothing left to save or discard.', canSave: true });
+  });
+
+  it('B5: a draft that said it did not save, one that cannot be saved and one that changed while saving each get a clause', () => {
+    const verdict = saveVerdict({
+      saved: false,
+      failed: [held('your reply')],
+      kept: [held('a relationship you started', { brief: 'a relationship', saveable: false })],
+      late: [held('your late note')],
+    });
+    expect(verdict.proceed).toBe(false);
+    expect(verdict.message).toBe(
+      'Your reply did not save; a relationship you started cannot be saved yet; your late note changed while saving, so you are still here.',
+    );
+  });
+
+  it('B1: a late draft stops the move even though everything else saved', () => {
+    expect(saveVerdict({ saved: true, failed: [], kept: [], late: [held('your late reply')] }).proceed).toBe(false);
+  });
+});
+
+describe('what Discard & continue does after the discards (#3446 B7)', () => {
+  it('goes on when everything was dropped', () => {
+    expect(discardVerdict({ failed: [] })).toEqual({ proceed: true });
+  });
+
+  it('stays, and says what is still here and that the rest was discarded, when one could not be dropped', () => {
+    expect(discardVerdict({ failed: [held('your reply')] })).toEqual({
+      proceed: false,
+      message: 'Your reply could not be discarded and is still here. The rest was discarded.',
+    });
   });
 });

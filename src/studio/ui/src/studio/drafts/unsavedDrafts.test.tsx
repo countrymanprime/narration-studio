@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render, renderHook } from '@testing-library/react';
+import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { useEffect, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,7 @@ import {
   SAVE_LIMIT_MS,
   SaveTimeout,
   UnsavedDraftsProvider,
+  GuardedLink,
   useGuardedAction,
   useGuardedNavigate,
   useSharedSave,
@@ -18,6 +19,14 @@ import {
 
 function Holder({ id, draft }: { id: string; draft: UnsavedDraft }) {
   useUnsavedDraft(id, draft);
+  return null;
+}
+function Install({ shell }: { shell: { ask: (run: () => void) => void; go: (to: string, state?: unknown) => void } }) {
+  const { setShell } = useUnsavedDrafts();
+  useEffect(() => {
+    setShell(shell);
+    return () => setShell(null);
+  }, [setShell, shell]);
   return null;
 }
 const wrapper = ({ children }: { children: ReactNode }) => <UnsavedDraftsProvider>{children}</UnsavedDraftsProvider>;
@@ -67,13 +76,21 @@ describe('the unsaved-drafts registry', () => {
     expect(held).toEqual([]);
   });
 
-  it('saves every dirty holder, and stops at the first that does not save', async () => {
+  it('a holder that says it did not save is named in failed, and the rest are still tried (#3446 B5)', async () => {
     const first = vi.fn(async () => false);
     const second = vi.fn(async () => true);
-    const { result } = setup({ a: draft({ save: first }), b: draft({ save: second }), c: draft({ dirty: false, save: vi.fn(async () => true) }) });
-    await act(async () => expect(await result.current.save()).toEqual({ saved: false, kept: [] }));
+    const { result } = setup({
+      a: draft({ save: first, label: 'your reply' }),
+      b: draft({ save: second, label: 'your note' }),
+      c: draft({ dirty: false, save: vi.fn(async () => true) }),
+    });
+    await act(async () => {
+      const outcome = await result.current.save();
+      expect(outcome.saved).toBe(false);
+      expect(outcome.failed.map((entry) => entry.label)).toEqual(['your reply']);
+    });
     expect(first).toHaveBeenCalledOnce();
-    expect(second).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledOnce();
   });
 
   it('saves them all when each saves, leaving the clean one alone', async () => {
@@ -81,10 +98,87 @@ describe('the unsaved-drafts registry', () => {
     const a = vi.fn(async () => true);
     const b = vi.fn(async () => true);
     const { result } = setup({ a: draft({ save: a }), b: draft({ save: b }), c: draft({ dirty: false, save: clean }) });
-    await act(async () => expect(await result.current.save()).toEqual({ saved: true, kept: [] }));
+    await act(async () => expect(await result.current.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
     expect(a).toHaveBeenCalledOnce();
     expect(b).toHaveBeenCalledOnce();
     expect(clean).not.toHaveBeenCalled();
+  });
+
+  it('a draft that became held while the saves ran is reported in late, never moved past (#3446 B1)', async () => {
+    let release: (value: boolean) => void = () => {};
+    const slow = vi.fn(() => new Promise<boolean>((resolve) => (release = resolve)));
+    const Probe = ({ late }: { late: boolean }) => <Holder id="late" draft={draft({ dirty: late, label: 'your late reply' })} />;
+    const holders = (late: boolean) => (
+      <UnsavedDraftsProvider>
+        <Holder id="a" draft={draft({ save: slow, label: 'your note' })} />
+        <Probe late={late} />
+        <Registry />
+      </UnsavedDraftsProvider>
+    );
+    let registry!: ReturnType<typeof useUnsavedDrafts>;
+    const Registry = () => {
+      registry = useUnsavedDrafts();
+      return null;
+    };
+    const view = render(holders(false));
+    let pending!: Promise<SaveResult>;
+    act(() => {
+      pending = registry.save();
+    });
+    view.rerender(holders(true));
+    release(true);
+    await act(async () => {
+      const outcome = await pending;
+      expect(outcome.saved).toBe(true);
+      expect(outcome.late.map((entry) => entry.label)).toEqual(['your late reply']);
+    });
+  });
+
+  it("a second save after the limit does not send a holder's own save again, even without useSharedSave (#3446 B9)", async () => {
+    vi.useFakeTimers();
+    try {
+      const save = vi.fn(() => new Promise<boolean>(() => {}));
+      const { result } = setup({ a: draft({ save }) });
+      let stuck!: Promise<SaveResult>;
+      act(() => {
+        stuck = result.current.save();
+      });
+      const settled = expect(stuck).rejects.toBeInstanceOf(SaveTimeout);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
+      });
+      await settled;
+      act(() => void result.current.save().catch(() => {}));
+      expect(save).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('discard keeps going after a holder whose discard throws, and names it (#3446 B7)', () => {
+    const second = vi.fn();
+    const { result } = setup({
+      a: draft({
+        label: 'your reply',
+        discard: () => {
+          throw new Error('stuck');
+        },
+      }),
+      b: draft({ label: 'your note', discard: second }),
+    });
+    let outcome!: ReturnType<typeof result.current.discard>;
+    act(() => {
+      outcome = result.current.discard();
+    });
+    expect(second).toHaveBeenCalledOnce();
+    expect(outcome.failed.map((entry) => entry.label)).toEqual(['your reply']);
+  });
+
+  it('sixty holders that save at once all save, in order (#3446 B8)', async () => {
+    const saves = Array.from({ length: 60 }, () => vi.fn(async () => true));
+    const { result } = setup(Object.fromEntries(saves.map((save, index) => [`h${index}`, draft({ save, label: `note ${index}` })])));
+    await act(async () => expect((await result.current.save()).saved).toBe(true));
+    for (const save of saves) expect(save).toHaveBeenCalledOnce();
   });
 
   it('discards every dirty holder', () => {
@@ -107,8 +201,8 @@ describe('the unsaved-drafts registry', () => {
       second = result.current.save();
     });
     release(true);
-    expect(await first).toEqual({ saved: true, kept: [] });
-    expect(await second).toEqual({ saved: true, kept: [] });
+    expect(await first).toEqual({ saved: true, failed: [], kept: [], late: [] });
+    expect(await second).toEqual({ saved: true, failed: [], kept: [], late: [] });
     expect(slow).toHaveBeenCalledOnce();
   });
 
@@ -171,12 +265,12 @@ describe('the unsaved-drafts registry', () => {
     await act(async () => {
       await expect(result.current.save()).rejects.toThrow('the host went away');
     });
-    await act(async () => expect(await result.current.save()).toEqual({ saved: true, kept: [] }));
+    await act(async () => expect(await result.current.save()).toEqual({ saved: true, failed: [], kept: [], late: [] }));
     expect(save).toHaveBeenCalledTimes(2);
     expect(discard).not.toHaveBeenCalled();
   });
 
-  it('a save that never answers rejects after its limit, and a second press then starts a new save (#3404)', async () => {
+  it('a save that never answers rejects after its limit, and a second press waits on the same request instead of sending another (#3404, #3446 B9)', async () => {
     vi.useFakeTimers();
     try {
       const save = vi.fn(() => new Promise<boolean>(() => {}));
@@ -191,7 +285,7 @@ describe('the unsaved-drafts registry', () => {
       });
       await settled;
       act(() => void result.current.save().catch(() => {}));
-      expect(save).toHaveBeenCalledTimes(2);
+      expect(save).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }
@@ -251,7 +345,7 @@ describe('the unsaved-drafts registry', () => {
       });
       finish(true);
       expect(await own).toBe(true);
-      expect(await asked).toEqual({ saved: true, kept: [] });
+      expect(await asked).toEqual({ saved: true, failed: [], kept: [], late: [] });
       expect(request).toHaveBeenCalledOnce();
     });
 
@@ -276,7 +370,7 @@ describe('the unsaved-drafts registry', () => {
         });
         expect(request).toHaveBeenCalledOnce();
         finish(true);
-        await act(async () => expect(await second).toEqual({ saved: true, kept: [] }));
+        await act(async () => expect(await second).toEqual({ saved: true, failed: [], kept: [], late: [] }));
       } finally {
         vi.useRealTimers();
       }
@@ -285,18 +379,10 @@ describe('the unsaved-drafts registry', () => {
 
   describe("a change inside a page, and a link out of it, take the shell's question (#3400)", () => {
     const withShell = (ui: ReactNode, shell: { ask: (run: () => void) => void; go: (to: string, state?: unknown) => void }) => {
-      const Install = () => {
-        const { setShell } = useUnsavedDrafts();
-        useEffect(() => {
-          setShell(shell);
-          return () => setShell(null);
-        }, [setShell]);
-        return null;
-      };
       return (
         <MemoryRouter>
           <UnsavedDraftsProvider>
-            <Install />
+            <Install shell={shell} />
             {ui}
           </UnsavedDraftsProvider>
         </MemoryRouter>
@@ -335,6 +421,27 @@ describe('the unsaved-drafts registry', () => {
       render(withShell(<Probe />, { ask: vi.fn(), go }));
       navigate('/proof', { state: { from: 'here' } });
       expect(go).toHaveBeenCalledWith('/proof', { from: 'here' });
+    });
+  });
+
+  describe('GuardedLink (#3446 B3)', () => {
+    it("a plain click takes the shell's guarded move and does not navigate on its own; a modified click is left to the browser", () => {
+      const go = vi.fn();
+      const view = render(
+        <MemoryRouter>
+          <UnsavedDraftsProvider>
+            <Install shell={{ ask: vi.fn(), go }} />
+            <GuardedLink to="/proof">Proof</GuardedLink>
+          </UnsavedDraftsProvider>
+        </MemoryRouter>,
+      );
+      const link = view.getByRole('link', { name: 'Proof' });
+      expect(link.getAttribute('href')).toBe('/proof');
+      fireEvent.click(link);
+      expect(go).toHaveBeenCalledWith('/proof', undefined);
+      go.mockClear();
+      fireEvent.click(link, { ctrlKey: true });
+      expect(go).not.toHaveBeenCalled();
     });
   });
 });
