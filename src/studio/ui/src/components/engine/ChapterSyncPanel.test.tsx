@@ -198,9 +198,7 @@ describe('ChapterSyncPanel', () => {
     const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
     // 'g5a' is not one of the project's tracks: once the tracks are read the pick is empty and Link waits.
     await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Choose a track'));
-    expect(
-      screen.getByRole('button', { name: 'Link' }).getAttribute('disabled') ?? screen.getByRole('button', { name: 'Link' }).getAttribute('aria-disabled'),
-    ).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Link' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('names the saved file and splits automatic links from the narrator’s in the summary', async () => {

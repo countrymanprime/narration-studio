@@ -14,9 +14,8 @@ import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { TrackSelect } from '../mapping/TrackSelect';
-import { holderName, holderOf, plainTrackChoices, type TrackChoice } from '../mapping/trackChoices';
+import { plainTrackChoices, rankedChoices, type TrackChoice } from '../mapping/trackChoices';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { trackName } from '../tracks/trackName';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { StatusBadge } from '../primitives/StatusBadge';
 import {
@@ -192,7 +191,7 @@ export function ChapterSyncPanel({
                 {choices.length > 0 && (
                   <div className="flex w-full min-w-0 items-center gap-2">
                     <TrackSelect
-                      label={`Track for ${item.chapterTitle}`}
+                      label={`Track for ${nameOf(item.chapterId) ?? item.chapterTitle}`}
                       choices={choices}
                       fullWidth
                       value={selected}
@@ -200,7 +199,7 @@ export function ChapterSyncPanel({
                     />
                     <Button
                       pending={linkingChapterId === item.chapterId}
-                      disabledReason={selected ? '' : 'Choose a track for this chapter first'}
+                      disabledReason={selected ? '' : 'Choose a track for this chapter first.'}
                       onClick={() => void link(item.chapterId, selected)}
                     >
                       Link
@@ -241,20 +240,15 @@ function syncChoices(
   mappings: readonly TrackMapping[],
   nameOf: (chapterId: string) => string | undefined,
 ): TrackChoice[] {
-  const all = tracks && tracks.length > 0 ? plainTrackChoices(tracks, mappings, item.chapterId, nameOf) : [];
-  const best = item.best?.trackGuid ?? item.candidates[0]?.trackGuid;
-  const ranked = [...new Set(item.candidates.map((candidate) => candidate.trackGuid))];
-  if (all.length === 0)
-    // The candidates alone, but a track another chapter holds still says so from the links the state has read.
-    return item.candidates.map((candidate) => {
-      const holder = holderOf(mappings, candidate.trackGuid, item.chapterId);
-      return {
-        guid: candidate.trackGuid,
-        name: trackName(candidate.trackName, candidate.trackIndex),
-        best: candidate.trackGuid === best,
-        ...(holder ? { heldBy: holderName(nameOf(holder.chapterId), holder.chapterTitle) } : {}),
-      };
-    });
-  const marked = all.map((choice) => ({ ...choice, best: choice.guid === best }));
-  return [...ranked.flatMap((guid) => marked.filter((choice) => choice.guid === guid)), ...marked.filter((choice) => !ranked.includes(choice.guid))];
+  // The project's tracks once read; before that (or when unreadable) the candidates the sync named, as tracks, so the same labels apply.
+  const listed =
+    tracks && tracks.length > 0
+      ? tracks
+      : item.candidates.map((c) => ({ guid: c.trackGuid, name: c.trackName, index: c.trackIndex, depth: 0, isFolder: false, items: [] }) as unknown as Track);
+  const best = item.best?.trackGuid ?? item.candidates[0]?.trackGuid ?? null;
+  return rankedChoices(
+    plainTrackChoices(listed, mappings, item.chapterId, nameOf),
+    item.candidates.map((candidate) => candidate.trackGuid),
+    best,
+  );
 }

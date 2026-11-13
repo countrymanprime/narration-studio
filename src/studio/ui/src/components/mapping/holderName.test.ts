@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { heldLabel, holderName, holderOf, plainTrackChoices } from './trackChoices';
+import { heldLabel, holderName, holderOf, plainTrackChoices, rankedChoices } from './trackChoices';
 import type { Track } from '../../types';
 
 // #3398: one rule for the name a "(linked to X)" label shows, in every picker.
@@ -45,5 +45,15 @@ describe('holderName', () => {
     expect(holderOf(links, 'B', 'c1')?.chapterId).toBe('c2');
     expect(holderOf(links, 'A', 'c1')).toBeUndefined();
     expect(holderOf(links, 'B', 'c3')?.chapterId).toBe('c1');
+  });
+});
+
+describe('rankedChoices', () => {
+  const choice = (guid: string) => ({ guid, name: guid, best: false });
+  it('puts the ranked tracks first once each, then the rest in the order given, and marks the best', () => {
+    const out = rankedChoices([choice('a'), choice('b'), choice('c'), choice('d')], ['c', 'c', 'x', 'a'], 'c');
+    expect(out.map((o) => o.guid)).toEqual(['c', 'a', 'b', 'd']);
+    expect(out.filter((o) => o.best).map((o) => o.guid)).toEqual(['c']);
+    expect(rankedChoices([choice('a')], [], null)[0].best).toBe(false);
   });
 });
