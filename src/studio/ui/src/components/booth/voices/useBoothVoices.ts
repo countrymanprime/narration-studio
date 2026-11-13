@@ -20,7 +20,7 @@ export const VOICE_CONTROL_ID = 'bvoice';
  * A voice key is Record's neighbour on the numpad, so the Enter that follows it must reach the page. Focus left on the voice button (after a
  * pick from its list, or a Tab) would make that Enter open the list instead of starting or pausing the take, so a voice key takes focus off it.
  */
-export function releaseVoiceControl(): void {
+function releaseVoiceControl(): void {
   const focused = document.activeElement;
   if (focused instanceof HTMLElement && focused.id === VOICE_CONTROL_ID) focused.blur();
 }
