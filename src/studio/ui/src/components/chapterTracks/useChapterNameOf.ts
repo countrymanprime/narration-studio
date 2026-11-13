@@ -16,7 +16,7 @@ export function chapterNameLookup(chapters: readonly ManuscriptChapter[]): (chap
  * chapter it no longer lists. Every picker names the chapter holding a track by this, so the label, the takeover sentence and the chapter's own
  * row spell one chapter one way (#3398); a caller falls back to the title the host kept with the link.
  */
-export function useChapterNameOf(active = true): (chapterId: string) => string | undefined {
+export function useChapterNameOf(active = true, refreshKey = 0): (chapterId: string) => string | undefined {
   const manuscript = usePort('manuscript');
   const [lookup, setLookup] = useState<(chapterId: string) => string | undefined>(() => () => undefined);
   // Read when the caller becomes active (a panel opening, a dialog mounting), so a chapter renamed since is named as it is now.
@@ -31,6 +31,6 @@ export function useChapterNameOf(active = true): (chapterId: string) => string |
     return () => {
       live = false;
     };
-  }, [manuscript, active]);
+  }, [manuscript, active, refreshKey]);
   return lookup;
 }

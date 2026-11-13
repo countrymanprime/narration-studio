@@ -14,6 +14,12 @@ describe('holderName', () => {
     expect(holderName(undefined, 'A‮B\nC\u0000D⁦E')).toBe('A B C D E');
     expect(holderName(undefined, 'x'.repeat(10000)).length).toBeLessThanOrEqual(80);
   });
+  it('treats a title made only of invisible characters as no title', () => {
+    for (const invisible of ['\u200b', '\u2800', '\u3164', '\u00ad', '\u200d\u200c', '\ufeff']) {
+      expect(holderName(invisible, 'Kept')).toBe('Kept');
+      expect(holderName(invisible, invisible)).toBe('another chapter');
+    }
+  });
   it('gives a held track a label in the pickers even when the kept title is empty', () => {
     const track = { guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [] } as unknown as Track;
     const [choice] = plainTrackChoices([track], [{ trackGuid: 'T', chapterId: 'c2', chapterTitle: '   ' }], 'c1');

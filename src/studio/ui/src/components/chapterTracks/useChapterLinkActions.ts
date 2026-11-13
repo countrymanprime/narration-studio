@@ -29,7 +29,18 @@ function isOddCharacter(code: number): boolean {
     code === 0x200e ||
     code === 0x200f ||
     (code >= 0x202a && code <= 0x202e) ||
-    (code >= 0x2066 && code <= 0x2069)
+    (code >= 0x2066 && code <= 0x2069) ||
+    // Zero-width, soft-hyphen and blank-glyph characters draw nothing: a title made only of them must fall back, not name nobody.
+    code === 0x00ad ||
+    code === 0x115f ||
+    code === 0x1160 ||
+    code === 0x180e ||
+    (code >= 0x200b && code <= 0x200d) ||
+    code === 0x2060 ||
+    code === 0x2800 ||
+    code === 0x3164 ||
+    code === 0xfeff ||
+    code === 0xffa0
   );
 }
 /** The longest chapter title a sentence quotes. */

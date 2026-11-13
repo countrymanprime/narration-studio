@@ -78,15 +78,16 @@ export function ChapterLinkDialog({
   const chapterName = dialogChapterName(rawChapterName);
   const trackMap = usePort('chapterTrackMap');
   const actions = useChapterLinkActions();
-  const nameOf = useChapterNameOf();
-  const nameOfRef = useRef(nameOf);
-  nameOfRef.current = nameOf;
   const overlay = useOverlay();
   // The links are the app's one chapter-track state, not a snapshot of the dialog's own: a link made here shows on the Engine panel, the Booth
   // and Settings at once, and one made there shows here (#3350). Only the links are watched; the match is this chapter's own question.
   const { mappings: links, applyMappings, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false });
   const [read, setRead] = useState<Read>({ status: 'loading' });
   const [asked, setAsked] = useState(0);
+  // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
+  const nameOf = useChapterNameOf(true, asked);
+  const nameOfRef = useRef(nameOf);
+  nameOfRef.current = nameOf;
   const [chosen, setChosen] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
