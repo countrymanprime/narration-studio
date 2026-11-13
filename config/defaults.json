@@ -104,7 +104,8 @@
     "replace_target_lufs": "-20"
   },
   "Booth": {
-    "words_per_page": "250"
+    "words_per_page": "250",
+    "follow_chapter_in_daw": "true"
   },
   "VoiceSamples": {
     "storage": "project"

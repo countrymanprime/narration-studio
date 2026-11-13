@@ -481,6 +481,43 @@ describe('every-way-out-asks-while-recording', () => {
   });
 });
 
+describe('the-daw-follows-the-chapter-the-narrator-goes-to', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  const setting = (value: 'true' | 'false'): Partial<NarrationApi> => ({
+    settingsForScope: async () => ({
+      Booth: [
+        { key: 'follow_chapter_in_daw', label: 'x', kind: 'bool', choices: [], value, isSet: true, effectiveValue: value, effectiveSource: 'repo default' },
+      ],
+    }),
+  });
+
+  it('moves the DAW to a chapter the narrator goes to after the Booth opened on its own, and not to the one it opened on', async () => {
+    const dawGoToChapter = goTo();
+    renderPage({ search: '', api: { dawGoToChapter } });
+    await ready();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith('c2', expect.any(String), expect.any(Number)));
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves the DAW to the chapter the address names when the Booth opens', async () => {
+    const dawGoToChapter = goTo();
+    renderPage({ search: '?chapter=c1', api: { dawGoToChapter } });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith('c1', expect.any(String), expect.any(Number)));
+  });
+
+  it('moves the DAW nowhere when Booth.follow_chapter_in_daw is off', async () => {
+    const dawGoToChapter = goTo();
+    renderPage({ search: '?chapter=c1', api: { dawGoToChapter, ...setting('false') } });
+    await ready();
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+});
+
 describe('a-built-in-take-is-guarded-too', () => {
   // The built-in recorder records through the DAW port like any engine (the host answers recordStart with the recorder behind it), so the
   // page asks the port once and needs no track; what the recorder does with a microphone is the host's tests'.

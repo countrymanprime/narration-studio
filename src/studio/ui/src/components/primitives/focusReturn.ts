@@ -40,3 +40,26 @@ export function escapeClosesPanel(close: () => void, opener: () => HTMLElement |
     opener()?.focus();
   };
 }
+
+/**
+ * Focuses the page's <main> (focusable, not tabbable, so handed to Base UI as a target it would pick its first tabbable, the header's button). The one place
+ * the Booth's voice hand-offs do it; false when the page has no <main>.
+ */
+export function focusPageMain(): boolean {
+  const page = document.querySelector<HTMLElement>('main');
+  page?.focus({ preventScroll: true });
+  return !!page;
+}
+
+/**
+ * For a popup that closes on a pick: hands focus to the page's <main> a tick after it has gone, unless the pick already put focus somewhere (a dialog it
+ * opened). Returns what Base UI's `finalFocus` expects. `Dialog` keeps its own opener-first rule above this one.
+ */
+export function handFocusToPage(): boolean {
+  if (!document.querySelector('main')) return true;
+  window.setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body || !active.isConnected) focusPageMain();
+  }, 0);
+  return false;
+}

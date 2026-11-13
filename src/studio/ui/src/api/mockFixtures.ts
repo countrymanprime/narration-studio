@@ -736,6 +736,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ],
   // Booth.words_per_page unset, so it reads as the default, 250 (tests/fixtures/contracts/settings-words-per-page.json); the Booth's page size.
   Booth: [
+    bool('follow_chapter_in_daw', 'DAW follows the Booth’s chapter', 'true'),
     {
       key: 'words_per_page',
       label: 'Words per page',

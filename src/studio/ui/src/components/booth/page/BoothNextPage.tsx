@@ -70,7 +70,7 @@ import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
-import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useFollowChapterInDaw, useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -148,6 +148,22 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const data = useBoothData(shown);
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
   const openedByAddress = useRef(asked !== null);
+  // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
+  // it is not moved. A chapter the narrator goes to is moved to (BoothSession is keyed by the chapter), and one left stops being exempt, so going
+  // back to it moves the DAW.
+  const selfOpened = useRef(new Set<string>());
+  const firstChapter = useRef(false);
+  const shownChapter = data.source?.chapter.id ?? '';
+  if (shownChapter !== '' && !firstChapter.current) {
+    firstChapter.current = true;
+    if (!openedByAddress.current) selfOpened.current.add(shownChapter);
+  }
+  const lastChapter = useRef('');
+  useEffect(() => {
+    if (lastChapter.current !== '' && lastChapter.current !== shownChapter) selfOpened.current.delete(lastChapter.current);
+    lastChapter.current = shownChapter;
+  }, [shownChapter]);
+  const moveDaw = openedByAddress.current || (shownChapter !== '' && !selfOpened.current.has(shownChapter));
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
@@ -167,7 +183,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   useFollowDawOnOpen({
     enabled: asked === null,
     chapterIds,
-    onChapter: (chapterId) => setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true }),
+    onChapter: (chapterId) => {
+      selfOpened.current.add(chapterId);
+      setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true });
+    },
   });
   // With nothing to read there is no session, so no take to protect: the page follows the address (the panel's way back changes it).
   const nothingToRead = !data.source;
@@ -224,7 +243,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         source={source}
         from={shown?.from}
         requested={asked}
-        moveDaw={openedByAddress.current}
+        moveDaw={moveDaw}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
         onReturned={() => {
@@ -443,8 +462,10 @@ function BoothSession({
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
+  const followChapterInDaw = useFollowChapterInDaw();
   useMoveDawOnOpen({
     enabled: moveDaw,
+    follow: followChapterInDaw,
     chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
@@ -496,6 +517,8 @@ function BoothSession({
     recording: control.recording,
     notify: voiceToast,
     stopTake: page.stopTake,
+    // A cold read has no voice to record on: in that mode a voice key only chooses.
+    startTake: () => (page.coldRead.mode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });

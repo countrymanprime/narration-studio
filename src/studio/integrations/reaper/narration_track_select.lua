@@ -10,10 +10,13 @@
 -- Events: TRACK_SELECTED|run|guid, or TRACK_STALE|run|guid.
 --
 -- The same file holds the pair the Booth follows the narrator with. read_place answers PLACE|run|guid|selected|cursor: the
--- one selected track (empty when none or several are selected, so a caller never guesses) and the edit cursor in project
--- seconds. It changes nothing. go_to selects a track and puts the edit cursor at its end ('end') or at a time ('at'),
+-- one selected track (empty when none or several are selected, except a folder with everything inside it, below, so a caller
+-- never guesses) and the edit cursor in project seconds. It changes nothing. go_to selects a track and puts the edit cursor at
+-- its end ('end'; for a folder, the latest end of its own items and of every track inside it) or at a time ('at'),
 -- answering PLACE_SET|run|guid|cursor, or TRACK_STALE for a track that is gone. Like select_track it opens no undo block and
--- never seeks or starts playback.
+-- never seeks or starts playback. A folder track is selected together with every track inside it (a chapter and its voices, #3427),
+-- and read_place names that folder when exactly it and all of its descendants are selected, so what go_to selected reads back as
+-- the one place it moved to. Any other selection of several tracks is named by none.
 
 local core = ...
 local event = core.event
@@ -47,6 +50,35 @@ local function select_track(session_dir, run_id, guid_text)
   event(session_dir, 'TRACK_SELECTED', run_id, wanted)
 end
 
+-- The position (1-based) of `track` in the project, or nil.
+local function position_of(track)
+  for index = 0, reaper.CountTracks(0) - 1 do
+    if reaper.GetTrack(0, index) == track then
+      return index + 1
+    end
+  end
+  return nil
+end
+
+-- The tracks inside the folder `track` opens, in project order (empty for a track that is not a folder): the ones after it until the
+-- folder depth falls back to where it began.
+local function folder_members(track)
+  local members = {}
+  local level = reaper.GetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH')
+  local index = position_of(track)
+  if level <= 0 or not index then
+    return members
+  end
+  -- `index` is the 1-based position of the folder, so it is also the 0-based index of the track after it.
+  while level > 0 and index < reaper.CountTracks(0) do
+    local member = reaper.GetTrack(0, index)
+    members[#members + 1] = member
+    level = level + reaper.GetMediaTrackInfo_Value(member, 'I_FOLDERDEPTH')
+    index = index + 1
+  end
+  return members
+end
+
 -- The end of the latest item on the track, or 0 when it has none.
 local function track_end(track)
   local last = 0
@@ -62,6 +94,29 @@ local function read_place(session_dir, run_id)
   local guid = ''
   if selected == 1 then
     guid = normalize_guid(reaper.GetTrackGUID(reaper.GetSelectedTrack(0, 0)))
+  elseif selected > 1 then
+    -- Several are selected: the first in project order names the place only when it is a folder and the selection is exactly it
+    -- and everything inside it (what go_to leaves), never a guess among unrelated tracks.
+    local chosen = {}
+    for position = 0, selected - 1 do
+      chosen[reaper.GetSelectedTrack(0, position)] = true
+    end
+    local first
+    for index = 0, reaper.CountTracks(0) - 1 do
+      local track = reaper.GetTrack(0, index)
+      if chosen[track] then
+        first = track
+        break
+      end
+    end
+    local members = first and folder_members(first) or {}
+    local whole = #members > 0 and selected == #members + 1
+    for _, member in ipairs(members) do
+      whole = whole and chosen[member] == true
+    end
+    if whole then
+      guid = normalize_guid(reaper.GetTrackGUID(first))
+    end
   end
   event(session_dir, 'PLACE', run_id, guid, selected, reaper.GetCursorPosition())
 end
@@ -82,8 +137,19 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
     event(session_dir, 'TRACK_STALE', run_id, guid_text)
     return
   end
-  local target = where == 'end' and track_end(track) or seconds
+  local members = folder_members(track)
+  local target = seconds
+  if where == 'end' then
+    -- A chapter's recordings sit on its voices, so a folder's end is the latest end among it and the tracks inside it.
+    target = track_end(track)
+    for _, member in ipairs(members) do
+      target = math.max(target, track_end(member))
+    end
+  end
   reaper.SetOnlyTrackSelected(track)
+  for _, member in ipairs(members) do
+    reaper.SetTrackSelected(member, true)
+  end
   reaper.SetEditCurPos(target, true, false)
   core.cursor_moved()
   event(session_dir, 'PLACE_SET', run_id, wanted, target)

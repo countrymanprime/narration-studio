@@ -364,7 +364,7 @@ named **Narrator**. A track another chapter is linked to is never one of the voi
 
 Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
-previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
+previous voice. With no take running, a voice key (**Num 0** to **Num 9**, **Num +**, **Num −**) also starts the take on that voice once REAPER has accepted it; choosing from the list only selects. Either way the next **Enter** or **Space** is Record's: a voice key or a pick from the list leaves focus on the page, not on the voice control, so it does not reopen the list. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
 and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
@@ -404,10 +404,10 @@ an add-track button for a speaker with no track.
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
 
 - **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the place [Where you stopped](#where-you-stopped) describes. With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
-- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to where that line was recorded before (found in the last recording check, on whichever voice read it; a line nobody recorded goes to the end of the chapter's audio, and when there is no current check the Booth estimates the place from the text's length), so you can punch from it.
+- **Opened at a chapter** (from the Script, Pickups or a bookmark), or **going to another chapter** inside the Booth (the chapter arrows, the jump menu, a bookmark): the DAW goes to that chapter as well. It selects the chapter's track and, when the chapter is a folder of voices, the tracks inside it, so you see the chapter and its voices together. The chapter the Booth opened on by itself (the one you last left, or the one the DAW was on) is not moved to, since the DAW is already there. With only a chapter, its cursor goes to the end of the track; with a line, to where that line was recorded before (found in the last recording check, on whichever voice read it; a line nobody recorded goes to the end of the chapter's audio, and when there is no current check the Booth estimates the place from the text's length), so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
-The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message.
+The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message. To keep the DAW where you put it, turn off **DAW follows the Booth’s chapter** in [Settings](settings.md) (Recording & DAW); the Booth then never moves the DAW.
 
 ## Where you stopped
 

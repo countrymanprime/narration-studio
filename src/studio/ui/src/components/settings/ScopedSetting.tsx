@@ -59,6 +59,8 @@ const TOOLTIP: Record<string, string> = {
   engine:
     'Which local speech engine listens for your voice during a Booth session. Moonshine is offered on Windows only. Choosing one never downloads anything: a missing model is asked for when you start reading.',
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
+  follow_chapter_in_daw:
+    'On by default: going to a chapter in the Booth selects that chapter and its tracks in the DAW and moves its cursor there. Off: the DAW stays where you put it.',
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
     'On by default: the app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off: the app writes nothing into REAPER, and REAPER does not connect.',

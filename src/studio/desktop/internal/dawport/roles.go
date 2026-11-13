@@ -362,7 +362,7 @@ type PlaceTarget struct {
 }
 
 // PlaceFollower lets the app follow the narrator's place in the project and take them somewhere in it: ReadPlace says which track is
-// selected and where the cursor is, GoTo selects a track and puts the cursor at its end or at a time. Neither starts playback or adds an
+// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end or at a time. Neither starts playback or adds an
 // undo step. The caller names a track by the id the engine gave it (the chapter's link), never a path. A track the engine no longer has
 // is the engine's stale error; a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
 type PlaceFollower interface {
