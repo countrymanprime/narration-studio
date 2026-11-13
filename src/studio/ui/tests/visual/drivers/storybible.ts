@@ -261,6 +261,14 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickNav(page, 'Production');
     await confirmDialog(page, 'Unsaved changes').waitFor();
   },
+  'approval-note-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Edit this entry' }).click();
+    await page.getByRole('textbox', { name: 'Note (optional)' }).fill('anchor take');
+    // Approve is the narrator's decision, so the question cannot save the note: Keep editing and Discard & continue.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
   'entry-properties-editing': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();

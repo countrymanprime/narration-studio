@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -36,6 +37,13 @@ export function VoiceReferencesSection({
   const [loadError, setLoadError] = useState<string>();
   const [regionGuid, setRegionGuid] = useState('');
   const [note, setNote] = useState('');
+  // A note typed beside a region waits for Approve, which is the narrator's decision: the question cannot make it, so it only offers to keep editing or discard it (#3400).
+  useUnsavedDraft('approval-note', {
+    dirty: !readOnly && note.trim() !== '',
+    label: 'your approval note',
+    brief: 'an approval note',
+    discard: () => setNote(''),
+  });
 
   const load = useCallback(async () => {
     try {

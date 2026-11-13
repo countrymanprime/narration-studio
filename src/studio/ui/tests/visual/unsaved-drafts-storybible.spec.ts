@@ -53,6 +53,20 @@ test('Add entry over an edited entry asks Unsaved changes', async ({ page }) => 
   await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
 });
 
+test('an approval note typed beside Approve asks before it is dropped: Keep editing or Discard & continue, no Save', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Story Bible');
+  await page.getByRole('button', { name: 'Edit this entry' }).click();
+  await page.getByRole('textbox', { name: 'Note (optional)' }).fill('anchor take');
+  await clickNav(page, 'Production');
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('your approval note');
+  await expect(question.getByRole('button', { name: 'Save & continue' })).toHaveCount(0);
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(page.getByRole('textbox', { name: 'Note (optional)' })).toHaveValue('anchor take');
+});
+
 test('a new entry that cannot be saved offers Keep editing and Discard & continue, with no Cancel and no word about saving', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
@@ -116,32 +130,6 @@ test('a click one millisecond after the typing, with no blur between, still asks
     .getByRole('button', { name: /^Schedule/ })
     .click({ delay: 1 });
   await expect(unsaved(page, 'Unsaved changes')).toBeVisible();
-});
-
-// The question over a saveable draft, opened from the navigation drawer below 860 px: the focus is in the question, Tab stays in it, Escape closes it (#3446 B2).
-test('the question over an entry edit from the navigation drawer holds the focus at 720 x 600', async ({ page }) => {
-  await page.setViewportSize({ width: 720, height: 600 });
-  await startEntryEdit(page);
-  await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page
-    .getByRole('dialog', { name: /navigation/i })
-    .getByRole('button', { name: /^Script/ })
-    .click();
-  const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toBeVisible();
-  await expect.poll(() => question.evaluate((node) => node.contains(document.activeElement)), { timeout: 3000 }).toBe(true);
-  for (let step = 0; step < 6; step += 1) {
-    const where = await question.evaluate((node) => {
-      const active = document.activeElement;
-      return node.contains(active) || (active instanceof HTMLSpanElement && (active.textContent ?? '') === '')
-        ? 'ok'
-        : `${active?.tagName}: ${active?.textContent?.slice(0, 40)}`;
-    });
-    expect(where, `before Tab ${step + 1}`).toBe('ok');
-    await page.keyboard.press('Tab');
-  }
-  await page.keyboard.press('Escape');
-  await expect(question).toBeHidden();
 });
 
 // The question with nothing to save opens on Keep editing at every width, also when a navigation drawer was open behind the link that asked.

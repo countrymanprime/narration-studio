@@ -60,7 +60,6 @@ const EXEMPT: Record<string, string> = {
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,
-  'storybible/VoiceReferencesSection.tsx': 'the optional note of an approval that is not made until Approve; one short phrase beside a region choice',
   'storybible/source/NamePronunciation.tsx': BLUR,
   'storybible/suggested/import/ImportDialog.tsx': MODAL,
   'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL,
@@ -184,6 +183,7 @@ const STORY_BIBLE_DETAIL: Replacer[] = [
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
   'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
   'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/VoiceReferencesSection.tsx': STORY_BIBLE_DETAIL,
   'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
 };
 

@@ -97,6 +97,13 @@ export const storybibleStates: StateEntry[] = [
       'Story Bible, a new entry named in the form and another page pressed in the navigation: the Unsaved changes confirm with Keep editing and Discard & continue (nothing to save yet)',
     ...REFLOW,
   },
+  {
+    page: 'storybible',
+    state: 'approval-note-leave-confirm',
+    description:
+      "Story Bible, an entry in edit mode with a note typed beside Approve and another page pressed in the navigation: the Unsaved changes confirm names the approval note and offers Keep editing and Discard & continue (an approval is the narrator's decision, so there is no Save)",
+    ...REFLOW,
+  },
   { page: 'storybible', state: 'entry-editing', description: 'Story Bible, an unlocked entry in edit mode (Save and Cancel shown)' },
   {
     page: 'storybible',
