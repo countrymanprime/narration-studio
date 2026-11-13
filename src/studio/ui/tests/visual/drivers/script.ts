@@ -51,6 +51,25 @@ export const scriptDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  // Deleting a note takes the reply typed under it along, so it asks first (#3400).
+  'note-delete-confirm': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem').first().click();
+    const composer = page.getByRole('dialog');
+    await composer.getByRole('textbox').first().fill('First message');
+    await composer
+      .getByRole('button', { name: /^(Add|Save|Mark)/ })
+      .last()
+      .click();
+    const rail = await openRail(page);
+    await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+    const card = rail.getByRole('article').first();
+    await card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }).fill('A reply not added yet');
+    await card.getByRole('button', { name: 'Delete the note' }).click();
+    await confirmDialog(page, 'Delete the note?').waitFor();
+  },
   // A pronunciation typed under Save to my dictionary waits for its Save, so leaving with it asks first (#3400).
   'rail-pronunciation-leave-confirm': async (page) => {
     await goToPage(page, 'Script');

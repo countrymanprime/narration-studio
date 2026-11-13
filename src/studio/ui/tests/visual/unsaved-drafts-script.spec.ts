@@ -100,3 +100,32 @@ test('a reply typed under a note asks before the nav leaves, and Discard & conti
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
   expect(await page.evaluate(() => window.location.pathname)).not.toBe('/script');
 });
+
+// Deleting a note takes the reply typed under it along (Undo brings the note back, not the text), so it asks first (#3400).
+test('Delete the note with a reply typed under it asks; Keep it leaves both, and with nothing typed it deletes at once', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  await selectReaderWord(page, 'Rabbit');
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+  await page.getByRole('menuitem').first().click();
+  const composer = page.getByRole('dialog');
+  await composer.getByRole('textbox').first().fill('First message');
+  await composer
+    .getByRole('button', { name: /^(Add|Save|Mark)/ })
+    .last()
+    .click();
+  const rail = page.locator(`section[aria-label="${RAIL}"]`).first();
+  await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+  const card = rail.getByRole('article').first();
+  const reply = card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ });
+  await reply.fill('A reply not added yet');
+  await card.getByRole('button', { name: 'Delete the note' }).click();
+  const question = unsaved(page, 'Delete the note?');
+  await expect(question).toContainText('goes with it');
+  await question.getByRole('button', { name: 'Keep it' }).click();
+  await expect(reply).toHaveValue('A reply not added yet');
+  await reply.fill('');
+  await card.getByRole('button', { name: 'Delete the note' }).click();
+  await expect(rail.getByRole('article')).toHaveCount(0);
+});

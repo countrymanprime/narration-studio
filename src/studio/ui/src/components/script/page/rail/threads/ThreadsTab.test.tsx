@@ -248,6 +248,35 @@ describe('change-type-and-delete', () => {
     expect((await marks()).find((mark) => mark.id === note.id)).toBeUndefined();
   });
 
+  it('the trash asks before it deletes a note that has a reply typed under it, and Keep it leaves both (#3400)', async () => {
+    const { note } = await seed();
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Word stress/ });
+    await user.type(card(note.id).getByRole('textbox', { name: 'Add to this note' }), 'A reply not added yet');
+    await user.click(card(note.id).getByRole('button', { name: 'Delete the note' }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    expect(confirm.mock.calls[0]![0]).toMatchObject({ title: 'Delete the note?', confirmLabel: 'Delete the note', cancelLabel: 'Keep it' });
+    // Keep it: the note and the typed reply stay.
+    expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(1);
+    expect((card(note.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('A reply not added yet');
+    // Delete the note: it goes.
+    await user.click(card(note.id).getByRole('button', { name: 'Delete the note' }));
+    await waitFor(async () => expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(0));
+    confirm.mockRestore();
+  });
+
+  it('the trash deletes a note with nothing typed under it without asking', async () => {
+    const { note } = await seed();
+    const confirm = vi.spyOn(overlay, 'confirm');
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Word stress/ });
+    await user.click(card(note.id).getByRole('button', { name: 'Delete the note' }));
+    await waitFor(async () => expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(0));
+    expect(confirm).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
   it('the trash deletes the mark and the toast Undo brings it back', async () => {
     const { note } = await seed();
     const { user } = mount();

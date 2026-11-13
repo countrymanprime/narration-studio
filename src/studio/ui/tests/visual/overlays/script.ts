@@ -42,6 +42,7 @@ export const scriptCases: OverlayCase[] = [
   fromState('script', 'first-use-tip', 'popover', { root: (page) => page.getByRole('complementary', { name: 'Tip' }) }),
   fromState('script', 'mark-composer'),
   fromState('script', 'rail-pronunciation-leave-confirm'),
+  fromState('script', 'note-delete-confirm'),
   fromState('script', 'define-marks'),
   {
     // The chapter list is a column from 1180 px; below it a drawer behind the Chapters button (src/layoutBreakpoints.ts).

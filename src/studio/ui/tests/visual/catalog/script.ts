@@ -21,6 +21,12 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'note-delete-confirm',
+    description:
+      'Script, a note with a reply typed under it and its Delete the note pressed: the Delete the note? confirm says the reply is not added yet and goes with it, with Keep it and Delete the note',
+  },
+  {
+    page: 'script',
     state: 'rail-pronunciation-leave-confirm',
     description:
       'Script, a pronunciation typed under Save to my dictionary and another page pressed in the navigation: the Unsaved changes confirm names the pronunciation, with its three actions, over the page',

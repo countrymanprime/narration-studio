@@ -64,6 +64,13 @@
   },
   {
     "page": "script",
+    "state": "note-delete-confirm",
+    "viewport": "desktop",
+    "docName": "script-note-delete-confirm",
+    "caption": "Script - Delete the note with a reply typed under it asks first: the reply is not added yet and goes with the note"
+  },
+  {
+    "page": "script",
     "state": "rail-pronunciation-leave-confirm",
     "viewport": "desktop",
     "docName": "script-rail-leave-confirm",

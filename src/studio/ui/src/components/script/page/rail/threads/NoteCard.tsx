@@ -90,6 +90,19 @@ export function NoteCard({
     save: sendReply,
     discard: () => setReply(''),
   });
+  // Deleting the note takes the reply typed under it along (Undo brings the note back, not the text), so it asks first when a reply is typed (#3400).
+  const deleteNote = async () => {
+    if (reply.trim() !== '') {
+      const confirmed = await overlay.confirm({
+        title: 'Delete the note?',
+        body: 'The reply you typed under it is not added yet and goes with it.',
+        confirmLabel: 'Delete the note',
+        cancelLabel: 'Keep it',
+      });
+      if (!confirmed) return;
+    }
+    void actions.onDelete(mark.id);
+  };
   const addReply = () => {
     if (!reply.trim()) {
       overlay.toast('Write the reply or note first.');
@@ -118,7 +131,7 @@ export function NoteCard({
         {asks && <StatusBadge tone={resolved ? 'success' : 'warning'} label={resolved ? 'Resolved' : 'Open'} />}
         <IconButton action="locate" size="sm" onClick={() => actions.onShow(mark.id)} />
         {asks && <IconButton action="copyQuery" size="sm" onClick={() => void actions.onCopy(mark)} />}
-        <IconButton action="deleteNote" size="sm" variant="danger" onClick={() => void actions.onDelete(mark.id)} />
+        <IconButton action="deleteNote" size="sm" variant="danger" onClick={() => void deleteNote()} />
       </div>
       <blockquote className="m-0 font-serif text-[0.88rem] text-[var(--text)]">{quote ? `“${quote}”` : null}</blockquote>
       <div className="text-[0.8rem] text-[var(--text-muted)]">{line}</div>
