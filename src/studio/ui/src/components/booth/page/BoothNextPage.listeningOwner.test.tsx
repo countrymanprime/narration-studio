@@ -1004,3 +1004,62 @@ describe('a stop the app sent is not announced as REAPER stopping the take', () 
     expect(toast.mock.calls.map(([text]) => text).filter((text) => /REAPER stopped recording/.test(text))).toEqual([]);
   });
 });
+
+describe('a press the narrator left behind by changing chapter, whose take still records (#3409)', () => {
+  const UNHEARD = /The text could not follow your voice for the take that is still recording\. Press Stop, then record the passage again\./;
+  const stopRefused = { ok: false, changed: false, message: 'REAPER did not answer.', refused: 'REAPER did not answer.', undoSteps: 0 };
+
+  /** A take records and its listening is out; the chapter is changed through the address and the stop is answered as the test says. */
+  const changeChapterDuringStart = async (stop: 'refused' | 'ok') => {
+    const host = fakeHost();
+    const control = host.holdNextStart();
+    const page = mountBooth(host);
+    if (stop === 'refused') page.recordStop.mockResolvedValueOnce(stopRefused as never);
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
+    await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
+    if (stop === 'refused') {
+      await waitFor(() =>
+        expect((page.overlay.getSnapshot().dialogs[0] as { spec: { confirmLabel: string } } | undefined)?.spec.confirmLabel).toBe('Leave anyway'),
+      );
+      await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
+    }
+    await settle();
+    return { host, control, page };
+  };
+
+  it('Leave anyway after a stop that failed, then the listening is refused: the take is not stopped behind the narrator, and the sentence says what to do', async () => {
+    const { control, page } = await changeChapterDuringStart('refused');
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
+    await control.refuse();
+    await screen.findByText(UNHEARD);
+    // The Booth acts on nothing for a press it no longer owns: no second stop (Stop is the narrator's, on the chapter that adopted the take).
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Recording did not start/)).toBeNull();
+  });
+
+  it('a Booth that is gone says nothing: the sentence names a Stop that is not on the page the narrator is on', async () => {
+    const host = fakeHost();
+    const control = host.holdNextStart();
+    const page = mountBooth(host);
+    const toast = vi.spyOn(page.overlay, 'toast');
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    page.view.unmount();
+    await control.refuse();
+    await settle();
+    expect(toast.mock.calls.map(([text]) => text).filter((text) => UNHEARD.test(text))).toEqual([]);
+  });
+
+  it('Stop and leave whose stop went through says nothing when the listening is refused later: the take is over', async () => {
+    const { control, page } = await changeChapterDuringStart('ok');
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
+    await control.refuse();
+    await settle();
+    expect(screen.queryByText(UNHEARD)).toBeNull();
+  });
+});

@@ -27,7 +27,7 @@ import { limited } from '../record/pressLimits';
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
 const ROLL_LANDED_TOPIC = 'booth-roll-landed';
-import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { appTakeRuns, useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -105,6 +105,12 @@ export type BoothPageOptions = {
   /** With the app's own recorder: the sentence for why no microphone can be used right now (none chosen among several, none listed, the chosen one gone), or null. A take does not begin while it is set. */
   micProblem?: () => string | null;
 };
+
+// A press outlives the page that began it (a chapter change mounts the next chapter's page, which adopts a take still recording), so what a left-behind
+// press asks about the page and the presses after it is read from here, not from its own instance. `pressesBegun` numbers every Record press;
+// `boothsOnScreen` counts the Booth pages mounted (one, except in the instant a chapter changes).
+let pressesBegun = 0;
+let boothsOnScreen = 0;
 
 /**
  * The Booth page's behaviour over its parts: the reading position (from the voice while listening, else the keys and clicks), one take
@@ -406,6 +412,7 @@ export function useBoothPage(options: BoothPageOptions) {
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     stoppedWhileStarting.current = false;
+    const press = ++pressesBegun;
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // A check the press gave up on never opens the question (`over`): one press has one outcome.
@@ -518,6 +525,9 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!current()) {
       // The listening this press owns is let go, once; one a newer press joined is that press's now.
       letGo();
+      // The narrator left the take running on purpose (a stop that failed, then "Leave anyway"), and the Booth is still here showing it as recording
+      // while nothing follows it. The press acts on nothing it no longer owns, so the take is not stopped here: the narrator is told, and Stop is theirs.
+      if (!heard.ok && started && boothsOnScreen > 0 && appTakeRuns() && press === pressesBegun) sayTakeUnheard(overlay);
       return started;
     }
     if (stoppedWhileStarting.current) {
@@ -747,8 +757,10 @@ export function useBoothPage(options: BoothPageOptions) {
   );
   useEffect(() => {
     mounted.current = true;
+    boothsOnScreen += 1;
     return () => {
       mounted.current = false;
+      boothsOnScreen -= 1;
       overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
   }, [overlay]);
@@ -1219,4 +1231,9 @@ function holdWhileMenuOpen(hold: () => () => void): () => void {
   observer.observe(document.body, { childList: true, subtree: true });
   queueMicrotask(check);
   return done;
+}
+
+/** The listening of a take failed after its press was left behind by a chapter change, and the take still records: the narrator ends it and records again. */
+function sayTakeUnheard(overlay: Pick<OverlayService, 'toast'>): void {
+  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record the passage again.', { tone: 'error' });
 }
