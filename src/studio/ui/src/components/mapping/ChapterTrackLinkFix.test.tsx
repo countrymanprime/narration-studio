@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../api/mockFixtures';
+import { headingName } from '../../chapterHeading';
 import type { NarrationApi } from '../../types';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { ChapterTrackLinkFix } from './ChapterTrackLinkFix';
@@ -110,5 +111,32 @@ describe('ChapterTrackLinkFix (#3413)', () => {
     await picker();
     rerender(tree('C:/Projects/Other'));
     expect(await screen.findByText(/no longer open/)).toBeTruthy();
+  });
+
+  // #3398 answer 3: the label and the sentence name the holder by the same current heading, whatever title the host kept.
+  it('names the holder by the manuscript’s current heading in the option and in the sentence alike', async () => {
+    const holder = WIRE_CHAPTERS[0];
+    const track = (await createMockApi().tracksList()).tracks[0];
+    const heldByListed = {
+      trackGuid: track.guid,
+      chapterId: holder.id,
+      chapterTitle: 'Kept long ago',
+      confirmedAt: '',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => ({
+      documentId: 'd',
+      link: { ...heldByListed, chapterId, trackGuid },
+      displaced: heldByListed,
+      mappings: [],
+    }));
+    const { notify } = show({ chapterTrackMapList: async () => ({ documentId: 'd', mappings: [heldByListed] }), chapterTrackSet } as Partial<NarrationApi>);
+    const select = (await picker()) as HTMLSelectElement;
+    const heading = headingName(holder);
+    await waitFor(() => expect(Array.from(select.options).some((option) => option.textContent?.includes(`(linked to ${heading})`))).toBe(true));
+    await userEvent.selectOptions(select, track.guid);
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Track linked. ${heading} was linked to that track and is now not linked.`));
   });
 });
