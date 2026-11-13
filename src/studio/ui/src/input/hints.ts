@@ -61,7 +61,7 @@ export type FooterSurface = 'booth' | 'proof';
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop' },
-    { id: 'booth.mode.switch', label: 'Record / cold read' },
+    { id: 'booth.mode.switch', label: 'Switch mode' },
     { id: 'booth.roll', label: 'Punch and roll from here' },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
