@@ -715,3 +715,32 @@ describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
     expect(document.querySelector('h2')!.parentElement!.className).toContain(`${short}:min-h-0`);
   });
 });
+
+// #3416: a dialog that opens by itself finds the page's <main> focused, which is not where a narrator was: the opener the page names wins.
+describe('Dialog returnFocus for a dialog that opened by itself', () => {
+  function SelfOpened() {
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+      document.querySelector('main')!.focus();
+      setOpen(true);
+    }, []);
+    return (
+      <div>
+        <main tabIndex={-1}>
+          <button>The chip</button>
+        </main>
+        {open && (
+          <Dialog title="Self" onClose={() => setOpen(false)} returnFocus={() => document.querySelector('button')} actions={<Button>Go</Button>}>
+            <p>Body</p>
+          </Dialog>
+        )}
+      </div>
+    );
+  }
+  it('returns focus to the named opener, not <main>', async () => {
+    render(<SelfOpened />);
+    await screen.findByRole('dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'The chip' })));
+  });
+});

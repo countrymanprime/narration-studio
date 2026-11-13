@@ -577,6 +577,25 @@ describe('the not-linked dialog', () => {
     main.remove();
   });
 
+  it('goes away when another project opens under it, so no link is written to the wrong project', async () => {
+    const onClose = vi.fn();
+    const api = createMockApi({ chapterTrackMatch: async () => match() });
+    const tree = (folder: string) => (
+      <ApiProvider api={api}>
+        <TooltipProvider>
+          <ChapterTrackStateProvider projectFolder={folder} enabled notify={() => {}}>
+            <ConnectionResolveDialog {...link({ onClose })} />
+          </ChapterTrackStateProvider>
+        </TooltipProvider>
+      </ApiProvider>
+    );
+    const { rerender } = render(tree('C:/Projects/Alice'));
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(onClose).not.toHaveBeenCalled();
+    rerender(tree('C:/Projects/Other'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
   it('shows long, right-to-left and emoji names whole', async () => {
     const name = 'الفصل الأول 🎙️ ' + 'x'.repeat(200);
     view(<ConnectionResolveDialog {...link()} />, {

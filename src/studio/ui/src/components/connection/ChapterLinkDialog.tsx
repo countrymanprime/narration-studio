@@ -4,7 +4,7 @@ import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
-import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
@@ -122,6 +122,13 @@ export function ChapterLinkDialog({
 
   const readingRef = useRef(true);
   readingRef.current = read.status === 'loading';
+  // Another project opened under this dialog (or the project closed): its chapter is not in what is read now, and a link would be written to the
+  // wrong project, so the dialog goes away rather than offering it (#3416).
+  const projectNow = useChapterTrackProject();
+  const openedFor = useRef(projectNow);
+  useEffect(() => {
+    if (projectNow !== openedFor.current) onClose();
+  }, [projectNow, onClose]);
   const linksRef = useRef(links);
   linksRef.current = links;
   // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
