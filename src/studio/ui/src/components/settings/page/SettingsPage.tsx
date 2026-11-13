@@ -106,6 +106,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const shown = useCallback(
     (row: SettingMeta): boolean => {
       if (row.needs === 'reaper' && daw !== 'REAPER') return false;
+      if (row.needs === 'daw' && daw === 'Built-in') return false;
       return !row.field || !loaded || Boolean(store.fieldsOf(row).global);
     },
     [daw, loaded, store],

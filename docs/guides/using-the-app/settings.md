@@ -124,7 +124,7 @@ microphone over it until **Use REAPER's input**, and when the DAW's input could 
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
 for Audacity or the built-in recorder); and, under Advanced for any recorder,
-**Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
+**Capabilities** and, for REAPER, **Sync activity**. **DAW follows the Booth’s chapter** (on by default) makes the Booth select a chapter's track, and the tracks inside it, in the DAW when you go to that chapter; off, the DAW stays where you put it. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one

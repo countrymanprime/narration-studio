@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
@@ -61,21 +61,48 @@ export function useFollowDawOnOpen({
 }
 
 /**
- * Opening the Booth at a chapter: the DAW goes to that chapter's track as well, so the narrator can punch from where the Booth is. With only a
+ * Booth.follow_chapter_in_daw (Settings, on by default): whether going to a chapter in the Booth moves the DAW there too. `undefined` until
+ * the setting is read, so nothing moves before it is known; a setting that cannot be read is the default, on. This is the one switch for
+ * the Booth moving the DAW; a further DAW-follows-the-Booth behaviour reads it here too.
+ */
+export function useFollowChapterInDaw(): boolean | undefined {
+  const system = usePort('system');
+  const [follow, setFollow] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    system.settingsForScope('global').then(
+      (fields) => live && setFollow(fields.Booth?.find((field) => 'follow_chapter_in_daw' === field.key)?.effectiveValue !== 'false'),
+      () => live && setFollow(true),
+    );
+    return () => {
+      live = false;
+    };
+  }, [system]);
+  return follow;
+}
+
+/**
+ * Going to a chapter in the Booth: the DAW goes to that chapter's track as well, so the narrator can punch from where the Booth is. With only a
  * chapter it goes to the end of the track; with a line (`seconds`, where the line sits in the track) it goes there. Sent once per Booth, when the
  * DAW can follow (`canFollow`); a DAW that is not connected yet is waited for a short while, and one that never can follow is left alone without a
  * word, since a Booth opened without a DAW is not a failure. A refusal from a DAW that can follow is said, with nothing moved.
  *
- * `target` is null until the line is known (the chapter's words are read); `enabled` is false for a Booth that followed the DAW.
+ * The Booth page mounts this once per chapter (the session is keyed by it), so every chapter the narrator goes to is moved to; the track selected
+ * is the chapter's folder and the tracks inside it (go_to). `follow` is Booth.follow_chapter_in_daw: off, or not read yet, moves nothing.
+ *
+ * `target` is null until the line is known (the chapter's words are read); `enabled` is false for a chapter the Booth opened on by itself (the one
+ * it followed the DAW to, or last left), where the DAW already is.
  */
 export function useMoveDawOnOpen({
   enabled,
+  follow,
   chapterId,
   canFollow,
   target,
   say,
 }: {
   enabled: boolean;
+  follow: boolean | undefined;
   chapterId: string;
   canFollow: boolean;
   target: { where: 'end' } | { where: 'at'; seconds: number } | null;
@@ -89,7 +116,7 @@ export function useMoveDawOnOpen({
   const where = target?.where;
   const seconds = target?.where === 'at' ? target.seconds : 0;
   useEffect(() => {
-    if (!enabled || done.current || chapterId === '' || where === undefined || !canFollow) return;
+    if (!enabled || follow !== true || done.current || chapterId === '' || where === undefined || !canFollow) return;
     done.current = true;
     // A DAW that connected long after the Booth opened is not moved: the narrator has been working by then.
     if (Date.now() - openedAt.current > ASK_FOR_MS) return;
@@ -99,5 +126,5 @@ export function useMoveDawOnOpen({
         if (!result.ok) sayRef.current(result.refused ?? result.message);
       })
       .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'));
-  }, [enabled, chapterId, canFollow, where, seconds, place]);
+  }, [enabled, follow, chapterId, canFollow, where, seconds, place]);
 }

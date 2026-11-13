@@ -90,8 +90,8 @@ export type SettingMeta = {
   syn?: string;
   /** A change that costs something asks first and says what happens. */
   costly?: { title: string; body: string; confirm: string };
-  /** The row only applies to this recording tool and is hidden for another. */
-  needs?: 'reaper';
+  /** The row only applies to this recording tool and is hidden for another; `daw` is any DAW, hidden for the built-in recorder. */
+  needs?: 'reaper' | 'daw';
   /** A note beside the control on when it takes effect. */
   effect?: string;
   /** A line under the control that the host works out for the value shown: `workerPlan` is how many transcriptions a recording check
