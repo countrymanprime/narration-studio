@@ -99,12 +99,14 @@ export function ChapterTrackPanel({
   const canPlay = trackIndex >= 0 && player.canPlay;
   const shortName = chapterName({ title: chapterTitle, subtitle }, 'short');
 
+  // The write is done and said so; a failed read after it is the shared track state's to show, not a second "failed" toast over "linked" (#3398).
+  const readAgainFailed = () => {};
   const link_ = async (trackGuid: string) => {
     setBusy(true);
     try {
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
       notify(linkedNotice);
-      await onChanged();
+      await onChanged().catch(readAgainFailed);
     } catch (error) {
       notify(describeApiError(error), 'error');
     } finally {
@@ -117,7 +119,7 @@ export function ChapterTrackPanel({
       await actions.unlink(chapterId);
       setUnlinkedFrom(linkRead);
       notify('Track unlinked.');
-      await onChanged();
+      await onChanged().catch(readAgainFailed);
     } catch (error) {
       notify(describeApiError(error), 'error');
     } finally {
