@@ -73,7 +73,7 @@ test('a model check that never answers does not end the press: after its limit t
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(stop(page)).toBeVisible({ timeout: 45_000 });
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
   await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
 });
@@ -154,7 +154,7 @@ async function openWithLateModelCheck(page: Page): Promise<void> {
         const empty = { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] as unknown[] };
         if (!w.__armed) return empty;
         w.__armed = false;
-        await new Promise((resolve) => setTimeout(resolve, 36_000));
+        await new Promise((resolve) => setTimeout(resolve, 60_000));
         return { ...empty, assets: { find: () => missing } };
       },
     };
@@ -182,7 +182,7 @@ test('a model check that answers missing after its limit opens no install questi
   await openWithLateModelCheck(page);
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
-  await expect(stop(page)).toBeVisible({ timeout: 45_000 });
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
   await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
   await page.waitForTimeout(8000);
   await expect(installQuestion(page)).toHaveCount(0);

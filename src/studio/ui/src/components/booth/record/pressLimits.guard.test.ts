@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MODEL_CHECK_MEASURED_MS, PRESS_LIMITS_MS, PRESS_LIMIT_BASIS, recordStartLimit, type PressStage } from './pressLimits';
+import { DISK_FLOOR_BYTES_PER_S, MODEL_CATALOG_BYTES, PRESS_LIMITS_MS, PRESS_LIMIT_BASIS, recordStartLimit, type PressStage } from './pressLimits';
 
 // #3321: a Record press never waits on a host call without a limit. Every host call the press awaits before or during the start is listed here
 // with the stage that bounds it; the test finds each call in its source and requires it to sit inside `limited('<stage>', ...)`. A new await in
@@ -126,8 +126,13 @@ describe('each limit is above the host call it waits for', () => {
       seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') + seconds('tracks_live.go', 'tracksLiveTimeout') + MARGIN_MS,
     );
   });
-  it('the model check is above the measured cost of reading every model, with a margin for a cold disk (#3432)', () => {
-    expect(PRESS_LIMITS_MS.modelCheck).toBeGreaterThanOrEqual(MODEL_CHECK_MEASURED_MS * 7);
+  it('the model check is the read of every catalog model at the disk floor (#3432)', () => {
+    const bench = readFileSync(join(GO, 'internal/assets/state_bench_test.go'), 'utf8');
+    const sizes = bench.match(/whisperSizes = \[\]int64\{([^}]*)\}/)?.[1];
+    expect(sizes, 'whisperSizes is not in state_bench_test.go any more: update this test').toBeDefined();
+    const total = sizes!.split(',').reduce((sum, size) => sum + Number(size.replace(/_/g, '').trim()), 0);
+    expect(MODEL_CATALOG_BYTES).toBe(total);
+    expect(PRESS_LIMITS_MS.modelCheck).toBeGreaterThanOrEqual((MODEL_CATALOG_BYTES / DISK_FLOOR_BYTES_PER_S) * 1000);
   });
   it('every limit states its basis', () => {
     for (const stage of Object.keys(PRESS_LIMITS_MS)) expect(PRESS_LIMIT_BASIS[stage as PressStage]?.length, stage).toBeGreaterThan(20);

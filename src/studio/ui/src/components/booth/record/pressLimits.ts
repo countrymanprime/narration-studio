@@ -6,13 +6,22 @@ import { logUi } from '../../../api/uiLog';
  * source), so a host that answers in its own time is never cut off. Every stage has its basis in `PRESS_LIMIT_BASIS` (`pressLimits.guard.test.ts` requires one).
  * A limit only bounds a host that never answers; it never decides that the speech model is missing (#3432): a model check that outlasts it lets the press go on.
  */
+/** The five Whisper models read in full: the sizes of `whisperSizes` in `internal/assets/state_bench_test.go` (the guard compares the two). */
+export const MODEL_CATALOG_BYTES = 5_319_586_941;
+
+/**
+ * The slowest disk a narrator can plausibly have, for the one read of every model: a hard disk or one under an antivirus scan, 100 MB/s. Measured on this
+ * project's cloud machine (real files, #3432): 1.5 GB hashes in 1.1 s warm and 1.5 s cold, 1.0-1.3 GB/s, so the floor is a stated assumption, not a measurement of a slow disk.
+ */
+export const DISK_FLOOR_BYTES_PER_S = 100_000_000;
+
 export const PRESS_LIMITS_MS = {
   /**
-   * The asset list that says whether the speech model is on this computer. When no manifest vouches for the files the host reads every byte of every catalog
-   * model (5.3 GB for the five Whisper models): `go test ./internal/assets -bench State` took 4.46 s of that on a warm page cache, 54 µs with manifests. A disk
-   * that is cold or scanned is slower, so the limit is that measurement ×7 (`MODEL_CHECK_MEASURED_MS`). A press does not wait on it for a model already known installed.
+   * The asset list that says whether the speech model is on this computer. With no manifest the host reads every byte of every catalog model once
+   * (`MODEL_CATALOG_BYTES`, 5.3 GB) and then writes the manifest, so it is cheap after. The limit is that read at `DISK_FLOOR_BYTES_PER_S`, rounded up: 54 s.
+   * It only decides when the press stops waiting and goes on. A press does not wait at all for a model already known installed.
    */
-  modelCheck: 31_500,
+  modelCheck: Math.ceil(MODEL_CATALOG_BYTES / DISK_FLOOR_BYTES_PER_S) * 1000,
   /** The project check (`bootstrap`) that says the DAW has the linked project open. */
   projectCheck: 8_000,
   /**
@@ -36,12 +45,10 @@ export const PRESS_LIMITS_MS = {
 
 export type PressStage = keyof typeof PRESS_LIMITS_MS;
 
-/** The measured cost the model-check limit is built from: reading every catalog model once, warm cache (`internal/assets/state_bench_test.go`, #3432). */
-export const MODEL_CHECK_MEASURED_MS = 4_460;
-
 /** Why each limit is what it is: a host limit it is above, or a measurement. `pressLimits.guard.test.ts` requires a basis for every stage. */
 export const PRESS_LIMIT_BASIS: Record<PressStage, string> = {
-  modelCheck: 'measured: reading every catalog model in full is 4.46 s warm (state_bench_test.go); limit is ×7 for a cold or scanned disk',
+  modelCheck:
+    'catalog bytes (5.3 GB, read once by the host) at a 100 MB/s disk floor; measured 1.0-1.3 GB/s on real files here, 4.46 s for the catalog (state_bench_test.go)',
   projectCheck: 'measured: Host.Bootstrap takes 6-85 µs (local reads and cached DAW facts, no wait on the DAW); 8 s only bounds a host that never answers',
   listening: 'host limit: defaultGrace + 2 s + listeningWait (read from the Go source by the guard)',
   recordStart: 'host limit: readAloudRecordStartTimeout + tracksLiveTimeout (read from the Go source by the guard)',
