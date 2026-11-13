@@ -661,7 +661,7 @@ export const ROWS: readonly SettingMeta[] = [
   {
     id: 'booth.followChapterInDaw',
     cat: 'recording',
-    section: 'REAPER',
+    section: 'What the recording tool can do',
     label: 'The DAW follows the chapter you go to',
     scope: 'computer',
     def: 'true',
@@ -669,7 +669,6 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'Going to a chapter in the Booth selects it and its tracks in the DAW.',
     more: 'When you go to a chapter in the Booth, the DAW selects that chapter’s track and the tracks inside it and sets its cursor at the end of what is recorded (or at the line you went to). Turn it off to leave the DAW where you put it.',
     used: ['booth'],
-    needs: 'reaper',
     syn: 'follow daw navigate chapter select track cursor',
   },
   {
