@@ -50,7 +50,6 @@ describe('footerHints', () => {
   it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
-      { keys: ['Alt', 'Space'], label: 'Switch mode', id: 'hint-booth.mode.switch' },
       { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
       { keys: ['Right-click'], label: 'Start from here' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
@@ -60,6 +59,10 @@ describe('footerHints', () => {
       { keys: ['F11'], label: 'Full screen', id: 'hint-booth.fullscreen' },
       { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
     ]);
+  });
+
+  it('the-footer-does-not-grow: the Booth footer lists no Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
+    expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
   });
 
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {

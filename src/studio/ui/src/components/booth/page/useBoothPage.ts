@@ -1116,7 +1116,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
       const started = listening.value;
       if (started.ok) coldClaim.current = mine;
-      else if (!gone()) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
+      else if (!gone()) overlay.toast(`Cold read did not start: ${(started.reason || 'listening failed').replace(/[.\s]+$/, '')}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
       setColdStarting(false);

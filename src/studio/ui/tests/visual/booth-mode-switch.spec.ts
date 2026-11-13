@@ -91,6 +91,21 @@ test.describe('Alt+Space switches the main button and starts it', () => {
     await expect(stop(page)).toHaveCount(0);
   });
 
+  test('the footer keeps the room it had: no Alt+Space hint, one row at 1280', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openBooth(page);
+    const hints = page.locator('#bkeys');
+    await expect(hints).toBeVisible();
+    await expect(hints).not.toContainText('Switch mode');
+    expect(await hints.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(45);
+  });
+
+  test('the shortcut sheet lists the key', async ({ page }) => {
+    await openBooth(page);
+    await page.keyboard.press('Shift+Slash');
+    await expect(page.getByRole('dialog').getByText('Switch between Record and Cold read, and start')).toBeVisible();
+  });
+
   test('a held chord starts once', async ({ page }) => {
     await openBooth(page);
     await chooseColdRead(page);
