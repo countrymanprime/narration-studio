@@ -20,7 +20,12 @@ const RUNNING: TeleprompterState = { ...IDLE, phase: 'running', chapter: 'c-0001
 type Answer = 'ok' | 'refuse' | 'hang';
 
 function setup(answers: Answer[]) {
-  let onState: (state: TeleprompterState) => void = () => {};
+  const listeners = new Set<(state: TeleprompterState) => void>();
+  let current: TeleprompterState = IDLE;
+  const onState = (state: TeleprompterState) => {
+    current = state;
+    listeners.forEach((listener) => listener(state));
+  };
   const teleprompterStop = vi.fn(async () => {
     const answer = answers.shift() ?? 'ok';
     if (answer === 'hang') return new Promise<void>(() => {});
@@ -30,18 +35,20 @@ function setup(answers: Answer[]) {
   const api = createMockApi({
     teleprompterStop,
     teleprompterStart,
-    teleprompterState: async () => IDLE,
+    teleprompterState: async () => current,
     subscribeTeleprompterState: (listener: (state: TeleprompterState) => void) => {
-      onState = listener;
-      return () => {};
+      listeners.add(listener);
+      return () => listeners.delete(listener);
     },
     subscribeTeleprompterEvent: () => () => {},
   } as never);
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
   const hook = renderHook(() => useTeleprompterSession({ chapterId: 'c-0001', chapter: undefined, migrateLegacyDevice: false }), { wrapper });
+  // Another Booth's hook on the same host (the narrator came back): it shares nothing with the first but the window.
+  const another = () => renderHook(() => useTeleprompterSession({ chapterId: 'c-0001', chapter: undefined, migrateLegacyDevice: false }), { wrapper });
   const state = (next: TeleprompterState) => act(() => onState(next));
   const elapse = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
-  return { hook, teleprompterStop, teleprompterStart, state, elapse };
+  return { hook, another, teleprompterStop, teleprompterStart, state, elapse };
 }
 
 beforeEach(() => {
@@ -157,6 +164,17 @@ describe('a stop the host refuses', () => {
     expect(teleprompterStop).toHaveBeenCalledTimes(1);
   });
 
+  it('is cleared by a plain stop the host takes, whether or not it says the session ended', async () => {
+    const { hook, state, elapse } = setup(['refuse', 'refuse', 'ok']);
+    await state(RUNNING);
+    act(() => hook.result.current.stop());
+    await elapse(3000);
+    expect(hook.result.current.stopFailed).toBe(true);
+    act(() => hook.result.current.stop());
+    await elapse(100);
+    expect(hook.result.current.stopFailed).toBe(false);
+  });
+
   it('is cleared when the session ends, and when a new one starts', async () => {
     const { hook, state, elapse } = setup(['refuse', 'refuse']);
     await state(RUNNING);
@@ -258,6 +276,44 @@ describe('a stop the host refuses', () => {
       await state({ ...IDLE, phase: 'stopped' });
       act(() => hook.result.current.retryStop());
       expect(teleprompterStop).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('a stop asked for by leaving', () => {
+    const leaveRefused = async (answers: Answer[]) => {
+      const rig = setup(answers);
+      await rig.state(RUNNING);
+      const onFailed = vi.fn();
+      act(() => rig.hook.result.current.stopForLeave(onFailed));
+      await rig.elapse(100);
+      rig.hook.unmount();
+      return { ...rig, onFailed };
+    };
+
+    it('is sent again after the page is gone, and said (once) when refused twice', async () => {
+      const { teleprompterStop, elapse, onFailed } = await leaveRefused(['refuse', 'refuse']);
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(2);
+      expect(onFailed).toHaveBeenCalledTimes(1);
+    });
+
+    it('is not sent again once a press joined the session after the leave (it would stop the take under its listening)', async () => {
+      const { teleprompterStop, elapse, another, onFailed } = await leaveRefused(['refuse', 'ok']);
+      // The narrator is back in a new Booth, and a take there joins the running session (no claim, no start).
+      const next = another();
+      act(() => next.result.current.sessionJoined());
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(1);
+      expect(onFailed).not.toHaveBeenCalled();
+    });
+
+    it('is not sent again when the host ended the session between the two stops and another one runs now (it would stop that one)', async () => {
+      const { teleprompterStop, elapse, state, onFailed } = await leaveRefused(['refuse', 'ok']);
+      await state({ ...IDLE, phase: 'stopped' });
+      await state(RUNNING);
+      await elapse(3000);
+      expect(teleprompterStop).toHaveBeenCalledTimes(1);
+      expect(onFailed).not.toHaveBeenCalled();
     });
   });
 });

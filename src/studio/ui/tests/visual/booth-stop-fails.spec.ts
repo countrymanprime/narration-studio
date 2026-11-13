@@ -13,17 +13,22 @@ const stops = (page: Page) => page.evaluate(() => (window as unknown as { __stop
 const SENTENCE = /The Booth could not stop listening, so your microphone may still be open/;
 
 /** `refusals` stops are refused; the rest are taken (the mock's own session ends then). */
-async function openBooth(page: Page, refusals: number): Promise<void> {
-  await page.addInitScript((count) => {
-    const w = window as unknown as { __stops: number; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
-    w.__stops = 0;
-    w.__NARRATION_MOCK_OVERRIDES__ = {
-      teleprompterStop: async () => {
-        w.__stops += 1;
-        if (w.__stops <= count) throw new Error('the host is busy');
-      },
-    };
-  }, refusals);
+async function openBooth(page: Page, refusals: number, lateAfter = 0): Promise<void> {
+  await page.addInitScript(
+    ([count, late]) => {
+      const w = window as unknown as { __stops: number; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+      w.__stops = 0;
+      w.__NARRATION_MOCK_OVERRIDES__ = {
+        teleprompterStop: async () => {
+          w.__stops += 1;
+          // A refusal that takes `late` ms to come once the take's own stops are over: the leave's stop, so the narrator can be back before its retry.
+          if (late && w.__stops > 2 && w.__stops <= count) await new Promise((resolve) => setTimeout(resolve, late));
+          if (w.__stops <= count) throw new Error('the host is busy');
+        },
+      };
+    },
+    [refusals, lateAfter] as const,
+  );
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -121,4 +126,96 @@ test('Retry says it is trying and then that listening stopped, and Record has fo
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(page.getByText('Listening stopped.')).toBeVisible({ timeout: 8000 });
   await expect(record(page)).toBeFocused({ timeout: 3000 });
+});
+
+/** A take is running; Escape asks "Stop recording?"; "Stop and leave" ends the take and leaves. */
+async function stopTakeAndLeave(page: Page): Promise<void> {
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /^Stop and leave/ })
+    .click();
+  await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 10_000 });
+}
+
+test('leaving mid-take with "Stop and leave" while every listening stop is refused says it on the next page', async ({ page }) => {
+  await openBooth(page, 99);
+  await stopTakeAndLeave(page);
+  await expect(page.getByText(STILL_OPEN)).toBeVisible({ timeout: 15_000 });
+});
+
+test('leaving mid-take with "Stop and leave" when the listening stop is taken says nothing', async ({ page }) => {
+  await openBooth(page, 0);
+  await stopTakeAndLeave(page);
+  await page.waitForTimeout(4000);
+  await expect(page.getByText(STILL_OPEN)).toHaveCount(0);
+});
+
+async function openCompanionWithRefusedStops(page: Page, refusals: number): Promise<void> {
+  await page.addInitScript((count) => {
+    const w = window as unknown as { __stops: number; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__stops = 0;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStop: async () => {
+        w.__stops += 1;
+        if (w.__stops <= count) throw new Error('the host is busy');
+      },
+    };
+  }, refusals);
+  await page.goto('/');
+  await settlePage(page);
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('Open Companion');
+  await page
+    .getByRole('option', { name: /^Open Companion/ })
+    .first()
+    .click();
+  await page.getByRole('heading', { level: 1, name: 'Companion' }).waitFor();
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: 'Stop reading' }).click();
+}
+
+test('in the Companion the stop-failed message can be used: it is not inert, Retry is clicked and reached with Shift+Tab', async ({ page }) => {
+  await openCompanionWithRefusedStops(page, 2);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 12_000 });
+  const retry = page.getByRole('button', { name: 'Retry' });
+  const inert = await retry.evaluate((el) => !!el.closest('[inert], [aria-hidden="true"]'));
+  expect(inert).toBe(false);
+  // The toast follows the Companion in the page, so Shift+Tab from its start reaches the toast's buttons first.
+  const reached = new Set<string>();
+  for (let i = 0; i < 6; i += 1) {
+    await page.keyboard.press('Shift+Tab');
+    const label = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '');
+    reached.add(label.trim());
+  }
+  expect(reached.has('Retry')).toBe(true);
+  expect(reached.has('Dismiss message')).toBe(true);
+  await retry.click();
+  await expect.poll(() => stops(page), { timeout: 8000 }).toBe(3);
+  await expect(page.getByText('Listening stopped.')).toBeVisible({ timeout: 8000 });
+});
+
+test('in the Companion, pressing Stop reading again when the host takes it clears the message', async ({ page }) => {
+  await openCompanionWithRefusedStops(page, 2);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 12_000 });
+  await page.getByRole('button', { name: 'Stop reading' }).click();
+  await expect(page.getByText(SENTENCE)).toHaveCount(0, { timeout: 8000 });
+});
+
+test('a leave retry is not sent once the narrator is back and a take joined the running session within the 1.5 s', async ({ page }) => {
+  // Stops 1 and 2 (the take's end) and 3 (the leave) are refused; the leave retry, stop 4, would be taken and end the session under the new take.
+  await openBooth(page, 3, 4000);
+  await recordThenStop(page);
+  await expect(page.getByText(SENTENCE)).toBeVisible({ timeout: 10_000 });
+  await stopAndLeave(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
+  await page.waitForTimeout(4000);
+  expect(await stops(page)).toBe(3);
 });

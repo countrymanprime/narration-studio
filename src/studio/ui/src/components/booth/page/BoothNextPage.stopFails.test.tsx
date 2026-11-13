@@ -210,6 +210,38 @@ describe('a listening stop the host refuses', () => {
     }
   });
 
+  it('says on the next page that the microphone may be open when a take is left with "Stop and leave" and every stop is refused', async () => {
+    for (const [refusals, said] of [
+      [9, true],
+      [0, false],
+    ] as const) {
+      cleanup();
+      forgetListeningClaims();
+      forgetAppTake();
+      const page = mountBooth(refusals);
+      await ready();
+      await act(async () => void fireEvent.click(main()));
+      await waitFor(() => expect(main().textContent).toBe('Stop'));
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+      await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
+      const question = await waitFor(() => {
+        const dialog = page.overlay.getSnapshot().dialogs[0];
+        expect(dialog).toBeTruthy();
+        return dialog;
+      });
+      await act(async () => {
+        if (question.kind === 'confirm') question.answer(true);
+      });
+      await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled(), { timeout: 5000 });
+      page.view.unmount();
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+      expect(left).toHaveLength(said ? 1 : 0);
+      // The leave's own stop is retried after the page is gone.
+      if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();

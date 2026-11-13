@@ -5,7 +5,8 @@ import type { TeleprompterState } from '../../../types';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 
 const STOP_FAILED_TOPIC = 'booth-listening-stop-failed';
-const LEFT_TOPIC = 'booth-listening-stop-failed-left';
+// One topic for both sentences (stopped-failed on this page, still-open after leaving): the later replaces the earlier, never two at once.
+const LEFT_TOPIC = STOP_FAILED_TOPIC;
 /** How long a Retry that is out is said to be, at most: the stop call's own limit and its retry, and a little more. */
 const TRYING_MS = 30_000;
 

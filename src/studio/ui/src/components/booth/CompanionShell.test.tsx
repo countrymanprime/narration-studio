@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { overlay } from '../../overlay/overlayService';
+import { sayListeningStillOpen } from './listening/useStopFailedSentence';
 import type { NarrationApi } from '../../types';
 import type { DawTransport } from '../../api/contracts/daw';
 import { CommandRouter, CommandScope } from '../../input/router';
@@ -145,6 +146,15 @@ describe('CompanionShell', () => {
     expect(screen.queryByText(/could not be stopped/)).toBeNull();
     cleanup();
     expect(overlay.getSnapshot().toasts.some((item) => /Press Retry/.test(item.text))).toBe(false);
+  });
+
+  it("has one sentence about an open microphone: the one said after leaving is replaced by the Companion's own, which has Retry", () => {
+    sayListeningStillOpen(overlay, () => () => {});
+    expect(overlay.getSnapshot().toasts.filter((item) => /could not stop listening/.test(item.text))).toHaveLength(1);
+    renderCompanion({ session: baseSession({ stopFailed: true }) });
+    const toasts = overlay.getSnapshot().toasts.filter((item) => /could not stop listening/.test(item.text));
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].action?.label).toBe('Retry');
   });
 
   it('says so, and stays usable, when the window could not be narrowed and pinned', async () => {

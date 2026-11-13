@@ -157,6 +157,10 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   useStopFailedSentence(overlay, session);
+  // A leave that asked for the stop and was refused twice: said on the page the narrator lands on (this page is gone by then).
+  const sayStillOpen = useCallback(() => sayListeningStillOpen(overlay, latest.current.session.subscribeState), [overlay]);
+  // Whether the narrator is leaving (the leave guard's question was answered yes, or the shell asked): set once the guard exists, below.
+  const leavingNow = useRef<() => boolean>(() => false);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
@@ -902,7 +906,11 @@ export function useBoothPage(options: BoothPageOptions) {
     setPunchAt(null);
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
-    if (now.session.active) now.session.stop();
+    // A take ended by "Stop and leave" ends its listening for the same leave: retried after this page is gone, and said on the next page if refused twice.
+    if (now.session.active) {
+      if (leavingNow.current()) now.session.stopForLeave(sayStillOpen);
+      else now.session.stop();
+    }
     endTakeClaim();
     const said = endOfChapter.current;
     endOfChapter.current = false;
@@ -923,7 +931,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;
@@ -1037,6 +1045,7 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     { guard: shellGuard, overlay: heldConfirm },
   );
+  leavingNow.current = () => leaving() || askedByShell.current;
 
   // A move the shell asked about and the narrator let go of unmounts the page mid-take: the take stops then, and only then. A page
   // still here a moment after the shell's question closed means the narrator stayed.
@@ -1069,8 +1078,6 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
-  // A leave that asked for the stop and was refused twice: said on the page the narrator lands on (this page is gone by then).
-  const sayStillOpen = useCallback(() => sayListeningStillOpen(overlay, latest.current.session.subscribeState), [overlay]);
   const exit = useCallback(() => {
     // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
