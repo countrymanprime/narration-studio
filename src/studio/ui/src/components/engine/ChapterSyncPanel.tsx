@@ -3,6 +3,8 @@ import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
+import type { TrackMapping } from '../../api/contracts/chapterTrackMap';
+import type { Track } from '../../types';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
@@ -11,7 +13,10 @@ import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
-import { Select } from '../primitives/Select';
+import { TrackSelect } from '../mapping/TrackSelect';
+import { plainTrackChoices, type TrackChoice } from '../mapping/trackChoices';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { StatusBadge } from '../primitives/StatusBadge';
 import {
   chapterSyncBackgroundWaitText,
@@ -45,7 +50,12 @@ export function ChapterSyncPanel({
   const api = useApi();
   const actions = useChapterLinkActions();
   const state = useChapterSync(api);
+  // The picker offers every track of the project, each labelled with the chapter that holds it, as the other pickers do (owner answer 2 on #3398):
+  // the shared state's tracks and links, so a link made elsewhere shows here, and the names the manuscript's current headings.
+  const nameOf = useChapterNameOf();
   const [preview, setPreview] = useState<ChapterSyncPreview>();
+  // Read only while there is a Needs-you list to pick from, and never for another DAW's project.
+  const trackState = useChapterTrackState({ enabled: daw.daw === 'REAPER', when: (preview?.needsYou.length ?? 0) > 0 });
   const [toggling, setToggling] = useState(false);
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
@@ -112,8 +122,7 @@ export function ChapterSyncPanel({
     );
   }
 
-  const link = async (chapterId: string, fallbackTrackGuid: string) => {
-    const trackGuid = picked[chapterId] ?? fallbackTrackGuid;
+  const link = async (chapterId: string, trackGuid: string) => {
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
     try {
@@ -166,7 +175,10 @@ export function ChapterSyncPanel({
           <SectionLabel as="h3">Needs you ({preview.needsYou.length})</SectionLabel>
           {preview.needsYou.map((item) => {
             const fallback = item.best?.trackGuid ?? item.candidates[0]?.trackGuid ?? '';
-            const selected = picked[item.chapterId] ?? fallback;
+            const choices = syncChoices(item, trackState.project?.tracks, trackState.mappings, nameOf);
+            // A pick (or suggestion) whose track the picker does not offer is no pick: the select shows its placeholder and Link waits.
+            const wanted = picked[item.chapterId] ?? fallback;
+            const selected = choices.some((choice) => choice.guid === wanted) ? wanted : '';
             return (
               <InsetCard key={item.chapterId} tone="accent" className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -175,15 +187,15 @@ export function ChapterSyncPanel({
                     {chapterSyncPanelReasonText(item)}
                   </div>
                 </div>
-                {item.candidates.length > 0 && (
+                {choices.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <Select
+                    <TrackSelect
                       label={`Track for ${item.chapterTitle}`}
+                      choices={choices}
                       value={selected}
                       onChange={(value) => setPicked((current) => ({ ...current, [item.chapterId]: value }))}
-                      options={item.candidates.map((candidate) => ({ value: candidate.trackGuid, label: candidate.trackName }))}
                     />
-                    <Button pending={linkingChapterId === item.chapterId} disabled={!selected} onClick={() => void link(item.chapterId, fallback)}>
+                    <Button pending={linkingChapterId === item.chapterId} disabled={!selected} onClick={() => void link(item.chapterId, selected)}>
                       Link
                     </Button>
                   </div>
@@ -210,4 +222,23 @@ function SyncFacts({ rows }: { rows: { label: string; value: ReactNode }[] }) {
       ))}
     </dl>
   );
+}
+
+/**
+ * What the sync panel's picker offers for a chapter: the sync's own candidates first, its best match under "Best match", then every other track of
+ * the project; each track another chapter holds says so. Before the tracks have been read it offers the candidates alone, as the sync named them.
+ */
+function syncChoices(
+  item: ChapterSyncPreview['needsYou'][number],
+  tracks: readonly Track[] | undefined,
+  mappings: readonly TrackMapping[],
+  nameOf: (chapterId: string) => string | undefined,
+): TrackChoice[] {
+  const all = tracks && tracks.length > 0 ? plainTrackChoices(tracks, mappings, item.chapterId, nameOf) : [];
+  const best = item.best?.trackGuid ?? item.candidates[0]?.trackGuid;
+  const ranked = item.candidates.map((candidate) => candidate.trackGuid);
+  if (all.length === 0)
+    return item.candidates.map((candidate) => ({ guid: candidate.trackGuid, name: candidate.trackName, best: candidate.trackGuid === best }));
+  const marked = all.map((choice) => ({ ...choice, best: choice.guid === best }));
+  return [...ranked.flatMap((guid) => marked.filter((choice) => choice.guid === guid)), ...marked.filter((choice) => !ranked.includes(choice.guid))];
 }

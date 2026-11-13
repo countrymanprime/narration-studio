@@ -5,6 +5,9 @@ import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
+import { headingName } from '../../chapterHeading';
 
 afterEach(cleanup);
 
@@ -125,6 +128,30 @@ describe('ChapterSyncPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Link' }));
     await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c5', 'g5a'));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked.'));
+  });
+
+  // Owner answer 2 on #3398: the sync panel's picker offers every track of the project, with the chapter holding each, as the other pickers do.
+  it('offers every track of the project, labelling the ones another chapter holds, and the sync’s candidate stays the pick', async () => {
+    const [held, free] = WIRE_TRACKS_PROJECT.tracks;
+    const holder = WIRE_CHAPTERS[0];
+    const api = createMockApi(
+      { chapterSyncPreview: async () => JSON.parse(JSON.stringify(needsYouPreview()).replaceAll('g5a', free.guid)) },
+      { chapterTrackMappings: [wireLink(held.guid, holder.id)] },
+    );
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await screen.findByText('Needs you (1)');
+    const select = screen.getByLabelText('Track for Chapter 5') as HTMLSelectElement;
+    await waitFor(() => expect(Array.from(select.options).map((option) => option.textContent)).toContain(`${held.name} (linked to ${headingName(holder)})`));
+    const labels = Array.from(select.options).map((option) => option.textContent ?? '');
+    expect(labels).toContain(free.name);
+    // The sync's own candidates head the list and the best one stays selected.
+    expect(select.value).toBe(free.guid);
   });
 
   it('names the saved file and splits automatic links from the narrator’s in the summary', async () => {
