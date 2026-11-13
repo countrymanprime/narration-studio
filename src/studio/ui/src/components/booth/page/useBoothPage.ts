@@ -111,6 +111,9 @@ export type BoothPageOptions = {
 // `boothsOnScreen` counts the Booth pages mounted (one, except in the instant a chapter changes).
 let pressesBegun = 0;
 let boothsOnScreen = 0;
+// Booth pages whose listening session is starting, running or stopping: a page that adopts a take starts a session of its own, and when that one is up the
+// take is followed, whatever became of the press that began it.
+let sessionsActive = 0;
 
 /**
  * The Booth page's behaviour over its parts: the reading position (from the voice while listening, else the keys and clicks), one take
@@ -527,7 +530,7 @@ export function useBoothPage(options: BoothPageOptions) {
       letGo();
       // The narrator left the take running on purpose (a stop that failed, then "Leave anyway"), and the Booth is still here showing it as recording
       // while nothing follows it. The press acts on nothing it no longer owns, so the take is not stopped here: the narrator is told, and Stop is theirs.
-      if (!heard.ok && started && boothsOnScreen > 0 && appTakeRuns() && press === pressesBegun) sayTakeUnheard(overlay);
+      if (!heard.ok && started && boothsOnScreen > 0 && appTakeRuns() && sessionsActive === 0 && press === pressesBegun) sayTakeUnheard(overlay);
       return started;
     }
     if (stoppedWhileStarting.current) {
@@ -764,6 +767,12 @@ export function useBoothPage(options: BoothPageOptions) {
       overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
     };
   }, [overlay]);
+  const sessionActive = session.active;
+  useEffect(() => {
+    if (!sessionActive) return;
+    sessionsActive += 1;
+    return () => void (sessionsActive -= 1);
+  }, [sessionActive]);
   // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
   const startPending = !recording && (roll.lookingUp || beginning);
 
@@ -1235,5 +1244,5 @@ function holdWhileMenuOpen(hold: () => () => void): () => void {
 
 /** The listening of a take failed after its press was left behind by a chapter change, and the take still records: the narrator ends it and records again. */
 function sayTakeUnheard(overlay: Pick<OverlayService, 'toast'>): void {
-  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record the passage again.', { tone: 'error' });
+  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record again.', { tone: 'error' });
 }

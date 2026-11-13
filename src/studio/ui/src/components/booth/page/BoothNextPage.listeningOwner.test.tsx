@@ -53,6 +53,7 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
   // How a held start ends: `answer` resolves it as started, `refuse` makes it fail as the host's does (the phase goes to error).
   let muted = false;
   let holdStop = false;
+  let quietFailure = false;
   const publish = (next: Partial<TeleprompterState>) => {
     state = { ...state, ...next };
     if (!muted) states.forEach((listener) => listener(state));
@@ -63,7 +64,7 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
     try {
       await gates.shift();
     } catch (reason) {
-      publish({ phase: 'error', message: 'the microphone is in use' });
+      if (!quietFailure) publish({ phase: 'error', message: 'the microphone is in use' });
       throw reason;
     }
     // A stop that came while the session was starting ends it: the start fails, as the real host's does.
@@ -102,6 +103,12 @@ function fakeHost({ stopEndsStarting = true, ignoreStopWhileStarting = false }: 
     holdStops: () => void (holdStop = true),
     finishStop: () => act(async () => void publish({ phase: 'stopped' })),
     listenerCount: () => states.size,
+    /** A held start that is refused leaves the phase as it was (another page's session may be up), as when the host belongs to a later start. */
+    quietFailures: () => void (quietFailure = true),
+    /** The host's session is up, as a start made by a later page would leave it. */
+    forceRunning: () => act(async () => void publish({ phase: 'running' })),
+    /** The host reads idle, as when the session a page would have joined is gone. */
+    forceIdle: () => act(async () => void publish({ phase: 'idle' })),
     /** The next start does not answer until the returned function is called. */
     holdNextStart: () => {
       let release = () => {};
@@ -1006,18 +1013,28 @@ describe('a stop the app sent is not announced as REAPER stopping the take', () 
 });
 
 describe('a press the narrator left behind by changing chapter, whose take still records (#3409)', () => {
-  const UNHEARD = /The text could not follow your voice for the take that is still recording\. Press Stop, then record the passage again\./;
+  const UNHEARD = /The text could not follow your voice for the take that is still recording\. Press Stop, then record again\./;
   const stopRefused = { ok: false, changed: false, message: 'REAPER did not answer.', refused: 'REAPER did not answer.', undoSteps: 0 };
 
-  /** A take records and its listening is out; the chapter is changed through the address and the stop is answered as the test says. */
-  const changeChapterDuringStart = async (stop: 'refused' | 'ok') => {
-    const host = fakeHost();
+  /**
+   * A take records and its listening is out; the chapter is changed through the address and the stop is answered as the test says. The DAW pushes that it
+   * records once the next chapter's page is up, so that page adopts the take as it would from the real DAW.
+   */
+  const changeChapterDuringStart = async (stop: 'refused' | 'ok', host = fakeHost()) => {
     const control = host.holdNextStart();
-    const page = mountBooth(host);
+    const daw = dawFor('reaper');
+    const listeners = new Set<(transport: { recording: boolean; playing: boolean; position: number }) => void>();
+    const push = (recording: boolean) => act(async () => listeners.forEach((listener) => listener({ recording, playing: recording, position: 1 })));
+    daw.subscribeTransport = ((listener: (transport: { recording: boolean; playing: boolean; position: number }) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    }) as unknown as typeof daw.subscribeTransport;
+    const page = mountBooth(host, daw);
     if (stop === 'refused') page.recordStop.mockResolvedValueOnce(stopRefused as never);
     await ready();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await push(true);
     await act(async () => driver.go('/booth?chapter=c2'));
     await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
     await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
@@ -1028,12 +1045,19 @@ describe('a press the narrator left behind by changing chapter, whose take still
       await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
     }
     await settle();
-    return { host, control, page };
+    return { host, control, page, push };
   };
+  const toasted = (page: ReturnType<typeof mountBooth>) => vi.spyOn(page.overlay, 'toast');
+  const said = (spy: ReturnType<typeof toasted>) => spy.mock.calls.map(([text]) => text).filter((text) => UNHEARD.test(text));
 
   it('Leave anyway after a stop that failed, then the listening is refused: the take is not stopped behind the narrator, and the sentence says what to do', async () => {
-    const { control, page } = await changeChapterDuringStart('refused');
+    const host = fakeHost();
+    const { control, page, push } = await changeChapterDuringStart('refused', host);
     expect(page.recordStop).toHaveBeenCalledTimes(1);
+    await push(true);
+    // The next chapter's page sees the host's session starting (the press's own), so it asks for none: nothing else can follow the adopted take.
+    await settle();
+    expect(host.teleprompterStart).toHaveBeenCalledTimes(1);
     await control.refuse();
     await screen.findByText(UNHEARD);
     // The Booth acts on nothing for a press it no longer owns: no second stop (Stop is the narrator's, on the chapter that adopted the take).
@@ -1041,25 +1065,71 @@ describe('a press the narrator left behind by changing chapter, whose take still
     expect(screen.queryByText(/Recording did not start/)).toBeNull();
   });
 
+  it('is silent when the session the next chapter started for the adopted take is up: the take is followed', async () => {
+    const host = fakeHost();
+    host.quietFailures();
+    const { control, page, push } = await changeChapterDuringStart('refused', host);
+    const toast = toasted(page);
+    // The host reads idle when the next chapter's page adopts the take, so that page starts a session of its own, and it comes up.
+    await host.forceIdle();
+    await push(true);
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(host.phase()).toBe('running'));
+    await control.refuse();
+    await settle();
+    expect(said(toast)).toEqual([]);
+    expect(page.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('is silent when REAPER or the narrator ended the take before the listening failed', async () => {
+    const { control, page, push } = await changeChapterDuringStart('refused');
+    const toast = toasted(page);
+    await push(true);
+    await settle();
+    await push(false);
+    await settle();
+    await control.refuse();
+    await settle();
+    expect(said(toast)).toEqual([]);
+  });
+
+  it('is silent when a newer press began meanwhile: the take that records is not the one this press began', async () => {
+    const { control, page, push } = await changeChapterDuringStart('refused');
+    const toast = toasted(page);
+    await push(true);
+    // The narrator stops the adopted take and presses Record again on the chapter that is up.
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
+    await push(false);
+    await settle();
+    await space();
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(2));
+    await push(true);
+    await control.refuse();
+    await settle();
+    expect(said(toast)).toEqual([]);
+  });
+
   it('a Booth that is gone says nothing: the sentence names a Stop that is not on the page the narrator is on', async () => {
     const host = fakeHost();
     const control = host.holdNextStart();
     const page = mountBooth(host);
-    const toast = vi.spyOn(page.overlay, 'toast');
+    const toast = toasted(page);
     await ready();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     page.view.unmount();
     await control.refuse();
     await settle();
-    expect(toast.mock.calls.map(([text]) => text).filter((text) => UNHEARD.test(text))).toEqual([]);
+    expect(said(toast)).toEqual([]);
   });
 
   it('Stop and leave whose stop went through says nothing when the listening is refused later: the take is over', async () => {
     const { control, page } = await changeChapterDuringStart('ok');
     expect(page.recordStop).toHaveBeenCalledTimes(1);
+    const toast = toasted(page);
     await control.refuse();
     await settle();
-    expect(screen.queryByText(UNHEARD)).toBeNull();
+    expect(said(toast)).toEqual([]);
   });
 });

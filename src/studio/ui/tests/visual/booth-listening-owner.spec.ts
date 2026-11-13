@@ -318,7 +318,7 @@ test('a chapter left with a take recording, whose listening then fails, says the
   await expect(page).toHaveURL(/chapter=chapter-2/);
   await expect(stop).toBeVisible({ timeout: 8000 });
   await page.evaluate(() => (window as unknown as { __refuseListening: Array<() => void> }).__refuseListening[0]());
-  const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record the passage again.');
+  const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
   await expect(sentence).toBeVisible({ timeout: 8000 });
   await expect(page.getByText(/Recording did not start/)).toHaveCount(0);
   // Nothing stopped the take behind the narrator; Stop is theirs and works.
