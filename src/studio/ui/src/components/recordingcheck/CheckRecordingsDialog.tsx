@@ -321,8 +321,8 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
       navigate(path);
     };
     return (
-      <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
-        <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto">
+      <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:400px)]:max-h-none">
+        <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto [@media(max-height:400px)]:overflow-visible">
           <h3 className={`m-0 ${SECTION_LABEL}`}>{headingName(shown)}</h3>
           {run.seen[shown.id] && endedAt !== undefined ? (
             <CheckActivityPanel
@@ -373,8 +373,8 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
 
   // The dialog's 80dvh less its header and the body's padding (6.75rem) and its border: one scroll area for the form, the footer always shown.
   return (
-    <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
-      <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto">
+    <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:400px)]:max-h-none">
+      <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto [@media(max-height:400px)]:overflow-visible">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <RunOptions engines={loaded.engines} choices={choices} onChange={change} />
