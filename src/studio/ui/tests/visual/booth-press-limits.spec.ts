@@ -67,16 +67,14 @@ async function openWith(page: Page, hung: Hung): Promise<void> {
 }
 const arm = (page: Page) => page.evaluate(() => ((window as unknown as { __armed: boolean }).__armed = true));
 
-test('a model check that never answers ends the press with a sentence, and the next press records', async ({ page }) => {
+// #3432: a model check that outlasts its limit is "unknown", not "missing": the press goes on and the listening start is the authority.
+test('a model check that never answers does not end the press: after its limit the take records and no sentence says it did not', async ({ page }) => {
   await openWith(page, 'modelCheck');
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/The speech model could not be checked in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
-  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
-  expect(await dawRecording(page)).toBe(false);
-  await page.keyboard.press('Space');
-  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
 });
 
@@ -131,8 +129,8 @@ test('a voice choice that never answers ends a punch press with a sentence and s
 
 // A model check that answers "not installed" after the press gave up on it opens no install question, on its own or over a take the narrator
 // started meanwhile (the question exists so that no take begins behind it).
-async function openWithLateModelCheck(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+async function openWithLateModelCheck(page: Page, answerAfterMs = 60_000): Promise<void> {
+  await page.addInitScript((answerAfter) => {
     const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
     w.__armed = false;
     const missing = {
@@ -156,11 +154,11 @@ async function openWithLateModelCheck(page: Page): Promise<void> {
         const empty = { cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] as unknown[] };
         if (!w.__armed) return empty;
         w.__armed = false;
-        await new Promise((resolve) => setTimeout(resolve, 12_000));
+        await new Promise((resolve) => setTimeout(resolve, answerAfter));
         return { ...empty, assets: { find: () => missing } };
       },
     };
-  });
+  }, answerAfterMs);
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -180,24 +178,13 @@ const watchInstallQuestion = (page: Page) =>
   });
 const sawInstallQuestion = (page: Page) => page.evaluate(() => (window as unknown as { __sawInstall: boolean }).__sawInstall);
 
-test('a model check that answers missing after its limit opens no install question', async ({ page }) => {
+test('a model check that answers missing after its limit opens no install question over the take', async ({ page }) => {
   await openWithLateModelCheck(page);
   await watchInstallQuestion(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
-  await page.waitForTimeout(5000);
-  await expect(installQuestion(page)).toHaveCount(0);
-  expect(await sawInstallQuestion(page)).toBe(false);
-});
-
-test('Record pressed again after the limit records, and the late "not installed" answer opens no question over the take', async ({ page }) => {
-  await openWithLateModelCheck(page);
-  await watchInstallQuestion(page);
-  await page.keyboard.press('Space');
-  await expect(page.getByText(/The speech model could not be checked in time/).first()).toBeVisible({ timeout: 12_000 });
-  await page.keyboard.press('Space');
-  await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await page.waitForTimeout(5000);
+  await expect(stop(page)).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByText(/could not be checked in time/)).toHaveCount(0);
+  await page.waitForTimeout(8000);
   await expect(installQuestion(page)).toHaveCount(0);
   expect(await sawInstallQuestion(page)).toBe(false);
   expect(await dawRecording(page)).toBe(true);
@@ -266,4 +253,201 @@ test('double-tap Space with slow listening: the listening is not stopped and the
   expect(await hostCalls('readAloudRecordStop')).toBe(0);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
+});
+
+// #3409: R (Punch and roll) during a take ends too: a roll the DAW never answers gives a sentence at its limit and R rolls again.
+test('a roll the DAW never answers ends with a sentence that says to look, and R rolls again', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise(() => {});
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await expect(page.getByText(/REAPER did not answer the roll in time\. The take may still be recording from before/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('r');
+  await expect(page.getByText(/Rolling again from ¶/).first()).toBeVisible({ timeout: 5000 });
+  await expect(stop(page)).toBeVisible();
+});
+
+// #3409: a take the app itself drops (its listening failed after the DAW started) is said once; the stop's own transport push is not REAPER ending it.
+test('a dropped unheard take does not also say that REAPER stopped recording', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStart: () => new Promise((_resolve, reject) => setTimeout(() => reject(new Error('The microphone is in use by another application.')), 1500)),
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 10_000 });
+  expect(await dawRecording(page)).toBe(false);
+  // The second sentence came a few seconds after the first.
+  await page.waitForTimeout(4000);
+  await expect(page.getByText(/REAPER stopped recording/)).toHaveCount(0);
+});
+
+// #3409: a roll that lands after the narrator stopped the take started a recording nobody runs: it is stopped and said.
+test('a roll that answers after Stop says to check the DAW and sends no stop', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 12_000));
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  const stops = () => page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await expect(page.getByText(/did not answer the roll in time/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible({ timeout: 8000 });
+  expect(await stops()).toBe(1);
+  await expect(
+    page
+      .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
+      .first(),
+  ).toBeVisible({ timeout: 10_000 });
+  // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
+  expect(await stops()).toBe(1);
+});
+
+// #3409 (BRK-1): a roll that answers after Stop and a second take is that take's to keep: the stale answer never stops it.
+test('a roll that answers while a newer take records does not stop that take', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 12_000));
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  const stops = () => page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await expect(page.getByText(/did not answer the roll in time/).first()).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible({ timeout: 8000 });
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await expect(page.getByText(/a take in progress may have been cut/).first()).toBeVisible({ timeout: 10_000 });
+  expect(await stops()).toBe(1);
+  expect(await dawRecording(page)).toBe(true);
+  await expect(stop(page)).toBeVisible();
+});
+
+// #3409 (walkthrough finding 1): the late-roll sentence fits whole inside its toast, and the toast inside a 360x500 window, uncovered by the footer.
+test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 500 });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 9_000));
+      },
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  const late = page
+    .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
+    .first();
+  await expect(late).toBeVisible({ timeout: 14_000 });
+  // The timeout sentence is replaced, not left beside it.
+  await expect(page.getByText(/press R to roll again/)).toHaveCount(0);
+  const box = (await late.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(360);
+  expect(box.y + box.height).toBeLessThanOrEqual(500);
+  // Nothing (the footer) sits over any corner of the sentence.
+  const covered = await late.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return [
+      [rect.left + 2, rect.top + 2],
+      [rect.right - 2, rect.top + 2],
+      [rect.left + 2, rect.bottom - 2],
+      [rect.right - 2, rect.bottom - 2],
+    ].some(([x, y]) => {
+      const hit = document.elementFromPoint(x!, y!);
+      return !hit || !(element.contains(hit) || hit.contains(element));
+    });
+  });
+  expect(covered).toBe(false);
+});
+
+// #3409 (QA r5): a roll that answers while Stop is still pending is for a take that is already over: the late sentence, not "Rolling again".
+test('a roll that answers while Stop is still pending says the late sentence, not Rolling again', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__armed = false;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      dawRoll: () => {
+        if (!w.__armed) return Promise.resolve({ ok: true, changed: true, message: '', undoSteps: 1 });
+        w.__armed = false;
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, changed: true, message: '', undoSteps: 1 }), 1_800));
+      },
+      readAloudRecordStop: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'stopped', message: '', undoPoints: 0 }), 3_000)),
+    };
+  });
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 8000 });
+  await arm(page);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(1000);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/A roll the Booth stopped waiting for has landed\./).first()).toBeVisible({ timeout: 6000 });
+  await expect(page.getByText(/Rolling again from/)).toHaveCount(0);
 });

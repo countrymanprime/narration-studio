@@ -106,7 +106,7 @@ narration chapters only: a chapter removed from recording, and reference materia
 
 The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
-chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
+chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
 project** (no saved project could be read) or **Not read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
@@ -149,12 +149,12 @@ recorded length, how the link was found and when, and whether you or chapter syn
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
 A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
-track no longer in the saved project says it may have been deleted or the project saved elsewhere,
-shows its figures as last known and offers no playback.
+track that is no longer in the project's tracks (REAPER's now, or the saved file's when REAPER is not open) says it may have been deleted or the project saved elsewhere,
+shows its figures as last known and offers no playback. The panel names the track as it is called now. One line under its header says whose tracks these are and when they were read, as the audio engine panel's does (when the latest read failed it shows the last one and says so), with the icon to read them again; a list of tracks that cannot be read links to the audio engine panel.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
-view in your DAW itself. It is on only for a confirmed link to a track that is in the saved project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
+view in your DAW itself. It is on only for a confirmed link to a track that is in the project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)

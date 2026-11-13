@@ -41,11 +41,9 @@ describe('displacedSentence with hostile or empty names', () => {
 describe('useChapterLinkActions', () => {
   it('set writes through the replacing binding and says who lost the track', async () => {
     const chapterTrackSet = vi.fn(async () => setAnswer(mapping('c2', 'Two')));
-    const confirm = vi.fn();
-    const actions = actionsWith({ chapterTrackSet, chapterTrackMapConfirm: confirm });
+    const actions = actionsWith({ chapterTrackSet });
     const { displacedNotice } = await actions.set('c1', 'T');
     expect(chapterTrackSet).toHaveBeenCalledWith('c1', 'T');
-    expect(confirm).not.toHaveBeenCalled();
     expect(displacedNotice).toBe('Two was linked to that track and is now not linked.');
     expect((await actions.set('c1', 'T')).linkedNotice).toBe('Track linked. Two was linked to that track and is now not linked.');
   });

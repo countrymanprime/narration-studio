@@ -125,7 +125,7 @@ profile that built it: choose another profile and it goes away until you build a
 ![Delivery after Build ACX package: Built, 15 files in the folder the host chose, and each file Written](../../images/ui/delivery-built.webp)
 
 If the host refuses or the build fails, Delivery shows its words in an error message at the bottom right of the window, and
-writes nothing; beside Build it says "The last build did not finish." The message stays until you dismiss it. If the
+writes nothing; beside Build it says "The last build did not finish." The message goes by itself after 20 seconds, or when you dismiss it. If the
 folder will not open, that is a message too. A file that was encoded
 empty or is gone is named and refused before anything is written ("is empty (0 bytes); encode it again"), and so
 is a chapter whose title makes a file name longer than Windows allows.

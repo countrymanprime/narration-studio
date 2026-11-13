@@ -14,7 +14,7 @@ import { Select } from '../primitives/Select';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToolResult } from './ToolResult';
-import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
+import { LiveTracksLine } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
@@ -258,14 +258,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </>
       }
     >
-      {live && (
-        <div className="mb-3 flex items-center justify-between gap-2 text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>
-          <span className="min-w-0 flex-1">
-            <LiveTracksStatus live={live} />
-          </span>
-          <LiveTracksRefresh live={live} />
-        </div>
-      )}
+      {live && <LiveTracksLine live={live} className="mb-3" />}
       {/* The outcome of Stamp opens the body, where it is seen without scrolling past the chapters (R3EN2-13). */}
       {stampError && (
         <div className="mb-3">

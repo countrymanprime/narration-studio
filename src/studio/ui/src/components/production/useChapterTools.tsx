@@ -6,7 +6,8 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
-import type { ChapterStatus, ChapterTrackLinks, ManuscriptChapter } from '../../types';
+import type { ChapterStatus, ManuscriptChapter } from '../../types';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
@@ -59,7 +60,9 @@ type Options = {
 export function useChapterTools({ rows, credits, notify, go, active, refreshKey, onChanged, onRestored, daw }: Options) {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
-  const [trackLinks, setTrackLinks] = useState<ChapterTrackLinks>();
+  // Each chapter's link state is the app's one chapter-track state, not a read of this board's own: a chapter linked or created in the Engine
+  // panel shows here at once (#3355), and a change made here shows there.
+  const { details: trackLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
   const [open, setOpen] = useState<Open>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
@@ -74,11 +77,11 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   }, [api, notify]);
   const loadTrackLinks = useCallback(async () => {
     try {
-      setTrackLinks(await api.chapterTrackLinks());
+      await refreshLinks();
     } catch (error) {
       notify(describeApiError(error), 'error');
     }
-  }, [api, notify]);
+  }, [notify, refreshLinks]);
   const reload = useCallback(() => {
     if (!active) return;
     void loadChapters();
@@ -172,8 +175,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const checkGate = useCheckRecordingsGate();
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
@@ -214,7 +217,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             key: 'recording',
             label: CHECK_RECORDINGS_LABEL,
             unavailable: missing ?? latest.current.checkGate,
-            onSelect: () => chapter && void openCheckRecordings([chapter.id]),
+            // The dialog can link the chapter's track (its unmapped refusal), so the board reads the links again when it closes.
+            onSelect: () => chapter && void openCheckRecordings([chapter.id], { onClosed: () => void latest.current.loadTrackLinks() }),
           },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
@@ -230,13 +234,18 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   useEffect(() => registerContextProvider(provider), [provider]);
 
   const close = () => setOpen(undefined);
+  // The Editing check can link the chapter's track (its unmapped refusal) and does not tell the board, so the board reads the links again when it closes.
+  const closeEditing = () => {
+    close();
+    void loadTrackLinks();
+  };
   const trackOpen = open?.kind === 'track' ? open : undefined;
   const link = trackOpen ? trackLinks?.chapters.find((entry) => entry.chapterId === trackOpen.chapterId) : undefined;
 
   const panels: ReactNode = (
     <>
       {chapters && <RemovedFromRecordingList chapters={chapters} restoringId={restoringId} onRestore={(chapterId) => void restore(chapterId)} />}
-      {open?.kind === 'editing' && <EditingCheckPanel key={open.chapter.id} chapter={open.chapter} notify={notify} close={close} />}
+      {open?.kind === 'editing' && <EditingCheckPanel key={open.chapter.id} chapter={open.chapter} notify={notify} close={closeEditing} />}
       {trackOpen && (
         <ChapterTrackPanel
           open

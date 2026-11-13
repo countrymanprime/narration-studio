@@ -49,13 +49,40 @@ runs:
       with:
         path: ~/apt-archives
         key: apt-native-deps-${{ runner.os }}-${{ runner.arch }}-${{ steps.apt-image.outputs.image }}-${{ hashFiles('.github/actions/setup-toolchain/action.yml') }}
+        # A changed action file or image still restores the last set, so only the packages that moved are downloaded.
+        restore-keys: apt-native-deps-${{ runner.os }}-${{ runner.arch }}-
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
       shell: bash
       # Wails v3 links GTK 4 and WebKitGTK 6.0 through cgo on Linux; v2 used GTK 3 and WebKit2GTK 4.1.
+      # Download (bounded, retried with a pause) and install (local files only) are separate: since 2026-11-11 14:13 UTC DNS for
+      # archive.ubuntu.com failed on some runners, `apt-get update` spent 3 min 20 s and exited 0, and the install then spent 6.5 min on the
+      # 2.5 MB the warm cache lacked and exited 100 (#3401, #3403, #3408). A `timeout` never cuts dpkg, so only the download is bounded.
       run: |
-        mkdir -p ~/apt-archives/partial
-        sudo apt-get update
-        sudo apt-get -o Dir::Cache::archives="$HOME/apt-archives" install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf
+        archives="$HOME/apt-archives"
+        mkdir -p "$archives/partial"
+        apt=(sudo apt-get -o Dir::Cache::archives="$archives" -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+        pkgs=(libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf)
+        fetched=false
+        for attempt in 1 2 3 4; do
+          # A dead resolver cannot recover inside one attempt: probe it first, so an outage costs seconds per attempt, not 120 s (run 43051855249).
+          if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 120 "${apt[@]}" update --error-on=any && timeout 120 "${apt[@]}" install -y --download-only "${pkgs[@]}"; then
+            fetched=true
+            break
+          fi
+          echo "::warning::apt download attempt $attempt of 4 failed"
+          [ "$attempt" -lt 4 ] && sleep $((attempt * 15))
+        done
+        if "$fetched"; then
+          "${apt[@]}" install -y --no-download "${pkgs[@]}"
+        else
+          # The network stayed down (run 43044148695: DNS failed for the whole 9 min). A restored cache holds every .deb the previous install
+          # needed, so install that set offline; dpkg refuses a set that does not fit the runner, and then the step fails as before.
+          echo "::warning::apt could not download in 4 attempts; installing the cached .debs"
+          shopt -s nullglob
+          debs=("$archives"/*.deb)
+          [ "${#debs[@]}" -gt 0 ] || { echo "::error::apt could not download the native libraries in 4 attempts and no cached .debs exist"; exit 1; }
+          sudo dpkg -i "${debs[@]}"
+        fi
         sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
         rm -f ~/apt-archives/lock
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true' && steps.apt-cache.outputs.cache-hit != 'true'

@@ -28,6 +28,29 @@ export function chapterTrackButtonState(link: ChapterTrackLink): ChapterTrackBut
   return { kind: 'unlinked' };
 }
 
+/**
+ * A chapter's link as the project's tracks are now (the shared state's list: REAPER's when it has the project open, else the saved file's), for
+ * a screen that draws from the per-chapter read. A confirmed link to one track the list no longer has is missing, one that is there is not (and
+ * is drawn under its name now), and a chapter with several links is several however many of their tracks are there, as the Engine row says
+ * (#3415). Not followed: a missing warning on a track the list now has (an undone delete); the next read of the links settles it.
+ */
+export function followLiveTracks(link: ChapterTrackLink, tracks: readonly { guid: string; name: string }[] | undefined): ChapterTrackLink {
+  if (!tracks) return link;
+  // Several links are several links, whichever of their tracks is there: the Engine row says so, so the panel does not call it missing.
+  if (link.links.length > 1) {
+    const warnings = link.warnings.filter((warning) => warning !== 'confirmed-track-missing');
+    return warnings.length === link.warnings.length && link.warnings.includes('confirmed-links-conflict')
+      ? link
+      : { ...link, warnings: warnings.includes('confirmed-links-conflict') ? warnings : [...warnings, 'confirmed-links-conflict'] };
+  }
+  if (link.status !== 'confirmed' || link.links.length !== 1) return link;
+  const live = tracks.find((track) => track.guid === link.links[0].trackGuid);
+  if (!live) {
+    return link.warnings.includes('confirmed-track-missing') ? link : { ...link, warnings: [...link.warnings, 'confirmed-track-missing'] };
+  }
+  return link.track && link.track.trackName !== live.name ? { ...link, track: { ...link.track, trackName: live.name } } : link;
+}
+
 /** The track REAPER may be asked to show for a chapter: only a confirmed link to a track that is in the saved project. A suggestion, an
  * ambiguous match and a missing track have none. The row menu and the chapter track panel both read it, so they are on or off together. */
 export function showableTrackGuid(link: ChapterTrackLink | undefined): string | undefined {

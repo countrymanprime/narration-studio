@@ -43,7 +43,7 @@ import { VoiceLayoutContext } from './voiceLayout';
 import type { LiveTracks } from './useLiveTracks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { headingName } from '../../chapterHeading';
 import { chapterName } from '../../chapterName';
@@ -144,9 +144,8 @@ const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIE
 
 describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   it('puts one create button on each unlinked row, and none on a linked or missing-track row', async () => {
-    const api = createMockApi();
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[2].id)] });
     await api.chapterTrackSet(WIRE_CHAPTERS[1].id, WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await api.chapterTrackMapConfirm('{NOT-A-REAL-TRACK-GUID}', WIRE_CHAPTERS[2].id);
     renderTable({ api });
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     await waitFor(() => expect(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('img', { name: 'Linked' })).toBeTruthy());

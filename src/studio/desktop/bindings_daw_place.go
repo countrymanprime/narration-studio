@@ -95,7 +95,7 @@ func sameTrackID(a, b string) bool {
 	return trim(a) != "" && trim(a) == trim(b)
 }
 
-// DawGoToChapter selects chapterID's linked track in the DAW and puts its cursor at where: "end" (the end of what is recorded on the
+// DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
 // track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
 // chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
 // or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the

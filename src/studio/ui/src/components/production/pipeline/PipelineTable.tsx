@@ -211,7 +211,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 className={row.id === justChanged ? CHANGE_HIGHLIGHT_CLASSES : ''}
               >
                 {/* Broken between words, never inside one ("Caterpill / ar", R4SM-3). */}
-                <TableCell className={`text-center font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
+                <TableCell className={`text-left font-medium [overflow-wrap:break-word] ${STICKY_NAME}`}>
                   {windowed ? (
                     // One row height: the name takes two 20 px lines at most (40 px, so the cell's 10 px of padding and its rule stay inside
                     // ROW_PX and a name can never grow the row), and the full name is in the tip. The text is all in the DOM: a screen reader

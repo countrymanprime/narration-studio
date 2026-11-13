@@ -8,7 +8,7 @@ import type { DawRecordStart } from '../../../ports/daw';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
-import { limited, recordStartLimit } from './pressLimits';
+import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
@@ -63,6 +63,13 @@ export type RecordControlState = {
   stop: () => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
+  /** True while a stop is in flight and not yet answered: the narrator's Stop press, or a stop the app sends (`appStop`). A roll that lands then is for a take that is already over. */
+  stopping: () => boolean;
+  /**
+   * Runs a stop the app itself sends outside a press (the unheard take dropped, "Stop and leave"). The transport event the stop pushes is not a take that
+   * ended in the DAW, so it is not announced; a stop that did not go through is left to be heard as before (#3409).
+   */
+  appStop: <T extends { ok: boolean }>(stop: () => Promise<T>) => Promise<T>;
   /** Read the capabilities again, after a setting the Booth itself changed. */
   refresh: () => void;
   /** The visible Check again: a fresh read now, whatever a timer or an event last said. */
@@ -121,8 +128,15 @@ const lostInDaw = (daw: DawKind | undefined) => {
 let appTakeRunning = false;
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
+// The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
+// that press began. `startsSent` numbers each start asked of the DAW; `runningStart` is the newest start that answered and runs. A late answer of an
+// older start finds a newer one running and stops nothing (the DAW would have refused the older one), so it never ends the take that Booth began (#3320).
+let startsSent = 0;
+let runningStart = 0;
 /** Forgets a take the app started; for tests that share the module. */
 export const forgetAppTake = (): void => {
+  startsSent = 0;
+  runningStart = 0;
   appTakeRunning = false;
   lastStartAt = 0;
 };
@@ -334,39 +348,57 @@ export function useRecordControl({
     };
   }, [unready, recording]);
 
+  // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
+  // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed
+  // (`endConfirmed`), and before saying what became of the take.
+  // The sentence for an end heard during a stop the app is sending: said if that stop did not go through, dropped if it did (`appStop`).
+  const heldSay = useRef<(() => void) | null>(null);
+  const announceTakeEnd = (hold = false) => {
+    const daw_ = capabilitiesRef.current?.daw;
+    const read = daw
+      .capabilities()
+      .then((c) => {
+        reachableRef.current = c.reachable;
+      })
+      .catch(() => {
+        reachableRef.current = false;
+      });
+    // Whether the end is believed is asked at once, held or not: the leave guard reads it (`endUnconfirmed`).
+    markEnd(read);
+    const say = () =>
+      void read.then(() => {
+        if (reachableRef.current === false) lostTake.current = true;
+        if (reachableRef.current === false) notifyRef.current(lostInDaw(daw_), TAKE_TOPIC);
+        else announceEnd(daw_);
+      });
+    // A stop the app is sending: the take ended all the same, but saying so waits until it answers (`appStop`).
+    if (hold) heldSay.current = say;
+    else say();
+  };
+  const announceTakeEndRef = useRef(announceTakeEnd);
+  announceTakeEndRef.current = announceTakeEnd;
   // A take the narrator stopped in the DAW itself ends here too, once the DAW has been heard recording: the transport is pushed only on
   // a change, so the stopped state the subscription hears first, from before the take started, is not taken for its end.
   const heardRecording = useRef(false);
+  // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
+  const appStops = useRef(0);
+  const appStopReleases = useRef(new Set<() => void>());
+  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
       return;
     }
-    return daw.subscribeTransport?.((transport) => {
+    const unsubscribe = daw.subscribeTransport?.((transport) => {
       if (transport.recording) heardRecording.current = true;
       // A press is being answered: the stop it asks for pushes this very event before its own answer, and that is the narrator's Stop, not a take that ended.
       else if (heardRecording.current && !busy.current) {
         heardRecording.current = false;
         setRecording(false);
-        // A stopped transport is also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now
-        // before the end is believed (`endConfirmed`), and before saying what became of the take.
-        const daw_ = capabilities?.daw;
-        const read = daw
-          .capabilities()
-          .then((c) => {
-            reachableRef.current = c.reachable;
-          })
-          .catch(() => {
-            reachableRef.current = false;
-          });
-        markEnd(read);
-        void read.then(() => {
-          if (reachableRef.current === false) lostTake.current = true;
-          if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-          else announceEnd(daw_);
-        });
+        announceTakeEndRef.current(appStops.current > 0);
       }
     });
+    return unsubscribe;
   }, [daw, recording, notify, capabilities?.daw]);
 
   // The transport is pushed only on a change, so one lost event would leave the REC pill wrong for ever. While a take runs the project's
@@ -392,22 +424,7 @@ export function useRecordControl({
           if (heardRecording.current || misses >= 3) {
             heardRecording.current = false;
             setRecording(false);
-            // A quiet DAW reads as stopped: ask whether it answers before saying the take ended there.
-            const daw_ = capabilitiesRef.current?.daw;
-            const read = daw
-              .capabilities()
-              .then((c) => {
-                reachableRef.current = c.reachable;
-              })
-              .catch(() => {
-                reachableRef.current = false;
-              });
-            markEnd(read);
-            void read.then(() => {
-              if (reachableRef.current === false) lostTake.current = true;
-              if (reachableRef.current === false) notify(lostInDaw(daw_), TAKE_TOPIC);
-              else announceEnd(daw_);
-            });
+            announceTakeEndRef.current(appStops.current > 0);
           }
         })
         // The take stays: a read that fails says nothing about it. Said once, after three in a row, so a narrator is not left trusting a pill nothing can vouch for.
@@ -509,8 +526,9 @@ export function useRecordControl({
    * a take running, or a press still asking, is left alone and its own answer decides. Otherwise this one is stopped.
    */
   const stopLateStart = useCallback(
-    async (late: DawRecordStart) => {
+    async (late: DawRecordStart, seq: number) => {
       if (!late.ok) return;
+      if (runningStart > seq) return;
       // The newer press's own answer (`done(running)`), not a render's `recording`, which can lag behind it.
       if ((await inflight.current) || recordingRef.current) return;
       logUi('ui.record', 'A take started after its press had given up waiting; stopping it.');
@@ -569,8 +587,13 @@ export function useRecordControl({
         // From here the host has the start: a leave can no longer cancel it, so it asks (`starting`) and waits for the answer (`settle`).
         if (starting) setStarting(true);
         let result: DawRecordStart;
+        const seq = starting ? ++startsSent : 0;
         if (starting) {
-          const answered = await limited(recordStartLimit(recordsInApp(capabilitiesRef.current?.daw)), daw.recordStart(chapterId, at), stopLateStart);
+          const answered = await limited(
+            recordStartLimit(recordsInApp(capabilitiesRef.current?.daw)),
+            daw.recordStart(chapterId, at),
+            (late) => void stopLateStart(late, seq),
+          );
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
@@ -582,7 +605,18 @@ export function useRecordControl({
             return false;
           }
           result = answered.value;
-        } else result = await daw.recordStop();
+        } else {
+          // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
+          // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
+          const stopAsked = await limited('recordStop', daw.recordStop());
+          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          result = stopAsked.value;
+        }
+        if (result.ok && starting && !alive.current && runningStart > seq) {
+          // A newer press's take is the one running: this late start is not the Booth's to end.
+          logUi('ui.record', 'A late start from a Booth that was left was not stopped: a newer take runs.');
+          return false;
+        }
         if (result.ok && starting && !alive.current) {
           // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
           // only a start that nothing could wait for.)
@@ -592,6 +626,7 @@ export function useRecordControl({
         }
         if (result.ok) {
           running = starting;
+          runningStart = starting ? Math.max(runningStart, seq) : 0;
           if (starting) startedRef.current?.(result);
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
@@ -634,12 +669,64 @@ export function useRecordControl({
     [daw, system, chapterId, notify, stopLateStart, stopUnseenTake],
   );
 
+  // A take that ended in the DAW (the transport stopped, a quiet DAW) is no longer the running one: a start of an abandoned press that answers
+  // after it is stopped like any other orphan (`runningStart`).
+  const endedInDaw = useRef(recording);
+  useEffect(() => {
+    if (endedInDaw.current && !recording) runningStart = 0;
+    endedInDaw.current = recording;
+  }, [recording]);
+
   const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);
 
   const stopped = useCallback(() => {
+    runningStart = 0;
     heardRecording.current = false;
     setRecording(false);
   }, []);
+
+  const appStop = useCallback(async <T extends { ok: boolean }>(stopIt: () => Promise<T>): Promise<T> => {
+    appStops.current += 1;
+    // Released once, when the stop answers, fails, or has outlived its limit (a stop that never answers must not mute the end of every later take).
+    let released = false;
+    // 'unknown' is the page going away before the stop answered: what became of the stop is not known, so nothing is said about it.
+    const release = (outcome: 'ok' | 'failed' | 'unknown') => {
+      if (released) return;
+      released = true;
+      window.clearTimeout(timer);
+      appStopReleases.current.delete(drop);
+      appStops.current = Math.max(0, appStops.current - 1);
+      // A push that comes just after the answer is the same stop's: the take is over, so there is no recording left to hear end. A stop that did not
+      // go through leaves the take running, and an end heard meanwhile is heard now.
+      if (outcome === 'ok') heardRecording.current = false;
+      if (appStops.current === 0) {
+        const say = heldSay.current;
+        heldSay.current = null;
+        if (outcome === 'failed') say?.();
+      }
+    };
+    const giveUp = () => release('failed');
+    const drop = () => release('unknown');
+    const timer = window.setTimeout(giveUp, PRESS_LIMITS_MS.recordStop);
+    appStopReleases.current.add(drop);
+    try {
+      const result = await stopIt();
+      release(result.ok ? 'ok' : 'failed');
+      return result;
+    } catch (error) {
+      release('failed');
+      throw error;
+    }
+  }, []);
+  // The page is gone: no stop still in flight may keep the next Booth's control from hearing a take end.
+  useEffect(
+    () => () => {
+      for (const drop of [...appStopReleases.current]) drop();
+    },
+    [],
+  );
+
+  const stopping = useCallback(() => appStops.current > 0 || (busy.current && recordingRef.current), []);
 
   const stop = useCallback(async () => {
     if (!recordingRef.current) return true;
@@ -657,6 +744,8 @@ export function useRecordControl({
     endConfirmed,
     endUnconfirmed,
     stopped,
+    appStop,
+    stopping,
     stop,
     startedByApp: true,
     reason,

@@ -150,7 +150,7 @@ func TestReadAloudRecordStartPreconditionsStillRefuseAndChangeNothing(t *testing
 	})
 	t.Run("several links", func(t *testing.T) {
 		host, ids := newReadAloudReaperHost(t)
-		if _, err := host.ChapterTrackMapConfirm("{00000000-0000-4000-8000-0000000000AA}", ids[0]); err != nil {
+		if _, err := host.seedLink("{00000000-0000-4000-8000-0000000000AA}", ids[0]); err != nil {
 			t.Fatal(err)
 		}
 		fake := &fakeRecorder{}

@@ -117,6 +117,22 @@ test('a take that ends in the DAW while the stop is pending leaves without the "
   expect(await onBooth(page)).toBe(false);
 });
 
+test('push before a 4 s ok stop: "REAPER stopped recording" never shows on Script', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStop: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'stopped', message: '', undoPoints: 0 }), 4000)),
+    };
+  });
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+  await page.waitForTimeout(6000);
+  await expect(page.getByText(/REAPER stopped recording/)).toHaveCount(0);
+});
+
 // The hold is a timer in the overlay host, so these three run on Playwright's clock: it flows while the take starts (the Booth's own guards need real
 // time) and is paused before the key presses, then moved by exactly as much as the test says. No outcome depends on how fast the machine is (#3405).
 // The clock is moved on a few seconds to stop it: far enough that a slow machine's real time has not passed it by when the call arrives.
@@ -301,5 +317,63 @@ test('a Space pressed inside the hold and released after it does not answer the 
   await page.keyboard.up('Space');
   await page.waitForTimeout(150);
   await expect(question(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
+});
+
+// QA (#3405): a held Enter repeats about 500 ms in, after the hold. The repeat is not a press: with focus on the safe button it would close the question, and with
+// focus on "Stop and leave" it would leave the Booth and stop the take, unread.
+for (const button of ['Keep recording', 'Stop and leave'] as const) {
+  test(`a held Enter whose auto-repeat arrives after the hold does not answer (focus on ${button})`, async ({ page }) => {
+    await page.clock.install();
+    await recording(page);
+    await pauseClock(page);
+    await page.keyboard.press('Escape');
+    await expect(question(page)).toBeVisible();
+    await question(page).getByRole('button', { name: button }).focus();
+    await page.keyboard.down('Enter');
+    await page.clock.runFor(450);
+    await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
+    // Held on: the operating system repeats it, and Playwright marks a second `down` of a key already down as a repeat.
+    await page.keyboard.down('Enter');
+    await page.keyboard.down('Enter');
+    await page.keyboard.up('Enter');
+    await page.waitForTimeout(150);
+    await expect(question(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(true);
+    expect(await onBooth(page)).toBe(true);
+    // Pressed afresh after the release, Enter answers as it always did.
+    await page.keyboard.press('Enter');
+    if (button === 'Keep recording') await expect(question(page)).toHaveCount(0);
+    else await expect.poll(() => dawRecording(page)).toBe(false);
+  });
+}
+
+// The owner's flow (#3405): Enter held on the jump menu row from before the question opens. The key is already down when the question appears, so the dialog never
+// sees it go down; its repeats, inside the hold and after it, must not answer, and a fresh press afterwards does.
+test('Enter held on the jump menu row from before the question opens: its repeats never answer, a fresh Enter does', async ({ page }) => {
+  await page.clock.install();
+  await recording(page);
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Go to Script');
+  await expect(page.getByRole('option', { name: /^Go to Script/ })).toBeVisible();
+  await pauseClock(page);
+  await page.keyboard.down('Enter');
+  await expect(question(page)).toBeVisible();
+  await expect(question(page)).toHaveAttribute('data-enter-held', '');
+  // Repeats inside the hold (Playwright marks a second `down` of a key already down as a repeat), then after it.
+  await page.keyboard.down('Enter');
+  await page.clock.runFor(200);
+  await page.keyboard.down('Enter');
+  await page.clock.runFor(250);
+  await expect(question(page)).not.toHaveAttribute('data-enter-held', '');
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(150);
+  await expect(question(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
+  expect(await onBooth(page)).toBe(true);
+  await page.keyboard.up('Enter');
+  await page.keyboard.press('Enter');
+  await expect(question(page)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
 });

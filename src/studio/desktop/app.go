@@ -76,7 +76,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 164
+const hostAPIVersion = 165
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -130,6 +130,10 @@ type Host struct {
 	// ServiceShutdown knows whether to stop one before the app quits.
 	// +checklocks:mu
 	readAloudRecordingChapter string
+	// readAloudStarting counts ReadAloudRecordStart / ReadAloudRecordStartAt calls in flight: from the press until the chapter is held as
+	// recording (or the start failed). A voice chosen meanwhile is not armed in the DAW (#3429): the take is arming and starting on the old voice.
+	// +checklocks:mu
+	readAloudStarting int
 	// voiceSamplesRevision rises with every change to the voice samples this process makes (bindings_voicesamples.go): the
 	// voice_samples_changed event's payload, so a page that missed an event still sees that something changed.
 	voiceSamplesRevision atomic.Int64
@@ -1918,7 +1922,9 @@ var fieldSchemas = map[string][]fieldSchema{
 	// Booth.words_per_page is where the Booth draws a page break: at the end of the paragraph that brings a page to this many words, counted
 	// from a chapter's first word (pageBreakLayout.ts). A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
-	"Booth": {{"words_per_page", "Words per page", "number", nil}},
+	// Booth.follow_chapter_in_daw: going to a chapter in the Booth selects that chapter's track and the tracks inside it in the DAW and
+	// puts the DAW's cursor there (DawGoToChapter); off leaves the DAW where the narrator put it. On by default (#3427).
+	"Booth": {{"words_per_page", "Words per page", "number", nil}, {"follow_chapter_in_daw", "DAW follows the Booth’s chapter", "bool", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates
 	// call. Defaults (5:00, 10%, "sample", ending exclusion off) mirror preview.DefaultSettings.

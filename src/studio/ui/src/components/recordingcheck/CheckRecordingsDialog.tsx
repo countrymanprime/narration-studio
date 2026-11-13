@@ -225,7 +225,8 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
     if (!running) return;
     let asking = false;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      // Escape on a toast that has focus dismisses that toast (`Toast`), not the check.
+      if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('[data-toast-region]'))) return;
       event.preventDefault();
       // The question is already up: Escape answers it (the confirm's own handler), it never asks a second one.
       if (asking) return;

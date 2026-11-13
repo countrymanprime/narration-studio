@@ -56,7 +56,6 @@ func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *te
 			}
 			return "", nil
 		}},
-		{"confirm a match", func() (string, error) { return host.ChapterTrackMapConfirm(flat, ids[2]) }},
 		{"match a chapter", func() (string, error) { return host.ChapterTrackMatch(ids[0]) }},
 		{"list the links", host.ChapterTrackLinks},
 		{"list the map", host.ChapterTrackMapList},
@@ -92,6 +91,10 @@ func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *te
 	// The control: the one path that does change the project, the narrator's own "Create a new track" press, reaches the fake through the
 	// same resolver, so an empty call list above means those paths asked for nothing, not that the fake records nothing.
 	// (The fake's new track has no GUID, so the link that follows it fails; only the DAW call matters here.)
+	// Create only offers itself on a chapter with no link, so clear this one first.
+	if _, err := host.ChapterTrackUnlink(ids[1]); err != nil {
+		t.Fatal(err)
+	}
 	_, _ = host.ChapterTrackCreate(ids[1])
 	if calls := dawWrites(fake.Calls()); len(calls) != 1 || calls[0] != "track_create.CreateTrack" {
 		t.Fatalf("the create press reached the DAW as %v, want one track_create.CreateTrack", calls)

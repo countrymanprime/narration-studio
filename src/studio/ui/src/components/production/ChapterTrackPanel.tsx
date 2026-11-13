@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { LiveTracksLine } from '../engine/LiveTracksStatus';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
@@ -18,7 +19,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -80,7 +81,9 @@ export function ChapterTrackPanel({
   // is a different object and replaces it (#3272).
   const [unlinkedFrom, setUnlinkedFrom] = useState<ChapterTrackLink>();
   const unlinked = unlinkedFrom !== undefined && unlinkedFrom === linkRead;
-  const link = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  const shown = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  // The saved read says which track the chapter is linked to; the shared state's tracks say whether it is still there and what it is called now.
+  const link = shown && followLiveTracks(shown, tracks);
   const trackSummary = unlinked ? undefined : trackSummaryRead;
 
   // Playback: the track the slide-over already knows from `link.track`, played through the same
@@ -142,12 +145,14 @@ export function ChapterTrackPanel({
       ) : (
         <div className="space-y-4 text-sm">
           <Header chapterTitle={shortName} link={link} trackSummary={trackSummary} />
+          {/* Whose tracks these are and when they were read, in the Engine panel's own one-line status with its read-again icon: the line never changes the panel's height. */}
+          <LiveTracksLine live={trackState.live} />
           {/* The state's own sentence (chapter-track-link-control mocks 03-05). */}
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the saved project. It may have been deleted or the project
-                saved elsewhere. Link another track, or unlink.
+                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the project now. It may have been deleted or the project
+                saved elsewhere. Link another track below.
               </span>
             </InsetCard>
           )}
@@ -264,7 +269,9 @@ export function ChapterTrackPanel({
                 Link
               </SectionLabel>
               {tracksError ? (
-                <p style={{ color: 'var(--danger-text)' }}>The REAPER tracks could not be listed: {tracksError}</p>
+                <p style={{ color: 'var(--danger-text)' }}>
+                  The REAPER tracks could not be listed: {tracksError} <EnginePanelLink onOpen={onClose} />
+                </p>
               ) : !tracks ? (
                 <p role="status">
                   {trackState.reading ? (
@@ -279,6 +286,9 @@ export function ChapterTrackPanel({
                 <MappingConfirm
                   chapterTitle={shortName}
                   tracks={tracks}
+                  // A track another chapter holds is labelled "(linked to X)" before the press, as the Engine panel's picker does.
+                  links={trackState.mappings}
+                  chapterId={chapterId}
                   // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
                   linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
                   linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}

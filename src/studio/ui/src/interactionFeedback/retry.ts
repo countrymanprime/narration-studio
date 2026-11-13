@@ -55,6 +55,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
+  'src/components/connection/ChapterLinkDialog.tsx#1': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#2': no(RF),
+  'src/components/connection/ChapterLinkDialog.tsx#3': no(ED),
+  'src/components/mapping/ChapterTrackLinkFix.tsx#1': no(ED),
   'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
     'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
   ),
@@ -65,12 +69,12 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/source/PronunciationCandidates.tsx#1': yes(
     'Asking for the candidates again changes nothing; the toast carries Retry (added by the pronunciation rework).',
   ),
-  'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
-  'src/components/booth/voices/useBoothVoices.ts#5': no(RF),
-  'src/components/booth/voices/useBoothVoices.ts#6': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
-  'src/components/booth/voices/useBoothVoices.ts#7': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#5': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#6': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#7': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
   'src/components/booth/voices/useBoothVoices.ts#8': no(ED),
-  'src/components/booth/voices/useBoothVoices.ts#9': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#9': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#10': no(RF),
   'src/components/master/MasteringChain.tsx#2': no(BT),
   'src/components/layout/JumpMenu.tsx#1': no(
     'A search run as the narrator types: the next change of the query runs it again, and one toast per group replaces the last, so a Retry button would add nothing.',
@@ -90,26 +94,32 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
-  'src/components/booth/page/useBoothPage.ts#3': no(
-    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
-  ),
-  'src/components/booth/page/useBoothPage.ts#4': no(RF),
-  'src/components/booth/page/useBoothPage.ts#5': no(
+  'src/components/booth/page/useBoothPage.ts#3': no(RF),
+  'src/components/booth/page/useBoothPage.ts#4': no(
     'Says that a take the narrator stopped while listening was still starting was kept without the text following it: nothing was lost and repeating changes nothing; Record is the control for the next take (#3321).',
   ),
-  'src/components/booth/page/useBoothPage.ts#6': yes(
+  'src/components/booth/page/useBoothPage.ts#5': yes(
     'Recording did not start because the text could not follow the voice and nothing was kept: Retry takes the same start again once the narrator has fixed the microphone or the model (there before this change).',
   ),
+  'src/components/booth/page/useBoothPage.ts#6': na(
+    'A status sentence, not a failed call: a roll the Booth stopped waiting for has landed and the narrator checks and stops the DAW there; the app does nothing to the DAW itself (#3409).',
+  ),
   'src/components/booth/page/useBoothPage.ts#7': no(
-    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+    'A roll that lands after its limit and was refused (#3409): a roll is a DAW edit that applies to the take as it is now, and R on the page is the control for the next try.',
   ),
   'src/components/booth/page/useBoothPage.ts#8': no(
-    'Ends a cold read whose model check never answered (#3321): the cold read toggle stays on the page for the next try.',
+    'Ends a roll the DAW never answered (#3409): the take may still be recording, and R on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
   'src/components/booth/page/useBoothPage.ts#9': no(
+    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+  ),
+  'src/components/booth/page/useBoothPage.ts#10': no(
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#10': no(RC),
+  'src/components/booth/page/useBoothPage.ts#11': no(RC),
+  'src/components/booth/page/useBoothPage.ts#12': no(
+    "Says that a take left recording on purpose (Leave anyway) is not followed by the text (#3409): the take is the narrator's to end, Stop on the page is the control, and Record is the next try, so a Retry on the toast would be a second one.",
+  ),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),
@@ -123,7 +133,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     "The host's voice read changes nothing; Retry reads it again with the shared tracks (one toast for a run of failed reads).",
   ),
   'src/components/booth/voices/useBoothVoices.ts#2': no(RF),
-  'src/components/booth/voices/useBoothVoices.ts#3': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#3': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
   'src/components/credits/CreditsSetupBanner.tsx#1': no(BT),
   'src/components/credits/CreditsSetupDialog.tsx#1': no(BT),
   'src/components/delivery/page/OutputPanel.tsx#1': yes('A build status read that went quiet: Check again reads the status again, which changes nothing.'),

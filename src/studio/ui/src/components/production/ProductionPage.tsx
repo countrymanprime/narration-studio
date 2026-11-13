@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
@@ -237,6 +237,18 @@ export function ProductionPage({
           : caps.capabilities.track_select?.message || 'This audio engine cannot select a track.',
     },
   });
+
+  // The board's Rec. column and counts come from the overview, which only a change made on this page re-read: a link made, created or cleared
+  // in the Engine panel (or anywhere else) now changes the shared link detail, so the overview is read again when what it says about links does.
+  const linkSignature = tools.trackLinks?.chapters
+    .map((c) => `${c.chapterId}|${c.status}|${c.track?.trackGuid ?? ''}|${c.links.map((l) => l.trackGuid).join(',')}`)
+    .join(';');
+  const seenLinks = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (linkSignature === undefined) return;
+    if (seenLinks.current !== undefined && seenLinks.current !== linkSignature) void read();
+    seenLinks.current = linkSignature;
+  }, [linkSignature, read]);
 
   // Chapter sync: the batch toast with Undo, and a re-read of the chapters on every later `chaptersync:state`.
   const sync = useChapterSyncToast({

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from '../components/primitives/Dialog';
-import { TOAST_INFO_MS } from '../components/primitives/Toast';
+import { TOAST_ERROR_MS, TOAST_INFO_MS } from '../components/primitives/Toast';
 import { OverlayHost } from './OverlayHost';
 import { OverlayProvider, useOverlay } from './OverlayProvider';
 import { createOverlayService, type OverlayService } from './overlayService';
@@ -174,9 +174,108 @@ describe('a question that ignores Enter for a moment (#3349)', () => {
       await vi.advanceTimersByTimeAsync(450);
     });
     expect(dialog.hasAttribute('data-enter-held')).toBe(false);
+    // Both keys went down inside the hold and are still down: released, then pressed afresh, they press.
+    fireEvent.keyUp(keep, { key: 'Enter' });
+    fireEvent.keyUp(keep, { key: ' ' });
     expect(keyDown('Enter')).toBe(true);
     fireEvent.click(keep);
     await waitFor(() => expect(answer).toBe(false));
+  });
+
+  // A held Enter repeats about 500 ms in, after the hold: the repeat is not a press, and neither is the key that went down inside the hold, until it is released.
+  it('a held Enter whose auto-repeat arrives after the hold does not answer, and neither does a key that went down inside the hold', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mount();
+    void service.confirm({
+      title: 'Stop recording?',
+      body: 'REAPER is recording.',
+      confirmLabel: 'Stop and leave',
+      cancelLabel: 'Keep recording',
+      safeDefault: true,
+      ignoreEnterAfterMs: 400,
+    });
+    const dialog = await screen.findByRole('alertdialog', { name: 'Stop recording?' });
+    const keep = within(dialog).getByRole('button', { name: 'Keep recording' });
+    keep.focus();
+    expect(fireEvent.keyDown(keep, { key: 'Enter', cancelable: true })).toBe(false);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(dialog.hasAttribute('data-enter-held')).toBe(false);
+    // The repeat of the Enter that went down at 0 ms.
+    expect(fireEvent.keyDown(keep, { key: 'Enter', repeat: true, cancelable: true })).toBe(false);
+    // An auto-repeat is never a press, even of a key the dialog did not see go down (held since before it opened).
+    expect(fireEvent.keyDown(keep, { key: ' ', repeat: true, cancelable: true })).toBe(false);
+    fireEvent.keyUp(keep, { key: 'Enter' });
+    expect(fireEvent.keyDown(keep, { key: 'Enter', cancelable: true })).toBe(true);
+  });
+
+  // A keyup can go elsewhere (focus moved, the window lost focus): a fresh press after the hold is a press, and only repeats stay refused.
+  describe('a key whose keyup never arrived', () => {
+    const open = async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mount();
+      void service.confirm({
+        title: 'Stop recording?',
+        body: 'REAPER is recording.',
+        confirmLabel: 'Stop and leave',
+        cancelLabel: 'Keep recording',
+        safeDefault: true,
+        ignoreEnterAfterMs: 400,
+      });
+      const dialog = await screen.findByRole('alertdialog', { name: 'Stop recording?' });
+      const keep = within(dialog).getByRole('button', { name: 'Keep recording' });
+      const stop = within(dialog).getByRole('button', { name: 'Stop and leave' });
+      keep.focus();
+      return { dialog, keep, stop };
+    };
+    const pastHold = () =>
+      act(async () => {
+        await vi.advanceTimersByTimeAsync(450);
+      });
+
+    it('does not hold the next fresh press, while a repeat of it is still refused', async () => {
+      const { keep } = await open();
+      expect(fireEvent.keyDown(keep, { key: 'Enter', cancelable: true })).toBe(false);
+      await pastHold();
+      expect(fireEvent.keyDown(keep, { key: 'Enter', repeat: true, cancelable: true })).toBe(false);
+      expect(fireEvent.keyDown(keep, { key: 'Enter', cancelable: true })).toBe(true);
+    });
+
+    it('does not hold a press on another button after Tab', async () => {
+      const { keep, stop } = await open();
+      expect(fireEvent.keyDown(keep, { key: 'Enter', cancelable: true })).toBe(false);
+      await pastHold();
+      stop.focus();
+      expect(fireEvent.keyDown(stop, { key: 'Enter', cancelable: true })).toBe(true);
+    });
+
+    it("is kept while focus moves between the popup's controls and forgotten when focus leaves it", async () => {
+      const { keep, stop } = await open();
+      expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);
+      await pastHold();
+      fireEvent.focusOut(keep, { relatedTarget: stop });
+      expect(fireEvent.keyUp(stop, { key: ' ', cancelable: true })).toBe(false);
+      expect(fireEvent.keyDown(stop, { key: ' ', cancelable: true })).toBe(true);
+      expect(fireEvent.keyUp(stop, { key: ' ', cancelable: true })).toBe(true);
+      expect(fireEvent.keyDown(stop, { key: ' ', cancelable: true })).toBe(true);
+    });
+
+    it('forgets a Space that went down in the hold once focus leaves the popup', async () => {
+      const { keep } = await open();
+      expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);
+      await pastHold();
+      fireEvent.focusOut(keep, { relatedTarget: document.body });
+      expect(fireEvent.keyUp(keep, { key: ' ', cancelable: true })).toBe(true);
+    });
+
+    it('is forgotten when the window loses focus: the Space that ends later is not held', async () => {
+      const { keep } = await open();
+      expect(fireEvent.keyDown(keep, { key: ' ', cancelable: true })).toBe(false);
+      await pastHold();
+      act(() => void window.dispatchEvent(new Event('blur')));
+      expect(fireEvent.keyUp(keep, { key: ' ', cancelable: true })).toBe(true);
+    });
   });
 
   it('a question with no ignoreEnterAfterMs never holds, and says so by having no data-enter-held', async () => {
@@ -297,15 +396,18 @@ describe('overlay.toast', () => {
     expect(screen.queryByText('Saved voice sample.')).toBeNull();
   });
 
-  it('an error toast stays until dismissed', () => {
+  it('an error toast outlasts an information toast, can be dismissed, and goes at its own limit (#3431)', () => {
     vi.useFakeTimers();
     mount();
     act(() => service.toast('Could not save.', { tone: 'error' }));
     expect(within(screen.getByRole('alert')).getByText('Could not save.')).toBeTruthy();
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 20));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 2));
     expect(screen.getByText('Could not save.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
     expect(screen.queryByText('Could not save.')).toBeNull();
+    act(() => service.toast('Could not save again.', { tone: 'error' }));
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(screen.queryByText('Could not save again.')).toBeNull();
   });
 });
 

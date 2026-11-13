@@ -290,7 +290,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/pickups/list/PickupsTable.tsx', text: 'Can’t tell if this list is current. … Last read at ….', class: 'error' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
-    text: 'The linked track… is not in the saved project. It may have been deleted or the project saved elsewhere. Link another track, or unlink.',
+    text: 'The linked track… is not in the project now. It may have been deleted or the project saved elsewhere. Link another track below.',
     class: 'overlay',
   },
   {

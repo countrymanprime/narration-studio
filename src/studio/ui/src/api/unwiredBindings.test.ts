@@ -20,11 +20,7 @@ function sources(dir: string): string[] {
  * Host bindings no screen calls (audit cluster 25, docs/research/ui-function-audit/inventory-shell.md section 1.7): either retired or never
  * wired. The list only shrinks: wire a binding (or delete it from the host) and take its name out, and a new binding cannot arrive without a caller.
  */
-const UNWIRED: string[] = [
-  // The upserting link binding (it can leave a chapter on two tracks). Every screen links through `useChapterLinkActions`, which calls the replacing
-  // `chapterTrackSet` (#3365); the binding itself is deleted from the host in #3396.
-  'chapterTrackMapConfirm',
-];
+const UNWIRED: string[] = [];
 
 const text = sources(root)
   .map((path) => readFileSync(path, 'utf8'))

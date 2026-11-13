@@ -16,6 +16,7 @@ import (
 	"maps"
 	"strconv"
 	"sync"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
@@ -43,7 +44,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapProjectState: dawport.Supported,
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
-	// bridge's experimentalCommands: chapter_track_state, select_track, track_create; arm_only, record_start, record_stop; punch_to,
+	// bridge's experimentalCommands: chapter_track_state, select_track, track_create; arm_only, arm_lane, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range, fx_range_params, fx_range_set_param, fx_range_bypass; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
 	// reduce_range_gain; repair_click; last_action, undo_last; monitor_level (declared with the edit rows below).
@@ -131,6 +132,7 @@ var commandCapability = map[string]dawport.Capability{
 	"stop_play":                  dawport.CapTransportSync,
 	"watch_transport":            dawport.CapTransportSync,
 	"arm_only":                   dawport.CapRecord,
+	"arm_lane":                   dawport.CapRecord,
 	"record_start":               dawport.CapRecord,
 	"record_stop":                dawport.CapRecord,
 	"switch_voice":               dawport.CapRecord,
@@ -240,6 +242,10 @@ func Factory(env dawport.Env) (dawport.Adapter, error) {
 	return New(client, env.Allowed)
 }
 
+// answerTimeout replaces the bridge's 3 s answer wait when above zero. Only this package's TestMain sets it: the fake bridge
+// answers from a polling goroutine, and a loaded Windows runner can starve it for longer than 3 s (#3395).
+var answerTimeout time.Duration
+
 // New wraps client, which must not be nil (ErrNoSession). allowed is the resolver's Allowed, asked through Gate before each of
 // bridge.Actions' commands is sent; nil refuses them all with bridge.ErrNotGated.
 //
@@ -250,6 +256,10 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 	}
 	navigator := bridge.NewNavigator(client)
 	actions := bridge.NewActions(client, Gate(allowed))
+	if answerTimeout > 0 {
+		navigator.SetTimeout(answerTimeout)
+		actions.SetTimeout(answerTimeout)
+	}
 	heartbeat := daw.NewReachability(client)
 	commands := events{client: client}
 	positions := daw.NewPositionFeed()
@@ -427,6 +437,9 @@ type puncher struct {
 	*bridge.Actions
 	allowed func(dawport.Capability) error
 }
+
+var _ dawport.LaneArmer = (*bridge.Actions)(nil)
+var _ dawport.VoiceSwitcher = (*bridge.Actions)(nil)
 
 var _ dawport.Puncher = puncher{}
 
