@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
+import { useShowInRail } from '../../data/useShowInRail';
+import { useMarks, useScriptCommands } from '../../data/useScriptData';
 import { Button } from '../../../../primitives/Button';
 import { Dialog } from '../../../../primitives/Dialog';
 import { FIELD_LABEL_CLASSES, Field } from '../../../../primitives/Field';
@@ -20,7 +21,7 @@ export const composerTitle = (quote: string): string => `Mark “${quote.length 
 export function MarkComposer({ type, selection, onClose }: { type: string; selection: ReaderSelection; onClose: () => void }) {
   const { types } = useMarks();
   const commands = useScriptCommands();
-  const [, updateView] = useScriptView(() => null);
+  const showInRail = useShowInRail();
   const [chosen, setChosen] = useState(type);
   const [text, setText] = useState('');
   const [problem, setProblem] = useState('');
@@ -37,8 +38,8 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     const mark = await commands.addMark(selection, chosen, text);
     setSaving(false);
     if (!mark) return;
-    updateView({ tab: 'marks', sel: mark.id });
     onClose();
+    showInRail({ tab: 'marks', sel: mark.id });
   };
 
   return (

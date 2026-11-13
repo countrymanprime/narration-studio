@@ -64,6 +64,13 @@
   },
   {
     "page": "script",
+    "state": "rail-pronunciation-leave-confirm",
+    "viewport": "desktop",
+    "docName": "script-rail-leave-confirm",
+    "caption": "Script - leaving with a pronunciation typed and not saved asks Unsaved changes, names it, and offers Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "script",
     "state": "reader",
     "viewport": "desktop",
     "docName": "script-reader",

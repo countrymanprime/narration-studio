@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The rebuilt Script page assembled (SN-B77): the columns and drawers, the rail's tabs, the empty state, what the page registers,
 // the bookmark flow, the credits re-homed from the old page, one view state, and the old page's props. Over the browser mock host.
+import userEvent from '@testing-library/user-event';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -157,17 +158,31 @@ describe('three-columns-from-1440-and-drawers-below', () => {
 });
 
 describe('rail-tabs-rove-and-show-the-right-body', () => {
-  it('has the three tabs, and Left and Right move and select, wrapping', async () => {
+  it('has the three tabs, and Left and Right move the focus, wrapping, without selecting', async () => {
     mount();
     await firstHeading();
     const tabs = within(panel('rail')).getAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual(['Words', 'Story Bible', 'Notes']);
     tabs[0]!.focus();
     fireEvent.keyDown(tabs[0]!, { key: 'ArrowLeft', code: 'ArrowLeft' });
+    await waitFor(() => expect(document.activeElement).toBe(tabs[2]));
+    expect(view.tab).toBe('pron');
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
+    await waitFor(() => expect(document.activeElement).toBe(tabs[0]));
+    expect(view.tab).toBe('pron');
+  });
+
+  it('Enter and Space select the tab that has the focus (#3400 H5)', async () => {
+    mount();
+    await firstHeading();
+    const tabs = within(panel('rail')).getAllByRole('tab');
+    tabs[2]!.focus();
+    expect(view.tab).toBe('pron');
+    const user = userEvent.setup();
+    await user.keyboard('{Enter}');
     await waitFor(() => expect(view.tab).toBe('marks'));
-    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
-    await waitFor(() => expect(view.tab).toBe('pron'));
-    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
+    tabs[1]!.focus();
+    await user.keyboard(' ');
     await waitFor(() => expect(view.tab).toBe('bible'));
   });
 

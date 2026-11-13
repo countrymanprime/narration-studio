@@ -126,7 +126,9 @@ record it in the Booth or set its prep state (**My prep** opens the states besid
   **Look up** on selected words with no entry shows them as a card instead, with their definition from where **Definitions from** says, **Create an entry**
   (the kinds are the Story Bible's own types) and the **Definition**, **Forvo** and **YouGlish** pages.
 - **Notes** lists the chapter's marks, each a thread you can reply to, resolve or reopen, with the note and the replies; one goes to its
-  place in the text. A question for the author is a note like the others.
+  place in the text. A question for the author is a note like the others. A reply or an edit not yet saved, and a pronunciation typed under **Save to my dictionary** and not yet saved, are asked about when you leave the Script, open another chapter in its list, switch the side panel's tab (the arrow keys move along the tabs, and Enter or Space opens one), pick another word, or look something else up in the text, which would replace the card they are typed in (**Unsaved changes**, with **Save & continue**, **Discard & continue** and **Cancel**).
+
+![Script - leaving with a pronunciation typed and not saved asks Unsaved changes, names it, and offers Save & continue, Discard & continue and Cancel](../../images/ui/script-rail-leave-confirm.webp)
 
 ![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
 

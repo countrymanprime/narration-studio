@@ -71,9 +71,6 @@ const EXEMPT: Record<string, string> = {
 const SCREEN = (screen: string) => `joins the registry in the ${screen} change of #3400; until then leaving it still drops the text`;
 const PENDING: Record<string, string> = {
   'proof/inspector/FindingThread.tsx': SCREEN('Proof'),
-  'script/page/rail/threads/MessageEditor.tsx': SCREEN('Script'),
-  'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
-  'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
   'settings/controls/MwKeyBody.tsx': SCREEN('Settings'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
@@ -182,7 +179,20 @@ describe("a link that leaves a page is a GuardedLink, not the router's Link (#34
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
-const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {};
+const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
+const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
+const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'script/page/rail/threads/MessageEditor.tsx': [
+    RAIL_TABS,
+    { file: 'script/page/rail/threads/ThreadsTab.tsx', control: 'editing another message', asks: /onEdit: \(id, index\) => guarded\(/ },
+  ],
+  'script/page/rail/threads/NoteCard.tsx': [RAIL_TABS, RAIL_LOOKUP],
+  'script/page/rail/words/WordCard.tsx': [
+    RAIL_TABS,
+    RAIL_LOOKUP,
+    { file: 'script/page/rail/words/WordsTab.tsx', control: 'another word in the chapter list', asks: /word !== row\.key && guarded\(/ },
+  ],
+};
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)
@@ -208,5 +218,28 @@ describe('a control on the page that replaces a draft holder asks first (#3404)'
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// What shows in the Script rail is changed through `useShowInRail` (which asks), the tab strip or the word list (which ask themselves); a file that writes the tab,
+// word or entry to the view store directly would skip the question (#3404).
+const RAIL_VIEW_WRITE = /\b(?:update|updateView)\(\{[^}]*\b(?:tab|word|entryId)\b/;
+const RAIL_WRITE_EXEMPT: Record<string, string> = {
+  'script/page/layout/RailPanel.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/words/WordsTab.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/bible/BibleTab.tsx':
+    'picks an entry on the Story Bible tab, whose cards hold no typed text: the Words and Notes cards are not mounted there',
+};
+describe('the Script rail view is written through the question (#3404)', () => {
+  test('no file writes the rail tab, word or entry to the view store without asking', () => {
+    const writers = files(join(components, 'script'), /\.tsx?$/)
+      .filter((path) => !SKIPPED_NAV.test(path))
+      .filter((path) => RAIL_VIEW_WRITE.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(
+      writers.filter((name) => !(name in RAIL_WRITE_EXEMPT)),
+      'use useShowInRail (script/page/data/useShowInRail.ts)',
+    ).toEqual([]);
+    expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
   });
 });
