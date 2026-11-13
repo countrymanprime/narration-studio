@@ -270,10 +270,11 @@ export function Relationships({
   };
   const showing = editing ? drafts : [];
   // A relationship row half filled in is written once it has both its words and its other end, so until then it is held text with nothing to save (#3400).
+  const started = drafts.filter((row) => row.label.trim() !== '' || row.otherId !== '').length;
   useUnsavedDraft('story-bible-relationship-rows', {
-    dirty: editing && drafts.some((row) => row.label.trim() !== '' || row.otherId !== ''),
-    label: 'a relationship you started',
-    brief: 'a relationship',
+    dirty: editing && started > 0,
+    label: started > 1 ? `${started} relationships you started` : 'a relationship you started',
+    brief: started > 1 ? `${started} relationships` : 'a relationship',
     kind: 'relationship-rows',
     many: (n) => `${plural(n, 'relationship')} you started`,
     discard: () => setDrafts([]),

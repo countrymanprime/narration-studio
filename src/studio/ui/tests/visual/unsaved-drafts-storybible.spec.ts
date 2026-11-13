@@ -230,3 +230,51 @@ test.describe('at 320 x 300', () => {
     await expectFits(page, dialog);
   });
 });
+
+// Typed text is never swapped for the saved text: a save inside the entry (a relationship completed, a name added) reloads the entry, and the reload only replaces
+// what the narrator has not touched (#3457).
+test('a typed description survives a relationship being completed and a name being added', async ({ page }) => {
+  await startEntryEdit(page);
+  await page.getByRole('button', { name: 'Add a relationship' }).click();
+  const row = page.getByRole('combobox', { name: 'Relationship' }).last();
+  await row.fill('friend of');
+  await row.blur();
+  await page
+    .getByRole('button', { name: /^To:|Choose|To/ })
+    .last()
+    .click();
+  await page.getByRole('option').first().click();
+  await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
+  const names = page.getByRole('textbox', { name: /Add a name|name/i }).last();
+  if (await names.isVisible()) {
+    await names.fill('Allie');
+    await names.press('Enter');
+    await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
+  }
+});
+
+// The entry's own Save refuses while a draft that cannot be saved is held beside it, as the question does: saving would close the editor and take it along.
+test('Save with a relationship row that cannot be saved keeps the editor and the row', async ({ page }) => {
+  await startEntryEdit(page);
+  await page.getByRole('button', { name: 'Add a relationship' }).click();
+  const row = page.getByRole('combobox', { name: 'Relationship' }).last();
+  await row.fill('half row words');
+  await row.blur();
+  await page.getByRole('button', { name: 'Save changes to this entry' }).click();
+  await expect(page.getByText(/cannot be saved yet, so the entry was not saved/)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
+  await expect(page.getByRole('combobox', { name: 'Relationship' }).last()).toHaveValue('half row words');
+});
+
+// An approval note typed beside an entry edit is held too: the question offers no Save, so nothing is saved and the note is not dropped.
+test('an approval note beside an entry edit makes the question Discard-only', async ({ page }) => {
+  await startEntryEdit(page);
+  await page.getByRole('textbox', { name: 'Note (optional)' }).fill('anchor take');
+  await clickNav(page, 'Production');
+  const question = unsaved(page, 'Unsaved changes');
+  await expect(question).toContainText('Discard');
+  await expect(question.getByRole('button', { name: 'Save & continue' })).toHaveCount(0);
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(page.getByRole('textbox', { name: 'Note (optional)' })).toHaveValue('anchor take');
+  await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
+});

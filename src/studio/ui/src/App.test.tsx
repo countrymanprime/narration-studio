@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 27 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 28 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 21 for the engine panel link, an overlay dialog's link from dirty Settings, test holders in an overlay dialog, and a question whose holder went away; 21 to 26 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, the unsaveable relationship row, and the approval note.
-const MOUNT_BUDGET = 26;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 21 for the engine panel link, an overlay dialog's link from dirty Settings, test holders in an overlay dialog, and a question whose holder went away; 21 to 26 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, the unsaveable relationship row, and the approval note; 26 to 27 for text typed while the entry's own Save is in flight.
+const MOUNT_BUDGET = 27;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1730,6 +1730,27 @@ describe('App Back and Forward', () => {
       fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect((screen.getByRole('textbox', { name: 'Note (optional)' }) as HTMLInputElement).value).toBe('anchor take');
+    });
+
+    it("text typed while the entry's own Save is in flight is not lost: the editor stays open with it (#3457)", async () => {
+      let finish: () => void = () => {};
+      const real = createMockApi();
+      const guideEdit = vi.fn(async (...args: Parameters<typeof real.guideEdit>) => {
+        await new Promise<void>((resolve) => (finish = resolve));
+        return real.guideEdit(...args);
+      });
+      await openStoryBible({ guideEdit });
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+      const description = () => screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement;
+      fireEvent.change(description(), { target: { value: 'First text' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
+      await waitFor(() => expect(guideEdit).toHaveBeenCalledOnce());
+      fireEvent.change(description(), { target: { value: 'First text MORE' } });
+      finish();
+      await waitFor(() => expect(screen.queryByText('Entry saved.')).not.toBeNull());
+      // The request carried only the first text; the newer text is still in the open editor.
+      expect(guideEdit.mock.calls[0]![1]).toMatchObject({ description: 'First text' });
+      expect(description().value).toBe('First text MORE');
     });
 
     // D1, whole app: a draft that cannot be saved blocks the exit and keeps its text; only Discard & continue drops it. Saving the entry would close the editor and

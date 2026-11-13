@@ -1,5 +1,6 @@
 import { shortName } from '../../studio/drafts/draftSentence';
-import { useGuardedNavigate, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedNavigate, useSharedSave, useUnsavedDraft, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
+import { describeHeld } from '../../studio/drafts/draftSentence';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -80,6 +81,7 @@ const NO_TYPES: GuideType[] = [];
 
 /** Why a control waits while another change saves: its tooltip, a keyboard reaches it (#3339). */
 const BUSY_REASON = 'Another change is still saving.';
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
  * so nothing speaks then, and `failed` says so for the entry to show. */
@@ -336,12 +338,29 @@ export function GuideDetail({
   // The draft is the entry's, its talk rows split out once the types say it speaks. A change of the types alone (they arrive
   // after the entry) leaves a draft being edited as typed; a new or reloaded entry always replaces it.
   const draftEntity = useRef<GuideEntity>(undefined);
+  // What the draft was made from the last time it was set from the entry: a reload of the entry being edited (a relationship completed, a name added, a category
+  // changed, a Rescan) only replaces the fields the narrator has not touched since, so typed text is never swapped for the saved text (#3457).
+  const draftBase = useRef<Draft>(undefined);
   const editingNow = useRef(editing);
   editingNow.current = editing;
   useEffect(() => {
     if (!entity || (draftEntity.current === entity && editingNow.current)) return;
+    const fresh = draftOf(entity, speaks);
+    const reloadOfEditedEntry = draftEntity.current?.id === entity.id && editingNow.current && draftBase.current !== undefined;
     draftEntity.current = entity;
-    setDraft(draftOf(entity, speaks));
+    const base = draftBase.current;
+    draftBase.current = fresh;
+    if (!reloadOfEditedEntry || !base) {
+      setDraft(fresh);
+      return;
+    }
+    setDraft((current) => {
+      const merged: Record<string, unknown> = {};
+      for (const key of Object.keys(fresh) as (keyof Draft)[]) {
+        merged[key] = JSON.stringify(current[key]) === JSON.stringify(base[key]) ? fresh[key] : current[key];
+      }
+      return merged as Draft;
+    });
   }, [entity, speaks]);
 
   // The entry list's menu asked this entry to do something: it does what its own button does, once per command.
@@ -354,6 +373,9 @@ export function GuideDetail({
     onCommandTaken?.();
   });
 
+  const drafts = useUnsavedDrafts();
+  const draftNow = useRef(draft);
+  draftNow.current = draft;
   // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
   const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
   // The entry's own Save and the question's Save & continue share one request (#3404).
@@ -388,6 +410,13 @@ export function GuideDetail({
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
   const saveEntry = async (): Promise<boolean> => {
+    // Saving leaves edit mode and takes along a draft beside this one that cannot be saved (a half-filled relationship row, an approval note): the entry's own Save
+    // refuses as the question does (#3400 D1), and says which part cannot be saved.
+    const loose = drafts.heldNow().filter((held) => !held.saveable);
+    if (loose.length > 0) {
+      notify(`${capitalize(describeHeld(loose))} cannot be saved yet, so the entry was not saved.`);
+      return false;
+    }
     const problem = propertyProblem(draft.properties, speaks);
     if (problem) {
       setPropertyError(problem);
@@ -408,8 +437,10 @@ export function GuideDetail({
       context: draft.context,
     };
     if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
+    const sent = JSON.stringify(draft);
     const done = await save('save', values, 'Entry saved.');
-    if (done) setEditing(false);
+    // Text typed while the request was in flight was not in it: the editor stays open with it, as an edit still to save, rather than closing over it (#3457).
+    if (done && JSON.stringify(draftNow.current) === sent) setEditing(false);
     return done;
   };
   saveEntryRef.current = saveEntry;
