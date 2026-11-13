@@ -154,6 +154,7 @@ export const proofStates: StateEntry[] = [
     state: 'note-leave-confirm',
     description:
       'Proof, a note typed on the first finding and not added, and another page pressed in the navigation: the Unsaved changes confirm names the note, with its three actions, over the page',
+    ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
