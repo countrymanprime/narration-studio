@@ -452,5 +452,7 @@ describe('toast lifetime', () => {
     expect(toastLifetimeMs({ tone: 'error' })).toBe(TOAST_ERROR_MS);
     expect(toastLifetimeMs({ tone: 'info' })).toBe(TOAST_INFO_MS);
     expect(TOAST_ERROR_MS).toBeGreaterThan(TOAST_INFO_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: 1 })).toBe(TOAST_ERROR_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: TOAST_MAX_MS })).toBe(TOAST_MAX_MS);
   });
 });

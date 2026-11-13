@@ -41,11 +41,13 @@ const FADE_MS = 150;
 // shortcut: a fixed wait, not the action's own promise (`onAction` returns nothing); upgrade when an action reports when it is done.
 export const ACTION_FOCUS_MS = 250;
 
-/** How long a message stays: its tone's time, or the `durationMs` it asked for when that is a positive number, and never more than `TOAST_MAX_MS`. Every toast has a timer, so none is made without a bounded lifetime. */
+/** How long a message stays: its tone's time, or the `durationMs` it asked for when that is a positive number (an error is never shorter than its own default), and never more than `TOAST_MAX_MS`. Every toast has a timer, so none is made without a bounded lifetime. */
 export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs'>): number {
   const asked = message.durationMs;
-  const own = typeof asked === 'number' && Number.isFinite(asked) && asked > 0 ? asked : message.tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
-  return Math.min(own, TOAST_MAX_MS);
+  const base = message.tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+  const own = typeof asked === 'number' && Number.isFinite(asked) && asked > 0 ? asked : base;
+  // An error is never shorter than its default, whatever a caller asks: it stays longer than an information message.
+  return Math.min(message.tone === 'error' ? Math.max(own, base) : own, TOAST_MAX_MS);
 }
 
 function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {
