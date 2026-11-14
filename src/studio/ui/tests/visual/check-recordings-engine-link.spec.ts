@@ -48,3 +48,38 @@ for (const route of ['Escape', 'Close'] as const) {
     expect(landed.inRow, `focus is on ${landed.tag} "${landed.label}", not in the chapter's row`).toBe(true);
   });
 }
+
+// qa-breaker on #3475: Check recordings opened from the command palette has no row to go back to; closing the engine panel it opened left focus on the header's
+// switch-project button (the page's landmark handed to the drawer, which picks the first tabbable control). It lands on the page, as closing the dialog alone does.
+test('Check recordings from the command palette: closing the engine panel it opened does not leave focus in the header', async ({ page }) => {
+  await page.goto('/?mockCoverageRefusal=no_project_file');
+  await page.getByRole('table', { name: 'Chapter pipeline' }).waitFor({ timeout: 20_000 });
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: /^Proof/ })
+    .first()
+    .click();
+  await page.waitForTimeout(800);
+  await page.keyboard.press('Control+K');
+  await page.getByRole('combobox').or(page.getByRole('textbox')).first().fill('Check recordings');
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Check recordings' });
+  await dialog.waitFor({ timeout: 20_000 });
+  await dialog.getByRole('button', { name: /^Check \d+ chapters?$/ }).click();
+  await dialog.getByRole('button', { name: 'Open the audio engine panel' }).first().click({ timeout: 30_000 });
+  const panel = page.getByRole('dialog', { name: /Audio engine/ });
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  await page.waitForTimeout(700);
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0, { timeout: 5_000 });
+  await page.waitForTimeout(500);
+  const landed = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    return {
+      inHeader: Boolean(active?.closest('header')),
+      tag: active?.tagName,
+      label: (active?.getAttribute('aria-label') ?? active?.textContent ?? '').slice(0, 40),
+    };
+  });
+  expect(landed.inHeader, `focus is on ${landed.tag} "${landed.label}", in the header`).toBe(false);
+});

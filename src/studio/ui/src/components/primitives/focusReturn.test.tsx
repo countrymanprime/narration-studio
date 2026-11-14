@@ -70,10 +70,10 @@ describe('escapeClosesPanel', () => {
 // A panel opened by a control inside a dialog that closes as it opens (#3416 item 59): its opener goes with the dialog, so it returns to where the dialog
 // was handing focus back to, not the page's first control.
 describe('useReturnFocusTarget after a dialog closed as the panel opened', () => {
-  function Rig({ closedWith }: { closedWith: boolean }) {
+  function Rig({ closedWith, named }: { closedWith: boolean; named?: boolean }) {
     const [open, setOpen] = useState(false);
     const [linkThere, setLinkThere] = useState(true);
-    const back = useReturnFocusTarget(open);
+    const back = useReturnFocusTarget(open, named ? () => document.getElementById('header') : undefined);
     return (
       <>
         <main tabIndex={-1}>
@@ -92,7 +92,7 @@ describe('useReturnFocusTarget after a dialog closed as the panel opened', () =>
             </button>
           )}
         </main>
-        <button onClick={() => (document.body.dataset.back = (back() as HTMLElement).id ?? 'main')}>Close</button>
+        <button onClick={() => (document.body.dataset.back = (back() as HTMLElement | boolean) === false ? 'page' : (back() as HTMLElement).id)}>Close</button>
       </>
     );
   }
@@ -110,7 +110,15 @@ describe('useReturnFocusTarget after a dialog closed as the panel opened', () =>
     screen.getByText('Link').focus();
     fireEvent.click(screen.getByText('Link'));
     fireEvent.click(screen.getByText('Close'));
-    expect(document.body.dataset.back).toBe('');
+    // Not the header's first button (which Base UI would pick if handed <main>): the page's own landmark, focused by the hook.
+    expect(document.body.dataset.back).toBe('page');
     vi.restoreAllMocks();
+  });
+  it('what the caller names wins over a dialog that closed a moment ago (another row opened right after)', () => {
+    render(<Rig closedWith named />);
+    screen.getByText('Link').focus();
+    fireEvent.click(screen.getByText('Link'));
+    fireEvent.click(screen.getByText('Close'));
+    expect(document.body.dataset.back).toBe('header');
   });
 });

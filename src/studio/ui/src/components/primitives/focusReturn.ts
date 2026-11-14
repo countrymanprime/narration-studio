@@ -19,11 +19,13 @@ export function useReturnFocusTarget(open: boolean, fallback?: () => HTMLElement
   return () => {
     const element = opener.current;
     if (element?.isConnected && element !== document.body) return element;
-    const where = fromDialog.current?.();
-    if (where?.isConnected) return where;
+    // What the caller names comes first: it knows the place this panel was opened for; the dialog that closed a moment ago may have been another one's.
     const elsewhere = fallback?.();
     if (elsewhere?.isConnected) return elsewhere;
-    return document.querySelector<HTMLElement>('main') ?? true;
+    const where = fromDialog.current?.();
+    if (where?.isConnected && where.tagName !== 'MAIN') return where;
+    // <main> is focusable but not tabbable, so handed to Base UI it would pick the header's first button (#2902): focus it ourselves.
+    return handFocusToPage();
   };
 }
 
