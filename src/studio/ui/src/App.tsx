@@ -212,7 +212,7 @@ if (typeof window !== 'undefined') {
       return;
     }
     // A fragment typed or followed by hand pushes an entry the router never numbered (the router stamps every entry it makes with an `idx`), and `popstate` is how it arrives, whether or not the history grew (a typed hash in the middle of the history truncates what was ahead). Left alone it would count as entry 0 and
-    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3456).
+    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3446).
     const state = window.history.state as { idx?: number } | null;
     if (state?.idx === undefined) {
       window.history.replaceState({ ...state, idx: popGuard.idx + 1 }, '');
