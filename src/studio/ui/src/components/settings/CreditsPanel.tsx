@@ -102,8 +102,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // What the editor holds and which template it is on, as of the last render, for a save that resolves long after it started.
   const editorNow = useRef({ id: selectedId, name: draftName, kind: draftKind, body: draftBody });
   editorNow.current = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
-  // Text typed while a save was in flight: the list is read again when the save ends and the editor is reset to the saved template, which must not take it back.
-  const typedMeanwhile = useRef<{ name: string; kind: string; body: string } | null>(null);
+  // The template the editor was last reset from. A list read again for the same template (after a save, a duplicate) resets the editor only when nothing was typed since:
+  // text typed on it while a save was in flight stays, as an edit still to save, and text typed on another template is never put back on this one (#3461).
+  const baseline = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
+  /** What the last save sent, for Save & continue to see that more was typed while it ran. */
+  const lastSent = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -126,20 +129,19 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   }, [load]);
 
   useEffect(() => {
-    if (typedMeanwhile.current && selected) {
-      const typed = typedMeanwhile.current;
-      typedMeanwhile.current = null;
-      setDraftName(typed.name);
-      setDraftKind(typed.kind);
-      setDraftBody(typed.body);
-      setTemplateDirty(true);
-      return;
-    }
     if (!selected) {
+      baseline.current = null;
       setDraftName('');
       setDraftKind('opening');
       setDraftBody('');
       setTemplateDirty(false);
+      return;
+    }
+    const before = baseline.current;
+    const typed = editorNow.current;
+    baseline.current = { id: selected.id, name: selected.name, kind: selected.kind, body: selected.body };
+    if (before && before.id === selected.id && (typed.name !== before.name || typed.kind !== before.kind || typed.body !== before.body)) {
+      setTemplateDirty(typed.name !== selected.name || typed.kind !== selected.kind || typed.body !== selected.body);
       return;
     }
     setDraftName(selected.name);
@@ -180,15 +182,14 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       notify('Credit template saved.');
-      // Saved: the editor holds nothing now, whatever the list says when it is read again (the registry reads the editor as clean once this resolves).
-      setTemplateDirty(false);
-      projectDataChanged();
-      // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, and what they typed
-      // for it is not put back. Text typed on this template since the save started stays, as an edit still to save (#3461).
-      const stillHere = editorNow.current.id === sent.id;
+      // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, with what they
+      // typed there. Text typed on this template since the save started stays, as an edit still to save (#3461).
       const typed = editorNow.current;
-      if (stillHere && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body))
-        typedMeanwhile.current = { name: typed.name, kind: typed.kind, body: typed.body };
+      const stillHere = typed.id === sent.id;
+      const typedSince = stillHere && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body);
+      lastSent.current = sent;
+      if (stillHere) setTemplateDirty(typedSince);
+      projectDataChanged();
       await load();
       if (stillHere) setSelectedId(saved.id);
       return true;
@@ -205,7 +206,16 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     }
   };
   // The editor's Save and the question's Save & continue share one request: pressing both sends one (#3404).
-  const saveTemplate = useSharedSave(saveTemplateNow);
+  const saveOnce = useSharedSave(saveTemplateNow);
+  // Save & continue while a save is on its way joins it, and then saves what was typed after it started, so the move never goes on with that text left behind (#3461).
+  const saveTemplate = async (): Promise<boolean> => {
+    const saved = await saveOnce();
+    const sent = lastSent.current;
+    const typed = editorNow.current;
+    if (saved && sent && sent.id !== '' && typed.id === sent.id && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body))
+      return saveOnce();
+    return saved;
+  };
   // The template editor holds a draft that waits for Save template (the project values below save as they are typed), so leaving the page asks (#3400).
   // A New template with nothing typed, or an edit put back as it was, holds nothing.
   const draftHeld =
@@ -320,6 +330,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             <Select
               label="Template"
               value={selectedId}
+              disabled={busy}
               onChange={(id) => id !== selectedId && guarded(() => setSelectedId(id))}
               fullWidth
               options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}

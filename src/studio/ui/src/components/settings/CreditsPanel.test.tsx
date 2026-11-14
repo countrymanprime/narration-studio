@@ -144,6 +144,92 @@ describe('CreditsPanel', () => {
     expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toBe('Typed, then discarded.');
   });
 
+  const otherOf = (select: HTMLSelectElement) => [...select.options].find((option) => option.value !== select.value)!.value;
+
+  it('text typed on the template the narrator went to stays when the earlier save lands (#3461 A)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'Typed on the first.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    const other = otherOf(select);
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Typed on the second.' } });
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed on the second.');
+    expect(registry.heldNow()).toHaveLength(1);
+  });
+
+  it('Save & continue while a save runs saves what was typed after it started too (#3461 B)', async () => {
+    const { api } = renderPanel();
+    const real = api.saveCreditsTemplate.bind(api);
+    const releases: Array<() => void> = [];
+    const sent: string[] = [];
+    vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(async (...args) => {
+      sent.push(args[3]);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      return real(...args);
+    });
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    const outcome = registry.save();
+    await waitFor(() => expect(releases).toHaveLength(1));
+    releases[0]!();
+    await waitFor(() => expect(releases).toHaveLength(2));
+    releases[1]!();
+    expect((await outcome).saved).toBe(true);
+    expect(sent).toEqual(['First part.', 'First part. MORE']);
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it('a pick between the save landing and the list being read again still asks (#3461 B2)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    const asked: Array<() => void> = [];
+    act(() => registry.setShell({ ask: (run) => void asked.push(run), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    const real = api.creditsTemplates.bind(api);
+    let listed: () => void = () => {};
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(async () => {
+      await new Promise<void>((resolve) => (listed = resolve));
+      return real();
+    });
+    release();
+    await waitFor(() => expect(vi.mocked(api.creditsTemplates)).toHaveBeenCalled());
+    expect(registry.heldNow()).toHaveLength(1);
+    fireEvent.change(select, { target: { value: otherOf(select) } });
+    expect(asked).toHaveLength(1);
+    listed();
+  });
+
+  it('a list that cannot be read after a save leaves the typed text held, and another template does not show it (#3461 C)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    vi.spyOn(api, 'creditsTemplates').mockRejectedValue(new Error('list failed'));
+    release();
+    await waitFor(() => expect(vi.mocked(api.creditsTemplates)).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(registry.heldNow()).toHaveLength(1);
+    const other = otherOf(select);
+    vi.mocked(api.creditsTemplates).mockRestore();
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toContain('MORE');
+  });
+
   it('a New template whose text was typed and deleted holds nothing (#3461)', async () => {
     renderPanel();
     await editTemplate();
