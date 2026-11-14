@@ -75,8 +75,10 @@ export function NoteCard({
   }, [active]);
 
   const send = async (act: NoteActions['onReply']) => {
-    const sent = await act(mark.id, who, reply.trim());
-    if (sent) setReply('');
+    const text = reply;
+    const sent = await act(mark.id, who, text.trim());
+    // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400).
+    if (sent) setReply((now) => (now === text ? '' : now));
     return sent;
   };
   const sendReply = useSharedSave(() => send(actions.onReply));

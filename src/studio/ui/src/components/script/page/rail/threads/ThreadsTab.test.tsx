@@ -176,6 +176,28 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
   });
 });
 
+describe('a reply typed while the first is being added', () => {
+  it('stays in the box when the save resolves (#3400)', async () => {
+    const { note } = await seed();
+    const { user } = mount();
+    let release: () => void = () => {};
+    const real = api.marksReply.bind(api);
+    vi.spyOn(api, 'marksReply').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    const box = await screen.findByRole('textbox', { name: 'Add to this note' });
+    await user.type(box, 'First');
+    await user.click(card(note.id).getByRole('button', { name: 'Reply' }));
+    await user.type(box, ' and more');
+    release();
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === note.id)?.thread.at(-1)?.text).toBe('First'));
+    expect((box as HTMLTextAreaElement).value).toBe('First and more');
+  });
+});
+
 describe('holders-render-clean-after-their-save', () => {
   it('a reply typed under a note renders clean once the registry has saved it', async () => {
     const { note } = await seed();
