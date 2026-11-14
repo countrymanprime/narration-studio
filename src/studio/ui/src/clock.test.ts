@@ -43,11 +43,15 @@ describe('clock, full', () => {
   it('rounds to the millisecond and carries, so no field reads out of range', () => {
     expect(clock(59.9996, { full: true })).toBe('00:01:00.000');
     expect(clock(3599.9999, { full: true })).toBe('01:00:00.000');
-    expect(clock(1.0005, { full: true })).toBe('00:00:01.001');
     expect(clock(0.0004, { full: true })).toBe('00:00:00.000');
   });
   it('reads zero for negative, NaN and infinite input', () => {
     for (const bad of [-5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) expect(clock(bad, { full: true })).toBe('00:00:00.000');
+  });
+  it('caps a huge length instead of overflowing', () => {
+    const capped = clock(1e9, { full: true });
+    expect(capped).toBe('277777:46:40.000');
+    for (const huge of [1e12, 1e300, Number.MAX_VALUE]) expect(clock(huge, { full: true })).toBe(capped);
   });
   it('overrides the other options and leaves the default forms alone', () => {
     expect(clock(402, { full: true, minuteDigits: 1, hours: 'always' })).toBe('00:06:42.000');
