@@ -1,6 +1,7 @@
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { focusPageMain } from './components/primitives/focusReturn';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
@@ -295,6 +296,19 @@ function AppRoutes() {
   // The project picker over the shell: the header's project name and the jump menu's "Switch project…" open it. It closes when a project is
   // chosen (the project folder changes) or on its own Back button.
   const [projectPickerOpen, setProjectPickerOpen] = useProjectPicker(data?.projectFolder);
+  // The chooser replaces the whole shell, so going back builds it again and the control that opened the chooser is gone: focus would fall to <body>, and the next Tab to
+  // "Skip to content". It lands on the page instead (#3416).
+  const pickerWasOpen = useRef(false);
+  useEffect(() => {
+    if (projectPickerOpen) {
+      pickerWasOpen.current = true;
+      return;
+    }
+    if (!pickerWasOpen.current) return;
+    pickerWasOpen.current = false;
+    const active = document.activeElement;
+    if (!active || active === document.body) focusPageMain();
+  }, [projectPickerOpen]);
   const refreshBootstrap = useCallback(async () => {
     try {
       const next = await api.bootstrap();
