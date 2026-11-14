@@ -596,4 +596,55 @@ describe('the open edit follows its message, not its index (#3458, qa-breaker ro
     expect(toast).toHaveBeenCalledWith('Wait until your reply is added to change the type.');
     await act(async () => release());
   });
+
+  it('the same note comes back under a new id with replies carrying a later time: the dirty editor survives (#3458 X1)', async () => {
+    // The mock stamps a message to the second, as the host does; the rebuild a Type change makes happens seconds later.
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-14T10:00:00Z') });
+    const asked = await thread(2);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[2]!);
+    await user.type(editorOf(asked.id), ' TYPED');
+    vi.setSystemTime(new Date('2026-11-14T10:00:09Z'));
+    const before = document.querySelector('[data-mark]')!.getAttribute('data-mark');
+    await user.selectOptions(card(asked.id).getByRole('combobox', { name: 'Type' }), 'stress');
+    await waitFor(() => expect(document.querySelector('[data-mark]')!.getAttribute('data-mark')).not.toBe(before));
+    const replaced = document.querySelector<HTMLElement>('[data-mark]')!.getAttribute('data-mark')!;
+    expect(editorOf(replaced).value).toBe('r2 TYPED');
+    vi.useRealTimers();
+  });
+
+  it('identical messages: deleting the twin above the edited one leaves the editor on the one that is left (#3458 X3)', async () => {
+    const [first] = await api.manuscriptParagraphs('chapter-1');
+    const asked = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'ask', 'Opening question?');
+    await api.marksReply(asked.id, 'author', 'ok');
+    await api.marksReply(asked.id, 'author', 'ok');
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[2]!);
+    await user.type(editorOf(asked.id), ' TYPED');
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(1));
+    expect(editorOf(asked.id).value).toBe('ok TYPED');
+  });
+
+  it('a second delete is refused with a sentence, and a delete the host never answers is released at the save limit (#3458 X4)', async () => {
+    const asked = await thread(2);
+    vi.spyOn(api, 'marksDeleteMessage').mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      mount();
+      await act(async () => {});
+      const del = () => card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!;
+      await act(async () => void del().click());
+      await act(async () => void del().click());
+      expect(api.marksDeleteMessage).toHaveBeenCalledTimes(1);
+      expect(toast).toHaveBeenCalledWith('Wait until the message is deleted.');
+      await act(async () => void vi.advanceTimersByTime(15_001));
+      await act(async () => void del().click());
+      expect(api.marksDeleteMessage).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

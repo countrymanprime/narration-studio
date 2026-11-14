@@ -70,12 +70,13 @@ export function NoteCard({
   const type = types.find((row) => row.key === mark.type);
   const resolved = mark.status === 'resolved';
   const messages = markMessages(mark);
-  // A message keeps its list item, and an editor open on it keeps the text typed in it, when one above it is deleted and its index moves up: it is told apart by what it
-  // says and when, not by where it stands (#3400, qa-breaker on #3458, round 2).
+  // A message keeps its list item, and an editor open on it keeps the text typed in it, when one above it is deleted and its index moves up, or when the host rebuilds the
+  // thread (a Type change gives the note a new id and every reply a new time): it is told apart by who wrote it and what it says, and the order among those that say the same,
+  // never by where it stands or by a time the host writes again (#3400, qa-breaker on #3458, rounds 2 and 4).
   const sameMessage = new Map<string, number>();
   const messageKey = new Map<number, string>();
   for (const message of messages) {
-    const identity = message.index < 0 ? 'opening' : `${message.at}|${message.who}|${message.text}`;
+    const identity = message.index < 0 ? 'opening' : `${message.who}|${message.text}`;
     const nth = sameMessage.get(identity) ?? 0;
     sameMessage.set(identity, nth + 1);
     messageKey.set(message.index, `${identity}#${nth}`);
@@ -83,6 +84,7 @@ export function NoteCard({
   // The message being edited is held by its key, not by its index: a delete above it, its Undo or a new message before it moves the index, and an editor re-pointed at
   // that moment would be rebuilt with the text typed in it gone. The index in `editing` is read once per request, when the narrator asks to edit (#3458, round 3).
   const editedKey = useRef<string | null>(null);
+  const editLiKey = useRef('');
   const lastRequest = useRef<string | null>(null);
   if (editing === null) {
     editedKey.current = null;
@@ -90,8 +92,17 @@ export function NoteCard({
   } else if (editing !== lastRequest.current) {
     lastRequest.current = editing;
     editedKey.current = messageKey.get(Number(editing.slice(0, editing.indexOf(':')))) ?? null;
+    // The editor's list item keeps this key for as long as the edit lasts, even when the message's own key moves up (a twin above it deleted): a changed key would remount it.
+    editLiKey.current = `edit:${editedKey.current}`;
   }
   const isEdited = (message: { index: number }) => editedKey.current !== null && messageKey.get(message.index) === editedKey.current;
+  // A twin (the same words from the same author) above the edited message was deleted: its ordinal moved up, so the edit follows the twin that is left.
+  if (editedKey.current !== null && ![...messageKey.values()].includes(editedKey.current)) {
+    const at = editedKey.current.lastIndexOf('#');
+    const identity = editedKey.current.slice(0, at);
+    const left = [...messageKey.values()].filter((key) => key.slice(0, key.lastIndexOf('#')) === identity).length;
+    if (left > 0 && identity !== 'opening') editedKey.current = `${identity}#${Math.min(Number(editedKey.current.slice(at + 1)), left - 1)}`;
+  }
   // The edited message is gone (deleted, or Undo not yet back): the editor closes, and the page is told so it holds no edit.
   const editedGone = editedKey.current !== null && ![...messageKey.values()].includes(editedKey.current);
   const { onCancelEdit } = actions;
@@ -191,7 +202,10 @@ export function NoteCard({
       {messages.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {messages.map((message) => (
-            <li key={messageKey.get(message.index)} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
+            <li
+              key={isEdited(message) ? editLiKey.current : messageKey.get(message.index)}
+              className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]"
+            >
               {isEdited(message) ? (
                 <MessageEditor
                   initial={message.text}

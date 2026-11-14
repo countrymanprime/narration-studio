@@ -3,7 +3,7 @@ import type { Mark } from '../../../../../api/contracts/marks';
 import { overlay } from '../../../../../overlay/overlayService';
 import { useJournal } from '../../../../../studio/StudioProvider';
 import { Button } from '../../../../primitives/Button';
-import { useGuardedAction, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
+import { SAVE_LIMIT_MS, useGuardedAction, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
 import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import type { NoteActions } from './NoteCard';
 import { copyQuery } from './copyQuery';
@@ -88,11 +88,18 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
       onDeleteMessage: (id, index) =>
         guarded(() => {
           // Two deletes in a row would name the second message by where it stood before the first one moved it.
-          if (deletingMessage.current) return;
+          if (deletingMessage.current) {
+            overlay.toast('Wait until the message is deleted.');
+            return;
+          }
           deletingMessage.current = true;
-          void commands.deleteMessage(id, index).finally(() => {
+          // Released when the host answers, or at the save limit when it never does.
+          const release = () => {
             deletingMessage.current = false;
-          });
+            clearTimeout(timer);
+          };
+          const timer = setTimeout(release, SAVE_LIMIT_MS);
+          void commands.deleteMessage(id, index).finally(release);
         }),
     }),
     [commands, journal, update, onShowInText, shownChapter, lineOf, guarded],

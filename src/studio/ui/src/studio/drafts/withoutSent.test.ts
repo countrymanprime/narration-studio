@@ -18,4 +18,9 @@ describe('what is left in the box once the sent text is taken out', () => {
     expect(withoutSent('okok', 'ok')).toBe('ok');
   });
   it('is nothing when the same text was typed again', () => expect(withoutSent('once', 'once')).toBe(''));
+  it('removes the sent text when the typed text before it repeats its end (#3458 X5)', () => expect(withoutSent('yes yes please', 'yes please')).toBe('yes '));
+  it('keeps everything when what was typed next to it would leave half a letter behind (#3458 X5)', () => {
+    expect(withoutSent('once\u0301', 'once')).toBe('once\u0301');
+    expect(withoutSent('x\u200d\u{1F468}', 'x')).toBe('x\u200d\u{1F468}');
+  });
 });

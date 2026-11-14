@@ -14,7 +14,7 @@ export function useNoteKeys(marks: readonly Mark[]): { keyOf: (mark: Mark) => st
   const state = known.current;
   const passageOf = (mark: Mark) => `${mark.chapterId}:${mark.paragraphId}:${mark.start}-${mark.end}`;
   // What a note says, apart from its id and type: when several notes of one passage are replaced in one list, each takes over the key of the one that said the same.
-  const saysOf = (mark: Mark) => [mark.createdAt, mark.text, ...mark.thread.map((message) => `${message.at}|${message.who}|${message.text}`)].join('\n');
+  const saysOf = (mark: Mark) => [mark.text, ...mark.thread.map((message) => `${message.who}|${message.text}`)].join('\n');
   const present = new Set(marks.map((mark) => mark.id));
   // The keys that went since the last list, by passage, in the order they were first seen: a mark that arrives on one of those passages is their replacement.
   const gone = new Map<string, { key: string; says: string }[]>();
