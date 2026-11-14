@@ -136,6 +136,8 @@ const popGuard = {
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
+  /** `event.timeStamp` of the last Enter or Space pressed anywhere but on the way to stay: the press that may have asked the question. */
+  lastAskKeyAt: -Infinity,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -162,14 +164,25 @@ const ECHO_MS = 300;
 /** "Not saved: <why>." when the error says why in words, else "Not saved." (a rejection with nothing, an object or an empty message has no reason to show). */
 const notSaved = (error: unknown): string => {
   const why = isWireError(error) || error instanceof Error ? apiErrorMessage(error).trim() : typeof error === 'string' ? error.trim() : '';
-  // A message that already ends in a full stop is not given a second one.
-  const sentence = why.replace(/[.\s]+$/, '');
-  return sentence ? `Not saved: ${sentence}.` : 'Not saved.';
+  // A long reason would push the toast over the question's buttons and cut off the sentence after it: it is cut here, and the sentence that follows is always kept.
+  const short = why.length > MAX_REASON ? `${why.slice(0, MAX_REASON - 1).trimEnd()}…` : why;
+  // A message that already ends in punctuation is not given a full stop as well.
+  return short ? `Not saved: ${short}${/[.!?…]$/.test(short) ? '' : '.'}` : 'Not saved.';
 };
-/** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is. */
-const keptNote = (message: string): string => (/still here/.test(message) ? message : `${message} What you typed is still here.`);
+/** The longest reason a not-saved toast quotes. */
+const MAX_REASON = 120;
+/** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is (the verdicts end "so you are still here."). */
+const keptNote = (message: string): string => (/so you are still here\.$/.test(message) ? message : `${message} What you typed is still here.`);
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if ((event.key === 'Enter' || event.key === ' ') && !(event.target instanceof Element && event.target.closest('[data-stay-button]')))
+        popGuard.lastAskKeyAt = event.timeStamp;
+    },
+    true,
+  );
   window.addEventListener('popstate', (event) => {
     if (popGuard.swallow) {
       popGuard.swallow = false;
@@ -905,8 +918,10 @@ function AppRoutes() {
     const openedAt = Date.now();
     const echo = (event: KeyboardEvent) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      // A key held down repeats long after the window: a repeat is never an answer, only a fresh press is.
-      if (!event.repeat && Date.now() - openedAt >= ECHO_MS) return;
+      // A key held down repeats long after the window: a repeat is never an answer, only a fresh press is. The window is measured on the events' own times, not on when
+      // this runs: on a slow machine the handler of the press that asked can run long after it, and a second press 100 ms behind it is still an echo (#3446 E7).
+      const echoOfAsk = event.timeStamp - popGuard.lastAskKeyAt < ECHO_MS;
+      if (!event.repeat && !echoOfAsk && Date.now() - openedAt >= ECHO_MS) return;
       if (event.target instanceof Element && event.target.closest('[data-stay-button]')) {
         event.preventDefault();
         event.stopPropagation();
