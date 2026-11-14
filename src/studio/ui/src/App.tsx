@@ -916,7 +916,9 @@ function AppRoutes() {
     // never see it. A key press on that button in the first 300 ms is an echo, not an answer (#3446 E7). A click is not touched: a mouse click is a decision.
     const openedAt = Date.now();
     const echo = (event: KeyboardEvent) => {
-      if ((event.key !== 'Enter' && event.key !== ' ') || Date.now() - openedAt >= ECHO_MS) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      // A key held down repeats long after the window: a repeat is never an answer, only a fresh press is.
+      if (!event.repeat && Date.now() - openedAt >= ECHO_MS) return;
       if (event.target instanceof Element && event.target.closest('[data-stay-button]')) {
         event.preventDefault();
         event.stopPropagation();
