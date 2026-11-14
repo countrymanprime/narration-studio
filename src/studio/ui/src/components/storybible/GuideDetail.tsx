@@ -379,7 +379,7 @@ export function GuideDetail({
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && aliasQuery.trim() !== ''),
     label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
     brief: 'a name you are adding',
-    needs: 'Add name',
+    needs: 'you to press Add name',
     discard: () => {
       setAliasQuery('');
       setNameNote(undefined);

@@ -14,6 +14,8 @@ export const confirmDiscard = (what: string): Promise<boolean> => {
       confirmLabel: 'Discard',
       cancelLabel: 'Keep editing',
       confirmVariant: 'danger',
+      // Enter on the open question stays: the focus and its ring are on Keep editing, not on the dialog body (#3457 ux).
+      safeDefault: true,
     })
     .finally(() => {
       if (open === asked) open = null;

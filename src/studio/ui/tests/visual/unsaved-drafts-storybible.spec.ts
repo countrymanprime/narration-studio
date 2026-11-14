@@ -280,3 +280,16 @@ test('an approval note beside an entry edit makes the question Discard-only', as
   await expect(page.getByRole('textbox', { name: 'Note (optional)' })).toHaveValue('anchor take');
   await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
 });
+
+test('Escape in a dirty Add a name box asks, and the focus is on Keep editing (not the dialog body)', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Story Bible');
+  await page.getByRole('button', { name: 'Edit this entry' }).click();
+  const alias = page.getByRole('textbox', { name: 'Add a name' });
+  await alias.fill('Stale alias');
+  await alias.press('Escape');
+  const question = page.getByRole('alertdialog', { name: /^Discard / });
+  await expect(question).toBeVisible();
+  await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+});

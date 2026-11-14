@@ -44,7 +44,7 @@ export function VoiceReferencesSection({
     dirty: !readOnly && note.trim() !== '' && note !== sending,
     label: 'your approval note',
     brief: 'an approval note',
-    needs: 'Approve',
+    needs: 'you to press Approve',
     discard: () => setNote(''),
   });
 

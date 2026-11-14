@@ -19,4 +19,10 @@ describe('the discard question (#3457 B11)', () => {
     expect(await confirmDiscard('the name you are adding')).toBe(false);
     expect(confirm).toHaveBeenCalledTimes(2);
   });
+
+  it('opens with the focus on Keep editing (the safe default)', () => {
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
+    void confirmDiscard('your edit');
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard your edit?', safeDefault: true, cancelLabel: 'Keep editing' }));
+  });
 });

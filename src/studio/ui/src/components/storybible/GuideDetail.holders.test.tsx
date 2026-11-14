@@ -74,7 +74,7 @@ describe('a name typed in "Add a name"', () => {
     expect(held).toHaveLength(1);
     expect(held[0]!.saveable).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('The name “Mad H” you are adding still needs Add name, so the entry was not saved.'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('The name “Mad H” you are adding still needs you to press Add name, so the entry was not saved.'));
     expect(guideEdit).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement).value).toBe('Mad H');
   });
