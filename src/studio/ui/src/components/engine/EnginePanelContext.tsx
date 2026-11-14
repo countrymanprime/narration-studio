@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { Button } from '../primitives/Button';
 
 // Opens the engine panel from anywhere in the app: the header's
@@ -6,11 +6,16 @@ import { Button } from '../primitives/Button';
 // panel and provides this; without a provider (a component test) the pointers render and do nothing.
 const EnginePanelContext = createContext<(() => void) | null>(null);
 
-export function useOpenEnginePanel(): () => void {
-  return useContext(EnginePanelContext) ?? noop;
-}
+// The mounted provider's openers, for the overlay host: it renders beside the routes, not under this provider, so a dialog or panel opened through the
+// overlay service (Check recordings) would otherwise find no provider and its "Open the audio engine panel" pointer would close it and do nothing.
+// A component with a provider above it still uses that one; with none (a component test) both stay no-ops.
+const mounted: { openEnginePanel: (() => void) | null; openRecordingSettings: (() => void) | null } = { openEnginePanel: null, openRecordingSettings: null };
+const openMountedEnginePanel = () => mounted.openEnginePanel?.();
+const openMountedRecordingSettings = () => mounted.openRecordingSettings?.();
 
-function noop() {}
+export function useOpenEnginePanel(): () => void {
+  return useContext(EnginePanelContext) ?? openMountedEnginePanel;
+}
 
 /** An inline "Open the audio engine panel" pointer, drawn like the text links it replaces ("Open Tracks"). */
 export function EnginePanelLink({
@@ -52,6 +57,15 @@ export function EnginePanelProvider({
   openRecordingSettings?: (() => void) | null;
   children: ReactNode;
 }) {
+  // The overlay host's fallback (above): the latest openers while this provider is mounted.
+  useEffect(() => {
+    mounted.openEnginePanel = value;
+    mounted.openRecordingSettings = openRecordingSettings;
+    return () => {
+      if (mounted.openEnginePanel === value) mounted.openEnginePanel = null;
+      if (mounted.openRecordingSettings === openRecordingSettings) mounted.openRecordingSettings = null;
+    };
+  }, [value, openRecordingSettings]);
   return (
     <EnginePanelContext.Provider value={value}>
       <RecordingSettingsContext.Provider value={openRecordingSettings}>{children}</RecordingSettingsContext.Provider>
@@ -60,5 +74,5 @@ export function EnginePanelProvider({
 }
 
 export function useOpenRecordingSettings(): () => void {
-  return useContext(RecordingSettingsContext) ?? noop;
+  return useContext(RecordingSettingsContext) ?? openMountedRecordingSettings;
 }
