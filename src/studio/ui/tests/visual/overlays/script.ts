@@ -41,6 +41,8 @@ export const scriptCases: OverlayCase[] = [
   // The first-use tip floats over the reader's top edge; it must stay on screen and above the reader's text at every window size.
   fromState('script', 'first-use-tip', 'popover', { root: (page) => page.getByRole('complementary', { name: 'Tip' }) }),
   fromState('script', 'mark-composer'),
+  fromState('script', 'rail-pronunciation-leave-confirm'),
+  fromState('script', 'note-delete-confirm'),
   fromState('script', 'define-marks'),
   {
     // The chapter list is a column from 1180 px; below it a drawer behind the Chapters button (src/layoutBreakpoints.ts).

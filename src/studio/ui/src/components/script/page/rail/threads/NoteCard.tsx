@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { plural } from '../../../../../plural';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
+import { withoutSent } from '../../../../../studio/drafts/withoutSent';
+import { shortName } from '../../../../../studio/drafts/draftSentence';
+import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
@@ -55,8 +59,9 @@ export function NoteCard({
   line: string;
   /** The mark the reader selected. */
   active: boolean;
-  /** The index of the message being edited (-1 is the opening message), or null. */
-  editing: number | null;
+  /** The narrator's request to edit one of this card's messages, "<index>:<n>" (-1 is the opening message; n is new for each request), or null. The index is where the message
+   * stood when it was asked for: the card holds the open editor by the message's own key and ignores the index after that (#3458, round 3). */
+  editing: string | null;
   actions: NoteActions;
 }) {
   const [reply, setReply] = useState('');
@@ -65,21 +70,92 @@ export function NoteCard({
   const type = types.find((row) => row.key === mark.type);
   const resolved = mark.status === 'resolved';
   const messages = markMessages(mark);
+  // A message keeps its list item, and an editor open on it keeps the text typed in it, when one above it is deleted and its index moves up: it is told apart by what it
+  // says and when, not by where it stands (#3400, qa-breaker on #3458, round 2).
+  const sameMessage = new Map<string, number>();
+  const messageKey = new Map<number, string>();
+  for (const message of messages) {
+    const identity = message.index < 0 ? 'opening' : `${message.at}|${message.who}|${message.text}`;
+    const nth = sameMessage.get(identity) ?? 0;
+    sameMessage.set(identity, nth + 1);
+    messageKey.set(message.index, `${identity}#${nth}`);
+  }
+  // The message being edited is held by its key, not by its index: a delete above it, its Undo or a new message before it moves the index, and an editor re-pointed at
+  // that moment would be rebuilt with the text typed in it gone. The index in `editing` is read once per request, when the narrator asks to edit (#3458, round 3).
+  const editedKey = useRef<string | null>(null);
+  const lastRequest = useRef<string | null>(null);
+  if (editing === null) {
+    editedKey.current = null;
+    lastRequest.current = null;
+  } else if (editing !== lastRequest.current) {
+    lastRequest.current = editing;
+    editedKey.current = messageKey.get(Number(editing.slice(0, editing.indexOf(':')))) ?? null;
+  }
+  const isEdited = (message: { index: number }) => editedKey.current !== null && messageKey.get(message.index) === editedKey.current;
+  // The edited message is gone (deleted, or Undo not yet back): the editor closes, and the page is told so it holds no edit.
+  const editedGone = editedKey.current !== null && ![...messageKey.values()].includes(editedKey.current);
+  const { onCancelEdit } = actions;
+  useEffect(() => {
+    if (editedGone) onCancelEdit();
+  }, [editedGone, onCancelEdit]);
   const quote = mark.quote.trim();
 
   useEffect(() => {
     if (active) ref.current?.scrollIntoView?.({ block: 'nearest' });
   }, [active]);
 
+  // A reply goes to the note's id, and changing the Type gives the note a new one: while a reply is on its way the Type stays (#3458, round 3).
+  const sending = useRef(false);
   const send = async (act: NoteActions['onReply']) => {
-    if (await act(mark.id, who, reply.trim())) setReply('');
+    const text = reply;
+    sending.current = true;
+    let sent: boolean;
+    try {
+      sent = await act(mark.id, who, text.trim());
+    } finally {
+      sending.current = false;
+    }
+    // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400).
+    // Only what was sent goes: text typed while the save was in flight stays, without the part already sent (a reply is not sent twice) (#3400).
+    if (sent) setReply((now) => withoutSent(now, text));
+    return sent;
+  };
+  const sendReply = useSharedSave(() => send(actions.onReply));
+  // A reply typed and not yet added is held text: leaving the page asks first (#3400).
+  useUnsavedDraft(`script-note-reply-${mark.id}`, {
+    dirty: reply.trim() !== '',
+    label: `your reply on “${shortName(quote || line, 18)}”`,
+    brief: 'your reply',
+    kind: 'script-note-reply',
+    many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,
+    save: sendReply,
+    discard: () => setReply(''),
+  });
+  // Deleting the note takes the reply typed under it along (Undo brings the note back, not the text), so it asks first when a reply is typed (#3400).
+  // The same goes for an edit of one of its messages being typed in the card: the deleted note is not that text (#3400).
+  const editDirty = useRef(false);
+  const onEditDirty = useCallback((dirty: boolean) => {
+    editDirty.current = dirty;
+  }, []);
+  const deleteNote = async () => {
+    const typedReply = reply.trim() !== '';
+    if (typedReply || editDirty.current) {
+      const confirmed = await overlay.confirm({
+        title: 'Delete the note?',
+        body: typedReply ? 'The reply you typed under it is not added yet and goes with it.' : 'The edit you typed is not saved yet and goes with the note.',
+        confirmLabel: 'Delete the note',
+        cancelLabel: 'Keep it',
+      });
+      if (!confirmed) return;
+    }
+    void actions.onDelete(mark.id);
   };
   const addReply = () => {
     if (!reply.trim()) {
       overlay.toast('Write the reply or note first.');
       return;
     }
-    void send(actions.onReply);
+    void sendReply();
   };
 
   return (
@@ -96,22 +172,33 @@ export function NoteCard({
           label="Type"
           className="min-w-0 flex-1"
           value={mark.type}
-          onChange={(value) => void actions.onType(mark.id, value)}
+          onChange={(value) => {
+            if (sending.current) {
+              overlay.toast('Wait until your reply is added to change the type.');
+              return;
+            }
+            void actions.onType(mark.id, value);
+          }}
           options={types.map((row) => ({ value: row.key, label: row.name }))}
         />
         {asks && <StatusBadge tone={resolved ? 'success' : 'warning'} label={resolved ? 'Resolved' : 'Open'} />}
         <IconButton action="locate" size="sm" onClick={() => actions.onShow(mark.id)} />
         {asks && <IconButton action="copyQuery" size="sm" onClick={() => void actions.onCopy(mark)} />}
-        <IconButton action="deleteNote" size="sm" variant="danger" onClick={() => void actions.onDelete(mark.id)} />
+        <IconButton action="deleteNote" size="sm" variant="danger" onClick={() => void deleteNote()} />
       </div>
       <blockquote className="m-0 font-serif text-[0.88rem] text-[var(--text)]">{quote ? `“${quote}”` : null}</blockquote>
       <div className="text-[0.8rem] text-[var(--text-muted)]">{line}</div>
       {messages.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {messages.map((message) => (
-            <li key={message.index} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
-              {editing === message.index ? (
-                <MessageEditor initial={message.text} onCancel={actions.onCancelEdit} onSave={(text) => actions.onSaveEdit(mark.id, message.index, text)} />
+            <li key={messageKey.get(message.index)} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
+              {isEdited(message) ? (
+                <MessageEditor
+                  initial={message.text}
+                  onDirtyChange={onEditDirty}
+                  onCancel={actions.onCancelEdit}
+                  onSave={(text) => actions.onSaveEdit(mark.id, message.index, text)}
+                />
               ) : (
                 <>
                   <span className="text-[0.72rem] font-semibold text-[var(--text-muted)] uppercase">{WHO_LABEL[message.who]}</span>

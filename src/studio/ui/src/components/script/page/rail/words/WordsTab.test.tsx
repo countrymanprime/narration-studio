@@ -12,6 +12,8 @@ import type { PronunciationOnlineResult } from '../../../../../api/contracts/pro
 import { createMockApi } from '../../../../../api/mockApi';
 import { useScriptView } from '../../data/useScriptData';
 import { overlay } from '../../../../../overlay/overlayService';
+import { expectHolderCleanAfterSave } from '../../../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../../types';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
@@ -322,18 +324,35 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     useEffect(() => update({ word }), [update, word]);
     return null;
   }
+  let registry: ReturnType<typeof useUnsavedDrafts>;
+  function RegistryProbe() {
+    registry = useUnsavedDrafts();
+    return null;
+  }
   function mountWithWord(word: string) {
     return render(
       <ApiProvider api={api}>
         <StudioProvider>
           <TooltipProvider>
-            <ShowWord word={word} />
-            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+            <UnsavedDraftsProvider>
+              <RegistryProbe />
+              <ShowWord word={word} />
+              <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+            </UnsavedDraftsProvider>
           </TooltipProvider>
         </StudioProvider>
       </ApiProvider>,
     );
   }
+
+  // holder: script/page/rail/words/WordCard.tsx
+  it('a typed pronunciation renders clean once the registry has saved it (the holder contract)', async () => {
+    mountWithWord('Dinah');
+    await userEvent.type(await screen.findByLabelText('Pronunciation of Dinah for my dictionary'), 'DY-nuh');
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+  });
 
   it('shows what each dictionary says, with its source and Hear, and offers no save while one has it', async () => {
     const preview = vi.spyOn(api, 'pronunciationPreview');
@@ -358,6 +377,25 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     expect(within(list).getByText('DY-nuh')).toBeTruthy();
     expect(create).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
+  });
+
+  it('a pronunciation typed while its save is in flight stays in the field, without the part already saved (#3400)', async () => {
+    let release: () => void = () => {};
+    const real = api.userDictionarySave.bind(api);
+    vi.spyOn(api, 'userDictionarySave').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    mountWithWord('Dinah');
+    const field = (await screen.findByLabelText('Pronunciation of Dinah for my dictionary')) as HTMLInputElement;
+    await userEvent.type(field, 'DY-nuh');
+    await userEvent.click(screen.getByRole('button', { name: 'Save to my dictionary' }));
+    await userEvent.type(field, 'ZZ');
+    release();
+    await waitFor(async () => expect((await api.pronunciationCandidates('Dinah')).candidates.some((candidate) => candidate.say === 'DY-nuh')).toBe(true));
+    expect(field.value).toBe('ZZ');
   });
 
   it('a saved value can be removed to correct it: the card offers Save again, and the field takes no more than the host keeps', async () => {

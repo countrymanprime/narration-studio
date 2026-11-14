@@ -6,6 +6,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useGuardedAction, useGuardedNavigate } from '../../../studio/drafts/unsavedDrafts';
+import type { ScriptViewState } from './data/scriptView';
+import { useShowInRail } from './data/useShowInRail';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
@@ -121,6 +124,8 @@ function ScriptWorkspace({
   goToBooth,
 }: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
+  const leave = useGuardedNavigate();
+  const guarded = useGuardedAction();
   const layout = useLayoutClass();
   const marks = useMarks();
   const prep = useScriptPrep();
@@ -182,33 +187,23 @@ function ScriptWorkspace({
   const openRailIfDrawer = useCallback(() => {
     if (layout.medium) update({ drawer: 'rail' });
   }, [layout.medium, update]);
+  // A lookup that shows another tab, word or entry replaces the card that holds a typed pronunciation or reply, so it asks first (#3404).
+  const showInRailNow = useShowInRail();
+  const showInRail = useCallback((patch: Partial<ScriptViewState>) => showInRailNow(patch, openRailIfDrawer), [showInRailNow, openRailIfDrawer]);
   const showMark = useCallback(
-    (mark: Mark, scroll = true) => {
-      update({ sel: mark.id, tab: 'marks', ...(scroll ? { pendingPid: mark.paragraphId } : {}) });
-      openRailIfDrawer();
-    },
-    [update, openRailIfDrawer],
+    (mark: Mark, scroll = true) => showInRail({ sel: mark.id, tab: 'marks', ...(scroll ? { pendingPid: mark.paragraphId } : {}) }),
+    [showInRail],
   );
-  const showWord = useCallback(
-    (word: string) => {
-      update({ tab: 'pron', word });
-      openRailIfDrawer();
-    },
-    [update, openRailIfDrawer],
-  );
-  const showEntry = useCallback(
-    (entryId: string) => {
-      update({ tab: 'bible', entryId, miss: null, missSel: null });
-      openRailIfDrawer();
-    },
-    [update, openRailIfDrawer],
-  );
+  const showWord = useCallback((word: string) => showInRail({ tab: 'pron', word }), [showInRail]);
+  const showEntry = useCallback((entryId: string) => showInRail({ tab: 'bible', entryId, miss: null, missSel: null }), [showInRail]);
   const toggleDrawer = (which: 'ch' | 'rail') => update((state) => ({ drawer: state.drawer === which ? null : which }));
-  const goToChapter = useCallback((chapterId: string) => update({ pendingJump: chapterId, drawer: null }), [update]);
+  // Every jump of the reader to another place (the chapter list, the jump menu's chapters, a deep link, the credits hash) changes the chapter in view and with it what the
+  // rail shows, so with a reply, an edit or a pronunciation held it asks first like any other move (#3400, qa-breaker on #3458).
+  const goToChapter = useCallback((chapterId: string) => guarded(() => update({ pendingJump: chapterId, drawer: null })), [guarded, update]);
   const goToLink = useCallback(
     ({ chapterId, paragraphId }: { chapterId: string; paragraphId?: string }) =>
-      update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null }),
-    [update],
+      guarded(() => update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null })),
+    [guarded, update],
   );
   useDeepLink({ chapters: ownChapters, goTo: goToLink, notify });
 
@@ -352,12 +347,11 @@ function ScriptWorkspace({
     (text: string, picked: ReaderSelection) => {
       const target = lookupTarget(text, entries.entries);
       // A single word opens its card on the Words tab, with what the dictionaries say (#2595).
-      if (target.tab === 'pron') update({ tab: 'pron', word: target.word, missSel: picked });
-      else if ('entryId' in target) update({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
-      else update({ tab: 'bible', entryId: null, miss: target.miss, missSel: picked });
-      openRailIfDrawer();
+      if (target.tab === 'pron') showInRail({ tab: 'pron', word: target.word, missSel: picked });
+      else if ('entryId' in target) showInRail({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
+      else showInRail({ tab: 'bible', entryId: null, miss: target.miss, missSel: picked });
     },
-    [entries.entries, update, openRailIfDrawer],
+    [entries.entries, showInRail],
   );
   // The registry reads the match count when the menu opens or F3 is pressed, so it is a ref, not a dependency that registers the page again.
   const findCountRef = useRef<FindCount>({ steps: 0, total: 0, searching: false });
@@ -527,9 +521,13 @@ function ScriptWorkspace({
           <ThreadsTab
             chapterId={inView}
             lineOf={lineOf}
-            onShowInText={(id) => {
+            onShowInText={(id, shownChapter) => {
               const mark = marks.marks.find((row) => row.id === id);
-              if (mark) update({ pendingPid: mark.paragraphId, drawer: null });
+              if (!mark) return;
+              const move = () => update({ pendingPid: mark.paragraphId, drawer: null });
+              // Showing a note of the chapter the list is on asks nothing (the card stays, even while a typed reply keeps the list behind the reader); another chapter moves the reader away and asks.
+              if (mark.chapterId === shownChapter) move();
+              else guarded(move);
             }}
           />
         );
@@ -641,7 +639,7 @@ function ScriptWorkspace({
             credits.setSetup(next);
             setFillingIn(false);
           }}
-          onMoreFields={() => navigate('/settings#credits')}
+          onMoreFields={() => leave('/settings#credits')}
         />
       )}
     </GutterContext.Provider>

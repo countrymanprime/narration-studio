@@ -157,18 +157,18 @@ describe('three-columns-from-1440-and-drawers-below', () => {
 });
 
 describe('rail-tabs-rove-and-show-the-right-body', () => {
-  it('has the three tabs, and Left and Right move and select, wrapping', async () => {
+  it('has the three tabs, and Left and Right move the focus, wrapping, without selecting', async () => {
     mount();
     await firstHeading();
     const tabs = within(panel('rail')).getAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual(['Words', 'Story Bible', 'Notes']);
     tabs[0]!.focus();
     fireEvent.keyDown(tabs[0]!, { key: 'ArrowLeft', code: 'ArrowLeft' });
-    await waitFor(() => expect(view.tab).toBe('marks'));
+    await waitFor(() => expect(document.activeElement).toBe(tabs[2]));
+    expect(view.tab).toBe('pron');
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
-    await waitFor(() => expect(view.tab).toBe('pron'));
-    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
-    await waitFor(() => expect(view.tab).toBe('bible'));
+    await waitFor(() => expect(document.activeElement).toBe(tabs[0]));
+    expect(view.tab).toBe('pron');
   });
 
   it('each tab shows its body, for the chapter in view', async () => {

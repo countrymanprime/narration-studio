@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
+import { overlay } from '../../../../../overlay/overlayService';
+import { useShowInRail } from '../../data/useShowInRail';
+import { useMarks, useScriptCommands } from '../../data/useScriptData';
 import { Button } from '../../../../primitives/Button';
 import { Dialog } from '../../../../primitives/Dialog';
 import { FIELD_LABEL_CLASSES, Field } from '../../../../primitives/Field';
@@ -20,7 +22,7 @@ export const composerTitle = (quote: string): string => `Mark “${quote.length 
 export function MarkComposer({ type, selection, onClose }: { type: string; selection: ReaderSelection; onClose: () => void }) {
   const { types } = useMarks();
   const commands = useScriptCommands();
-  const [, updateView] = useScriptView(() => null);
+  const showInRail = useShowInRail();
   const [chosen, setChosen] = useState(type);
   const [text, setText] = useState('');
   const [problem, setProblem] = useState('');
@@ -37,7 +39,22 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     const mark = await commands.addMark(selection, chosen, text);
     setSaving(false);
     if (!mark) return;
-    updateView({ tab: 'marks', sel: mark.id });
+    onClose();
+    showInRail({ tab: 'marks', sel: mark.id });
+  };
+
+  // Escape and the close button are ways out, not a decision to throw the note away: with text typed they ask. The Cancel button's own label is the decision (#3400).
+  const leave = async () => {
+    if (text.trim() !== '') {
+      const discard = await overlay.confirm({
+        title: 'Discard your note?',
+        body: 'What you typed is not saved yet and goes with it.',
+        confirmLabel: 'Discard',
+        cancelLabel: 'Keep editing',
+        confirmVariant: 'danger',
+      });
+      if (!discard) return;
+    }
     onClose();
   };
 
@@ -45,7 +62,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     <Dialog
       dismissOnOutsidePress={false}
       title={composerTitle(selection.quote)}
-      onClose={onClose}
+      onClose={() => void leave()}
       actionsAlign="end"
       actions={
         <>

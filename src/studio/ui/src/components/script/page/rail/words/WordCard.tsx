@@ -1,3 +1,7 @@
+import { withoutSent } from '../../../../../studio/drafts/withoutSent';
+import { plural } from '../../../../../plural';
+import { shortName } from '../../../../../studio/drafts/draftSentence';
+import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
 import { hearNameAction } from '../../../../../icons.catalog';
@@ -113,15 +117,30 @@ export function WordCard({ word, host }: { word: string; host: WordsHost }) {
 function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: string) => Promise<boolean> }) {
   const [say, setSay] = useState('');
   const [busy, setBusy] = useState(false);
-  const save = async () => {
-    if (!say.trim() || busy) return;
+  const saveNow = async (): Promise<boolean> => {
+    if (!say.trim() || busy) return false;
     setBusy(true);
+    const sent = say;
     try {
-      if (await onSave(say)) setSay('');
+      const saved = await onSave(sent);
+      // Only what was saved goes: text typed while the save was in flight stays, without the part already saved (#3400, qa-breaker on #3458).
+      if (saved) setSay((now) => withoutSent(now, sent));
+      return saved;
     } finally {
       setBusy(false);
     }
   };
+  const save = useSharedSave(saveNow);
+  // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
+  useUnsavedDraft(`script-word-say-${word}`, {
+    dirty: say.trim() !== '',
+    label: `your “${shortName(word, 13)}” pronunciation`,
+    brief: 'your pronunciation',
+    kind: 'script-word-say',
+    many: (n) => `${plural(n, 'pronunciation')} you typed`,
+    save,
+    discard: () => setSay(''),
+  });
   return (
     <RailFieldRow
       field={

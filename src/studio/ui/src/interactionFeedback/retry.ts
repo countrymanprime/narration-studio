@@ -35,6 +35,11 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/App.tsx#1': no(BT),
+  'src/App.tsx#2': no(BT),
+  'src/App.tsx#3': no(BT),
+  'src/App.tsx#4': no(BT),
+  'src/App.tsx#5': no(BT),
   'src/components/production/report/ReportDialog.tsx#1': yes(
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
