@@ -16,7 +16,7 @@ describe('an Enter right after a question was answered by key', () => {
   const scene = () => {
     document.body.innerHTML = '<div role="alertdialog"><button id="keep">Keep editing</button></div><input id="alias" />';
     const reached = vi.fn();
-    document.getElementById('alias')!.addEventListener('keydown', reached);
+    document.getElementById('alias')!.onkeydown = reached;
     return { keep: document.getElementById('keep')!, alias: document.getElementById('alias')!, reached };
   };
 
