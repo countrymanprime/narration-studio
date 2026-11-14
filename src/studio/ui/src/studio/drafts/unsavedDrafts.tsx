@@ -109,7 +109,7 @@ type Shell = {
   lateFailure?: (outcome: { error: unknown } | { failed: readonly HeldDraft[] }) => void;
 };
 
-const toHeld = ({ label, brief, kind, many, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined });
+const toHeld = ({ label, brief, kind, many, needs, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, needs, saveable: save !== undefined });
 
 const DraftsContext = createContext<Registry | undefined>(undefined);
 
