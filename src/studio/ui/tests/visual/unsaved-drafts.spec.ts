@@ -2,6 +2,7 @@
 // moves the page, a dialog is not left by a browser Back, and Save & continue never traps the narrator when a save does not answer. The editors that hold
 // drafts of their own are driven by their screen's specs.
 import { expect, test, type Page } from '@playwright/test';
+import { pressOnQuestion } from './helpers/questionKey';
 import { settlePage } from './helpers/settle';
 import { goToPage, openSettings } from './drivers/shared';
 
@@ -213,4 +214,14 @@ test('a click on the backdrop during a slow save keeps the focus inside the ques
   await page.mouse.click(5, 450);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role="alertdialog"]')))).toBe(true);
+});
+
+// The other half of the echo window: once it is over, Enter on the way to stay answers the question (it has the focus).
+test('Enter on the way to stay, after the echo window, answers the question', async ({ page }) => {
+  await holdSettingsEdit(page);
+  await page.keyboard.press('Alt+ArrowLeft');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await pressOnQuestion(page, 'Enter');
+  await expect(question).toHaveCount(0);
 });
