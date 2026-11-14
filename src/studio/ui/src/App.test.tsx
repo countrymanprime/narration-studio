@@ -1404,10 +1404,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 32 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 33 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 21 for the engine panel link, an overlay dialog's link from dirty Settings, test holders in an overlay dialog, and a question whose holder went away; 21 to 26 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, the unsaveable relationship row, and the approval note; 26 to 27 for text typed while the entry's own Save is in flight (the shared 22 to 24 is counted in this total).
-const MOUNT_BUDGET = 31;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 21 for the engine panel link, an overlay dialog's link from dirty Settings, test holders in an overlay dialog, and a question whose holder went away; 21 to 26 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, the unsaveable relationship row, and the approval note; 26 to 27 for text typed while the entry's own Save is in flight (the shared 22 to 25 is counted in this total).
+const MOUNT_BUDGET = 32;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1886,6 +1886,43 @@ describe('App Back and Forward', () => {
       expect(await screen.findByText(/Your reply changed while saving, so you are still here\./)).toBeTruthy();
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(window.location.pathname).toBe('/settings');
+      act(() => close());
+    });
+
+    it('a save that rejects after the limit still tells the narrator it failed (#3446)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let rejectLate: (error: unknown) => void = () => {};
+      const Late = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-late', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () =>
+            new Promise<boolean>((_, reject) => {
+              rejectLate = reject;
+            }),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Late />);
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+        });
+        expect(await screen.findByText('Saving is taking too long. What you typed is still here.')).toBeTruthy();
+        await act(async () => {
+          rejectLate(new Error('Disk full'));
+          await vi.advanceTimersByTimeAsync(10);
+        });
+        expect(await screen.findByText('Not saved: Disk full. What you typed is still here.')).toBeTruthy();
+      } finally {
+        vi.useRealTimers();
+      }
       act(() => close());
     });
 

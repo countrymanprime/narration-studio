@@ -2,6 +2,7 @@
 // goes on to something that replaces the editor (#3400). A draft that cannot be saved takes Save away, and nothing is saved while one is held.
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WIRE_ENTITIES } from '../../src/api/mockFixtures';
+import { pressOnQuestion } from './helpers/questionKey';
 import { settlePage } from './helpers/settle';
 import { clickNav, goToPage } from './drivers/shared';
 
@@ -149,7 +150,7 @@ for (const size of [
     const question = unsaved(page, 'Unsaved changes');
     await expect(question).toBeVisible();
     await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
-    await page.keyboard.press('Enter');
+    await pressOnQuestion(page, 'Enter');
     await expect(question).toHaveCount(0);
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toHaveCount(0);
   });
@@ -248,6 +249,7 @@ test('a typed description survives a relationship being completed and a name bei
   const names = page.getByRole('textbox', { name: /Add a name|name/i }).last();
   if (await names.isVisible()) {
     await names.fill('Allie');
+    // key: the entry name field, not the question
     await names.press('Enter');
     await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
   }
