@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -130,13 +130,13 @@ function Results({
               <p>{row.text}</p>
               {row.classes.includes('silence') && row.count > 0 && (
                 <p>
-                  <Link
+                  <GuardedLink
                     className={`font-semibold underline ${HIT_AREA}`}
                     to={addressPath({ page: 'editing', chapter: chapterId, drawer: 'cleanup' })}
-                    onClick={close}
+                    onNavigate={close}
                   >
                     Clean up in Editing
-                  </Link>{' '}
+                  </GuardedLink>{' '}
                   <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>
                 </p>
               )}
