@@ -156,3 +156,40 @@ describe('useReturnFocusTarget with <main> named as the place', () => {
     vi.useRealTimers();
   });
 });
+
+describe('useReturnFocusTarget with <main> as the opener', () => {
+  function Opened({ open }: { open: boolean }) {
+    const back = useReturnFocusTarget(open);
+    return (
+      <>
+        <header>
+          <button>Header button</button>
+        </header>
+        <main tabIndex={-1}>
+          <p>Page</p>
+        </main>
+        <button
+          onClick={() => {
+            document.body.dataset.opener = String(back());
+          }}
+        >
+          Close
+        </button>
+      </>
+    );
+  }
+  it('focuses <main> itself and answers false, not handing the landmark to the library', async () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Opened open={false} />);
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.focus();
+    rerender(<Opened open />);
+    // The panel took the landmark as its opener; closing moves focus off it (the library's own close), then the hook is asked where to go.
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.click(screen.getByText('Close'));
+    expect(document.body.dataset.opener).toBe('false');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.activeElement).toBe(main);
+    vi.useRealTimers();
+  });
+});
