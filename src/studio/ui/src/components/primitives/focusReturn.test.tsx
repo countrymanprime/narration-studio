@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { rememberClosedTarget } from './dialogClosed';
-import { escapeClosesPanel, useReturnFocusTarget } from './focusReturn';
+import { escapeClosesPanel, focusPageMain, useReturnFocusTarget } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -191,5 +191,29 @@ describe('useReturnFocusTarget with <main> as the opener', () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(document.activeElement).toBe(main);
     vi.useRealTimers();
+  });
+});
+
+describe('focusPageMain with a <main> inside an inert subtree', () => {
+  it('focuses the first <main> that is not inert, giving it a tab index if it has none', () => {
+    render(
+      <>
+        <div inert>
+          <main id="shell">Shell</main>
+        </div>
+        <main id="page">Page</main>
+      </>,
+    );
+    expect(focusPageMain()).toBe(true);
+    expect(document.activeElement?.id).toBe('page');
+    expect(document.getElementById('page')?.getAttribute('tabindex')).toBe('-1');
+  });
+  it('reports no page when every <main> is inert', () => {
+    render(
+      <div inert>
+        <main>Shell</main>
+      </div>,
+    );
+    expect(focusPageMain()).toBe(false);
   });
 });
