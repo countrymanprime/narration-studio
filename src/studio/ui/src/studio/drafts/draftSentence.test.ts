@@ -1,0 +1,171 @@
+import { describe, expect, it } from 'vitest';
+import { describeHeld, discardVerdict, draftQuestion, saveVerdict, shortName, type DraftLabel, type HeldDraft } from './draftSentence';
+
+const one = (label: string, over: Partial<DraftLabel> = {}): DraftLabel => ({ label, ...over });
+const held = (label: string, over: Partial<HeldDraft> = {}): HeldDraft => ({ label, saveable: true, ...over });
+
+/** The most characters the whole question may have: it measured two lines of body beside the buttons at 320 x 300 (unsaved-drafts.spec.ts checks it in the browser). */
+const WHOLE_SENTENCE = 72;
+/** With Save gone the question also says why, in one more sentence: the body scrolls inside the dialog, and the buttons stay in the window (unsaved-drafts-storybible.spec.ts checks it). */
+const WHOLE_SENTENCE_NO_SAVE = 190;
+
+describe('the sentence that names what is held (#3400)', () => {
+  it('names one, two and three drafts', () => {
+    expect(describeHeld([one('your changes to Alice')])).toBe('your changes to Alice');
+    expect(describeHeld([one('a'), one('b')])).toBe('a and b');
+    expect(describeHeld([one('a'), one('b'), one('c')])).toBe('a, b and c');
+  });
+
+  it('counts identical drafts instead of chaining them', () => {
+    const reply = one('the note you are writing', { many: (n) => `${n} notes you are writing` });
+    expect(describeHeld([reply, reply, reply, reply, reply])).toBe('5 notes you are writing');
+    expect(describeHeld([reply, reply, one('your edit of a note')], 60)).toBe('2 notes you are writing and your edit of a note');
+  });
+
+  it('merges drafts of one kind even when their labels differ (replies that carry a quote, #3404)', () => {
+    const many = (n: number) => `${n} replies you are writing`;
+    const replies = ['Alice', 'Bob', 'Cy'].map((name) => one(`your reply on “${name}”`, { kind: 'reply', many }));
+    expect(describeHeld(replies)).toBe('3 replies you are writing');
+  });
+
+  it('falls back to the nameless briefs, then to a count, before it grows past the room', () => {
+    const long = one('your changes to a long name indeed here', { brief: 'your entry edit' });
+    expect(describeHeld([long])).toBe('your entry edit');
+    expect(describeHeld([long, one('your edit of a note that is long', { brief: 'a note edit' })])).toBe('your entry edit and a note edit');
+    expect(describeHeld([one('a'), one('b'), one('c'), one('d')])).toBe('4 unsaved changes');
+    expect(describeHeld([one('your changes to a very long entry name indeed, longer than the dialog shows')])).toBe('your changes');
+  });
+
+  it('shortens a long name, and never cuts inside a character as read', () => {
+    expect(shortName('Alice')).toBe('Alice');
+    expect(shortName('A'.repeat(60))).toHaveLength(20);
+    expect(shortName('A'.repeat(60)).endsWith('…')).toBe(true);
+    const family = '👨‍👩‍👧‍👦';
+    expect(shortName(family.repeat(30), 5)).toBe(`${family.repeat(4)}…`);
+    expect(shortName('é'.repeat(30), 4)).toBe(`${'é'.repeat(3)}…`);
+  });
+});
+
+describe('the question put to the narrator (#3404)', () => {
+  const entry = (name: string) => held(`your changes to ${shortName(name, 16)}`, { brief: 'your entry edit' });
+
+  it('offers Save and Discard when every draft can be saved', () => {
+    expect(draftQuestion([entry('Alice')], true)).toEqual({ body: 'Save or discard your changes to Alice before leaving?', canSave: true });
+    expect(draftQuestion([entry('Alice')], false).body).toBe('Save or discard your changes to Alice before going on?');
+  });
+
+  it('offers only Discard, and no word about saving, when nothing held can be saved', () => {
+    const row = held('a relationship you started', { saveable: false });
+    expect(draftQuestion([row], true)).toEqual({
+      body: 'Save is off: A relationship you started cannot be saved from here. Discard it before leaving?',
+      canSave: false,
+    });
+  });
+
+  it('takes Save away when any draft cannot be saved: Save & continue saves all or nothing (#3400 D1)', () => {
+    const row = held('a relationship you started', { brief: 'a relationship', saveable: false, needs: 'an entry chosen under To' });
+    const { body, canSave } = draftQuestion([entry('Alice'), row], true);
+    expect(canSave).toBe(false);
+    // Why Save is gone, what brings it back, and what is dropped, in that order (ux-reviewer on #3457).
+    expect(body).toBe(
+      'Save is off: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
+    );
+  });
+
+  it('never grows past what the dialog shows at 320 x 300, whatever the names and however many', () => {
+    const names = ['B'.repeat(80), 'Bartholomew Fitzwilliam Montgomery-Smythe', '李'.repeat(60), 'x'];
+    const labels = (name: string): HeldDraft[] => [
+      entry(name),
+      held(`the new entry “${shortName(name, 18)}”`, { brief: 'a new entry', saveable: false }),
+      held(`your reply on “${shortName(name, 18)}”`, { brief: 'your reply', kind: 'reply', many: (n) => `${n} replies you are writing` }),
+      held(`your “${shortName(name, 13)}” pronunciation`, { brief: 'your pronunciation', kind: 'say' }),
+      held('your credit template edit'),
+      held('the key you pasted'),
+    ];
+    for (const name of names) {
+      for (let count = 1; count <= 6; count += 1) {
+        for (const leaving of [true, false]) {
+          const drafts = labels(name).slice(0, count);
+          for (const subset of [
+            drafts,
+            drafts.map((draft) => ({ ...draft, saveable: false })),
+            drafts.map((draft, i) => ({ ...draft, saveable: i % 2 === 0 })),
+          ]) {
+            const { body, canSave } = draftQuestion(subset, leaving);
+            expect([...body].length, body).toBeLessThanOrEqual(canSave ? WHOLE_SENTENCE : WHOLE_SENTENCE_NO_SAVE);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe('what Save & continue does after the saves (#3400 D1)', () => {
+  it('goes on when everything saved and nothing is left that cannot be saved', () => {
+    expect(saveVerdict({ saved: true, kept: [] })).toEqual({ proceed: true });
+  });
+
+  it('stays, and names the draft, when one cannot be saved, even though the rest saved', () => {
+    const row = held('a relationship you started', { brief: 'a relationship', saveable: false });
+    expect(saveVerdict({ saved: true, kept: [row] })).toEqual({
+      proceed: false,
+      message: 'A relationship you started cannot be saved yet, so nothing was saved and you are still here.',
+    });
+  });
+
+  it('stays, with no message of its own, when a save said it did not save or Settings did not finish', () => {
+    expect(saveVerdict({ saved: false, kept: [] })).toEqual({ proceed: false });
+    expect(saveVerdict(undefined)).toEqual({ proceed: false });
+  });
+});
+
+describe('edge cases the breaker found (#3446)', () => {
+  it('B4: when nothing is held any more the question names nothing and says so', () => {
+    expect(draftQuestion([], true)).toEqual({ body: 'There is nothing left to save or discard.', canSave: true });
+  });
+
+  it('B5: a draft that said it did not save, one that cannot be saved and one that changed while saving each get a clause', () => {
+    const verdict = saveVerdict({
+      saved: false,
+      failed: [held('your reply')],
+      kept: [held('a relationship you started', { brief: 'a relationship', saveable: false })],
+      late: [held('your late note')],
+    });
+    expect(verdict.proceed).toBe(false);
+    expect(verdict.message).toBe(
+      'Your reply did not save; a relationship you started cannot be saved yet; your late note changed while saving, so you are still here.',
+    );
+  });
+
+  it('B1: a late draft stops the move even though everything else saved', () => {
+    expect(saveVerdict({ saved: true, failed: [], kept: [], late: [held('your late reply')] }).proceed).toBe(false);
+  });
+});
+
+describe('what Discard & continue does after the discards (#3446 B7)', () => {
+  it('goes on when everything was dropped', () => {
+    expect(discardVerdict({ failed: [] })).toEqual({ proceed: true });
+  });
+
+  it('stays, and says what is still here and that the rest was discarded, when one could not be dropped', () => {
+    expect(discardVerdict({ failed: [held('your reply')] })).toEqual({
+      proceed: false,
+      message: 'Your reply could not be discarded and is still here. The rest was discarded.',
+    });
+  });
+});
+
+describe('wording the breaker found (#3446, #3457)', () => {
+  it('an entry edit beside a suggestion edit still names both, not "2 unsaved changes"', () => {
+    const suggestion = held('your edit of the alias suggestion', { brief: 'a suggestion edit', saveable: false });
+    const entryEdit = held('your changes to Alice', { brief: 'your entry edit' });
+    expect(draftQuestion([entryEdit, suggestion], true).body).toBe(
+      'Save is off: A suggestion edit cannot be saved from here. Discard your entry edit and a suggestion edit before leaving?',
+    );
+  });
+
+  it('several half-filled relationship rows read in the plural', () => {
+    const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
+    expect(draftQuestion([rows], true).body).toBe('Save is off: 3 relationships you started cannot be saved from here. Discard them before leaving?');
+  });
+});

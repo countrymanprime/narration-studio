@@ -41,7 +41,7 @@ export type SettingsPageProps = {
   data: Bootstrap;
   notify: Notify;
   onDirtyChange: (dirty: boolean) => void;
-  registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
+  registerActions: (actions: { save: () => Promise<boolean>; discard: () => Promise<void> }) => void;
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;

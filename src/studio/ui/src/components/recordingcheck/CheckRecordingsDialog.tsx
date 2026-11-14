@@ -1,7 +1,7 @@
+import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { CoverageEngines, CoverageReason, CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { WhisperInstallJob } from '../../api/contracts/whisper';
@@ -62,7 +62,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
   const coverage = usePort('coverage');
   const whisper = usePort('whisper');
   const overlay = useOverlay();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const capability = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [loadError, setLoadError] = useState('');
@@ -326,10 +326,8 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
     const result = loaded.results[shown.id];
     const checked = result?.state === 'current' || result?.state === 'stale';
     const credits = isCreditsChapter(shown);
-    const leave = (path: string) => {
-      close();
-      navigate(path);
-    };
+    // The dialog closes only once the move goes ahead: Cancel on the unsaved question leaves the narrator where they were, with the dialog open (#3400 E6).
+    const leave = (path: string) => navigate(path, { after: close });
     return (
       <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3 [@media(max-height:36rem)]:max-h-none [@media(max-height:36rem)]:[&_:is(a,button,input,select,summary,[tabindex])]:scroll-mb-14">
         <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3 overflow-y-auto [@media(max-height:36rem)]:overflow-visible">

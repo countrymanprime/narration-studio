@@ -75,7 +75,7 @@ export function ConfirmDialog({
       description={body}
       actions={
         <>
-          <Button variant="secondary" disabled={pending} onClick={cancel} autoFocus={focusCancel}>
+          <Button variant="secondary" disabled={pending} onClick={cancel} autoFocus={focusCancel} data-stay-button>
             {cancelLabel}
           </Button>
           <div className="flex gap-2">

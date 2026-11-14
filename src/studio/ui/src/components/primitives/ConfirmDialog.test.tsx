@@ -264,3 +264,23 @@ describe('ConfirmDialog', () => {
     else await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
   });
 });
+
+describe('ConfirmDialog stay button', () => {
+  it('marks the way to stay (Cancel, or the label that replaces it) so its focus ring and the shell can find it, and focusCancel puts the focus on it (#3446)', async () => {
+    render(
+      <ConfirmDialog
+        title="Unsaved changes"
+        body="Discard it?"
+        confirmLabel="Discard & continue"
+        cancelLabel="Keep editing"
+        focusCancel
+        confirm={vi.fn()}
+        cancel={vi.fn()}
+      />,
+    );
+    const stay = screen.getByRole('button', { name: 'Keep editing' });
+    expect(stay.hasAttribute('data-stay-button')).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(stay));
+    expect(screen.getByRole('button', { name: 'Discard & continue' }).hasAttribute('data-stay-button')).toBe(false);
+  });
+});

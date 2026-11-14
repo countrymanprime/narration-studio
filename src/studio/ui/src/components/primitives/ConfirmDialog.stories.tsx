@@ -72,6 +72,39 @@ export const WithDangerAction: Story = {
   },
 };
 
+// The unsaved-drafts question when everything held can be saved: the way to stay (Cancel) has the focus and draws its ring whenever it is focused, since script focus
+// is not always :focus-visible and a keyboard user must see which button Enter presses (`data-stay-button`, #3400).
+export const StayButtonHasTheFocusAndItsRing: Story = {
+  args: {
+    title: 'Unsaved changes',
+    body: 'Save or discard your changes to Alice before leaving?',
+    confirmLabel: 'Save & continue',
+    dangerLabel: 'Discard & continue',
+    danger: fn(),
+    focusCancel: true,
+  },
+  play: async () => {
+    const stay = await screen.findByRole('button', { name: 'Cancel' });
+    await expect(stay).toHaveAttribute('data-stay-button');
+    await expect(stay).toHaveFocus();
+  },
+};
+
+// The same question when something held cannot be saved from it: no Save, the way to stay reads Keep editing, and Discard is the only way on.
+export const NothingToSaveFromHere: Story = {
+  args: {
+    title: 'Unsaved changes',
+    body: 'Save is off: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
+    confirmLabel: 'Discard & continue',
+    confirmVariant: 'danger',
+    cancelLabel: 'Keep editing',
+    focusCancel: true,
+  },
+  play: async () => {
+    await expect(await screen.findByRole('button', { name: 'Keep editing' })).toHaveFocus();
+  },
+};
+
 // A quieter way forward beside the confirm: the Story Bible asks to download a language model and offers to build without one this once.
 export const WithASecondaryChoice: Story = {
   args: {

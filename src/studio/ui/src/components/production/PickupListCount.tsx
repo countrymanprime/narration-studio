@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { HIT_AREA } from '../primitives/hitArea';
 import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
-import { onPlainClick } from '../recordingcheck/plainClick';
 
 /**
  * RS5 B (D22): the proofer's REAPER pickup list, shown project-wide rather
@@ -18,9 +17,9 @@ export function PickupListCount({ available, remaining, onNavigate }: { availabl
     <div className={PICKUP_SOURCE_ROW}>
       <span>Pickup list: {available ? `${remaining ?? 0} open (project-wide)` : 'open REAPER to count'}</span>
       {available && (
-        <Link to="/pickups" onClick={onPlainClick(onNavigate)} className={`flex-none font-semibold underline ${HIT_AREA}`}>
+        <GuardedLink to="/pickups" onNavigate={onNavigate} className={`flex-none font-semibold underline ${HIT_AREA}`}>
           Open pickups
-        </Link>
+        </GuardedLink>
       )}
     </div>
   );
