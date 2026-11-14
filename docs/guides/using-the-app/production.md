@@ -107,12 +107,13 @@ narration chapters only: a chapter removed from recording, and reference materia
 The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
 chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
-**No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
-project** (no saved project could be read) or **Not read**. The Rec. cell's tip and its name for a screen reader also say how far the
+**Not linked** (no track is linked to the chapter: link one in the chapter's track panel), **Several tracks** (keep one in the track
+panel), **Track missing** (the linked track is no longer in the project), **No project** (no saved project could be read) or **Not
+read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.
 
-A ✓ in **Record** beside **No track** is not a contradiction: the tick is the chapter's stage, and you can set a stage by hand
+A ✓ in **Record** beside **Not linked** is not a contradiction: the tick is the chapter's stage, and you can set a stage by hand
 on a chapter that has no track, or keep it after unlinking the track. Nothing measures that chapter's audio until you link a track
 in its track panel, and the Record cell's tip says so.
 

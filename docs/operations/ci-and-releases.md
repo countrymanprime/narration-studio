@@ -644,6 +644,15 @@ runner called:
   `package` scopes for a four-platform bootstrap and installer matrix that no longer exists. No workflow, script, Nx target or
   document called it, and Nx `affected` with `nx-scope.sh` does the job, so both files were deleted (2026-09-21) rather than wired
   in; Knip stays at zero. `git log --follow scripts/ci/changed-files.mjs` has the history.
+- **Playwright system libraries.** `.github/actions/setup-playwright` installs Chromium (from the `ms-playwright` cache) and the libraries it needs. The
+  libraries' `.deb` files are cached too (`~/.cache/playwright-debs`, keyed by runner OS and architecture, runner image version, Playwright
+  version and a `variant` input: `native` for shard 1, whose `setup-toolchain` installs the GTK and WebKit libraries first, `plain` for the
+  others). With a cache hit the step runs `dpkg -i -G --skip-same-version` on the files, accepts the result only when Playwright's own
+  `install-deps --dry-run chromium` prints `All system dependencies are installed.`, and needs no network, so a DNS outage on
+  `archive.ubuntu.com` does not fail the job (2026-11-11: up to 25 minutes). Anything else (no cache, a `dpkg` error, the check saying a
+  library is missing) takes the network path: poll the resolver and retry `playwright install --with-deps chromium` for up to 9 minutes
+  (#3410), then keep the downloaded packages for the next run when apt kept any. A cached set that does not pass is not replaced until the
+  runner image or Playwright version changes.
 - **Failure diagnostics.** A failing visual test leaves `src/studio/ui/test-results/<test>/trace.zip` (Playwright
   `trace: 'retain-on-failure'`: DOM snapshots, network and console for every action; a passing test keeps nothing,
   and no retry is involved, [What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). When a step of the
