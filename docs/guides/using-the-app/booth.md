@@ -611,6 +611,8 @@ If the stop does not go through, the question stays open with the DAW's sentence
 | **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
 | "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
 | "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
+| "The Booth could not stop listening, so your microphone may still be open. Press Retry." (in the Booth and in the Companion) | The Booth asked the listening to stop, was refused, and asked once more. Press **Retry** in the message: it says it is trying again, then "Listening stopped.". It asks again only if that listening is still the one running. The message stays up to a minute. |
+| "…Quit and reopen the app to be sure." on the page you landed on | You left with **Stop and leave** (or Exit) and the stop was refused twice, so the microphone may still be open. Quit and reopen the app. |
 | **Undo** says to use Edit > Undo in the DAW | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)). |
 | The Booth does not record in Audacity | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md). |
 
