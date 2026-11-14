@@ -165,6 +165,8 @@ let settledField: HTMLElement | undefined;
 const SETTLE_MS = 40;
 /** A key press on the way to stay inside this window of the question opening is the echo of the press that asked, not an answer. */
 const ECHO_MS = 300;
+/** The topic of the "saving is taking too long" message, taken away when the text it speaks of is discarded. */
+const SAVE_SLOW_TOPIC = 'save-slow';
 /** "Not saved: <why>." when the error says why in words, else "Not saved." (a rejection with nothing, an object or an empty message has no reason to show). */
 const notSaved = (error: unknown): string => {
   const why = isWireError(error) || error instanceof Error ? apiErrorMessage(error).trim() : typeof error === 'string' ? error.trim() : '';
@@ -201,6 +203,12 @@ if (typeof window !== 'undefined') {
         window.history.go(popGuard.want - historyIdx());
       }
       return;
+    }
+    // A fragment typed or followed by hand pushes an entry the router never numbered (the router stamps every entry it makes with an `idx`), and `popstate` is how it arrives, whether or not the history grew (a typed hash in the middle of the history truncates what was ahead). Left alone it would count as entry 0 and
+    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3456).
+    const state = window.history.state as { idx?: number } | null;
+    if (state?.idx === undefined) {
+      window.history.replaceState({ ...state, idx: popGuard.idx + 1 }, '');
     }
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
@@ -1199,6 +1207,8 @@ function AppRoutes() {
         if (settingsHeld) await withinSaveLimit(settingsActions.current?.discard() ?? Promise.resolve());
         const { failed } = drafts.discard();
         if (token !== moveToken.current) return;
+        // "What you typed is still here" is no longer true once it is dropped (#3446 PB-2).
+        overlay.dismissTopic(SAVE_SLOW_TOPIC);
         // A draft that could not be dropped keeps the narrator where they are, and the message says what went and what is still here.
         const verdict = discardVerdict({ failed });
         if (!verdict.proceed) {
@@ -1256,6 +1266,7 @@ function AppRoutes() {
             if (token === moveToken.current)
               overlay.toast(error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : keptNote(notSaved(error)), {
                 tone: 'error',
+                topic: error instanceof SaveTimeout ? SAVE_SLOW_TOPIC : undefined,
               });
           } finally {
             if (token === moveToken.current) setResolving(false);
