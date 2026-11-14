@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
-import { useGuardedAction, useSharedSave, useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedAction, useSharedSave, useUnsavedDraft, withinSaveLimit } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
@@ -180,10 +180,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setBusy(true);
     const sent = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
     try {
-      const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
+      // A save the host never answers gives the editor back at the limit: the picker and the buttons are free again and the text is still here (#3461 G).
+      const saved = await withinSaveLimit(api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody));
       notify('Credit template saved.');
       // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, with what they
-      // typed there. Text typed on this template since the save started stays, as an edit still to save (#3461).
+      // typed there. Text typed on this template since the save started is not in what was saved: it stays in the editor as an edit still to save, and Save template or Save & continue then sends it in a second save of its own (a second \"saved\" notice) (#3461).
       const typed = editorNow.current;
       const stillHere = typed.id === sent.id;
       const typedSince = stillHere && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body);

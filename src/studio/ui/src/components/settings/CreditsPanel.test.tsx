@@ -187,6 +187,26 @@ describe('CreditsPanel', () => {
     expect(registry.heldNow()).toHaveLength(0);
   });
 
+  it('a save the host never answers gives the editor back at the limit, with the text kept (#3461 G)', async () => {
+    const { api } = renderPanel();
+    vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(() => new Promise(() => {}));
+    const { select, body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'Kept text.' } });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+      await act(async () => {});
+      expect(select.disabled).toBe(true);
+      await act(async () => void vi.advanceTimersByTime(15_001));
+      expect(select.disabled).toBe(false);
+      expect(screen.getByRole('button', { name: 'New' })).toHaveProperty('disabled', false);
+      expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Kept text.');
+      expect(registry.heldNow()).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a pick between the save landing and the list being read again still asks (#3461 B2)', async () => {
     const { api } = renderPanel();
     const release = deferSave(api);
