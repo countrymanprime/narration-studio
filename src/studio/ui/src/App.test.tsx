@@ -1821,7 +1821,8 @@ describe('App Back and Forward', () => {
         window.dispatchEvent(new PopStateEvent('popstate'));
       });
       expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
-      expect(window.location.pathname + window.location.hash).toBe(before);
+      // jsdom runs `history.go` after the current task, so the address comes back a moment after the question shows.
+      await waitFor(() => expect(window.location.pathname + window.location.hash).toBe(before));
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(keptEdit()).toBeTruthy();
     });
