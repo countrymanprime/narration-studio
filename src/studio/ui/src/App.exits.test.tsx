@@ -74,6 +74,10 @@ const exits: Record<string, { go: () => unknown; left: () => void }> = {
   },
   'the mouse back button': { go: () => fireEvent.mouseUp(document, { button: 3 }), left: () => expect(window.location.pathname).toBe('/') },
   'a browser Back': { go: () => act(() => window.history.back()), left: () => expect(window.location.pathname).toBe('/') },
+  'Switch project from the jump menu': {
+    go: () => runFromJump('Switch project…'),
+    left: () => expect(screen.getByRole('heading', { name: 'Choose your project' })).toBeTruthy(),
+  },
   'Switch project from the header': {
     go: () => fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ })),
     left: () => expect(screen.getByRole('heading', { name: 'Choose your project' })).toBeTruthy(),
