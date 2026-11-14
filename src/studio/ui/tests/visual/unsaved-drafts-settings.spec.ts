@@ -149,3 +149,67 @@ for (const reloadAfter of [false, true]) {
     expect(new URL(page.url()).hash).not.toBe('#category-voice');
   });
 }
+
+// A hash typed in the middle of the history truncates what was ahead, so the history does not grow; the entry must still be numbered (#3456, qa-breaker on 10e536f).
+test('typed hash from a middle entry with a pasted key: Cancel restores the address and the pane; Discard goes to the typed pane', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Project');
+  for (const hash of ['#category-delivery', '#category-recording']) {
+    await page.evaluate((next) => {
+      window.location.hash = next;
+    }, hash);
+  }
+  await page.goBack();
+  await page.evaluate(() => {
+    window.location.hash = '#category-voice';
+  });
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
+  const before = page.url();
+  await page.evaluate(() => {
+    window.location.hash = '#category-recording';
+  });
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  expect(page.url()).toBe(before);
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+  await page.evaluate(() => {
+    window.location.hash = '#category-recording';
+  });
+  await unsaved(page).getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveCount(0);
+  expect(new URL(page.url()).hash).toBe('#category-recording');
+});
+
+// The Search box and the results stay in step: Discard on a category change empties the box, and Escape then Cancel puts the applied text back (#3456).
+test('after Discard on a category change the Search box is empty, and Escape then Cancel leaves box and results in step', async ({ page }) => {
+  await pasteKey(page);
+  const search = page.getByRole('textbox', { name: 'Search settings' });
+  await search.fill('a');
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(search).toHaveValue('a');
+  await page
+    .getByRole('navigation', { name: 'Settings categories' })
+    .getByRole('button', { name: /^Appearance/ })
+    .click();
+  await unsaved(page).getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(search).toHaveValue('');
+});
+
+test('Escape in Search over a key among the results, then Cancel, puts the applied text back and Escape works again', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Voice & pronunciation');
+  const search = page.getByRole('textbox', { name: 'Search settings' });
+  await search.fill('Merriam');
+  await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
+  await search.focus();
+  await page.keyboard.press('Escape');
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(search).toHaveValue('Merriam');
+  await search.focus();
+  await page.keyboard.press('Escape');
+  await expect(unsaved(page)).toBeVisible();
+});

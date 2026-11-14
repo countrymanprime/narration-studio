@@ -244,6 +244,9 @@ describe('the Settings pane is swapped only through the question (#3404)', () =>
   test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
     expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
   });
+  test('every write of the query also clears the typed letters, so the box and the results are in step when no question is open (#3456)', () => {
+    expect((page.match(/setPending\(null\)/g) ?? []).length).toBeGreaterThanOrEqual(writes('setQuery'));
+  });
   test('collapsing Advanced asks, since it unmounts the rows under it (#3456)', () => {
     expect(page).toMatch(/if \(advanced\[cat\]\) guarded\(toggle\)/);
     expect(writes('setAdvanced')).toBe(2);

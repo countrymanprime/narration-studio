@@ -143,8 +143,6 @@ const popGuard = {
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
-  /** `history.length` as of the last move or pop: a longer one on a pop that lands on an entry nobody numbered means a fragment was typed, which is a push. */
-  length: 0,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -175,20 +173,18 @@ const notSaved = (error: unknown): string => {
 };
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
-  popGuard.length = window.history.length;
   window.addEventListener('popstate', (event) => {
     if (popGuard.swallow) {
       popGuard.swallow = false;
       event.stopImmediatePropagation();
       return;
     }
-    // A fragment typed or followed by hand pushes an entry the router never numbered, and `popstate` is how it arrives. Left alone it would count as entry 0 and
+    // A fragment typed or followed by hand pushes an entry the router never numbered (the router stamps every entry it makes with an `idx`), and `popstate` is how it arrives, whether or not the history grew (a typed hash in the middle of the history truncates what was ahead). Left alone it would count as entry 0 and
     // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3456).
     const state = window.history.state as { idx?: number } | null;
-    if (state?.idx === undefined && window.history.length > popGuard.length) {
+    if (state?.idx === undefined) {
       window.history.replaceState({ ...state, idx: popGuard.idx + 1 }, '');
     }
-    popGuard.length = window.history.length;
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
     const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.routePath;
@@ -937,7 +933,6 @@ function AppRoutes() {
   useEffect(() => {
     popGuard.route = routeKey();
     popGuard.routePath = routePath();
-    popGuard.length = window.history.length;
   }, [location.key, location.hash]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
