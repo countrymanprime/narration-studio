@@ -1,4 +1,4 @@
-import { justClosedDialog } from './dialogClosed';
+import { justClosedDialog, rememberClosedTarget } from './dialogClosed';
 import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -46,8 +46,17 @@ export function SlideOver({
   // A double press on the control that opened the panel lands its second press on the scrim as the panel slides in; a press that soon is the
   // same gesture, not a wish to dismiss.
   const openedAt = useRef(0);
+  const finalFocusRef = useRef(finalFocus);
+  finalFocusRef.current = finalFocus;
   useEffect(() => {
-    if (open) openedAt.current = Date.now();
+    if (!open) return;
+    openedAt.current = Date.now();
+    // As this closes, a panel opened from a control inside it takes over its hand-back place (focusReturn.ts).
+    return () =>
+      rememberClosedTarget(() => {
+        const target = finalFocusRef.current();
+        return target instanceof HTMLElement ? target : null;
+      });
   }, [open]);
   return (
     <Drawer.Root
