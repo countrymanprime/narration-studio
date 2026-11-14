@@ -11,6 +11,8 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - Destructive Confirm
 - Rich Body
 - With Danger Action
+- Stay Button Has The Focus And Its Ring
+- Nothing To Save From Here
 - With A Secondary Choice
 - With Children
 - Long Unbroken Body
