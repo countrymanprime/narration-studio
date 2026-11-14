@@ -55,6 +55,7 @@ test('the arrow keys move along the rail tabs without selecting, and Enter selec
   await page.keyboard.press('ArrowRight');
   await expect(rail.getByRole('tab', { name: 'Notes', exact: true })).toBeFocused();
   await expect(unsaved(page, 'Unsaved changes')).toHaveCount(0);
+  // key: a rail tab (H5), not the question
   await page.keyboard.press('Enter');
   const question = unsaved(page, 'Unsaved changes');
   await expect(question).toBeVisible();

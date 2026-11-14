@@ -198,6 +198,8 @@ describe('a reply typed while the first is being added', () => {
   });
 });
 
+// holder: script/page/rail/threads/NoteCard.tsx
+// holder: script/page/rail/threads/MessageEditor.tsx
 describe('holders-render-clean-after-their-save', () => {
   it('a reply typed under a note renders clean once the registry has saved it', async () => {
     const { note } = await seed();

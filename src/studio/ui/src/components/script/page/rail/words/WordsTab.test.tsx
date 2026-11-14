@@ -345,6 +345,7 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     );
   }
 
+  // holder: script/page/rail/words/WordCard.tsx
   it('a typed pronunciation renders clean once the registry has saved it (the holder contract)', async () => {
     mountWithWord('Dinah');
     await userEvent.type(await screen.findByLabelText('Pronunciation of Dinah for my dictionary'), 'DY-nuh');
