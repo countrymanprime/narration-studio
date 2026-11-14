@@ -18,10 +18,12 @@ export function useReturnFocusTarget(open: boolean, fallback?: () => HTMLElement
   }, [open]);
   return () => {
     const element = opener.current;
-    if (element?.isConnected && element !== document.body) return element;
+    // <main> as the opener (a key or a command with focus on the landmark) is focused here too: handed to Base UI it picks the header's first button (#2902).
+    if (element?.isConnected && element !== document.body) return element.tagName === 'MAIN' ? handFocusToPage() : element;
     // What the caller names comes first: it knows the place this panel was opened for; the dialog that closed a moment ago may have been another one's.
     const elsewhere = fallback?.();
-    if (elsewhere?.isConnected) return elsewhere;
+    // The page's landmark named as the place (the jump menu's hand-back is <main>): focused here, since Base UI handed <main> picks the header's first button (#2902).
+    if (elsewhere?.isConnected) return elsewhere.tagName === 'MAIN' ? handFocusToPage() : elsewhere;
     const where = fromDialog.current?.();
     if (where?.isConnected && where.tagName !== 'MAIN') return where;
     // <main> is focusable but not tabbable, so handed to Base UI it would pick the header's first button (#2902): focus it ourselves.
@@ -51,12 +53,19 @@ export function escapeClosesPanel(close: () => void, opener: () => HTMLElement |
   };
 }
 
+/** The page's <main> that can take focus: the first not inside an inert subtree (the Companion's shell is inert behind its own page, which has its own <main>). */
+function pageMain(): HTMLElement | null {
+  return [...document.querySelectorAll<HTMLElement>('main')].find((main) => !main.closest('[inert]')) ?? null;
+}
+
 /**
  * Focuses the page's <main> (focusable, not tabbable, so handed to Base UI as a target it would pick its first tabbable, the header's button). The one place
  * the Booth's voice hand-offs do it; false when the page has no <main>.
  */
 export function focusPageMain(): boolean {
-  const page = document.querySelector<HTMLElement>('main');
+  const page = pageMain();
+  // A landmark with no tab index (a page's own <main>) cannot take focus until it has one; -1 keeps it out of the Tab order.
+  if (page && !page.hasAttribute('tabindex')) page.setAttribute('tabindex', '-1');
   page?.focus({ preventScroll: true });
   return !!page;
 }
@@ -66,7 +75,7 @@ export function focusPageMain(): boolean {
  * opened). Returns what Base UI's `finalFocus` expects. `Dialog` keeps its own opener-first rule above this one.
  */
 export function handFocusToPage(): boolean {
-  if (!document.querySelector('main')) return true;
+  if (!pageMain()) return true;
   window.setTimeout(() => {
     const active = document.activeElement;
     if (!active || active === document.body || !active.isConnected) focusPageMain();
