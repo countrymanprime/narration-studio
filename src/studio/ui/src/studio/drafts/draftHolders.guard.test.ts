@@ -259,3 +259,22 @@ describe('every screen that registers a draft proves its holders meet the save c
     ).toEqual([]);
   });
 });
+
+// The question ignores a key press on its way to stay for the first 300 ms (`ECHO_MS`, #3446 E7), so a spec that answers it from the keyboard must wait that out through
+// `pressOnQuestion`. A raw Enter or Space in an unsaved-drafts spec says on the line before it what it is pressed on (a field, a menu, a tab), or it fails here.
+describe('an unsaved-drafts spec answers the question through pressOnQuestion (#3446 E7)', () => {
+  const visual = join(srcRoot, '..', 'tests', 'visual');
+  test('no raw Enter or Space press in an unsaved-drafts spec without a stated target', () => {
+    const offenders = readdirSync(visual)
+      .filter((name) => /^unsaved-drafts.*\.spec\.ts$/.test(name))
+      .flatMap((name) => {
+        const lines = readFileSync(join(visual, name), 'utf8').split('\n');
+        return lines
+          .map((line, index) => ({ line, index }))
+          .filter(({ line }) => /\bpress\(\s*['"](?:Enter|Space| )['"]\s*\)/.test(line))
+          .filter(({ index }) => !/\/\/ key: /.test(lines[index - 1] ?? '') && !/\/\/ key: /.test(lines[index] ?? ''))
+          .map(({ index }) => `${name}:${index + 1}`);
+      });
+    expect(offenders, "use pressOnQuestion(page, key) from helpers/questionKey.ts, or state the target on the line before: '// key: a text field'").toEqual([]);
+  });
+});

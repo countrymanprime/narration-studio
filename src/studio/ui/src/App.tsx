@@ -910,9 +910,16 @@ function AppRoutes() {
   }, [questionOpen]);
   const { setShell } = drafts;
   useEffect(() => {
-    setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state, after) => guardedNavigateRef.current(to, state, after) });
+    setShell({
+      ask: (run, options) => askRef.current(run, options),
+      go: (to, state, after) => guardedNavigateRef.current(to, state, after),
+      lateFailure: (outcome) => {
+        const message = 'error' in outcome ? notSaved(outcome.error) : saveVerdict({ saved: false, failed: outcome.failed, kept: [] }).message;
+        overlay.toast(`${message ?? 'Not saved.'} What you typed is still here.`, { tone: 'error' });
+      },
+    });
     return () => setShell(null);
-  }, [setShell]);
+  }, [setShell, overlay]);
   useEffect(() => {
     popGuard.idx = historyIdx();
     popGuard.route = routePath();

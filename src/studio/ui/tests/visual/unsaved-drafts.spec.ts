@@ -60,6 +60,7 @@ test('a browser Back with a dialog open and nothing held leaves the dialog and t
   await goToPage(page, 'Script');
   await page.keyboard.press('Control+KeyK');
   await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Show keyboard shortcuts');
+  // key: the jump menu's own row, not the question
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.goBack();
@@ -126,7 +127,9 @@ test('a second Enter within 300 ms of the one that asked does not dismiss the qu
   await entry.getByRole('button', { name: 'Change it here for now' }).click();
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.getByRole('button', { name: 'Production' }).first().focus();
+  // key: the echo of the press that asked, which is what this case is about
   await page.keyboard.press('Enter');
+  // key: the second of the double press, still the echo
   await page.keyboard.press('Enter');
   const question = unsaved(page, 'Unsaved settings');
   await expect(question).toBeVisible();
