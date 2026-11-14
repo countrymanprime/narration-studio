@@ -2698,17 +2698,15 @@ describe('App shell mounts', () => {
 
     it('a second Back while the question is open does not ask again or move', async () => {
       const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
-      // Two entries stamped alike behind the page, as a session that was restored or a replaced entry leaves them: the address is told from where the page is, not from the stamps alone.
+      // Entries stamped alike behind the page, as a restored session or a replaced entry leaves them.
+      window.history.pushState({ idx: 0 }, '', '/');
       window.history.pushState({ idx: 0 }, '', '/');
       await toScript(journal);
       journal.setLeaveGuard(() => asking);
-      // Two Backs a few milliseconds apart, the second sent before the address was put back from the first (a held Alt+Left): history resolves each one against where it
-      // is when it runs, so the address is put back until it is where the page is, not by one step that assumed the first restore had already run (#3446).
-      act(() => window.history.back());
-      await new Promise((resolve) => setTimeout(resolve, 3));
-      act(() => window.history.back());
+      // Two Backs a few milliseconds apart (a held Alt+Left) land two entries back when the second was sent before the address was put back from the first: history resolves
+      // each against where it is when it runs. The first step of the restore then leaves the address on a page that is not the router's, and it has to go on until it is (#3446).
+      act(() => window.history.go(-2));
       await question();
-      await new Promise((resolve) => setTimeout(resolve, 300));
       await waitFor(() => expect(window.location.pathname).toBe('/script'));
       expect(screen.getAllByRole('alertdialog', { hidden: true })).toHaveLength(1);
       // And one more while the question has been open for a while.

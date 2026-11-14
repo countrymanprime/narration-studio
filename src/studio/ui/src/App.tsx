@@ -177,6 +177,8 @@ const notSaved = (error: unknown): string => {
 const MAX_REASON = 120;
 /** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is (the verdicts end "so you are still here."). */
 const keptNote = (message: string): string => (/so you are still here\.$/.test(message) ? message : `${message} What you typed is still here.`);
+/** Whether the address is the route the router shows. */
+const onPageRoute = (): boolean => routePath() === popGuard.route;
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener(
@@ -193,7 +195,7 @@ if (typeof window !== 'undefined') {
       event.stopImmediatePropagation();
       // A second Back sent before this restore ran was resolved by history against the position it had then, so the restore can land one entry short of the page (the
       // address left on the page before). Put it back until the address is the page's again (#3446).
-      if (routePath() !== popGuard.route && popGuard.fixes < 3 && popGuard.want !== historyIdx()) {
+      if (!onPageRoute() && popGuard.fixes < 3 && popGuard.want !== historyIdx()) {
         popGuard.fixes += 1;
         popGuard.swallow = true;
         window.history.go(popGuard.want - historyIdx());
