@@ -97,8 +97,8 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     if (!editing.current) setValues(Object.fromEntries((read ?? []).map((field) => [field.key, field.value])));
   }, [read, dirty]);
 
-  const save = useCallback(async () => {
-    if (!tool || !read) return;
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!tool || !read) return true;
     try {
       const changed = changedValues(read, values);
       // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
@@ -108,6 +108,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
       }
       setDirty(false);
       await reload();
+      return true;
     } catch (failure) {
       // Saving the same edit again sets the same values, so it is safe to repeat.
       notify(
@@ -115,6 +116,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
         'error',
         retryAction(() => void save()),
       );
+      return false;
     }
   }, [system, notify, read, reload, scope, tool, values, setDirty]);
   const discard = useCallback(async () => {

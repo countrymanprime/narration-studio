@@ -449,6 +449,13 @@
   },
   {
     "page": "settings",
+    "state": "key-navigate-away-confirm",
+    "viewport": "desktop",
+    "docName": "settings-key-leave-confirm",
+    "caption": "Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved settings, names the key, and offers Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "settings",
     "state": "diagnostics-preview",
     "viewport": "desktop",
     "docName": "settings-diagnostics-preview",
