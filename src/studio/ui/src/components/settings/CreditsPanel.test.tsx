@@ -1,19 +1,30 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { expectHolderCleanAfterSave } from '../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { withoutCredits } from '../../chapterKinds';
 import { CreditsPanel } from './CreditsPanel';
 
 afterEach(cleanup);
+
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
 
 function renderPanel(overrides: Parameters<typeof createMockApi>[0] = {}) {
   const api = createMockApi(overrides);
   const notify = vi.fn();
   render(
     <ApiProvider api={api}>
-      <CreditsPanel notify={notify} />
+      <UnsavedDraftsProvider>
+        <RegistryProbe />
+        <CreditsPanel notify={notify} />
+      </UnsavedDraftsProvider>
     </ApiProvider>,
   );
   return { api, notify };
@@ -70,6 +81,181 @@ describe('CreditsPanel', () => {
     fireEvent.change(body, { target: { value: '[Title], read by [Narrator].' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
     await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === '[Title], read by [Narrator].')).toBe(true));
+  });
+
+  // holder: settings/CreditsPanel.tsx
+  it('a template edit renders clean once the registry has saved it (the holder contract)', async () => {
+    const { api } = renderPanel();
+    await screen.findByRole('combobox', { name: 'Template' });
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body') as HTMLTextAreaElement, { target: { value: '[Title], held by the registry.' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+    expect((await api.creditsTemplates()).some((template) => template.body === '[Title], held by the registry.')).toBe(true);
+  });
+
+  // The editor and the template it is on, through the things that happen while a save runs and around the template picker (#3461, qa-breaker).
+  const deferSave = (api: ReturnType<typeof createMockApi>) => {
+    let release: () => void = () => {};
+    const real = api.saveCreditsTemplate.bind(api);
+    vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    return () => release();
+  };
+  const editTemplate = async () => {
+    const select = (await screen.findByRole('combobox', { name: 'Template' })) as HTMLSelectElement;
+    await waitFor(() => expect(select.options.length).toBeGreaterThanOrEqual(3));
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    return { select, body };
+  };
+
+  it('text typed while Save template is in flight stays in the editor as an edit still to save (#3461)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(body, { target: { value: 'First part. And typed during the save.' } });
+    release();
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === 'First part.')).toBe(true));
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('First part. And typed during the save.'));
+    expect(registry.heldNow()).toHaveLength(1);
+  });
+
+  it('a save that ends after the narrator went to another template leaves them there, and the discarded text does not come back (#3461)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const first = select.value;
+    fireEvent.change(body, { target: { value: 'Typed, then discarded.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    const other = [...select.options].find((option) => option.value !== first)!.value;
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toBe('Typed, then discarded.');
+  });
+
+  const otherOf = (select: HTMLSelectElement) => [...select.options].find((option) => option.value !== select.value)!.value;
+
+  it('text typed on the template the narrator went to stays when the earlier save lands (#3461 A)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'Typed on the first.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    const other = otherOf(select);
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Typed on the second.' } });
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed on the second.');
+    expect(registry.heldNow()).toHaveLength(1);
+  });
+
+  it('Save & continue while a save runs saves what was typed after it started too (#3461 B)', async () => {
+    const { api } = renderPanel();
+    const real = api.saveCreditsTemplate.bind(api);
+    const releases: Array<() => void> = [];
+    const sent: string[] = [];
+    vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(async (...args) => {
+      sent.push(args[3]);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      return real(...args);
+    });
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    const outcome = registry.save();
+    await waitFor(() => expect(releases).toHaveLength(1));
+    releases[0]!();
+    await waitFor(() => expect(releases).toHaveLength(2));
+    releases[1]!();
+    expect((await outcome).saved).toBe(true);
+    expect(sent).toEqual(['First part.', 'First part. MORE']);
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it('a pick between the save landing and the list being read again still asks (#3461 B2)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    const asked: Array<() => void> = [];
+    act(() => registry.setShell({ ask: (run) => void asked.push(run), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    const real = api.creditsTemplates.bind(api);
+    let listed: () => void = () => {};
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(async () => {
+      await new Promise<void>((resolve) => (listed = resolve));
+      return real();
+    });
+    release();
+    await waitFor(() => expect(vi.mocked(api.creditsTemplates)).toHaveBeenCalled());
+    expect(registry.heldNow()).toHaveLength(1);
+    fireEvent.change(select, { target: { value: otherOf(select) } });
+    expect(asked).toHaveLength(1);
+    listed();
+  });
+
+  it('a list that cannot be read after a save leaves the typed text held, and another template does not show it (#3461 C)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    vi.spyOn(api, 'creditsTemplates').mockRejectedValue(new Error('list failed'));
+    release();
+    await waitFor(() => expect(vi.mocked(api.creditsTemplates)).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(registry.heldNow()).toHaveLength(1);
+    const other = otherOf(select);
+    vi.mocked(api.creditsTemplates).mockRestore();
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toContain('MORE');
+  });
+
+  it('a New template whose text was typed and deleted holds nothing (#3461)', async () => {
+    renderPanel();
+    await editTemplate();
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    await waitFor(() => expect(registry.heldNow()).toHaveLength(0));
+    fireEvent.change(body, { target: { value: 'typed' } });
+    expect(registry.heldNow()).toHaveLength(1);
+    fireEvent.change(body, { target: { value: '' } });
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it('another template asks over a held edit, Cancel keeps the text, and answering goes there (#3461)', async () => {
+    renderPanel();
+    const { select, body } = await editTemplate();
+    const asked: Array<() => void> = [];
+    act(() => registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? void asked.push(run) : run()), go: () => {} }));
+    const first = select.value;
+    fireEvent.change(body, { target: { value: 'Typed but not saved.' } });
+    const other = [...select.options].find((option) => option.value !== first)!.value;
+    fireEvent.change(select, { target: { value: other } });
+    expect(asked).toHaveLength(1);
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(first);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+    act(() => asked[0]!());
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
   });
 
   it('offers the chapter announcement kind and previews it for the first chapter, filling [Chapter] and [Chapter Title]', async () => {

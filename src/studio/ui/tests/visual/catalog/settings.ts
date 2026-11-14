@@ -665,6 +665,20 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'credits-navigate-away-confirm',
+    description:
+      'Settings, Project with a credits template edited and not saved and another page pressed in the navigation: the Unsaved settings confirm names the credit template edit, with its three actions',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'key-navigate-away-confirm',
+    description:
+      'Settings, Voice & pronunciation with a Merriam-Webster key pasted and not saved and another page pressed in the navigation: the Unsaved settings confirm names the key, with its three actions',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'search-results',
     description:
       'Settings with "whisper" typed in Search settings: matching rows from several categories, each under its category with Show the whole category, and a count read aloud',

@@ -1,3 +1,4 @@
+import { useGuardedAction } from '../../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePageCommands } from '../../../input/pageCommands';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
@@ -41,7 +42,7 @@ export type SettingsPageProps = {
   data: Bootstrap;
   notify: Notify;
   onDirtyChange: (dirty: boolean) => void;
-  registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
+  registerActions: (actions: { save: () => Promise<boolean>; discard: () => Promise<void> }) => void;
   onProjectDataCleared: () => Promise<void>;
   /** The shared "link a REAPER project file" action. */
   onLinkDawFile: () => void;
@@ -79,6 +80,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
+  // Letters typed while the question is open, which has not let them apply yet. They show in the box only until it is answered: Cancel puts the applied query back (`onCancel`),
+  // and every write of `query` clears them, so whenever no question is open the box reads exactly what the results are for (#3456).
+  const [pending, setPending] = useState<string | null>(null);
+  const typed = pending ?? query;
   const [filter, setFilter] = useState<Filter>('all');
   const [navOpen, setNavOpen] = useState(false);
   const [advanced, setAdvanced] = useState<Partial<Record<CategoryId, boolean>>>({});
@@ -96,6 +101,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     if (!next) return;
     setCat(next.cat);
     setQuery('');
+    setPending(null);
     setFilter('all');
     setFocusRow(next.row);
   }, [initialCategory]);
@@ -158,12 +164,44 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // What the header's Reset to defaults puts back: the changed rows it knows how to reset (the others are undone in their own row).
   const resettableChangedIn = (id: CategoryId) => categoryRows(id).filter((row) => changed(row) && isResettable(row)).length;
 
-  const showCategory = useCallback((id: CategoryId) => {
-    setCat(id);
-    setQuery('');
-    setFilter('all');
-    setNavOpen(false);
-  }, []);
+  // Another category replaces the panel that holds a draft (the credits template), so it asks first like a move to another page.
+  const guarded = useGuardedAction();
+  const showCategory = useCallback(
+    (id: CategoryId) =>
+      guarded(() => {
+        setCat(id);
+        setQuery('');
+        setPending(null);
+        setFilter('all');
+        setNavOpen(false);
+      }),
+    [guarded],
+  );
+
+  // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)
+  // goes with it. Asked on every change that shows, changes or clears the results. The question takes the focus, but what was typed stays in the box after Cancel (#3456).
+  // Every change of the search or the filter that shows, replaces or clears the results swaps the pane under an editor held there (a key pasted into the
+  // Merriam-Webster box among the results, a credits template opened from them), so it asks; a change that leaves the results as they are does not.
+  const changeSearch = (nextQuery: string, nextFilter: Filter) => {
+    setPending(nextQuery === '' ? null : nextQuery);
+    const nextSearching = nextQuery.trim() !== '' || nextFilter !== 'all';
+    const sameResults = nextQuery.trim() === text && nextFilter === filter;
+    const apply = () => {
+      setQuery(nextQuery);
+      setPending(null);
+      setFilter(nextFilter);
+    };
+    if (sameResults || !(searching || nextSearching)) apply();
+    else guarded(apply, { settle: false, onCancel: () => setPending(null) });
+  };
+  // While an input method is composing (Japanese, Chinese, Korean), the box holds text that is not final: a question opened on it would take the focus mid-composition and
+  // garble what ends up in the box. The ask waits for the composition to end (#3456).
+  const composing = useRef(false);
+  const changeQuery = (next: string) => {
+    if (composing.current) setPending(next === '' ? null : next);
+    else changeSearch(next, filter);
+  };
+  const changeFilter = (next: Filter) => changeSearch(typed, next);
 
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
   const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;
@@ -267,7 +305,12 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             rows={categoryRows(cat)}
             changed={resettableChangedIn(cat)}
             advancedOpen={Boolean(advanced[cat])}
-            onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
+            // Collapsing Advanced unmounts the rows under it, and a key pasted into the Merriam-Webster box among them, so closing it asks (#3456).
+            onToggleAdvanced={() => {
+              const toggle = () => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }));
+              if (advanced[cat]) guarded(toggle);
+              else toggle();
+            }}
             onReset={() => {
               if (resetting.current) return;
               resetting.current = true;
@@ -304,25 +347,36 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             <span className="flex-1" />
             <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
               <div className="w-[260px] min-w-0 flex-[1_1_180px]">
-                <SearchField
-                  leadingIcon
-                  label="Search settings"
-                  placeholder="Search settings"
-                  value={query}
-                  onChange={setQuery}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape' && query) {
-                      event.stopPropagation();
-                      setQuery('');
-                    }
+                <div
+                  className="w-full"
+                  onCompositionStart={() => {
+                    composing.current = true;
                   }}
-                />
+                  onCompositionEnd={(event) => {
+                    composing.current = false;
+                    if (event.target instanceof HTMLInputElement) changeSearch(event.target.value, filter);
+                  }}
+                >
+                  <SearchField
+                    leadingIcon
+                    label="Search settings"
+                    placeholder="Search settings"
+                    value={typed}
+                    onChange={changeQuery}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape' && typed) {
+                        event.stopPropagation();
+                        changeQuery('');
+                      }
+                    }}
+                  />
+                </div>
               </div>
               <ToggleGroup
                 label="Show"
                 look="segmented"
                 value={filter}
-                onChange={(next) => setFilter(next as Filter)}
+                onChange={(next) => changeFilter(next as Filter)}
                 options={[
                   { value: 'all', label: 'All' },
                   { value: 'changed', label: 'Changed' },

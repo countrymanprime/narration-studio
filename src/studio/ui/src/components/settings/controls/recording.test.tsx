@@ -7,6 +7,8 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { DAW_CAPABILITIES } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
+import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
@@ -20,6 +22,13 @@ afterEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
 });
+
+// The registry the page's holders joined, for the tests that ask it to save.
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
 
 async function renderPage({
   api = createMockApi(),
@@ -37,27 +46,30 @@ async function renderPage({
   const data = await api.bootstrap();
   render(
     <MemoryRouter>
-      <ThemeProvider>
-        <ApiProvider api={api}>
-          <StudioProvider>
-            <TooltipProvider>
-              {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
-              <main tabIndex={-1}>
-                <SettingsPage
-                  data={data}
-                  notify={notify}
-                  onDirtyChange={vi.fn()}
-                  registerActions={vi.fn()}
-                  onProjectDataCleared={async () => undefined}
-                  onLinkDawFile={onLinkDawFile}
-                  go={vi.fn()}
-                  refreshBootstrap={async () => undefined}
-                />
-              </main>
-            </TooltipProvider>
-          </StudioProvider>
-        </ApiProvider>
-      </ThemeProvider>
+      <UnsavedDraftsProvider>
+        <RegistryProbe />
+        <ThemeProvider>
+          <ApiProvider api={api}>
+            <StudioProvider>
+              <TooltipProvider>
+                {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+                <main tabIndex={-1}>
+                  <SettingsPage
+                    data={data}
+                    notify={notify}
+                    onDirtyChange={vi.fn()}
+                    registerActions={vi.fn()}
+                    onProjectDataCleared={async () => undefined}
+                    onLinkDawFile={onLinkDawFile}
+                    go={vi.fn()}
+                    refreshBootstrap={async () => undefined}
+                  />
+                </main>
+              </TooltipProvider>
+            </StudioProvider>
+          </ApiProvider>
+        </ThemeProvider>
+      </UnsavedDraftsProvider>
     </MemoryRouter>,
   );
   const nav = screen.getByRole('navigation', { name: 'Settings categories' });
@@ -574,6 +586,15 @@ describe('Voice & pronunciation', () => {
     fireEvent.click(within(key).getByRole('button', { name: 'Remove key' }));
     expect(await within(key).findByLabelText('Merriam-Webster key')).toBeTruthy();
     await waitFor(() => expect(within(row('voice.dict')).getByText('No key saved')).toBeTruthy());
+  });
+
+  // holder: settings/controls/MwKeyBody.tsx
+  it('the pasted key renders clean once the registry has saved it (the holder contract)', async () => {
+    await renderPage({ category: 'Voice & pronunciation', advanced: true });
+    const key = row('voice.mwKey');
+    fireEvent.change(await within(key).findByLabelText('Merriam-Webster key'), { target: { value: 'abcdef123456' } });
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
   });
 
   it("shows the host's sentence for a key it refuses, and tests offline without sending", async () => {
