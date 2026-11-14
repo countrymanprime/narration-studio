@@ -344,11 +344,12 @@ export function EditingCheckPanel({
             </p>
             <p>{sentenceStart(refusal.message)}</p>
             {refusal.reason === 'multiple_tracks' ? (
-              <EnginePanelLink />
+              <EnginePanelLink onOpen={close} />
             ) : (
               <ChapterTrackLinkFix
                 chapter={chapter}
                 notify={(text, tone) => (tone ? notify(text, tone) : notify(text))}
+                onNavigate={close}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();

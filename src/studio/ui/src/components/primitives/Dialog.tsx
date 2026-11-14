@@ -7,7 +7,7 @@ function focusFirst(targets: readonly (HTMLElement | null | undefined)[]): void 
   }
 }
 
-import { markDialogClosed } from './dialogClosed';
+import { markDialogClosed, rememberClosedTarget } from './dialogClosed';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
@@ -184,11 +184,13 @@ export function Dialog({
   // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
   // where this dialog would have (dialogClosed.ts).
   useEffect(
-    () => () =>
-      markDialogClosed(() => {
+    () => () => {
+      markDialogClosed();
+      rememberClosedTarget(() => {
         if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
         return latest.current.returnFocus?.() ?? null;
-      }),
+      });
+    },
     [opener],
   );
   // A dialog that is removed together with the thing around it (a link made takes away the notice that opened its dialog, chip and all) never gets its
