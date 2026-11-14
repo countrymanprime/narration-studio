@@ -101,6 +101,19 @@ const INSET = 'px-[var(--space-6)]';
 // empty `actions` would draw a padded blank row under the body.
 const hasContent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false && node !== '';
 
+// The control a dialog was opened from, remembered for a moment as it goes away: the same dialog opened again straight after (Ctrl+K, Escape, Ctrl+K in quick
+// succession) finds focus on nothing, since the first has not handed it back yet, and would take the page for its opener (#3416). Only the same dialog
+// (its title): another dialog opened from the page, a page-wide key's or a confirm that stays on <body>, has no business returning to this opener.
+const RECENT_OPENER_MS = 600;
+let recentOpener: { element: HTMLElement; at: number; title: string } | null = null;
+function openerAtMount(title: string): HTMLElement | null {
+  const active = document.activeElement;
+  const nowhere = !(active instanceof HTMLElement) || active === document.body;
+  if (nowhere && recentOpener && recentOpener.title === title && Date.now() - recentOpener.at < RECENT_OPENER_MS && recentOpener.element.isConnected)
+    return recentOpener.element;
+  return active instanceof HTMLElement ? active : null;
+}
+
 // The one modal shell. Base UI supplies the behaviour: the page behind is hidden from
 // assistive technology and unreachable by Tab, Tab loops inside, focus moves in on open and comes back on close. This
 // wrapper owns the policy on top of it:
@@ -112,6 +125,7 @@ const hasContent = (node: ReactNode): boolean => node !== undefined && node !== 
 //   `autoFocus`, and returns to the element that opened the dialog, or into the page's <main> when that is gone.
 // Dialogs are mounted conditionally (`{open && <Dialog />}`), so `open` is always true here and the parent's unmount is
 // the close; no exit animation exists to wait for.
+
 export function Dialog({
   title,
   onClose,
@@ -146,7 +160,7 @@ export function Dialog({
   const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
-  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
+  const [opener] = useState(() => openerAtMount(title));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
   const top = (placement ?? 'top') === 'top';
@@ -167,12 +181,13 @@ export function Dialog({
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
   // Whether Base UI handed focus back as the dialog closed; when the dialog goes with its parent instead, this stays false (see the cleanup below).
   const handedBack = useRef(false);
-  const latest = useRef({ returnFocus, stayOnBody });
-  latest.current = { returnFocus, stayOnBody };
+  const latest = useRef({ returnFocus, stayOnBody, title });
+  latest.current = { returnFocus, stayOnBody, title };
   // A dialog that is removed together with the thing around it (a link made takes away the notice that opened its dialog, chip and all) never gets its
   // close hand-back, and focus would fall to <body>. Hand it back the same way, a tick later, only when focus is on nothing.
   useEffect(
     () => () => {
+      if (opener && opener !== document.body && opener.isConnected) recentOpener = { element: opener, at: Date.now(), title: latest.current.title };
       if (handedBack.current) return;
       window.setTimeout(() => {
         const active = document.activeElement;
