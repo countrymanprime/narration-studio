@@ -50,6 +50,7 @@ export function ChapterTrackPanel({
   onClose,
   onChanged,
   onRemoveFromRecording,
+  returnFocus,
 }: {
   open: boolean;
   chapterId: string;
@@ -68,6 +69,8 @@ export function ChapterTrackPanel({
   onChanged: () => Promise<void>;
   /** Reclassifies the chapter (manuscriptSetChapterKind); the caller re-reads the chapter list and ChapterTrackLinks
    * and shows its own notify/error. Rejects on failure, which keeps the confirm open for a retry. */
+  /** Where focus goes on close when what opened it is gone (the row menu's item): the chapter's row. */
+  returnFocus?: () => HTMLElement | null;
   onRemoveFromRecording: (kind: ManuscriptContentKind) => Promise<void>;
 }) {
   const api = useApi();
@@ -141,7 +144,7 @@ export function ChapterTrackPanel({
   const missing = state?.kind === 'missing';
   const conflict = link?.status === 'ambiguous' && link.links.length > 1;
   return (
-    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose}>
+    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
         <p role="status">Reading the saved project…</p>
       ) : (

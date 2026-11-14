@@ -18,6 +18,7 @@ function RegistryProbe() {
   return null;
 }
 
+// holder: storybible/GuideDetail.tsx
 describe('the entry editor as an unsaved-draft holder', () => {
   it('renders clean once the registry has saved a renamed entry', async () => {
     const api = createMockApi();

@@ -39,16 +39,19 @@ export function CreditsRowPanel({
   label,
   onStatus,
   onClose,
+  returnFocus,
 }: {
   open: boolean;
   row: CreditsRow;
   label: string;
   onStatus: (status: ChapterStatus) => void;
   onClose: () => void;
+  /** Where focus goes on close when what opened it is gone (the row menu's item): the chapter's row. */
+  returnFocus?: () => HTMLElement | null;
 }) {
   const warning = unresolvedWarning(row.unresolved);
   return (
-    <SlideOver open={open} title={label} onClose={onClose}>
+    <SlideOver open={open} title={label} onClose={onClose} returnFocus={returnFocus}>
       <div className="space-y-4 text-sm">
         <p>
           <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words ·{' '}
