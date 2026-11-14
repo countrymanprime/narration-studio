@@ -375,6 +375,8 @@ function AgreeOrChanged({
 function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: number | null, label?: string) => void }) {
   const { match, track, located, verdict, lastReading } = result;
   const trackName = track ? readable(track.name) : undefined;
+  // "Chapter 5 track", but a blank name already reads "Unnamed track", not "Unnamed track track".
+  const trackLine = track ? (readable(track.name) === track.name.trim() ? `${trackName} track` : trackName) : 'track';
 
   // Only one source has a place: offered in the same compact form regardless of why the other is missing (no
   // track, no recording, an unconfident guess) - this takes priority over every status-specific message below.
@@ -444,7 +446,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
         }
       >
         <p style={MUTED}>
-          {trackName} track · {dawLabel(result)}
+          {trackLine} · {dawLabel(result)}
         </p>
         <TrackProblem match={match} trackName={trackName} />
         <p>
@@ -469,7 +471,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
       }
     >
       <p style={MUTED}>
-        {trackName} track · {dawLabel(result)}
+        {trackLine} · {dawLabel(result)}
       </p>
       <TrackProblem match={match} trackName={trackName} />
       <p>{unreadableText(result)}</p>

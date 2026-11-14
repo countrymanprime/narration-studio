@@ -210,8 +210,8 @@ export function recheckSentence(
 /** The done toast: what the DAW made, named as it was given, and that it is not saved yet. */
 function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
   return result.voice
-    ? `Created the folder “${result.track.name}” with a ${result.voice.name} track and linked ${short} to it. Save the project to keep it.`
-    : `Created the track “${result.track.name}” and linked ${short} to it. Save the project to keep it.`;
+    ? `Created the folder “${trackName(result.track.name)}” with a ${result.voice.name} track and linked ${short} to it. Save the project to keep it.`
+    : `Created the track “${trackName(result.track.name)}” and linked ${short} to it. Save the project to keep it.`;
 }
 
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.

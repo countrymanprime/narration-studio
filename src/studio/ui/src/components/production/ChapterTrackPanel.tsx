@@ -355,7 +355,7 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
         />
         <div className="min-w-0">
           <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">
-            {link.track ? trackName(link.track.trackName) : chapterTitle}
+            {link.track ? trackName(link.track.trackName, trackSummary?.index) : chapterTitle}
           </div>
           {trackSummary && <div style={{ color: 'var(--text-muted)' }}>Track {trackSummary.index + 1}</div>}
         </div>
