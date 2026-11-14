@@ -37,23 +37,14 @@ export function TitleSubtitle({
     // not "Title : Subtitle"; the bare space keeps the join in a renderer that does not.
     return (
       <span className={`normal-case ${className}`}>
-        <span
-          data-title=""
-          className={`block text-[1.2em] leading-tight font-semibold ${truncate ? 'truncate' : ''}`}
-          title={truncate && typeof title === 'string' ? title : undefined}
-        >
+        <span data-title="" className={`block text-[1.2em] leading-tight font-semibold ${truncate ? 'truncate' : ''}`}>
           {title}
           {subtitle && <span className="text-[0px] select-none">:</span>}
         </span>
         {subtitle && (
           <>
             {' '}
-            <span
-              className={`block text-[0.8em] leading-tight font-normal text-[var(--text-muted)] ${truncate ? 'truncate' : ''}`}
-              title={truncate && typeof subtitle === 'string' ? subtitle : undefined}
-            >
-              {subtitle}
-            </span>
+            <span className={`block text-[0.8em] leading-tight font-normal text-[var(--text-muted)] ${truncate ? 'truncate' : ''}`}>{subtitle}</span>
           </>
         )}
       </span>
