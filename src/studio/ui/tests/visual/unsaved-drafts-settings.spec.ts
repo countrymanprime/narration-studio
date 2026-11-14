@@ -110,3 +110,42 @@ test('a typed hash change of Settings asks over a pasted key', async ({ page }) 
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
 });
+
+// A fragment typed by hand is an entry the router never numbered: a Back from it must still be read as a Back (#3456, qa-breaker on ea2f9c2).
+async function typedHashWithKey(page: Page, reloadAfter = false): Promise<void> {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Voice & pronunciation');
+  await page.evaluate(() => {
+    window.location.hash = '#category-voice';
+  });
+  if (reloadAfter) {
+    await page.reload();
+    await settlePage(page);
+  }
+  await page.getByRole('button', { name: /Advanced/ }).click();
+  await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
+}
+
+for (const reloadAfter of [false, true]) {
+  test(`browser Back from a typed Settings hash with a pasted key keeps the address, and Cancel then a second Back asks again${reloadAfter ? ' (after a reload)' : ''}`, async ({
+    page,
+  }) => {
+    await typedHashWithKey(page, reloadAfter);
+    const before = page.url();
+    await page.goBack();
+    await expect(unsaved(page)).toBeVisible();
+    await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+    expect(page.url()).toBe(before);
+    await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+    await page.goBack();
+    await expect(unsaved(page)).toBeVisible();
+    expect(page.url()).toBe(before);
+    await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+    // One Back that is answered with Discard reaches the previous distinct entry and not two.
+    await page.goBack();
+    await unsaved(page).getByRole('button', { name: 'Discard & continue' }).click();
+    await expect(unsaved(page)).toHaveCount(0);
+    expect(new URL(page.url()).hash).not.toBe('#category-voice');
+  });
+}
