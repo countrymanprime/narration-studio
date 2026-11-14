@@ -176,4 +176,17 @@ describe('jump menu over the project picker', () => {
     await screen.findByRole('combobox', { name: 'Jump menu' });
     expect(screen.queryByRole('option', { name: /^Switch project/ })).toBeNull();
   });
+
+  // #3416 item 70: the chooser replaces the shell, so going back left focus on <body>.
+  it('going Back from the picker over a project lands focus on the page, not <body>', async () => {
+    mount({});
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: '> Switch project' } });
+    fireEvent.click(await screen.findByRole('option', { name: /^Switch project/ }));
+    await picker();
+    fireEvent.click(screen.getByRole('button', { name: /^Back/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('main')));
+  });
 });
