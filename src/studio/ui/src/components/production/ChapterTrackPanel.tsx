@@ -320,7 +320,13 @@ export function ChapterTrackPanel({
         </div>
       )}
       {removeOpen && (
-        <RemoveFromRecordingDialog chapterTitle={shortName} busy={busy} onConfirm={(kind) => void remove(kind)} onCancel={() => setRemoveOpen(false)} />
+        <RemoveFromRecordingDialog
+          chapterTitle={shortName}
+          busy={busy}
+          onConfirm={(kind) => void remove(kind)}
+          onCancel={() => setRemoveOpen(false)}
+          returnFocus={returnFocus}
+        />
       )}
     </SlideOver>
   );

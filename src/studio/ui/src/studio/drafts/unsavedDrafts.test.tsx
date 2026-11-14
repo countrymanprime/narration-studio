@@ -169,6 +169,41 @@ describe('the unsaved-drafts registry', () => {
     }
   });
 
+  it('a save that fails after the limit tells the shell, unless the narrator discarded in between (#3446 R-4)', async () => {
+    for (const discarded of [false, true]) {
+      vi.useFakeTimers();
+      try {
+        let fail!: (error: unknown) => void;
+        const save = vi.fn(
+          () =>
+            new Promise<boolean>((_, reject) => {
+              fail = reject;
+            }),
+        );
+        const lateFailure = vi.fn();
+        const { result } = setup({ a: draft({ save }) });
+        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateFailure }));
+        let stuck!: Promise<SaveResult>;
+        act(() => {
+          stuck = result.current.save();
+        });
+        const settled = expect(stuck).rejects.toBeInstanceOf(SaveTimeout);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
+        });
+        await settled;
+        if (discarded) act(() => void result.current.discard());
+        await act(async () => {
+          fail(new Error('Disk full'));
+          await vi.advanceTimersByTimeAsync(10);
+        });
+        expect(lateFailure).toHaveBeenCalledTimes(discarded ? 0 : 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  });
+
   it('a draft that is dirty again right after its own save is reported in late (#3446 D1)', async () => {
     function Again() {
       const [text, setText] = useState('typed');
