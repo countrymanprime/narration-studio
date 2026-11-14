@@ -185,7 +185,7 @@ const MAX_REASON = 120;
 /** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is (the verdicts end "so you are still here."). */
 const keptNote = (message: string): string => (/so you are still here\.$/.test(message) ? message : `${message} What you typed is still here.`);
 /** Whether the address is the route the router shows. */
-const onPageRoute = (): boolean => routePath() === popGuard.route;
+const onPageRoute = (): boolean => routeKey() === popGuard.route;
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener(
