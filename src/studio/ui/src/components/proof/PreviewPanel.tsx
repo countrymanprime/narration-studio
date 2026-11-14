@@ -1,5 +1,5 @@
+import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faCopy, faFileLines, faMinus, faPlus, faThumbtack, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -66,7 +66,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
   // Bumped when a preview option is saved: the candidates are computed fresh from the settings on every read.
   const [reads, setReads] = useState(0);
   const readAgain = useCallback(() => setReads((n) => n + 1), []);
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
 
   useEffect(() => {
     let active = true;

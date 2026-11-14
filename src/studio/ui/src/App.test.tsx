@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState, type ReactNode } from 'react';
 import { withoutCredits } from './chapterKinds';
 import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createRoot } from 'react-dom/client';
@@ -11,6 +12,8 @@ import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
 import { overlay } from './overlay/overlayService';
+import { WireError } from './api/wire/WireError';
+import { SAVE_LIMIT_MS, useGuardedNavigate, useUnsavedDraft } from './studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -1402,9 +1405,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 14 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 32 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-const MOUNT_BUDGET = 13;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 30 for a save that rejects after the limit, a wire error, the focus after pointer events, a slow second Enter, and two failure reasons; 30 to 31 for the Proof screen of #3400: a note being written held through the exits table.
+const MOUNT_BUDGET = 31;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1577,6 +1581,20 @@ describe('App Back and Forward', () => {
         stillHeld: () => expect(keptEdit()).toBeTruthy(),
         page: '/settings',
       },
+      // A note written on a Proof finding waits for Add note (#3400).
+      'a note being written on a Proof finding': {
+        hold: async () => {
+          renderApp();
+          await screen.findByRole('heading', { level: 1, name: 'Production' });
+          fireEvent.click(screen.getAllByRole('button', { name: /^Proof/ })[0]!);
+          fireEvent.change(await screen.findByRole('textbox', { name: 'Add a note' }, { timeout: 8000 }), { target: { value: 'Typed but not saved.' } });
+          await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+        },
+        question: async () => screen.findByText('Save or discard the note you are writing before leaving?'),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect((screen.getByRole('textbox', { name: 'Add a note' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.'),
+        page: '/proof',
+      },
       'a recording Booth': {
         hold: async () => {
           const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
@@ -1645,6 +1663,472 @@ describe('App Back and Forward', () => {
         }
       });
     }
+
+    // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
+    // sits outside the app's own tree and so needs the registry above it.
+    it('the engine panel Open in Proof from dirty Settings asks Unsaved settings first and stays on Settings', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      await rowAction(await linkChapterOne(), 'Open in Proof');
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(window.location.pathname).toBe('/settings');
+    });
+
+    it('a link inside an overlay dialog from dirty Settings asks too (the overlay host draws outside the app tree)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      const Link = () => {
+        const navigate = useGuardedNavigate();
+        return <button onClick={() => navigate('/proof')}>Go to Proof</button>;
+      };
+      let close = () => {};
+      act(() => {
+        close = overlay.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'A dialog with a link', render: () => <Link /> });
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
+      expect(window.location.pathname).toBe('/settings');
+      // The overlay service is module-wide: close the probe so the cases after this one do not find a dialog on screen.
+      act(() => close());
+    });
+
+    // No real editor registers in this change, so a dialog the overlay host draws (inside the registry's provider) carries test holders; its link is a guarded
+    // one that asks over dirty Settings.
+    const ProbeDialog = ({ children }: { children: ReactNode }) => {
+      const navigate = useGuardedNavigate();
+      return (
+        <div>
+          {children}
+          <button onClick={() => navigate('/proof')}>Go to Proof</button>
+        </div>
+      );
+    };
+    const NoSaveHolder = () => {
+      useUnsavedDraft('probe-nosave', { dirty: true, label: 'a relationship you started', brief: 'a relationship', discard: () => {} });
+      return null;
+    };
+    const DirtyAgainHolder = ({ onSave }: { onSave: () => void }) => {
+      const [text, setText] = useState('a late reply');
+      useUnsavedDraft('probe-again', {
+        dirty: text !== '',
+        label: 'your reply',
+        save: async () => {
+          onSave();
+          // Saved and cleared, then typed into again straight away.
+          setText('');
+          queueMicrotask(() => setText('typed again'));
+          return true;
+        },
+        discard: () => setText(''),
+      });
+      return null;
+    };
+    const openProbe = (holder: ReactNode) => {
+      let close = () => {};
+      act(() => {
+        close = overlay.open({
+          kind: 'dialog',
+          dismissOnOutsidePress: false,
+          title: 'A dialog with holders',
+          render: () => <ProbeDialog>{holder}</ProbeDialog>,
+        });
+      });
+      return close;
+    };
+
+    it('over dirty Settings: a holder that cannot be saved makes the question Discard-only (#3446 D4), and a holder dirty again after its own save keeps the narrator (#3446 D1)', async () => {
+      const saveSettings = vi.fn(createMockApi().saveSettings);
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      // D4: a draft with no save beside Settings' own edit: no Save, and the sentence names both.
+      let close = openProbe(<NoSaveHolder />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(
+        await screen.findByText('Save is off: A relationship you started cannot be saved from here. Discard settings edits and a relationship before leaving?'),
+      ).toBeTruthy();
+      const question = screen.getByRole('alertdialog');
+      expect(within(question).queryByRole('button', { name: 'Save & continue' })).toBeNull();
+      fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      act(() => close());
+      // D1: a holder whose save returns true and that is typed into again at once is still held, so the exit does not go on.
+      const onSave = vi.fn();
+      close = openProbe(<DirtyAgainHolder onSave={onSave} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(await screen.findByText(/Your reply changed while saving, so you are still here\./)).toBeTruthy();
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(window.location.pathname).toBe('/settings');
+      act(() => close());
+    });
+
+    it('a save that rejects after the limit still tells the narrator it failed (#3446)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let rejectLate: (error: unknown) => void = () => {};
+      const Late = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-late', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () =>
+            new Promise<boolean>((_, reject) => {
+              rejectLate = reject;
+            }),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Late />);
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+        });
+        expect(await screen.findByText('Saving is taking too long. What you typed is still here.')).toBeTruthy();
+        await act(async () => {
+          rejectLate(new Error('Disk full'));
+          await vi.advanceTimersByTimeAsync(10);
+        });
+        expect(await screen.findByText('Not saved: Disk full. What you typed is still here.')).toBeTruthy();
+      } finally {
+        vi.useRealTimers();
+      }
+      act(() => close());
+    });
+
+    it('a wire error and a save that returned false read once, with one full stop (#3446 R-2)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Wire = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-wire', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () => Promise.reject(new WireError('host.binding', 'Probe', [{ path: 'a', message: 'x' }])),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Wire />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      expect(await screen.findByText('Not saved: The app received data it could not read. What you typed is still here.')).toBeTruthy();
+      act(() => close());
+    });
+
+    it('the focus goes back into the question after each of the mouse events that follow a pointer press (#3446 B-1)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-focus', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Holder />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
+      // Past the question's own fixed timers, so only what a pointer press starts can put the focus back.
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      const inside = () => question.contains(document.activeElement);
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerUp(document.body);
+      await waitFor(() => expect(inside()).toBe(true));
+      // The compatibility mouse events of a tap drop the focus to <body> once more, with no focusin.
+      (document.activeElement as HTMLElement | null)?.blur();
+      expect(inside()).toBe(false);
+      fireEvent.mouseUp(document.body);
+      fireEvent.click(document.body);
+      await waitFor(() => expect(inside()).toBe(true));
+      fireEvent.click(within(question).getByRole('button', { name: 'Cancel' }));
+      act(() => close());
+    });
+
+    it('a second Enter 100 ms behind the one that asked is an echo even when the machine was too busy to run the first for over 300 ms (#3446 E7)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-slow', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Holder />);
+      const asker = await screen.findByRole('button', { name: 'Go to Proof' });
+      const stamped = (type: string, target: Element, at: number) => {
+        const event = new KeyboardEvent(type, { key: 'Enter', bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'timeStamp', { value: at });
+        target.dispatchEvent(event);
+        return event;
+      };
+      stamped('keydown', asker, 1000);
+      fireEvent.click(asker);
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
+      // The machine was busy: more than the window passes before the second press is handled, but the presses were 100 ms apart.
+      const busyUntil = Date.now() + 400;
+      while (Date.now() < busyUntil) {
+        /* block the thread */
+      }
+      const stay = within(question).getByRole('button', { name: 'Cancel' });
+      expect(stamped('keydown', stay, 1100).defaultPrevented).toBe(true);
+      // A press well after the first is an answer.
+      expect(stamped('keydown', stay, 1500).defaultPrevented).toBe(false);
+      fireEvent.click(stay);
+      act(() => close());
+    });
+
+    it('keeps the kept sentence unless the reason is a verdict, and does not double a full stop (#3446 R-5)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Fails = ({ reason }: { reason: string }) => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-reason', { dirty: text !== '', label: 'your reply', save: () => Promise.reject(new Error(reason)), discard: () => setText('') });
+        return null;
+      };
+      for (const [reason, shown] of [
+        ['The file is still here but locked', 'Not saved: The file is still here but locked. What you typed is still here.'],
+        ['Disk full!', 'Not saved: Disk full! What you typed is still here.'],
+      ] as const) {
+        const close = openProbe(<Fails reason={reason} />);
+        fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        expect(await screen.findByText(shown)).toBeTruthy();
+        fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+        act(() => close());
+      }
+    });
+
+    it('a long failure reason is cut, and the sentence after it is kept (#3446 R-6)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Fails = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-long', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () => Promise.reject(new Error('x'.repeat(400))),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Fails />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      const toast = await screen.findByText(/^Not saved: x+….*What you typed is still here\.$/);
+      expect(toast.textContent!.length).toBeLessThan(180);
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+      act(() => close());
+    });
+
+    it('a save that rejects with nothing useful says Not saved without the raw value (#3446 E5)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Rejects = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-rejects', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () => Promise.reject(undefined),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Rejects />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      expect(await screen.findByText('Not saved. What you typed is still here.')).toBeTruthy();
+      expect(screen.queryByText(/undefined/)).toBeNull();
+      act(() => close());
+    });
+
+    it('a dialog that closes itself on a guarded link stays open after Cancel and closes once the move goes ahead (#3446 E6)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-after', { dirty: text !== '', label: 'your reply', discard: () => setText('') });
+        return null;
+      };
+      let close = () => {};
+      const Leave = () => {
+        const navigate = useGuardedNavigate();
+        return <button onClick={() => navigate('/proof', { after: () => close() })}>Leave and close</button>;
+      };
+      act(() => {
+        close = overlay.open({
+          kind: 'dialog',
+          dismissOnOutsidePress: false,
+          title: 'A dialog that closes on leaving',
+          render: () => (
+            <>
+              <Holder />
+              <Leave />
+            </>
+          ),
+        });
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Leave and close' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Unsaved changes' })).toBeNull());
+      expect(screen.getByRole('button', { name: 'Leave and close' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Leave and close' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Leave and close' })).toBeNull());
+      expect(window.location.pathname).toBe('/proof');
+    });
+
+    it('the question closes itself and the move goes on when what was held goes away while it is open (#3446)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let clear: () => void = () => {};
+      const Clears = () => {
+        const [text, setText] = useState('typed');
+        clear = () => setText('');
+        useUnsavedDraft('probe-clears', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Clears />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard your reply before leaving?')).toBeTruthy();
+      act(() => clear());
+      await waitFor(() => expect(window.location.pathname).toBe('/proof'));
+      await waitFor(() => expect(screen.queryByText('Save or discard your reply before leaving?')).toBeNull(), { timeout: 3000 });
+      act(() => close());
+    });
+
+    it("the question's sentence follows what is held while it is open: a holder joining that cannot be saved turns it Discard-only (#3446 E3)", async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      let hold: () => void = () => {};
+      const Saveable = () => {
+        useUnsavedDraft('probe-saveable', { dirty: true, label: 'your reply', save: async () => true, discard: () => {} });
+        return null;
+      };
+      const Joins = () => {
+        const [on, setOn] = useState(false);
+        hold = () => setOn(true);
+        useUnsavedDraft('probe-joins', { dirty: on, label: 'a note you started', brief: 'a note', discard: () => {} });
+        return null;
+      };
+      const close = openProbe(
+        <>
+          <Saveable />
+          <Joins />
+        </>,
+      );
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      expect(await screen.findByText('Save or discard your reply before leaving?')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Save & continue' })).toBeTruthy();
+      act(() => hold());
+      expect(await screen.findByText(/Discard your reply and a note you started before leaving\?$/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Save & continue' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Unsaved changes' })).toBeNull());
+      act(() => close());
+    });
+
+    // Save & continue is one press that cannot be cancelled or repeated while it runs, and a save that fails or never answers leaves the narrator where they are
+    // with what they typed (#3400).
+    const slowSettingsSave = () => {
+      const real = createMockApi();
+      const release = { run: () => {} };
+      const saveSettings = vi.fn(async (...args: Parameters<typeof real.saveSettings>) => {
+        await new Promise<void>((resolve) => (release.run = resolve));
+        return real.saveSettings(...args);
+      });
+      return { saveSettings, release };
+    };
+
+    it('Save & continue over a slow save cannot be cancelled or pressed twice, saves once and then leaves (#3400)', async () => {
+      const { saveSettings, release } = slowSettingsSave();
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      headerSwitch();
+      const save = await screen.findByRole('button', { name: 'Save & continue' });
+      fireEvent.click(save);
+      fireEvent.click(save);
+      expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+      expect((screen.getByRole('button', { name: 'Discard & continue' }) as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      release.run();
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(saveSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('Save & continue stays on Settings with the edit kept when a field fails to save (#3400)', async () => {
+      const saveSettings = vi.fn(async () => {
+        throw new Error('Disk full');
+      });
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      headerSwitch();
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      await waitFor(() => expect(saveSettings).toHaveBeenCalled());
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+      expect(window.location.pathname).toBe('/settings');
+      expect(keptEdit()).toBeTruthy();
+    });
+
+    it('a save that never answers gives Cancel and Discard & continue back after its limit, with the edit kept (#3400)', async () => {
+      const saveSettings = vi.fn(() => new Promise<never>(() => {}));
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        headerSwitch();
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 100);
+        });
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(false));
+        expect(await screen.findByText('Saving is taking too long. What you typed is still here.')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        expect(keptEdit()).toBeTruthy();
+        // Discard & continue still leaves after a save that never answered.
+        headerSwitch();
+        fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+        await screen.findByRole('heading', { name: 'Choose your project' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    // A field that saves on blur keeps its text as a draft until the caret leaves; an exit that unmounts the page never sends that blur (#3400).
+    it('Alt+Left in a Settings box that saves when it loses focus saves what was typed first', async () => {
+      const saveSettings = vi.fn(createMockApi().saveSettings);
+      renderApp({ saveSettings });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
+      const categories = await screen.findByRole('navigation', { name: 'Settings categories' });
+      fireEvent.click(within(categories).getByRole('button', { name: /^Project/ }));
+      const box = await screen.findByRole('textbox', { name: /Narrator name/ });
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+      box.focus();
+      fireEvent.change(box, { target: { value: 'Ada Reader' } });
+      fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
+      await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('General', 'global', { narrator_name: 'Ada Reader' }));
+      // The move itself is waited for: the exit is decided 40 ms after the blur, and a test that ended before that left the
+      // deferred Back to run against a torn-down tree.
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+    });
 
     it('Switch project from Settings: Save & continue saves the edit and opens the picker', async () => {
       const saveSettings = vi.fn(createMockApi().saveSettings);

@@ -1,6 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
@@ -247,7 +247,7 @@ function ChapterLinkRow({
   onClear: () => void;
   onEditingCheck: () => void;
 }) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
   const folders = useVoiceLayout() === 'folders';
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id, nameOf);

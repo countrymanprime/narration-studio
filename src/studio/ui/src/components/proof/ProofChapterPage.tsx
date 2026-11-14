@@ -1,6 +1,7 @@
+import { GuardedLink, useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { headingName } from '../../chapterHeading';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -69,7 +70,7 @@ export function ProofChapterPage(props: ChapterViewProps) {
 
 function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToEditing, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
   const [loadError, setLoadError] = useState('');
@@ -131,7 +132,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const frame = (title: string, crumb: ReactNode, children: ReactNode, status?: ReactNode) => (
     <div className="space-y-4">
       <nav aria-label="Breadcrumb" className="h-5 truncate text-sm leading-5" style={{ color: 'var(--text-muted)' }}>
-        <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {crumb}
+        <GuardedLink to="/proof">Proof</GuardedLink> <span aria-hidden="true">&rsaquo;</span> {crumb}
       </nav>
       {/* The status and its button on the title's centre line (XPC-19); a button's height even without one, so the title sits at one y. */}
       <div className="flex min-h-[var(--control-height)] flex-wrap items-center justify-between gap-2">
@@ -166,7 +167,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       'This chapter',
       <Panel title="This chapter is not in the manuscript">
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          The address names a chapter the manuscript does not have. <Link to="/proof">Back to Proof</Link>
+          The address names a chapter the manuscript does not have. <GuardedLink to="/proof">Back to Proof</GuardedLink>
         </p>
       </Panel>,
     );
