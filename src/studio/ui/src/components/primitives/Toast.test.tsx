@@ -29,7 +29,9 @@ describe('ToastRegion', () => {
   it('does not take focus from a modal when its plain text is pressed, and leaves its own buttons alone', () => {
     document.documentElement.setAttribute('data-modal-open', '');
     try {
-      render(<ToastRegion messages={[{ id: 1, text: 'REAPER stopped recording', tone: 'info', action: { label: 'Undo', run: vi.fn() } }]} dismiss={vi.fn()} />);
+      render(
+        <ToastRegion messages={[{ id: 1, text: 'REAPER stopped recording', tone: 'info', action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />,
+      );
       const text = createEvent.mouseDown(screen.getByText('REAPER stopped recording'), { cancelable: true, bubbles: true });
       fireEvent(screen.getByText('REAPER stopped recording'), text);
       expect(text.defaultPrevented).toBe(true);
