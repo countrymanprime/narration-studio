@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
-import { markDialogClosed } from './dialogClosed';
+import { rememberClosedTarget } from './dialogClosed';
 import { escapeClosesPanel, useReturnFocusTarget } from './focusReturn';
 
 afterEach(cleanup);
@@ -83,7 +83,7 @@ describe('useReturnFocusTarget after a dialog closed as the panel opened', () =>
             <button
               id="link"
               onClick={() => {
-                if (closedWith) markDialogClosed(() => document.getElementById('row'));
+                if (closedWith) rememberClosedTarget(() => document.getElementById('row'));
                 setOpen(true);
                 setLinkThere(false);
               }}

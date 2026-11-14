@@ -9,25 +9,27 @@ import { WIRE_CHAPTERS } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 import type { NarrationApi } from '../../types';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import { ChapterTrackLinkFix } from './ChapterTrackLinkFix';
 
 afterEach(cleanup);
 
 const chapter = { ...WIRE_CHAPTERS[2], subtitle: '' };
 
-function show(overrides: Partial<NarrationApi> = {}) {
+function show(overrides: Partial<NarrationApi> = {}, around: { onNavigate?: () => void; openEngine?: () => void } = {}) {
   const onLinked = vi.fn();
   const notify = vi.fn();
   const api = createMockApi(overrides);
-  render(
+  const body = (
     <MemoryRouter>
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-          <ChapterTrackLinkFix chapter={chapter} notify={notify} onLinked={onLinked} />
+          <ChapterTrackLinkFix chapter={chapter} notify={notify} onLinked={onLinked} onNavigate={around.onNavigate} />
         </ChapterTrackStateProvider>
       </ApiProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  render(around.openEngine ? <EnginePanelProvider value={around.openEngine}>{body}</EnginePanelProvider> : body);
   return { api, onLinked, notify };
 }
 
@@ -39,6 +41,18 @@ const choose = async () => {
 };
 
 describe('ChapterTrackLinkFix (#3413)', () => {
+  // #3416 item 61: the list-error branch was not reachable in the mock (`mockLiveTracks=saved|failing` still sets the project), so no test drove it.
+  it('says the tracks could not be listed and its pointer closes what it sits in as it opens the engine panel', async () => {
+    const onNavigate = vi.fn();
+    const openEngine = vi.fn();
+    show({ tracksLive: () => Promise.reject(new Error('REAPER did not answer')) }, { onNavigate, openEngine });
+    expect(await screen.findByText(/The REAPER tracks could not be listed: .*REAPER did not answer/)).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: /^Track for/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Open the audio engine panel' }));
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(openEngine).toHaveBeenCalledTimes(1);
+  });
+
   it('offers the tracks, and links the chosen one', async () => {
     const { onLinked } = show();
     await choose();
