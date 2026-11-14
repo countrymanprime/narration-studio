@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -23,6 +23,31 @@ describe('ToastRegion', () => {
     expect(region.parentElement).toBe(document.body);
     expect(container.contains(region)).toBe(false);
     expect(region.className).toContain('z-[var(--z-toast)]');
+  });
+
+  // #3416 item 39 (qa-breaker): a press on a toast's plain text over a dialog that ignores outside presses moved focus from the dialog's control to <body>.
+  it('does not take focus from a modal when its plain text is pressed, and leaves its own buttons alone', () => {
+    document.documentElement.setAttribute('data-modal-open', '');
+    try {
+      render(
+        <ToastRegion messages={[{ id: 1, text: 'REAPER stopped recording', tone: 'info', action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />,
+      );
+      const text = createEvent.mouseDown(screen.getByText('REAPER stopped recording'), { cancelable: true, bubbles: true });
+      fireEvent(screen.getByText('REAPER stopped recording'), text);
+      expect(text.defaultPrevented).toBe(true);
+      const button = createEvent.mouseDown(screen.getByRole('button', { name: 'Dismiss message' }), { cancelable: true, bubbles: true });
+      fireEvent(screen.getByRole('button', { name: 'Dismiss message' }), button);
+      expect(button.defaultPrevented).toBe(false);
+    } finally {
+      document.documentElement.removeAttribute('data-modal-open');
+    }
+  });
+
+  it('leaves a press on its text alone when no modal is open', () => {
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    const press = createEvent.mouseDown(screen.getByText('Message 1'), { cancelable: true, bubbles: true });
+    fireEvent(screen.getByText('Message 1'), press);
+    expect(press.defaultPrevented).toBe(false);
   });
 
   it('keeps two live regions mounted, so a message that arrives later is announced', () => {
