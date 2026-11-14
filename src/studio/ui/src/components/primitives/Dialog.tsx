@@ -7,7 +7,7 @@ function focusFirst(targets: readonly (HTMLElement | null | undefined)[]): void 
   }
 }
 
-import { countDialogOpen, markDialogClosed, rememberClosedTarget } from './dialogClosed';
+import { countDialogOpen, markDialogClosed, recentDialogTarget, rememberClosedTarget } from './dialogClosed';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
@@ -161,6 +161,8 @@ export function Dialog({
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
   const [opener] = useState(() => openerAtMount(title));
+  // Opened by a control inside another dialog (a jump menu result), as against by a page key after one closed: only the former takes the closing one's place.
+  const [openedFromDialog] = useState(() => Boolean(opener?.closest('[role=dialog], [role=alertdialog]')));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
   const top = (placement ?? 'top') === 'top';
@@ -182,15 +184,42 @@ export function Dialog({
   const latest = useRef({ returnFocus, stayOnBody, title });
   latest.current = { returnFocus, stayOnBody, title };
   useEffect(() => countDialogOpen(), []);
+  // A dialog opened by a control inside another that closed (a jump menu result: "Show keyboard shortcuts") has the closing one's popup for its opener, which goes
+  // with it: where the closed one was handing focus back is the place to return to, after what this dialog's own caller names (#3416).
+  const closedBefore = useRef<(() => HTMLElement | null) | null>(null);
+  // This dialog's own hand-back place, one function for its whole life, so that a development double-run of the effects (mount, cleanup, mount) does not take it
+  // for the dialog that closed before (it would then ask itself where to go, for ever).
+  const placeWhenClosed = useRef<() => HTMLElement | null>(() => null);
+  useEffect(() => {
+    const before = recentDialogTarget();
+    closedBefore.current = !openedFromDialog || before === placeWhenClosed.current ? null : before;
+  }, [openedFromDialog]);
+  const namedPlace = (): HTMLElement | null => {
+    const named = latest.current.returnFocus?.();
+    if (named?.isConnected) return named;
+    // A closed dialog's `returnFocus` is asked late, long after what it looks for may be gone (a lookup that throws): that is no place to go, not an error.
+    let before: HTMLElement | null | undefined;
+    try {
+      before = closedBefore.current?.();
+    } catch {
+      before = null;
+    }
+    return before?.isConnected && before.tagName !== 'MAIN' ? before : null;
+  };
+  placeWhenClosed.current = () => {
+    if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
+    try {
+      return namedPlace();
+    } catch {
+      return null;
+    }
+  };
   // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
   // where this dialog would have (dialogClosed.ts).
   useEffect(
     () => () => {
       markDialogClosed();
-      rememberClosedTarget(() => {
-        if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
-        return latest.current.returnFocus?.() ?? null;
-      });
+      rememberClosedTarget(placeWhenClosed.current);
     },
     [opener],
   );
@@ -204,7 +233,7 @@ export function Dialog({
         const active = document.activeElement;
         if (active && active !== document.body && active.isConnected) return;
         if (latest.current.stayOnBody && (!opener || opener === document.body)) return;
-        const named = latest.current.returnFocus?.();
+        const named = namedPlace();
         const useOpener = opener?.isConnected && opener !== document.body && !(opener.tagName === 'MAIN' && named?.isConnected);
         focusFirst([useOpener ? opener : named, document.querySelector<HTMLElement>('main')]);
       }, 0);
@@ -213,7 +242,7 @@ export function Dialog({
   );
   const finalFocus = () => {
     handedBack.current = true;
-    const named = returnFocus?.();
+    const named = namedPlace();
     // The action that closed this dialog already moved focus to its destination (a jump menu result focuses what it went to): leave it there.
     const now = document.activeElement;
     const landmark = now instanceof HTMLElement && now.tagName === 'MAIN' && named?.isConnected;
