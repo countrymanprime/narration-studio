@@ -12,6 +12,20 @@ export function markDialogClosed(): void {
   closedAt = Date.now();
 }
 
+// Dialogs on screen now. A press on a dialog's dim area is a press outside the slide-over under it as well, and the slide-over reads it before the dialog
+// has gone: it ignores an outside press while any dialog is open, so one press dismisses only the top layer (#3416).
+let dialogsOpen = 0;
+/** Counts a dialog as open until the returned function is called (on unmount). */
+export function countDialogOpen(): () => void {
+  dialogsOpen += 1;
+  return () => {
+    dialogsOpen -= 1;
+  };
+}
+export function aDialogIsOpen(): boolean {
+  return dialogsOpen > 0;
+}
+
 /**
  * Where the dialog or slide-over that has just closed hands focus back to (its opener, else the place its opener named), read later, when the thing
  * opened in its stead closes. A panel opened by a control inside it ("Open the audio engine panel" in a check result or a readiness card) has that

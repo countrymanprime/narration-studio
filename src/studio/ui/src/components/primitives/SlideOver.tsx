@@ -1,4 +1,4 @@
-import { justClosedDialog, rememberClosedTarget } from './dialogClosed';
+import { aDialogIsOpen, justClosedDialog, rememberClosedTarget } from './dialogClosed';
 import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +6,13 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useReturnFocusTarget } from './focusReturn';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
+import { POPOVER_POPUP_ATTRIBUTE } from './Popover';
+
+// A popup open over the panel: a popover (the voice picker), a menu (a chapter's More actions) or a listbox. A press outside it is a press outside the panel too, and the
+// popup closes on it by itself, so the panel ignores it: one press dismisses only the top layer (#3416). Whether a layer was open is read when the press begins
+// (`pointerdown`, before the layer has closed): a real click is down, then up, and the popup is gone by the time the panel hears the outside press.
+const LAYER_OVER_PANEL = `[${POPOVER_POPUP_ATTRIBUTE}], [role=menu], [role=listbox]`;
+const layerOverPanel = (): boolean => document.querySelector(LAYER_OVER_PANEL) !== null;
 
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer. It is a real modal
 // panel: the page behind is hidden and unreachable, Tab loops inside, Escape and a press on the backdrop close it, and
@@ -46,17 +53,35 @@ export function SlideOver({
   // A double press on the control that opened the panel lands its second press on the scrim as the panel slides in; a press that soon is the
   // same gesture, not a wish to dismiss.
   const openedAt = useRef(0);
+  // Whether a layer was open over the panel when the latest press began.
+  const pressBeganOverLayer = useRef(false);
   const finalFocusRef = useRef(finalFocus);
   finalFocusRef.current = finalFocus;
   useEffect(() => {
     if (!open) return;
+    const noteLayer = () => {
+      pressBeganOverLayer.current = layerOverPanel() || aDialogIsOpen();
+    };
+    // The note belongs to one press: it is dropped once the click has been heard, so a later click that has no pointerdown (assistive technology's) is judged afresh.
+    const dropNote = () => {
+      window.setTimeout(() => {
+        pressBeganOverLayer.current = false;
+      }, 0);
+    };
+    pressBeganOverLayer.current = false;
+    document.addEventListener('pointerdown', noteLayer, true);
+    document.addEventListener('click', dropNote, true);
     openedAt.current = Date.now();
     // As this closes, a panel opened from a control inside it takes over its hand-back place (focusReturn.ts).
-    return () =>
+    return () => {
+      document.removeEventListener('pointerdown', noteLayer, true);
+      document.removeEventListener('click', dropNote, true);
+      pressBeganOverLayer.current = false;
       rememberClosedTarget(() => {
         const target = finalFocusRef.current();
         return target instanceof HTMLElement ? target : null;
       });
+    };
   }, [open]);
   return (
     <Drawer.Root
@@ -65,7 +90,10 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
-        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog())) {
+        if (
+          eventDetails.reason === 'outside-press' &&
+          (Date.now() - openedAt.current < 400 || justClosedDialog() || pressBeganOverLayer.current || aDialogIsOpen() || layerOverPanel())
+        ) {
           eventDetails.cancel();
           return;
         }
