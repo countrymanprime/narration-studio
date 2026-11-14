@@ -122,3 +122,37 @@ describe('useReturnFocusTarget after a dialog closed as the panel opened', () =>
     expect(document.body.dataset.back).toBe('header');
   });
 });
+
+// #3416 item 96: a place named as <main> (the jump menu's hand-back) is focused by the hook, not handed to Base UI, which would pick the header's first button.
+describe('useReturnFocusTarget with <main> named as the place', () => {
+  function Named() {
+    const back = useReturnFocusTarget(true, () => document.querySelector('main'));
+    return (
+      <>
+        <header>
+          <button>Header button</button>
+        </header>
+        <main tabIndex={-1}>
+          <p>Page</p>
+        </main>
+        <button
+          onClick={() => {
+            document.body.dataset.named = String(back());
+          }}
+        >
+          Close
+        </button>
+      </>
+    );
+  }
+  it('answers false (no move by the library) and focuses <main> itself', async () => {
+    vi.useFakeTimers();
+    render(<Named />);
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.click(screen.getByText('Close'));
+    expect(document.body.dataset.named).toBe('false');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.activeElement).toBe(document.querySelector('main'));
+    vi.useRealTimers();
+  });
+});

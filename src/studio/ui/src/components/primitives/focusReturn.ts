@@ -21,7 +21,8 @@ export function useReturnFocusTarget(open: boolean, fallback?: () => HTMLElement
     if (element?.isConnected && element !== document.body) return element;
     // What the caller names comes first: it knows the place this panel was opened for; the dialog that closed a moment ago may have been another one's.
     const elsewhere = fallback?.();
-    if (elsewhere?.isConnected) return elsewhere;
+    // The page's landmark named as the place (the jump menu's hand-back is <main>): focused here, since Base UI handed <main> picks the header's first button (#2902).
+    if (elsewhere?.isConnected) return elsewhere.tagName === 'MAIN' ? handFocusToPage() : elsewhere;
     const where = fromDialog.current?.();
     if (where?.isConnected && where.tagName !== 'MAIN') return where;
     // <main> is focusable but not tabbable, so handed to Base UI it would pick the header's first button (#2902): focus it ourselves.
