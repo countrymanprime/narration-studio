@@ -1,3 +1,4 @@
+import { trackName as readable } from '../../tracks/trackName';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import type { WordFx } from '../../../api/contracts/wordFx';
@@ -147,7 +148,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
           ? {
               chapterId,
               items: found.items,
-              place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`,
+              place: `${found.track.isFolder ? 'folder' : 'track'} “${readable(found.track.name)}”`,
               link,
               folder: found.track.isFolder,
               unsaved,

@@ -1,3 +1,4 @@
+import { trackName as readable } from '../tracks/trackName';
 import { useDawState } from '../../daw/useDawSession';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -373,7 +374,7 @@ function AgreeOrChanged({
 
 function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: number | null, label?: string) => void }) {
   const { match, track, located, verdict, lastReading } = result;
-  const trackName = track?.name;
+  const trackName = track ? readable(track.name) : undefined;
 
   // Only one source has a place: offered in the same compact form regardless of why the other is missing (no
   // track, no recording, an unconfident guess) - this takes priority over every status-specific message below.
@@ -385,7 +386,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
       match.status === 'ambiguous'
         ? `More than one track in ${project} could hold this chapter, so ${FROM_THE_TOP}`
         : match.status === 'uncertain' && match.candidates[0]
-          ? `The closest track in ${project}, ${match.candidates[0].trackName}, is not a sure match, so ${FROM_THE_TOP}`
+          ? `The closest track in ${project}, ${readable(match.candidates[0].trackName)}, is not a sure match, so ${FROM_THE_TOP}`
           : `No track in ${project} matches this chapter, so ${FROM_THE_TOP}`;
     return (
       <Actions

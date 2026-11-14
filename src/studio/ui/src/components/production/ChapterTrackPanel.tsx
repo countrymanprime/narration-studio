@@ -156,8 +156,8 @@ export function ChapterTrackPanel({
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the project now. It may have been deleted or the project
-                saved elsewhere. Link another track below.
+                The linked track{link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or
+                the project saved elsewhere. Link another track below.
               </span>
             </InsetCard>
           )}
@@ -256,7 +256,7 @@ export function ChapterTrackPanel({
                 {link.candidates.map((candidate) => (
                   <InsetCard as="li" key={candidate.trackGuid} className="flex items-center justify-between gap-2">
                     <span>
-                      {candidate.trackName}
+                      {trackName(candidate.trackName)}
                       {candidate.region && <span style={{ color: 'var(--text-muted)' }}> · region "{candidate.region.name}"</span>}
                     </span>
                     <Button disabled={busy} pending={busy} onClick={() => void link_(candidate.trackGuid)}>
@@ -354,7 +354,9 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
           style={hollow ? { borderColor: 'var(--non-text)' } : { background: trackSummary.color || 'var(--non-text)', borderColor: 'transparent' }}
         />
         <div className="min-w-0">
-          <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">{link.track?.trackName ?? chapterTitle}</div>
+          <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">
+            {link.track ? trackName(link.track.trackName) : chapterTitle}
+          </div>
           {trackSummary && <div style={{ color: 'var(--text-muted)' }}>Track {trackSummary.index + 1}</div>}
         </div>
       </div>

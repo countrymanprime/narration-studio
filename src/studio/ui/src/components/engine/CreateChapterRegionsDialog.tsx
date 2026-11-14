@@ -185,7 +185,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
               {rows.map((row) => (
                 <TableRow key={`${row.kind}-${row.chapterId || row.trackGuid}`}>
                   <TableCell>{row.title}</TableCell>
-                  <TableCell>{row.trackName}</TableCell>
+                  <TableCell>{row.trackName ? trackName(row.trackName) : row.trackName}</TableCell>
                   <TableCell numeric>{clock(row.start)}</TableCell>
                   <TableCell numeric>{clock(row.end)}</TableCell>
                   <TableCell>{REGION_STATE_LABEL[row.state]}</TableCell>
