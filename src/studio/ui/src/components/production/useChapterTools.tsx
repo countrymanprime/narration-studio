@@ -32,17 +32,39 @@ export const PIPELINE_AREA = 'data-pipeline';
 /** A control focus can land on now: drawn, and not disabled (`focus()` on a disabled or hidden control does nothing, and focus would fall to the body). */
 const focusable = (element: HTMLElement): boolean => element.isConnected && !element.matches(':disabled') && element.getClientRects().length > 0;
 
-const backToRow = (chapterId: string, opener: Element | null) => (): HTMLElement | null => {
-  const row = document.querySelector(`tr[data-chapter-id="${CSS.escape(chapterId)}"]`);
-  // The control the narrator was on, when it is in this row; a right-click leaves focus on the board's scroll area or nowhere, so the row's own first control.
-  if (opener instanceof HTMLElement && row?.contains(opener) && focusable(opener)) return opener;
-  return [...(row?.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? [])].find(focusable) ?? null;
+const firstControl = (row: Element | null): HTMLElement | null =>
+  [...(row?.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? [])].find(focusable) ?? null;
+const rowOfChapter = (chapterId: string): Element | null => document.querySelector(`tr[data-chapter-id="${CSS.escape(chapterId)}"]`);
+
+/** `near`: the chapters next to this one when the panel opened (the next, then the previous), for a row that is gone by close time (Remove from recording). */
+const backToRow =
+  (chapterId: string, opener: Element | null, near: readonly string[] = []) =>
+  (): HTMLElement | null => {
+    const row = rowOfChapter(chapterId);
+    // The control the narrator was on, when it is in this row; a right-click leaves focus on the board's scroll area or nowhere, so the row's own first control.
+    if (opener instanceof HTMLElement && row?.contains(opener) && focusable(opener)) return opener;
+    const own = firstControl(row);
+    if (own || row) return own;
+    // The row is gone: the one that took its place (the next chapter, else the previous), so the narrator keeps their place on the board.
+    for (const id of near) {
+      const control = firstControl(rowOfChapter(id));
+      if (control) return control;
+    }
+    // No neighbour is drawn either: the board's own scroll area, so focus stays on the board and not on the header.
+    const area = document.querySelector<HTMLElement>(`[${PIPELINE_AREA}] [aria-label="Chapter pipeline scroll area"]`);
+    return area && focusable(area) ? area : null;
+  };
+
+/** The chapters next to `id` in the list: the next one first, then the previous. */
+const neighboursOf = (list: readonly { id: string }[], id: string): string[] => {
+  const at = list.findIndex((entry) => entry.id === id);
+  return [list[at + 1]?.id, list[at - 1]?.id].filter((neighbour): neighbour is string => Boolean(neighbour));
 };
 
 const CREDITS_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 
 type Open =
-  | { kind: 'track'; chapterId: string; opener: Element | null }
+  | { kind: 'track'; chapterId: string; opener: Element | null; near: readonly string[] }
   | { kind: 'editing'; chapter: ManuscriptChapter; opener: Element | null }
   | { kind: 'credits'; credits: CreditsKind; opener: Element | null };
 
@@ -89,6 +111,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [savedLinks, liveTracks],
   );
   const [open, setOpen] = useState<Open>();
+  // The chapter whose Check recordings dialog (an overlay, not one of the panels below) is open from the row menu.
+  const [checkingId, setCheckingId] = useState<string>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
@@ -252,7 +276,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             key: 'track',
             label: 'Chapter track…',
             unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
-            onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener }),
+            onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener, near: neighboursOf(list, row.id) }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),
           {
@@ -260,9 +284,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             label: CHECK_RECORDINGS_LABEL,
             unavailable: missing ?? latest.current.checkGate,
             // The dialog can link the chapter's track (its unmapped refusal), so the board reads the links again when it closes.
-            onSelect: () =>
-              chapter &&
-              void openCheckRecordings([chapter.id], { onClosed: () => void latest.current.loadTrackLinks(), returnFocus: backToRow(chapter.id, opener) }),
+            onSelect: () => {
+              if (!chapter) return;
+              setCheckingId(chapter.id);
+              void openCheckRecordings([chapter.id], {
+                onClosed: () => {
+                  setCheckingId(undefined);
+                  void latest.current.loadTrackLinks();
+                },
+                returnFocus: backToRow(chapter.id, opener),
+              });
+            },
           },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter, opener }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
@@ -310,7 +342,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           savedAt={trackLinks?.savedAt ?? ''}
           notify={notify}
           onClose={close}
-          returnFocus={backToRow(trackOpen.chapterId, trackOpen.opener)}
+          returnFocus={backToRow(trackOpen.chapterId, trackOpen.opener, trackOpen.near)}
           onChanged={async () => {
             await loadTrackLinks(true);
             onChanged();
@@ -332,5 +364,9 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     </>
   );
 
-  return { panels, trackLinks, reload, openEditingCheck };
+  // The chapter a panel or dialog from the row menu is open for: its row stays drawn in a windowed list so focus has a row to return to (#3416).
+  const openChapterId =
+    checkingId ??
+    (open?.kind === 'track' ? open.chapterId : open?.kind === 'editing' ? open.chapter.id : open?.kind === 'credits' ? `credits-${open.credits}` : undefined);
+  return { panels, trackLinks, reload, openEditingCheck, openChapterId };
 }

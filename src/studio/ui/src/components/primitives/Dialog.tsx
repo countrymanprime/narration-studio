@@ -167,8 +167,6 @@ export function Dialog({
   // Toasts keep to the window's bottom-right corner while a dialog is open, under its action row, rather than rising above the page's bottom bars.
   // A full-size dialog covers that corner whatever the toast does, and the jump menu has no action row.
   useToastsClearOfModal(width !== 'full' && width !== 'palette');
-  // The slide-over behind this dialog ignores the second press of a double click on one of its buttons (dialogClosed.ts).
-  useEffect(() => markDialogClosed, []);
 
   const initialFocus = () => {
     const focused = document.activeElement;
@@ -183,6 +181,16 @@ export function Dialog({
   const handedBack = useRef(false);
   const latest = useRef({ returnFocus, stayOnBody, title });
   latest.current = { returnFocus, stayOnBody, title };
+  // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
+  // where this dialog would have (dialogClosed.ts).
+  useEffect(
+    () => () =>
+      markDialogClosed(() => {
+        if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
+        return latest.current.returnFocus?.() ?? null;
+      }),
+    [opener],
+  );
   // A dialog that is removed together with the thing around it (a link made takes away the notice that opened its dialog, chip and all) never gets its
   // close hand-back, and focus would fall to <body>. Hand it back the same way, a tick later, only when focus is on nothing.
   useEffect(
