@@ -50,7 +50,9 @@ const backToRow =
       const control = firstControl(rowOfChapter(id));
       if (control) return control;
     }
-    return null;
+    // No neighbour is drawn either: the board's own scroll area, so focus stays on the board and not on the header.
+    const area = document.querySelector<HTMLElement>(`[${PIPELINE_AREA}] [aria-label="Chapter pipeline scroll area"]`);
+    return area && focusable(area) ? area : null;
   };
 
 /** The chapters next to `id` in the list: the next one first, then the previous. */
