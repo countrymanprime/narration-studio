@@ -80,7 +80,7 @@ describe('KeyboardPanel', () => {
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {
     renderPanel();
     expect(await screen.findByText('Global · anywhere, except while a dialog is open')).toBeTruthy();
-    expect(screen.getByText("Page · the page that has the command, not the Booth")).toBeTruthy();
+    expect(screen.getByText('Page · the page that has the command, not the Booth')).toBeTruthy();
     expect(screen.getByText('Booth · the Booth and its companion panel')).toBeTruthy();
     expect(screen.getByText('Back')).toBeTruthy();
     expect(screen.getByText('Record or stop')).toBeTruthy();
@@ -106,7 +106,7 @@ describe('KeyboardPanel', () => {
     expect(group.getByRole('status').textContent).toBe('Press a key or a pedal for "Record or stop"…');
   });
 
-  it('says a page command\'s free key is free on any page, not only on a chapter\'s Proof view (#3399)', async () => {
+  it("says a page command's free key is free on any page, not only on a chapter's Proof view (#3399)", async () => {
     renderPanel();
     const group = await openRecorderFor('Next word');
     keydown({ code: 'KeyQ' });
