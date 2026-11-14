@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // #3416 item 70 (qa-breaker on #3469): "Switch project…" opens the full-page project chooser; going back (Escape or the Back button) rebuilds the shell and left focus on
 // <body>, so the next Tab reached "Skip to content". Focus now lands on the page.
 for (const way of ['Escape', 'Back'] as const) {
-  test(`Project chooser: ${way} returns focus to the page, not <body>`, async ({ page }) => {
+  test(`Project chooser: ${way} returns focus to the page, not the body`, async ({ page }) => {
     await page.setViewportSize({ width: 1100, height: 700 });
     await page.goto('/');
     await page.getByRole('table', { name: 'Chapter pipeline' }).waitFor({ timeout: 20_000 });
