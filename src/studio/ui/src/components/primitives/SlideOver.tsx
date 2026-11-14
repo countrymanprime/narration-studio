@@ -8,6 +8,12 @@ import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_ATTRIBUTE } from './Popover';
 
+// A popup open over the panel: a popover (the voice picker), a menu (a chapter's More actions) or a listbox. A press outside it is a press outside the panel too, and the
+// popup closes on it by itself, so the panel ignores it: one press dismisses only the top layer (#3416).
+const LAYER_OVER_PANEL = `[${POPOVER_POPUP_ATTRIBUTE}], [role=menu], [role=listbox]`;
+// The popup is read as the press arrives, when it has already begun to close, so one still leaving counts too.
+const layerOverPanel = (): boolean => document.querySelector(LAYER_OVER_PANEL) !== null;
+
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer. It is a real modal
 // panel: the page behind is hidden and unreachable, Tab loops inside, Escape and a press on the backdrop close it, and
 // focus goes back to what opened it. The library keeps the panel mounted while it slides out and removes it afterwards,
@@ -66,10 +72,7 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
-        if (
-          eventDetails.reason === 'outside-press' &&
-          (Date.now() - openedAt.current < 400 || justClosedDialog() || aDialogIsOpen() || document.querySelector(`[${POPOVER_POPUP_ATTRIBUTE}]`))
-        ) {
+        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog() || aDialogIsOpen() || layerOverPanel())) {
           eventDetails.cancel();
           return;
         }

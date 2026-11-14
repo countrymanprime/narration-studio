@@ -20,4 +20,22 @@ test('A press on a picker popover’s outside press closes the picker and leaves
   await expect(picker).toHaveCount(0, { timeout: 5_000 });
   await page.waitForTimeout(600);
   await expect(page.getByRole('dialog', { name: /Audio engine/ })).toBeVisible();
+  // The layer is gone, so the next press is an ordinary press outside the panel: it closes it (the guard does not stay on).
+  await page.mouse.click(8, 350);
+  await expect(page.getByRole('dialog', { name: /Audio engine/ })).toHaveCount(0, { timeout: 5_000 });
+});
+
+// The same press with a menu open over the panel (the "More actions" menu of a chapter link).
+test('A press outside a menu open over the engine panel closes the menu and leaves the panel open', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/');
+  await settlePage(page);
+  const panel = await openEnginePanel(page);
+  await panel.getByRole('button', { name: 'More actions for Chapter 1', exact: true }).click();
+  await page.getByRole('menuitem').first().waitFor();
+  await page.waitForTimeout(600);
+  await page.mouse.click(8, 350);
+  await expect(page.getByRole('menuitem')).toHaveCount(0, { timeout: 5_000 });
+  await page.waitForTimeout(600);
+  await expect(page.getByRole('dialog', { name: /Audio engine/ })).toBeVisible();
 });

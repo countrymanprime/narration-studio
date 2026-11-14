@@ -169,7 +169,30 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  // A popover open over the panel is the same case, covered in the real app by tests/visual/dialog-over-slideover-press.spec.ts (jsdom removes the popup before the panel reads the press).
+  it('closes on a backdrop press again once the dialog over it has closed (the guard does not stay on)', async () => {
+    const onClose = vi.fn();
+    function Over() {
+      const [dialog, setDialog] = useState(true);
+      return (
+        <SlideOver open title="Audio engine" onClose={onClose}>
+          {dialog && (
+            <Dialog title="Link chapters" dismissOnOutsidePress onClose={() => setDialog(false)} actions={<span />}>
+              <p>Body</p>
+            </Dialog>
+          )}
+        </SlideOver>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Over />);
+    await user.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Link chapters' })).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  // A popover or a menu open over the panel is the same case, covered in the real app by tests/visual/dialog-over-slideover-press.spec.ts (jsdom removes the popup before the panel reads the press).
 
   it('keeps Tab inside the panel', async () => {
     const { user } = await openPanel();
