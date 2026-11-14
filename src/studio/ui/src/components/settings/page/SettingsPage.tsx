@@ -80,8 +80,8 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
-  // Letters typed that the question has not let apply yet, so Cancel never takes them back (#3456). `null` means the box shows the applied query: every write of
-  // `query` clears it, so the box and the results are in step whenever no question is open. Clearing the box is not kept: Cancel puts the applied text back.
+  // Letters typed while the question is open, which has not let them apply yet. They show in the box only until it is answered: Cancel puts the applied query back (`onCancel`),
+  // and every write of `query` clears them, so whenever no question is open the box reads exactly what the results are for (#3456).
   const [pending, setPending] = useState<string | null>(null);
   const typed = pending ?? query;
   const [filter, setFilter] = useState<Filter>('all');
@@ -192,9 +192,15 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
       setFilter(nextFilter);
     };
     if (sameResults || !(searching || nextSearching)) apply();
-    else guarded(apply, { settle: false });
+    else guarded(apply, { settle: false, onCancel: () => setPending(null) });
   };
-  const changeQuery = (next: string) => changeSearch(next, filter);
+  // While an input method is composing (Japanese, Chinese, Korean), the box holds text that is not final: a question opened on it would take the focus mid-composition and
+  // garble what ends up in the box. The ask waits for the composition to end (#3456).
+  const composing = useRef(false);
+  const changeQuery = (next: string) => {
+    if (composing.current) setPending(next === '' ? null : next);
+    else changeSearch(next, filter);
+  };
   const changeFilter = (next: Filter) => changeSearch(typed, next);
 
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
@@ -341,19 +347,30 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             <span className="flex-1" />
             <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
               <div className="w-[260px] min-w-0 flex-[1_1_180px]">
-                <SearchField
-                  leadingIcon
-                  label="Search settings"
-                  placeholder="Search settings"
-                  value={typed}
-                  onChange={changeQuery}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape' && typed) {
-                      event.stopPropagation();
-                      changeQuery('');
-                    }
+                <div
+                  className="w-full"
+                  onCompositionStart={() => {
+                    composing.current = true;
                   }}
-                />
+                  onCompositionEnd={(event) => {
+                    composing.current = false;
+                    if (event.target instanceof HTMLInputElement) changeSearch(event.target.value, filter);
+                  }}
+                >
+                  <SearchField
+                    leadingIcon
+                    label="Search settings"
+                    placeholder="Search settings"
+                    value={typed}
+                    onChange={changeQuery}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape' && typed) {
+                        event.stopPropagation();
+                        changeQuery('');
+                      }
+                    }}
+                  />
+                </div>
               </div>
               <ToggleGroup
                 label="Show"

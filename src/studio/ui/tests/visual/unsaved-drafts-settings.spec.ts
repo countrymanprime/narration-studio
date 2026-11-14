@@ -49,8 +49,8 @@ test('another category and the Settings search ask over a pasted key, and the ty
   await expect(unsaved(page)).toBeVisible();
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
-  // Cancel keeps the key and the letters in the box (#3456).
-  await expect(page.getByRole('textbox', { name: 'Search settings' })).toHaveValue('abc');
+  // Cancel keeps the key, and the box reads what the results are for again (#3456).
+  await expect(page.getByRole('textbox', { name: 'Search settings' })).toHaveValue('');
   // Discard & continue applies the search.
   await page.getByRole('textbox', { name: 'Search settings' }).fill('abcd');
   await unsaved(page).getByRole('button', { name: 'Discard & continue' }).click();
@@ -188,7 +188,11 @@ test('after Discard on a category change the Search box is empty, and Escape the
   const search = page.getByRole('textbox', { name: 'Search settings' });
   await search.fill('a');
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
-  await expect(search).toHaveValue('a');
+  await expect(search).toHaveValue('');
+  // Changed once more over the same held key: the box still reads what the results are for.
+  await search.fill('bc');
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(search).toHaveValue('');
   await page
     .getByRole('navigation', { name: 'Settings categories' })
     .getByRole('button', { name: /^Appearance/ })

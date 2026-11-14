@@ -97,7 +97,11 @@ export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: r
 /** What `discard` found: the drafts whose discard threw, which are still held. */
 export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
-export type AskOptions = { settle?: boolean };
+export type AskOptions = {
+  settle?: boolean;
+  /** Runs when the narrator answers Cancel (or Keep editing): the change did not happen, so whatever showed it should show what it was. */
+  onCancel?: () => void;
+};
 type Shell = {
   ask: (run: () => void, options?: AskOptions) => void;
   go: (to: string, state?: unknown, after?: () => void) => void;

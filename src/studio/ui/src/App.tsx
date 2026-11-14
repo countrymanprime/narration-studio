@@ -259,7 +259,7 @@ type PendingMove =
   | { kind: 'delta'; direction: 1 | -1 }
   | { kind: 'picker' }
   // A change inside the page that would drop a draft (another Settings category, another entry, Close on an editor): `run` is the change.
-  | { kind: 'action'; run: () => void };
+  | { kind: 'action'; run: () => void; onCancel?: () => void };
 
 function AppRoutes() {
   const api = useApi();
@@ -878,7 +878,7 @@ function AppRoutes() {
       setTimeout(() => askRef.current(run, options), SETTLE_MS);
       return;
     }
-    if (pageHolds()) setPendingMove({ kind: 'action', run });
+    if (pageHolds()) setPendingMove({ kind: 'action', run, onCancel: options?.onCancel });
     else run();
   };
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
@@ -1555,6 +1555,7 @@ function AppRoutes() {
   );
 
   function cancelPendingMove() {
+    if (pendingMove?.kind === 'action') pendingMove.onCancel?.();
     moveToken.current += 1;
     setResolving(false);
     setPendingMove(undefined);
