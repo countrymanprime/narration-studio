@@ -133,6 +133,9 @@ const popGuard = {
   /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
   route: '',
   idx: 0,
+  /** Where the restore after a stopped pop has to land (the router's own `idx`), and how many corrections it was given. */
+  want: 0,
+  fixes: 0,
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
@@ -187,6 +190,13 @@ if (typeof window !== 'undefined') {
     if (popGuard.swallow) {
       popGuard.swallow = false;
       event.stopImmediatePropagation();
+      // A second Back sent before this restore ran was resolved by history against the position it had then, so the restore can land one entry short of the page (the
+      // address left on the page before). Put it back until the address is the page's again (#3446).
+      if (routePath() !== popGuard.route && popGuard.fixes < 3 && popGuard.want !== historyIdx()) {
+        popGuard.fixes += 1;
+        popGuard.swallow = true;
+        window.history.go(popGuard.want - historyIdx());
+      }
       return;
     }
     const next = historyIdx();
@@ -209,6 +219,8 @@ if (typeof window !== 'undefined') {
     }
     event.stopImmediatePropagation();
     const delta = next - popGuard.idx;
+    popGuard.want = popGuard.idx;
+    popGuard.fixes = 0;
     popGuard.swallow = true;
     window.history.go(-delta);
     ask(delta < 0 ? -1 : 1);

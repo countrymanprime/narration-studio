@@ -57,7 +57,7 @@ describe('the question put to the narrator (#3404)', () => {
   it('offers only Discard, and no word about saving, when nothing held can be saved', () => {
     const row = held('a relationship you started', { saveable: false });
     expect(draftQuestion([row], true)).toEqual({
-      body: 'Save is off: A relationship you started cannot be saved from here. Discard a relationship you started before leaving?',
+      body: 'Save is off: A relationship you started cannot be saved from here. Discard it before leaving?',
       canSave: false,
     });
   });
@@ -166,8 +166,6 @@ describe('wording the breaker found (#3446, #3457)', () => {
 
   it('several half-filled relationship rows read in the plural', () => {
     const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
-    expect(draftQuestion([rows], true).body).toBe(
-      'Save is off: 3 relationships you started cannot be saved from here. Discard 3 relationships you started before leaving?',
-    );
+    expect(draftQuestion([rows], true).body).toBe('Save is off: 3 relationships you started cannot be saved from here. Discard them before leaving?');
   });
 });

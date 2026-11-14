@@ -89,7 +89,8 @@ export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { b
     const first = stuck.find((draft) => draft.needs) ?? stuck[0]!;
     const name = length(first.label) <= STUCK_NAME ? first.label : (first.brief ?? first.label);
     const why = first.needs ? `Save is off: ${capital(name)} still needs ${first.needs}.` : `Save is off: ${capital(name)} cannot be saved from here.`;
-    return { body: `${why} Discard ${describeHeld(held)} before ${end}?`, canSave: false };
+    // One held thing is named once, in the first sentence: the second says "it" (#3457, qa-breaker round 2).
+    return { body: `${why} Discard ${held.length === 1 ? (/^\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)} before ${end}?`, canSave: false };
   }
   return { body: `Save or discard ${describeHeld(held)} before ${end}?`, canSave: true };
 }
