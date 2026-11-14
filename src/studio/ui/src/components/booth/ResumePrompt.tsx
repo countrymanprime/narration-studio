@@ -375,7 +375,7 @@ function AgreeOrChanged({
 function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: number | null, label?: string) => void }) {
   const { match, track, located, verdict, lastReading } = result;
   const trackName = track ? readable(track.name) : undefined;
-  // "Chapter 5 track", but a blank name already reads "Unnamed track", not "Unnamed track track".
+  // "Chapter 5 track", but the name a blank track is given already says it is a track, so it is not followed by a second "track".
   const trackLine = track ? (readable(track.name) === track.name.trim() ? `${trackName} track` : trackName) : 'track';
 
   // Only one source has a place: offered in the same compact form regardless of why the other is missing (no
