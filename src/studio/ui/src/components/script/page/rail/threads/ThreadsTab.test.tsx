@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The Notes tab over the browser mock host: every mark of the chapter as a thread, the thread of a card and what its buttons do.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ApiProvider } from '../../../../../api/ApiContext';
@@ -54,9 +54,8 @@ function Probe() {
   return null;
 }
 
-function mount(props: Partial<ThreadsTabProps> = {}) {
-  const onShowInText = vi.fn();
-  render(
+function tree(onShowInText: () => void, props: Partial<ThreadsTabProps>) {
+  return (
     <ApiProvider api={api}>
       <StudioProvider>
         <TooltipProvider>
@@ -70,9 +69,14 @@ function mount(props: Partial<ThreadsTabProps> = {}) {
           </UnsavedDraftsProvider>
         </TooltipProvider>
       </StudioProvider>
-    </ApiProvider>,
+    </ApiProvider>
   );
-  return { onShowInText, user: userEvent.setup() };
+}
+
+function mount(props: Partial<ThreadsTabProps> = {}) {
+  const onShowInText = vi.fn();
+  const utils = render(tree(onShowInText, props));
+  return { onShowInText, user: userEvent.setup(), rerenderWith: (next: Partial<ThreadsTabProps>) => utils.rerender(tree(onShowInText, next)) };
 }
 
 const marks = async () => (await api.marksList()).marks;
@@ -176,6 +180,93 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
   });
 });
 
+// What a card keeps while the narrator is typing in it, through every change the page makes to the mark under it (#3400, qa-breaker on #3458).
+describe('a typed reply survives what happens to its note', () => {
+  it('changing the Type of the note keeps the reply typed under it', async () => {
+    const { note } = await seed();
+    const { user } = mount();
+    const box = await screen.findByRole('textbox', { name: 'Add to this note' });
+    await user.type(box, 'still here');
+    const type = card(note.id).getByRole('combobox', { name: 'Type' }) as HTMLSelectElement;
+    const other = [...type.options].find((option) => option.value !== note.type)!.value;
+    await user.selectOptions(type, other);
+    await waitFor(async () => expect((await marks()).some((mark) => mark.type === other)).toBe(true));
+    expect((screen.getAllByRole('textbox', { name: /Add to this note|Reply or note/ })[0] as HTMLTextAreaElement).value).toBe('still here');
+  });
+
+  it('selecting the other of two notes on one passage and type does not hand the reply to it', async () => {
+    const [first] = await api.manuscriptParagraphs('chapter-1');
+    const one = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'stress', 'FIRST');
+    const two = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'stress', 'SECOND');
+    mount();
+    await screen.findByRole('article', { name: /Word stress/, hidden: false }).catch(() => undefined);
+    await waitFor(() => expect(document.querySelectorAll('[data-mark]').length).toBe(2));
+    await userEvent.type(card(one.id).getByRole('textbox', { name: 'Add to this note' }), 'for-FIRST');
+    act(() => setView({ sel: two.id }));
+    await waitFor(() => expect(document.querySelector('[data-mark]')!.getAttribute('data-mark')).toBe(two.id));
+    expect((card(one.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('for-FIRST');
+    expect((card(two.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('a chapter that holds a reply stays the one shown when the reader scrolls into the next, until the reply is gone', async () => {
+    const { note } = await seed();
+    const { user, rerenderWith } = mount();
+    await user.type(await screen.findByRole('textbox', { name: 'Add to this note' }), 'kept across chapters');
+    rerenderWith({ chapterId: 'chapter-2' });
+    expect((card(note.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('kept across chapters');
+    act(() => void registry.discard());
+    rerenderWith({ chapterId: 'chapter-2' });
+    await waitFor(() => expect(document.querySelector(`[data-mark="${note.id}"]`)).toBeNull());
+  });
+});
+
+describe('deleting while typing in the same card', () => {
+  it('"Delete the note" asks when an edit of one of its messages is typed, and Keep it leaves both', async () => {
+    const { query } = await seed();
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(query.id).getAllByRole('button', { name: 'Edit this message' }).at(-1)!);
+    const box = card(query.id).getByRole('textbox', { name: 'Edit message' });
+    await user.clear(box);
+    await user.type(box, 'EDITED');
+    await user.click(card(query.id).getByRole('button', { name: 'Delete the note' }));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Delete the note?' }));
+    expect((await marks()).some((mark) => mark.id === query.id)).toBe(true);
+    expect((card(query.id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement).value).toBe('EDITED');
+  });
+
+  it('deleting an earlier message while editing a later one asks, and never saves the typed text onto another message', async () => {
+    const [first] = await api.manuscriptParagraphs('chapter-1');
+    const asked = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'ask', 'Opening question?');
+    await api.marksReply(asked.id, 'author', 'reply one');
+    await api.marksReply(asked.id, 'author', 'reply two');
+    await api.marksReply(asked.id, 'author', 'reply three');
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    const answers: Array<() => void> = [];
+    let holding = false;
+    act(() => registry.setShell({ ask: (run) => (holding ? void answers.push(run) : run()), go: () => {} }));
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[2]!);
+    const box = card(asked.id).getByRole('textbox', { name: 'Edit message' });
+    await user.clear(box);
+    await user.type(box, 'EDITED reply two');
+    holding = true;
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    // Asked, and nothing happened yet: the thread is whole and the editor keeps its text.
+    expect(answers).toHaveLength(1);
+    expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3);
+    expect((card(asked.id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement).value).toBe('EDITED reply two');
+    // Discard & continue: the message goes and the editor moves with its own message, whose text is the saved one; a Save then writes onto that message.
+    await act(async () => answers[0]!());
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    await user.click(card(asked.id).getByRole('button', { name: 'Save' }));
+    await waitFor(async () =>
+      expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['reply two', 'reply three']),
+    );
+  });
+});
+
 describe('a reply typed while the first is being added', () => {
   it('stays in the box when the save resolves (#3400)', async () => {
     const { note } = await seed();
@@ -194,7 +285,8 @@ describe('a reply typed while the first is being added', () => {
     await user.type(box, ' and more');
     release();
     await waitFor(async () => expect((await marks()).find((mark) => mark.id === note.id)?.thread.at(-1)?.text).toBe('First'));
-    expect((box as HTMLTextAreaElement).value).toBe('First and more');
+    // The part already sent is not left in the box, or the next Reply would send it twice.
+    expect((box as HTMLTextAreaElement).value).toBe(' and more');
   });
 });
 

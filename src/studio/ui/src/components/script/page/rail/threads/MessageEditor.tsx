@@ -1,13 +1,29 @@
 import { plural } from '../../../../../plural';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { Button } from '../../../../primitives/Button';
 import { NoteTextarea } from './NoteTextarea';
 
 /** One message of a thread being edited: a labelled box with Save and Cancel. It keeps its own draft until Save. */
-export function MessageEditor({ initial, onSave, onCancel }: { initial: string; onSave: (text: string) => unknown; onCancel: () => void }) {
+export function MessageEditor({
+  initial,
+  onSave,
+  onCancel,
+  onDirtyChange,
+}: {
+  initial: string;
+  onSave: (text: string) => unknown;
+  onCancel: () => void;
+  /** Whether the typed edit differs from the message, for the card around it (deleting the note over an edit asks). */
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const [text, setText] = useState(initial);
   const save = useSharedSave(async () => (await onSave(text.trim())) !== false);
+  const dirty = text.trim() !== '' && text.trim() !== initial.trim();
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft('script-note-edit', {
     dirty: text.trim() !== '' && text.trim() !== initial.trim(),

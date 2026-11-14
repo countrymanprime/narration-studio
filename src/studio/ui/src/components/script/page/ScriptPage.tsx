@@ -197,11 +197,13 @@ function ScriptWorkspace({
   const showWord = useCallback((word: string) => showInRail({ tab: 'pron', word }), [showInRail]);
   const showEntry = useCallback((entryId: string) => showInRail({ tab: 'bible', entryId, miss: null, missSel: null }), [showInRail]);
   const toggleDrawer = (which: 'ch' | 'rail') => update((state) => ({ drawer: state.drawer === which ? null : which }));
-  const goToChapter = useCallback((chapterId: string) => update({ pendingJump: chapterId, drawer: null }), [update]);
+  // Every jump of the reader to another place (the chapter list, the jump menu's chapters, a deep link, the credits hash) changes the chapter in view and with it what the
+  // rail shows, so with a reply, an edit or a pronunciation held it asks first like any other move (#3400, qa-breaker on #3458).
+  const goToChapter = useCallback((chapterId: string) => guarded(() => update({ pendingJump: chapterId, drawer: null })), [guarded, update]);
   const goToLink = useCallback(
     ({ chapterId, paragraphId }: { chapterId: string; paragraphId?: string }) =>
-      update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null }),
-    [update],
+      guarded(() => update(paragraphId ? { pendingPid: paragraphId, drawer: null } : { pendingJump: chapterId, drawer: null })),
+    [guarded, update],
   );
   useDeepLink({ chapters: ownChapters, goTo: goToLink, notify });
 
@@ -521,7 +523,11 @@ function ScriptWorkspace({
             lineOf={lineOf}
             onShowInText={(id) => {
               const mark = marks.marks.find((row) => row.id === id);
-              if (mark) update({ pendingPid: mark.paragraphId, drawer: null });
+              if (!mark) return;
+              const move = () => update({ pendingPid: mark.paragraphId, drawer: null });
+              // Showing a note's own line asks nothing (the card stays); a note of another chapter moves the reader away and asks.
+              if (mark.chapterId === inView) move();
+              else guarded(move);
             }}
           />
         );
@@ -538,7 +544,7 @@ function ScriptWorkspace({
           <ChapterList
             chapters={chapters}
             currentId={inView}
-            onJump={(id) => guarded(() => goToChapter(id))}
+            onJump={goToChapter}
             onClose={layout.narrow ? () => update({ drawer: null }) : undefined}
             openingCredits={openingCredits}
             closingCredits={closingCredits}

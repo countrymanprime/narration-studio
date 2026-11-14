@@ -312,3 +312,19 @@ describe('an unsaved-drafts spec answers the question through pressOnQuestion (#
     expect(offenders, "use pressOnQuestion(page, key) from helpers/questionKey.ts, or state the target on the line before: '// key: a text field'").toEqual([]);
   });
 });
+
+// Every way the Script page sends the reader somewhere (`pendingJump`, `pendingPid`) changes the chapter in view and with it what the Notes rail shows, so each asks while a
+// reply, an edit or a pronunciation is held. A new producer fails here until it asks or is listed (#3458, qa-breaker).
+describe('every Script jump asks while a draft is held (#3458)', () => {
+  const source = code(readFileSync(join(components, 'script/page/ScriptPage.tsx'), 'utf8'));
+  test('the writers of pendingJump and pendingPid are the reviewed ones', () => {
+    const writers = [...source.matchAll(/pending(?:Jump|Pid):\s*(?!\s|null)/g)].length;
+    // showMark (asks through useShowInRail), goToChapter, goToLink (two), the Notes rail's Show in text, and nothing else.
+    expect(writers).toBe(5);
+  });
+  test('goToChapter, goToLink and the Show in text of another chapter go through guarded', () => {
+    expect(source).toMatch(/goToChapter = useCallback\(\(chapterId: string\) => guarded\(/);
+    expect(source).toMatch(/goToLink = useCallback\([\s\S]*?guarded\(\(\) => update\(paragraphId/);
+    expect(source).toMatch(/else guarded\(move\)/);
+  });
+});

@@ -130,3 +130,54 @@ test('Delete the note with a reply typed under it asks; Keep it leaves both, and
   await card.getByRole('button', { name: 'Delete the note' }).click();
   await expect(rail.getByRole('article')).toHaveCount(0);
 });
+
+async function noteWithReply(page: Page, reply: string): Promise<{ rail: Locator; card: Locator }> {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  await selectReaderWord(page, 'Rabbit');
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+  await page.getByRole('menuitem').first().click();
+  const composer = page.getByRole('dialog');
+  await composer.getByRole('textbox').first().fill('First message');
+  await composer
+    .getByRole('button', { name: /^(Add|Save|Mark)/ })
+    .last()
+    .click();
+  const rail = page.locator(`section[aria-label="${RAIL}"]`).first();
+  await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+  const card = rail.getByRole('article').first();
+  await card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }).fill(reply);
+  return { rail, card };
+}
+
+// Changing a note's Type replaces the mark under the card; what is typed in the card stays (#3400, qa-breaker on #3458).
+test('changing the Type of a note keeps the reply typed under it', async ({ page }) => {
+  const { rail } = await noteWithReply(page, 'Typed reply keep me');
+  const type = rail.getByRole('article').first().getByRole('combobox', { name: 'Type' });
+  const other = await type.evaluate((select) => [...(select as HTMLSelectElement).options].find((option) => !option.selected)!.value);
+  await type.selectOption(other);
+  await expect(
+    rail
+      .getByRole('article')
+      .first()
+      .getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }),
+  ).toHaveValue('Typed reply keep me');
+});
+
+// Escape and the close button on the Mark composer are ways out, so with a note typed they ask (the Cancel button is the narrator discarding).
+test('Escape on the Mark composer with a note typed asks, and Keep editing leaves the dialog and the text', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  await selectReaderWord(page, 'Rabbit');
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+  await page.getByRole('menuitem').first().click();
+  const composer = page.getByRole('dialog');
+  await composer.getByRole('textbox').first().fill('composer text');
+  await page.keyboard.press('Escape');
+  const question = page.getByRole('alertdialog', { name: 'Discard your note?' });
+  await expect(question).toBeVisible();
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(composer.getByRole('textbox').first()).toHaveValue('composer text');
+});

@@ -1,5 +1,5 @@
 import { plural } from '../../../../../plural';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
@@ -78,7 +78,8 @@ export function NoteCard({
     const text = reply;
     const sent = await act(mark.id, who, text.trim());
     // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400).
-    if (sent) setReply((now) => (now === text ? '' : now));
+    // Only what was sent goes: text typed while the save was in flight stays, without the part already sent (a reply is not sent twice) (#3400).
+    if (sent) setReply((now) => (now === text ? '' : now.startsWith(text) ? now.slice(text.length) : now));
     return sent;
   };
   const sendReply = useSharedSave(() => send(actions.onReply));
@@ -93,11 +94,17 @@ export function NoteCard({
     discard: () => setReply(''),
   });
   // Deleting the note takes the reply typed under it along (Undo brings the note back, not the text), so it asks first when a reply is typed (#3400).
+  // The same goes for an edit of one of its messages being typed in the card: the deleted note is not that text (#3400).
+  const editDirty = useRef(false);
+  const onEditDirty = useCallback((dirty: boolean) => {
+    editDirty.current = dirty;
+  }, []);
   const deleteNote = async () => {
-    if (reply.trim() !== '') {
+    const typedReply = reply.trim() !== '';
+    if (typedReply || editDirty.current) {
       const confirmed = await overlay.confirm({
         title: 'Delete the note?',
-        body: 'The reply you typed under it is not added yet and goes with it.',
+        body: typedReply ? 'The reply you typed under it is not added yet and goes with it.' : 'The edit you typed is not saved yet and goes with the note.',
         confirmLabel: 'Delete the note',
         cancelLabel: 'Keep it',
       });
@@ -142,7 +149,12 @@ export function NoteCard({
           {messages.map((message) => (
             <li key={message.index} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
               {editing === message.index ? (
-                <MessageEditor initial={message.text} onCancel={actions.onCancelEdit} onSave={(text) => actions.onSaveEdit(mark.id, message.index, text)} />
+                <MessageEditor
+                  initial={message.text}
+                  onDirtyChange={onEditDirty}
+                  onCancel={actions.onCancelEdit}
+                  onSave={(text) => actions.onSaveEdit(mark.id, message.index, text)}
+                />
               ) : (
                 <>
                   <span className="text-[0.72rem] font-semibold text-[var(--text-muted)] uppercase">{WHO_LABEL[message.who]}</span>

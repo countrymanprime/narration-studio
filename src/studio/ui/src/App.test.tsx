@@ -1405,10 +1405,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 27 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 28 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 26 for a save that rejects after the limit and a wire error.
-const MOUNT_BUDGET = 26;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 26 for a save that rejects after the limit and a wire error; 26 to 27 for the Script screen of #3400: a reply typed under a note held through the exits table.
+const MOUNT_BUDGET = 27;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1580,6 +1580,28 @@ describe('App Back and Forward', () => {
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
         stillHeld: () => expect(keptEdit()).toBeTruthy(),
         page: '/settings',
+      },
+      // A reply typed under a Script note waits for Reply (#3400): the exits ask, and Cancel keeps the text.
+      'a reply typed under a Script note': {
+        hold: async () => {
+          const base = createMockApi();
+          const types = await base.marksList();
+          for (const chapter of (await base.manuscriptChapters()).filter((row) => !row.isCredits)) {
+            const [line] = await base.manuscriptParagraphs(chapter.id);
+            if (line) await base.marksAdd(chapter.id, line.id, 0, 5, types.types[0]!.key, 'A note');
+          }
+          renderApp({ marksList: () => base.marksList(), manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) });
+          await screen.findByRole('heading', { level: 1, name: 'Production' });
+          fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]!);
+          await screen.findByRole('heading', { name: 'Script' });
+          fireEvent.click(await screen.findByRole('tab', { name: 'Notes' }));
+          fireEvent.change(await screen.findByRole('textbox', { name: 'Add to this note' }, { timeout: 8000 }), { target: { value: 'Typed but not added.' } });
+          await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+        },
+        question: async () => screen.findByText(/Save or discard your reply on .* before leaving\?/),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect((screen.getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('Typed but not added.'),
+        page: '/script',
       },
       'a recording Booth': {
         hold: async () => {

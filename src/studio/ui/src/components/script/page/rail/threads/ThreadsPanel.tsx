@@ -23,16 +23,19 @@ export function ThreadsPanel({
   actions: NoteActions;
 }) {
   const list = [...marks].sort((a, b) => Number(b.id === selectedId) - Number(a.id === selectedId));
-  // A card is the note on its passage, not its id: clearing or rewriting a note's opening message replaces the mark with a new id, and a reply typed under it is
-  // the narrator's, so the card keeps its place and its text (#3404). Two notes on the same passage and type are told apart by their order.
-  // This is an internal keying choice (#3400 D5), not a behaviour the narrator chooses: the only other stable thing a card has is its id, and the id is what changes.
+  // A card is the note on its passage, not its id or its type: clearing or rewriting a note's opening message replaces the mark with a new id, changing its Type
+  // is a change of the mark and not of the card, and a reply typed under it is the narrator's either way, so the card keeps its place and its text (#3404).
+  // Two notes on the same passage are told apart by their order in the list as the page gives it, never the display order (the selected note is drawn first),
+  // so selecting one never hands its state to the other (#3400, qa-breaker on #3458). This is an internal keying choice, not a behaviour the narrator chooses.
   const seen = new Map<string, number>();
-  const keyOf = (mark: Mark): string => {
-    const base = `${mark.chapterId}:${mark.paragraphId}:${mark.start}-${mark.end}:${mark.type}`;
+  const keys = new Map<Mark, string>();
+  for (const mark of marks) {
+    const base = `${mark.chapterId}:${mark.paragraphId}:${mark.start}-${mark.end}`;
     const nth = seen.get(base) ?? 0;
     seen.set(base, nth + 1);
-    return `${base}#${nth}`;
-  };
+    keys.set(mark, `${base}#${nth}`);
+  }
+  const keyOf = (mark: Mark): string => keys.get(mark)!;
   return (
     <div className="flex flex-col gap-2">
       {list.length === 0 ? (
