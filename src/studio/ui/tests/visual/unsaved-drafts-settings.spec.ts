@@ -45,10 +45,17 @@ test('another category and the Settings search ask over a pasted key, and the ty
   await expect(unsaved(page)).toContainText('before going on?');
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
-  await page.getByRole('textbox', { name: 'Search settings' }).fill('k');
+  await page.getByRole('textbox', { name: 'Search settings' }).fill('abc');
   await expect(unsaved(page)).toBeVisible();
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+  // Cancel keeps the key and the letters in the box (#3456).
+  await expect(page.getByRole('textbox', { name: 'Search settings' })).toHaveValue('abc');
+  // Discard & continue applies the search.
+  await page.getByRole('textbox', { name: 'Search settings' }).fill('abcd');
+  await unsaved(page).getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(page.getByRole('textbox', { name: 'Search settings' })).toHaveValue('abcd');
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveCount(0);
 });
 
 test.describe('at 320 x 300', () => {

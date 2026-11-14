@@ -1715,6 +1715,8 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
+      // Cancel keeps the key and does not take the typed letter back (#3456).
+      expect((screen.getByRole('textbox', { name: 'Search settings' }) as HTMLInputElement).value).toBe('k');
       // A link to another category changes only the hash and replaces the panel just the same: the engine panel's Recording settings, pressed over Settings.
       fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
       const panel = await screen.findByRole('dialog', { name: 'Audio engine' });

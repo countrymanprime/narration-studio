@@ -80,6 +80,9 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
+  // What is in the search box. It is what the narrator typed even when the question refused to apply it, so Cancel never takes the letters back (#3456).
+  const [typed, setTyped] = useState('');
+  useEffect(() => setTyped(query), [query]);
   const [filter, setFilter] = useState<Filter>('all');
   const [navOpen, setNavOpen] = useState(false);
   const [advanced, setAdvanced] = useState<Partial<Record<CategoryId, boolean>>>({});
@@ -173,10 +176,11 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   );
 
   // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)
-  // goes with it. Asked on every change that shows, changes or clears the results. The question takes the focus, so after Cancel the letter just typed is not kept (#3404).
+  // goes with it. Asked on every change that shows, changes or clears the results. The question takes the focus, but what was typed stays in the box after Cancel (#3456).
   // Every change of the search or the filter that shows, replaces or clears the results swaps the pane under an editor held there (a key pasted into the
   // Merriam-Webster box among the results, a credits template opened from them), so it asks; a change that leaves the results as they are does not.
   const changeSearch = (nextQuery: string, nextFilter: Filter) => {
+    setTyped(nextQuery);
     const nextSearching = nextQuery.trim() !== '' || nextFilter !== 'all';
     const sameResults = nextQuery.trim() === text && nextFilter === filter;
     const apply = () => {
@@ -187,7 +191,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     else guarded(apply, { settle: false });
   };
   const changeQuery = (next: string) => changeSearch(next, filter);
-  const changeFilter = (next: Filter) => changeSearch(query, next);
+  const changeFilter = (next: Filter) => changeSearch(typed, next);
 
   // A row another page asked for may sit under Advanced: open it, then the effect below finds it.
   const targetRow = focusRow ? ROWS.find((row) => row.id === focusRow) : undefined;
@@ -337,10 +341,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                   leadingIcon
                   label="Search settings"
                   placeholder="Search settings"
-                  value={query}
+                  value={typed}
                   onChange={changeQuery}
                   onKeyDown={(event) => {
-                    if (event.key === 'Escape' && query) {
+                    if (event.key === 'Escape' && typed) {
                       event.stopPropagation();
                       changeQuery('');
                     }
