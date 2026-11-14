@@ -60,6 +60,7 @@ const addNote = async (text: string, who?: 'Proofer replied' | 'My note') => {
   await waitFor(() => expect(messages().some((m) => m.includes(text))).toBe(true));
 };
 
+// holder: proof/inspector/FindingThread.tsx
 describe('holders-render-clean-after-their-save', () => {
   it('a note typed and not added renders clean once the registry has saved it', async () => {
     const { api, id } = await setup();
