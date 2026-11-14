@@ -55,7 +55,6 @@ const EXEMPT: Record<string, string> = {
   'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,
-  'settings/page/StoryBibleTypesPanel.tsx': BLUR,
   'settings/row/ValueControl.tsx': BLUR,
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
@@ -108,6 +107,23 @@ describe('every editor that draws a text box either joins the unsaved-drafts reg
     const names = new Map(drawing.map(({ name, source }) => [name, source]));
     const stale = Object.keys(DECIDED).filter((name) => !names.has(name) || JOINS.test(code(names.get(name)!)));
     expect(stale, 'delete the entry: the file no longer draws a text box, or it registers now').toEqual([]);
+  });
+});
+
+// A BLUR exemption is true of a box whose own blur or Enter saves it. A box whose Enter and a separate button run the same function (a New type box with an Add
+// button) saves only when one of them is pressed: blurring it commits nothing, so an exit drops the text (#3457, qa-breaker on #3446).
+const SEPARATE_COMMIT = /key === 'Enter'\)\s*\{?\s*(\w+)\(\)/g;
+describe('a box exempt because it saves on blur has no separate commit button (#3457)', () => {
+  test('no BLUR file has an Enter handler whose function a button also runs', () => {
+    const hits: string[] = [];
+    for (const { name, source } of drawing) {
+      if (EXEMPT[name] !== BLUR) continue;
+      const text = code(source);
+      for (const match of text.matchAll(SEPARATE_COMMIT)) {
+        if (new RegExp(`onClick=\\{${match[1]}\\}`).test(text)) hits.push(`${name}: ${match[1]}`);
+      }
+    }
+    expect(hits, 'make the box a holder (useUnsavedDraft with the add as its save), or commit it on blur').toEqual([]);
   });
 });
 
@@ -197,6 +213,8 @@ const STORY_BIBLE_DETAIL: Replacer[] = [
   { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  // The Settings controls that replace it (another category, the search, the filter) ask through useGuardedAction once the Settings screen change (#3456) joins.
+  'settings/page/StoryBibleTypesPanel.tsx': [],
   'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
   'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
   'storybible/VoiceReferencesSection.tsx': STORY_BIBLE_DETAIL,

@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { kindSwatch } from '../../storybible/entryList';
+import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
 import { StoryBibleTypesPanel } from './StoryBibleTypesPanel';
 
 afterEach(cleanup);
@@ -136,5 +138,47 @@ describe('Story Bible types panel (SN-M53)', () => {
       </ApiProvider>,
     );
     expect((await within(panel()).findByRole('alert')).textContent).toContain('no project is open');
+  });
+});
+
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
+
+// holder: settings/page/StoryBibleTypesPanel.tsx
+describe('text typed in New type is held until it is added (#3457)', () => {
+  const mount = async () => {
+    const api = createMockApi();
+    render(
+      <ApiProvider api={api}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <StoryBibleTypesPanel />
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    await screen.findByRole('textbox', { name: 'Type name: Character' });
+    return api;
+  };
+
+  it('typed New type text asks before leaving: held, named, and dropped by Discard', async () => {
+    await mount();
+    expect(registry.heldNow()).toEqual([]);
+    fireEvent.change(within(panel()).getByRole('textbox', { name: 'New type' }), { target: { value: 'Creature' } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['the new type “Creature”']);
+    act(() => registry.discard());
+    expect((within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement).value).toBe('');
+    expect(registry.heldNow()).toEqual([]);
+  });
+
+  it('Save & continue adds the type and the box renders clean (the holder contract)', async () => {
+    const api = await mount();
+    const add = vi.spyOn(api, 'guideTypeAdd');
+    fireEvent.change(within(panel()).getByRole('textbox', { name: 'New type' }), { target: { value: 'Creature' } });
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(registry.heldNow()).toEqual([]);
   });
 });

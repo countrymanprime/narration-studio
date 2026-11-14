@@ -12,6 +12,8 @@ import { Swatch } from '../../primitives/Swatch';
 import { TextField } from '../../primitives/TextField';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { plural } from '../../../plural';
+import { shortName } from '../../../studio/drafts/draftSentence';
+import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
 const COLOUR_OPTIONS = GUIDE_TYPE_COLOURS.map((colour) => ({ value: colour, label: COLOUR_LABELS[colour] }));
@@ -134,6 +136,18 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
       if (added) setName('');
     });
   };
+  // A name typed in New type is added by Enter or the Add type button, not by leaving the box: blurring commits nothing, so leaving the page asks, and Save & continue adds it (#3457).
+  useUnsavedDraft('story-bible-new-type', {
+    dirty: name.trim() !== '',
+    label: `the new type “${shortName(name, 18)}”`,
+    brief: 'a new type',
+    save: async () => {
+      const added = await onAdd(name);
+      if (added) setName('');
+      return added;
+    },
+    discard: () => setName(''),
+  });
   return (
     <>
       <div className="@container flex w-full min-w-0 flex-col gap-3">
