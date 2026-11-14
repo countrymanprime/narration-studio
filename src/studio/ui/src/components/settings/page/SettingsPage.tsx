@@ -80,9 +80,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
-  // What is in the search box. It is what the narrator typed even when the question refused to apply it, so Cancel never takes the letters back (#3456).
-  const [typed, setTyped] = useState('');
-  useEffect(() => setTyped(query), [query]);
+  // Letters typed that the question has not let apply yet, so Cancel never takes them back (#3456). `null` means the box shows the applied query: every write of
+  // `query` clears it, so the box and the results are in step whenever no question is open. Clearing the box is not kept: Cancel puts the applied text back.
+  const [pending, setPending] = useState<string | null>(null);
+  const typed = pending ?? query;
   const [filter, setFilter] = useState<Filter>('all');
   const [navOpen, setNavOpen] = useState(false);
   const [advanced, setAdvanced] = useState<Partial<Record<CategoryId, boolean>>>({});
@@ -100,6 +101,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     if (!next) return;
     setCat(next.cat);
     setQuery('');
+    setPending(null);
     setFilter('all');
     setFocusRow(next.row);
   }, [initialCategory]);
@@ -169,6 +171,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
       guarded(() => {
         setCat(id);
         setQuery('');
+        setPending(null);
         setFilter('all');
         setNavOpen(false);
       }),
@@ -180,11 +183,12 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // Every change of the search or the filter that shows, replaces or clears the results swaps the pane under an editor held there (a key pasted into the
   // Merriam-Webster box among the results, a credits template opened from them), so it asks; a change that leaves the results as they are does not.
   const changeSearch = (nextQuery: string, nextFilter: Filter) => {
-    setTyped(nextQuery);
+    setPending(nextQuery === '' ? null : nextQuery);
     const nextSearching = nextQuery.trim() !== '' || nextFilter !== 'all';
     const sameResults = nextQuery.trim() === text && nextFilter === filter;
     const apply = () => {
       setQuery(nextQuery);
+      setPending(null);
       setFilter(nextFilter);
     };
     if (sameResults || !(searching || nextSearching)) apply();

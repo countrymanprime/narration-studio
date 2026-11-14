@@ -98,7 +98,12 @@ export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: r
 export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
 export type AskOptions = { settle?: boolean };
-type Shell = { ask: (run: () => void, options?: AskOptions) => void; go: (to: string, state?: unknown, after?: () => void) => void };
+type Shell = {
+  ask: (run: () => void, options?: AskOptions) => void;
+  go: (to: string, state?: unknown, after?: () => void) => void;
+  /** A save the question stopped waiting for (the limit) has now failed: the narrator is told, since nothing else will say so. */
+  lateFailure?: (outcome: { error: unknown } | { failed: readonly HeldDraft[] }) => void;
+};
 
 const toHeld = ({ label, brief, kind, many, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, saveable: save !== undefined });
 
@@ -167,9 +172,22 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
         .map(toHeld);
       return { saved: failed.length === 0, failed, kept, late };
     })();
+    let gaveUp = false;
     const run = withinSaveLimit(saved).finally(() => {
       saving.current = null;
     });
+    // The question stopped waiting at the limit, so a save that fails after it has nobody to tell: the shell says so (#3446).
+    run.catch((error: unknown) => {
+      if (error instanceof SaveTimeout) gaveUp = true;
+    });
+    saved.then(
+      (result) => {
+        if (gaveUp && result.failed.length > 0) shell.current?.lateFailure?.({ failed: result.failed });
+      },
+      (error: unknown) => {
+        if (gaveUp) shell.current?.lateFailure?.({ error });
+      },
+    );
     saving.current = run;
     return run;
   }, []);

@@ -83,6 +83,7 @@ describe('CreditsPanel', () => {
     await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === '[Title], read by [Narrator].')).toBe(true));
   });
 
+  // holder: settings/CreditsPanel.tsx
   it('a template edit renders clean once the registry has saved it (the holder contract)', async () => {
     const { api } = renderPanel();
     await screen.findByRole('combobox', { name: 'Template' });
