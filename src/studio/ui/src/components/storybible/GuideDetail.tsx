@@ -419,6 +419,9 @@ export function GuideDetail({
     setEditing(false);
     setPropertyError(undefined);
     setDraft(draftOf(entity, speaks));
+    // Cancel editing throws the whole edit away, the name typed in Add a name with it: it would be held again, hidden, when Edit opens the entry once more (#3457 B9).
+    setAliasQuery('');
+    setNameNote(undefined);
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
   const saveEntry = async (): Promise<boolean> => {

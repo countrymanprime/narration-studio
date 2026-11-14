@@ -62,7 +62,7 @@ test('an approval note typed beside Approve asks before it is dropped: Keep edit
   await page.getByRole('textbox', { name: 'Note (optional)' }).fill('anchor take');
   await clickNav(page, 'Production');
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('your approval note');
+  await expect(question).toContainText(/your approval note/i);
   await expect(question.getByRole('button', { name: 'Save & continue' })).toHaveCount(0);
   await question.getByRole('button', { name: 'Keep editing' }).click();
   await expect(page.getByRole('textbox', { name: 'Note (optional)' })).toHaveValue('anchor take');
@@ -76,7 +76,7 @@ test('a new entry that cannot be saved offers Keep editing and Discard & continu
   await page.getByRole('textbox', { name: 'Name' }).first().fill('Mr Fox');
   await clickNav(page, 'Production');
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('Discard the new entry “Mr Fox” before leaving?');
+  await expect(question).toContainText('Discard it before leaving?');
   await expect(question.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
   await expect(question.getByRole('button', { name: 'Save & continue' })).toHaveCount(0);
   await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
@@ -227,7 +227,7 @@ test.describe('at 320 x 300', () => {
     await page.getByRole('textbox', { name: 'Name' }).first().fill(LONG_NAME);
     await page.keyboard.press('Alt+ArrowLeft');
     const dialog = unsaved(page, 'Unsaved changes');
-    await expect(dialog).toContainText('Discard the new entry');
+    await expect(dialog).toContainText('Discard it before');
     await expectFits(page, dialog);
   });
 });

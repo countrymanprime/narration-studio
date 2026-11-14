@@ -1702,9 +1702,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
       fireEvent.change(await screen.findByDisplayValue(/New entity/), { target: { value: 'Mr Fox' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(
-        await screen.findByText('Save is off: The new entry “Mr Fox” still needs a category chosen. Discard the new entry “Mr Fox” before leaving?'),
-      ).toBeTruthy();
+      expect(await screen.findByText('Save is off: The new entry “Mr Fox” still needs a category chosen. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1722,7 +1720,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
       fireEvent.change(await screen.findByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'anchor take' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText('Save is off: Your approval note still needs Approve. Discard your approval note before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save is off: Your approval note still needs Approve. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)

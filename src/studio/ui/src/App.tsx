@@ -138,6 +138,8 @@ const popGuard = {
   ask: null as ((direction: 1 | -1) => void) | null,
   /** `event.timeStamp` of the last Enter or Space pressed anywhere but on the way to stay: the press that may have asked the question. */
   lastAskKeyAt: -Infinity,
+  /** `event.timeStamp` of the last Enter or Space pressed inside a question: the press that answered it. */
+  lastAnswerKeyAt: -Infinity,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -178,8 +180,16 @@ if (typeof window !== 'undefined') {
   window.addEventListener(
     'keydown',
     (event) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !(event.target instanceof Element && event.target.closest('[data-stay-button]')))
-        popGuard.lastAskKeyAt = event.timeStamp;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('[role="alertdialog"]')) popGuard.lastAnswerKeyAt = event.timeStamp;
+      // The press that answered a question (Keep editing) hands the focus back to the box it came from, and the next Enter in the same moment (a second tap, a held key) is
+      // that press's echo, not the narrator adding the name in it or accepting the suggestion (#3457 B10). A fresh press after the window is the field's own.
+      else if (target?.matches('input, textarea') && event.timeStamp - popGuard.lastAnswerKeyAt < ECHO_MS) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      if (!target?.closest('[data-stay-button]')) popGuard.lastAskKeyAt = event.timeStamp;
     },
     true,
   );

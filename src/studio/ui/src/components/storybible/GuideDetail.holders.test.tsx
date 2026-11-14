@@ -57,6 +57,15 @@ describe('a name typed in "Add a name"', () => {
     return { api, notify };
   };
 
+  it('Cancel editing empties a name typed in Add a name, so Edit opens a clean box that holds nothing (#3457 B9)', () => {
+    mount();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Add a name' }), { target: { value: 'Stale alias' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    expect((screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement).value).toBe('');
+    expect(registry.heldNow()).toEqual([]);
+  });
+
   it("is held, with nothing to save, and the entry's own Save refuses and says what to do (#3457)", async () => {
     const { api, notify } = mount();
     const guideEdit = vi.spyOn(api, 'guideEdit');
