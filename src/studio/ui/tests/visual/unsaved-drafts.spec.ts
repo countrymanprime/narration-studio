@@ -2,6 +2,7 @@
 // moves the page, a dialog is not left by a browser Back, and Save & continue never traps the narrator when a save does not answer. The editors that hold
 // drafts of their own are driven by their screen's specs.
 import { expect, test, type Page } from '@playwright/test';
+import { pressOnQuestion } from './helpers/questionKey';
 import { settlePage } from './helpers/settle';
 import { goToPage, openSettings } from './drivers/shared';
 
@@ -60,6 +61,7 @@ test('a browser Back with a dialog open and nothing held leaves the dialog and t
   await goToPage(page, 'Script');
   await page.keyboard.press('Control+KeyK');
   await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Show keyboard shortcuts');
+  // key: the jump menu's own row, not the question
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.goBack();
@@ -126,7 +128,9 @@ test('a second Enter within 300 ms of the one that asked does not dismiss the qu
   await entry.getByRole('button', { name: 'Change it here for now' }).click();
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.getByRole('button', { name: 'Production' }).first().focus();
+  // key: the echo of the press that asked, which is what this case is about
   await page.keyboard.press('Enter');
+  // key: the second of the double press, still the echo
   await page.keyboard.press('Enter');
   const question = unsaved(page, 'Unsaved settings');
   await expect(question).toBeVisible();
@@ -170,4 +174,54 @@ test('an Enter held down from the press that asked does not dismiss the question
   }
   await page.keyboard.up('Enter');
   await expect(question).toBeVisible();
+});
+
+async function holdSettingsEdit(page: Page): Promise<void> {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+}
+
+// A touch tap on the backdrop is followed by compatibility mouse events that drop the focus to <body> again (#3446 B-1).
+test.describe('a tap on the backdrop', () => {
+  test.use({ hasTouch: true });
+  test('leaves the focus inside the question', async ({ page }) => {
+    await holdSettingsEdit(page);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const question = unsaved(page, 'Unsaved settings');
+    await expect(question).toBeVisible();
+    await page.touchscreen.tap(5, 450);
+    await page.waitForTimeout(500);
+    await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  });
+});
+
+// While a save is in flight the way to stay is disabled, so the focus rescue needs another place to put it (#3446 B-2).
+test('a click on the backdrop during a slow save keeps the focus inside the question', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
+      saveSettings: () => new Promise((resolve) => setTimeout(resolve, 3_000)),
+    };
+  });
+  await holdSettingsEdit(page);
+  await switchProject(page);
+  const question = unsaved(page, 'Unsaved settings');
+  await question.getByRole('button', { name: 'Save & continue' }).click();
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  await page.mouse.click(5, 450);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role="alertdialog"]')))).toBe(true);
+});
+
+// The other half of the echo window: once it is over, Enter on the way to stay answers the question (it has the focus).
+test('Enter on the way to stay, after the echo window, answers the question', async ({ page }) => {
+  await holdSettingsEdit(page);
+  await page.keyboard.press('Alt+ArrowLeft');
+  const question = unsaved(page, 'Unsaved settings');
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await pressOnQuestion(page, 'Enter');
+  await expect(question).toHaveCount(0);
 });
