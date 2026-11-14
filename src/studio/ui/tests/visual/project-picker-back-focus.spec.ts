@@ -24,6 +24,10 @@ for (const way of ['Escape', 'Back'] as const) {
       const active = document.activeElement as HTMLElement | null;
       return { tag: active?.tagName, label: (active?.getAttribute('aria-label') ?? active?.textContent ?? '').slice(0, 40) };
     });
-    expect(landed.tag, `focus is on ${landed.tag} "${landed.label}"`).not.toBe('BODY');
+    expect(landed.tag, `focus is on ${landed.tag} "${landed.label}", not on the page's <main>`).toBe('MAIN');
+    // Tab goes on through the page, not back to the skip link ahead of it.
+    await page.keyboard.press('Tab');
+    const next = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.textContent?.slice(0, 30) ?? '');
+    expect(next, 'the next Tab goes to the skip link').not.toMatch(/skip to content/i);
   });
 }
