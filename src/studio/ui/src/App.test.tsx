@@ -2904,10 +2904,18 @@ describe('App shell mounts', () => {
 
     it('a second Back while the question is open does not ask again or move', async () => {
       const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      // Entries stamped alike behind the page, as a restored session or a replaced entry leaves them.
+      window.history.pushState({ idx: 0 }, '', '/');
+      window.history.pushState({ idx: 0 }, '', '/');
       await toScript(journal);
       journal.setLeaveGuard(() => asking);
-      act(() => window.history.back());
+      // Two Backs a few milliseconds apart (a held Alt+Left) land two entries back when the second was sent before the address was put back from the first: history resolves
+      // each against where it is when it runs. The first step of the restore then leaves the address on a page that is not the router's, and it has to go on until it is (#3446).
+      act(() => window.history.go(-2));
       await question();
+      await waitFor(() => expect(window.location.pathname).toBe('/script'));
+      expect(screen.getAllByRole('alertdialog', { hidden: true })).toHaveLength(1);
+      // And one more while the question has been open for a while.
       act(() => window.history.back());
       await new Promise((resolve) => setTimeout(resolve, 100));
       // hidden: a second question would make the first inert, and so out of the accessibility tree.
