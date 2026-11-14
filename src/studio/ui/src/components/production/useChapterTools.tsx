@@ -8,6 +8,7 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { changedButUnread } from '../chapterTracks/useChapterLinkActions';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
@@ -82,13 +83,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       notify(describeApiError(error), 'error');
     }
   }, [api, notify]);
-  const loadTrackLinks = useCallback(async () => {
-    try {
-      await refreshLinks();
-    } catch (error) {
-      notify(describeApiError(error), 'error');
-    }
-  }, [notify, refreshLinks]);
+  // `afterWrite`: a link was just written and said so, so a failed read is "the change was made, but the list could not be read again", as every other surface says it (#3398).
+  const loadTrackLinks = useCallback(
+    async (afterWrite = false) => {
+      try {
+        await refreshLinks();
+      } catch (error) {
+        notify(afterWrite ? changedButUnread(error) : describeApiError(error), 'error');
+      }
+    },
+    [notify, refreshLinks],
+  );
   const reload = useCallback(() => {
     if (!active) return;
     void loadChapters();
@@ -277,7 +282,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           notify={notify}
           onClose={close}
           onChanged={async () => {
-            await loadTrackLinks();
+            await loadTrackLinks(true);
             onChanged();
           }}
           onRemoveFromRecording={(kind) => removeFromRecording(trackOpen.chapterId, kind)}

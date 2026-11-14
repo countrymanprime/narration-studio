@@ -204,6 +204,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             } else sentence = stopped.value.refused ?? (stopped.value.message || '');
             // Not stopped: the take still runs, so it is not this decision's to call handled.
             answeredFor.current = -1;
+            answered.current = false;
             if (gone.current) {
               overlay.toast(`The take could not be stopped: ${sentence} Stop it in ${now.daw.name}.`, { tone: 'error' });
               return false;
