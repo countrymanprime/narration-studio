@@ -1847,6 +1847,22 @@ describe('App Back and Forward', () => {
       expect(keptEdit()).toBeTruthy();
     });
 
+    it('a Back that replaces the Search question hands the first its Cancel: the box reads the applied query again (#3456 D)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
+      const search = screen.getByRole('textbox', { name: 'Search settings' }) as HTMLInputElement;
+      fireEvent.change(search, { target: { value: 'a' } });
+      expect(await screen.findByRole('alertdialog')).toBeTruthy();
+      act(() => {
+        window.history.pushState(null, '', '/settings#category-delivery');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect((screen.getByRole('textbox', { name: 'Search settings' }) as HTMLInputElement).value).toBe(''));
+    });
+
     it('a pop to a typed hash with a focused empty box and nothing held pushes no entry (#3456)', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });

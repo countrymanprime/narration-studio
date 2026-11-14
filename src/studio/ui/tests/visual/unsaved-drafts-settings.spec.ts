@@ -217,3 +217,14 @@ test('Escape in Search over a key among the results, then Cancel, puts the appli
   await page.keyboard.press('Escape');
   await expect(unsaved(page)).toBeVisible();
 });
+
+test('a Back while the Search question is open, then Cancel, leaves the box empty again', async ({ page }) => {
+  await pasteKey(page);
+  const search = page.getByRole('textbox', { name: 'Search settings' });
+  await search.fill('a');
+  await expect(unsaved(page)).toBeVisible();
+  await page.evaluate(() => window.history.back());
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(search).toHaveValue('');
+});
