@@ -335,6 +335,16 @@ function AppRoutes() {
   const settingsSaving = useRef<Promise<boolean> | null>(null);
   const [resolving, setResolving] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove>();
+  // A question that replaces another one (Back with a question open) cancels the first: what its move would have undone on Cancel (the Settings search box) is put back (#3456 D).
+  const openMoveRef = useRef<PendingMove | undefined>(undefined);
+  openMoveRef.current = pendingMove;
+  const openMove = (next: PendingMove) => {
+    const replaced = openMoveRef.current;
+    // Not by another in-page change (more letters typed into the search while it is open): that one carries the box's text on.
+    if (replaced?.kind === 'action' && next.kind !== 'action') replaced.onCancel?.();
+    openMoveRef.current = next;
+    setPendingMove(next);
+  };
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // The engine panel: one panel for the app, opened from the header's
   // engine chip and from every pointer to the retired Tracks page.
@@ -859,7 +869,7 @@ function AppRoutes() {
   popGuard.dirty = pageHolds;
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
-    popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.ask = (direction) => openMove({ kind: 'delta', direction });
     popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
     popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
@@ -878,7 +888,7 @@ function AppRoutes() {
       setTimeout(() => askRef.current(run, options), SETTLE_MS);
       return;
     }
-    if (pageHolds()) setPendingMove({ kind: 'action', run, onCancel: options?.onCancel });
+    if (pageHolds()) openMove({ kind: 'action', run, onCancel: options?.onCancel });
     else run();
   };
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
@@ -980,7 +990,7 @@ function AppRoutes() {
       if (leftPathname === '/settings' && settingsDirty) {
         const landedAt = location.pathname + location.hash;
         navigate('/settings');
-        setPendingMove({ kind: 'path', path: landedAt });
+        openMove({ kind: 'path', path: landedAt });
       } else if (leavesCompareRun(leftPathname, location.pathname, transcriptPhaseRef.current)) {
         void api.transcriptReset().catch(() => {});
       }
@@ -1077,7 +1087,7 @@ function AppRoutes() {
   };
   // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved settings" question).
   const openPickerPastSettings = () => {
-    if (pageHolds()) setPendingMove({ kind: 'picker' });
+    if (pageHolds()) openMove({ kind: 'picker' });
     else setProjectPickerOpen(true);
   };
   goToScriptRef.current = (chapter) => goToScript(chapter);
@@ -1088,7 +1098,7 @@ function AppRoutes() {
     const switchesSettingsCategory =
       nextPath === location.pathname && nextPath === '/settings' && next.includes('#') && `#${next.split('#')[1]}` !== location.hash;
     if ((nextPath !== location.pathname || switchesSettingsCategory) && pageHolds()) {
-      setPendingMove({ kind: 'path', path: next, state, after });
+      openMove({ kind: 'path', path: next, state, after });
       return;
     }
     if (leavesCompareRun(location.pathname, nextPath.split('?')[0], data.transcript.phase)) void api.transcriptReset().catch(() => {});
@@ -1119,7 +1129,7 @@ function AppRoutes() {
   };
   const moveByDelta = (direction: 1 | -1) => {
     if (pageHolds()) {
-      setPendingMove({ kind: 'delta', direction });
+      openMove({ kind: 'delta', direction });
       return;
     }
     if (leavesCompareRun(location.pathname, undefined, data.transcript.phase)) void api.transcriptReset().catch(() => {});
