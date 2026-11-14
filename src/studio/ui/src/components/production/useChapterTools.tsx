@@ -30,8 +30,9 @@ export const PIPELINE_AREA = 'data-pipeline';
  * opened, else the first control in the chapter's row (a right-click leaves focus nowhere; a row is not itself focusable).
  */
 const backToRow = (chapterId: string, opener: Element | null) => (): HTMLElement | null => {
-  if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) return opener;
   const row = document.querySelector(`tr[data-chapter-id="${CSS.escape(chapterId)}"]`);
+  // The control the narrator was on, when it is in this row; a right-click leaves focus on the board's scroll area or nowhere, so the row's own first control.
+  if (opener instanceof HTMLElement && opener.isConnected && row?.contains(opener)) return opener;
   return row?.querySelector<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? null;
 };
 
@@ -40,7 +41,7 @@ const CREDITS_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits',
 type Open =
   | { kind: 'track'; chapterId: string; opener: Element | null }
   | { kind: 'editing'; chapter: ManuscriptChapter; opener: Element | null }
-  | { kind: 'credits'; credits: CreditsKind };
+  | { kind: 'credits'; credits: CreditsKind; opener: Element | null };
 
 /** The pages a row menu item opens; the page maps them to its own navigation. */
 type RowGo = { script: (chapterId: string) => void; booth: (chapterId: string) => void; proof: (chapterId: string) => void; master: () => void };
@@ -250,7 +251,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener }),
           },
-          ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits }) }] : []),
+          ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),
           {
             key: 'recording',
             label: CHECK_RECORDINGS_LABEL,
@@ -322,6 +323,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           onStatus={(status) => void setStatus(`credits-${open.credits}`, status)}
           // Close this slide-over, then open the check, never nested over it.
           onClose={close}
+          returnFocus={backToRow(`credits-${open.credits}`, open.opener)}
         />
       )}
     </>
