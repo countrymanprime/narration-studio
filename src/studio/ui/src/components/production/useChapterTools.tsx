@@ -89,6 +89,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [savedLinks, liveTracks],
   );
   const [open, setOpen] = useState<Open>();
+  // The chapter whose Check recordings dialog (an overlay, not one of the panels below) is open from the row menu.
+  const [checkingId, setCheckingId] = useState<string>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
@@ -260,9 +262,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             label: CHECK_RECORDINGS_LABEL,
             unavailable: missing ?? latest.current.checkGate,
             // The dialog can link the chapter's track (its unmapped refusal), so the board reads the links again when it closes.
-            onSelect: () =>
-              chapter &&
-              void openCheckRecordings([chapter.id], { onClosed: () => void latest.current.loadTrackLinks(), returnFocus: backToRow(chapter.id, opener) }),
+            onSelect: () => {
+              if (!chapter) return;
+              setCheckingId(chapter.id);
+              void openCheckRecordings([chapter.id], {
+                onClosed: () => {
+                  setCheckingId(undefined);
+                  void latest.current.loadTrackLinks();
+                },
+                returnFocus: backToRow(chapter.id, opener),
+              });
+            },
           },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter, opener }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
@@ -332,5 +342,9 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     </>
   );
 
-  return { panels, trackLinks, reload, openEditingCheck };
+  // The chapter a panel or dialog from the row menu is open for: its row stays drawn in a windowed list so focus has a row to return to (#3416).
+  const openChapterId =
+    checkingId ??
+    (open?.kind === 'track' ? open.chapterId : open?.kind === 'editing' ? open.chapter.id : open?.kind === 'credits' ? `credits-${open.credits}` : undefined);
+  return { panels, trackLinks, reload, openEditingCheck, openChapterId };
 }
