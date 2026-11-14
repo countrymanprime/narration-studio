@@ -137,6 +137,8 @@ const popGuard = {
   dirty: () => false,
   /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
   route: '',
+  /** The path alone, for a dialog that is not left by a Back that changes the page (a change of Settings category by the hash does not count). */
+  routePath: '',
   idx: 0,
   swallow: false,
   isOwnPop: (): boolean => false,
@@ -182,7 +184,7 @@ if (typeof window !== 'undefined') {
     }
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
-    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routeKey() !== popGuard.route;
+    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.routePath;
     const settled = !modalHolds && popGuard.askLeave !== null && settleFocusedField();
     const settingsHolds = !settled && popGuard.dirty() && routeKey() !== popGuard.route;
     // A field just taken off the focus may be about to report an edit: the exit is decided again once it has (the same Back, asked of the shell).
@@ -935,7 +937,11 @@ function AppRoutes() {
   }, [setShell]);
   useEffect(() => {
     popGuard.idx = historyIdx();
+  }, [location.key]);
+  // The entries a fragment typed by hand makes all share the router's key `default`, so the route the pop guard compares against follows the hash too.
+  useEffect(() => {
     popGuard.route = routeKey();
+    popGuard.routePath = routePath();
     popGuard.href = window.location.pathname + window.location.search + window.location.hash;
   }, [location.key, location.hash]);
 
