@@ -187,12 +187,13 @@ export function Dialog({
   // A dialog opened by a control inside another that closed (a jump menu result: "Show keyboard shortcuts") has the closing one's popup for its opener, which goes
   // with it: where the closed one was handing focus back is the place to return to, after what this dialog's own caller names (#3416).
   const closedBefore = useRef<(() => HTMLElement | null) | null>(null);
-  // This dialog's own hand-back place, one function for its whole life, so that a development double-run of the effects (mount, cleanup, mount) does not take it
-  // for the dialog that closed before (it would then ask itself where to go, for ever).
-  const placeWhenClosed = useRef<() => HTMLElement | null>(() => null);
+  // Read once, when the dialog first mounts: a development double run of the effects (mount, cleanup, mount) would otherwise find this dialog's own place, left by the
+  // cleanup, and ask itself where to go, for ever.
+  const readClosedBefore = useRef(false);
   useEffect(() => {
-    const before = recentDialogTarget();
-    closedBefore.current = !openedFromDialog || before === placeWhenClosed.current ? null : before;
+    if (readClosedBefore.current) return;
+    readClosedBefore.current = true;
+    closedBefore.current = openedFromDialog ? recentDialogTarget() : null;
   }, [openedFromDialog]);
   const namedPlace = (): HTMLElement | null => {
     const named = latest.current.returnFocus?.();
@@ -206,7 +207,7 @@ export function Dialog({
     }
     return before?.isConnected && before.tagName !== 'MAIN' ? before : null;
   };
-  placeWhenClosed.current = () => {
+  const placeWhenClosed = (): HTMLElement | null => {
     if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
     try {
       return namedPlace();
@@ -214,12 +215,14 @@ export function Dialog({
       return null;
     }
   };
+  const placeRef = useRef(placeWhenClosed);
+  placeRef.current = placeWhenClosed;
   // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
   // where this dialog would have (dialogClosed.ts).
   useEffect(
     () => () => {
       markDialogClosed();
-      rememberClosedTarget(placeWhenClosed.current);
+      rememberClosedTarget(() => placeRef.current());
     },
     [opener],
   );
