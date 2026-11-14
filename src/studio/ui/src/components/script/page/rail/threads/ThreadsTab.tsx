@@ -25,6 +25,8 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
   const commands = useScriptCommands();
   const journal = useJournal();
   const [selectedId, update] = useScriptView((state) => state.sel);
+  const editRequests = useRef(0);
+  const deletingMessage = useRef(false);
   const [editing] = useScriptView((state) => state.aedit);
   // Editing another message replaces the editor that holds a typed edit, so it asks first (#3404).
   const guarded = useGuardedAction();
@@ -74,28 +76,23 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
       onReply: async (id, who, text) => (await commands.reply(id, who, text)) !== null,
       onResolve: (id, who, text) => commands.resolve(id, who, text),
       onReopen: (id) => commands.setStatus(id, 'open'),
-      onEdit: (id, index) => guarded(() => update({ aedit: `${id}:${index}` })),
+      onEdit: (id, index) => guarded(() => update({ aedit: `${id}:${index}:${++editRequests.current}` })),
       onCancelEdit: () => update({ aedit: null }),
       async onSaveEdit(id, index, text) {
         const saved = await commands.editMessage(id, index, text);
         if (saved) update({ aedit: null });
         return saved;
       },
+      // The editor of a message below the one deleted would sit on the next message with its typed text and Save onto it, so a delete above an edit being typed asks
+      // first. The open edit is held by its message in the card, which follows it through the delete and its Undo (#3400, #3458).
       onDeleteMessage: (id, index) =>
-        // The editor of a message below the one deleted would sit on the next message with its typed text and Save onto it, so a delete above an edit being typed
-        // asks first, and the open edit moves up with its message (or closes when it is the one deleted) (#3400, qa-breaker on #3458).
         guarded(() => {
-          void (async () => {
-            const deleted = await commands.deleteMessage(id, index);
-            if (!deleted || index < 0) return;
-            update((state) => {
-              const at = state.aedit?.lastIndexOf(':') ?? -1;
-              if (!state.aedit || at < 0 || state.aedit.slice(0, at) !== id) return {};
-              const editIndex = Number(state.aedit.slice(at + 1));
-              if (editIndex === index) return { aedit: null };
-              return editIndex > index ? { aedit: `${id}:${editIndex - 1}` } : {};
-            });
-          })();
+          // Two deletes in a row would name the second message by where it stood before the first one moved it.
+          if (deletingMessage.current) return;
+          deletingMessage.current = true;
+          void commands.deleteMessage(id, index).finally(() => {
+            deletingMessage.current = false;
+          });
         }),
     }),
     [commands, journal, update, onShowInText, shownChapter, lineOf, guarded],
@@ -111,5 +108,12 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
       </div>
     );
   }
-  return <ThreadsPanel marks={shown} types={marks.types} selectedId={selectedId} editing={editing} lineOf={lineOf} actions={actions} />;
+  const panel = <ThreadsPanel marks={shown} types={marks.types} selectedId={selectedId} editing={editing} lineOf={lineOf} actions={actions} />;
+  // The list is held on another chapter than the one in view for as long as the typed text is: said on the list itself, not only in a toast that goes (#3458, round 3).
+  return (
+    <div className="flex flex-col gap-2">
+      {shownChapter !== chapterId && <p className="m-0 text-[0.8rem] text-[var(--text-muted)]">Showing the chapter you are typing in.</p>}
+      {panel}
+    </div>
+  );
 }

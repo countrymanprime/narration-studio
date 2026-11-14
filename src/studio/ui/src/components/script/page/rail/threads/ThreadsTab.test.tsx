@@ -214,9 +214,11 @@ describe('a typed reply survives what happens to its note', () => {
     await user.type(await screen.findByRole('textbox', { name: 'Add to this note' }), 'kept across chapters');
     rerenderWith({ chapterId: 'chapter-2' });
     expect((card(note.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('kept across chapters');
+    expect(screen.getByText('Showing the chapter you are typing in.')).toBeTruthy();
     act(() => void registry.discard());
     rerenderWith({ chapterId: 'chapter-2' });
     await waitFor(() => expect(document.querySelector(`[data-mark="${note.id}"]`)).toBeNull());
+    expect(screen.queryByText('Showing the chapter you are typing in.')).toBeNull();
   });
 });
 
@@ -257,12 +259,12 @@ describe('deleting while typing in the same card', () => {
     expect(answers).toHaveLength(1);
     expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3);
     expect((card(asked.id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement).value).toBe('EDITED reply two');
-    // Discard & continue: the message goes and the editor moves with its own message, whose text is the saved one; a Save then writes onto that message.
+    // Discard & continue: the message goes and the editor stays on its own message with the text typed in it; a Save writes onto that message and no other.
     await act(async () => answers[0]!());
     await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
     await user.click(card(asked.id).getByRole('button', { name: 'Save' }));
     await waitFor(async () =>
-      expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['reply two', 'reply three']),
+      expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['EDITED reply two', 'reply three']),
     );
   });
 });
@@ -514,5 +516,84 @@ describe('show-in-text-asks-the-reader-to-scroll', () => {
     setView({ sel: null });
     await waitFor(() => expect(found.getAttribute('aria-current')).toBeNull());
     expect(view.sel).toBeNull();
+  });
+});
+
+describe('the open edit follows its message, not its index (#3458, qa-breaker round 3)', () => {
+  async function thread(count: number) {
+    const [first] = await api.manuscriptParagraphs('chapter-1');
+    const asked = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'ask', 'Opening question?');
+    for (let n = 1; n <= count; n++) await api.marksReply(asked.id, 'author', `r${n}`);
+    return asked;
+  }
+  const editorOf = (id: string) => card(id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement;
+
+  it('a clean editor keeps what is typed in it when a slow delete of an earlier message lands', async () => {
+    const asked = await thread(4);
+    const real = api.marksDeleteMessage.bind(api);
+    let release: () => void = () => {};
+    vi.spyOn(api, 'marksDeleteMessage').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real(...args);
+    });
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    // [opening, r1, r2, r3, r4]: edit r2, delete r1.
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[2]!);
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    await user.type(editorOf(asked.id), ' TYPED');
+    await act(async () => release());
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3));
+    expect(editorOf(asked.id).value).toBe('r2 TYPED');
+    await user.click(card(asked.id).getByRole('button', { name: 'Save' }));
+    await waitFor(async () =>
+      expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['r2 TYPED', 'r3', 'r4']),
+    );
+  });
+
+  it('Undo of a message delete keeps the editor on its message with its typed text', async () => {
+    const asked = await thread(3);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[3]!);
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    await user.type(editorOf(asked.id), ' TYPED');
+    const undo = toastUndo.mock.calls.at(-1)![1] as () => Promise<unknown>;
+    await act(async () => void (await undo()));
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3));
+    expect(editorOf(asked.id).value).toBe('r3 TYPED');
+  });
+
+  it('a clean editor stays on its message when an earlier one is deleted and when it is restored', async () => {
+    const asked = await thread(3);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[2]!);
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    expect(editorOf(asked.id).value).toBe('r2');
+    const undo = toastUndo.mock.calls.at(-1)![1] as () => Promise<unknown>;
+    await act(async () => void (await undo()));
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3));
+    expect(editorOf(asked.id).value).toBe('r2');
+  });
+
+  it('a reply is on its way: the Type stays and a sentence says why', async () => {
+    const { note } = await seed();
+    let release: () => void = () => {};
+    const real = api.marksReply.bind(api);
+    vi.spyOn(api, 'marksReply').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real(...args);
+    });
+    const replaced = vi.spyOn(api, 'marksRemove');
+    const { user } = mount();
+    await user.type(await screen.findByRole('textbox', { name: 'Add to this note' }), 'sending');
+    await user.click(card(note.id).getByRole('button', { name: 'Reply' }));
+    await user.selectOptions(card(note.id).getByRole('combobox', { name: 'Type' }), 'ask');
+    expect(replaced).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith('Wait until your reply is added to change the type.');
+    await act(async () => release());
   });
 });

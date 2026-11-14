@@ -18,7 +18,7 @@ export function ThreadsPanel({
   marks: readonly Mark[];
   types: readonly MarkType[];
   selectedId: string | null;
-  /** "markId:messageIndex" of the message being edited. */
+  /** "markId:messageIndex:n" of the request to edit a message (n is new for each request). */
   editing: string | null;
   lineOf: (mark: Mark) => string;
   actions: NoteActions;
@@ -33,7 +33,7 @@ export function ThreadsPanel({
       ) : (
         list.map((mark) => {
           const own = [...idsOf(mark)].find((id) => editing?.startsWith(`${id}:`));
-          const at = own !== undefined && editing ? Number(editing.slice(own.length + 1)) : null;
+          const at = own !== undefined && editing ? editing.slice(own.length + 1) : null;
           return (
             <NoteCard
               key={keyOf(mark)}

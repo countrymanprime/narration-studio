@@ -59,8 +59,9 @@ export function NoteCard({
   line: string;
   /** The mark the reader selected. */
   active: boolean;
-  /** The index of the message being edited (-1 is the opening message), or null. */
-  editing: number | null;
+  /** The narrator's request to edit one of this card's messages, "<index>:<n>" (-1 is the opening message; n is new for each request), or null. The index is where the message
+   * stood when it was asked for: the card holds the open editor by the message's own key and ignores the index after that (#3458, round 3). */
+  editing: string | null;
   actions: NoteActions;
 }) {
   const [reply, setReply] = useState('');
@@ -79,24 +80,41 @@ export function NoteCard({
     sameMessage.set(identity, nth + 1);
     messageKey.set(message.index, `${identity}#${nth}`);
   }
-  // The message being edited is followed by what it is, not by its index: a delete above it moves its index while the request is still in flight, and an editor that is
-  // re-pointed at that moment would be rebuilt with the text typed in it gone. A new index that names another message is the narrator choosing one (#3458, N7).
+  // The message being edited is held by its key, not by its index: a delete above it, its Undo or a new message before it moves the index, and an editor re-pointed at
+  // that moment would be rebuilt with the text typed in it gone. The index in `editing` is read once per request, when the narrator asks to edit (#3458, round 3).
   const editedKey = useRef<string | null>(null);
-  if (editing === null) editedKey.current = null;
-  else {
-    const atIndex = messageKey.get(editing);
-    if (atIndex !== undefined && atIndex !== editedKey.current) editedKey.current = atIndex;
+  const lastRequest = useRef<string | null>(null);
+  if (editing === null) {
+    editedKey.current = null;
+    lastRequest.current = null;
+  } else if (editing !== lastRequest.current) {
+    lastRequest.current = editing;
+    editedKey.current = messageKey.get(Number(editing.slice(0, editing.indexOf(':')))) ?? null;
   }
   const isEdited = (message: { index: number }) => editedKey.current !== null && messageKey.get(message.index) === editedKey.current;
+  // The edited message is gone (deleted, or Undo not yet back): the editor closes, and the page is told so it holds no edit.
+  const editedGone = editedKey.current !== null && ![...messageKey.values()].includes(editedKey.current);
+  const { onCancelEdit } = actions;
+  useEffect(() => {
+    if (editedGone) onCancelEdit();
+  }, [editedGone, onCancelEdit]);
   const quote = mark.quote.trim();
 
   useEffect(() => {
     if (active) ref.current?.scrollIntoView?.({ block: 'nearest' });
   }, [active]);
 
+  // A reply goes to the note's id, and changing the Type gives the note a new one: while a reply is on its way the Type stays (#3458, round 3).
+  const sending = useRef(false);
   const send = async (act: NoteActions['onReply']) => {
     const text = reply;
-    const sent = await act(mark.id, who, text.trim());
+    sending.current = true;
+    let sent: boolean;
+    try {
+      sent = await act(mark.id, who, text.trim());
+    } finally {
+      sending.current = false;
+    }
     // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400).
     // Only what was sent goes: text typed while the save was in flight stays, without the part already sent (a reply is not sent twice) (#3400).
     if (sent) setReply((now) => withoutSent(now, text));
@@ -154,7 +172,13 @@ export function NoteCard({
           label="Type"
           className="min-w-0 flex-1"
           value={mark.type}
-          onChange={(value) => void actions.onType(mark.id, value)}
+          onChange={(value) => {
+            if (sending.current) {
+              overlay.toast('Wait until your reply is added to change the type.');
+              return;
+            }
+            void actions.onType(mark.id, value);
+          }}
           options={types.map((row) => ({ value: row.key, label: row.name }))}
         />
         {asks && <StatusBadge tone={resolved ? 'success' : 'warning'} label={resolved ? 'Resolved' : 'Open'} />}
