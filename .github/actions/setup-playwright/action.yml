@@ -29,20 +29,18 @@ runs:
     # half-unpacked) for up to 9 min, then a clear error.
     - shell: bash
       run: |
-        printf 'Acquire::Retries "1";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
+        # Keep the packages apt downloads (the runner image may clear them), so they can be cached below.
+        printf 'Acquire::Retries "1";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\nBinary::apt::APT::Keep-Downloaded-Packages "true";\nAPT::Keep-Downloaded-Packages "true";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
         debs="$HOME/.cache/playwright-debs"
-        browsers() { timeout 300 pnpm --dir src/studio/ui exec playwright install chromium; }
+        # Playwright's own check (`apt-get install -s`, no network): this exact line when every library it wants is installed, else "Missing system dependencies".
+        all_installed() { pnpm --dir src/studio/ui exec playwright install-deps --dry-run chromium 2>&1 | tee /dev/stderr | grep -qx 'All system dependencies are installed.'; }
         from_cache() {
           ls "$debs"/*.deb > /dev/null 2>&1 || return 1
-          # The packages Playwright wants on this image, from its own dry run (no network).
-          pkgs=$(pnpm --dir src/studio/ui exec playwright install-deps --dry-run chromium 2>/dev/null | grep -o 'apt-get install[^"]*' | head -1 | tr ' ' '\n' | grep -v -e '^apt-get$' -e '^install$' -e '^-' -e '^$' | tr '\n' ' ')
-          if [ -z "$pkgs" ]; then
-            # Nothing to install: every library is already on the image.
-            browsers
-            return
-          fi
-          sudo cp "$debs"/*.deb /var/cache/apt/archives/ || return 1
-          sudo apt-get install -y --no-download --no-install-recommends $pkgs && browsers
+          # The files themselves, not apt's index: no package lists and no version match are needed, and nothing is downloaded.
+          sudo dpkg -i --skip-same-version "$debs"/*.deb || { sudo dpkg --configure -a || true; return 1; }
+          # Installed means installed: only Playwright's own verdict counts, so a partial or stale set takes the network path.
+          all_installed || return 1
+          timeout 300 pnpm --dir src/studio/ui exec playwright install chromium
         }
         if from_cache; then
           echo "playwright libraries installed from the cached .deb files"
@@ -54,9 +52,10 @@ runs:
         while [ "$SECONDS" -lt "$deadline" ]; do
           attempt=$((attempt + 1))
           if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 300 pnpm --dir src/studio/ui exec playwright install --with-deps chromium; then
-            # Keep the downloaded packages for the next run (only when none are kept yet for this key).
-            if ! ls "$debs"/*.deb > /dev/null 2>&1; then
-              mkdir -p "$debs" && cp /var/cache/apt/archives/*.deb "$debs"/ 2>/dev/null || true
+            # Keep the downloaded packages for the next run: only when there are some, and none are kept yet for this key.
+            if ! ls "$debs"/*.deb > /dev/null 2>&1 && ls /var/cache/apt/archives/*.deb > /dev/null 2>&1; then
+              mkdir -p "$debs" && cp /var/cache/apt/archives/*.deb "$debs"/ || true
+              echo "::notice::kept $(ls "$debs"/*.deb 2>/dev/null | wc -l) packages for the next run"
             fi
             exit 0
           fi
