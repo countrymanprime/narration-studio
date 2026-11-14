@@ -1735,7 +1735,9 @@ describe('App Back and Forward', () => {
       // D4: a draft with no save beside Settings' own edit: no Save, and the sentence names both.
       let close = openProbe(<NoSaveHolder />);
       fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
-      expect(await screen.findByText('Discard settings edits and a relationship before leaving?')).toBeTruthy();
+      expect(
+        await screen.findByText('Save is off: A relationship you started cannot be saved from here. Discard settings edits and a relationship before leaving?'),
+      ).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(within(question).queryByRole('button', { name: 'Save & continue' })).toBeNull();
       fireEvent.click(within(question).getByRole('button', { name: 'Keep editing' }));
@@ -2012,7 +2014,7 @@ describe('App Back and Forward', () => {
       expect(await screen.findByText('Save or discard your reply before leaving?')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Save & continue' })).toBeTruthy();
       act(() => hold());
-      expect(await screen.findByText('Discard your reply and a note you started before leaving?')).toBeTruthy();
+      expect(await screen.findByText(/Discard your reply and a note you started before leaving\?$/)).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Save & continue' })).toBeNull();
       fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Unsaved changes' })).toBeNull());

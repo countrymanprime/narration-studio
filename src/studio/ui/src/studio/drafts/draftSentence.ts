@@ -5,7 +5,14 @@ import { plural } from '../../plural';
  * ("your note edit"), and `many` for how a run of the same `kind` reads ("3 replies you are writing"). Holders of one `kind` merge into one phrase;
  * without a `kind`, identical labels do.
  */
-export type DraftLabel = { label: string; brief?: string; kind?: string; many?: (count: number) => string };
+export type DraftLabel = {
+  label: string;
+  brief?: string;
+  kind?: string;
+  many?: (count: number) => string;
+  /** For a draft that cannot be saved from where it is: what has to happen first, in words the narrator uses ("an entry chosen under To"). The question says it beside the missing Save. */
+  needs?: string;
+};
 
 /**
  * Settings' own edited fields, named in the question only when a draft that cannot be saved is held beside them (#3446 D4): then the question is Discard-only and has
@@ -23,6 +30,8 @@ export type HeldDraft = DraftLabel & { saveable: boolean };
 const ROOM = 38;
 const MAX_ITEMS = 3;
 const MAX_NAME = 20;
+/** The longest name the explanation of a missing Save quotes; a longer one is said with its brief. */
+const STUCK_NAME = 30;
 
 const graphemes = (text: string): string[] =>
   typeof Intl !== 'undefined' && 'Segmenter' in Intl
@@ -74,7 +83,14 @@ export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { b
   const end = leaving ? 'leaving' : 'going on';
   // Save & continue saves all or nothing: saving an editor can close it, and with it a draft beside it that cannot be saved (an entry's Save leaves edit mode and
   // takes a half-filled relationship row along). So one draft that cannot be saved takes Save away; the narrator keeps editing, or discards.
-  if (held.some((draft) => !draft.saveable)) return { body: `Discard ${describeHeld(held)} before ${end}?`, canSave: false };
+  const stuck = held.filter((draft) => !draft.saveable);
+  if (stuck.length > 0) {
+    // Save is gone, and the narrator is told why in one short sentence that names the thing, and what brings Save back (#3457, ux-reviewer).
+    const first = stuck.find((draft) => draft.needs) ?? stuck[0]!;
+    const name = length(first.label) <= STUCK_NAME ? first.label : (first.brief ?? first.label);
+    const why = first.needs ? `Save is off: ${capital(name)} still needs ${first.needs}.` : `Save is off: ${capital(name)} cannot be saved from here.`;
+    return { body: `${why} Discard ${describeHeld(held)} before ${end}?`, canSave: false };
+  }
   return { body: `Save or discard ${describeHeld(held)} before ${end}?`, canSave: true };
 }
 
