@@ -186,7 +186,7 @@ Rules the mechanism keeps:
 
 `studio/drafts/draftHolders.guard.test.ts` keeps the class closed: a component that draws a text box must register or be listed in `EXEMPT` with the reason leaving it loses nothing, a router `navigate` that leaves a page must be `useGuardedNavigate` or listed, a router `<Link>` must be a `GuardedLink` or listed in `LINK_EXEMPT`, and every registered holder lists the controls that replace it, each of which must ask. Editors that are not registered yet are listed in `PENDING` under the screen whose change registers them; the entry is deleted in that change.
 
-Tests: `studio/drafts/unsavedDrafts.test.tsx`, `studio/drafts/draftSentence.test.ts`, `studio/drafts/draftHolders.guard.test.ts`, `App.test.tsx` (Save & continue over a slow, failing and silent save), `tests/visual/unsaved-drafts.spec.ts`.
+Tests: `studio/drafts/unsavedDrafts.test.tsx`, `studio/drafts/draftSentence.test.ts`, `studio/drafts/draftHolders.guard.test.ts`, `App.test.tsx` (Save & continue over a slow, failing and silent save), `App.exits.test.tsx` (every exit against a probe holder), `tests/visual/unsaved-drafts.spec.ts`.
 
 ## Rail and layout bands
 
