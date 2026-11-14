@@ -143,9 +143,8 @@ const popGuard = {
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
-  /** The address the router is showing, to put back over an entry the router never numbered. */
-  href: '',
-  askPath: null as ((path: string) => void) | null,
+  /** `history.length` as of the last move or pop: a longer one on a pop that lands on an entry nobody numbered means a fragment was typed, which is a push. */
+  length: 0,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -176,12 +175,20 @@ const notSaved = (error: unknown): string => {
 };
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
+  popGuard.length = window.history.length;
   window.addEventListener('popstate', (event) => {
     if (popGuard.swallow) {
       popGuard.swallow = false;
       event.stopImmediatePropagation();
       return;
     }
+    // A fragment typed or followed by hand pushes an entry the router never numbered, and `popstate` is how it arrives. Left alone it would count as entry 0 and
+    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3456).
+    const state = window.history.state as { idx?: number } | null;
+    if (state?.idx === undefined && window.history.length > popGuard.length) {
+      window.history.replaceState({ ...state, idx: popGuard.idx + 1 }, '');
+    }
+    popGuard.length = window.history.length;
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
     const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.routePath;
@@ -196,18 +203,6 @@ if (typeof window !== 'undefined') {
         : settled
           ? (direction: 1 | -1) => void setTimeout(() => popGuard.askLeave?.(direction), SETTLE_MS)
           : popGuard.askLeave;
-    // An entry the router never numbered (a fragment typed or followed by hand) has no place to go back to, so its direction is unknown: the address is put back as it
-    // was and the move is asked as a move to that address (#3456).
-    const unnumbered = (window.history.state as { idx?: number } | null)?.idx === undefined;
-    if ((settingsHolds || settled) && routeKey() !== popGuard.route && unnumbered && popGuard.askPath && !popGuard.isOwnPop()) {
-      event.stopImmediatePropagation();
-      const target = window.location.pathname + window.location.hash;
-      window.history.replaceState({ ...(window.history.state as object | null), idx: popGuard.idx }, '', popGuard.href);
-      // A field taken off the focus may be about to report an edit, so the question is decided once it has.
-      if (settled) setTimeout(() => popGuard.askPath?.(target), SETTLE_MS);
-      else popGuard.askPath(target);
-      return;
-    }
     if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
       popGuard.idx = next;
       return;
@@ -852,13 +847,11 @@ function AppRoutes() {
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
-    popGuard.askPath = (path) => guardedNavigateRef.current(path);
     popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
     popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
     return () => {
       popGuard.ask = null;
-      popGuard.askPath = null;
       popGuard.askLeave = null;
       popGuard.leaveHeld = () => false;
       popGuard.dirty = () => false;
@@ -944,7 +937,7 @@ function AppRoutes() {
   useEffect(() => {
     popGuard.route = routeKey();
     popGuard.routePath = routePath();
-    popGuard.href = window.location.pathname + window.location.search + window.location.hash;
+    popGuard.length = window.history.length;
   }, [location.key, location.hash]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
