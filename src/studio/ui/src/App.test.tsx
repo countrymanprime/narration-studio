@@ -1788,7 +1788,8 @@ describe('App Back and Forward', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
         // Cancel keeps the template and does not take the typed letters back (#3456): the box shows what was typed, the results still show the template.
-        expect(search.value).toBe(next);
+        // A cleared box is not kept: Cancel puts the applied text back, so the box and the results agree.
+        expect(search.value).toBe(next === '' ? 'credits' : next);
         expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
       }
       // Discard & continue is what drops the template, and applies the search.
