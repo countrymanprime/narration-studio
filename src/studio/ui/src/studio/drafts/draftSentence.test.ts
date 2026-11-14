@@ -6,6 +6,8 @@ const held = (label: string, over: Partial<HeldDraft> = {}): HeldDraft => ({ lab
 
 /** The most characters the whole question may have: it measured two lines of body beside the buttons at 320 x 300 (unsaved-drafts.spec.ts checks it in the browser). */
 const WHOLE_SENTENCE = 72;
+/** With Save gone the question also says why, in one more sentence: the body scrolls inside the dialog, and the buttons stay in the window (unsaved-drafts-storybible.spec.ts checks it). */
+const WHOLE_SENTENCE_NO_SAVE = 190;
 
 describe('the sentence that names what is held (#3400)', () => {
   it('names one, two and three drafts', () => {
@@ -54,14 +56,20 @@ describe('the question put to the narrator (#3404)', () => {
 
   it('offers only Discard, and no word about saving, when nothing held can be saved', () => {
     const row = held('a relationship you started', { saveable: false });
-    expect(draftQuestion([row], true)).toEqual({ body: 'Discard a relationship you started before leaving?', canSave: false });
+    expect(draftQuestion([row], true)).toEqual({
+      body: 'Save is off: A relationship you started cannot be saved from here. Discard a relationship you started before leaving?',
+      canSave: false,
+    });
   });
 
   it('takes Save away when any draft cannot be saved: Save & continue saves all or nothing (#3400 D1)', () => {
-    const row = held('a relationship you started', { brief: 'a relationship', saveable: false });
+    const row = held('a relationship you started', { brief: 'a relationship', saveable: false, needs: 'an entry chosen under To' });
     const { body, canSave } = draftQuestion([entry('Alice'), row], true);
     expect(canSave).toBe(false);
-    expect(body).toBe('Discard your entry edit and a relationship before leaving?');
+    // Why Save is gone, what brings it back, and what is dropped, in that order (ux-reviewer on #3457).
+    expect(body).toBe(
+      'Save is off: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
+    );
   });
 
   it('never grows past what the dialog shows at 320 x 300, whatever the names and however many', () => {
@@ -83,8 +91,8 @@ describe('the question put to the narrator (#3404)', () => {
             drafts.map((draft) => ({ ...draft, saveable: false })),
             drafts.map((draft, i) => ({ ...draft, saveable: i % 2 === 0 })),
           ]) {
-            const { body } = draftQuestion(subset, leaving);
-            expect([...body].length, body).toBeLessThanOrEqual(WHOLE_SENTENCE);
+            const { body, canSave } = draftQuestion(subset, leaving);
+            expect([...body].length, body).toBeLessThanOrEqual(canSave ? WHOLE_SENTENCE : WHOLE_SENTENCE_NO_SAVE);
           }
         }
       }
@@ -151,11 +159,15 @@ describe('wording the breaker found (#3446, #3457)', () => {
   it('an entry edit beside a suggestion edit still names both, not "2 unsaved changes"', () => {
     const suggestion = held('your edit of the alias suggestion', { brief: 'a suggestion edit', saveable: false });
     const entryEdit = held('your changes to Alice', { brief: 'your entry edit' });
-    expect(draftQuestion([entryEdit, suggestion], true).body).toBe('Discard your entry edit and a suggestion edit before leaving?');
+    expect(draftQuestion([entryEdit, suggestion], true).body).toBe(
+      'Save is off: A suggestion edit cannot be saved from here. Discard your entry edit and a suggestion edit before leaving?',
+    );
   });
 
   it('several half-filled relationship rows read in the plural', () => {
     const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
-    expect(draftQuestion([rows], true).body).toBe('Discard 3 relationships you started before leaving?');
+    expect(draftQuestion([rows], true).body).toBe(
+      'Save is off: 3 relationships you started cannot be saved from here. Discard 3 relationships you started before leaving?',
+    );
   });
 });
