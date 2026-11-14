@@ -207,6 +207,68 @@ describe('CreditsPanel', () => {
     }
   });
 
+  it('an edit saved by the automatic second save is clean even when its list read fails (#3461 F, the browser sequence)', async () => {
+    const { api } = renderPanel();
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    const realList = api.creditsTemplates.bind(api);
+    const lists: Array<{ ok: () => void; fail: () => void }> = [];
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          lists.push({ ok: () => void realList().then(resolve), fail: () => reject(new Error('list failed')) });
+        }),
+    );
+    // save#1 answers at once; its list read (list#1) is still out when the narrator types.
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(lists).toHaveLength(1));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'First part. MORE' } });
+    // list#1 comes back: the editor is reset against it, and the automatic second save starts and answers at once.
+    lists[0]!.ok();
+    await waitFor(() => expect(lists).toHaveLength(2));
+    // list#2 fails.
+    lists[1]!.fail();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(screen.getByRole('button', { name: 'Save template' })).toHaveProperty('disabled', true);
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it('a New template whose save answers after the limit takes its id, so Save again does not create a second one (#3461 G2)', async () => {
+    const { api } = renderPanel();
+    const real = api.saveCreditsTemplate.bind(api);
+    let answer: () => void = () => {};
+    const save = vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(
+      (...args) =>
+        new Promise((resolve) => {
+          answer = () => void real(...args).then(resolve);
+        }),
+    );
+    await editTemplate();
+    const before = (await api.creditsTemplates()).length;
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Brand new.' } });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+      await act(async () => {});
+      await act(async () => void vi.advanceTimersByTime(15_001));
+    } finally {
+      vi.useRealTimers();
+    }
+    answer();
+    await waitFor(async () => expect((await api.creditsTemplates()).length).toBe(before + 1));
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).not.toBe(''));
+    expect(save).toHaveBeenCalledTimes(1);
+    // Saving again writes to that template and does not add another.
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Brand new, changed.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    answer();
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls[1]![0]).not.toBe('');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((await api.creditsTemplates()).length).toBe(before + 1);
+  });
+
   it('a pick between the save landing and the list being read again still asks (#3461 B2)', async () => {
     const { api } = renderPanel();
     const release = deferSave(api);

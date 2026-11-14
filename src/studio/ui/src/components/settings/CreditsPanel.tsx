@@ -106,6 +106,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // text typed on it while a save was in flight stays, as an edit still to save, and text typed on another template is never put back on this one (#3461).
   const baseline = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
   /** What the last save sent, for Save & continue to see that more was typed while it ran. */
+  const gaveUp = useRef(false);
   const lastSent = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -140,8 +141,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     const before = baseline.current;
     const typed = editorNow.current;
     baseline.current = { id: selected.id, name: selected.name, kind: selected.kind, body: selected.body };
+    if (lastSent.current && lastSent.current.id !== selected.id) lastSent.current = null;
     if (before && before.id === selected.id && (typed.name !== before.name || typed.kind !== before.kind || typed.body !== before.body)) {
-      setTemplateDirty(typed.name !== selected.name || typed.kind !== selected.kind || typed.body !== selected.body);
+      // Against what the last save wrote, which a list read that is late or failed has not brought into `selected`: an edit the automatic second save wrote is clean (#3461 F).
+      const saved = lastSent.current?.id === selected.id ? lastSent.current : selected;
+      setTemplateDirty(typed.name !== saved.name || typed.kind !== saved.kind || typed.body !== saved.body);
       return;
     }
     setDraftName(selected.name);
@@ -181,7 +185,23 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     const sent = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
     try {
       // A save the host never answers gives the editor back at the limit: the picker and the buttons are free again and the text is still here (#3461 G).
-      const saved = await withinSaveLimit(api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody));
+      const call = api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
+      // A New template whose save answers after the limit has no id yet: when the answer lands and the editor is still on that draft it takes the id, so Save again does not
+      // create a second template (#3461 G2).
+      if (!selected)
+        void call
+          .then(async (late) => {
+            if (!gaveUp.current) return;
+            gaveUp.current = false;
+            await load();
+            if (editorNow.current.id === '') setSelectedId(late.id);
+          })
+          .catch(() => {});
+      const saved = await withinSaveLimit(call).catch((error) => {
+        gaveUp.current = true;
+        throw error;
+      });
+      gaveUp.current = false;
       notify('Credit template saved.');
       // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, with what they
       // typed there. Text typed on this template since the save started is not in what was saved: it stays in the editor as an edit still to save, and Save template or Save & continue then sends it in a second save of its own (a second \"saved\" notice) (#3461).
@@ -219,10 +239,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   };
   // The template editor holds a draft that waits for Save template (the project values below save as they are typed), so leaving the page asks (#3400).
   // A New template with nothing typed, or an edit put back as it was, holds nothing.
+  const savedText = selected && lastSent.current?.id === selected.id ? lastSent.current : selected;
   const draftHeld =
     templateDirty &&
-    (selected
-      ? draftName !== selected.name || draftKind !== selected.kind || draftBody !== selected.body
+    (savedText
+      ? draftName !== savedText.name || draftKind !== savedText.kind || draftBody !== savedText.body
       : draftBody !== '' || (draftName !== NEW_TEMPLATE_NAME && draftName !== ''));
   useUnsavedDraft('credits-template', {
     dirty: draftHeld,
