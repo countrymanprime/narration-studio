@@ -214,6 +214,14 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
     : `Created the track “${result.track.name}” and linked ${short} to it. Save the project to keep it.`;
 }
 
+/** Which control a pressed Cancel or Clear hands focus to, per chapter: the row can be drawn anew when its link changes, so the note is not the row's own (#3376). */
+const handBack = new Map<string, 'change' | 'create'>();
+/** Asked while the press is happening; the note stands for a moment, since the replacement can be drawn a render or two later, then goes. */
+function askHandBack(chapterId: string, to: 'change' | 'create') {
+  handBack.set(chapterId, to);
+  window.setTimeout(() => handBack.delete(chapterId), 1500);
+}
+
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
 // The select opens on "Choose a track" and the check waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
 // the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
@@ -288,6 +296,22 @@ function ChapterLinkRow({
   const shownName = trackName(row.trackName ?? '', linkedTrack ? tracks.indexOf(linkedTrack) : undefined);
   const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(shownName, folderChildren(tracks, linkedTrack.guid).length) : shownName;
   const short = chapterName(row.chapter, 'short');
+  // The button that was pressed leaves the page and another takes its place (Cancel -> Change, Clear -> Create): focus goes to the one that
+  // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button.
+  const actionsRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const want = handBack.get(row.chapter.id);
+    if (!want) return;
+    const label = want === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
+    const target = Array.from(actionsRef.current?.querySelectorAll<HTMLElement>('[aria-label]') ?? []).find(
+      (element) => element.getAttribute('aria-label') === label,
+    );
+    if (!target) return;
+    const active = document.activeElement;
+    if (!active || active === document.body || !document.body.contains(active)) target.focus();
+    // No dependency list: the replacement can draw a render after the state that asked for it, and the flag keeps this a no-op until then.
+  });
+
   // The linked track, and the voices inside it when the link is a folder, each with items the app cannot play.
   const unplayable = linkedTrack
     ? [linkedTrack, ...folderChildren(tracks, linkedTrack.guid)].some((track) => track.items.some((item) => !item.supported || !item.sourceAvailable))
@@ -380,7 +404,7 @@ function ChapterLinkRow({
         )}
       </TableCell>
       <TableCell align="right">
-        <span className="flex items-center justify-end gap-2 whitespace-nowrap">
+        <span ref={actionsRef} className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
               <IconButton
@@ -422,6 +446,7 @@ function ChapterLinkRow({
                     if (settled()) {
                       setChosen(linkedGuidIfThere);
                       swappedAt.current = Date.now();
+                      askHandBack(row.chapter.id, 'change');
                       setPicking(false);
                     }
                   }}
@@ -448,7 +473,10 @@ function ChapterLinkRow({
                 pending={busy}
                 onClick={() => {
                   // A double click on Cancel lands its second press here: ignore it, a cleared link is not an undo.
-                  if (settled()) onClear();
+                  if (settled()) {
+                    askHandBack(row.chapter.id, 'create');
+                    onClear();
+                  }
                 }}
               />
             </>
