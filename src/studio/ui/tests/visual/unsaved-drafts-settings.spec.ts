@@ -228,3 +228,25 @@ test('a Back while the Search question is open, then Cancel, leaves the box empt
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(search).toHaveValue('');
 });
+
+// A page setting edited in its panel under "Set on a page" and not saved yet: another category or the search would unmount the panel and drop the edit (#3446 qa-breaker).
+test('switching Settings category or searching with an unsaved page-setting edit asks first', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: /Change it here for now/ }).click();
+  const box = entry.getByRole('region', { name: 'Recording check' }).getByRole('textbox', { name: 'Longest run of missing words allowed' });
+  await box.fill('7');
+  await page
+    .getByRole('navigation', { name: 'Settings categories' })
+    .getByRole('button', { name: /^Appearance/ })
+    .click();
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(box).toHaveValue('7');
+  await page.getByRole('textbox', { name: 'Search settings' }).fill('abc');
+  await expect(unsaved(page)).toBeVisible();
+  await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
+  await expect(box).toHaveValue('7');
+});
