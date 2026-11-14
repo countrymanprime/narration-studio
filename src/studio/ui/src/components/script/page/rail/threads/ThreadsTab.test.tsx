@@ -647,4 +647,26 @@ describe('the open edit follows its message, not its index (#3458, qa-breaker ro
       vi.useRealTimers();
     }
   });
+
+  it('Discard & continue over a message delete closes the edit being typed, and nothing is held after it (#3458 Y1)', async () => {
+    const asked = await thread(3);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    const answers: Array<() => void> = [];
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[3]!);
+    await user.type(editorOf(asked.id), ' DIRTY');
+    await user.type(card(asked.id).getByRole('textbox', { name: 'Reply or note' }), 'a reply');
+    act(() => registry.setShell({ ask: (run) => void answers.push(run), go: () => {} }));
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[2]!);
+    expect(answers).toHaveLength(1);
+    // What Discard & continue does: every held draft is dropped, then the move runs.
+    await act(async () => {
+      registry.discard();
+      answers[0]!();
+    });
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    expect(card(asked.id).queryByRole('textbox', { name: 'Edit message' })).toBeNull();
+    expect((card(asked.id).getByRole('textbox', { name: 'Reply or note' }) as HTMLTextAreaElement).value).toBe('');
+    expect(registry.heldNow()).toHaveLength(0);
+  });
 });

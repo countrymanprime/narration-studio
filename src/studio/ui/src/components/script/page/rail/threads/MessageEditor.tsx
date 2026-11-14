@@ -18,6 +18,8 @@ export function MessageEditor({
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [text, setText] = useState(initial);
+  // Discard & continue over an in-page change (deleting another message) drops the edit: the editor closes and holds nothing (#3458 Y1).
+  const [dropped, setDropped] = useState(false);
   const save = useSharedSave(async () => (await onSave(text.trim())) !== false);
   const dirty = text.trim() !== '' && text.trim() !== initial.trim();
   useEffect(() => {
@@ -31,9 +33,13 @@ export function MessageEditor({
     kind: 'script-note-edit',
     many: (n) => `${plural(n, 'edit')} of notes`,
     save,
-    // The page is leaving, and cancelling would rewrite the address under the move that is about to run.
-    discard: () => {},
+    // Closed here and not through `onCancel`: the page may be leaving, and cancelling would rewrite the address under the move that is about to run.
+    discard: () => {
+      setText(initial);
+      setDropped(true);
+    },
   });
+  if (dropped) return null;
   return (
     <div className="flex flex-col gap-1.5">
       <NoteTextarea aria-label="Edit message" autoFocus value={text} onChange={(event) => setText(event.target.value)} />
