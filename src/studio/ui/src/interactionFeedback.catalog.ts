@@ -83,6 +83,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The names of the characters the voice-sample dots are read for: a failed read leaves the names as they were, and a dot with no names is called "this character" and still plays. The dots are an extra on the page, and the Story Bible says what failed.',
   'src/components/voicesamples/samplePlayerStore.ts#1':
     "Another page's stop (Editing's playback, a take audition) threw while a sample was starting: the sample still starts, and that page's own audio is the thing that failed, not an action the narrator took.",
+  'src/components/settings/CreditsPanel.tsx#1':
+    "A New template's save that answered only after the limit: the narrator was already told at the limit that it did not finish, and if the late answer is a failure there is nothing more to take over (G2).",
   'src/components/settings/controls/AppearanceBodies.tsx#1':
     'The zoom read: a failure leaves the select at its last level, and the header zoom chip is the display of record.',
   'src/components/settings/controls/CreditsBody.tsx#1':
