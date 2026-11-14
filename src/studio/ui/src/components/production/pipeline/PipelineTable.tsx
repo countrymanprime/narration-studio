@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StageChapterRecommendation } from '../../../types';
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
@@ -140,16 +140,28 @@ type TableProps = {
   justChanged?: string | null;
   /** Its readiness panel offers the chapter's recording check when nothing has checked the recording yet. */
   offerCheck?: boolean;
+  /** The chapter a panel or dialog from the row menu is open for: its row stays drawn in a windowed list, so focus has a row to come back to. */
+  keepRowId?: string;
 };
 
 type BodyItem = { gap: number; key: string } | { row: PipelineRow; index: number };
 
 /** Every chapter and where it stands in each stage (the mock's PipelineTable). One format for every stage: a tick when done, the percent when under way, a dash when not started. */
-export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, offerCheck }: TableProps) {
+export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, offerCheck, keepRowId }: TableProps) {
   // A long book draws the rows in view and a margin (rowWindow.ts); the row with focus stays drawn so the keyboard keeps its place.
   const [focusedId, setFocusedId] = useState<string>();
   const focusedIndex = focusedId ? rows.findIndex((row) => row.id === focusedId) : -1;
-  const { ref, windowed, ranges } = useRowWindow(rows.length, focusedIndex);
+  // With focus in a panel or dialog no row has it; the row the panel was opened for stays drawn instead.
+  // It stays drawn after the panel closes until focus is back in the table, since the hand-back comes a tick after the close and finds its row.
+  const [lastKeptId, setLastKeptId] = useState<string>();
+  useEffect(() => {
+    if (keepRowId) setLastKeptId(keepRowId);
+    // Focus is back in the table, or the row is gone (a chapter removed from the recording): the row is no longer kept, and does not come back drawn later.
+    else if (focusedId || (lastKeptId && !rows.some((row) => row.id === lastKeptId))) setLastKeptId(undefined);
+  }, [keepRowId, focusedId, lastKeptId, rows]);
+  const keptId = keepRowId ?? lastKeptId;
+  const keptIndex = focusedIndex >= 0 ? focusedIndex : keptId ? rows.findIndex((row) => row.id === keptId) : -1;
+  const { ref, windowed, ranges } = useRowWindow(rows.length, keptIndex);
   const roving = useRovingCells(ref);
   // One flat list of rows and the spacers between them, so a row keeps its element (and its focus) as the window moves.
   const items: BodyItem[] = [];

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { recentDialogTarget } from './dialogClosed';
 
 // Where focus goes when a panel that stays mounted (a drawer, opened and closed through `open`) closes: the element that had
 // focus when it opened, or, when that element is gone (the click removed it, or the layout changed), into the page's <main>
@@ -6,16 +7,25 @@ import { useEffect, useRef } from 'react';
 // `Dialog` mounts fresh each time and captures its opener when it mounts, so it has its own copy of the same rule.
 export function useReturnFocusTarget(open: boolean, fallback?: () => HTMLElement | null): () => HTMLElement | boolean {
   const opener = useRef<HTMLElement | null>(null);
+  // The place a dialog that closed as this opened was handing focus back to: this panel's opener is a control inside that dialog, which goes with it.
+  const fromDialog = useRef<(() => HTMLElement | null) | null>(null);
   useEffect(() => {
     // Runs right after the panel opens, before the library moves focus into it (it does that a frame later).
-    if (open) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (open) {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      fromDialog.current = recentDialogTarget();
+    }
   }, [open]);
   return () => {
     const element = opener.current;
     if (element?.isConnected && element !== document.body) return element;
+    // What the caller names comes first: it knows the place this panel was opened for; the dialog that closed a moment ago may have been another one's.
     const elsewhere = fallback?.();
     if (elsewhere?.isConnected) return elsewhere;
-    return document.querySelector<HTMLElement>('main') ?? true;
+    const where = fromDialog.current?.();
+    if (where?.isConnected && where.tagName !== 'MAIN') return where;
+    // <main> is focusable but not tabbable, so handed to Base UI it would pick the header's first button (#2902): focus it ourselves.
+    return handFocusToPage();
   };
 }
 

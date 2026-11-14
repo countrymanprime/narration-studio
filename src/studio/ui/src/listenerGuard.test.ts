@@ -25,6 +25,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/voicesamples/samplePlayerStore.ts': {
     note: "Escape stops the voice sample that is playing, on whatever page plays it and only while one does, a key owned by that transient playback state like the tooltip's; a catalogue row would share Escape with every page's own Escape row and be shadowed by each of them",
   },
+  'src/App.tsx': {
+    note: "swallows an Enter or Space echoed onto the unsaved question's way to stay, in the capture phase, and notes the press that may have asked it (#3446): a guard on one dialog's button, not a command",
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 

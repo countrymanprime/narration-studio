@@ -1405,10 +1405,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 28 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 32 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
-// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 26 for a save that rejects after the limit and a wire error; 26 to 27 for the Script screen of #3400: a reply typed under a note held through the exits table.
-const MOUNT_BUDGET = 27;
+// 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 30 for a save that rejects after the limit, a wire error, the focus after pointer events, a slow second Enter, and two failure reasons; 30 to 31 for the Script screen of #3400: a reply typed under a note held through the exits table.
+const MOUNT_BUDGET = 31;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1829,6 +1829,108 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
       expect(await screen.findByText('Not saved: The app received data it could not read. What you typed is still here.')).toBeTruthy();
+      act(() => close());
+    });
+
+    it('the focus goes back into the question after each of the mouse events that follow a pointer press (#3446 B-1)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-focus', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Holder />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
+      // Past the question's own fixed timers, so only what a pointer press starts can put the focus back.
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      const inside = () => question.contains(document.activeElement);
+      (document.activeElement as HTMLElement | null)?.blur();
+      fireEvent.pointerUp(document.body);
+      await waitFor(() => expect(inside()).toBe(true));
+      // The compatibility mouse events of a tap drop the focus to <body> once more, with no focusin.
+      (document.activeElement as HTMLElement | null)?.blur();
+      expect(inside()).toBe(false);
+      fireEvent.mouseUp(document.body);
+      fireEvent.click(document.body);
+      await waitFor(() => expect(inside()).toBe(true));
+      fireEvent.click(within(question).getByRole('button', { name: 'Cancel' }));
+      act(() => close());
+    });
+
+    it('a second Enter 100 ms behind the one that asked is an echo even when the machine was too busy to run the first for over 300 ms (#3446 E7)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Holder = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-slow', { dirty: text !== '', label: 'your reply', save: async () => true, discard: () => setText('') });
+        return null;
+      };
+      const close = openProbe(<Holder />);
+      const asker = await screen.findByRole('button', { name: 'Go to Proof' });
+      const stamped = (type: string, target: Element, at: number) => {
+        const event = new KeyboardEvent(type, { key: 'Enter', bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'timeStamp', { value: at });
+        target.dispatchEvent(event);
+        return event;
+      };
+      stamped('keydown', asker, 1000);
+      fireEvent.click(asker);
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
+      // The machine was busy: more than the window passes before the second press is handled, but the presses were 100 ms apart.
+      const busyUntil = Date.now() + 400;
+      while (Date.now() < busyUntil) {
+        /* block the thread */
+      }
+      const stay = within(question).getByRole('button', { name: 'Cancel' });
+      expect(stamped('keydown', stay, 1100).defaultPrevented).toBe(true);
+      // A press well after the first is an answer.
+      expect(stamped('keydown', stay, 1500).defaultPrevented).toBe(false);
+      fireEvent.click(stay);
+      act(() => close());
+    });
+
+    it('keeps the kept sentence unless the reason is a verdict, and does not double a full stop (#3446 R-5)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Fails = ({ reason }: { reason: string }) => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-reason', { dirty: text !== '', label: 'your reply', save: () => Promise.reject(new Error(reason)), discard: () => setText('') });
+        return null;
+      };
+      for (const [reason, shown] of [
+        ['The file is still here but locked', 'Not saved: The file is still here but locked. What you typed is still here.'],
+        ['Disk full!', 'Not saved: Disk full! What you typed is still here.'],
+      ] as const) {
+        const close = openProbe(<Fails reason={reason} />);
+        fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+        expect(await screen.findByText(shown)).toBeTruthy();
+        fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+        act(() => close());
+      }
+    });
+
+    it('a long failure reason is cut, and the sentence after it is kept (#3446 R-6)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      const Fails = () => {
+        const [text, setText] = useState('typed');
+        useUnsavedDraft('probe-long', {
+          dirty: text !== '',
+          label: 'your reply',
+          save: () => Promise.reject(new Error('x'.repeat(400))),
+          discard: () => setText(''),
+        });
+        return null;
+      };
+      const close = openProbe(<Fails />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
+      const toast = await screen.findByText(/^Not saved: x+….*What you typed is still here\.$/);
+      expect(toast.textContent!.length).toBeLessThan(180);
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
       act(() => close());
     });
 
