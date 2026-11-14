@@ -9,14 +9,15 @@ import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
  * is the same figure the Pickups page (`/pickups`) shows, from the bridge's `pickupsCount`/`pickupsState`; that needs
  * REAPER running, so `available` false (the `pickups` DAW capability) reads a plain instruction instead of a stale
  * or wrong number. Always shown, like `ProofPickupNotes` above it, so the narrator can tell there is nothing to
- * chase rather than a missing line (RS8: its own label, a different pickup source from the check's own gaps).
+ * chase rather than a missing line (RS8: its own label, a different pickup source from the check's own gaps). `onNavigate` runs when
+ * the link is followed (a dialog that holds the report closes, so it is not left over the new page).
  */
-export function PickupListCount({ available, remaining }: { available: boolean; remaining?: number }) {
+export function PickupListCount({ available, remaining, onNavigate }: { available: boolean; remaining?: number; onNavigate?: () => void }) {
   return (
     <div className={PICKUP_SOURCE_ROW}>
       <span>Pickup list: {available ? `${remaining ?? 0} open (project-wide)` : 'open REAPER to count'}</span>
       {available && (
-        <Link to="/pickups" className={`flex-none font-semibold underline ${HIT_AREA}`}>
+        <Link to="/pickups" onClick={onNavigate} className={`flex-none font-semibold underline ${HIT_AREA}`}>
           Open pickups
         </Link>
       )}

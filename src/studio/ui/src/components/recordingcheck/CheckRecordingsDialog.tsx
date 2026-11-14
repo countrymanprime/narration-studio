@@ -351,6 +351,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
             // The credits have no paragraphs: a result's paragraph link opens their Script credits entry. Editing opens them like any chapter.
             goToParagraph={(index) => leave(credits ? scriptPath(shown.id) : scriptPath(shown.id, index))}
             openWorkspace={() => leave(addressPath({ page: 'editing', chapter: shown.id }))}
+            onNavigate={close}
             actions={
               <Button ref={keepFocusOnRemoval} disabled={blocked || blockedByDaw} onClick={() => begin([shown.id])}>
                 {checked ? 'Check again' : 'Check recording'}
