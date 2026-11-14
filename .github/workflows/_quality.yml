@@ -282,6 +282,9 @@ jobs:
           retention-days: 1
       - if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         uses: ./.github/actions/setup-playwright
+        with:
+          # Shard 1's setup-toolchain installs the GTK and WebKit libraries before this step; the cached packages must match what each shard had.
+          variant: ${{ matrix.shard == 1 && 'native' || 'plain' }}
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
       # hold every test exactly once. Shard 1 carries the quick tests (about 4 to 5 min on a pull request), and the reserve is in the
       # split's estimated seconds. Measured: a 300 s reserve left shard 1 at 19.8 min against 24.75 for the longest other (run
