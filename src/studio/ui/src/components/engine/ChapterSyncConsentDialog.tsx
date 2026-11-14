@@ -1,3 +1,4 @@
+import { trackName as readable } from '../tracks/trackName';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
@@ -65,8 +66,8 @@ export function ChapterSyncConsentDialog({
             ) : (
               <ul className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
                 {preview.autoLink.map((link) => (
-                  <li key={link.trackGuid} className="truncate" title={`${link.trackName} → ${link.chapterTitle}`}>
-                    {link.trackName} → {link.chapterTitle}
+                  <li key={link.trackGuid} className="truncate" title={`${readable(link.trackName)} → ${link.chapterTitle}`}>
+                    {readable(link.trackName)} → {link.chapterTitle}
                   </li>
                 ))}
               </ul>

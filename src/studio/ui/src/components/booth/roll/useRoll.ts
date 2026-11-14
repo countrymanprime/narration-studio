@@ -1,3 +1,4 @@
+import { trackName as readable } from '../../tracks/trackName';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
@@ -346,7 +347,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
         if (outdated(mine)) return;
         // The narrator is told which track is recorded over before the take starts, never only after.
-        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
+        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${readable(target.trackName)}` : ''}.`);
         return await actionsRef.current.beginTake(target.start);
       } finally {
         endWait(mine);

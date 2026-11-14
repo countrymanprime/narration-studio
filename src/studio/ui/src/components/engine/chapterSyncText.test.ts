@@ -215,3 +215,19 @@ describe('chapterSyncActivityRows', () => {
     expect(rows[0].text).toBe('Linked a track to Chapter 2');
   });
 });
+
+describe('a track whose name is blank (#3357)', () => {
+  it('reads as "Unnamed track" in the reason sentences, never as an empty quote', () => {
+    const base = { chapterId: 'c5', chapterTitle: 'Chapter 5' };
+    const tie: ChapterSyncNeedsYou = { ...base, reason: 'ambiguous', best: null, candidates: [candidate('g1', ' '), candidate('g2', 'Chapter 5 part 2')] };
+    expect(chapterSyncReasonText(tie)).toBe('“Unnamed track” and “Chapter 5 part 2” both look like it.');
+    const close: ChapterSyncNeedsYou = { ...base, reason: 'uncertain', best: candidate('g1', ''), candidates: [] };
+    expect(chapterSyncReasonText(close)).not.toContain('“”');
+    expect(chapterSyncReasonText(close)).toContain('“Unnamed track”');
+  });
+
+  it('names an unmatched blank track in the not-chapters line', () => {
+    const blank = { guid: 'g', name: '' } as ChapterSyncTrackRef;
+    expect(chapterSyncNotChaptersText([blank], []).names).toBe('Unnamed track');
+  });
+});

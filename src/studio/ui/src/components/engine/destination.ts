@@ -1,3 +1,4 @@
+import { trackName as readable } from '../tracks/trackName';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
@@ -70,6 +71,6 @@ export function destinationFor(layout: VoiceTracksLayout) {
 
 /** What the DAW made, named as it was given: a folder with its Narrator, or the track; and that it is not saved yet. */
 export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
-  const what = created.voice ? `Folder “${created.track.name}” with a ${created.voice.name} track` : `Track “${created.track.name}”`;
+  const what = created.voice ? `Folder “${readable(created.track.name)}” with a ${created.voice.name} track` : `Track “${readable(created.track.name)}”`;
   return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.`;
 }

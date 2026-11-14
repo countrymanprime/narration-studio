@@ -1,4 +1,5 @@
 import { plural } from '../../plural';
+import { trackName as readable } from '../tracks/trackName';
 import type {
   ChapterSyncBackgroundWait,
   ChapterSyncBatch,
@@ -15,26 +16,26 @@ import type {
 export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
   switch (item.reason) {
     case 'ambiguous': {
-      const names = item.candidates.map((candidate) => `“${candidate.trackName}”`);
+      const names = item.candidates.map((candidate) => `“${readable(candidate.trackName)}”`);
       if (names.length === 0) return 'More than one track looks like it.';
       if (names.length === 1) return `${names[0]} looks like it.`;
       return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} both look like it.`;
     }
     case 'uncertain':
-      return item.best ? `“${item.best.trackName}” is close, but not a confident match.` : 'No track is a confident match.';
+      return item.best ? `“${readable(item.best.trackName)}” is close, but not a confident match.` : 'No track is a confident match.';
     case 'region':
       return 'Only a project region names this chapter, not a track.';
     case 'rejected':
       return 'You unlinked this chapter before; sync will not relink it on its own.';
     case 'not-mutual':
-      return item.best ? `“${item.best.trackName}” matches another chapter better.` : 'Its closest track matches another chapter better.';
+      return item.best ? `“${readable(item.best.trackName)}” matches another chapter better.` : 'Its closest track matches another chapter better.';
   }
 }
 
 /** "Tracks that are not chapters": unmatched track names plus any pickup tracks, with a note singling
  * the pickup tracks out (they are kept for take review, never a chapter link). */
 export function chapterSyncNotChaptersText(unmatched: ChapterSyncTrackRef[], pickupTracks: ChapterSyncPickupTrack[]): { names: string; note: string } {
-  const names = [...unmatched.map((track) => track.name), ...pickupTracks.map((pickup) => pickup.trackName)];
+  const names = [...unmatched.map((track) => readable(track.name)), ...pickupTracks.map((pickup) => readable(pickup.trackName))];
   if (names.length === 0) return { names: 'None.', note: '' };
   const subject = pickupTracks.length === 1 ? 'The last one is' : `The last ${pickupTracks.length} are`;
   const object = pickupTracks.length === 1 ? `${pickupTracks[0].chapterTitle}'s pickup track` : 'their chapters’ pickup tracks';
@@ -53,15 +54,16 @@ function quotedList(names: string[]): string {
 export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
   if (item.reason === 'ambiguous' && item.candidates.length >= 2) {
     const count = COUNT_WORDS[item.candidates.length] ?? String(item.candidates.length);
-    return `${count} tracks match: ${quotedList(item.candidates.map((candidate) => candidate.trackName))}. A chapter is checked from one track.`;
+    return `${count} tracks match: ${quotedList(item.candidates.map((candidate) => readable(candidate.trackName)))}. A chapter is checked from one track.`;
   }
-  if (item.reason === 'uncertain' && item.best) return `Closest track “${item.best.trackName}” is not a confident match, so it was not linked on its own.`;
+  if (item.reason === 'uncertain' && item.best)
+    return `Closest track “${readable(item.best.trackName)}” is not a confident match, so it was not linked on its own.`;
   return chapterSyncReasonText(item);
 }
 
 /** The engine panel's "Tracks that are not chapters" line: "Room tone · Pickups · Chapter 3 (pickups), kept as Chapter 3’s pickup track". */
 export function chapterSyncPanelNotChaptersText(unmatched: ChapterSyncTrackRef[], pickupTracks: ChapterSyncPickupTrack[]): string {
-  const names = [...unmatched.map((track) => track.name), ...pickupTracks.map((pickup) => pickup.trackName)].join(' · ');
+  const names = [...unmatched.map((track) => readable(track.name)), ...pickupTracks.map((pickup) => readable(pickup.trackName))].join(' · ');
   if (pickupTracks.length === 0) return names;
   return `${names}, kept as ${pickupTracks.length === 1 ? `${pickupTracks[0].chapterTitle}’s pickup track` : 'their chapters’ pickup tracks'}`;
 }
@@ -166,7 +168,7 @@ export function chapterSyncActivityRows(activity: ChapterSyncBatch[], trackName:
     const added = batch.newTracks.map((track) => ({
       key: `${index}:new:${track.guid}`,
       at: batch.at,
-      text: `New track “${track.name}”, not a chapter`,
+      text: `New track “${readable(track.name)}”, not a chapter`,
       undoTrackGuid: '',
     }));
     return [...linked, ...added];
