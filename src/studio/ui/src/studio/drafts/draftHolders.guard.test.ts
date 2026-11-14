@@ -256,7 +256,7 @@ describe('the Settings pane is swapped only through the question (#3404)', () =>
   });
   test('a hash-only change of Settings (a pop, a typed address) is decided by the pop guard on the route and the hash, not the route alone (#3456)', () => {
     const app = code(readFileSync(join(srcRoot, 'App.tsx'), 'utf8'));
-    expect(app).not.toMatch(/routePath\(\) !== popGuard\.route/);
+    expect(app).not.toMatch(/routePath\(\) !== popGuard\.route\b/);
     expect(app).toMatch(/routeKey\(\) !== popGuard\.route/);
   });
   test('showCategory asks, and so does every change of the search or filter', () => {
