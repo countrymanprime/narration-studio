@@ -1,6 +1,7 @@
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { focusPageMain } from './components/primitives/focusReturn';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
@@ -133,6 +134,9 @@ const popGuard = {
   /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
   route: '',
   idx: 0,
+  /** Where the restore after a stopped pop has to land (the router's own `idx`), and how many corrections it was given. */
+  want: 0,
+  fixes: 0,
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
@@ -187,6 +191,13 @@ if (typeof window !== 'undefined') {
     if (popGuard.swallow) {
       popGuard.swallow = false;
       event.stopImmediatePropagation();
+      // A second Back sent before this restore ran was resolved by history against the position it had then, so the restore can land one entry short of the page (the
+      // address left on the page before). Put it back until the address is the page's again (#3446).
+      if (routePath() !== popGuard.route && popGuard.fixes < 3 && popGuard.want !== historyIdx()) {
+        popGuard.fixes += 1;
+        popGuard.swallow = true;
+        window.history.go(popGuard.want - historyIdx());
+      }
       return;
     }
     const next = historyIdx();
@@ -209,6 +220,8 @@ if (typeof window !== 'undefined') {
     }
     event.stopImmediatePropagation();
     const delta = next - popGuard.idx;
+    popGuard.want = popGuard.idx;
+    popGuard.fixes = 0;
     popGuard.swallow = true;
     window.history.go(-delta);
     ask(delta < 0 ? -1 : 1);
@@ -360,6 +373,19 @@ function AppRoutes() {
   // The project picker over the shell: the header's project name and the jump menu's "Switch project…" open it. It closes when a project is
   // chosen (the project folder changes) or on its own Back button.
   const [projectPickerOpen, setProjectPickerOpen] = useProjectPicker(data?.projectFolder);
+  // The chooser replaces the whole shell, so going back builds it again and the control that opened the chooser is gone: focus would fall to <body>, and the next Tab to
+  // "Skip to content". It lands on the page instead (#3416).
+  const pickerWasOpen = useRef(false);
+  useEffect(() => {
+    if (projectPickerOpen) {
+      pickerWasOpen.current = true;
+      return;
+    }
+    if (!pickerWasOpen.current) return;
+    pickerWasOpen.current = false;
+    const active = document.activeElement;
+    if (!active || active === document.body) focusPageMain();
+  }, [projectPickerOpen]);
   const refreshBootstrap = useCallback(async () => {
     try {
       const next = await api.bootstrap();
