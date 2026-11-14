@@ -246,8 +246,13 @@ describe('edit-then-accept-is-one-step', () => {
     expect(accept).not.toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: 'Save and accept' }));
     expect(accept).not.toHaveBeenCalled();
+    // Escape with the text changed is a way out, not a decision to drop it: it asks (#3457). Keep editing leaves the editor; Discard closes it.
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     await u.type(input, 'x{Escape}');
-    expect(screen.queryByRole('textbox')).toBeNull();
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('textbox')).toBeTruthy();
+    await u.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
     expect(accept).not.toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
     await u.type(screen.getByRole('textbox'), '2{Enter}');

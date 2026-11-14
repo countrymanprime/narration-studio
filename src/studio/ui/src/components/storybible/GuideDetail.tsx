@@ -1,4 +1,5 @@
 import { shortName } from '../../studio/drafts/draftSentence';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import { useGuardedNavigate, useSharedSave, useUnsavedDraft, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { describeHeld } from '../../studio/drafts/draftSentence';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
@@ -374,6 +375,16 @@ export function GuideDetail({
   });
 
   const drafts = useUnsavedDrafts();
+  // A name typed in "Add a name" and not added is held text, and nothing can add it from the question: it offers to keep editing or discard it (#3457).
+  useUnsavedDraft('story-bible-alias-query', {
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && aliasQuery.trim() !== ''),
+    label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
+    brief: 'a name you are adding',
+    discard: () => {
+      setAliasQuery('');
+      setNameNote(undefined);
+    },
+  });
   const draftNow = useRef(draft);
   draftNow.current = draft;
   // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
@@ -414,7 +425,9 @@ export function GuideDetail({
     // refuses as the question does (#3400 D1), and says which part cannot be saved.
     const loose = drafts.heldNow().filter((held) => !held.saveable);
     if (loose.length > 0) {
-      notify(`${capitalize(describeHeld(loose))} cannot be saved yet, so the entry was not saved.`);
+      notify(
+        `${capitalize(describeHeld(loose))} cannot be saved yet, so the entry was not saved. Finish it (Add name, Approve) or clear it, then save the entry.`,
+      );
       return false;
     }
     const problem = propertyProblem(draft.properties, speaks);
@@ -725,7 +738,9 @@ export function GuideDetail({
   const onAliasKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      clearAliasMatch();
+      // Escape is a way out, not a decision to drop what was typed: with a name typed it asks (#3457).
+      if (aliasQuery.trim() === '') clearAliasMatch();
+      else void confirmDiscard('the name you are adding').then((discard) => discard && clearAliasMatch());
       return;
     }
     if (event.key === 'Enter') {

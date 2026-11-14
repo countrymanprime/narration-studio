@@ -1,4 +1,5 @@
 import { plural } from '../../../../plural';
+import { confirmDiscard } from '../../../../studio/drafts/confirmDiscard';
 import { useUnsavedDraft } from '../../../../studio/drafts/unsavedDrafts';
 import { useEffect, useRef, useState } from 'react';
 import type { ExtractionDecision, ExtractionSuggestion } from '../../../../api/contracts/extraction';
@@ -92,7 +93,10 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
                   if (event.key === 'Enter') save();
                   if (event.key === 'Escape') {
                     event.stopPropagation();
-                    setEditing(false);
+                    // Escape is a way out: with the text changed it asks. The cancel button is the narrator discarding (#3457).
+                    if (text.trim() !== '' && text !== editableText(suggestion.payload))
+                      void confirmDiscard('your edit').then((discard) => discard && setEditing(false));
+                    else setEditing(false);
                   }
                 }}
               />

@@ -170,12 +170,18 @@ function PickButton({
 }
 
 /** The relationship text: typed in place, kept when the field is left or Enter is pressed, put back when emptied. */
-function LabelInput({ value, disabled, onCommit }: { value: string; disabled?: boolean; onCommit: (label: string) => void }) {
+function LabelInput({ value, disabled, clearable, onCommit }: { value: string; disabled?: boolean; clearable?: boolean; onCommit: (label: string) => void }) {
   const [text, setText] = useState(value);
   const commit = () => {
     const label = text.trim();
-    if (!label) setText(value);
-    else if (label !== value) onCommit(label);
+    // A saved relationship cannot have no words, so emptying its box puts them back. A row still being filled in can be emptied: the box stays empty and the row holds
+    // nothing again, instead of refilling with what was deleted and holding the entry's Save (#3457).
+    if (!label) {
+      if (clearable) {
+        setText('');
+        if (value !== '') onCommit('');
+      } else setText(value);
+    } else if (label !== value) onCommit(label);
   };
   return (
     <TextField
@@ -333,7 +339,7 @@ export function Relationships({
             <TableRow key={`draft:${draft.key}`}>
               <TableCell>
                 <RelationText incoming={false}>
-                  <LabelInput value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
+                  <LabelInput clearable value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
                 </RelationText>
               </TableCell>
               <TableCell>

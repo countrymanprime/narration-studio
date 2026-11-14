@@ -99,6 +99,21 @@ describe('the Relationships table', () => {
     ).not.toContain('');
   });
 
+  it('emptying a started relationship label and leaving the box leaves it empty (#3457)', async () => {
+    await renderAlice();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
+    const rows = within(table()).getAllByRole('row');
+    const box = () => within(within(table()).getAllByRole('row').at(-1)!).getByRole('combobox', { name: 'Relationship' }) as HTMLInputElement;
+    fireEvent.change(box(), { target: { value: 'x' } });
+    fireEvent.blur(box());
+    expect(box().value).toBe('x');
+    fireEvent.change(box(), { target: { value: '' } });
+    fireEvent.blur(box());
+    expect(rows).toBeTruthy();
+    expect(box().value).toBe('');
+  });
+
   it('changes a relationship in place: the text, and the other entry, each written as the new one and then the old removed', async () => {
     const { relate, unrelate } = await renderAlice();
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));

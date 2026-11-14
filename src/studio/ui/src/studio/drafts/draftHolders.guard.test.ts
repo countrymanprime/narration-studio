@@ -192,7 +192,7 @@ describe('a link inside a dialog that opens over every page is a GuardedLink (#3
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
 const STORY_BIBLE_DETAIL: Replacer[] = [
-  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string, after\?: \(\) => void\) =>\s*guarded\(/ },
   { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
   { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
 ];

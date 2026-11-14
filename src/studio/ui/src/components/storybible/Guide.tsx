@@ -279,20 +279,19 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
       setPendingNewEntity({ name });
     });
   // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
-  const selectRow = (id?: string) =>
+  // `after` runs only once the move goes ahead (a command for the entry it opens): a Cancel must not leave it queued for the next time the entry is opened (#3457).
+  const selectRow = (id?: string, after?: () => void) =>
     guarded(() => {
       setPendingNewEntity(undefined);
       setLooseId(null);
       setSelectedId(id);
+      after?.();
     });
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({
     requestPreview: (id) => api.guidePreview(id),
-    onAssetRequired: (id) => {
-      selectRow(id);
-      setCommand({ id, kind: 'hear', nonce: Math.random() });
-    },
+    onAssetRequired: (id) => selectRow(id, () => setCommand({ id, kind: 'hear', nonce: Math.random() })),
     notify,
   });
   const { hear } = listHear;
@@ -300,26 +299,20 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // The right-click menu of an entry row (the mock's registerContext for the Bible page): Open, Find in the manuscript, Mark reviewed and
   // Delete entry. The last two go to the open entry, which does what its own buttons do (its pending and its Undo included).
   const [command, setCommand] = useState<EntryCommand>();
-  const live = useRef({
+  const liveNow = {
     rows,
     suggestions,
     selectRow,
     find: (name: string) => routerNavigate(addressPath({ page: 'script', find: name })),
+    // The entry already open takes its own command with no move to ask about (one question, not two); another one is opened first, and the command follows the answer.
     ask: (id: string, kind: EntryCommand['kind']) => {
-      selectRow(id);
-      setCommand({ id, kind, nonce: Math.random() });
-    },
-  });
-  live.current = {
-    rows,
-    suggestions,
-    selectRow,
-    find: (name) => routerNavigate(addressPath({ page: 'script', find: name })),
-    ask: (id, kind) => {
-      selectRow(id);
-      setCommand({ id, kind, nonce: Math.random() });
+      const send = () => setCommand({ id, kind, nonce: Math.random() });
+      if (id === selectedId) send();
+      else selectRow(id, send);
     },
   };
+  const live = useRef(liveNow);
+  live.current = liveNow;
   const entryMenu = useMemo<ContextProvider>(() => {
     const rowOf = (target: Element) => live.current.rows.find((row) => row.id === target.closest<HTMLElement>('[data-entry-id]')?.dataset.entryId);
     return {
