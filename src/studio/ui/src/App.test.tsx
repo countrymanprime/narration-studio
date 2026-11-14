@@ -1935,15 +1935,8 @@ describe('App Back and Forward', () => {
       await waitFor(() => expect(window.location.pathname + window.location.hash).toBe(before));
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(keptEdit()).toBeTruthy();
-    });
-
-    it('a Back that replaces the Search question hands the first its Cancel: the box reads the applied query again (#3456 D)', async () => {
-      renderApp();
-      await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('ps.coverage', 'Recording check');
-      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
-      const search = screen.getByRole('textbox', { name: 'Search settings' }) as HTMLInputElement;
-      fireEvent.change(search, { target: { value: 'a' } });
+      // The same held edit, and a Search question that a Back replaces: the first gets its Cancel, so the box reads the applied query again (#3456 D).
+      fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'a' } });
       expect(await screen.findByRole('alertdialog')).toBeTruthy();
       act(() => {
         window.history.pushState(null, '', '/settings#category-delivery');
