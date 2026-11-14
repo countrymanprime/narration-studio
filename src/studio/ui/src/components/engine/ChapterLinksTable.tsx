@@ -214,17 +214,11 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
     : `Created the track “${result.track.name}” and linked ${short} to it. Save the project to keep it.`;
 }
 
-/** Which control a pressed Cancel or Clear hands focus to, per chapter: the row can be drawn anew when its link changes, so the note is not the row's own (#3376). */
-const handBack = new Map<string, 'change' | 'create'>();
-/** Asked while the press is happening; the note stands for a moment, since the replacement can be drawn a render or two later, then goes. */
-function askHandBack(chapterId: string, to: 'change' | 'create') {
-  handBack.set(chapterId, to);
-  window.setTimeout(() => handBack.delete(chapterId), 1500);
-}
+/** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */
+const HAND_BACK_MS = 5000;
+/** The note per chapter, outside the row because a cleared link draws the row anew. */
+const handBack = new Map<string, { to: 'change' | 'create'; until: number }>();
 
-// One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
-// The select opens on "Choose a track" and the check waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
-// the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
 function ChapterLinkRow({
   row,
   tracks,
@@ -297,19 +291,30 @@ function ChapterLinkRow({
   const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(shownName, folderChildren(tracks, linkedTrack.guid).length) : shownName;
   const short = chapterName(row.chapter, 'short');
   // The button that was pressed leaves the page and another takes its place (Cancel -> Change, Clear -> Create): focus goes to the one that
-  // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button.
+  // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button (on the
+  // page, or on the panel's own container), never over a control the narrator moved to. The note is the chapter's (the row is drawn anew when its link is cleared) and is used once.
   const actionsRef = useRef<HTMLSpanElement>(null);
+  const askHandBack = (to: 'change' | 'create') => handBack.set(row.chapter.id, { to, until: Date.now() + HAND_BACK_MS });
+  // No dependency list: the replacement can be drawn a render or two after the state that asked for it (a Clear waits for the host), and the note keeps this a no-op until then.
   useEffect(() => {
-    const want = handBack.get(row.chapter.id);
-    if (!want) return;
-    const label = want === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
+    const note = handBack.get(row.chapter.id);
+    if (!note) return;
+    if (Date.now() > note.until) {
+      handBack.delete(row.chapter.id);
+      return;
+    }
+    const label = note.to === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
     const target = Array.from(actionsRef.current?.querySelectorAll<HTMLElement>('[aria-label]') ?? []).find(
       (element) => element.getAttribute('aria-label') === label,
     );
     if (!target) return;
     const active = document.activeElement;
-    if (!active || active === document.body || !document.body.contains(active)) target.focus();
-    // No dependency list: the replacement can draw a render after the state that asked for it, and the flag keeps this a no-op until then.
+    // Done once focus is on the replacement at a later render; until then a redraw of the button that took it away is answered with another hand-back.
+    if (active === target) {
+      handBack.delete(row.chapter.id);
+      return;
+    }
+    if (!active || active === document.body || !document.body.contains(active) || active.getAttribute('role') === 'dialog') target.focus();
   });
 
   // The linked track, and the voices inside it when the link is a folder, each with items the app cannot play.
@@ -446,7 +451,7 @@ function ChapterLinkRow({
                     if (settled()) {
                       setChosen(linkedGuidIfThere);
                       swappedAt.current = Date.now();
-                      askHandBack(row.chapter.id, 'change');
+                      askHandBack('change');
                       setPicking(false);
                     }
                   }}
@@ -474,7 +479,7 @@ function ChapterLinkRow({
                 onClick={() => {
                   // A double click on Cancel lands its second press here: ignore it, a cleared link is not an undo.
                   if (settled()) {
-                    askHandBack(row.chapter.id, 'create');
+                    askHandBack('create');
                     onClear();
                   }
                 }}
