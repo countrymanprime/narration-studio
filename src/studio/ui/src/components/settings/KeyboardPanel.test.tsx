@@ -80,7 +80,7 @@ describe('KeyboardPanel', () => {
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {
     renderPanel();
     expect(await screen.findByText('Global · anywhere, except while a dialog is open')).toBeTruthy();
-    expect(screen.getByText("Page · a chapter's Proof view")).toBeTruthy();
+    expect(screen.getByText('Page · the page that has the command, not the Booth')).toBeTruthy();
     expect(screen.getByText('Booth · the Booth and its companion panel')).toBeTruthy();
     expect(screen.getByText('Back')).toBeTruthy();
     expect(screen.getByText('Record or stop')).toBeTruthy();
@@ -104,6 +104,19 @@ describe('KeyboardPanel', () => {
     renderPanel();
     const group = await openRecorderFor('Record or stop');
     expect(group.getByRole('status').textContent).toBe('Press a key or a pedal for "Record or stop"…');
+  });
+
+  it("says a page command's free key is free on any page, not only on a chapter's Proof view (#3399)", async () => {
+    renderPanel();
+    const group = await openRecorderFor('Next word');
+    keydown({ code: 'KeyQ' });
+    expect(group.getByRole('status').textContent).toBe('Q captured. No other command uses it on any page, apart from the Booth.');
+  });
+
+  it('no scope heading names one page, since the Page group lists rows for Proof, Editing, Script and the picker (#3399)', async () => {
+    renderPanel();
+    await screen.findByText('Global · anywhere, except while a dialog is open');
+    for (const heading of screen.getAllByText(/^(Global|Page|Booth|Dialog) · /)) expect(heading.textContent).not.toMatch(/Proof|Editing|Script/);
   });
 
   it('captures a key, announces it in the live region, and saves it on Replace', async () => {
