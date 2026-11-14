@@ -343,6 +343,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   );
 
   // The chapter a panel or dialog from the row menu is open for: its row stays drawn in a windowed list so focus has a row to return to (#3416).
-  const openChapterId = checkingId ?? (open?.kind === 'track' ? open.chapterId : open?.kind === 'editing' ? open.chapter.id : undefined);
+  const openChapterId =
+    checkingId ??
+    (open?.kind === 'track' ? open.chapterId : open?.kind === 'editing' ? open.chapter.id : open?.kind === 'credits' ? `credits-${open.credits}` : undefined);
   return { panels, trackLinks, reload, openEditingCheck, openChapterId };
 }

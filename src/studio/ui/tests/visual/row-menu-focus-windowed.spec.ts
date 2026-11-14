@@ -37,3 +37,28 @@ for (const item of ['Chapter track…', 'Editing check…', 'Check recordings'])
     expect(landed.inRow, `focus landed on ${landed.tag} "${landed.label}", not in the chapter's row`).toBe(true);
   });
 }
+
+// The credits rows' panel (the opening credits are the first data row) is kept the same way.
+test('Windowed board: closing "Credits…" after scrolling the board away returns focus to the credits row', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/?mockBooth=many-chapters');
+  const table = page.getByRole('table', { name: 'Chapter pipeline' });
+  await table.waitFor({ timeout: 30_000 });
+  const row = table.locator('tr[data-chapter-id="credits-opening"]');
+  const control = row.locator('button, a[href]').first();
+  await control.focus();
+  await page.keyboard.press('Shift+F10');
+  await page.getByRole('menuitem', { name: 'Credits…' }).first().click();
+  await page.waitForTimeout(500);
+  await page.evaluate(() => {
+    const tableElement = document.querySelector('table[aria-label="Chapter pipeline"]') as HTMLElement;
+    for (let node: HTMLElement | null = tableElement; node; node = node.parentElement) {
+      if (node.scrollHeight > node.clientHeight + 1 && ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)) node.scrollTop = node.scrollHeight;
+    }
+  });
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(800);
+  const inRow = await page.evaluate(() => Boolean(document.activeElement?.closest('tr[data-chapter-id="credits-opening"]')));
+  expect(inRow, 'focus is back inside the credits row').toBe(true);
+});

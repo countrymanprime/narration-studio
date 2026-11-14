@@ -156,8 +156,9 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
   const [lastKeptId, setLastKeptId] = useState<string>();
   useEffect(() => {
     if (keepRowId) setLastKeptId(keepRowId);
-    else if (focusedId) setLastKeptId(undefined);
-  }, [keepRowId, focusedId]);
+    // Focus is back in the table, or the row is gone (a chapter removed from the recording): the row is no longer kept, and does not come back drawn later.
+    else if (focusedId || (lastKeptId && !rows.some((row) => row.id === lastKeptId))) setLastKeptId(undefined);
+  }, [keepRowId, focusedId, lastKeptId, rows]);
   const keptId = keepRowId ?? lastKeptId;
   const keptIndex = focusedIndex >= 0 ? focusedIndex : keptId ? rows.findIndex((row) => row.id === keptId) : -1;
   const { ref, windowed, ranges } = useRowWindow(rows.length, keptIndex);
