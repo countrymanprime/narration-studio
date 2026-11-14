@@ -23,3 +23,25 @@ test('Jump menu opened again straight after it closed still returns focus to the
     expect(await onOpener(), `focus is back on the opener after a reopen with a ${gap} ms gap`).toBe(true);
   }
 });
+
+// qa-breaker on the first version of the fix: the remembered opener is for the SAME dialog opened again. A different dialog opened by a page-wide key right after
+// the jump menu closed (here the "?" shortcut sheet) must not return to the jump button.
+test('A different dialog opened by a page key right after the jump menu closed does not return to the jump button', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/');
+  const opener = page.getByRole('button', { name: /Jump to or run/ }).first();
+  await opener.waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(1500);
+  await opener.focus();
+  await page.keyboard.press('Control+k');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('Shift+?');
+  await page.getByRole('dialog').waitFor({ timeout: 10_000 });
+  await page.waitForTimeout(600);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 5_000 });
+  await page.waitForTimeout(600);
+  expect(await opener.evaluate((element) => element === document.activeElement), 'focus did not return to the jump button').toBe(false);
+});
