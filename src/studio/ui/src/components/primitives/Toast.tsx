@@ -245,6 +245,12 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
         } as CSSProperties
       }
       onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
+      // While a modal is open, a press on a toast's plain text would take focus from the dialog's control to <body> (the toast is outside the dialog); a press on
+      // the toast's own button or link is the browser's.
+      onMouseDown={(event) => {
+        if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
+          event.preventDefault();
+      }}
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
