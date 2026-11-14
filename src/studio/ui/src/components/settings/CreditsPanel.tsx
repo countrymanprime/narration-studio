@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
@@ -99,6 +99,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
 
   const guarded = useGuardedAction();
   const selected = templates.find((template) => template.id === selectedId);
+  // What the editor holds and which template it is on, as of the last render, for a save that resolves long after it started.
+  const editorNow = useRef({ id: selectedId, name: draftName, kind: draftKind, body: draftBody });
+  editorNow.current = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
+  // Text typed while a save was in flight: the list is read again when the save ends and the editor is reset to the saved template, which must not take it back.
+  const typedMeanwhile = useRef<{ name: string; kind: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -121,6 +126,15 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   }, [load]);
 
   useEffect(() => {
+    if (typedMeanwhile.current && selected) {
+      const typed = typedMeanwhile.current;
+      typedMeanwhile.current = null;
+      setDraftName(typed.name);
+      setDraftKind(typed.kind);
+      setDraftBody(typed.body);
+      setTemplateDirty(true);
+      return;
+    }
     if (!selected) {
       setDraftName('');
       setDraftKind('opening');
@@ -162,14 +176,21 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
 
   const saveTemplateNow = async (): Promise<boolean> => {
     setBusy(true);
+    const sent = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       notify('Credit template saved.');
       // Saved: the editor holds nothing now, whatever the list says when it is read again (the registry reads the editor as clean once this resolves).
       setTemplateDirty(false);
       projectDataChanged();
+      // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, and what they typed
+      // for it is not put back. Text typed on this template since the save started stays, as an edit still to save (#3461).
+      const stillHere = editorNow.current.id === sent.id;
+      const typed = editorNow.current;
+      if (stillHere && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body))
+        typedMeanwhile.current = { name: typed.name, kind: typed.kind, body: typed.body };
       await load();
-      setSelectedId(saved.id);
+      if (stillHere) setSelectedId(saved.id);
       return true;
     } catch (error) {
       // Saving the same template again writes the same body, so it is safe to repeat.
@@ -191,7 +212,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     templateDirty &&
     (selected
       ? draftName !== selected.name || draftKind !== selected.kind || draftBody !== selected.body
-      : draftBody !== '' || draftName !== NEW_TEMPLATE_NAME);
+      : draftBody !== '' || (draftName !== NEW_TEMPLATE_NAME && draftName !== ''));
   useUnsavedDraft('credits-template', {
     dirty: draftHeld,
     label: 'your credit template edit',

@@ -1765,7 +1765,7 @@ describe('App Back and Forward', () => {
       expect(saveCreditsTemplate).not.toHaveBeenCalled();
     });
 
-    it('the Settings search over a credits template typed among the results asks when the query would swap the pane, keeps the letters after Cancel, and a template put back as it was holds nothing (#3400)', async () => {
+    it('the Settings search over a credits template typed among the results asks when the query would swap the pane, puts the applied text back after Cancel, and a template put back as it was holds nothing (#3400)', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
       fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
@@ -1787,9 +1787,8 @@ describe('App Back and Forward', () => {
         expect(await screen.findByText('Save or discard your credit template edit before going on?')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-        // Cancel keeps the template and does not take the typed letters back (#3456): the box shows what was typed, the results still show the template.
-        // A cleared box is not kept: Cancel puts the applied text back, so the box and the results agree.
-        expect(search.value).toBe(next === '' ? 'credits' : next);
+        // Cancel keeps the template, and the box reads what the results are for again (#3456): the invariant whenever no question is open.
+        expect(search.value).toBe('credits');
         expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
       }
       // Discard & continue is what drops the template, and applies the search.

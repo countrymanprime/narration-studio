@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -93,6 +93,83 @@ describe('CreditsPanel', () => {
     await expectHolderCleanAfterSave(() => registry.save());
     expect(registry.heldNow()).toEqual([]);
     expect((await api.creditsTemplates()).some((template) => template.body === '[Title], held by the registry.')).toBe(true);
+  });
+
+  // The editor and the template it is on, through the things that happen while a save runs and around the template picker (#3461, qa-breaker).
+  const deferSave = (api: ReturnType<typeof createMockApi>) => {
+    let release: () => void = () => {};
+    const real = api.saveCreditsTemplate.bind(api);
+    vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    return () => release();
+  };
+  const editTemplate = async () => {
+    const select = (await screen.findByRole('combobox', { name: 'Template' })) as HTMLSelectElement;
+    await waitFor(() => expect(select.options.length).toBeGreaterThanOrEqual(3));
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    return { select, body };
+  };
+
+  it('text typed while Save template is in flight stays in the editor as an edit still to save (#3461)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    fireEvent.change(body, { target: { value: 'First part. And typed during the save.' } });
+    release();
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === 'First part.')).toBe(true));
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('First part. And typed during the save.'));
+    expect(registry.heldNow()).toHaveLength(1);
+  });
+
+  it('a save that ends after the narrator went to another template leaves them there, and the discarded text does not come back (#3461)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const { select, body } = await editTemplate();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const first = select.value;
+    fireEvent.change(body, { target: { value: 'Typed, then discarded.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    const other = [...select.options].find((option) => option.value !== first)!.value;
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toBe('Typed, then discarded.');
+  });
+
+  it('a New template whose text was typed and deleted holds nothing (#3461)', async () => {
+    renderPanel();
+    await editTemplate();
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    await waitFor(() => expect(registry.heldNow()).toHaveLength(0));
+    fireEvent.change(body, { target: { value: 'typed' } });
+    expect(registry.heldNow()).toHaveLength(1);
+    fireEvent.change(body, { target: { value: '' } });
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it('another template asks over a held edit, Cancel keeps the text, and answering goes there (#3461)', async () => {
+    renderPanel();
+    const { select, body } = await editTemplate();
+    const asked: Array<() => void> = [];
+    act(() => registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? void asked.push(run) : run()), go: () => {} }));
+    const first = select.value;
+    fireEvent.change(body, { target: { value: 'Typed but not saved.' } });
+    const other = [...select.options].find((option) => option.value !== first)!.value;
+    fireEvent.change(select, { target: { value: other } });
+    expect(asked).toHaveLength(1);
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(first);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+    act(() => asked[0]!());
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
   });
 
   it('offers the chapter announcement kind and previews it for the first chapter, filling [Chapter] and [Chapter Title]', async () => {
