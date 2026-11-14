@@ -46,7 +46,9 @@ function ItemBody({ item, mark }: { item: MenuItem; mark?: 'box' | 'round' }) {
     <>
       {mark && <Mark round={mark === 'round'} checked={item.checked === true} />}
       {item.leading}
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      <span className="min-w-0 flex-1 truncate" title={item.label}>
+        {item.label}
+      </span>
       {item.trailing !== undefined && (
         <span className="text-[var(--text-muted)] tabular-nums">
           {/* Read as "Place, 96", not "Place96". */}

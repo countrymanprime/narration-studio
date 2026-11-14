@@ -71,4 +71,13 @@ describe('TitleSubtitle', () => {
     );
     expect(screen.getByRole('button', { name: 'Chapter 2: The Pool of Tears' })).toBeTruthy();
   });
+
+  // #3380: the stacked lines clip on their own, so each carries its whole text as a title.
+  it('titles each clipped line of a truncated stacked heading, and only when it clips', () => {
+    const { container, rerender } = render(<TitleSubtitle title="Chapter 2" subtitle="The Pool of Tears" layout="stacked" truncate />);
+    expect(container.querySelector('[data-title]')?.getAttribute('title')).toBe('Chapter 2');
+    expect(screen.getByText('The Pool of Tears').getAttribute('title')).toBe('The Pool of Tears');
+    rerender(<TitleSubtitle title="Chapter 2" subtitle="The Pool of Tears" layout="stacked" />);
+    expect(container.querySelector('[data-title]')?.hasAttribute('title')).toBe(false);
+  });
 });

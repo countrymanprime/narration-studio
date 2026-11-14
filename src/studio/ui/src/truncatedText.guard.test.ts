@@ -89,11 +89,8 @@ const DEBT = new Set<string>([
   'components/editing/bar/SelectionBar.tsx#1',
   'components/layout/TimerChip.tsx#1',
   'components/primitives/Field.tsx#1',
-  'components/primitives/Menu.tsx#1',
-  'components/primitives/StatTile.tsx#1',
+  // The inline run is clipped inside a `TooltipTarget` built a few lines below it, which the scan cannot see (a false positive).
   'components/primitives/TitleSubtitle.tsx#1',
-  'components/primitives/TitleSubtitle.tsx#2',
-  'components/primitives/TitleSubtitle.tsx#3',
   'components/production/ImportReview.tsx#1',
   'components/proof/ProofChapterPage.tsx#1',
   'components/proof/inspector/FindingThread.tsx#1',
