@@ -75,7 +75,7 @@ transcription model says earlier checks are marked out of date and run again. A 
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
 Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
-says how many it holds.
+says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved settings** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 

@@ -201,7 +201,7 @@ const SETTINGS_PANE: Replacer[] = [
   {
     file: 'settings/page/SettingsPage.tsx',
     control: 'a search or filter that shows, changes or clears the results',
-    asks: /else guarded\(apply, \{ settle: false \}\)/,
+    asks: /else guarded\(apply, \{ settle: false, onCancel: \(\) => setPending\(null\) \}\)/,
   },
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {

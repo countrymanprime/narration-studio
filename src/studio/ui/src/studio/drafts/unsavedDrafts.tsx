@@ -97,7 +97,11 @@ export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: r
 /** What `discard` found: the drafts whose discard threw, which are still held. */
 export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
-export type AskOptions = { settle?: boolean };
+export type AskOptions = {
+  settle?: boolean;
+  /** Runs when the narrator answers Cancel (or Keep editing): the change did not happen, so whatever showed it should show what it was. */
+  onCancel?: () => void;
+};
 type Shell = {
   ask: (run: () => void, options?: AskOptions) => void;
   go: (to: string, state?: unknown, after?: () => void) => void;
@@ -114,6 +118,8 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
   // Each entry reads the editor's latest props (see `useUnsavedDraft`), so `dirty` is as of its last render and not of the last effect.
   const drafts = useRef(new Map<string, () => UnsavedDraft>());
   const shell = useRef<Shell | null>(null);
+  /** How many times a discard has run: a save that fails after one has nothing to tell the narrator about. */
+  const discards = useRef(0);
   const saving = useRef<Promise<SaveResult> | null>(null);
   // Bumped on every join and leave (an editor's `dirty` changing is a join), so the shell re-renders when what is held changes and a question open over it can notice.
   const [version, setVersion] = useState(0);
@@ -173,6 +179,7 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
       return { saved: failed.length === 0, failed, kept, late };
     })();
     let gaveUp = false;
+    const discardsBefore = discards.current;
     const run = withinSaveLimit(saved).finally(() => {
       saving.current = null;
     });
@@ -182,16 +189,18 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     });
     saved.then(
       (result) => {
-        if (gaveUp && result.failed.length > 0) shell.current?.lateFailure?.({ failed: result.failed });
+        if (gaveUp && discards.current === discardsBefore && result.failed.length > 0) shell.current?.lateFailure?.({ failed: result.failed });
       },
       (error: unknown) => {
-        if (gaveUp) shell.current?.lateFailure?.({ error });
+        // After Discard & continue the text is gone and the app has moved on: there is nothing left to be told about (#3446 R-4).
+        if (gaveUp && discards.current === discardsBefore) shell.current?.lateFailure?.({ error });
       },
     );
     saving.current = run;
     return run;
   }, []);
   const discard = useCallback((): DiscardResult => {
+    discards.current += 1;
     const failed: HeldDraft[] = [];
     for (const draft of dirtyNow()) {
       try {
