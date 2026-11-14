@@ -9,9 +9,9 @@ import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_ATTRIBUTE } from './Popover';
 
 // A popup open over the panel: a popover (the voice picker), a menu (a chapter's More actions) or a listbox. A press outside it is a press outside the panel too, and the
-// popup closes on it by itself, so the panel ignores it: one press dismisses only the top layer (#3416).
+// popup closes on it by itself, so the panel ignores it: one press dismisses only the top layer (#3416). Whether a layer was open is read when the press begins
+// (`pointerdown`, before the layer has closed): a real click is down, then up, and the popup is gone by the time the panel hears the outside press.
 const LAYER_OVER_PANEL = `[${POPOVER_POPUP_ATTRIBUTE}], [role=menu], [role=listbox]`;
-// The popup is read as the press arrives, when it has already begun to close, so one still leaving counts too.
 const layerOverPanel = (): boolean => document.querySelector(LAYER_OVER_PANEL) !== null;
 
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer. It is a real modal
@@ -53,17 +53,25 @@ export function SlideOver({
   // A double press on the control that opened the panel lands its second press on the scrim as the panel slides in; a press that soon is the
   // same gesture, not a wish to dismiss.
   const openedAt = useRef(0);
+  // Whether a layer was open over the panel when the latest press began.
+  const pressBeganOverLayer = useRef(false);
   const finalFocusRef = useRef(finalFocus);
   finalFocusRef.current = finalFocus;
   useEffect(() => {
     if (!open) return;
+    const noteLayer = () => {
+      pressBeganOverLayer.current = layerOverPanel() || aDialogIsOpen();
+    };
+    document.addEventListener('pointerdown', noteLayer, true);
     openedAt.current = Date.now();
     // As this closes, a panel opened from a control inside it takes over its hand-back place (focusReturn.ts).
-    return () =>
+    return () => {
+      document.removeEventListener('pointerdown', noteLayer, true);
       rememberClosedTarget(() => {
         const target = finalFocusRef.current();
         return target instanceof HTMLElement ? target : null;
       });
+    };
   }, [open]);
   return (
     <Drawer.Root
@@ -72,7 +80,10 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
-        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog() || aDialogIsOpen() || layerOverPanel())) {
+        if (
+          eventDetails.reason === 'outside-press' &&
+          (Date.now() - openedAt.current < 400 || justClosedDialog() || pressBeganOverLayer.current || aDialogIsOpen() || layerOverPanel())
+        ) {
           eventDetails.cancel();
           return;
         }

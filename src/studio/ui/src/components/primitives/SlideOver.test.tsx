@@ -169,6 +169,29 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  // A held press: the layer closes on the press itself, so by the time the panel hears the outside press the layer has gone. It was open when the press began.
+  it('ignores a press that began while a menu was open over the panel, though the menu is gone by its release', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(menu);
+    const backdrop = document.querySelector('[data-slide-over-backdrop]') as HTMLElement;
+    const user = userEvent.setup();
+    await user.pointer({ keys: '[MouseLeft>]', target: backdrop });
+    menu.remove();
+    await user.pointer({ keys: '[/MouseLeft]', target: backdrop });
+    expect(onClose).not.toHaveBeenCalled();
+    // The next press, with no layer, closes it.
+    await user.click(backdrop);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('closes on a backdrop press again once the dialog over it has closed (the guard does not stay on)', async () => {
     const onClose = vi.fn();
     function Over() {
