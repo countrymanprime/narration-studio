@@ -7,7 +7,7 @@ function focusFirst(targets: readonly (HTMLElement | null | undefined)[]): void 
   }
 }
 
-import { markDialogClosed, rememberClosedTarget } from './dialogClosed';
+import { countDialogOpen, markDialogClosed, rememberClosedTarget } from './dialogClosed';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
@@ -181,6 +181,7 @@ export function Dialog({
   const handedBack = useRef(false);
   const latest = useRef({ returnFocus, stayOnBody, title });
   latest.current = { returnFocus, stayOnBody, title };
+  useEffect(() => countDialogOpen(), []);
   // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
   // where this dialog would have (dialogClosed.ts).
   useEffect(

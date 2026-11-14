@@ -153,6 +153,24 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  // #3416 item 63: a press on a layer opened over the panel is a press outside the panel too, and it closed both. One press dismisses only the top layer.
+  it('ignores a backdrop press while a dialog is open over the panel', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <Dialog title="Link chapters" dismissOnOutsidePress onClose={() => undefined} actions={<span />}>
+          <p>Body</p>
+        </Dialog>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    await screen.findByRole('dialog', { name: 'Link chapters' });
+    await userEvent.setup().click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  // A popover open over the panel is the same case, covered in the real app by tests/visual/dialog-over-slideover-press.spec.ts (jsdom removes the popup before the panel reads the press).
+
   it('keeps Tab inside the panel', async () => {
     const { user } = await openPanel();
     const behind = screen.getByRole('button', { name: 'Behind the panel', hidden: true });

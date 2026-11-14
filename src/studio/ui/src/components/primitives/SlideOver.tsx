@@ -1,4 +1,4 @@
-import { justClosedDialog, rememberClosedTarget } from './dialogClosed';
+import { aDialogIsOpen, justClosedDialog, rememberClosedTarget } from './dialogClosed';
 import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +6,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useReturnFocusTarget } from './focusReturn';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
+import { POPOVER_POPUP_ATTRIBUTE } from './Popover';
 
 // Right-edge panel with a transparent click-away backdrop, on Base UI's Drawer. It is a real modal
 // panel: the page behind is hidden and unreachable, Tab loops inside, Escape and a press on the backdrop close it, and
@@ -65,7 +66,10 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
-        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog())) {
+        if (
+          eventDetails.reason === 'outside-press' &&
+          (Date.now() - openedAt.current < 400 || justClosedDialog() || aDialogIsOpen() || document.querySelector(`[${POPOVER_POPUP_ATTRIBUTE}]`))
+        ) {
           eventDetails.cancel();
           return;
         }
