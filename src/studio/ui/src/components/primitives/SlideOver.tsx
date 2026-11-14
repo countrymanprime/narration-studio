@@ -62,11 +62,21 @@ export function SlideOver({
     const noteLayer = () => {
       pressBeganOverLayer.current = layerOverPanel() || aDialogIsOpen();
     };
+    // The note belongs to one press: it is dropped once the click has been heard, so a later click that has no pointerdown (assistive technology's) is judged afresh.
+    const dropNote = () => {
+      window.setTimeout(() => {
+        pressBeganOverLayer.current = false;
+      }, 0);
+    };
+    pressBeganOverLayer.current = false;
     document.addEventListener('pointerdown', noteLayer, true);
+    document.addEventListener('click', dropNote, true);
     openedAt.current = Date.now();
     // As this closes, a panel opened from a control inside it takes over its hand-back place (focusReturn.ts).
     return () => {
       document.removeEventListener('pointerdown', noteLayer, true);
+      document.removeEventListener('click', dropNote, true);
+      pressBeganOverLayer.current = false;
       rememberClosedTarget(() => {
         const target = finalFocusRef.current();
         return target instanceof HTMLElement ? target : null;

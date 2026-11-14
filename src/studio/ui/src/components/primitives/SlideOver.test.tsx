@@ -192,6 +192,28 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  // qa-breaker on #3478: the note was only rewritten on pointerdown, so a click with none (assistive technology's) after a layer press was ignored too.
+  it('an outside click with no pointerdown closes the panel after an earlier press began over a layer', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(menu);
+    const backdrop = document.querySelector('[data-slide-over-backdrop]') as HTMLElement;
+    const user = userEvent.setup();
+    await user.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+    menu.remove();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    backdrop.click();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('closes on a backdrop press again once the dialog over it has closed (the guard does not stay on)', async () => {
     const onClose = vi.fn();
     function Over() {
