@@ -197,7 +197,7 @@ const PROOF_MOVES: Replacer[] = [
   { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
   { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
   { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
-  { file: 'proof/ProofPage.tsx', control: 'Undo of a decision (it returns to the note)', asks: /guardedRef\.current\(\(\) => \{\s*select\(request\.id\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'Undo of a decision (it returns to the note)', asks: /else guardedRef\.current\(move\)/ },
   { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
@@ -208,7 +208,8 @@ const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
 // each with the reason (Undo's return to a note was one until the qa-breaker found it dropping a typed note, #3400).
 const PROOF_UNASKED: Record<string, string> = {
   'select(findings[0].id)': 'the first note chosen while none is: the Inspector is empty, so no note box exists to lose',
-  'choose(home)': "in the same guardedRef.current closure as Undo's select(request.id), which the Replacer below pins",
+  'select(request.id)': "in Undo's `move`, which asks unless the narrator is already on that note and chapter (the Replacer above pins it)",
+  'choose(home)': "in Undo's `move`, together with select(request.id) (the Replacer above pins it)",
   'select(id)': 'in the guarded closure of a clicked row, which the Replacer below pins',
   'choose(chapterOf(note))': 'in the guarded closure of a clicked row of another chapter, which the Replacer below pins',
   'choose(fallback.id)': 'inside step(), which every caller reaches through guarded',

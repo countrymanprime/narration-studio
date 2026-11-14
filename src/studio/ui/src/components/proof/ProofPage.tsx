@@ -330,12 +330,16 @@ export function ProofPage({
           setReload((n) => n + 1);
           // Going back to the note replaces the Inspector, and with it a note typed on the one now open, so that move asks first (#3400 D1):
           // the decision is taken back either way, and Cancel leaves the narrator where they are.
-          guardedRef.current(() => {
+          // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
+          const home = chapterOf(before);
+          const leavesChapter = Boolean(home && !scopeRef.current.all && scopeRef.current.scope !== home);
+          const move = () => {
             select(request.id);
-            // The note may be in a chapter other than the one now open: go back to it, so the decision taken back is the one in view.
-            const home = chapterOf(before);
-            if (home && !scopeRef.current.all && scopeRef.current.scope !== home) choose(home);
-          });
+            if (home && leavesChapter) choose(home);
+          };
+          // The narrator is already on that note and chapter: nothing is replaced, so nothing is asked (the same rule as `pickNote`).
+          if (request.id === selectedRef.current && !leavesChapter) move();
+          else guardedRef.current(move);
         },
       });
       // The Inspector tells a stale decision from any other failure by what the host threw, so that is what it gets back.

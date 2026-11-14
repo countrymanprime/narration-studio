@@ -96,3 +96,21 @@ test('Open in Editing from a check finding asks when a note is typed, and Cancel
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Add a note' })).toHaveValue('Typed before the link.');
 });
+
+// Undo of a decision on the finding already open replaces nothing: it asks nothing (#3400, the same rule as picking the open note).
+test('Undo of a decision on the open finding over its own typed note asks nothing', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Proof');
+  await page.getByRole('textbox', { name: 'Add a note' }).fill('Typed on this finding.');
+  await page
+    .getByRole('button', { name: /^Fine as read/ })
+    .first()
+    .click();
+  const stepping = unsaved(page, 'Unsaved changes');
+  await expect(stepping).toBeVisible();
+  await stepping.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Add a note' })).toHaveValue('Typed on this finding.');
+});
