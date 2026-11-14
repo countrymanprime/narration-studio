@@ -10,6 +10,7 @@ import type { ExtractionSuggestion } from '../../../../api/contracts/extraction'
 import { createMockApi } from '../../../../api/mockApi';
 import { overlay } from '../../../../overlay/overlayService';
 import { StudioProvider, useJournal } from '../../../../studio/StudioProvider';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../studio/drafts/unsavedDrafts';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import type { NarrationApi } from '../../../../types';
 import { AcceptedClaims } from './AcceptedClaims';
@@ -182,6 +183,39 @@ describe('needs-verification-offers-accept-edit-reject', () => {
   });
 });
 
+describe('an edit typed and not accepted is a draft the question cannot save (#3404, #3400 D1)', () => {
+  it('is held with nothing to save, so Save & continue never accepts the suggestion for the narrator', async () => {
+    let drafts!: ReturnType<typeof useUnsavedDrafts>;
+    const Probe = () => {
+      drafts = useUnsavedDrafts();
+      return null;
+    };
+    const target = one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
+    const accept = vi.spyOn(api, 'extractionAccept');
+    render(
+      <ApiProvider api={api}>
+        <StudioProvider>
+          <UnsavedDraftsProvider>
+            <Probe />
+            <ul>
+              <SuggestionRow suggestion={target} sources={SOURCES} onGoToEvidence={onGoToEvidence} lineLabel={lineLabel} />
+            </ul>
+          </UnsavedDraftsProvider>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
+    await u.type(screen.getByRole('textbox', { name: 'Edit name' }), 'Jr');
+    expect(drafts.heldNow().map((entry) => entry.saveable)).toEqual([false]);
+    // Save & continue never accepts for the narrator and never drops the edit (#3400 D1): the edit comes back as kept, still held, so the shell stays.
+    const outcome = await drafts.save();
+    expect(outcome.kept.map((entry) => entry.brief)).toEqual(['a suggestion edit']);
+    expect(drafts.heldNow()).toHaveLength(1);
+    expect(accept).not.toHaveBeenCalled();
+  });
+});
+
 describe('edit-then-accept-is-one-step', () => {
   const alias = () => one((s) => s.payload.kind === 'alias' && s.payload.alias === 'Rabbit');
 
@@ -212,8 +246,13 @@ describe('edit-then-accept-is-one-step', () => {
     expect(accept).not.toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: 'Save and accept' }));
     expect(accept).not.toHaveBeenCalled();
+    // Escape with the text changed is a way out, not a decision to drop it: it asks (#3457). Keep editing leaves the editor; Discard closes it.
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     await u.type(input, 'x{Escape}');
-    expect(screen.queryByRole('textbox')).toBeNull();
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('textbox')).toBeTruthy();
+    await u.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
     expect(accept).not.toHaveBeenCalled();
     await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
     await u.type(screen.getByRole('textbox'), '2{Enter}');

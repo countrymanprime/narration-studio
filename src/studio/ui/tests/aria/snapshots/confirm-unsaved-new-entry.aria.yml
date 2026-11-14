@@ -1,0 +1,11 @@
+- main:
+    - paragraph
+- status
+- alert
+- status
+- alertdialog "Unsaved changes":
+    - heading "Unsaved changes" [level=2]
+    - button "Close"
+    - paragraph: Discard the new entry “Mr Fox” before leaving?
+    - button "Keep editing"
+    - button "Discard & continue"

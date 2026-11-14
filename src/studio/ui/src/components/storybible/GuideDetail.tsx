@@ -1,7 +1,10 @@
+import { shortName } from '../../studio/drafts/draftSentence';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
+import { useGuardedNavigate, useSharedSave, useUnsavedDraft, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useInRouterContext, useNavigate } from 'react-router-dom';
+import { useInRouterContext } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faCodeMerge, faFloppyDisk, faLock, faLockOpen, faPen, faRotate, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
@@ -78,6 +81,7 @@ const NO_TYPES: GuideType[] = [];
 
 /** Why a control waits while another change saves: its tooltip, a keyboard reaches it (#3339). */
 const BUSY_REASON = 'Another change is still saving.';
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
  * so nothing speaks then, and `failed` says so for the entry to show. */
@@ -181,7 +185,7 @@ function EntryFrame({
 
 /** The entry's header button that opens the Script page's Find on its name. Drawn only inside the router, which every page has. */
 function FindInManuscript({ name }: { name: string }) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   return (
     <TooltipTarget text="Find in the manuscript">
       <IconButton label="Find in the manuscript" onClick={() => navigate(addressPath({ page: 'script', find: name }))}>
@@ -334,12 +338,29 @@ export function GuideDetail({
   // The draft is the entry's, its talk rows split out once the types say it speaks. A change of the types alone (they arrive
   // after the entry) leaves a draft being edited as typed; a new or reloaded entry always replaces it.
   const draftEntity = useRef<GuideEntity>(undefined);
+  // What the draft was made from the last time it was set from the entry: a reload of the entry being edited (a relationship completed, a name added, a category
+  // changed, a Rescan) only replaces the fields the narrator has not touched since, so typed text is never swapped for the saved text (#3457).
+  const draftBase = useRef<Draft>(undefined);
   const editingNow = useRef(editing);
   editingNow.current = editing;
   useEffect(() => {
     if (!entity || (draftEntity.current === entity && editingNow.current)) return;
+    const fresh = draftOf(entity, speaks);
+    const reloadOfEditedEntry = draftEntity.current?.id === entity.id && editingNow.current && draftBase.current !== undefined;
     draftEntity.current = entity;
-    setDraft(draftOf(entity, speaks));
+    const base = draftBase.current;
+    draftBase.current = fresh;
+    if (!reloadOfEditedEntry || !base) {
+      setDraft(fresh);
+      return;
+    }
+    setDraft((current) => {
+      const merged: Record<string, unknown> = {};
+      for (const key of Object.keys(fresh) as (keyof Draft)[]) {
+        merged[key] = JSON.stringify(current[key]) === JSON.stringify(base[key]) ? fresh[key] : current[key];
+      }
+      return merged as Draft;
+    });
   }, [entity, speaks]);
 
   // The entry list's menu asked this entry to do something: it does what its own button does, once per command.
@@ -350,6 +371,41 @@ export function GuideDetail({
     takenCommand.current = command.nonce;
     commandRun.current?.(command.kind);
     onCommandTaken?.();
+  });
+
+  const drafts = useUnsavedDrafts();
+  // A name typed in "Add a name" and not added is held text, and nothing can add it from the question: it offers to keep editing or discard it (#3457).
+  useUnsavedDraft('story-bible-alias-query', {
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && aliasQuery.trim() !== ''),
+    label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
+    brief: 'a name you are adding',
+    needs: 'Add name',
+    discard: () => {
+      setAliasQuery('');
+      setNameNote(undefined);
+    },
+  });
+  const draftNow = useRef(draft);
+  draftNow.current = draft;
+  // An entry being edited holds typed text until Save; leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  const saveEntryRef = useRef<() => Promise<boolean>>(undefined);
+  // The entry's own Save and the question's Save & continue share one request (#3404).
+  const saveEntryShared = useSharedSave(() => saveEntryRef.current?.() ?? Promise.resolve(true));
+  useUnsavedDraft('story-bible-entry', {
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
+    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry', 16)}`,
+    brief: 'your entry edit',
+    save: saveEntryShared,
+    discard: () => setEditing(false),
+  });
+
+  // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
+  useUnsavedDraft('story-bible-new-entry', {
+    dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
+    label: `the new entry “${shortName(draft.name, 18)}”`,
+    brief: 'a new entry',
+    needs: 'a category chosen',
+    discard: () => onDiscardNewDraft?.(),
   });
 
   if (!entity) return <Panel>No matching entities. Build the guide to discover names and terms.</Panel>;
@@ -363,18 +419,34 @@ export function GuideDetail({
     setEditing(false);
     setPropertyError(undefined);
     setDraft(draftOf(entity, speaks));
+    // Cancel editing throws the whole edit away, the name typed in Add a name with it: it would be held again, hidden, when Edit opens the entry once more (#3457 B9).
+    setAliasQuery('');
+    setNameNote(undefined);
   };
   // The properties go with a Save only when they changed, so a Save of a name alone does not rewrite them.
-  const saveEntry = () => {
+  const saveEntry = async (): Promise<boolean> => {
+    // Saving leaves edit mode and takes along a draft beside this one that cannot be saved (a half-filled relationship row, an approval note): the entry's own Save
+    // refuses as the question does (#3400 D1), and says which part cannot be saved.
+    const loose = drafts.heldNow().filter((held) => !held.saveable);
+    if (loose.length > 0) {
+      // One short sentence per case, from what the held thing says it still needs (an entry chosen under To, Add name, Approve); neutral in tone (#3457, ux-reviewer).
+      const stuck = loose.find((held) => held.needs) ?? loose[0]!;
+      notify(
+        stuck.needs
+          ? `${capitalize(stuck.label)} still needs ${stuck.needs}, so the entry was not saved.`
+          : `${capitalize(stuck.label)} cannot be saved yet, so the entry was not saved.`,
+      );
+      return false;
+    }
     const problem = propertyProblem(draft.properties, speaks);
     if (problem) {
       setPropertyError(problem);
-      return;
+      return false;
     }
     const nameIssue = nameProblem(draft.name);
     if (nameIssue) {
       setNameError(nameIssue);
-      return;
+      return false;
     }
     const saved = propertiesOf(entity, speaks);
     const properties = speaks ? withTalk(propertiesFrom(draft.properties), draft.talk) : propertiesFrom(draft.properties);
@@ -386,8 +458,13 @@ export function GuideDetail({
       context: draft.context,
     };
     if (!sameProperties(properties, before)) values.properties = JSON.stringify(properties);
-    void save('save', values, 'Entry saved.').then((saved) => saved && setEditing(false));
+    const sent = JSON.stringify(draft);
+    const done = await save('save', values, 'Entry saved.');
+    // Text typed while the request was in flight was not in it: the editor stays open with it, as an edit still to save, rather than closing over it (#3457).
+    if (done && JSON.stringify(draftNow.current) === sent) setEditing(false);
+    return done;
   };
+  saveEntryRef.current = saveEntry;
   // An entry cannot be saved with no name or with one another entry has (the mock's renameEntry).
   const nameProblem = (name: string) => {
     if (!name.trim()) return 'Give this entry a name.';
@@ -669,7 +746,9 @@ export function GuideDetail({
   const onAliasKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      clearAliasMatch();
+      // Escape is a way out, not a decision to drop what was typed: with a name typed it asks (#3457).
+      if (aliasQuery.trim() === '') clearAliasMatch();
+      else void confirmDiscard('the name you are adding').then((discard) => discard && clearAliasMatch());
       return;
     }
     if (event.key === 'Enter') {
@@ -795,7 +874,7 @@ export function GuideDetail({
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
                   disabledReason={busyReason('save')}
-                  onClick={saveEntry}
+                  onClick={() => void saveEntryShared()}
                   variant="primary"
                 >
                   <FontAwesomeIcon icon={faFloppyDisk} />

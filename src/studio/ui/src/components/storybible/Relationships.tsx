@@ -1,3 +1,5 @@
+import { plural } from '../../plural';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { useRef, useState, type ReactNode } from 'react';
 import type { GuideEntity, GuideType } from '../../types';
 import { entryColour } from '../../kinds/entityColour';
@@ -168,12 +170,18 @@ function PickButton({
 }
 
 /** The relationship text: typed in place, kept when the field is left or Enter is pressed, put back when emptied. */
-function LabelInput({ value, disabled, onCommit }: { value: string; disabled?: boolean; onCommit: (label: string) => void }) {
+function LabelInput({ value, disabled, clearable, onCommit }: { value: string; disabled?: boolean; clearable?: boolean; onCommit: (label: string) => void }) {
   const [text, setText] = useState(value);
   const commit = () => {
     const label = text.trim();
-    if (!label) setText(value);
-    else if (label !== value) onCommit(label);
+    // A saved relationship cannot have no words, so emptying its box puts them back. A row still being filled in can be emptied: the box stays empty and the row holds
+    // nothing again, instead of refilling with what was deleted and holding the entry's Save (#3457).
+    if (!label) {
+      if (clearable) {
+        setText('');
+        if (value !== '') onCommit('');
+      } else setText(value);
+    } else if (label !== value) onCommit(label);
   };
   return (
     <TextField
@@ -267,6 +275,17 @@ export function Relationships({
     setDrafts((all) => all.map((row) => (row.key === draft.key ? next : row)));
   };
   const showing = editing ? drafts : [];
+  // A relationship row half filled in is written once it has both its words and its other end, so until then it is held text with nothing to save (#3400).
+  const started = drafts.filter((row) => row.label.trim() !== '' || row.otherId !== '').length;
+  useUnsavedDraft('story-bible-relationship-rows', {
+    dirty: editing && started > 0,
+    label: `${started === 1 ? 'a relationship' : plural(started, 'relationship')} you started`,
+    brief: started === 1 ? 'a relationship' : plural(started, 'relationship'),
+    kind: 'relationship-rows',
+    needs: 'an entry chosen under To',
+    many: (n) => `${plural(n, 'relationship')} you started`,
+    discard: () => setDrafts([]),
+  });
   return (
     <div>
       <div className="mb-2 text-[0.82rem] font-medium text-[var(--text-muted)]">Relationships</div>
@@ -321,7 +340,7 @@ export function Relationships({
             <TableRow key={`draft:${draft.key}`}>
               <TableCell>
                 <RelationText incoming={false}>
-                  <LabelInput value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
+                  <LabelInput clearable value={draft.label} disabled={isBlocked('relate')} onCommit={(label) => update(draft, { label })} />
                 </RelationText>
               </TableCell>
               <TableCell>

@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { HIT_AREA } from '../primitives/hitArea';
 import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
-import { onPlainClick } from '../recordingcheck/plainClick';
 
 /**
  * The chapter's unreviewed pickup notes on Proof (category `pickup`: the Booth's read-aloud restarts, and any group the retired take
@@ -14,13 +13,9 @@ export function ProofPickupNotes({ chapterId, count, onNavigate }: { chapterId: 
   return (
     <div className={PICKUP_SOURCE_ROW}>
       <span>Pickup notes (Proof): {count === 0 ? 'none waiting' : `${count} not reviewed yet`}</span>
-      <Link
-        to={`/proof?chapter=${encodeURIComponent(chapterId)}`}
-        onClick={onPlainClick(onNavigate)}
-        className={`flex-none font-semibold underline ${HIT_AREA}`}
-      >
+      <GuardedLink to={`/proof?chapter=${encodeURIComponent(chapterId)}`} onNavigate={onNavigate} className={`flex-none font-semibold underline ${HIT_AREA}`}>
         Open Proof
-      </Link>
+      </GuardedLink>
     </div>
   );
 }
