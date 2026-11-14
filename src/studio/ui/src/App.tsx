@@ -169,8 +169,12 @@ const ECHO_MS = 300;
 /** "Not saved: <why>." when the error says why in words, else "Not saved." (a rejection with nothing, an object or an empty message has no reason to show). */
 const notSaved = (error: unknown): string => {
   const why = isWireError(error) || error instanceof Error ? apiErrorMessage(error).trim() : typeof error === 'string' ? error.trim() : '';
-  return why ? `Not saved: ${why}.` : 'Not saved.';
+  // A message that already ends in a full stop is not given a second one.
+  const sentence = why.replace(/[.\s]+$/, '');
+  return sentence ? `Not saved: ${sentence}.` : 'Not saved.';
 };
+/** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is. */
+const keptNote = (message: string): string => (/still here/.test(message) ? message : `${message} What you typed is still here.`);
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', (event) => {
@@ -878,9 +882,13 @@ function AppRoutes() {
   useEffect(() => {
     if (!questionOpen) return;
     const focusKeep = () => {
-      const question = document.querySelector('[role="alertdialog"]');
+      const question = document.querySelector<HTMLElement>('[role="alertdialog"]');
       if (!question || question.contains(document.activeElement)) return;
-      question.querySelector<HTMLElement>('[data-stay-button]')?.focus();
+      // The way to stay is disabled while a save is in flight: then the first control that is still enabled, or the question itself, takes the focus (#3446 B-2).
+      const target =
+        question.querySelector<HTMLElement>('[data-stay-button]:not([disabled])') ?? question.querySelector<HTMLElement>('button:not([disabled])') ?? question;
+      if (target === question && !question.hasAttribute('tabindex')) question.setAttribute('tabindex', '-1');
+      target.focus();
     };
     const timers = [0, 60, 250, 600].map((ms) => setTimeout(focusKeep, ms));
     // Fixed timers are not enough on a slow machine: whenever the focus lands outside the question while it is open (the drawer's close handing it back to its
@@ -899,8 +907,12 @@ function AppRoutes() {
     };
     document.addEventListener('focusin', rescue);
     // A click on the backdrop drops the focus to <body>, which fires no focusin: after any pointer press, put it back inside the question (#3459 L1).
-    const afterPointer = () => void setTimeout(focusKeep, 0);
-    document.addEventListener('pointerup', afterPointer, true);
+    // A touch tap is followed by the browser's compatibility mouse events, and the focus drops to <body> again with the last of them: look again after each (#3446 B-1).
+    const afterPointer = () => {
+      for (const ms of [0, 60, 250]) setTimeout(focusKeep, ms);
+    };
+    const pointerEvents = ['pointerup', 'mouseup', 'click'] as const;
+    for (const type of pointerEvents) document.addEventListener(type, afterPointer, true);
     // The way to stay has the focus when the question opens, so a second Enter or Space from the press that asked would answer it at once and the narrator would
     // never see it. A key press on that button in the first 300 ms is an echo, not an answer (#3446 E7). A click is not touched: a mouse click is a decision.
     const openedAt = Date.now();
@@ -917,15 +929,22 @@ function AppRoutes() {
     return () => {
       timers.forEach(clearTimeout);
       document.removeEventListener('focusin', rescue);
-      document.removeEventListener('pointerup', afterPointer, true);
+      for (const type of pointerEvents) document.removeEventListener(type, afterPointer, true);
       for (const type of ['keydown', 'keyup'] as const) document.removeEventListener(type, echo, true);
     };
   }, [questionOpen]);
   const { setShell } = drafts;
   useEffect(() => {
-    setShell({ ask: (run, options) => askRef.current(run, options), go: (to, state, after) => guardedNavigateRef.current(to, state, after) });
+    setShell({
+      ask: (run, options) => askRef.current(run, options),
+      go: (to, state, after) => guardedNavigateRef.current(to, state, after),
+      lateFailure: (outcome) => {
+        const message = 'error' in outcome ? notSaved(outcome.error) : saveVerdict({ saved: false, failed: outcome.failed, kept: [] }).message;
+        overlay.toast(keptNote(message ?? 'Not saved.'), { tone: 'error' });
+      },
+    });
     return () => setShell(null);
-  }, [setShell]);
+  }, [setShell, overlay]);
   useEffect(() => {
     popGuard.idx = historyIdx();
   }, [location.key]);
@@ -1202,7 +1221,7 @@ function AppRoutes() {
             // Save & continue never drops text (#3400): `saveVerdict` says whether to go on, and otherwise which draft could not be saved.
             const verdict = saveVerdict(outcome);
             if (!verdict.proceed) {
-              if (verdict.message) overlay.toast(`${verdict.message} What you typed is still here.`, { tone: 'error' });
+              if (verdict.message) overlay.toast(keptNote(verdict.message), { tone: 'error' });
               return cancelPendingMove();
             }
             setSettingsDirty(false);
@@ -1212,12 +1231,9 @@ function AppRoutes() {
             // A save that threw, or never answered within its limit: the text is where it was typed, and the question can be answered again.
             // The text is where it was typed either way. A save that is only slow may still land, so that is not called a failure.
             if (token === moveToken.current)
-              overlay.toast(
-                error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : `${notSaved(error)} What you typed is still here.`,
-                {
-                  tone: 'error',
-                },
-              );
+              overlay.toast(error instanceof SaveTimeout ? 'Saving is taking too long. What you typed is still here.' : keptNote(notSaved(error)), {
+                tone: 'error',
+              });
           } finally {
             if (token === moveToken.current) setResolving(false);
           }

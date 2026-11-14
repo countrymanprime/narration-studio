@@ -588,6 +588,7 @@ describe('Voice & pronunciation', () => {
     await waitFor(() => expect(within(row('voice.dict')).getByText('No key saved')).toBeTruthy());
   });
 
+  // holder: settings/controls/MwKeyBody.tsx
   it('the pasted key renders clean once the registry has saved it (the holder contract)', async () => {
     await renderPage({ category: 'Voice & pronunciation', advanced: true });
     const key = row('voice.mwKey');
