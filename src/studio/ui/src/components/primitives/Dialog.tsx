@@ -101,6 +101,17 @@ const INSET = 'px-[var(--space-6)]';
 // empty `actions` would draw a padded blank row under the body.
 const hasContent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false && node !== '';
 
+// The control a dialog was opened from, remembered for a moment as it goes away: a dialog opened straight after (Ctrl+K, Escape, Ctrl+K in quick succession)
+// finds focus on nothing, since the first has not handed it back yet, and would take the page for its opener (#3416).
+const RECENT_OPENER_MS = 600;
+let recentOpener: { element: HTMLElement; at: number } | null = null;
+function openerAtMount(): HTMLElement | null {
+  const active = document.activeElement;
+  const nowhere = !(active instanceof HTMLElement) || active === document.body;
+  if (nowhere && recentOpener && Date.now() - recentOpener.at < RECENT_OPENER_MS && recentOpener.element.isConnected) return recentOpener.element;
+  return active instanceof HTMLElement ? active : null;
+}
+
 // The one modal shell. Base UI supplies the behaviour: the page behind is hidden from
 // assistive technology and unreachable by Tab, Tab loops inside, focus moves in on open and comes back on close. This
 // wrapper owns the policy on top of it:
@@ -112,6 +123,7 @@ const hasContent = (node: ReactNode): boolean => node !== undefined && node !== 
 //   `autoFocus`, and returns to the element that opened the dialog, or into the page's <main> when that is gone.
 // Dialogs are mounted conditionally (`{open && <Dialog />}`), so `open` is always true here and the parent's unmount is
 // the close; no exit animation exists to wait for.
+
 export function Dialog({
   title,
   onClose,
@@ -146,7 +158,7 @@ export function Dialog({
   const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
-  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
+  const [opener] = useState(() => openerAtMount());
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
   const top = (placement ?? 'top') === 'top';
@@ -173,6 +185,7 @@ export function Dialog({
   // close hand-back, and focus would fall to <body>. Hand it back the same way, a tick later, only when focus is on nothing.
   useEffect(
     () => () => {
+      if (opener && opener !== document.body && opener.isConnected) recentOpener = { element: opener, at: Date.now() };
       if (handedBack.current) return;
       window.setTimeout(() => {
         const active = document.activeElement;
