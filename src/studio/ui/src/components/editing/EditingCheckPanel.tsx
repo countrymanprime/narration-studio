@@ -172,10 +172,13 @@ export function EditingCheckPanel({
   size = 'default',
   onBack,
   backLabel = 'Back',
+  returnFocus,
 }: {
   chapter: ManuscriptChapter;
   notify: Notify;
   close: () => void;
+  /** Where focus goes on close when what opened it is gone (the Production row menu's item): the chapter's row. */
+  returnFocus?: () => HTMLElement | null;
   /** `wide` when the panel is opened from another wide slide-over (the audio engine panel), so it covers that panel whole instead of
    * cutting its cards in half (alignment audit ENX-10). */
   size?: 'default' | 'wide';
@@ -303,7 +306,7 @@ export function EditingCheckPanel({
   const stopped = job?.phase === 'cancelled' && job.chapterId === chapter.id;
 
   return (
-    <SlideOver open title={chapterName(chapter, context('Editing check'))} size={size} onClose={close}>
+    <SlideOver open title={chapterName(chapter, context('Editing check'))} size={size} onClose={close} returnFocus={returnFocus}>
       <div className="space-y-4 text-sm">
         {onBack && (
           <Button variant="secondary" size="sm" onClick={onBack}>
