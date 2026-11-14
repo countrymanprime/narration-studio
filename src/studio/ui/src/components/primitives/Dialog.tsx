@@ -249,6 +249,11 @@ export function Dialog({
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
         <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
         <Parts.Viewport
+          // A press on the dim area around the popup (and on the backdrop under it) is a press on nothing that can take focus, so the browser would move focus to
+          // <body> while the dialog stays open (a dialog that ignores outside presses) and the next Tab would start from the page behind it. Keep focus where it is.
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) event.preventDefault();
+          }}
           className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
         >
           <Parts.Popup

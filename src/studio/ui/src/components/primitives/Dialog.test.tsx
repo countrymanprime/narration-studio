@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -270,6 +270,20 @@ describe('Dialog is a real modal', () => {
     expect(backdrop).not.toBeNull();
     await user.click(backdrop);
     expect(screen.getByRole('dialog', { name: 'Add note' })).toBeTruthy();
+  });
+
+  // #3416 item 39: a press on the dim area around the popup landed on nothing focusable, so the browser moved focus to <body> while a dialog that ignores outside
+  // presses stayed open, and the next Tab started from the page behind it (on the Booth's Stop recording? it reached "Stop and leave").
+  it('keeps focus where it is when the dim area around the popup is pressed, and leaves a press inside the popup alone', async () => {
+    await openDialog();
+    const popup = screen.getByRole('dialog', { name: 'Add note' });
+    const viewport = popup.parentElement as HTMLElement;
+    const outside = createEvent.mouseDown(viewport, { cancelable: true, bubbles: true });
+    fireEvent(viewport, outside);
+    expect(outside.defaultPrevented, 'the press outside the popup does not take focus away').toBe(true);
+    const inside = createEvent.mouseDown(popup, { cancelable: true, bubbles: true });
+    fireEvent(popup, inside);
+    expect(inside.defaultPrevented, 'a press inside the popup is the browser’s own').toBe(false);
   });
 
   it('closes on a backdrop press only when the dialog opts in with dismissOnOutsidePress (a palette, not a confirm)', async () => {
