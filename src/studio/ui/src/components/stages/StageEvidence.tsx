@@ -87,6 +87,7 @@ function EvidenceBody({
   onOpenEditingCheck,
   goToParagraph,
   onOpenFinding,
+  onClose,
 }: Props & { chapter: ManuscriptChapter; recommendation: StageChapterRecommendation }) {
   const now = Date.now();
   const decision = (kind: StageDecision, label: string, variant: 'primary' | 'secondary' = 'secondary') => (
@@ -137,6 +138,7 @@ function EvidenceBody({
             onOpenEditingCheck={onOpenEditingCheck}
             goToParagraph={goToParagraph}
             onOpenFinding={onOpenFinding}
+            onClose={onClose}
           />
         ))}
       </div>
@@ -160,6 +162,7 @@ function SignalCard({
   onOpenEditingCheck,
   goToParagraph,
   onOpenFinding,
+  onClose,
 }: {
   signal: StageSignal;
   chapter: ManuscriptChapter;
@@ -169,6 +172,8 @@ function SignalCard({
   onOpenEditingCheck: () => void;
   goToParagraph: (index: number) => void;
   onOpenFinding?: (findingId: string) => void;
+  /** Closes this slide-over: the engine panel the link opens must not stack on it. */
+  onClose: () => void;
 }) {
   const cause = causeText(signal);
   const age = formatAge(signal.basis.projectFileModTime, now);
@@ -191,6 +196,7 @@ function SignalCard({
             openLabel={isEditingSignal(signal.id) ? 'Open editing check' : CHECK_RECORDINGS_LABEL}
             onCheckNow={onCheckNow}
             onOpenCheck={isEditingSignal(signal.id) ? onOpenEditingCheck : onOpenCheck}
+            onClose={onClose}
           />
         </div>
       )}
@@ -209,16 +215,19 @@ function SignalCard({
   );
 }
 
-function CauseAction({
+export function CauseAction({
   resolve,
   openLabel,
   onCheckNow,
   onOpenCheck,
+  onClose,
 }: {
   resolve: StageCauseAction;
   openLabel: string;
   onCheckNow: () => void;
   onOpenCheck: () => void;
+  /** Closes the slide-over this sits in, as the engine panel opens. */
+  onClose: () => void;
 }) {
   if (resolve === 'check')
     return (
@@ -226,7 +235,7 @@ function CauseAction({
         {openLabel}
       </Button>
     );
-  if (resolve === 'engine') return <EnginePanelLink />;
+  if (resolve === 'engine') return <EnginePanelLink onOpen={onClose} />;
   if (resolve === 'check-now')
     return (
       <Button variant="secondary" onClick={onCheckNow}>

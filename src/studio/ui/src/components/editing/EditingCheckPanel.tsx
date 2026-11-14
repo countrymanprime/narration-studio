@@ -344,7 +344,7 @@ export function EditingCheckPanel({
             </p>
             <p>{sentenceStart(refusal.message)}</p>
             {refusal.reason === 'multiple_tracks' ? (
-              <EnginePanelLink />
+              <EnginePanelLink onOpen={close} />
             ) : (
               <ChapterTrackLinkFix
                 chapter={chapter}
