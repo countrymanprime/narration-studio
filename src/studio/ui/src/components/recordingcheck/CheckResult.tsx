@@ -10,6 +10,7 @@ import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { RecordingCheckReport } from '../production/RecordingCheckReport';
 import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE, formatWhen, recheckLabel } from '../production/recordingCheckText';
+import { onPlainClick } from './plainClick';
 
 /**
  * One chapter's stored recording check, read out in Check recordings after a single chapter's run or from a row's Show result: the
@@ -161,7 +162,7 @@ export function ReasonBlock({
                 {page.label}
               </EnginePanelLink>
             ) : (
-              <Link key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
+              <Link key={page.label} to={page.path} onClick={onPlainClick(onNavigate)} className="text-sm font-semibold underline">
                 {page.label}
               </Link>
             ),
