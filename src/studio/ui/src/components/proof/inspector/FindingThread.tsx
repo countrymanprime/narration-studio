@@ -114,8 +114,10 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
     }
   };
   const saveReplyNow = async (): Promise<boolean> => {
-    const saved = await send({ op: 'add', who, text: reply });
-    if (saved) setReply('');
+    const sent = reply;
+    const saved = await send({ op: 'add', who, text: sent });
+    // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400 L6).
+    if (saved) setReply((now) => (now === sent ? '' : now));
     return saved;
   };
   const saveReply = useSharedSave(saveReplyNow);

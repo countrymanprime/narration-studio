@@ -81,6 +81,30 @@ describe('holders-render-clean-after-their-save', () => {
   });
 });
 
+describe('text typed while a note is being added', () => {
+  it('stays in the box when the save resolves, and only what was sent is cleared (#3400 L6)', async () => {
+    const { api } = await setup();
+    let release: () => void = () => {};
+    const real = api.findingsThread.bind(api);
+    vi.spyOn(api, 'findingsThread').mockImplementation(async (id, change) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(id, change);
+    });
+    const box = screen.getByRole('textbox', { name: 'Add a note' }) as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: 'First part' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+    fireEvent.change(box, { target: { value: 'First part and more typed while saving' } });
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(messages().some((m) => m.includes('First part'))).toBe(true));
+    expect(box.value).toBe('First part and more typed while saving');
+    expect(registry.heldNow().length).toBe(1);
+  });
+});
+
 describe('an edit cleared to nothing', () => {
   it('is still held, with nothing to save, so the question offers Discard only (#3400 L2)', async () => {
     await setup();
