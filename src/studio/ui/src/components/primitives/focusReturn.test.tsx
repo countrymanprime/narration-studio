@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { rememberClosedTarget } from './dialogClosed';
-import { escapeClosesPanel, useReturnFocusTarget } from './focusReturn';
+import { escapeClosesPanel, focusPageMain, useReturnFocusTarget } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -120,5 +120,100 @@ describe('useReturnFocusTarget after a dialog closed as the panel opened', () =>
     fireEvent.click(screen.getByText('Link'));
     fireEvent.click(screen.getByText('Close'));
     expect(document.body.dataset.back).toBe('header');
+  });
+});
+
+// #3416 item 96: a place named as <main> (the jump menu's hand-back) is focused by the hook, not handed to Base UI, which would pick the header's first button.
+describe('useReturnFocusTarget with <main> named as the place', () => {
+  function Named() {
+    const back = useReturnFocusTarget(true, () => document.querySelector('main'));
+    return (
+      <>
+        <header>
+          <button>Header button</button>
+        </header>
+        <main tabIndex={-1}>
+          <p>Page</p>
+        </main>
+        <button
+          onClick={() => {
+            document.body.dataset.named = String(back());
+          }}
+        >
+          Close
+        </button>
+      </>
+    );
+  }
+  it('answers false (no move by the library) and focuses <main> itself', async () => {
+    vi.useFakeTimers();
+    render(<Named />);
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.click(screen.getByText('Close'));
+    expect(document.body.dataset.named).toBe('false');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.activeElement).toBe(document.querySelector('main'));
+    vi.useRealTimers();
+  });
+});
+
+describe('useReturnFocusTarget with <main> as the opener', () => {
+  function Opened({ open }: { open: boolean }) {
+    const back = useReturnFocusTarget(open);
+    return (
+      <>
+        <header>
+          <button>Header button</button>
+        </header>
+        <main tabIndex={-1}>
+          <p>Page</p>
+        </main>
+        <button
+          onClick={() => {
+            document.body.dataset.opener = String(back());
+          }}
+        >
+          Close
+        </button>
+      </>
+    );
+  }
+  it('focuses <main> itself and answers false, not handing the landmark to the library', async () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Opened open={false} />);
+    const main = document.querySelector<HTMLElement>('main')!;
+    main.focus();
+    rerender(<Opened open />);
+    // The panel took the landmark as its opener; closing moves focus off it (the library's own close), then the hook is asked where to go.
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.click(screen.getByText('Close'));
+    expect(document.body.dataset.opener).toBe('false');
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.activeElement).toBe(main);
+    vi.useRealTimers();
+  });
+});
+
+describe('focusPageMain with a <main> inside an inert subtree', () => {
+  it('focuses the first <main> that is not inert, giving it a tab index if it has none', () => {
+    render(
+      <>
+        <div inert>
+          <main id="shell">Shell</main>
+        </div>
+        <main id="page">Page</main>
+      </>,
+    );
+    expect(focusPageMain()).toBe(true);
+    expect(document.activeElement?.id).toBe('page');
+    expect(document.getElementById('page')?.getAttribute('tabindex')).toBe('-1');
+  });
+  it('reports no page when every <main> is inert', () => {
+    render(
+      <div inert>
+        <main>Shell</main>
+      </div>,
+    );
+    expect(focusPageMain()).toBe(false);
   });
 });
