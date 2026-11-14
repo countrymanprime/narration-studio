@@ -153,6 +153,92 @@ describe('SlideOver is a real modal panel', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  // #3416 item 63: a press on a layer opened over the panel is a press outside the panel too, and it closed both. One press dismisses only the top layer.
+  it('ignores a backdrop press while a dialog is open over the panel', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <Dialog title="Link chapters" dismissOnOutsidePress onClose={() => undefined} actions={<span />}>
+          <p>Body</p>
+        </Dialog>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    await screen.findByRole('dialog', { name: 'Link chapters' });
+    await userEvent.setup().click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  // A held press: the layer closes on the press itself, so by the time the panel hears the outside press the layer has gone. It was open when the press began.
+  it('ignores a press that began while a menu was open over the panel, though the menu is gone by its release', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(menu);
+    const backdrop = document.querySelector('[data-slide-over-backdrop]') as HTMLElement;
+    const user = userEvent.setup();
+    await user.pointer({ keys: '[MouseLeft>]', target: backdrop });
+    menu.remove();
+    await user.pointer({ keys: '[/MouseLeft]', target: backdrop });
+    expect(onClose).not.toHaveBeenCalled();
+    // The next press, with no layer, closes it.
+    await user.click(backdrop);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  // qa-breaker on #3478: the note was only rewritten on pointerdown, so a click with none (assistive technology's) after a layer press was ignored too.
+  it('an outside click with no pointerdown closes the panel after an earlier press began over a layer', async () => {
+    const onClose = vi.fn();
+    render(
+      <SlideOver open title="Audio engine" onClose={onClose}>
+        <p>Body</p>
+      </SlideOver>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(menu);
+    const backdrop = document.querySelector('[data-slide-over-backdrop]') as HTMLElement;
+    const user = userEvent.setup();
+    await user.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+    menu.remove();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    backdrop.click();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('closes on a backdrop press again once the dialog over it has closed (the guard does not stay on)', async () => {
+    const onClose = vi.fn();
+    function Over() {
+      const [dialog, setDialog] = useState(true);
+      return (
+        <SlideOver open title="Audio engine" onClose={onClose}>
+          {dialog && (
+            <Dialog title="Link chapters" dismissOnOutsidePress onClose={() => setDialog(false)} actions={<span />}>
+              <p>Body</p>
+            </Dialog>
+          )}
+        </SlideOver>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Over />);
+    await user.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Link chapters' })).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  // A popover or a menu open over the panel is the same case, covered in the real app by tests/visual/dialog-over-slideover-press.spec.ts (jsdom removes the popup before the panel reads the press).
+
   it('keeps Tab inside the panel', async () => {
     const { user } = await openPanel();
     const behind = screen.getByRole('button', { name: 'Behind the panel', hidden: true });
