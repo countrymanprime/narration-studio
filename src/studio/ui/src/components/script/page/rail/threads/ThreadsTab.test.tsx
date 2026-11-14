@@ -267,6 +267,65 @@ describe('deleting while typing in the same card', () => {
   });
 });
 
+describe('the Notes list while a reply is typed (#3458, qa-breaker round 2)', () => {
+  it('says why it stays on the chapter, once, and "Show in text" on its own note compares with that chapter', async () => {
+    const { note } = await seed();
+    const { user, rerenderWith, onShowInText } = mount();
+    await user.type(await screen.findByRole('textbox', { name: 'Add to this note' }), 'kept');
+    rerenderWith({ chapterId: 'chapter-2' });
+    rerenderWith({ chapterId: 'chapter-2' });
+    expect(toast.mock.calls.filter(([text]) => String(text).includes('The notes stay on the chapter')).length).toBe(1);
+    await user.click(card(note.id).getByRole('button', { name: 'Show in text' }));
+    expect(onShowInText).toHaveBeenCalledWith(note.id, 'chapter-1');
+  });
+
+  it('a reply typed with text added at the start while it was sent leaves only the added text', async () => {
+    const { note } = await seed();
+    const { user } = mount();
+    let release: () => void = () => {};
+    const real = api.marksReply.bind(api);
+    vi.spyOn(api, 'marksReply').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    const box = (await screen.findByRole('textbox', { name: 'Add to this note' })) as HTMLTextAreaElement;
+    await user.type(box, 'once');
+    await user.click(card(note.id).getByRole('button', { name: 'Reply' }));
+    await user.click(box);
+    await user.keyboard('{Control>}{Home}{/Control}PRE ');
+    release();
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === note.id)?.thread.at(-1)?.text).toBe('once'));
+    expect(box.value).toBe('PRE ');
+  });
+
+  it('text typed into a clean editor while an earlier message is being deleted is kept', async () => {
+    const [first] = await api.manuscriptParagraphs('chapter-1');
+    const asked = await api.marksAdd(first!.chapterId, first!.id, 0, 5, 'ask', 'Opening question?');
+    await api.marksReply(asked.id, 'author', 'reply one');
+    await api.marksReply(asked.id, 'author', 'reply two');
+    await api.marksReply(asked.id, 'author', 'reply three');
+    let release: () => void = () => {};
+    const real = api.marksDeleteMessage.bind(api);
+    vi.spyOn(api, 'marksDeleteMessage').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[3]!);
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[1]!);
+    const box = card(asked.id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement;
+    await user.type(box, ' plus typed during the delete');
+    release();
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    expect((card(asked.id).getByRole('textbox', { name: 'Edit message' }) as HTMLTextAreaElement).value).toBe('reply three plus typed during the delete');
+  });
+});
+
 describe('a reply typed while the first is being added', () => {
   it('stays in the box when the save resolves (#3400)', async () => {
     const { note } = await seed();
@@ -449,7 +508,7 @@ describe('show-in-text-asks-the-reader-to-scroll', () => {
     const found = document.querySelector<HTMLElement>(`[data-mark="${note.id}"]`)!;
     expect(found.getAttribute('aria-current')).toBeNull();
     await user.click(card(note.id).getByRole('button', { name: 'Show in text' }));
-    expect(onShowInText).toHaveBeenCalledWith(note.id);
+    expect(onShowInText).toHaveBeenCalledWith(note.id, 'chapter-1');
     await waitFor(() => expect(found.getAttribute('aria-current')).toBe('true'));
     expect(found.classList.contains('a-active')).toBe(true);
     setView({ sel: null });

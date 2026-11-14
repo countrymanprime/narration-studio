@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Mark } from '../../../../../api/contracts/marks';
 import { overlay } from '../../../../../overlay/overlayService';
 import { useJournal } from '../../../../../studio/StudioProvider';
@@ -15,7 +15,8 @@ export type ThreadsTabProps = {
   /** Where a mark is, as the page says it ("Chapter 3 · ¶ 4"). */
   lineOf: (mark: Mark) => string;
   /** The reader scrolls to the mark. */
-  onShowInText: (id: string) => void;
+  /** The reader scrolls to the mark; `shownChapter` is the chapter the list is on, which is not the one in view while a typed reply keeps it where it was. */
+  onShowInText: (id: string, shownChapter: string) => void;
 };
 
 /** The Notes tab of the Script rail: the chapter's marks, over the page's data layer. */
@@ -36,13 +37,24 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
   const shownChapter = holdsNote ? lastShown.current : chapterId;
   lastShown.current = shownChapter;
   const shown = useMemo(() => marks.inChapter(shownChapter), [shownChapter, marks]);
+  // Said once each time the list is held back, so a note marked in the chapter now in view is not mistaken for lost (#3458, qa-breaker).
+  const toldAboutPin = useRef(false);
+  useEffect(() => {
+    if (shownChapter === chapterId) {
+      toldAboutPin.current = false;
+      return;
+    }
+    if (toldAboutPin.current) return;
+    toldAboutPin.current = true;
+    overlay.toast('The notes stay on the chapter you are typing in until you add or discard it.');
+  }, [shownChapter, chapterId]);
 
   const actions = useMemo<NoteActions>(
     () => ({
       onType: (id, type) => commands.setMarkType(id, type),
       onShow(id) {
         update({ sel: id });
-        onShowInText(id);
+        onShowInText(id, shownChapter);
       },
       onCopy: (mark) => copyQuery(lineOf(mark), mark),
       async onDelete(id) {
@@ -86,7 +98,7 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
           })();
         }),
     }),
-    [commands, journal, update, onShowInText, lineOf, guarded],
+    [commands, journal, update, onShowInText, shownChapter, lineOf, guarded],
   );
 
   if (marks.status === 'error' && marks.value === undefined) {

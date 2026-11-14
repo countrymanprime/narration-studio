@@ -1,6 +1,7 @@
 import { plural } from '../../../../../plural';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../../api/contracts/marks';
+import { withoutSent } from '../../../../../studio/drafts/withoutSent';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
@@ -68,6 +69,25 @@ export function NoteCard({
   const type = types.find((row) => row.key === mark.type);
   const resolved = mark.status === 'resolved';
   const messages = markMessages(mark);
+  // A message keeps its list item, and an editor open on it keeps the text typed in it, when one above it is deleted and its index moves up: it is told apart by what it
+  // says and when, not by where it stands (#3400, qa-breaker on #3458, round 2).
+  const sameMessage = new Map<string, number>();
+  const messageKey = new Map<number, string>();
+  for (const message of messages) {
+    const identity = message.index < 0 ? 'opening' : `${message.at}|${message.who}|${message.text}`;
+    const nth = sameMessage.get(identity) ?? 0;
+    sameMessage.set(identity, nth + 1);
+    messageKey.set(message.index, `${identity}#${nth}`);
+  }
+  // The message being edited is followed by what it is, not by its index: a delete above it moves its index while the request is still in flight, and an editor that is
+  // re-pointed at that moment would be rebuilt with the text typed in it gone. A new index that names another message is the narrator choosing one (#3458, N7).
+  const editedKey = useRef<string | null>(null);
+  if (editing === null) editedKey.current = null;
+  else {
+    const atIndex = messageKey.get(editing);
+    if (atIndex !== undefined && atIndex !== editedKey.current) editedKey.current = atIndex;
+  }
+  const isEdited = (message: { index: number }) => editedKey.current !== null && messageKey.get(message.index) === editedKey.current;
   const quote = mark.quote.trim();
 
   useEffect(() => {
@@ -79,7 +99,7 @@ export function NoteCard({
     const sent = await act(mark.id, who, text.trim());
     // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400).
     // Only what was sent goes: text typed while the save was in flight stays, without the part already sent (a reply is not sent twice) (#3400).
-    if (sent) setReply((now) => (now === text ? '' : now.startsWith(text) ? now.slice(text.length) : now));
+    if (sent) setReply((now) => withoutSent(now, text));
     return sent;
   };
   const sendReply = useSharedSave(() => send(actions.onReply));
@@ -147,8 +167,8 @@ export function NoteCard({
       {messages.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {messages.map((message) => (
-            <li key={message.index} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
-              {editing === message.index ? (
+            <li key={messageKey.get(message.index)} className="flex flex-col gap-0.5 rounded-md bg-[var(--bg)] px-2 py-1.5 text-[0.88rem]">
+              {isEdited(message) ? (
                 <MessageEditor
                   initial={message.text}
                   onDirtyChange={onEditDirty}

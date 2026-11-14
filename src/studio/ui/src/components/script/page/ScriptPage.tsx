@@ -521,12 +521,12 @@ function ScriptWorkspace({
           <ThreadsTab
             chapterId={inView}
             lineOf={lineOf}
-            onShowInText={(id) => {
+            onShowInText={(id, shownChapter) => {
               const mark = marks.marks.find((row) => row.id === id);
               if (!mark) return;
               const move = () => update({ pendingPid: mark.paragraphId, drawer: null });
-              // Showing a note's own line asks nothing (the card stays); a note of another chapter moves the reader away and asks.
-              if (mark.chapterId === inView) move();
+              // Showing a note of the chapter the list is on asks nothing (the card stays, even while a typed reply keeps the list behind the reader); another chapter moves the reader away and asks.
+              if (mark.chapterId === shownChapter) move();
               else guarded(move);
             }}
           />

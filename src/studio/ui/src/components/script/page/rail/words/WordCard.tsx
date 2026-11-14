@@ -1,3 +1,4 @@
+import { withoutSent } from '../../../../../studio/drafts/withoutSent';
 import { plural } from '../../../../../plural';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
@@ -123,7 +124,7 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
     try {
       const saved = await onSave(sent);
       // Only what was saved goes: text typed while the save was in flight stays, without the part already saved (#3400, qa-breaker on #3458).
-      if (saved) setSay((now) => (now === sent ? '' : now.startsWith(sent) ? now.slice(sent.length) : now));
+      if (saved) setSay((now) => withoutSent(now, sent));
       return saved;
     } finally {
       setBusy(false);
