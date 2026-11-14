@@ -257,14 +257,17 @@ describe('CreditsPanel', () => {
     }
     answer();
     await waitFor(async () => expect((await api.creditsTemplates()).length).toBe(before + 1));
-    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).not.toBe(''));
+    // The picker names the new template by its id (an empty value would be the unselected draft, which a browser may fill with the first option).
+    const created = (await api.creditsTemplates()).find((template) => template.body === 'Brand new.')!;
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(created.id));
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Brand new.'));
     expect(save).toHaveBeenCalledTimes(1);
     // Saving again writes to that template and does not add another.
     fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Brand new, changed.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
     answer();
     await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
-    expect(save.mock.calls[1]![0]).not.toBe('');
+    expect(save.mock.calls[1]![0]).toBe(created.id);
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect((await api.creditsTemplates()).length).toBe(before + 1);
   });
