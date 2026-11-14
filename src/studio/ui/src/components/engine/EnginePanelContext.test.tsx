@@ -57,6 +57,34 @@ describe('the engine panel openers reach a component rendered outside the provid
     expect(outer).not.toHaveBeenCalled();
   });
 
+  it('keeps the first provider when a second one unmounts, and its settings opener when the second has none', async () => {
+    const first = vi.fn();
+    const firstSettings = vi.fn();
+    render(
+      <EnginePanelProvider value={first} openRecordingSettings={firstSettings}>
+        <p>app</p>
+      </EnginePanelProvider>,
+    );
+    const second = render(
+      <EnginePanelProvider value={vi.fn()}>
+        <p>a story</p>
+      </EnginePanelProvider>,
+    );
+    const host = document.body.appendChild(document.createElement('div'));
+    render(
+      <>
+        <EnginePanelLink />
+        <SettingsPointer />
+      </>,
+      { container: host },
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Settings pointer' }));
+    expect(firstSettings).toHaveBeenCalledOnce();
+    second.unmount();
+    await userEvent.click(screen.getByRole('button', { name: 'Open the audio engine panel' }));
+    expect(first).toHaveBeenCalledOnce();
+  });
+
   it('does nothing without any provider (a component test)', async () => {
     render(<EnginePanelLink />);
     await userEvent.click(screen.getByRole('button', { name: 'Open the audio engine panel' }));

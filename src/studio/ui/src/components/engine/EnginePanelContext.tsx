@@ -6,12 +6,18 @@ import { Button } from '../primitives/Button';
 // panel and provides this; without a provider (a component test) the pointers render and do nothing.
 const EnginePanelContext = createContext<(() => void) | null>(null);
 
-// The mounted provider's openers, for the overlay host: it renders beside the routes, not under this provider, so a dialog or panel opened through the
+// The mounted providers' openers, for the overlay host: it renders beside the routes, not under this provider, so a dialog or panel opened through the
 // overlay service (Check recordings) would otherwise find no provider and its "Open the audio engine panel" pointer would close it and do nothing.
-// A component with a provider above it still uses that one; with none (a component test) both stay no-ops.
-const mounted: { openEnginePanel: (() => void) | null; openRecordingSettings: (() => void) | null } = { openEnginePanel: null, openRecordingSettings: null };
-const openMountedEnginePanel = () => mounted.openEnginePanel?.();
-const openMountedRecordingSettings = () => mounted.openRecordingSettings?.();
+// A stack, so a second provider (a story) that unmounts takes only its own entry away. A component with a provider above it still uses that one; with
+// none anywhere (a component test) both pointers stay no-ops.
+type Mounted = { openEnginePanel: () => void; openRecordingSettings: (() => void) | null };
+const mounted: Mounted[] = [];
+const openMountedEnginePanel = () => mounted.at(-1)?.openEnginePanel();
+const openMountedRecordingSettings = () =>
+  [...mounted]
+    .reverse()
+    .find((entry) => entry.openRecordingSettings)
+    ?.openRecordingSettings?.();
 
 export function useOpenEnginePanel(): () => void {
   return useContext(EnginePanelContext) ?? openMountedEnginePanel;
@@ -57,13 +63,13 @@ export function EnginePanelProvider({
   openRecordingSettings?: (() => void) | null;
   children: ReactNode;
 }) {
-  // The overlay host's fallback (above): the latest openers while this provider is mounted.
+  // The overlay host's fallback (above): this provider's openers while it is mounted.
   useEffect(() => {
-    mounted.openEnginePanel = value;
-    mounted.openRecordingSettings = openRecordingSettings;
+    const entry: Mounted = { openEnginePanel: value, openRecordingSettings };
+    mounted.push(entry);
     return () => {
-      if (mounted.openEnginePanel === value) mounted.openEnginePanel = null;
-      if (mounted.openRecordingSettings === openRecordingSettings) mounted.openRecordingSettings = null;
+      const at = mounted.indexOf(entry);
+      if (at >= 0) mounted.splice(at, 1);
     };
   }, [value, openRecordingSettings]);
   return (
