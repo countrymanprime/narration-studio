@@ -1764,7 +1764,7 @@ describe('App Back and Forward', () => {
       expect(saveCreditsTemplate).not.toHaveBeenCalled();
     });
 
-    it('the Settings search over a credits template typed among the results asks on every change, and a template put back as it was holds nothing (#3400)', async () => {
+    it('the Settings search over a credits template typed among the results asks when the query would swap the pane, keeps the letters after Cancel, and a template put back as it was holds nothing (#3400)', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
       fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
@@ -1786,9 +1786,15 @@ describe('App Back and Forward', () => {
         expect(await screen.findByText('Save or discard your credit template edit before going on?')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-        expect(search.value).toBe('credits');
+        // Cancel keeps the template and does not take the typed letters back (#3456): the box shows what was typed, the results still show the template.
+        expect(search.value).toBe(next);
         expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
       }
+      // Discard & continue is what drops the template, and applies the search.
+      fireEvent.change(search, { target: { value: 'theme' } });
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Body' })).toBeNull());
+      expect(search.value).toBe('theme');
     });
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
