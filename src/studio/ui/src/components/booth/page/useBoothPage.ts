@@ -26,6 +26,7 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { limited } from '../record/pressLimits';
+import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useStopFailedSentence';
 
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
@@ -155,6 +156,11 @@ export function useBoothPage(options: BoothPageOptions) {
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
+  useStopFailedSentence(overlay, session);
+  // A leave that asked for the stop and was refused twice: said on the page the narrator lands on (this page is gone by then).
+  const sayStillOpen = useCallback(() => sayListeningStillOpen(overlay, latest.current.session.subscribeState), [overlay]);
+  // Whether the narrator is leaving (the leave guard's question was answered yes, or the shell asked): set once the guard exists, below.
+  const leavingNow = useRef<() => boolean>(() => false);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
@@ -479,6 +485,8 @@ export function useBoothPage(options: BoothPageOptions) {
     // The session this press owns (`listeningClaims.ts`): one it starts, or one a cancelled press began that this press joined. It lets the session go
     // only while it is still the owner, so a press that outlived its Booth never ends the listening of the press after it.
     const claim = listen ? claimListening() : joinListening();
+    // The press now holds the session (a join with no claim included, which no start tells the hook of): a stop-failed sentence from before it no longer describes it, and its Retry would stop the take's listening.
+    latest.current.session.sessionJoined();
     // Past its limit the start has not answered: the session may still come up, and a stop sent now would reach a host that is not listening yet. The
     // claim is kept for the late answer (below), which is the one that lets it go.
     let unanswered = false;
@@ -798,6 +806,8 @@ export function useBoothPage(options: BoothPageOptions) {
       if (!latest.current.recording || recordIdNow.current !== recordId) return false;
       takeClaim.current = claim;
       handedClaim.current = claim;
+      // The session is this take's now: a stop of its own that failed earlier is not to be retried under it, nor its sentence kept.
+      latest.current.session.sessionJoined();
       return true;
     };
     takeOverFollowers.push(takeOver);
@@ -860,6 +870,9 @@ export function useBoothPage(options: BoothPageOptions) {
       setBrowse(false);
       takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
+      // A take begun while a session runs (the DAW's own Record joins it, with no claim and no start) holds that session: a stop that failed before it is
+      // not to be retried under it, nor its sentence kept.
+      if (now.session.active) now.session.sessionJoined();
       // The press starts this take's listening itself (beginOnce), after any cold read it is ending.
       if (listenStarting.current) return;
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
@@ -893,7 +906,11 @@ export function useBoothPage(options: BoothPageOptions) {
     setPunchAt(null);
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
-    if (now.session.active) now.session.stop();
+    // A take ended by "Stop and leave" ends its listening for the same leave: retried after this page is gone, and said on the next page if refused twice.
+    if (now.session.active) {
+      if (leavingNow.current()) now.session.stopForLeave(sayStillOpen);
+      else now.session.stop();
+    }
     endTakeClaim();
     const said = endOfChapter.current;
     endOfChapter.current = false;
@@ -914,7 +931,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;
@@ -987,7 +1004,20 @@ export function useBoothPage(options: BoothPageOptions) {
           next &&
             ((path) => {
               askedByShell.current = true;
-              return next(path);
+              const verdict = next(path);
+              // The narrator stayed (Keep recording, Cancel): no leave is under way, so a take that ends soon is not a leave's.
+              if (verdict !== 'allow' && verdict.decide) {
+                const decide = verdict.decide;
+                return {
+                  ...verdict,
+                  decide: async () => {
+                    const go = await decide();
+                    if (!go) askedByShell.current = false;
+                    return go;
+                  },
+                };
+              }
+              return verdict;
             }),
         ),
     }),
@@ -1028,6 +1058,7 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     { guard: shellGuard, overlay: heldConfirm },
   );
+  leavingNow.current = () => leaving() || askedByShell.current;
 
   // A move the shell asked about and the narrator let go of unmounts the page mid-take: the take stops then, and only then. A page
   // still here a moment after the shell's question closed means the narrator stayed.
@@ -1064,7 +1095,10 @@ export function useBoothPage(options: BoothPageOptions) {
     // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
     if (!latest.current.takeOut && latest.current.coldRead) {
-      latest.current.session.stop();
+      // The leave's own stop: the claims on the session end with it, so the retry is not held back by them.
+      endColdClaim();
+      endTakeClaim();
+      latest.current.session.stopForLeave(sayStillOpen);
       navigate(exitTo);
       return;
     }
@@ -1079,10 +1113,12 @@ export function useBoothPage(options: BoothPageOptions) {
         void leave(exitTo, navigate);
         return;
       }
-      latest.current.session.stop();
+      endColdClaim();
+      endTakeClaim();
+      latest.current.session.stopForLeave(sayStillOpen);
       navigate(exitTo);
     });
-  }, [leave, exitTo, navigate, overlay]);
+  }, [leave, exitTo, navigate, overlay, sayStillOpen, endColdClaim, endTakeClaim]);
   const goTo = useCallback((next: string) => leave(next, navigate), [leave, navigate]);
 
   // Cold read (#2251 item 13): listen and follow with the ghost, record nothing. Off by default, unavailable during a take; only this
