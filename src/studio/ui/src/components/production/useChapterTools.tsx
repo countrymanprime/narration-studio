@@ -29,11 +29,14 @@ export const PIPELINE_AREA = 'data-pipeline';
  * Where focus goes back to after a dialog or panel the row's menu opened (the menu item is gone by then): the control that had focus when the menu
  * opened, else the first control in the chapter's row (a right-click leaves focus nowhere; a row is not itself focusable).
  */
+/** A control focus can land on now: drawn, and not disabled (`focus()` on a disabled or hidden control does nothing, and focus would fall to the body). */
+const focusable = (element: HTMLElement): boolean => element.isConnected && !element.matches(':disabled') && element.getClientRects().length > 0;
+
 const backToRow = (chapterId: string, opener: Element | null) => (): HTMLElement | null => {
   const row = document.querySelector(`tr[data-chapter-id="${CSS.escape(chapterId)}"]`);
   // The control the narrator was on, when it is in this row; a right-click leaves focus on the board's scroll area or nowhere, so the row's own first control.
-  if (opener instanceof HTMLElement && opener.isConnected && row?.contains(opener)) return opener;
-  return row?.querySelector<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? null;
+  if (opener instanceof HTMLElement && row?.contains(opener) && focusable(opener)) return opener;
+  return [...(row?.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? [])].find(focusable) ?? null;
 };
 
 const CREDITS_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
