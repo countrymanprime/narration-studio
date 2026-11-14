@@ -152,3 +152,22 @@ test('a click on the backdrop leaves the focus inside the question', async ({ pa
     await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
   }
 });
+
+// A key held down from the press that asked repeats after the 300 ms window; a repeat must not press the way to stay (#3446, qa-breaker on #3459).
+test('an Enter held down from the press that asked does not dismiss the question', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Set on a page');
+  const entry = page.locator('[data-page-setting="ps.coverage"]');
+  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
+  await page.getByRole('button', { name: 'Production' }).first().focus();
+  const question = unsaved(page, 'Unsaved settings');
+  for (let press = 0; press < 3; press += 1) {
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(700);
+    await expect(question).toBeVisible();
+  }
+  await page.keyboard.up('Enter');
+  await expect(question).toBeVisible();
+});
