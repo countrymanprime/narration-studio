@@ -1,7 +1,6 @@
 import { shortName } from '../../studio/drafts/draftSentence';
 import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import { useGuardedNavigate, useSharedSave, useUnsavedDraft, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
-import { describeHeld } from '../../studio/drafts/draftSentence';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
 import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -380,6 +379,7 @@ export function GuideDetail({
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && aliasQuery.trim() !== ''),
     label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
     brief: 'a name you are adding',
+    needs: 'Add name',
     discard: () => {
       setAliasQuery('');
       setNameNote(undefined);
@@ -404,6 +404,7 @@ export function GuideDetail({
     dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
     label: `the new entry “${shortName(draft.name, 18)}”`,
     brief: 'a new entry',
+    needs: 'a category chosen',
     discard: () => onDiscardNewDraft?.(),
   });
 
@@ -425,8 +426,12 @@ export function GuideDetail({
     // refuses as the question does (#3400 D1), and says which part cannot be saved.
     const loose = drafts.heldNow().filter((held) => !held.saveable);
     if (loose.length > 0) {
+      // One short sentence per case, from what the held thing says it still needs (an entry chosen under To, Add name, Approve); neutral in tone (#3457, ux-reviewer).
+      const stuck = loose.find((held) => held.needs) ?? loose[0]!;
       notify(
-        `${capitalize(describeHeld(loose))} cannot be saved yet, so the entry was not saved. Finish it (Add name, Approve) or clear it, then save the entry.`,
+        stuck.needs
+          ? `${capitalize(stuck.label)} still needs ${stuck.needs}, so the entry was not saved.`
+          : `${capitalize(stuck.label)} cannot be saved yet, so the entry was not saved.`,
       );
       return false;
     }

@@ -71,6 +71,7 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
     dirty: editing && text.trim() !== '' && text !== editableText(suggestion.payload),
     label: `your edit of the ${kind.toLowerCase()} suggestion`,
     brief: 'a suggestion edit',
+    needs: 'Save and accept',
     kind: 'suggestion-edit',
     many: (n) => `${plural(n, 'edit')} of suggestions`,
     // Saving the edit is Save and accept, a decision the narrator makes with that button: the question cannot make it, so it only offers to keep or drop the edit.

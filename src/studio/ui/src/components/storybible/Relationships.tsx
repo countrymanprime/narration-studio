@@ -282,6 +282,7 @@ export function Relationships({
     label: `${started === 1 ? 'a relationship' : plural(started, 'relationship')} you started`,
     brief: started === 1 ? 'a relationship' : plural(started, 'relationship'),
     kind: 'relationship-rows',
+    needs: 'an entry chosen under To',
     many: (n) => `${plural(n, 'relationship')} you started`,
     discard: () => setDrafts([]),
   });

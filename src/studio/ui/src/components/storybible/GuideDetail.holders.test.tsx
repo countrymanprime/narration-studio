@@ -65,9 +65,19 @@ describe('a name typed in "Add a name"', () => {
     expect(held).toHaveLength(1);
     expect(held[0]!.saveable).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('Finish it')));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('The name “Mad H” you are adding still needs Add name, so the entry was not saved.'));
     expect(guideEdit).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement).value).toBe('Mad H');
+  });
+
+  it("a relationship row half filled refuses the entry's Save in its own words (#3457)", async () => {
+    const { notify } = mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));
+    const rows = screen.getAllByRole('combobox', { name: 'Relationship' });
+    fireEvent.change(rows[rows.length - 1]!, { target: { value: 'hates' } });
+    fireEvent.blur(rows[rows.length - 1]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('A relationship you started still needs an entry chosen under To, so the entry was not saved.'));
   });
 
   it('Escape in the box asks, and Keep editing leaves the text; with nothing typed it clears at once (#3457)', async () => {

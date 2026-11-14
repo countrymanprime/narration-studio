@@ -263,7 +263,7 @@ test('Save with a relationship row that cannot be saved keeps the editor and the
   await row.fill('half row words');
   await row.blur();
   await page.getByRole('button', { name: 'Save changes to this entry' }).click();
-  await expect(page.getByText(/cannot be saved yet, so the entry was not saved/)).toBeVisible();
+  await expect(page.getByText(/still needs an entry chosen under To, so the entry was not saved/)).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Description' })).toHaveValue('Typed but not saved.');
   await expect(page.getByRole('combobox', { name: 'Relationship' }).last()).toHaveValue('half row words');
 });
