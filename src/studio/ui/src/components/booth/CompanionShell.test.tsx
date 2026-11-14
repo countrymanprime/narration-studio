@@ -6,6 +6,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { overlay } from '../../overlay/overlayService';
+import { sayListeningStillOpen } from './listening/useStopFailedSentence';
 import type { NarrationApi } from '../../types';
 import type { DawTransport } from '../../api/contracts/daw';
 import { CommandRouter, CommandScope } from '../../input/router';
@@ -22,6 +24,14 @@ function baseSession(overrides: Partial<TeleprompterSession> = {}): Teleprompter
     host: { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null },
     paused: false,
     modelMissing: false,
+    stopFailed: false,
+    stopRetry: 'idle',
+    stopTaken: 0,
+    retryStop: vi.fn(),
+    stopForLeave: vi.fn(),
+    leaving: { current: false },
+    subscribeState: () => () => {},
+    sessionJoined: vi.fn(),
     pause: vi.fn(),
     session: initialSession,
     coldRead: false,
@@ -123,6 +133,29 @@ describe('CompanionShell', () => {
     expect(api.companionModeExit).not.toHaveBeenCalled();
     unmount();
     expect(api.companionModeExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('says in a toast, outside the scrolling script, that the microphone may still be open, with Retry (#3409)', () => {
+    const retryStop = vi.fn();
+    renderCompanion({ session: baseSession({ stopFailed: true, retryStop }) });
+    const toast = overlay.getSnapshot().toasts.find((item) => /could not stop listening/.test(item.text));
+    expect(toast?.text).toBe('The Booth could not stop listening, so your microphone may still be open. Press Retry.');
+    expect(toast?.tone).toBe('error');
+    toast?.action?.onAction();
+    expect(retryStop).toHaveBeenCalledTimes(1);
+    // Nothing is drawn in the script's own pane (the voice moves the reader away from the top of it).
+    expect(screen.queryByText(/could not be stopped/)).toBeNull();
+    cleanup();
+    expect(overlay.getSnapshot().toasts.some((item) => /Press Retry/.test(item.text))).toBe(false);
+  });
+
+  it("has one sentence about an open microphone: the one said after leaving is replaced by the Companion's own, which has Retry", () => {
+    sayListeningStillOpen(overlay, () => () => {});
+    expect(overlay.getSnapshot().toasts.filter((item) => /could not stop listening/.test(item.text))).toHaveLength(1);
+    renderCompanion({ session: baseSession({ stopFailed: true }) });
+    const toasts = overlay.getSnapshot().toasts.filter((item) => /could not stop listening/.test(item.text));
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0].action?.label).toBe('Retry');
   });
 
   it('says so, and stays usable, when the window could not be narrowed and pinned', async () => {
