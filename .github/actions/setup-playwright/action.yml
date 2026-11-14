@@ -7,24 +7,57 @@ runs:
   steps:
     - id: version
       shell: bash
-      run: echo "value=$(pnpm --dir src/studio/ui exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      run: |
+        echo "value=$(pnpm --dir src/studio/ui exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+        # The runner image's version, which the cached packages must match (a runner env var is not in the `env` context).
+        echo "image=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.version.outputs.value }}
+    # The system libraries' .deb files are cached too (keyed by runner image and Playwright version): a later run installs them from disk with no network, so a
+    # DNS blip on archive.ubuntu.com cannot fail it. The first run for a key, or one whose cached install fails, takes the network path below, as before.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/playwright-debs
+        key: playwright-debs-${{ runner.os }}-${{ steps.version.outputs.image }}-${{ steps.version.outputs.value }}
     # With the browser cached this skips the download but still installs the system libraries.
     # `--with-deps` runs apt-get update and install. On 2026-11-11 DNS for archive.ubuntu.com failed on runners for up to about 25 min at a
     # time: the unchanged step waited it out inside apt and passed after 5.4 min (run 43059323000), but exited 100 on other runs and, with an
-    # unbounded retry, held every shard to the 30 min timeout (run 43051855249). Now: poll the resolver and retry the install (each try
-    # `timeout 300`, then `dpkg --configure -a` to finish a package a kill left half-unpacked) for up to 9 min, then a clear error.
+    # unbounded retry, held every shard to the 30 min timeout (run 43051855249). Now: install from the cached .deb files when there are any,
+    # else poll the resolver and retry the install (each try `timeout 300`, then `dpkg --configure -a` to finish a package a kill left
+    # half-unpacked) for up to 9 min, then a clear error.
     - shell: bash
       run: |
         printf 'Acquire::Retries "1";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99-ci-network > /dev/null
+        debs="$HOME/.cache/playwright-debs"
+        browsers() { timeout 300 pnpm --dir src/studio/ui exec playwright install chromium; }
+        from_cache() {
+          ls "$debs"/*.deb > /dev/null 2>&1 || return 1
+          # The packages Playwright wants on this image, from its own dry run (no network).
+          pkgs=$(pnpm --dir src/studio/ui exec playwright install-deps --dry-run chromium 2>/dev/null | grep -o 'apt-get install[^"]*' | head -1 | tr ' ' '\n' | grep -v -e '^apt-get$' -e '^install$' -e '^-' -e '^$' | tr '\n' ' ')
+          if [ -z "$pkgs" ]; then
+            # Nothing to install: every library is already on the image.
+            browsers
+            return
+          fi
+          sudo cp "$debs"/*.deb /var/cache/apt/archives/ || return 1
+          sudo apt-get install -y --no-download --no-install-recommends $pkgs && browsers
+        }
+        if from_cache; then
+          echo "playwright libraries installed from the cached .deb files"
+          exit 0
+        fi
+        echo "::notice::no usable cached libraries; installing from the network"
         deadline=$((SECONDS + 540))
         attempt=0
         while [ "$SECONDS" -lt "$deadline" ]; do
           attempt=$((attempt + 1))
           if getent hosts archive.ubuntu.com security.ubuntu.com > /dev/null && timeout 300 pnpm --dir src/studio/ui exec playwright install --with-deps chromium; then
+            # Keep the downloaded packages for the next run (only when none are kept yet for this key).
+            if ! ls "$debs"/*.deb > /dev/null 2>&1; then
+              mkdir -p "$debs" && cp /var/cache/apt/archives/*.deb "$debs"/ 2>/dev/null || true
+            fi
             exit 0
           fi
           echo "::warning::playwright install attempt $attempt failed"
