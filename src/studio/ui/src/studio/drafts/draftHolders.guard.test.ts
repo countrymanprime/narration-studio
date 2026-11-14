@@ -233,30 +233,31 @@ describe('a handler does not close its dialog before a guarded navigate (#3446 E
   test('no component calls close() or onClose() straight before navigate(', () => {
     const offenders = files(components, /\.tsx$/)
       .filter((path) => !SKIPPED.test(key(path)))
-      .filter((path) => /\b(?:close|onClose)\(\);\s*(?:navigate|go)\(/.test(code(readFileSync(path, 'utf8'))))
+      .filter((path) =>
+        /\b(?:close|onClose)\(\);\s*(?:navigate|go)\(|\b(?:navigate|go)\([^;]*\);\s*(?:close|onClose)\(\)/.test(code(readFileSync(path, 'utf8'))),
+      )
       .map(key);
     expect(offenders, 'pass the close as navigate(path, { after: close }) so it runs only once the move goes ahead').toEqual([]);
   });
 });
 
-// A holder's save has to leave the editor clean by the time it resolves (`UnsavedDraft.save`); `holderContract.ts` checks that, and every screen that registers an
-// editor proves it. The proof is a test under the same top-level folder of `components/` that imports the helper, so a new holder cannot skip it (#3446 E2).
-describe('every screen that registers a draft proves its holders meet the save contract (#3446 E2)', () => {
-  test('a folder with a useUnsavedDraft call has a test that imports holderContract', () => {
-    const folders = new Set(
-      files(components, /\.tsx$/)
-        .filter((path) => !SKIPPED.test(key(path)) && JOINS.test(code(readFileSync(path, 'utf8'))))
-        .map((path) => key(path).split('/')[0]!),
-    );
-    const proven = new Set(
-      files(components, /\.test\.tsx?$/)
-        .filter((path) => /holderContract/.test(readFileSync(path, 'utf8')))
-        .map((path) => key(path).split('/')[0]!),
-    );
-    expect(
-      [...folders].filter((folder) => !proven.has(folder)),
-      'call expectHolderCleanAfterSave from a test of the holder (studio/drafts/holderContract.ts)',
-    ).toEqual([]);
+// A holder's save has to leave the editor clean by the time it resolves (`UnsavedDraft.save`); `holderContract.ts` checks that. Every holder file that passes a `save`
+// is named by a `// holder: <path under components/>` comment in a test that imports the helper, so a new holder cannot skip it (#3446 E2, per holder).
+describe('every holder with a save proves it meets the save contract (#3446 E2)', () => {
+  const hasSave = (source: string) => /useUnsavedDraft\(\s*[^,]+,\s*\{[^}]*?\bsave\b/.test(source);
+  test('a holder file with a save is named in a test that imports holderContract', () => {
+    const holders = files(components, /\.tsx$/)
+      .filter((path) => !SKIPPED.test(key(path)))
+      .filter((path) => {
+        const source = code(readFileSync(path, 'utf8'));
+        return JOINS.test(source) && hasSave(source);
+      })
+      .map(key);
+    const proofs = files(components, /\.test\.tsx?$/)
+      .map((path) => readFileSync(path, 'utf8'))
+      .filter((source) => /holderContract/.test(source));
+    const unproven = holders.filter((holder) => !proofs.some((source) => source.includes(`// holder: ${holder}`)));
+    expect(unproven, "call expectHolderCleanAfterSave from a test of the holder and name it there with '// holder: <path under components/>'").toEqual([]);
   });
 });
 
