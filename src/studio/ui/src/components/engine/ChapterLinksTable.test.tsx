@@ -439,6 +439,25 @@ describe('ChapterLinksTable', () => {
     expect(document.activeElement).toBe(create);
   });
 
+  // #3376 (qa-breaker): a hand-back noted by a Clear must not move focus in a panel opened after this one closed.
+  it('drops the hand-back note when the table goes away', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    cleanup();
+    renderTable();
+    await screen.findByRole('table', { name: 'Chapter links' });
+    await pastQuiet();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.
   it("ignores a press on the Change that takes the check's place right after a link", async () => {
     const user = userEvent.setup();

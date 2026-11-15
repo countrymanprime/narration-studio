@@ -66,6 +66,13 @@ const NARROW_ROW =
 // success the row shows the link at once, a toast says what was made, and the live track list is read again so it lists it.
 export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks; notify: Notify; live?: LiveTracks }) {
   const { tracks, chapters, mappings, rows, error, busyChapterId, creatingChapterId } = links;
+  // A note left by a Cancel or Clear must not move focus in a panel opened later (qa-breaker on #3489).
+  useEffect(
+    () => () => {
+      handBack = undefined;
+    },
+    [],
+  );
   const nameOf = chapterNameLookup(chapters);
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
@@ -215,7 +222,7 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
 }
 
 /** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */
-const HAND_BACK_MS = 5000;
+const HAND_BACK_MS = 15_000;
 /**
  * Where the last Cancel or Clear hands focus: one note for the whole table, outside the row because a cleared link draws the row anew. A second
  * press replaces it, so a Cancel on one row never takes focus into that row when a Clear on another has just run, and a narrator who moves focus
