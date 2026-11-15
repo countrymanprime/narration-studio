@@ -131,7 +131,8 @@ export const proofDrivers: Record<string, Driver> = {
       .getByRole('region', { name: 'Notes on this finding' })
       .getByRole('textbox', { name: 'Add a note' })
       .fill('Is this the room or a misread?');
-    await clickNav(page, 'Production');
+    // Leaving by the keyboard (Alt+Left, Back), so the question is photographed with the focus ring on Cancel, which is where the focus is.
+    await page.keyboard.press('Alt+ArrowLeft');
     await confirmDialog(page, 'Unsaved changes').waitFor();
   },
   'note-thread': async (page) => {
