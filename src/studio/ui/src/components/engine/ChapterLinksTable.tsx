@@ -216,8 +216,20 @@ function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'c
 
 /** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */
 const HAND_BACK_MS = 5000;
-/** The note per chapter, outside the row because a cleared link draws the row anew. */
-const handBack = new Map<string, { to: 'change' | 'create'; until: number }>();
+/**
+ * Where the last Cancel or Clear hands focus: one note for the whole table, outside the row because a cleared link draws the row anew. A second
+ * press replaces it, so a Cancel on one row never takes focus into that row when a Clear on another has just run, and a narrator who moves focus
+ * to a real control drops it.
+ */
+let handBack: { chapterId: string; to: 'change' | 'create'; until: number } | undefined;
+if (typeof document !== 'undefined')
+  document.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (!handBack || !(target instanceof HTMLElement) || target === document.body || target.getAttribute('role') === 'dialog') return;
+    const label = target.getAttribute('aria-label') ?? '';
+    // The replacement taking focus is the hand-back itself; any other control means the narrator went there.
+    if (!label.startsWith('Change the track for ') && !label.startsWith('Create a ')) handBack = undefined;
+  });
 
 function ChapterLinkRow({
   row,
@@ -292,15 +304,17 @@ function ChapterLinkRow({
   const short = chapterName(row.chapter, 'short');
   // The button that was pressed leaves the page and another takes its place (Cancel -> Change, Clear -> Create): focus goes to the one that
   // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button (on the
-  // page, or on the panel's own container), never over a control the narrator moved to. The note is the chapter's (the row is drawn anew when its link is cleared) and is used once.
+  // page, or on the panel's own container), never over a control the narrator moved to. The note is the table's single one (the row is drawn anew when its link is cleared).
   const actionsRef = useRef<HTMLSpanElement>(null);
-  const askHandBack = (to: 'change' | 'create') => handBack.set(row.chapter.id, { to, until: Date.now() + HAND_BACK_MS });
+  const askHandBack = (to: 'change' | 'create') => {
+    handBack = { chapterId: row.chapter.id, to, until: Date.now() + HAND_BACK_MS };
+  };
   // No dependency list: the replacement can be drawn a render or two after the state that asked for it (a Clear waits for the host), and the note keeps this a no-op until then.
   useEffect(() => {
-    const note = handBack.get(row.chapter.id);
-    if (!note) return;
+    const note = handBack;
+    if (!note || note.chapterId !== row.chapter.id) return;
     if (Date.now() > note.until) {
-      handBack.delete(row.chapter.id);
+      handBack = undefined;
       return;
     }
     const label = note.to === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
@@ -311,7 +325,7 @@ function ChapterLinkRow({
     const active = document.activeElement;
     // Done once focus is on the replacement at a later render; until then a redraw of the button that took it away is answered with another hand-back.
     if (active === target) {
-      handBack.delete(row.chapter.id);
+      handBack = undefined;
       return;
     }
     if (!active || active === document.body || !document.body.contains(active) || active.getAttribute('role') === 'dialog') target.focus();
