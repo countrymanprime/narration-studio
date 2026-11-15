@@ -727,6 +727,11 @@ describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
     expect(screen.getByText('Say what this does').className).not.toContain('sr-only');
     expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:min-h-0`);
     expect(document.querySelector('h2')!.parentElement!.className).toContain(`${short}:min-h-0`);
+    // The header and the action row also trim their padding and give up the scrollbar gutter there, which a three-button question's second row needs (#3400).
+    for (const part of [screen.getByRole('button', { name: 'OK' }).parentElement!, document.querySelector('h2')!.parentElement!]) {
+      expect(part.className).toContain(`${short}:py-1.5`);
+      expect(part.className).toContain(`${short}:[scrollbar-gutter:auto]`);
+    }
   });
 });
 

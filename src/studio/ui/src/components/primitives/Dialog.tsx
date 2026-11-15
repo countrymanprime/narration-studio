@@ -180,8 +180,10 @@ export function Dialog({
     return bodyRef.current;
   };
   // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
-  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
-  const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
+  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36). Under 400 px tall the header and the
+  // action row give the gutter up: the 10 px is the room a question's two buttons need to stay on one row at 320 px, and a body that scrolls there is rare enough that
+  // an edge 10 px off is the lesser cost (#3400).
+  const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable] [@media(max-height:400px)]:[scrollbar-gutter:auto]' : '';
   // Whether Base UI handed focus back as the dialog closed; when the dialog goes with its parent instead, this stays false (see the cleanup below).
   const handedBack = useRef(false);
   const latest = useRef({ returnFocus, stayOnBody, title });
@@ -358,7 +360,7 @@ export function Dialog({
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
               <div
-                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2`}
+                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5`}
               >
                 <Parts.Title title={title} className={`flex-1 ${OVERLAY_TITLE_CLASS} [@media(max-height:400px)]:line-clamp-3`}>
                   {title}
@@ -403,7 +405,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

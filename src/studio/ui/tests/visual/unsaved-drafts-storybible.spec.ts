@@ -172,22 +172,23 @@ async function withLongEntryName(page: Page): Promise<void> {
   );
 }
 
-async function expectFits(page: Page, dialog: Locator): Promise<void> {
+/** `spare` is the room, in px, the sentence must have left below it in the body: a font a hair wider than this machine's may not cut it off. */
+async function expectFits(page: Page, dialog: Locator, spare = 0): Promise<void> {
   const body = dialog
     .locator('p, [id]')
     .filter({ hasText: /\?$|\.$/ })
     .first();
   await expect(body).toBeVisible();
-  const clipped = await body.evaluate((node) => {
+  const clipped = await body.evaluate((node, room) => {
     const rect = node.getBoundingClientRect();
     for (let parent = node.parentElement; parent; parent = parent.parentElement) {
       if (getComputedStyle(parent).overflowY !== 'visible') {
         const box = parent.getBoundingClientRect();
-        return rect.bottom > box.bottom + 0.5 || rect.top < box.top - 0.5 ? `${rect.bottom} past ${box.bottom}` : '';
+        return rect.bottom > box.bottom - room + 0.5 || rect.top < box.top - 0.5 ? `${rect.bottom} past ${box.bottom} less ${room}` : '';
       }
     }
     return '';
-  });
+  }, spare);
   expect(clipped, 'the sentence is cut off by the dialog').toBe('');
   const view = page.viewportSize()!;
   for (const button of await dialog.getByRole('button').all()) {
@@ -206,7 +207,24 @@ test.describe('at 320 x 300', () => {
     await page.keyboard.press('Alt+ArrowLeft');
     const dialog = unsaved(page, 'Unsaved changes');
     await expect(dialog).toContainText('Save or discard your changes to Bartholomew');
-    await expectFits(page, dialog);
+    await expectFits(page, dialog, 8);
+  });
+
+  // The three-button question is the tightest: its Discard & continue and Save & continue share the second row with 0 px to spare, so a font a hair wider than this
+  // machine's puts them on two rows and cuts the sentence (#3457, CI). Each button 2 px wider on both sides stands for that font.
+  test('the question for an entry with a very long name still shows its whole sentence when the buttons render a hair wider', async ({ page }) => {
+    await withLongEntryName(page);
+    await startEntryEdit(page);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const dialog = unsaved(page, 'Unsaved changes');
+    await expect(dialog).toContainText('Save or discard your changes to Bartholomew');
+    await dialog.getByRole('button').evaluateAll((buttons) =>
+      buttons.forEach((button) => {
+        const own = getComputedStyle(button);
+        (button as HTMLElement).style.paddingInline = `${parseFloat(own.paddingLeft) + 2}px ${parseFloat(own.paddingRight) + 2}px`;
+      }),
+    );
+    await expectFits(page, dialog, 8);
   });
 
   test('the question for a long name and a started relationship shows its whole sentence', async ({ page }) => {
@@ -216,7 +234,7 @@ test.describe('at 320 x 300', () => {
     await page.keyboard.press('Alt+ArrowLeft');
     const dialog = unsaved(page, 'Unsaved changes');
     await expect(dialog).toContainText('Discard');
-    await expectFits(page, dialog);
+    await expectFits(page, dialog, 8);
   });
 
   test('the question for a new entry with a very long name shows its whole sentence', async ({ page }) => {
@@ -228,7 +246,7 @@ test.describe('at 320 x 300', () => {
     await page.keyboard.press('Alt+ArrowLeft');
     const dialog = unsaved(page, 'Unsaved changes');
     await expect(dialog).toContainText('Discard it before');
-    await expectFits(page, dialog);
+    await expectFits(page, dialog, 8);
   });
 });
 
