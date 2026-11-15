@@ -17,6 +17,16 @@ test('Project chooser opened from the header name puts focus on the page, not th
   await expect.poll(async () => (await focusedTag(page)).tag, { message: 'focus is on the chooser page' }).toBe('MAIN');
 });
 
+test('Project chooser opened from the header name by keyboard puts focus on the page, not the body', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/');
+  await page.getByRole('table', { name: 'Chapter pipeline' }).waitFor({ timeout: 20_000 });
+  await page.getByRole('button', { name: /, switch project$/ }).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: /^Back/ }).waitFor({ timeout: 10_000 });
+  await expect.poll(async () => (await focusedTag(page)).tag, { message: 'focus is on the chooser page' }).toBe('MAIN');
+});
+
 test('Project chooser booted into with no project puts focus on the page, not the body', async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 700 });
   await page.goto('/?mockNoProject=1');
