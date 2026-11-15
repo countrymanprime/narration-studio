@@ -50,25 +50,25 @@ describe('the question put to the narrator (#3404)', () => {
   const entry = (name: string) => held(`your changes to ${shortName(name, 16)}`, { brief: 'your entry edit' });
 
   it('offers Save and Discard when every draft can be saved', () => {
-    expect(draftQuestion([entry('Alice')], true)).toEqual({ body: 'Save or discard your changes to Alice before leaving?', canSave: true });
-    expect(draftQuestion([entry('Alice')], false).body).toBe('Save or discard your changes to Alice before going on?');
+    expect(draftQuestion([entry('Alice')])).toEqual({ body: 'Save or discard your changes to Alice before leaving?', canSave: true });
+    expect(draftQuestion([entry('Alice')]).body).toBe('Save or discard your changes to Alice before leaving?');
   });
 
   it('offers only Discard, and no word about saving, when nothing held can be saved', () => {
     const row = held('a relationship you started', { saveable: false });
-    expect(draftQuestion([row], true)).toEqual({
-      body: 'Save is off: A relationship you started cannot be saved from here. Discard it before leaving?',
+    expect(draftQuestion([row])).toEqual({
+      body: "This can't be saved yet: A relationship you started cannot be saved from here. Discard it before leaving?",
       canSave: false,
     });
   });
 
   it('takes Save away when any draft cannot be saved: Save & continue saves all or nothing (#3400 D1)', () => {
     const row = held('a relationship you started', { brief: 'a relationship', saveable: false, needs: 'an entry chosen under To' });
-    const { body, canSave } = draftQuestion([entry('Alice'), row], true);
+    const { body, canSave } = draftQuestion([entry('Alice'), row]);
     expect(canSave).toBe(false);
     // Why Save is gone, what brings it back, and what is dropped, in that order (ux-reviewer on #3457).
     expect(body).toBe(
-      'Save is off: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
+      "This can't be saved yet: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?",
     );
   });
 
@@ -84,14 +84,14 @@ describe('the question put to the narrator (#3404)', () => {
     ];
     for (const name of names) {
       for (let count = 1; count <= 6; count += 1) {
-        for (const leaving of [true, false]) {
+        {
           const drafts = labels(name).slice(0, count);
           for (const subset of [
             drafts,
             drafts.map((draft) => ({ ...draft, saveable: false })),
             drafts.map((draft, i) => ({ ...draft, saveable: i % 2 === 0 })),
           ]) {
-            const { body, canSave } = draftQuestion(subset, leaving);
+            const { body, canSave } = draftQuestion(subset);
             expect([...body].length, body).toBeLessThanOrEqual(canSave ? WHOLE_SENTENCE : WHOLE_SENTENCE_NO_SAVE);
           }
         }
@@ -121,7 +121,7 @@ describe('what Save & continue does after the saves (#3400 D1)', () => {
 
 describe('edge cases the breaker found (#3446)', () => {
   it('B4: when nothing is held any more the question names nothing and says so', () => {
-    expect(draftQuestion([], true)).toEqual({ body: 'There is nothing left to save or discard.', canSave: true });
+    expect(draftQuestion([])).toEqual({ body: 'There is nothing left to save or discard.', canSave: true });
   });
 
   it('B5: a draft that said it did not save, one that cannot be saved and one that changed while saving each get a clause', () => {
@@ -159,13 +159,13 @@ describe('wording the breaker found (#3446, #3457)', () => {
   it('an entry edit beside a suggestion edit still names both, not "2 unsaved changes"', () => {
     const suggestion = held('your edit of the alias suggestion', { brief: 'a suggestion edit', saveable: false });
     const entryEdit = held('your changes to Alice', { brief: 'your entry edit' });
-    expect(draftQuestion([entryEdit, suggestion], true).body).toBe(
-      'Save is off: A suggestion edit cannot be saved from here. Discard your entry edit and a suggestion edit before leaving?',
+    expect(draftQuestion([entryEdit, suggestion]).body).toBe(
+      "This can't be saved yet: A suggestion edit cannot be saved from here. Discard your entry edit and a suggestion edit before leaving?",
     );
   });
 
   it('several half-filled relationship rows read in the plural', () => {
     const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
-    expect(draftQuestion([rows], true).body).toBe('Save is off: 3 relationships you started cannot be saved from here. Discard them before leaving?');
+    expect(draftQuestion([rows]).body).toBe("This can't be saved yet: 3 relationships you started cannot be saved from here. Discard them before leaving?");
   });
 });

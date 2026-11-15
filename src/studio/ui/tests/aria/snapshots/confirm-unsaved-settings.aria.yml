@@ -3,8 +3,8 @@
 - status
 - alert
 - status
-- alertdialog "Unsaved settings":
-  - heading "Unsaved settings" [level=2]
+- alertdialog "Unsaved changes":
+  - heading "Unsaved changes" [level=2]
   - button "Close"
   - paragraph: Save or discard changes before leaving Settings?
   - button "Cancel"
