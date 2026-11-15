@@ -166,4 +166,49 @@ describe('the delivery profile editor over a save that never answers', () => {
     fireEvent.click(within(second).getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
   });
+
+  it('a Save the panel refused is not what the late answer of the first save is about: the text typed meanwhile is kept (#3461 round 10 P1)', async () => {
+    let answer: () => void = () => {};
+    const { dialog, name } = await openEditor(
+      (change, real) =>
+        new Promise((resolve) => {
+          answer = () => void real(change).then(resolve);
+        }),
+    );
+    fireEvent.change(name, { target: { value: 'Tighter peak' } });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await act(async () => {});
+    await act(async () => void vi.advanceTimersByTime(15_001));
+    vi.useRealTimers();
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Discard changes' })).toHaveProperty('disabled', false));
+    // More typed after the give-up, and Save pressed: refused with the notice, nothing sent.
+    fireEvent.change(name, { target: { value: 'Tighter peak and more typed since' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    answer();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    // The first save landed: the editor stays open on the newer text.
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Tighter peak and more typed since');
+  });
+
+  it('a profile list read that is overtaken does not put the row back at an older revision (#3461 round 10 P2)', async () => {
+    const { api, dialog, name } = await openEditor((change, real) => real(change));
+    const stale = await api.deliveryProfiles();
+    const real = api.deliveryProfiles.bind(api);
+    const waiting: Array<(list: Awaited<ReturnType<typeof real>>) => void> = [];
+    vi.spyOn(api, 'deliveryProfiles').mockImplementation(() => new Promise((resolve) => waiting.push(resolve)));
+    fireEvent.change(name, { target: { value: 'Tighter peak' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(waiting.length).toBeGreaterThanOrEqual(2));
+    vi.mocked(api.deliveryProfiles).mockRestore();
+    const fresh = await real();
+    // The later read answers first with the new revision; the earlier one answers last with the old one.
+    waiting.at(-1)!(fresh);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    waiting[0]!(stale);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.getByText('Tighter peak')).toBeTruthy();
+  });
 });
