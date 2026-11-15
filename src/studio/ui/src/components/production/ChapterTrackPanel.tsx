@@ -256,7 +256,7 @@ export function ChapterTrackPanel({
                 {link.candidates.map((candidate) => (
                   <InsetCard as="li" key={candidate.trackGuid} className="flex items-center justify-between gap-2">
                     <span>
-                      {trackName(candidate.trackName)}
+                      {trackName(candidate.trackName, candidate.trackIndex)}
                       {candidate.region && <span style={{ color: 'var(--text-muted)' }}> · region "{candidate.region.name}"</span>}
                     </span>
                     <Button disabled={busy} pending={busy} onClick={() => void link_(candidate.trackGuid)}>

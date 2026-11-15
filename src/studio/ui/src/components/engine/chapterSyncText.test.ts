@@ -217,17 +217,31 @@ describe('chapterSyncActivityRows', () => {
 });
 
 describe('a track whose name is blank (#3357)', () => {
-  it('reads as "Unnamed track" in the reason sentences, never as an empty quote', () => {
+  it('reads as its place ("Track 1") in the reason sentences, never as an empty quote', () => {
     const base = { chapterId: 'c5', chapterTitle: 'Chapter 5' };
     const tie: ChapterSyncNeedsYou = { ...base, reason: 'ambiguous', best: null, candidates: [candidate('g1', ' '), candidate('g2', 'Chapter 5 part 2')] };
-    expect(chapterSyncReasonText(tie)).toBe('“Unnamed track” and “Chapter 5 part 2” both look like it.');
+    expect(chapterSyncReasonText(tie)).toBe('“Track 1” and “Chapter 5 part 2” both look like it.');
     const close: ChapterSyncNeedsYou = { ...base, reason: 'uncertain', best: candidate('g1', ''), candidates: [] };
     expect(chapterSyncReasonText(close)).not.toContain('“”');
-    expect(chapterSyncReasonText(close)).toContain('“Unnamed track”');
+    expect(chapterSyncReasonText(close)).toContain('“Track 1”');
   });
 
   it('names an unmatched blank track in the not-chapters line', () => {
     const blank = { guid: 'g', name: '' } as ChapterSyncTrackRef;
     expect(chapterSyncNotChaptersText([blank], []).names).toBe('Unnamed track');
+  });
+
+  // The track's place is in the payload, so a blank name reads "Track 4" as the links row does, not a second reading.
+  it("uses the track's place when the payload has it", () => {
+    const blank = { guid: 'g', name: '', index: 3 } as ChapterSyncTrackRef;
+    expect(chapterSyncNotChaptersText([blank], []).names).toBe('Track 4');
+    const tie: ChapterSyncNeedsYou = {
+      chapterId: 'c5',
+      chapterTitle: 'Chapter 5',
+      reason: 'ambiguous',
+      best: null,
+      candidates: [{ ...candidate('g1', ''), trackIndex: 6 }, candidate('g2', 'Chapter 5 part 2')],
+    };
+    expect(chapterSyncReasonText(tie)).toBe('“Track 7” and “Chapter 5 part 2” both look like it.');
   });
 });

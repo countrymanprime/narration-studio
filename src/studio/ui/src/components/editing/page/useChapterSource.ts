@@ -148,7 +148,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
           ? {
               chapterId,
               items: found.items,
-              place: `${found.track.isFolder ? 'folder' : 'track'} “${readable(found.track.name)}”`,
+              place: `${found.track.isFolder ? 'folder' : 'track'} “${readable(found.track.name, found.track.index)}”`,
               link,
               folder: found.track.isFolder,
               unsaved,

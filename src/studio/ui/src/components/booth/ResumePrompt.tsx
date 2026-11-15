@@ -374,7 +374,7 @@ function AgreeOrChanged({
 
 function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: number | null, label?: string) => void }) {
   const { match, track, located, verdict, lastReading } = result;
-  const trackName = track ? readable(track.name) : undefined;
+  const trackName = track ? readable(track.name, track.index) : undefined;
   // "Chapter 5 track", but the name a blank track is given already says it is a track, so it is not followed by a second "track".
   const trackLine = track ? (readable(track.name) === track.name.trim() ? `${trackName} track` : trackName) : 'track';
 
@@ -388,7 +388,7 @@ function LocatedBody({ result, onChoose }: { result: Located; onChoose: (word: n
       match.status === 'ambiguous'
         ? `More than one track in ${project} could hold this chapter, so ${FROM_THE_TOP}`
         : match.status === 'uncertain' && match.candidates[0]
-          ? `The closest track in ${project}, ${readable(match.candidates[0].trackName)}, is not a sure match, so ${FROM_THE_TOP}`
+          ? `The closest track in ${project}, ${readable(match.candidates[0].trackName, match.candidates[0].trackIndex)}, is not a sure match, so ${FROM_THE_TOP}`
           : `No track in ${project} matches this chapter, so ${FROM_THE_TOP}`;
     return (
       <Actions
