@@ -40,8 +40,13 @@ describe('DeliveryProfileEditor', () => {
   it('with nothing changed Escape and the close button leave at once', async () => {
     const onCancel = mount();
     const confirm = vi.spyOn(overlay, 'confirm');
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    // The header's close button and the footer's button, which says Close (not Discard changes) while nothing is changed.
+    expect(screen.queryByRole('button', { name: 'Discard changes' })).toBeNull();
+    const [header, footer] = screen.getAllByRole('button', { name: 'Close' });
+    fireEvent.click(header!);
     await waitFor(() => expect(onCancel).toHaveBeenCalledTimes(1));
+    fireEvent.click(footer!);
+    expect(onCancel).toHaveBeenCalledTimes(2);
     expect(confirm).not.toHaveBeenCalled();
   });
 
