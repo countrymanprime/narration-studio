@@ -311,6 +311,20 @@ describe('CreditsPanel', () => {
     );
   });
 
+  it('text typed on a New template after its save went past the limit survives the late answer (#3461 round 7 N1)', async () => {
+    const { api } = renderPanel();
+    const { answers } = await newTemplateSaveGivenUp(api, 'new one');
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'new one PLUS MORE' } });
+    answers[0]!();
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === 'new one')).toBe(true));
+    const created = (await api.creditsTemplates()).find((template) => template.body === 'new one')!;
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(created.id));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('new one PLUS MORE');
+    expect(screen.getByRole('button', { name: 'Save template' })).toHaveProperty('disabled', false);
+    expect(registry.heldNow()).toHaveLength(1);
+  });
+
   it('Save again before the first answer of a New template lands creates no second template (#3461 B2)', async () => {
     const { api } = renderPanel();
     const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once.');

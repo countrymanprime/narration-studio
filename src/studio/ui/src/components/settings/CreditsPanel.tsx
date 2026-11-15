@@ -212,6 +212,10 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
               return;
             }
             await load();
+            // The editor moves onto the template that was created, with what is in it now: text typed after the limit is an edit of that template still to save, not something
+            // the template's own body replaces (#3461 round 7 N1). The baseline and what was last sent say what the template holds.
+            baseline.current = { id: late.id, name: sent.name, kind: sent.kind, body: sent.body };
+            lastSent.current = { id: late.id, name: sent.name, kind: sent.kind, body: sent.body };
             setSelectedId(late.id);
           })
           .catch(() => pendingCreates.current.delete(seq));
