@@ -296,6 +296,75 @@ describe('CreditsPanel', () => {
     return { save, answers };
   };
 
+  // Round 11 (BR-A, BR-B, BR-C): a late answer's list read that is overtaken by a newer read is dropped, so it never puts a stale list back over what the narrator did since.
+  const staleListRead = async (api: ReturnType<typeof createMockApi>) => {
+    const { answers, save } = await newTemplateSaveGivenUp(api, 'Brand new.');
+    const real = api.creditsTemplates.bind(api);
+    let release: () => void = () => {};
+    let held = false;
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(() => {
+      const snapshot = real();
+      if (held) return snapshot;
+      held = true;
+      return new Promise((resolve) => {
+        release = () => void snapshot.then(resolve);
+      });
+    });
+    answers[0]!();
+    save.mockRestore();
+    await waitFor(() => expect(held).toBe(true));
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const select = screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement;
+    return { select, release: () => release() };
+  };
+  const pickOther = async (select: HTMLSelectElement) => {
+    const other = [...select.options].find((option) => option.value !== '' && option.value !== select.value)!;
+    fireEvent.change(select, { target: { value: other.value } });
+    await waitFor(() => expect(select.value).toBe(other.value));
+    return other.value;
+  };
+
+  it("a late answer's list read that lands after a Duplicate does not drop the copy or the text typed on it (#3461 round 11 BR-A)", async () => {
+    const { api } = renderPanel();
+    const { select, release } = await staleListRead(api);
+    await pickOther(select);
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).not.toBe(''));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Typed on the copy.' } });
+    const optionsBefore = select.options.length;
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(select.options.length).toBe(optionsBefore);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed on the copy.');
+  });
+
+  it("a late answer's list read that lands after a Save does not put the old body back (#3461 round 11 BR-B)", async () => {
+    const { api } = renderPanel();
+    const { select, release } = await staleListRead(api);
+    await pickOther(select);
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'EDITED T2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === 'EDITED T2')).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('EDITED T2');
+    expect(registry.heldNow()).toHaveLength(0);
+  });
+
+  it("a late answer's list read that lands after a Delete does not bring the template back (#3461 round 11 BR-C)", async () => {
+    const { api } = renderPanel();
+    const { select, release } = await staleListRead(api);
+    const gone = await pickOther(select);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.id === gone)).toBe(false));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect([...select.options].some((option) => option.value === gone)).toBe(false);
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));

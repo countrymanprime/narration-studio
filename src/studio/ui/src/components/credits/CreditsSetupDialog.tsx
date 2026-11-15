@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { CreditsSetupState, CreditValues, DetectedCandidate } from '../../types';
@@ -9,6 +9,7 @@ import { Field } from '../primitives/Field';
 import type { Notify } from '../primitives/Toast';
 import { plural } from '../../plural';
 import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
+import { SaveTimeout, withinSaveLimit } from '../../studio/drafts/unsavedDrafts';
 
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), matching CreditsPanel's
 // own map (detectedToken there goes the other way, lowerCamelCase to this form).
@@ -77,12 +78,40 @@ export function CreditsSetupDialog({
   const askedTokens = new Set(state.fields.map((field) => field.token));
   const moreFields = state.candidates.filter((candidate) => !askedTokens.has(candidate.token));
 
+  // A call the host has not answered at the limit: the dialog is given back with what was typed, and a second press sends nothing while the first is still out (#3461 round 11 BR-D).
+  const outstanding = useRef(false);
+  const lateAnswer = useRef(false);
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
   const run = async (action: () => Promise<CreditsSetupState>) => {
+    if (outstanding.current) {
+      notify('Your first save is still waiting for an answer.');
+      return;
+    }
     setBusy(true);
+    outstanding.current = true;
+    const call = action();
+    void call.then(
+      (next) => {
+        outstanding.current = false;
+        // An answer that lands after the limit is still the host's: it finishes the setup if the dialog is still here.
+        if (lateAnswer.current && mounted.current) onDone(next);
+      },
+      () => void (outstanding.current = false),
+    );
+    lateAnswer.current = false;
     try {
-      onDone(await action());
+      onDone(await withinSaveLimit(call));
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      if (error instanceof SaveTimeout) {
+        lateAnswer.current = true;
+        notify('The save did not finish. What you typed is still here.', 'error');
+      } else notify(apiErrorMessage(error), 'error');
     } finally {
       setBusy(false);
     }

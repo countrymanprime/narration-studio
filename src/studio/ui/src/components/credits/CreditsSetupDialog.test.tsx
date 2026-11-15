@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -230,6 +230,29 @@ describe('CreditsSetupDialog', () => {
       await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('a setup save that never answers gives the dialog back at the limit with the typed values kept, and a second Save sends nothing (#3461 round 11 BR-D)', async () => {
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>(() => {}));
+      const { notify, onDone } = renderDialog(STATE, { creditsSetupSave });
+      typeNarrator();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await act(async () => {});
+        expect(screen.getByRole('button', { name: 'Not now' })).toHaveProperty('disabled', true);
+        await act(async () => void vi.advanceTimersByTime(15_001));
+      } finally {
+        vi.useRealTimers();
+      }
+      expect(notify).toHaveBeenCalledWith('The save did not finish. What you typed is still here.', 'error');
+      expect(screen.getByRole('button', { name: 'Not now' })).toHaveProperty('disabled', false);
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Sam Reader');
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await act(async () => {});
+      expect(creditsSetupSave).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledWith('Your first save is still waiting for an answer.');
+      expect(onDone).not.toHaveBeenCalled();
     });
   });
 });

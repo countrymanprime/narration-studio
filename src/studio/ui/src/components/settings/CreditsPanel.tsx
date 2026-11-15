@@ -115,20 +115,31 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const createdIds = useRef(new Map<number, string>());
   const lastSent = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
 
+  // Every read of the template list (the load, the list alone, a Retry) takes a number, and only the latest one is drawn: an older answer that lands after a newer read has
+  // committed (a Duplicate, a Save, a Delete) would put its stale list back, drop a copy the narrator is typing on, revert a saved body or bring a deleted template back (#3461
+  // round 11 BR-A, BR-B, BR-C). The project values have their own number, since only a load reads them.
+  const listSeq = useRef(0);
+  const valuesSeq = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++listSeq.current;
+    const mineValues = ++valuesSeq.current;
     try {
       const [nextTemplates, projectValues] = await Promise.all([api.creditsTemplates(), api.creditsProjectValues()]);
-      setTemplates(nextTemplates);
-      setValues(projectValues.values);
-      setNarratorGlobal(projectValues.narratorGlobal);
-      setDetected(projectValues.detected);
-      setLoadError('');
-      setSelectedId((current) => {
-        if (nextTemplates.some((template) => template.id === current)) return current;
-        return nextTemplates[0]?.id ?? '';
-      });
+      if (mine === listSeq.current) {
+        setTemplates(nextTemplates);
+        setSelectedId((current) => {
+          if (nextTemplates.some((template) => template.id === current)) return current;
+          return nextTemplates[0]?.id ?? '';
+        });
+      }
+      if (mineValues === valuesSeq.current) {
+        setValues(projectValues.values);
+        setNarratorGlobal(projectValues.narratorGlobal);
+        setDetected(projectValues.detected);
+        setLoadError('');
+      }
     } catch (error) {
-      setLoadError(apiErrorMessage(error));
+      if (mine === listSeq.current) setLoadError(apiErrorMessage(error));
     }
   }, [api]);
   useEffect(() => {
@@ -189,10 +200,14 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // The template list alone, bounded by the save limit: a Retry or a late answer's read only refreshes the list and never moves the editor (`load` would put a New draft onto the first
   // template and drop what was typed in it) (#3461 round 10 C-3, C-5).
   const readTemplates = async (): Promise<boolean> => {
+    const mine = ++listSeq.current;
     try {
-      setTemplates(await withinSaveLimit(api.creditsTemplates()));
+      const read = await withinSaveLimit(api.creditsTemplates());
+      if (mine === listSeq.current) setTemplates(read);
       return true;
     } catch (error) {
+      // A read that was overtaken says nothing: the newer one decides what the narrator sees.
+      if (mine !== listSeq.current) return false;
       notify(
         `The templates could not be read: ${error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error)}`,
         'error',
