@@ -30,9 +30,11 @@ test('Jump menu opened again straight after it closed still returns focus to the
 // The test puts focus on nothing (a narrator who clicked off) before the page key. It waits for the jump menu to have handed focus back first: the menu hands
 // it back a tick after its exit animation, and on a slow machine (#3498) that came after the blur, so focus was on the jump button when "?" was pressed and
 // the sheet rightly returned there. Waiting on that state, not on a time, makes the blur happen after the hand-back at any speed; the same test also runs
-// with the CPU throttled, which is how the race showed.
-// An Escape pressed in the first moments after a dialog took focus is not heard (its key handling is registered a moment after focus lands), so the test presses it
-// until the dialog is gone instead of guessing how long to wait; it never presses it with nothing open that it could close.
+// with the CPU throttled, which is how the race showed. The throttled run guards against a time-based wait creeping back; it does not guard the intent
+// itself (under the throttle the sheet opens after the jump menu's 600 ms `recentOpener` window, so the borrow it protects against cannot happen): the normal-speed
+// run does, and fails if the title check in `Dialog.tsx`'s `openerAtMount` is removed.
+// An Escape pressed in the first ~50-100 ms after a dialog took focus is not heard (#3500: a product behaviour to fix, after which this loop becomes one press), so the
+// test presses it until the dialog is gone instead of guessing how long to wait.
 async function pressEscapeUntilClosed(page: Page) {
   await expect(async () => {
     await page.keyboard.press('Escape');
