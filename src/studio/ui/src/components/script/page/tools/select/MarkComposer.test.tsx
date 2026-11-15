@@ -103,10 +103,10 @@ describe('a-query-needs-its-question', () => {
 });
 
 describe('focus-and-aria (composer)', () => {
-  it('is a named dialog and gives focus back to its opener on Cancel', async () => {
+  it('is a named dialog and gives focus back to its opener on Discard note', async () => {
     const { onClose } = await open('stress');
     expect(screen.getByRole('dialog', { name: 'Mark “Alice”' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Discard note' }));
     expect(onClose).toHaveBeenCalled();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Mark it' })));
   });
@@ -132,7 +132,7 @@ describe('leaving the composer with text typed (#3400, qa-breaker on #3458)', ()
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
-  it('Escape with nothing typed closes at once, and the Cancel button is the narrator discarding', async () => {
+  it('Escape with nothing typed closes at once, and the Discard note button is the narrator discarding', async () => {
     const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
     const { onClose } = await open('stress');
     await userEvent.keyboard('{Escape}');

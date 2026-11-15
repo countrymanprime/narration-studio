@@ -379,14 +379,14 @@ describe('holders-render-clean-after-their-save', () => {
 });
 
 describe('edits-a-message-and-deletes-one-with-undo', () => {
-  it('Edit shows a labelled textarea; Save changes the message and Cancel leaves it', async () => {
+  it('Edit shows a labelled textarea; Save changes the message and Discard edit leaves it', async () => {
     const { query } = await seed();
     const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
     const edit = () => card(query.id).getAllByRole('button', { name: 'Edit this message' }).at(-1)!;
     await user.click(edit());
     expect(card(query.id).getByRole('textbox', { name: 'Edit message' })).toBeTruthy();
-    await user.click(card(query.id).getByRole('button', { name: 'Cancel' }));
+    await user.click(card(query.id).getByRole('button', { name: 'Discard edit' }));
     expect(card(query.id).queryByRole('textbox', { name: 'Edit message' })).toBeNull();
 
     await user.click(edit());

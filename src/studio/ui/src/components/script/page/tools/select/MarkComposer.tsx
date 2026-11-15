@@ -43,7 +43,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     showInRail({ tab: 'marks', sel: mark.id });
   };
 
-  // Escape and the close button are ways out, not a decision to throw the note away: with text typed they ask. The Cancel button's own label is the decision (#3400).
+  // Escape and the close button are ways out, not a decision to throw the note away: with text typed they ask. The Discard note button's own label is the decision (#3400).
   const leave = async () => {
     if (text.trim() !== '') {
       const discard = await confirmDiscard('your note');
@@ -61,7 +61,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
       actions={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            Discard note
           </Button>
           <Button pending={saving} onClick={() => void save()}>
             Save

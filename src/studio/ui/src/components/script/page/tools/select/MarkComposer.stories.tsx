@@ -7,7 +7,7 @@ import { SELECTION } from './fixtures';
 import { MarkComposer, QUERY_NEEDED } from './MarkComposer';
 
 // The mock's composer (`pages/script/dialogs.tsx`): titled with the selected words, a Type select, "Note (optional)" or, for a
-// type that asks, "Your question", and Cancel and Save. An empty query is refused with a sentence.
+// type that asks, "Your question", and Discard note and Save. An empty query is refused with a sentence.
 const meta = {
   title: 'Script/MarkComposer',
   component: MarkComposer,

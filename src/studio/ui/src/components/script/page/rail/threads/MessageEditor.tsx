@@ -4,7 +4,7 @@ import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/uns
 import { Button } from '../../../../primitives/Button';
 import { NoteTextarea } from './NoteTextarea';
 
-/** One message of a thread being edited: a labelled box with Save and Cancel. It keeps its own draft until Save. */
+/** One message of a thread being edited: a labelled box with Save and Discard edit. It keeps its own draft until Save. */
 export function MessageEditor({
   initial,
   onSave,
@@ -49,7 +49,7 @@ export function MessageEditor({
       <NoteTextarea aria-label="Edit message" autoFocus value={text} onChange={(event) => setText(event.target.value)} />
       <div className="flex gap-1.5">
         <Button variant="secondary" size="sm" onClick={onCancel}>
-          Cancel
+          Discard edit
         </Button>
         <Button size="sm" onClick={() => void save()}>
           Save

@@ -35,7 +35,7 @@ test('switching the Script rail tab over a typed pronunciation asks Unsaved chan
   const rail = await typePronunciation(page, 'tired', 'TY-erd');
   await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('Save or discard your “tired” pronunciation before going on?');
+  await expect(question).toContainText('Save or discard your “tired” pronunciation before leaving?');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(rail.getByLabel('Pronunciation of tired for my dictionary')).toHaveValue('TY-erd');
   await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
@@ -69,7 +69,7 @@ test('looking up another word in the Script text over a typed pronunciation asks
   await selectReaderWord(page, 'sister');
   await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }).click();
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('before going on?');
+  await expect(question).toContainText('before leaving?');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(rail.getByLabel('Pronunciation of tired for my dictionary')).toHaveValue('TY-erd');
 });
@@ -165,7 +165,7 @@ test('changing the Type of a note keeps the reply typed under it', async ({ page
   ).toHaveValue('Typed reply keep me');
 });
 
-// Escape and the close button on the Mark composer are ways out, so with a note typed they ask (the Cancel button is the narrator discarding).
+// Escape and the close button on the Mark composer are ways out, so with a note typed they ask (the Discard note button is the narrator discarding).
 test('Escape on the Mark composer with a note typed asks, and Keep editing leaves the dialog and the text', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
