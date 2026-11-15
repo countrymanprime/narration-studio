@@ -205,11 +205,18 @@ if (typeof window !== 'undefined') {
       else if (event.key === 'Enter' && event.repeat && popGuard.answerEnterHeld && target?.matches('input, textarea')) {
         event.preventDefault();
         event.stopImmediatePropagation();
+      } else if (event.key === 'Enter' && !event.repeat) {
+        // A fresh Enter outside a question is a new press, not the answering one still held: a keyup that was lost (the window lost focus) must not leave the next hold dropped (#3457 qa round 6 A-1).
+        popGuard.answerEnterHeld = false;
       }
       if (!target?.closest('[data-stay-button]')) popGuard.lastAskKeyAt = event.timeStamp;
     },
     true,
   );
+  // The key may be let go while the window does not have the focus, and its keyup never arrives here.
+  window.addEventListener('blur', () => {
+    popGuard.answerEnterHeld = false;
+  });
   window.addEventListener(
     'keyup',
     (event) => {

@@ -195,6 +195,18 @@ describe('the key that answered a question does not decide in the box the focus 
     expect(answered).toHaveBeenCalledTimes(1);
   });
 
+  it('a keyup that never arrives does not leave the next hold dropped: a fresh Enter, or the window losing focus, ends the rule (#3457 qa round 6 A-1)', () => {
+    const { keep, note } = scene();
+    // The answering Enter, whose keyup is lost; the next Enter in the box is a fresh press, and its repeats are the narrator's own.
+    press(keep);
+    expect(press(note).defaultPrevented).toBe(false);
+    expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
+    // The same through the window losing focus.
+    press(keep);
+    window.dispatchEvent(new Event('blur'));
+    expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
+  });
+
   it('a deliberate Enter right after the answer reaches the box', () => {
     const { keep, alias, reached } = scene();
     press(keep);
