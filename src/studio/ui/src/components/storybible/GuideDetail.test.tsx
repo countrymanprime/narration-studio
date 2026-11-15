@@ -524,21 +524,25 @@ describe('mark-reviewed-in-the-detail', () => {
     expect(screen.queryByRole('button', { name: 'Mark reviewed' })).toBeNull();
   });
 
-  it('blocked-while-anything-needs-verification: the button is off with the reason and no call is made', () => {
+  it('blocked-while-anything-needs-verification: the button is off with the reason and no call is made', async () => {
     const { mark } = renderReview(cat(), { toVerify: 2 });
-    const button = screen.getByRole('button', { name: 'Mark reviewed' }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Mark reviewed' });
+    // Off with its reason, but in the Tab order (aria-disabled, not a native disabled button: a keyboard reaches the reason, #3495).
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    button.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Verify or reject its suggestions first.');
     fireEvent.click(button);
     expect(mark).not.toHaveBeenCalled();
   });
 
-  it('an entry with only suggestions to verify shows the flag and a Mark reviewed button that is off with the reason', () => {
+  it('an entry with only suggestions to verify shows the flag and a Mark reviewed button that is off with the reason', async () => {
     const { mark } = renderReview(cat({ review: { entry: false, aliases: [] }, review_state: 'reviewed' }), { toVerify: 1 });
     expect(screen.getAllByText('Needs review').length).toBeGreaterThan(0);
-    const button = screen.getByRole('button', { name: 'Mark reviewed' }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Mark reviewed' });
+    // Off with its reason, but in the Tab order (aria-disabled, not a native disabled button: a keyboard reaches the reason, #3495).
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    button.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Verify or reject its suggestions first.');
     fireEvent.click(button);
     expect(mark).not.toHaveBeenCalled();
   });

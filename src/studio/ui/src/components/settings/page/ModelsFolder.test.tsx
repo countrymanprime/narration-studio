@@ -59,7 +59,7 @@ describe('Models folder: breaks', () => {
     const api = await renderModels({ assetMove: 'moved' });
     const pick = vi.spyOn(api, 'assetsFolderPick');
     const change = await screen.findByRole('button', { name: 'Change location…' });
-    expect(change.hasAttribute('disabled')).toBe(true);
+    expect(change.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(change);
     const reset = await screen.findByRole('button', { name: 'Reset the models folder to the default folder' });
     expect(reset.getAttribute('aria-disabled')).toBe('true');

@@ -344,9 +344,11 @@ describe('needs-review-show-menu', () => {
     const api = await renderBible(async (host) => void (await host.guideFlagReview('white-rabbit')));
     const mark = vi.spyOn(api, 'guideMarkReviewed');
     fireEvent.click(rowFor('White Rabbit'));
-    const button = (await screen.findByRole('button', { name: 'Mark reviewed' })) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(screen.getByRole('group', { name: 'Verify or reject its suggestions first.' })).toBeTruthy();
+    const button = await screen.findByRole('button', { name: 'Mark reviewed' });
+    // Off with its reason, but in the Tab order (aria-disabled, not a native disabled button: a keyboard reaches the reason, #3495).
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    button.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Verify or reject its suggestions first.');
     fireEvent.click(button);
     expect(mark).not.toHaveBeenCalled();
   });

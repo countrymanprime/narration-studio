@@ -4,7 +4,6 @@ import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { IconButton } from '../../primitives/IconButton';
-import { TooltipTarget } from '../../primitives/Tooltip';
 import { WorkDialog } from '../../primitives/WorkDialog';
 import { isMoveRunning, type AssetMovePhase, type AssetMoveState, type WorkJob } from '../../../types';
 import { useAssetsStore } from './AssetsStore';
@@ -92,17 +91,16 @@ export function ModelsFolderControl() {
 
   return (
     <>
-      {previous ? (
-        <TooltipTarget text={oldFirst}>
-          <Button variant="secondary" size="sm" className="flex-none" disabled>
-            Change location…
-          </Button>
-        </TooltipTarget>
-      ) : (
-        <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => setAsking('change')}>
-          Change location…
-        </Button>
-      )}
+      <Button
+        variant="secondary"
+        size="sm"
+        className="flex-none"
+        pending={picking}
+        disabledReason={previous ? oldFirst : undefined}
+        onClick={() => setAsking('change')}
+      >
+        Change location…
+      </Button>
       {catalog.custom && (
         <IconButton
           action="undo"

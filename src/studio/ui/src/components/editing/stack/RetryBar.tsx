@@ -3,7 +3,6 @@ import { Button } from '../../primitives/Button';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
-import { TooltipTarget } from '../../primitives/Tooltip';
 import { RETRY_LABEL, RETRY_SHORT, STACK_TEXT } from './stackText';
 import { useRetryMode } from './useRetryMode';
 import { plural } from '../../../plural';
@@ -61,17 +60,16 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
         </span>
       ) : null}
       {mode === 'stack' ? (
-        reason !== undefined || count === 0 ? (
-          <TooltipTarget text={reason ?? 'There are no retries to stack.'}>
-            <Button variant="secondary" size="sm" disabled data-stack-all>
-              {STACK_TEXT.action}
-            </Button>
-          </TooltipTarget>
-        ) : (
-          <Button variant="secondary" size="sm" data-stack-all onClick={onStack}>
-            {STACK_TEXT.action}
-          </Button>
-        )
+        // Off with its reason on the button itself (aria-disabled, in the Tab order), not a native `disabled` button under a tooltip a keyboard never reaches (#3495).
+        <Button
+          variant="secondary"
+          size="sm"
+          data-stack-all
+          disabledReason={reason !== undefined || count === 0 ? (reason ?? 'There are no retries to stack.') : undefined}
+          onClick={onStack}
+        >
+          {STACK_TEXT.action}
+        </Button>
       ) : null}
       {error ? (
         <span role="alert" className="text-sm text-[var(--danger-text)]">

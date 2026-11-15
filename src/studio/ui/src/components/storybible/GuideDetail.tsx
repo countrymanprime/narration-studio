@@ -647,11 +647,9 @@ export function GuideDetail({
   // Merges `source` into this entry; a locked source stays, since the merge would delete it.
   const mergeButton = (source?: GuideEntity) =>
     source?.locked ? (
-      <TooltipTarget text="Locked entries cannot be merged because the source would be deleted.">
-        <Button variant="secondary" disabled>
-          Merge into this entry
-        </Button>
-      </TooltipTarget>
+      <Button variant="secondary" disabledReason="Locked entries cannot be merged because the source would be deleted.">
+        Merge into this entry
+      </Button>
     ) : (
       <Button
         variant="secondary"
@@ -753,11 +751,9 @@ export function GuideDetail({
         <>
           {(entryFlagged(entity) || toVerify > 0) &&
             (toVerify > 0 ? (
-              <TooltipTarget text={VERIFY_FIRST_REASON}>
-                <Button variant="secondary" disabled>
-                  Mark reviewed
-                </Button>
-              </TooltipTarget>
+              <Button variant="secondary" disabledReason={VERIFY_FIRST_REASON}>
+                Mark reviewed
+              </Button>
             ) : (
               <Button variant="secondary" pending={mutation.isPending('review')} disabledReason={busyReason('review')} onClick={() => void markReviewed()}>
                 Mark reviewed

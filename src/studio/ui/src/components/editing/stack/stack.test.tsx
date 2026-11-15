@@ -302,8 +302,10 @@ describe('what the DAW can do', () => {
     const view = mount(chapterLines(), stepsCaps(false));
     await flush();
     const reason = 'Audacity keeps backups only when you turn them on.';
-    expect(screen.getAllByLabelText(reason).length).toBeGreaterThan(0);
-    expect(chapterStack().disabled).toBe(true);
+    expect(chapterStack().getAttribute('aria-disabled')).toBe('true');
+    // The reason is on the button itself, in the Tab order: it shows on focus (#3495).
+    act(() => chapterStack().focus());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(reason);
     act(() => stack.requestStack());
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(toast).toHaveBeenCalledWith(reason, { tone: 'error' });
@@ -353,9 +355,12 @@ describe('what the DAW can do', () => {
     mount(stackedLines(), 'reaper-off');
     await flush();
     const reason = DAW_SETUPS['reaper-off'].capabilities['stack_takes']!.message!;
-    expect(chapterStack().disabled).toBe(true);
+    expect(chapterStack().getAttribute('aria-disabled')).toBe('true');
     expect(unstackButton('p-1')!.disabled).toBe(true);
-    expect(screen.getAllByLabelText(reason).length).toBeGreaterThanOrEqual(2);
+    // The chapter's Stack all is off with its reason on the button (shown on focus); each Unstack still wears the reason as a labelled wrapper.
+    act(() => chapterStack().focus());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(reason);
+    expect(screen.getAllByLabelText(reason).length).toBeGreaterThanOrEqual(1);
     const menu = buildWordMenu({ doc: marksDoc(), keys: ['p-1:0'], summary: summarize(marksDoc(), ['p-1:0'], [], (t) => t), play: vi.fn(), notify: vi.fn() });
     expect(
       menu.groups
