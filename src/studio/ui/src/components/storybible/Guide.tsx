@@ -385,7 +385,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
 
   return (
     <CommandScope kind="page">
-      <div className="flex h-full flex-col gap-4 overflow-hidden max-lg:h-auto max-lg:overflow-visible">
+      {/* The 4 px of margin and padding give the focus ring of the header's buttons (a 2 px outline 2 px off) room inside the clip, so it is not cut on the top and right
+            where the More actions button stands at the corner; content does not move (#3416). */}
+      <div className="-m-1 flex h-[calc(100%+0.5rem)] flex-col gap-4 overflow-hidden p-1 max-lg:m-0 max-lg:h-auto max-lg:overflow-visible max-lg:p-0">
         <div className="flex flex-none items-center justify-between gap-2">
           <Heading title="Story Bible" />
           <div className="flex items-center gap-2">
