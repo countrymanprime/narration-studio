@@ -56,7 +56,7 @@ function Message({
       <div className="flex flex-col gap-1.5">
         <Field label="Edit note" textarea autoFocus value={draft} onChange={(value) => setDraft([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))} />
         <div className="flex gap-1.5">
-          <IconButton action="cancelEdit" size="sm" onClick={() => setDraft(undefined)} />
+          <IconButton action="cancelEdit" label="Discard edit" size="sm" onClick={() => setDraft(undefined)} />
           <IconButton
             action="saveNote"
             size="sm"

@@ -169,4 +169,15 @@ describe('notes-on-this-finding', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
     expect(await screen.findByText(/^Not saved: /)).toBeTruthy();
   });
+
+  it('the button that drops an edit being typed says Discard edit, and does not ask (#3400)', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: 'Second wording' } });
+    expect(screen.queryByRole('button', { name: 'Cancel the edit' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard edit' }));
+    expect(screen.queryByRole('textbox', { name: 'Edit note' })).toBeNull();
+    expect(registry.heldNow()).toEqual([]);
+  });
 });
