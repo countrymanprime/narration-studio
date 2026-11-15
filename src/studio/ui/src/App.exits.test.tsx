@@ -12,7 +12,7 @@ import { overlay } from './overlay/overlayService';
 import { ThemeProvider } from './theme/ThemeContext';
 import { useUnsavedDraft } from './studio/drafts/unsavedDrafts';
 
-const probe = vi.hoisted(() => ({ saves: vi.fn(), hang: false }));
+const probe = vi.hoisted(() => ({ saves: vi.fn(), hang: false, land: undefined as ((saved: boolean) => void) | undefined }));
 vi.mock('./components/script/page/ScriptPage', () => ({
   ScriptPage: function ProbePage() {
     const [dirty, setDirty] = useState(true);
@@ -20,7 +20,10 @@ vi.mock('./components/script/page/ScriptPage', () => ({
       dirty,
       label: 'a probe note',
       save: async () => {
-        if (probe.hang) return new Promise<boolean>(() => {});
+        if (probe.hang)
+          return new Promise<boolean>((resolve) => {
+            probe.land = resolve;
+          });
         probe.saves();
         setDirty(false);
         return true;
@@ -35,6 +38,7 @@ configure({ asyncUtilTimeout: 12_000 });
 beforeEach(() => {
   probe.saves.mockClear();
   probe.hang = false;
+  probe.land = undefined;
   window.history.replaceState(null, '', '/');
   document.title = '';
   for (const toast of overlay.getSnapshot().toasts) overlay.dismissToast(toast.id);
@@ -147,5 +151,25 @@ describe('the message about a slow save goes with the text it speaks of (#3446 P
     fireEvent.click(within(await question()).getByRole('button', { name: 'Discard & continue' }));
     await waitFor(() => expect(window.location.pathname).toBe('/'));
     expect(slow()).toBe(false);
+  });
+});
+
+describe('a save that lands after the limit takes its slow-save message away (#3491 PB-2b)', () => {
+  it('the toast "Saving is taking too long" is gone once the text is saved', async () => {
+    probe.hang = true;
+    await mount();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
+    const asked = await question();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(within(asked).getByRole('button', { name: 'Save & continue' }));
+      await act(async () => void vi.advanceTimersByTime(15_001));
+    } finally {
+      vi.useRealTimers();
+    }
+    const slow = () => overlay.getSnapshot().toasts.some((toast) => toast.text === 'Saving is taking too long. What you typed is still here.');
+    await waitFor(() => expect(slow()).toBe(true));
+    await act(async () => probe.land?.(true));
+    await waitFor(() => expect(slow()).toBe(false));
   });
 });
