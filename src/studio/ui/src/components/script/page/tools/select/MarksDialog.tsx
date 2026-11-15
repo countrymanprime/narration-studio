@@ -65,6 +65,12 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
   };
   const edit = (index: number, change: Partial<MarkType>): Promise<void> => commit(types.map((row, i) => (i === index ? { ...row, ...change } : row)));
   const rename = (index: number, name: string): void => setTypes((current) => current.map((row, i) => (i === index ? { ...row, name } : row)));
+  // A rename commits when its field is left. Escape closes the dialog before any blur, so a name typed and not yet left is saved on the way out: nothing typed here is dropped,
+  // and no question is needed because saving it is what leaving the field would have done (#3458, qa-breaker).
+  const close = (): void => {
+    if (types.some((row) => row.name !== stored.find((other) => other.key === row.key)?.name && row.key !== '')) void commit(types);
+    onClose();
+  };
   const remove = (type: MarkType): void => {
     if (types.length < 2) {
       overlay.toast(KEEP_ONE);
@@ -82,7 +88,7 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
   };
 
   return (
-    <Dialog dismissOnOutsidePress={true} title="Define how you mark up" onClose={onClose} actionsAlign="end" actions={<Button onClick={onClose}>Done</Button>}>
+    <Dialog dismissOnOutsidePress={true} title="Define how you mark up" onClose={close} actionsAlign="end" actions={<Button onClick={onClose}>Done</Button>}>
       <div className={GRID}>
         <div aria-hidden="true" className={`${ROW_GRID} mb-1.5 max-[639px]:hidden`}>
           <SectionLabel className="col-start-2">Name</SectionLabel>

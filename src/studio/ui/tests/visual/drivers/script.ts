@@ -1,7 +1,7 @@
 // How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the rebuilt Script page (SN-B77, swapped in by SN-B8).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReaderWord, openWithoutManuscript } from './shared';
+import { type Driver, chooseTheme, clickNav, clickVisible, confirmDialog, goToPage, selectReaderWord, openWithoutManuscript } from './shared';
 
 const RAIL = 'Words, Story Bible and marks';
 
@@ -50,6 +50,35 @@ export const scriptDrivers: Record<string, Driver> = {
       .getByRole('group', { name: /^Word: / })
       .first()
       .waitFor();
+  },
+  // Deleting a note takes the reply typed under it along, so it asks first (#3400).
+  'note-delete-confirm': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem').first().click();
+    const composer = page.getByRole('dialog');
+    await composer.getByRole('textbox').first().fill('First message');
+    await composer
+      .getByRole('button', { name: /^(Add|Save|Mark)/ })
+      .last()
+      .click();
+    const rail = await openRail(page);
+    await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+    const card = rail.getByRole('article').first();
+    await card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }).fill('A reply not added yet');
+    await card.getByRole('button', { name: 'Delete the note' }).click();
+    await confirmDialog(page, 'Delete the note?').waitFor();
+  },
+  // A pronunciation typed under Save to my dictionary waits for its Save, so leaving with it asks first (#3400).
+  'rail-pronunciation-leave-confirm': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'tired');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }).click();
+    const rail = await openRail(page);
+    await rail.getByLabel('Pronunciation of tired for my dictionary').fill('TY-erd');
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
   // A Story Bible name chosen on the Words tab: the card's How I will say it is the Story Bible entry's own row (#2595).
   'rail-words-name': async (page) => {
