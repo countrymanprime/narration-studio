@@ -115,6 +115,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/script/page/rail/InThisChapter.tsx`
 - `src/components/script/page/rail/bible/BiblePanel.tsx`
 - `src/components/script/page/rail/bible/EntryCard.tsx`
+- `src/components/script/page/rail/threads/MessageEditor.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
 - `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`

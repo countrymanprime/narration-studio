@@ -31,6 +31,7 @@ export function VoiceDataPanel({
   entities = [],
   types = [],
   player,
+  returnFocus,
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,9 +41,11 @@ export function VoiceDataPanel({
   types?: readonly GuideType[];
   /** The page's one voice-sample player; the panel drawn alone has its own. */
   player?: SamplePlayer;
+  /** Where focus goes when the panel closes and what opened it is gone (a menu item closed with its menu). */
+  returnFocus?: () => HTMLElement | null;
 }) {
   return (
-    <SlideOver open={open} title="Voice data" onClose={onClose}>
+    <SlideOver open={open} title="Voice data" onClose={onClose} returnFocus={returnFocus}>
       <VoiceDataContent notify={notify} entities={entities} types={types} player={player} />
     </SlideOver>
   );

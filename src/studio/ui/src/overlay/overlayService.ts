@@ -32,6 +32,11 @@ type DialogSpec =
       dismissOnOutsidePress: boolean;
       /** Where focus goes on close when the element that had it is gone (a menu item closes as it runs); absent, the page's <main>. */
       returnFocus?: () => HTMLElement | null;
+      /**
+       * Asked when Escape (or any way out the dialog's own buttons do not take) is about to close it: false keeps it open. A dialog holding typed text puts its question here, so the
+       * overlay host's Escape does not drop the text with no question (#3400). Its own buttons call `close` themselves and are not asked.
+       */
+      beforeClose?: () => boolean | Promise<boolean>;
       render: (api: { close: () => void }) => ReactNode;
     }
   | {

@@ -1,4 +1,6 @@
+import { plural } from '../../../plural';
 import { useState } from 'react';
+import { useSharedSave, useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 import { MAX_REVIEW_NOTE_LENGTH, type FindingThreadAuthor, type FindingThreadChange, type FindingThreadMessage } from '../../../api/contracts/findings';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -32,18 +34,37 @@ function Message({
   onDelete: () => void;
 }) {
   const [draft, setDraft] = useState<string>();
+  const saveEdit = useSharedSave(async () => {
+    if (draft === undefined) return true;
+    const sent = draft;
+    const saved = await onEdit(sent);
+    // Only what was sent is done with: text typed while the save was out stays in the box as an edit still to save, against the message as it now reads (#3459 round 8).
+    if (saved) setDraft((now) => (now === sent ? undefined : now));
+    return saved;
+  });
+  // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
+  useUnsavedDraft(`finding-note-edit-${message.id}`, {
+    // An edit cleared to nothing is still held text, with nothing to save (a note cannot be empty): the question offers Keep editing and Discard only (#3400 L2).
+    dirty: draft !== undefined && draft !== message.text,
+    label: `your edit of ${message.who === 'you' ? 'your' : 'the proofer’s'} note`,
+    brief: 'your note edit',
+    kind: 'finding-note-edit',
+    many: (n) => `${plural(n, 'note edit')}`,
+    save: draft !== undefined && draft.trim() === '' ? undefined : saveEdit,
+    discard: () => setDraft(undefined),
+  });
   if (draft !== undefined)
     return (
       <div className="flex flex-col gap-1.5">
         <Field label="Edit note" textarea autoFocus value={draft} onChange={(value) => setDraft([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))} />
         <div className="flex gap-1.5">
-          <IconButton action="cancelEdit" size="sm" onClick={() => setDraft(undefined)} />
+          <IconButton action="cancelEdit" label="Discard edit" size="sm" onClick={() => setDraft(undefined)} />
           <IconButton
             action="saveNote"
             size="sm"
             variant="primary"
             disabledReason={disabled ? 'Not available right now' : draft.trim() === '' ? 'Write the note first' : undefined}
-            onClick={() => void onEdit(draft).then((saved) => saved && setDraft(undefined))}
+            onClick={() => void saveEdit()}
           />
         </div>
       </div>
@@ -56,7 +77,7 @@ function Message({
     >
       <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
         <span className="font-semibold tracking-widest uppercase">{WHO_LABEL[message.who]}</span>
-        <span className="min-w-0 flex-1 truncate">
+        <span className="min-w-0 flex-1 truncate" title={`${when(message.at)}${message.edited_at ? ' · edited' : ''}`}>
           {when(message.at)}
           {message.edited_at ? ' · edited' : ''}
         </span>
@@ -94,10 +115,25 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
       return false;
     }
   };
-  const add = () =>
-    action.run('add', async () => {
-      if (await send({ op: 'add', who, text: reply })) setReply('');
-    });
+  const saveReplyNow = async (): Promise<boolean> => {
+    const sent = reply;
+    const saved = await send({ op: 'add', who, text: sent });
+    // Only what was sent is cleared: text typed while the save was in flight stays in the box (#3400 L6).
+    if (saved) setReply((now) => (now === sent ? '' : now));
+    return saved;
+  };
+  const saveReply = useSharedSave(saveReplyNow);
+  const add = () => action.run('add', saveReply);
+  // A note typed and not yet added is held text: leaving the page asks first (#3400).
+  useUnsavedDraft('finding-note-reply', {
+    dirty: reply.trim() !== '',
+    label: 'the note you are writing',
+    brief: 'your new note',
+    kind: 'finding-note-reply',
+    many: (n) => `${plural(n, 'note')} you are writing`,
+    save: saveReply,
+    discard: () => setReply(''),
+  });
   const remove = (message: FindingThreadMessage) =>
     action.run(`delete-${message.id}`, async () => {
       // A deleted note is one journal entry, so Ctrl+Z and History bring it back as the toast's Undo does. `send` has already said why when it fails.

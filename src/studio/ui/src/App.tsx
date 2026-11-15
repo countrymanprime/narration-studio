@@ -149,6 +149,8 @@ const popGuard = {
   ask: null as ((direction: 1 | -1) => void) | null,
   /** `event.timeStamp` of the last Enter or Space pressed anywhere but on the way to stay: the press that may have asked the question. */
   lastAskKeyAt: -Infinity,
+  /** True from the Enter that answered a question until that key is released: its repeats are not a decision in the box the focus went back to. */
+  answerEnterHeld: false,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -193,8 +195,39 @@ if (typeof window !== 'undefined') {
   window.addEventListener(
     'keydown',
     (event) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !(event.target instanceof Element && event.target.closest('[data-stay-button]')))
-        popGuard.lastAskKeyAt = event.timeStamp;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const target = event.target instanceof Element ? event.target : null;
+      // A question is answered by a press, never by the auto-repeat of a key: a key held since before it appeared (the Enter that raised it, still down) lands on its default button
+      // as a repeat and would answer it unseen. Every repeat inside a question is dropped; a fresh press always answers (#3457 qa round 4, B2).
+      if (event.repeat && target?.closest('[role="alertdialog"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      // The Enter that answered a question (Keep editing) hands the focus back to the box it came from. If the key is still held, its repeats arrive in that box, where Enter
+      // adds the name or accepts the suggestion: those repeats are not the narrator's decision and are dropped until the key is released. A fresh press is always the field's
+      // own, however soon it comes (a newline in a textarea included), and Space and every other key are never touched (#3457 B10b, B13). A textarea is covered too, so a held Enter does not type
+      // a column of newlines into the box it returns to (#3457 qa round 5 B2).
+      if (event.key === 'Enter' && target?.closest('[role="alertdialog"]') && !event.repeat) popGuard.answerEnterHeld = true;
+      else if (event.key === 'Enter' && event.repeat && popGuard.answerEnterHeld && target?.matches('input, textarea')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      } else if (event.key === 'Enter' && !event.repeat) {
+        // A fresh Enter outside a question is a new press, not the answering one still held: a keyup that was lost (the window lost focus) must not leave the next hold dropped (#3457 qa round 6 A-1).
+        popGuard.answerEnterHeld = false;
+      }
+      if (!target?.closest('[data-stay-button]')) popGuard.lastAskKeyAt = event.timeStamp;
+    },
+    true,
+  );
+  // The key may be let go while the window does not have the focus, and its keyup never arrives here.
+  window.addEventListener('blur', () => {
+    popGuard.answerEnterHeld = false;
+  });
+  window.addEventListener(
+    'keyup',
+    (event) => {
+      if (event.key === 'Enter') popGuard.answerEnterHeld = false;
     },
     true,
   );
@@ -997,6 +1030,8 @@ function AppRoutes() {
         const message = 'error' in outcome ? notSaved(outcome.error) : saveVerdict({ saved: false, failed: outcome.failed, kept: [] }).message;
         overlay.toast(keptNote(message ?? 'Not saved.'), { tone: 'error' });
       },
+      // The text is saved after all: "Saving is taking too long. What you typed is still here." would now be false (#3491 PB-2b).
+      lateSuccess: () => overlay.dismissTopic(SAVE_SLOW_TOPIC),
     });
     return () => setShell(null);
   }, [setShell, overlay]);

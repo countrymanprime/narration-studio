@@ -63,6 +63,32 @@ describe('Story Bible character detail: voice references', () => {
     expect(await findReferenceRow('March Hare ref A')).toBeTruthy();
   });
 
+  it('a note typed while Approve is running is kept, and only what was sent is cleared (#3457)', async () => {
+    const alice = WIRE_ENTITIES.find((row) => row.id === 'alice');
+    if (!alice) throw new Error('fixture must include alice');
+    const api = createMockApi();
+    let release: () => void = () => {};
+    const real = api.characterApprove.bind(api);
+    vi.spyOn(api, 'characterApprove').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    const user = userEvent.setup();
+    renderDetail(alice, api);
+    await findReferenceRow('Alice ref A');
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Approve a region for Alice' }), 'March Hare ref A');
+    const note = screen.getByRole('textbox', { name: 'Note (optional)' }) as HTMLInputElement;
+    await user.type(note, 'anchor take');
+    await user.click(screen.getByRole('button', { name: 'Approve as reference' }));
+    await user.type(note, ' plus more');
+    release();
+    expect(await findReferenceRow('March Hare ref A')).toBeTruthy();
+    await waitFor(() => expect(note.value).toBe(' plus more'));
+  });
+
   it('revoking a reference removes it from the list', async () => {
     const alice = WIRE_ENTITIES.find((row) => row.id === 'alice');
     if (!alice) throw new Error('fixture must include alice');

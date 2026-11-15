@@ -72,7 +72,10 @@ export function SelectionBar({
           <>
             <b>{plural(count, 'word')}</b>
             {summary.audible.length > 0 ? (
-              <span className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]">
+              <span
+                className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
+                title={`${clock(summary.start)} to ${clock(summary.end)} · ${summary.len.toFixed(1)} s`}
+              >
                 {clock(summary.start)} to {clock(summary.end)} · {summary.len.toFixed(1)} s
               </span>
             ) : null}

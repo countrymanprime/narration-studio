@@ -39,7 +39,7 @@ export function ScanStatus({ scan }: { scan: ExtractionScan }) {
               Cancel scan
             </Button>
           </div>
-          <p className="min-w-0 truncate text-[var(--text-muted)]" role="status">
+          <p className="min-w-0 truncate text-[var(--text-muted)]" role="status" title={`${job.percent}% · ${job.message}`}>
             {job.percent}% · {job.message}
           </p>
         </>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -36,6 +37,16 @@ export function VoiceReferencesSection({
   const [loadError, setLoadError] = useState<string>();
   const [regionGuid, setRegionGuid] = useState('');
   const [note, setNote] = useState('');
+  // The note an Approve is sending: it is being saved, so it is not a draft; only what is typed after it is.
+  const [sending, setSending] = useState<string | null>(null);
+  // A note typed beside a region waits for Approve, which is the narrator's decision: the question cannot make it, so it only offers to keep editing or discard it (#3400).
+  useUnsavedDraft('approval-note', {
+    dirty: !readOnly && note.trim() !== '' && note !== sending,
+    label: 'your approval note',
+    brief: 'an approval note',
+    needs: 'you to press Approve',
+    discard: () => setNote(''),
+  });
 
   const load = useCallback(async () => {
     try {
@@ -56,14 +67,19 @@ export function VoiceReferencesSection({
   const approve = () =>
     mutation.run('approve', async () => {
       if (!regionGuid) return;
+      const sent = note;
+      setSending(sent);
       try {
-        await api.characterApprove(characterId, regionGuid, note.trim() || undefined);
+        await api.characterApprove(characterId, regionGuid, sent.trim() || undefined);
         setRegionGuid('');
-        setNote('');
+        // Only what was sent goes: a note typed while the approval was running is the next one, and stays (#3457).
+        setNote((now) => (now === sent ? '' : now.startsWith(sent) ? now.slice(sent.length) : now));
         notify('Reference approved.');
         await load();
       } catch (error) {
         notify(describeApiError(error), 'error');
+      } finally {
+        setSending(null);
       }
     });
   const revoke = (reference: ApprovedCharacterReference) =>
@@ -96,7 +112,9 @@ export function VoiceReferencesSection({
           {ownReferences.map((reference) => (
             <InsetCard as="li" key={reference.id} className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{reference.snapshot.name}</div>
+                <div className="truncate text-sm font-medium" title={reference.snapshot.name}>
+                  {reference.snapshot.name}
+                </div>
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {clock(reference.snapshot.start)}–{clock(reference.snapshot.end)}
                   {reference.note ? ` · ${reference.note}` : ''}

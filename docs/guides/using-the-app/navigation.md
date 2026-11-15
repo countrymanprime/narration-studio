@@ -52,6 +52,12 @@ recent project there switches to it. Like every other way out of a page, it asks
 
 In [Settings](settings.md), edited fields and the settings panels under **Set on a page**, a key pasted into the Merriam-Webster box, and a [credit template](settings.md#credits) edited and not yet saved, are held this way. Changing the category, the search or the filter, or closing **Advanced**, over one of them asks too (**Unsaved changes**, "... before leaving?"), and **Cancel** keeps the text, with the Search box showing what the results are for.
 
+On [Proof](proof.md), a note typed on a finding and not yet added, or an edit of one not yet saved, is held this way.
+
+In the [Story Bible](story-bible.md), an entry being edited, a relationship, a name typed in **Add a name**, a note beside **Approve**, a suggestion's edit and a name typed in **New type** (Settings) are held this way; a new entry before a category is chosen and the ones that cannot be saved from the question say so ("... still needs a category chosen." or "... can't be saved yet.").
+
+On the [Script](script.md), a reply or an edit of a note message typed and not yet saved, and a pronunciation typed under **Save to my dictionary**, are held this way, and so is a note being written in the Mark dialog.
+
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
 ![Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector](../../images/ui/nav-page-footer.webp)

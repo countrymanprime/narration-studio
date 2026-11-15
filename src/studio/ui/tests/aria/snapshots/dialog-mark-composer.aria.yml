@@ -22,5 +22,5 @@
   - text: Note (optional)
   - textbox "Note (optional)":
     - /placeholder: Anything you want to remember here
-  - button "Cancel"
+  - button "Close"
   - button "Save"

@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { OverlayHost } from '../../../overlay/OverlayHost';
+import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { Finding, NarrationApi } from '../../../types';
@@ -21,19 +23,28 @@ function Host({ api, initial }: { api: NarrationApi; initial: Finding }) {
   return <FindingThread finding={finding} api={api} onChanged={setFinding} />;
 }
 
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
+}
+
 async function setup(journal?: Journal) {
   const api = createMockApi();
   const [first] = (await api.findingsList({})).findings;
   render(
     <ApiProvider api={api}>
       <TooltipProvider>
-        {journal ? (
-          <StudioProvider journal={journal}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          {journal ? (
+            <StudioProvider journal={journal}>
+              <Host api={api} initial={first!} />
+            </StudioProvider>
+          ) : (
             <Host api={api} initial={first!} />
-          </StudioProvider>
-        ) : (
-          <Host api={api} initial={first!} />
-        )}
+          )}
+        </UnsavedDraftsProvider>
         <OverlayHost />
       </TooltipProvider>
     </ApiProvider>,
@@ -48,6 +59,90 @@ const addNote = async (text: string, who?: 'Proofer replied' | 'My note') => {
   fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
   await waitFor(() => expect(messages().some((m) => m.includes(text))).toBe(true));
 };
+
+// holder: proof/inspector/FindingThread.tsx
+describe('holders-render-clean-after-their-save', () => {
+  it('a note typed and not added renders clean once the registry has saved it', async () => {
+    const { api, id } = await setup();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Add a note' }), { target: { value: 'Typed, not added' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+    expect((await api.findingsGet(id)).review.thread?.at(-1)?.text).toBe('Typed, not added');
+  });
+
+  it('an edited note renders clean once the registry has saved it', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: 'Second wording' } });
+    expect(registry.heldNow().length).toBe(1);
+    await expectHolderCleanAfterSave(() => registry.save());
+    expect(registry.heldNow()).toEqual([]);
+  });
+});
+
+describe('text typed while a note is being added', () => {
+  it('stays in the box when the save resolves, and only what was sent is cleared (#3400 L6)', async () => {
+    const { api } = await setup();
+    let release: () => void = () => {};
+    const real = api.findingsThread.bind(api);
+    vi.spyOn(api, 'findingsThread').mockImplementation(async (id, change) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(id, change);
+    });
+    const box = screen.getByRole('textbox', { name: 'Add a note' }) as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: 'First part' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+    fireEvent.change(box, { target: { value: 'First part and more typed while saving' } });
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(messages().some((m) => m.includes('First part'))).toBe(true));
+    expect(box.value).toBe('First part and more typed while saving');
+    expect(registry.heldNow().length).toBe(1);
+  });
+});
+
+describe('text typed while a note edit is being saved', () => {
+  it('stays in the edit box when the save resolves, and only what was sent is cleared (#3459 round 8)', async () => {
+    const { api, id } = await setup();
+    await addNote('First wording', 'My note');
+    let release: () => void = () => {};
+    const real = api.findingsThread.bind(api);
+    vi.spyOn(api, 'findingsThread').mockImplementation(async (id, change) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(id, change);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    const box = screen.getByRole('textbox', { name: 'Edit note' }) as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: 'Second wording' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save the note' }));
+    fireEvent.change(box, { target: { value: 'Second wording and more typed while saving' } });
+    await act(async () => {
+      release();
+    });
+    await waitFor(async () => expect((await api.findingsGet(id)).review.thread?.at(-1)?.text).toBe('Second wording'));
+    expect((screen.getByRole('textbox', { name: 'Edit note' }) as HTMLTextAreaElement).value).toBe('Second wording and more typed while saving');
+    expect(registry.heldNow().length).toBe(1);
+  });
+});
+
+describe('an edit cleared to nothing', () => {
+  it('is still held, with nothing to save, so the question offers Discard only (#3400 L2)', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: '   ' } });
+    const held = registry.heldNow();
+    expect(held.length).toBe(1);
+    expect(held[0]!.saveable).toBe(false);
+  });
+});
 
 describe('notes-on-this-finding', () => {
   it('starts empty and adds a note as mine or as the proofer’s reply', async () => {
@@ -79,6 +174,15 @@ describe('notes-on-this-finding', () => {
     expect((await api.findingsGet(id)).review.thread?.map((m) => m.text)).toEqual(['one, edited', 'two']);
   });
 
+  // #3380: the time line is clipped to the card, so it carries itself as a title.
+  it('gives each message its time as a title', async () => {
+    await setup();
+    await addNote('one', 'My note');
+    const first = document.querySelector<HTMLElement>('[data-message="m1"]')!;
+    const when = first.querySelector<HTMLElement>('.truncate')!;
+    expect(when.getAttribute('title')).toBe(when.textContent);
+  });
+
   it('a deleted note is one journal entry, and Ctrl+Z brings it back', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     const { api, id } = await setup(journal);
@@ -99,5 +203,16 @@ describe('notes-on-this-finding', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Add a note' }), { target: { value: 'hello' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
     expect(await screen.findByText(/^Not saved: /)).toBeTruthy();
+  });
+
+  it('the button that drops an edit being typed says Discard edit, and does not ask (#3400)', async () => {
+    await setup();
+    await addNote('First wording', 'My note');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: 'Second wording' } });
+    expect(screen.queryByRole('button', { name: 'Cancel the edit' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard edit' }));
+    expect(screen.queryByRole('textbox', { name: 'Edit note' })).toBeNull();
+    expect(registry.heldNow()).toEqual([]);
   });
 });

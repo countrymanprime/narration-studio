@@ -1,4 +1,5 @@
-import { Link, useInRouterContext } from 'react-router-dom';
+import { useInRouterContext } from 'react-router-dom';
+import { GuardedLink } from '../../../studio/drafts/unsavedDrafts';
 import type { CardFinding } from './cardSelectors';
 import { Button } from '../../primitives/Button';
 import { statusTone } from '../../../kinds/statusTone';
@@ -40,9 +41,9 @@ export function FindingRow({
       <span className="font-mono text-[var(--text-muted)] tabular-nums">{at}</span>
       <span className="min-w-0 flex-1">{finding.text}</span>
       {editing && inRouter ? (
-        <Link className="font-semibold underline" to={editing} aria-label={`Open in Editing: ${what}`}>
+        <GuardedLink className="font-semibold underline" to={editing} aria-label={`Open in Editing: ${what}`}>
           Open in Editing
-        </Link>
+        </GuardedLink>
       ) : null}
       <span className="text-[var(--text-muted)]">Suggested</span>
       <StatusBadge tone={statusTone(finding.suggested === 'Needs pickup' ? 'pickup' : 'edit')} label={resolved ?? finding.suggested} />

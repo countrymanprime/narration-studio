@@ -266,7 +266,7 @@ describe('dialog-behaves-as-a-dialog', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(opener));
     await u.click(opener);
-    await u.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await u.click(await screen.findByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(commit).not.toHaveBeenCalled();
   });

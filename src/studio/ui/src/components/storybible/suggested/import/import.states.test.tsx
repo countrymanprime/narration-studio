@@ -209,6 +209,37 @@ describe('a huge file', () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it('choosing a file over pasted text asks before replacing it; Keep editing keeps the paste (#3457 qa round 5 B1)', async () => {
+    const u = userEvent.setup();
+    render(
+      wrap(
+        <>
+          <button onClick={() => openImportDialog()}>Open import</button>
+          <OverlayHost />
+        </>,
+      ),
+    );
+    await u.click(screen.getByRole('button', { name: 'Open import' }));
+    await screen.findByRole('dialog', { name: 'Import entries' });
+    // An empty box takes the file at once.
+    await choose(new File([VALID], 'first.json'));
+    expect(textbox().value).toBe(VALID);
+    // A file just chosen and not edited is replaced by the next one without a question.
+    await choose(new File([PRETTY], 'second.json'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(textbox().value).toBe(PRETTY);
+    // Text typed or pasted over it is the narrator's: a file chosen now asks first.
+    paste('PASTED BY HAND');
+    await choose(new File([VALID], 'third.json'));
+    const asked = await screen.findByRole('alertdialog', { name: 'Discard the text you pasted?' });
+    await u.click(within(asked).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(textbox().value).toBe('PASTED BY HAND');
+    await choose(new File([VALID], 'third.json'));
+    await u.click(within(await screen.findByRole('alertdialog', { name: 'Discard the text you pasted?' })).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(textbox().value).toBe(VALID));
+  });
+
   it('a file exactly at the limit is read', async () => {
     render(wrap(<ImportDialog onClose={vi.fn()} />));
     await choose(sized(new File([VALID], 'edge.json'), IMPORT_MAX_BYTES));
@@ -342,7 +373,7 @@ describe('the host is slow, silent or late', () => {
     paste(VALID);
     expect(await screen.findByText('Checking the text with the host…')).toBeTruthy();
     expect(addButton().getAttribute('aria-disabled')).toBe('true');
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Discard import' }));
     expect(close).toHaveBeenCalledTimes(1);
   });
 
@@ -364,7 +395,7 @@ describe('the host is slow, silent or late', () => {
     await screen.findByRole('dialog', { name: 'Import entries' });
     paste(VALID);
     await settle(300);
-    await u.keyboard('{Escape}');
+    await u.click(screen.getByRole('button', { name: 'Discard import' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await act(async () => late.resolve(plan({ lines: [line(1)], offered: 1 })));
     await settle(30);
@@ -372,6 +403,35 @@ describe('the host is slow, silent or late', () => {
     expect(screen.queryByRole('table')).toBeNull();
     expect(toast).not.toHaveBeenCalled();
     expect(errors).not.toHaveBeenCalled();
+  });
+
+  it('Escape with pasted text asks Discard import? and Keep editing leaves the text; Escape with nothing pasted closes (#3457 qa round 4 B1)', async () => {
+    const u = userEvent.setup();
+    render(
+      wrap(
+        <>
+          <button onClick={() => openImportDialog()}>Open import</button>
+          <OverlayHost />
+        </>,
+      ),
+    );
+    await u.click(screen.getByRole('button', { name: 'Open import' }));
+    await screen.findByRole('dialog', { name: 'Import entries' });
+    // Nothing pasted: Escape closes at once, with no question.
+    await u.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Import entries' })).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    await u.click(screen.getByRole('button', { name: 'Open import' }));
+    await screen.findByRole('dialog', { name: 'Import entries' });
+    paste(VALID);
+    await u.keyboard('{Escape}');
+    const asked = await screen.findByRole('alertdialog', { name: 'Discard your import?' });
+    await u.click(within(asked).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(textbox().value).toBe(VALID);
+    await u.keyboard('{Escape}');
+    await u.click(within(await screen.findByRole('alertdialog', { name: 'Discard your import?' })).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Import entries' })).toBeNull());
   });
 
   it('answers a failure late after the dialog closed: no toast, no dialog', async () => {
@@ -707,12 +767,13 @@ describe('the dialog as a dialog', () => {
     }
   });
 
-  it('Escape closes it without importing and gives focus back to the Import button, even with text and a preview on show', async () => {
+  it('Escape closes it without importing, after asking when text is on show, and gives focus back to the Import button', async () => {
     const commit = vi.spyOn(api, 'extractionImportCommit');
     const { u, opener } = await open();
     paste(VALID);
     await screen.findByRole('table', { name: 'What will be added' });
     await u.keyboard('{Escape}');
+    await u.click(within(await screen.findByRole('alertdialog', { name: 'Discard your import?' })).getByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(opener));
     expect(commit).not.toHaveBeenCalled();

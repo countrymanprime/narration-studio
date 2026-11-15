@@ -5,6 +5,8 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { overlay } from '../../overlay/overlayService';
 import type { CreditsSetupState, NarrationApi } from '../../types';
+import { CATEGORIES, categoryLabel } from '../settings/registry/categories';
+import { ROWS } from '../settings/registry/rows';
 import { CreditsSetupDialog } from './CreditsSetupDialog';
 
 afterEach(() => {
@@ -118,6 +120,15 @@ describe('CreditsSetupDialog', () => {
     renderDialog(STATE);
     const label = screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!;
     expect(label.parentElement!.className).toContain('mt-2');
+  });
+
+  // #3495: the label named "Settings > General", which Settings does not have; the narrator default is the `project.narrator` row, in the category labelled "Project".
+  it('"Use for all my projects" names the Settings category that holds the narrator default', () => {
+    renderDialog(STATE);
+    const narratorRow = ROWS.find((row) => row.id === 'project.narrator')!;
+    const named = `Settings > ${categoryLabel(narratorRow.cat)}`;
+    expect(CATEGORIES.some((category) => category.id === narratorRow.cat)).toBe(true);
+    expect(screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!.textContent).toContain(`saved as your default in ${named}`);
   });
 
   it('unchecking "Use for all my projects" saves only the project value, not the global default', async () => {

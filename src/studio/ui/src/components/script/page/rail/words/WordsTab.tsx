@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Icon } from '../../../../primitives/Icon';
 import { sourceIcon } from '../../../../storybible/source/sourceIcons';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
+import { useGuardedAction } from '../../../../../studio/drafts/unsavedDrafts';
 import { useEntries, useParagraphs, useScriptView } from '../../data/useScriptData';
 import { InThisChapter } from '../InThisChapter';
 import { useScriptHear } from '../../data/useScriptHear';
@@ -21,6 +22,8 @@ export function WordsTab({ chapterId, host }: { chapterId: string; host: WordsHo
   const { sources } = usePronunciationSources();
   const hearOf = useScriptHear();
   const [word, update] = useScriptView((state) => state.word);
+  // Another word replaces the card that holds a typed pronunciation, so it asks first (#3404).
+  const guarded = useGuardedAction();
   const entries = useEntries();
   const paragraphs = useParagraphs(chapterId);
   const list = useMemo(() => entries.chapterWords(paragraphs.value ?? []), [entries, paragraphs.value]);
@@ -45,7 +48,7 @@ export function WordsTab({ chapterId, host }: { chapterId: string; host: WordsHo
             ) : undefined,
           selected: word === row.key,
           // Every row is a Story Bible name (#2595); the card edits that name's pronunciation, the same value the Story Bible shows.
-          onActivate: () => update({ word: row.key }),
+          onActivate: () => word !== row.key && guarded(() => update({ word: row.key })),
           data: { 'data-w': row.key },
         }))}
       />

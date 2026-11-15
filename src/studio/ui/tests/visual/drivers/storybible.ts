@@ -242,6 +242,33 @@ export const storybibleDrivers: Record<string, Driver> = {
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
   },
+  'entry-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await entryRows(page).first().click();
+    const unlock = page.getByRole('button', { name: 'Unlock entry' });
+    if (await unlock.count()) await unlock.click();
+    await clickVisible(page, 'button', 'Edit this entry');
+    await page.getByRole('textbox', { name: 'Description' }).fill('A line typed and not saved.');
+    // Leaving with an edit not saved asks first, so this click does not arrive at Production: it opens the confirm dialog.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
+  'new-entry-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Add entry' }).click();
+    await page.getByRole('textbox', { name: 'Name' }).first().fill('Mr Fox');
+    // A new entry is not made until a category is chosen, so the question has nothing to save: it offers Keep editing and Discard & continue.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
+  'approval-note-leave-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: 'Edit this entry' }).click();
+    await page.getByRole('textbox', { name: 'Note (optional)' }).fill('anchor take');
+    // Approve is the narrator's decision, so the question cannot save the note: Keep editing and Discard & continue.
+    await clickNav(page, 'Production');
+    await confirmDialog(page, 'Unsaved changes').waitFor();
+  },
   'entry-properties-editing': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();

@@ -40,7 +40,7 @@ describe('the entry header', () => {
     expect(input.closest('section')?.querySelectorAll('[aria-label="Name"]')).toHaveLength(1);
     // A visible "Name" caption above a field is the old layout.
     expect(screen.queryByText('Name', { selector: 'div' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
   });
 });
