@@ -43,7 +43,9 @@ export function LooseSuggestionRows({
           <TableCell colSpan={2}>
             <span className="flex min-w-0 items-center gap-1.5">
               {/* As an entry row's kind, which keeps only its dot in a narrow table: the score stays, the word is still read. */}
-              <span className="min-w-0 truncate @max-[20rem]:sr-only">{kindLabel(suggestion.payload)}</span>
+              <span className="min-w-0 truncate @max-[20rem]:sr-only" title={kindLabel(suggestion.payload)}>
+                {kindLabel(suggestion.payload)}
+              </span>
               <span className="flex-none whitespace-nowrap">
                 <StatusBadge tone="warning" look="outline" label={suggestion.confidence === null ? 'No score' : `${pct(suggestion.confidence)}%`} />
               </span>

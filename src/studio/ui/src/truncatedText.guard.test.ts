@@ -100,12 +100,6 @@ const DEBT = new Set<string>([
   'components/script/bookmarks/ui/BookmarkEditor.tsx#1',
   'components/script/page/rail/bible/EntryCard.tsx#1',
   'components/script/page/reader/Reader.tsx#1',
-  'components/storybible/EntryTable.tsx#1',
-  'components/storybible/EntryTable.tsx#2',
-  'components/storybible/Relationships.tsx#1',
-  'components/storybible/VoiceReferencesSection.tsx#1',
-  'components/storybible/suggested/panel/LooseSuggestionRows.tsx#1',
-  'components/storybible/suggested/panel/ScanStatus.tsx#1',
 ]);
 
 describe('text that is cut off can be read in full', () => {
