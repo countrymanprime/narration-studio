@@ -52,6 +52,8 @@ recent project there switches to it. Like every other way out of a page, it asks
 
 In [Settings](settings.md), edited fields and the settings panels under **Set on a page**, and a key pasted into the Merriam-Webster box, are held this way. Changing the category, the search or the filter, or closing **Advanced**, over one of them asks too (**Unsaved changes**, "... before leaving?"), and **Cancel** keeps the text, with the Search box showing what the results are for.
 
+On [Proof](proof.md), a note typed on a finding and not yet added, or an edit of one not yet saved, is held this way.
+
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
 ![Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector](../../images/ui/nav-page-footer.webp)

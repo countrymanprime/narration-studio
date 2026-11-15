@@ -72,7 +72,6 @@ const EXEMPT: Record<string, string> = {
 // entries here and lists the controls that replace them in HOLDER_REPLACED_BY. The map is empty when the last screen is in.
 const SCREEN = (screen: string) => `joins the registry in the ${screen} change of #3400; until then leaving it still drops the text`;
 const PENDING: Record<string, string> = {
-  'proof/inspector/FindingThread.tsx': SCREEN('Proof'),
   'script/page/rail/threads/MessageEditor.tsx': SCREEN('Script'),
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
@@ -128,8 +127,6 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
   '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
-  'proof/PreviewPanel.tsx': SCREEN('Proof'),
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
   'storybible/Guide.tsx': SCREEN('Story Bible'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
   'storybible/voicesamples/RoutedVoiceSamplesSection.tsx': SCREEN('Story Bible'),
@@ -160,8 +157,6 @@ const ROUTER_LINK = /<(Link|NavLink)\b/;
 const NO_DRAFT_PAGE = 'a link on a page that holds no draft: nothing there is lost by leaving';
 const LINK_EXEMPT: Record<string, string> = {
   'production/CreditsRowPanel.tsx': NO_DRAFT_PAGE,
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
-  'proof/checkcard/FindingRow.tsx': SCREEN('Proof'),
 };
 describe("a link that leaves a page is a GuardedLink, not the router's Link (#3446 B3)", () => {
   const linking = files(components)
@@ -207,9 +202,44 @@ const SETTINGS_PANE: Replacer[] = [
     asks: /else guarded\(apply, \{ settle: false, onCancel: \(\) => setPending\(null\) \}\)/,
   },
 ];
+const PROOF_MOVES: Replacer[] = [
+  { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'Undo of a decision (it returns to the note)', asks: /else guardedRef\.current\(move\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
+];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
   'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'proof/inspector/FindingThread.tsx': PROOF_MOVES,
 };
+
+// Every call that selects a note or opens a chapter on the Proof page replaces the Inspector, and with it a note typed there. The calls that do not ask are named here,
+// each with the reason (Undo's return to a note was one until the qa-breaker found it dropping a typed note, #3400).
+const PROOF_UNASKED: Record<string, string> = {
+  'select(findings[0].id)': 'the first note chosen while none is: the Inspector is empty, so no note box exists to lose',
+  'select(request.id)': "in Undo's `move`, which asks unless the narrator is already on that note and chapter (the Replacer above pins it)",
+  'choose(home)': "in Undo's `move`, together with select(request.id) (the Replacer above pins it)",
+  'select(id)': 'in the guarded closure of a clicked row, which the Replacer below pins',
+  'choose(chapterOf(note))': 'in the guarded closure of a clicked row of another chapter, which the Replacer below pins',
+  'choose(fallback.id)': 'inside step(), which every caller reaches through guarded',
+  'choose(next.id)': 'inside step(), which every caller reaches through guarded',
+};
+describe('every move on the Proof page that replaces the Inspector asks, or says why not (#3400)', () => {
+  test('a select( or choose( call outside the guarded ones is on the allowlist', () => {
+    const source = code(readFileSync(join(components, 'proof/ProofPage.tsx'), 'utf8'));
+    const calls = [...source.matchAll(/(?<![\w.])(select|choose)\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)]
+      .filter((match) => !/^(?:const|function)/.test(source.slice(Math.max(0, match.index - 6), match.index).trim()))
+      .map((match) => ({ call: `${match[1]}(${match[2]})`, at: match.index }))
+      .filter(
+        ({ at }) =>
+          !/guarded\(\(\) => $/.test(source.slice(Math.max(0, at - 14), at)) &&
+          !/guardedRef\.current\(\(\) => \{\s*$/.test(source.slice(Math.max(0, at - 60), at)),
+      );
+    const unasked = calls.map(({ call }) => call).filter((call) => !(call in PROOF_UNASKED));
+    expect(unasked, 'name the call in PROOF_UNASKED with a reason, or route it through guarded').toEqual([]);
+  });
+});
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)
