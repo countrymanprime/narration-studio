@@ -177,6 +177,20 @@ describe('the key that answered a question does not decide in the box the focus 
     expect(press(alias, { repeat: true }).defaultPrevented).toBe(false);
   });
 
+  it('an auto-repeat inside a question, Enter or Space, answers nothing, and a fresh press still answers (#3457 qa round 4 B2)', () => {
+    const { keep } = scene();
+    const answered = vi.fn();
+    keep.onclick = answered;
+    keep.onkeydown = answered;
+    for (const key of ['Enter', ' ']) {
+      const held = press(keep, { key, repeat: true });
+      expect(held.defaultPrevented).toBe(true);
+    }
+    expect(answered).not.toHaveBeenCalled();
+    expect(press(keep, { key: 'Enter' }).defaultPrevented).toBe(false);
+    expect(answered).toHaveBeenCalledTimes(1);
+  });
+
   it('a deliberate Enter right after the answer reaches the box', () => {
     const { keep, alias, reached } = scene();
     press(keep);

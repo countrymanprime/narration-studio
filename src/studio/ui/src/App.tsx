@@ -190,6 +190,13 @@ if (typeof window !== 'undefined') {
     (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       const target = event.target instanceof Element ? event.target : null;
+      // A question is answered by a press, never by the auto-repeat of a key: a key held since before it appeared (the Enter that raised it, still down) lands on its default button
+      // as a repeat and would answer it unseen. Every repeat inside a question is dropped; a fresh press always answers (#3457 qa round 4, B2).
+      if (event.repeat && target?.closest('[role="alertdialog"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       // The Enter that answered a question (Keep editing) hands the focus back to the box it came from. If the key is still held, its repeats arrive in that box, where Enter
       // adds the name or accepts the suggestion: those repeats are not the narrator's decision and are dropped until the key is released. A fresh press is always the field's
       // own, however soon it comes, and Space and every other key are never touched (#3457 B10b, B13).

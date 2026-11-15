@@ -293,3 +293,30 @@ test('Escape in a dirty Add a name box asks, and the focus is on Keep editing (n
   await expect(question).toBeVisible();
   await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
 });
+
+test('Escape on Import entries with text pasted asks Discard your import?; Keep editing keeps the text, and an empty dialog closes at once (#3457)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Story Bible');
+  const open = async () => {
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('menuitem', { name: 'Import entries' }).click();
+    await page.getByRole('dialog', { name: 'Import entries' }).waitFor();
+  };
+  await open();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Import entries' })).toBeHidden();
+  await open();
+  const box = page.getByLabel('Paste JSON or CSV');
+  await box.fill('{"entries":[]}');
+  await page.keyboard.press('Escape');
+  const question = page.getByRole('alertdialog', { name: 'Discard your import?' });
+  await expect(question).toBeVisible();
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(box).toHaveValue('{"entries":[]}');
+  await page.keyboard.press('Escape');
+  await page.getByRole('alertdialog', { name: 'Discard your import?' }).getByRole('button', { name: 'Discard' }).click();
+  await expect(page.getByRole('dialog', { name: 'Import entries' })).toBeHidden();
+});

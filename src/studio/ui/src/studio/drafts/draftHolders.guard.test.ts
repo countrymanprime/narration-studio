@@ -13,8 +13,6 @@ const MODAL =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
 const MODAL_ASKS =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx); its own Save keeps what was typed, a button that drops it says so, and Escape and the close button ask first (confirmDiscard)';
-const MODAL_ESCAPE_CLOSES =
-  'a modal dialog: the page behind it is inert and every exit is off while it is open; its button says Discard import once something is pasted, but Escape closes it through the overlay host without asking (a known gap, #3495)';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
@@ -64,7 +62,7 @@ const EXEMPT: Record<string, string> = {
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,
   'storybible/source/NamePronunciation.tsx': BLUR,
-  'storybible/suggested/import/ImportDialog.tsx': MODAL_ESCAPE_CLOSES,
+  'storybible/suggested/import/ImportDialog.tsx': MODAL_ASKS,
   'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL_ASKS,
 };
 
@@ -111,6 +109,19 @@ describe('every editor that draws a text box either joins the unsaved-drafts reg
     const names = new Map(drawing.map(({ name, source }) => [name, source]));
     const stale = Object.keys(DECIDED).filter((name) => !names.has(name) || JOINS.test(code(names.get(name)!)));
     expect(stale, 'delete the entry: the file no longer draws a text box, or it registers now').toEqual([]);
+  });
+});
+
+// A dialog exempt because "Escape and the close button ask first" must call confirmDiscard: the claim in its entry is the only thing keeping a dialog that drops typed text on Escape
+// from joining the registry, so the file has to hold the question (#3457 qa round 4 B1).
+describe('a dialog exempt because its exits ask first calls confirmDiscard (#3400)', () => {
+  test('every entry that says Escape asks holds the question in its source', () => {
+    const without = Object.entries(EXEMPT)
+      .filter(([, reason]) => reason.includes('confirmDiscard'))
+      .filter(([name]) => !/confirmDiscard\(/.test(code(readFileSync(join(components, name), 'utf8'))))
+      .map(([name]) => name);
+    expect(Object.entries(EXEMPT).filter(([, reason]) => reason.includes('confirmDiscard')).length).toBeGreaterThanOrEqual(2);
+    expect(without, 'the entry says Escape asks: call confirmDiscard in the file, or give it a reason that is true').toEqual([]);
   });
 });
 
