@@ -223,7 +223,7 @@ describe('a typed reply survives what happens to its note', () => {
 });
 
 describe('deleting while typing in the same card', () => {
-  it('"Delete the note" asks when an edit of one of its messages is typed, and Keep it leaves both', async () => {
+  it('"Delete the note" asks when an edit of one of its messages is typed, and Cancel leaves both', async () => {
     const { query } = await seed();
     const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
     const { user } = mount();
@@ -262,7 +262,7 @@ describe('deleting while typing in the same card', () => {
     // Discard & continue: the message goes and the editor stays on its own message with the text typed in it; a Save writes onto that message and no other.
     await act(async () => answers[0]!());
     await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
-    await user.click(card(asked.id).getByRole('button', { name: 'Save' }));
+    await user.click(card(asked.id).getByRole('button', { name: 'Save the note' }));
     await waitFor(async () =>
       expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['EDITED reply two', 'reply three']),
     );
@@ -393,7 +393,7 @@ describe('edits-a-message-and-deletes-one-with-undo', () => {
     const box = card(query.id).getByRole('textbox', { name: 'Edit message' });
     await user.clear(box);
     await user.type(box, 'Changed wording');
-    await user.click(card(query.id).getByRole('button', { name: 'Save' }));
+    await user.click(card(query.id).getByRole('button', { name: 'Save the note' }));
     await waitFor(async () => expect((await marks())[1]?.thread[0]?.text).toBe('Changed wording'));
     expect(card(query.id).queryByRole('textbox', { name: 'Edit message' })).toBeNull();
     expect(card(query.id).getByText('Changed wording')).toBeTruthy();
@@ -461,7 +461,7 @@ describe('change-type-and-delete', () => {
     expect((await marks()).find((mark) => mark.id === note.id)).toBeUndefined();
   });
 
-  it('the trash asks before it deletes a note that has a reply typed under it, and Keep it leaves both (#3400)', async () => {
+  it('the trash asks before it deletes a note that has a reply typed under it, and Cancel leaves both (#3400)', async () => {
     const { note } = await seed();
     const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     const { user } = mount();
@@ -469,8 +469,14 @@ describe('change-type-and-delete', () => {
     await user.type(card(note.id).getByRole('textbox', { name: 'Add to this note' }), 'A reply not added yet');
     await user.click(card(note.id).getByRole('button', { name: 'Delete the note' }));
     await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
-    expect(confirm.mock.calls[0]![0]).toMatchObject({ title: 'Delete the note?', confirmLabel: 'Delete the note', cancelLabel: 'Keep it' });
-    // Keep it: the note and the typed reply stay.
+    expect(confirm.mock.calls[0]![0]).toMatchObject({
+      title: 'Delete the note?',
+      confirmLabel: 'Delete the note',
+      confirmVariant: 'danger',
+      safeDefault: true,
+    });
+    expect(confirm.mock.calls[0]![0]).not.toHaveProperty('cancelLabel');
+    // Cancel: the note and the typed reply stay.
     expect((await marks()).filter((mark) => mark.type === 'stress')).toHaveLength(1);
     expect((card(note.id).getByRole('textbox', { name: 'Add to this note' }) as HTMLTextAreaElement).value).toBe('A reply not added yet');
     // Delete the note: it goes.
@@ -545,7 +551,7 @@ describe('the open edit follows its message, not its index (#3458, qa-breaker ro
     await act(async () => release());
     await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(3));
     expect(editorOf(asked.id).value).toBe('r2 TYPED');
-    await user.click(card(asked.id).getByRole('button', { name: 'Save' }));
+    await user.click(card(asked.id).getByRole('button', { name: 'Save the note' }));
     await waitFor(async () =>
       expect((await marks()).find((mark) => mark.id === asked.id)?.thread.map((message) => message.text)).toEqual(['r2 TYPED', 'r3', 'r4']),
     );

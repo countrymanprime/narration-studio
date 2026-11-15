@@ -103,7 +103,7 @@ test('a reply typed under a note asks before the nav leaves, and Discard & conti
 });
 
 // Deleting a note takes the reply typed under it along (Undo brings the note back, not the text), so it asks first (#3400).
-test('Delete the note with a reply typed under it asks; Keep it leaves both, and with nothing typed it deletes at once', async ({ page }) => {
+test('Delete the note with a reply typed under it asks; Cancel leaves both, and with nothing typed it deletes at once', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
   await goToPage(page, 'Script');
@@ -124,7 +124,9 @@ test('Delete the note with a reply typed under it asks; Keep it leaves both, and
   await card.getByRole('button', { name: 'Delete the note' }).click();
   const question = unsaved(page, 'Delete the note?');
   await expect(question).toContainText('goes with it');
-  await question.getByRole('button', { name: 'Keep it' }).click();
+  // The question opens on the way out (Cancel), and Delete is the red one.
+  await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(reply).toHaveValue('A reply not added yet');
   await reply.fill('');
   await card.getByRole('button', { name: 'Delete the note' }).click();

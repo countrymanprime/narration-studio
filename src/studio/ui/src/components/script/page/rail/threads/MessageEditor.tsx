@@ -1,10 +1,10 @@
 import { plural } from '../../../../../plural';
 import { useEffect, useState } from 'react';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
-import { Button } from '../../../../primitives/Button';
+import { IconButton } from '../../../../primitives/IconButton';
 import { NoteTextarea } from './NoteTextarea';
 
-/** One message of a thread being edited: a labelled box with Save and Discard edit. It keeps its own draft until Save. */
+/** One message of a thread being edited: a labelled box with Discard edit and Save, as icon buttons like Proof's note editor. It keeps its own draft until Save. */
 export function MessageEditor({
   initial,
   onSave,
@@ -48,12 +48,8 @@ export function MessageEditor({
     <div className="flex flex-col gap-1.5">
       <NoteTextarea aria-label="Edit message" autoFocus value={text} onChange={(event) => setText(event.target.value)} />
       <div className="flex gap-1.5">
-        <Button variant="secondary" size="sm" onClick={onCancel}>
-          Discard edit
-        </Button>
-        <Button size="sm" onClick={() => void save()}>
-          Save
-        </Button>
+        <IconButton action="cancelEdit" label="Discard edit" size="sm" onClick={onCancel} />
+        <IconButton action="saveNote" size="sm" variant="primary" onClick={() => void save()} />
       </div>
     </div>
   );

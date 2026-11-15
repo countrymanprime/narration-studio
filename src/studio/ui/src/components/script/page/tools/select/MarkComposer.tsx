@@ -60,8 +60,9 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
       actionsAlign="end"
       actions={
         <>
+          {/* A button that drops typed text says so; with nothing typed it only closes (#3400). */}
           <Button variant="secondary" onClick={onClose}>
-            Discard note
+            {text.trim() !== '' ? 'Discard note' : 'Close'}
           </Button>
           <Button pending={saving} onClick={() => void save()}>
             Save

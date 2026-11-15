@@ -161,7 +161,9 @@ export function NoteCard({
         title: 'Delete the note?',
         body: typedReply ? 'The reply you typed under it is not added yet and goes with it.' : 'The edit you typed is not saved yet and goes with the note.',
         confirmLabel: 'Delete the note',
-        cancelLabel: 'Keep it',
+        // The red destructive style and the focus on the way out, like every other delete question (the word for staying is the primitive's own Cancel).
+        confirmVariant: 'danger',
+        safeDefault: true,
       });
       if (!confirmed) return;
     }

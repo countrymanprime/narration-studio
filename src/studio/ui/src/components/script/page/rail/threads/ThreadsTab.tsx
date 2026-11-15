@@ -119,7 +119,8 @@ export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps)
   // The list is held on another chapter than the one in view for as long as the typed text is: said on the list itself, not only in a toast that goes (#3458, round 3).
   return (
     <div className="flex flex-col gap-2">
-      {shownChapter !== chapterId && <p className="m-0 text-[0.8rem] text-[var(--text-muted)]">Showing the chapter you are typing in.</p>}
+      {/* A fixed slot: the line comes and goes with the held text and the list below does not move (rule 7). */}
+      <p className="m-0 min-h-[1.25rem] text-[0.8rem] text-[var(--text-muted)]">{shownChapter !== chapterId ? 'Showing the chapter you are typing in.' : ''}</p>
       {panel}
     </div>
   );

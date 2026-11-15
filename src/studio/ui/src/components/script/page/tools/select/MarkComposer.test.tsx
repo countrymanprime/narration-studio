@@ -103,10 +103,17 @@ describe('a-query-needs-its-question', () => {
 });
 
 describe('focus-and-aria (composer)', () => {
-  it('is a named dialog and gives focus back to its opener on Discard note', async () => {
+  it('the footer button says Close while nothing is typed and Discard note once something is (#3400)', async () => {
+    await open('stress');
+    expect(screen.queryByRole('button', { name: 'Discard note' })).toBeNull();
+    await userEvent.type(await screen.findByRole('textbox', { name: /Note/ }), 'typed');
+    expect(screen.getByRole('button', { name: 'Discard note' })).toBeTruthy();
+  });
+
+  it('is a named dialog and gives focus back to its opener on Close', async () => {
     const { onClose } = await open('stress');
     expect(screen.getByRole('dialog', { name: 'Mark “Alice”' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Discard note' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!);
     expect(onClose).toHaveBeenCalled();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Mark it' })));
   });
