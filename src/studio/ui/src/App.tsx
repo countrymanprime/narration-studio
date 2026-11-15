@@ -142,8 +142,8 @@ const popGuard = {
   ask: null as ((direction: 1 | -1) => void) | null,
   /** `event.timeStamp` of the last Enter or Space pressed anywhere but on the way to stay: the press that may have asked the question. */
   lastAskKeyAt: -Infinity,
-  /** `event.timeStamp` of the last Enter or Space pressed inside a question: the press that answered it. */
-  lastAnswerKeyAt: -Infinity,
+  /** True from the Enter that answered a question until that key is released: its repeats are not a decision in the box the focus went back to. */
+  answerEnterHeld: false,
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
@@ -190,14 +190,22 @@ if (typeof window !== 'undefined') {
     (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('[role="alertdialog"]')) popGuard.lastAnswerKeyAt = event.timeStamp;
-      // The press that answered a question (Keep editing) hands the focus back to the box it came from, and the next Enter in the same moment (a second tap, a held key) is
-      // that press's echo, not the narrator adding the name in it or accepting the suggestion (#3457 B10). A fresh press after the window is the field's own.
-      else if (target?.matches('input, textarea') && event.timeStamp - popGuard.lastAnswerKeyAt < ECHO_MS) {
+      // The Enter that answered a question (Keep editing) hands the focus back to the box it came from. If the key is still held, its repeats arrive in that box, where Enter
+      // adds the name or accepts the suggestion: those repeats are not the narrator's decision and are dropped until the key is released. A fresh press is always the field's
+      // own, however soon it comes, and Space and every other key are never touched (#3457 B10b, B13).
+      if (event.key === 'Enter' && target?.closest('[role="alertdialog"]') && !event.repeat) popGuard.answerEnterHeld = true;
+      else if (event.key === 'Enter' && event.repeat && popGuard.answerEnterHeld && target?.matches('input')) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
       if (!target?.closest('[data-stay-button]')) popGuard.lastAskKeyAt = event.timeStamp;
+    },
+    true,
+  );
+  window.addEventListener(
+    'keyup',
+    (event) => {
+      if (event.key === 'Enter') popGuard.answerEnterHeld = false;
     },
     true,
   );

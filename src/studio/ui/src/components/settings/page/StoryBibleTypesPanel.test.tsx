@@ -181,4 +181,25 @@ describe('text typed in New type is held until it is added (#3457)', () => {
     expect(add).toHaveBeenCalledTimes(1);
     expect(registry.heldNow()).toEqual([]);
   });
+
+  it('a name whose add is on its way is not held, and the add is sent once (#3457 B12)', async () => {
+    const api = await mount();
+    const real = api.guideTypeAdd.bind(api);
+    let finish: () => void = () => {};
+    const add = vi.spyOn(api, 'guideTypeAdd').mockImplementation(
+      (name) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name).then(resolve);
+        }),
+    );
+    const box = within(panel()).getByRole('textbox', { name: 'New type' });
+    fireEvent.change(box, { target: { value: 'Creature' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+    expect(registry.heldNow()).toEqual([]);
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(add).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+    await waitFor(() => expect((within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement).value).toBe(''));
+  });
 });
