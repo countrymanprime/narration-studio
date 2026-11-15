@@ -148,6 +148,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
   'src/components/credits/CreditsSetupBanner.tsx#1': no(BT),
   'src/components/credits/CreditsSetupDialog.tsx#1': no(BT),
+  'src/components/credits/CreditsSetupDialog.tsx#2': no(BT),
   'src/components/delivery/page/OutputPanel.tsx#1': yes('A build status read that went quiet: Check again reads the status again, which changes nothing.'),
   'src/components/delivery/page/OutputPanel.tsx#2': no(JM),
   'src/components/delivery/page/OutputPanel.tsx#3': no(BT),
