@@ -24,15 +24,6 @@ test('Jump menu opened again straight after it closed still returns focus to the
   }
 });
 
-// qa-breaker on the first version of the fix: the remembered opener is for the SAME dialog opened again. A different dialog opened by a page-wide key right after
-// the jump menu closed (here the "?" shortcut sheet) must not return to the jump button.
-//
-// The test puts focus on nothing (a narrator who clicked off) before the page key. It waits for the jump menu to have handed focus back first: the menu hands
-// it back a tick after its exit animation, and on a slow machine (#3498) that came after the blur, so focus was on the jump button when "?" was pressed and
-// the sheet rightly returned there. Waiting on that state, not on a time, makes the blur happen after the hand-back at any speed; the same test also runs
-// with the CPU throttled, which is how the race showed. The throttled run guards against a time-based wait creeping back; it does not guard the intent
-// itself (under the throttle the sheet opens after the jump menu's 600 ms `recentOpener` window, so the borrow it protects against cannot happen): the normal-speed
-// run does, and fails if the title check in `Dialog.tsx`'s `openerAtMount` is removed.
 // An Escape pressed in the first ~50-100 ms after a dialog took focus is not heard (#3500: a product behaviour to fix, after which this loop becomes one press), so the
 // test presses it until the dialog is gone instead of guessing how long to wait.
 async function pressEscapeUntilClosed(page: Page) {
@@ -42,6 +33,15 @@ async function pressEscapeUntilClosed(page: Page) {
   }).toPass({ timeout: 20_000 });
 }
 
+// qa-breaker on the first version of the fix: the remembered opener is for the SAME dialog opened again. A different dialog opened by a page-wide key right after
+// the jump menu closed (here the "?" shortcut sheet) must not return to the jump button.
+//
+// The test puts focus on nothing (a narrator who clicked off) before the page key. It waits for the jump menu to have handed focus back first: the menu hands
+// it back a tick after its exit animation, and on a slow machine (#3498) that came after the blur, so focus was on the jump button when "?" was pressed and
+// the sheet rightly returned there. Waiting on that state, not on a time, makes the blur happen after the hand-back at any speed; the same test also runs
+// with the CPU throttled, which is how the race showed. The throttled run guards against a time-based wait creeping back; it does not guard the intent
+// itself (under the throttle the sheet opens after the jump menu's 600 ms `recentOpener` window, so the borrow it protects against cannot happen): the normal-speed
+// run does, and fails if the title check in `Dialog.tsx`'s `openerAtMount` is removed.
 for (const throttle of [1, 20]) {
   test(`A different dialog opened by a page key right after the jump menu closed does not return to the jump button, with the CPU ${throttle}x slower`, async ({
     page,
