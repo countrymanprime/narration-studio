@@ -73,7 +73,11 @@ export function MappingConfirm({
   if (hasLink && !picking) {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm">{linkedTrackName === undefined ? 'Linked track is missing from this project' : trackName(linkedTrackName)}</span>
+        <span className="text-sm">
+          {linkedTrackName === undefined
+            ? 'Linked track is missing from this project'
+            : trackName(linkedTrackName, tracks.find((track) => track.guid === linkedTrackGuid)?.index)}
+        </span>
         <Button variant="secondary" onClick={() => setPicking(true)} disabled={busy}>
           {changeLabel}
         </Button>

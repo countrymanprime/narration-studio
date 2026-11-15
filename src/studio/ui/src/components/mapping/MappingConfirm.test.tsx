@@ -122,8 +122,8 @@ describe('MappingConfirm', () => {
   });
 
   // #3357: a linked track whose name is blank drew an empty span.
-  it('names a linked track with a blank name "Unnamed track"', () => {
+  it('names a linked track with a blank name by its place, "Track 1"', () => {
     render(<MappingConfirm chapterTitle="Chapter One" tracks={tracks} linkedTrackGuid="guid-1" linkedTrackName=" " onConfirm={vi.fn()} onClear={vi.fn()} />);
-    expect(screen.getByText('Unnamed track')).toBeTruthy();
+    expect(screen.getByText('Track 1')).toBeTruthy();
   });
 });

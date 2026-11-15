@@ -214,6 +214,15 @@ describe('chapterSyncActivityRows', () => {
     const rows = chapterSyncActivityRows([{ at: '2026-09-28T10:42:00Z', trigger: 'import', linked: [link('c2', 'Chapter 2', 'g2')], newTracks: [] }], () => '');
     expect(rows[0].text).toBe('Linked a track to Chapter 2');
   });
+
+  // #3357: a name of spaces or zero-width characters is truthy but draws nothing.
+  it('names a track whose name draws nothing "Unnamed track" in the linked line', () => {
+    const rows = chapterSyncActivityRows(
+      [{ at: '2026-09-28T10:42:00Z', trigger: 'import', linked: [link('c2', 'Chapter 2', 'g2')], newTracks: [] }],
+      () => ' \u200B ',
+    );
+    expect(rows[0].text).toBe('Linked “Unnamed track” to Chapter 2');
+  });
 });
 
 describe('a track whose name is blank (#3357)', () => {

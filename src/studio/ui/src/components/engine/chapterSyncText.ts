@@ -163,7 +163,7 @@ export function chapterSyncActivityRows(activity: ChapterSyncBatch[], trackName:
       return {
         key: `${index}:link:${link.trackGuid}`,
         at: batch.at,
-        text: name ? `Linked “${name}” to ${link.chapterTitle}` : `Linked a track to ${link.chapterTitle}`,
+        text: name ? `Linked “${readable(name)}” to ${link.chapterTitle}` : `Linked a track to ${link.chapterTitle}`,
         undoTrackGuid: link.origin === 'auto' ? link.trackGuid : '',
       };
     });
