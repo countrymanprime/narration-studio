@@ -354,3 +354,27 @@ func TestQuickLinkChangesLeaveChapterSyncStateOnTheLastOne(t *testing.T) {
 		mu.Unlock()
 	}
 }
+
+// #3416: clearing the project's data deletes the chapter links with the manuscript, so chaptersync:state goes out and the Engine panel stops counting them.
+func TestClearingProjectDataSendsChapterSyncStateWithNoLinks(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	if _, err := host.ChapterTrackSet(ids[0], chapterLinksTrack); err != nil {
+		t.Fatal(err)
+	}
+	syncs := make(chan chapterSyncState, 8)
+	host.mu.Lock()
+	host.chapterSyncEvents = func(state chapterSyncState) { syncs <- state }
+	host.mu.Unlock()
+	t.Cleanup(host.chapterSyncEmits.Wait)
+	if _, err := host.ManuscriptClearProjectData(true); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case state := <-syncs:
+		if state.Counts.Linked != 0 || len(state.Chapters) != 0 {
+			t.Fatalf("chaptersync:state after the clear = linked %d, %d chapters; want none", state.Counts.Linked, len(state.Chapters))
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("clearing the project's data sent no chaptersync:state")
+	}
+}
