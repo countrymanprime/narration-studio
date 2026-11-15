@@ -6,6 +6,7 @@ import type { AssetItem } from '../../../../types';
 import { analysisTools, offerable, recommended } from '../../../settings/analysis/components';
 import { ConsentDialog } from '../../../settings/analysis/ConsentDialog';
 import { useAnalysisTools, useComponentsPort } from '../../../settings/analysis/useAnalysisTools';
+import { moreActionsButton } from '../../moreActionsButton';
 import { openImportDialog } from '../import/openImportDialog';
 import { AnalysisPrompt, type ScanChoice } from './AnalysisPrompt';
 import { readAnalysisPrompt, saveAnalysisPrompt } from '../../../settings/analysis/analysisPromptSetting';
@@ -77,6 +78,8 @@ export function useStartScan({ scan, onImported }: { scan: () => Promise<void>; 
       kind: 'dialog',
       dismissOnOutsidePress: false,
       title: 'Scan the manuscript',
+      // Chosen from the Story Bible's More actions menu, which closed with the item (#3416 item 50).
+      returnFocus: moreActionsButton,
       render: ({ close }) => <AnalysisPrompt choose={(choice, never) => void choose(choice, never, close)} />,
     });
   }, [system, assets]);
