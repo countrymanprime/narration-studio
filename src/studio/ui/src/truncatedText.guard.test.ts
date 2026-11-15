@@ -89,8 +89,8 @@ const DEBT = new Set<string>([
   'components/editing/bar/SelectionBar.tsx#1',
   'components/layout/TimerChip.tsx#1',
   'components/primitives/Field.tsx#1',
-  'components/primitives/Menu.tsx#1',
-  'components/primitives/StatTile.tsx#1',
+  // False positives of the scan, not clips with no way to read them: the inline run sits inside a `TooltipTarget` built a few lines below it, and the
+  // stacked lines are titled by their one caller (ImportReview's HeadingLines puts the whole name on the row), which the scan cannot see across files.
   'components/primitives/TitleSubtitle.tsx#1',
   'components/primitives/TitleSubtitle.tsx#2',
   'components/primitives/TitleSubtitle.tsx#3',

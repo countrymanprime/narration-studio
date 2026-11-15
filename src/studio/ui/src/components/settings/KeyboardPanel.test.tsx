@@ -80,7 +80,7 @@ describe('KeyboardPanel', () => {
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {
     renderPanel();
     expect(await screen.findByText('Global · anywhere, except while a dialog is open')).toBeTruthy();
-    expect(screen.getByText("Page · a chapter's Proof view")).toBeTruthy();
+    expect(screen.getByText('Page · the page that has the command, not the Booth or a dialog')).toBeTruthy();
     expect(screen.getByText('Booth · the Booth and its companion panel')).toBeTruthy();
     expect(screen.getByText('Back')).toBeTruthy();
     expect(screen.getByText('Record or stop')).toBeTruthy();
@@ -104,6 +104,29 @@ describe('KeyboardPanel', () => {
     renderPanel();
     const group = await openRecorderFor('Record or stop');
     expect(group.getByRole('status').textContent).toBe('Press a key or a pedal for "Record or stop"…');
+  });
+
+  it("says a page command's free key is free on that command's page, not on a chapter's Proof view (#3399)", async () => {
+    renderPanel();
+    const group = await openRecorderFor('Next word');
+    keydown({ code: 'KeyQ' });
+    expect(group.getByRole('status').textContent).toBe("Q captured. No other command uses it on this command's page.");
+  });
+
+  // The line is about the command's own page: another page's row may hold the same key (ArrowRight moves a word here and a chapter on Proof).
+  it("does not say a key is free on every page when another page's command holds it", async () => {
+    renderPanel();
+    const group = await openRecorderFor('Next word');
+    keydown({ code: 'ArrowRight' });
+    const text = group.getByRole('status').textContent ?? '';
+    expect(text).not.toMatch(/any page|every page/);
+  });
+
+  it('no scope heading names one page, since the Page group lists rows for Proof, Editing, Script and the picker (#3399)', async () => {
+    renderPanel();
+    await screen.findByText('Global · anywhere, except while a dialog is open');
+    for (const heading of screen.getAllByText(/^(Global|Page|Booth|Dialog) · /))
+      expect(heading.textContent).not.toMatch(/Proof|Editing|Script|Story Bible|picker/);
   });
 
   it('captures a key, announces it in the live region, and saves it on Replace', async () => {

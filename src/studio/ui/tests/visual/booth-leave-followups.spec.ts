@@ -56,7 +56,7 @@ for (const [via, open] of [
   test(`Switch project from ${via} over unsaved Settings asks first; Keep editing leaves the picker closed and the edit in place`, async ({ page }) => {
     await dirtySettings(page);
     await open(page);
-    const unsaved = page.getByRole('alertdialog', { name: 'Unsaved settings' });
+    const unsaved = page.getByRole('alertdialog', { name: 'Unsaved changes' });
     await expect(unsaved).toBeVisible();
     await expect(picker(page)).toHaveCount(0);
     await unsaved.getByRole('button', { name: 'Cancel' }).click();
@@ -69,7 +69,7 @@ for (const [via, open] of [
 test('Switch project over unsaved Settings: Discard & continue opens the picker, and Escape then returns to Settings', async ({ page }) => {
   await dirtySettings(page);
   await page.getByRole('button', { name: /, switch project$/ }).click();
-  await page.getByRole('alertdialog', { name: 'Unsaved settings' }).getByRole('button', { name: 'Discard & continue' }).click();
+  await page.getByRole('alertdialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Discard & continue' }).click();
   await expect(picker(page)).toBeVisible();
   // Escape is Back, as it is for every page that covers another.
   await page.keyboard.press('Escape');

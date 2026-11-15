@@ -419,6 +419,45 @@ describe('ChapterLinksTable', () => {
     expect((within(opening).getByRole('combobox') as HTMLSelectElement).value).toBe(WIRE_TRACKS_PROJECT.tracks[0].guid);
   });
 
+  // #3376: Cancel and Clear take their button away; focus went to the dialog, so the next Tab began at the top of the panel.
+  it("puts focus on the Change that takes Cancel's place, and on Create after Clear", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    const change = await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(document.activeElement).toBe(change);
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    const create = await within(opening).findByRole('button', { name: /^Create a track for/ });
+    expect(document.activeElement).toBe(create);
+  });
+
+  // #3376 (qa-breaker B1): a Clear that is still waiting for the host leaves its note; it must not move focus in a panel opened after the table went away.
+  it('drops a pending hand-back note when the table goes away', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    vi.spyOn(api, 'chapterTrackUnlink').mockReturnValue(new Promise(() => {}));
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
+    cleanup();
+    // A fresh table has Opening credits unlinked, with the Create the stale note would have focused.
+    renderTable();
+    const again = chapterRow(await screen.findByRole('table', { name: 'Chapter links' }), 'Opening credits');
+    await within(again).findByRole('button', { name: /^Create a (track|folder) for/ });
+    expect(document.activeElement).toBe(document.body);
+  });
+
   // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.
   it("ignores a press on the Change that takes the check's place right after a link", async () => {
     const user = userEvent.setup();
