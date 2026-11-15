@@ -57,7 +57,7 @@ describe('the question put to the narrator (#3404)', () => {
   it('offers only Discard, and no word about saving, when nothing held can be saved', () => {
     const row = held('a relationship you started', { saveable: false });
     expect(draftQuestion([row])).toEqual({
-      body: "This can't be saved yet: A relationship you started cannot be saved from here. Discard it before leaving?",
+      body: "A relationship you started can't be saved yet. Discard it before leaving?",
       canSave: false,
     });
   });
@@ -160,12 +160,12 @@ describe('wording the breaker found (#3446, #3457)', () => {
     const suggestion = held('your edit of the alias suggestion', { brief: 'a suggestion edit', saveable: false });
     const entryEdit = held('your changes to Alice', { brief: 'your entry edit' });
     expect(draftQuestion([entryEdit, suggestion]).body).toBe(
-      "This can't be saved yet: A suggestion edit cannot be saved from here. Discard your entry edit and a suggestion edit before leaving?",
+      "A suggestion edit can't be saved yet. Discard your entry edit and a suggestion edit before leaving?",
     );
   });
 
   it('several half-filled relationship rows read in the plural', () => {
     const rows = held('3 relationships you started', { brief: '3 relationships', saveable: false });
-    expect(draftQuestion([rows]).body).toBe("This can't be saved yet: 3 relationships you started cannot be saved from here. Discard them before leaving?");
+    expect(draftQuestion([rows]).body).toBe("3 relationships you started can't be saved yet. Discard them before leaving?");
   });
 });
