@@ -154,6 +154,86 @@ describe('the message about a slow save goes with the text it speaks of (#3446 P
   });
 });
 
+describe('the key that answered a question does not decide in the box the focus goes back to (#3457 B10b, B13)', () => {
+  const press = (target: Element, init: KeyboardEventInit = {}, type: 'keydown' | 'keyup' = 'keydown') => {
+    const event = new KeyboardEvent(type, { key: 'Enter', bubbles: true, cancelable: true, ...init });
+    target.dispatchEvent(event);
+    return event;
+  };
+  const scene = () => {
+    document.body.innerHTML = '<div role="alertdialog"><button id="keep">Keep editing</button></div><input id="alias" /><textarea id="note"></textarea>';
+    const reached = vi.fn();
+    const alias = document.getElementById('alias') as HTMLInputElement;
+    alias.onkeydown = reached;
+    return { keep: document.getElementById('keep')!, alias, note: document.getElementById('note')!, reached };
+  };
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('a held Enter that answered the question does nothing in the box it returns to, however long it is held', () => {
+    const { keep, alias, reached } = scene();
+    press(keep);
+    for (let n = 0; n < 5; n++) expect(press(alias, { repeat: true }).defaultPrevented).toBe(true);
+    expect(reached).not.toHaveBeenCalled();
+    // Released: a held key that starts repeating later is a new press.
+    press(alias, {}, 'keyup');
+    expect(press(alias, { repeat: true }).defaultPrevented).toBe(false);
+  });
+
+  it('an auto-repeat inside a question, Enter or Space, answers nothing, and a fresh press still answers (#3457 qa round 4 B2)', () => {
+    const { keep } = scene();
+    const answered = vi.fn();
+    keep.onclick = answered;
+    keep.onkeydown = answered;
+    for (const key of ['Enter', ' ']) {
+      const held = press(keep, { key, repeat: true });
+      expect(held.defaultPrevented).toBe(true);
+    }
+    expect(answered).not.toHaveBeenCalled();
+    expect(press(keep, { key: 'Enter' }).defaultPrevented).toBe(false);
+    expect(answered).toHaveBeenCalledTimes(1);
+  });
+
+  it('a keyup that never arrives does not leave the next hold dropped: a fresh Enter, or the window losing focus, ends the rule (#3457 qa round 6 A-1)', () => {
+    const { keep, note } = scene();
+    // The answering Enter, whose keyup is lost; the next Enter in the box is a fresh press, and its repeats are the narrator's own.
+    press(keep);
+    expect(press(note).defaultPrevented).toBe(false);
+    expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
+    // The same through the window losing focus.
+    press(keep);
+    window.dispatchEvent(new Event('blur'));
+    expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
+  });
+
+  it('a deliberate Enter right after the answer reaches the box', () => {
+    const { keep, alias, reached } = scene();
+    press(keep);
+    press(keep, {}, 'keyup');
+    expect(press(alias).defaultPrevented).toBe(false);
+    expect(reached).toHaveBeenCalledTimes(1);
+  });
+
+  it('a space typed right after the question is answered reaches the box, and so does a newline in a textarea', () => {
+    const { keep, alias, note, reached } = scene();
+    press(keep);
+    expect(press(alias, { key: ' ' }).defaultPrevented).toBe(false);
+    expect(press(alias, { key: 'c' }).defaultPrevented).toBe(false);
+    expect(reached).toHaveBeenCalledTimes(2);
+    // A fresh Enter in a textarea is a newline, however soon it comes.
+    expect(press(note).defaultPrevented).toBe(false);
+  });
+
+  it('a held Enter that answered the question adds no newline to a textarea it returns to, until it is released (#3457 qa round 5 B2)', () => {
+    const { keep, note } = scene();
+    press(keep);
+    for (let n = 0; n < 5; n++) expect(press(note, { repeat: true }).defaultPrevented).toBe(true);
+    press(note, {}, 'keyup');
+    expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
+  });
+});
+
 describe('a save that lands after the limit takes its slow-save message away (#3491 PB-2b)', () => {
   it('the toast "Saving is taking too long" is gone once the text is saved', async () => {
     probe.hang = true;

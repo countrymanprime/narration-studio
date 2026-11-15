@@ -81,7 +81,7 @@ describe('the Voice samples section of an entry', () => {
     expect(await menuItems(user, more)).toEqual(['Rename…', 'Move to a character…', 'Delete…']);
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(await menuItems(user, screen.getByRole('button', { name: 'More about Tea party, quick' }))).toEqual(['Rename…']);
   });
 

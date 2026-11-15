@@ -54,6 +54,8 @@ In [Settings](settings.md), edited fields and the settings panels under **Set on
 
 On [Proof](proof.md), a note typed on a finding and not yet added, or an edit of one not yet saved, is held this way.
 
+In the [Story Bible](story-bible.md), an entry being edited, a relationship, a name typed in **Add a name**, a note beside **Approve**, a suggestion's edit and a name typed in **New type** (Settings) are held this way; a new entry before a category is chosen and the ones that cannot be saved from the question say so ("... still needs a category chosen." or "... can't be saved yet.").
+
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
 ![Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector](../../images/ui/nav-page-footer.webp)

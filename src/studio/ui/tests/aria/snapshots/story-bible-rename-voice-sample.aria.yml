@@ -14,5 +14,5 @@
   - textbox "Note":
     - /placeholder: "How you did it: pitch up, clipped, no breaths"
     - text: Runs the words together.
-  - button "Cancel"
+  - button "Close"
   - button "Save"

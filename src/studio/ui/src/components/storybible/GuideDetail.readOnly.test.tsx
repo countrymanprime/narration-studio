@@ -28,7 +28,7 @@ describe('the read-only entry', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     expect(screen.getByRole('button', { name: 'Add a relationship' })).toBeTruthy();
     expect(screen.getAllByRole('combobox', { name: 'Relationship' }).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.queryByRole('button', { name: 'Add a relationship' })).toBeNull();
   });
 

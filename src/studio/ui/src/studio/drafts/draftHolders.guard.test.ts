@@ -57,15 +57,13 @@ const EXEMPT: Record<string, string> = {
   'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,
-  'settings/page/StoryBibleTypesPanel.tsx': BLUR,
   'settings/row/ValueControl.tsx': BLUR,
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,
-  'storybible/VoiceReferencesSection.tsx': 'the optional note of an approval that is not made until Approve; one short phrase beside a region choice',
   'storybible/source/NamePronunciation.tsx': BLUR,
-  'storybible/suggested/import/ImportDialog.tsx': MODAL,
-  'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL,
+  'storybible/suggested/import/ImportDialog.tsx': MODAL_ASKS,
+  'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL_ASKS,
 };
 
 // The editors below hold typed text and are joined to the registry one screen at a time (#3400). Each screen's change registers its editors, deletes their
@@ -76,9 +74,6 @@ const PENDING: Record<string, string> = {
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/Relationships.tsx': SCREEN('Story Bible'),
-  'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
 };
 const DECIDED: Record<string, string> = { ...EXEMPT, ...PENDING };
 
@@ -115,6 +110,36 @@ describe('every editor that draws a text box either joins the unsaved-drafts reg
   });
 });
 
+// A dialog exempt because "Escape and the close button ask first" must call confirmDiscard: the claim in its entry is the only thing keeping a dialog that drops typed text on Escape
+// from joining the registry, so the file has to hold the question (#3457 qa round 4 B1).
+describe('a dialog exempt because its exits ask first calls confirmDiscard (#3400)', () => {
+  test('every entry that says Escape asks holds the question in its source', () => {
+    const without = Object.entries(EXEMPT)
+      .filter(([, reason]) => reason.includes('confirmDiscard'))
+      .filter(([name]) => !/confirmDiscard\(/.test(code(readFileSync(join(components, name), 'utf8'))))
+      .map(([name]) => name);
+    expect(Object.entries(EXEMPT).filter(([, reason]) => reason.includes('confirmDiscard')).length).toBeGreaterThanOrEqual(2);
+    expect(without, 'the entry says Escape asks: call confirmDiscard in the file, or give it a reason that is true').toEqual([]);
+  });
+});
+
+// A BLUR exemption is true of a box whose own blur or Enter saves it. A box whose Enter and a separate button run the same function (a New type box with an Add
+// button) saves only when one of them is pressed: blurring it commits nothing, so an exit drops the text (#3457, qa-breaker on #3446).
+const SEPARATE_COMMIT = /key === 'Enter'\)\s*\{?\s*(\w+)\(\)/g;
+describe('a box exempt because it saves on blur has no separate commit button (#3457)', () => {
+  test('no BLUR file has an Enter handler whose function a button also runs', () => {
+    const hits: string[] = [];
+    for (const { name, source } of drawing) {
+      if (EXEMPT[name] !== BLUR) continue;
+      const text = code(source);
+      for (const match of text.matchAll(SEPARATE_COMMIT)) {
+        if (new RegExp(`onClick=\\{${match[1]}\\}`).test(text)) hits.push(`${name}: ${match[1]}`);
+      }
+    }
+    expect(hits, 'make the box a holder (useUnsavedDraft with the add as its save), or commit it on blur').toEqual([]);
+  });
+});
+
 // A link that leaves a page must take the shell's guarded move, or the question is skipped and the draft goes (#3400: the Story Bible's Find in the
 // manuscript, the engine panel's Open in Proof, Script's More fields). The router's own `navigate` is for a redirect that holds nothing.
 const ROUTER_NAVIGATE = /\buseNavigate\(/;
@@ -127,9 +152,6 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
   '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
-  'storybible/Guide.tsx': SCREEN('Story Bible'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/voicesamples/RoutedVoiceSamplesSection.tsx': SCREEN('Story Bible'),
 };
 describe('a link out of a page goes through the guarded navigate (#3400)', () => {
   const sources = files(srcRoot, /\.tsx?$/)
@@ -194,6 +216,11 @@ describe('a link inside a dialog that opens over every page is a GuardedLink (#3
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
+const STORY_BIBLE_DETAIL: Replacer[] = [
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string, after\?: \(\) => void\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
+];
 const SETTINGS_PANE: Replacer[] = [
   { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
   {
@@ -211,7 +238,12 @@ const PROOF_MOVES: Replacer[] = [
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
   'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'settings/page/StoryBibleTypesPanel.tsx': SETTINGS_PANE,
   'proof/inspector/FindingThread.tsx': PROOF_MOVES,
+  'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
+  'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/VoiceReferencesSection.tsx': STORY_BIBLE_DETAIL,
+  'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
 };
 
 // Every call that selects a note or opens a chapter on the Proof page replaces the Inspector, and with it a note typed there. The calls that do not ask are named here,
