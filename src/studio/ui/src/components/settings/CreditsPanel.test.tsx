@@ -325,6 +325,34 @@ describe('CreditsPanel', () => {
     expect(registry.heldNow()).toHaveLength(1);
   });
 
+  it('a late New-template answer whose list read is slow does not take the editor after the narrator moved on (#3461 round 7 BR1)', async () => {
+    const { api } = renderPanel();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const { answers } = await newTemplateSaveGivenUp(api, 'First new.');
+    // The list read that follows the late answer is held.
+    const real = api.creditsTemplates.bind(api);
+    let release: () => void = () => {};
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => void real().then(resolve);
+        }),
+    );
+    answers[0]!();
+    await waitFor(() => expect(api.creditsTemplates).toHaveBeenCalled());
+    // Inside that read the narrator picks another template (Discard) and types in it.
+    const select = screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement;
+    const other = [...select.options].find((option) => option.value !== '' && option.value !== select.value)!.value;
+    fireEvent.change(select, { target: { value: other } });
+    await waitFor(() => expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'typed on the other template' } });
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    // The read ended: the editor is still on the other template with its text, and the picker did not move to the template that was created.
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).toBe(other);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('typed on the other template');
+  });
+
   it('Save again before the first answer of a New template lands creates no second template (#3461 B2)', async () => {
     const { api } = renderPanel();
     const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once.');

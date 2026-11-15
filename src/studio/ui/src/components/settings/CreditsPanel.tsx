@@ -206,12 +206,12 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         void call
           .then(async (late) => {
             if (!pendingCreates.current.delete(seq)) return;
-            // Another New was started since: that editor and its text stay as they are, and the list only learns the template that was created.
-            if (draftSeq.current !== seq || editorNow.current.id !== '') {
-              setTemplates(await api.creditsTemplates());
-              return;
-            }
-            await load();
+            // The list is read first, and only then is it decided whether the editor is still on the draft that started this save: the narrator can pick another template, Discard or press New
+            // while the read is out, and the editor and its text must stay where they went, the list only learning the template that was created (#3461 round 7 BR1). The read is the
+            // templates alone, since `load` would also move a New draft onto the first template.
+            const fresh = await api.creditsTemplates();
+            setTemplates(fresh);
+            if (draftSeq.current !== seq || editorNow.current.id !== '') return;
             // The editor moves onto the template that was created, with what is in it now: text typed after the limit is an edit of that template still to save, not something
             // the template's own body replaces (#3461 round 7 N1). The baseline and what was last sent say what the template holds.
             baseline.current = { id: late.id, name: sent.name, kind: sent.kind, body: sent.body };
