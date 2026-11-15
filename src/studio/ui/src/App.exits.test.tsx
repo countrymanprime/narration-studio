@@ -209,6 +209,15 @@ describe('the key that answered a question does not decide in the box the focus 
     expect(press(alias, { key: ' ' }).defaultPrevented).toBe(false);
     expect(press(alias, { key: 'c' }).defaultPrevented).toBe(false);
     expect(reached).toHaveBeenCalledTimes(2);
+    // A fresh Enter in a textarea is a newline, however soon it comes.
+    expect(press(note).defaultPrevented).toBe(false);
+  });
+
+  it('a held Enter that answered the question adds no newline to a textarea it returns to, until it is released (#3457 qa round 5 B2)', () => {
+    const { keep, note } = scene();
+    press(keep);
+    for (let n = 0; n < 5; n++) expect(press(note, { repeat: true }).defaultPrevented).toBe(true);
+    press(note, {}, 'keyup');
     expect(press(note, { repeat: true }).defaultPrevented).toBe(false);
   });
 });

@@ -196,6 +196,10 @@ export function ImportDialog({ onClose, onChanged, exitGuard }: ImportDialogProp
   const typedNow = useRef(typed);
   // While Add runs the text is on its way to the host, so closing the dialog drops nothing and asks nothing.
   typedNow.current = typed && !adding;
+  // What the box holds now, and the text of the file that last filled it: choosing a file over anything else typed or pasted replaces it, so it asks first (#3457 qa round 5 B1).
+  const textNow = useRef(text);
+  textNow.current = text;
+  const lastRead = useRef('');
   useEffect(() => {
     if (!exitGuard) return;
     exitGuard.current = async () => !typedNow.current || confirmDiscard('your import');
@@ -219,6 +223,9 @@ export function ImportDialog({ onClose, onChanged, exitGuard }: ImportDialogProp
         setFileProblem(read ? 'That file has only blank space in it.' : 'That file is empty.');
         return;
       }
+      if (textNow.current.trim() && textNow.current !== lastRead.current && !(await confirmDiscard('the text you pasted'))) return;
+      if (mine !== reading.current || !alive.current) return;
+      lastRead.current = read;
       setText(read);
       setHint(hintFromName(file.name));
       setFileName(displayName(file.name));
