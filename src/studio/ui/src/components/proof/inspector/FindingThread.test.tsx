@@ -79,6 +79,15 @@ describe('notes-on-this-finding', () => {
     expect((await api.findingsGet(id)).review.thread?.map((m) => m.text)).toEqual(['one, edited', 'two']);
   });
 
+  // #3380: the time line is clipped to the card, so it carries itself as a title.
+  it('gives each message its time as a title', async () => {
+    await setup();
+    await addNote('one', 'My note');
+    const first = document.querySelector<HTMLElement>('[data-message="m1"]')!;
+    const when = first.querySelector<HTMLElement>('.truncate')!;
+    expect(when.getAttribute('title')).toBe(when.textContent);
+  });
+
   it('a deleted note is one journal entry, and Ctrl+Z brings it back', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     const { api, id } = await setup(journal);

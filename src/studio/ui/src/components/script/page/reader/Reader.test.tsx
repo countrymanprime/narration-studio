@@ -89,6 +89,13 @@ describe('continuous scroll with the spy', () => {
     expect(document.querySelector('b')?.textContent).toBe('Chapter 1: Down the Rabbit-Hole');
   });
 
+  // #3380: the title is clipped (two lines under 640 px, one above), so it carries itself as a title.
+  it('gives the clipped sticky title its whole text as a title', () => {
+    const named = [{ ...chapters[0]!, subtitle: 'Down the Rabbit-Hole' }, ...chapters.slice(1)];
+    render(<Reader {...props({ chapters: named })} />);
+    expect(document.querySelector('b')?.getAttribute('title')).toBe('Chapter 1: Down the Rabbit-Hole');
+  });
+
   it('says the chapter and the paragraph through the live region when a request jumps to a chapter, so no earlier line stays as the last thing said', () => {
     const said: string[] = [];
     vi.spyOn(overlay, 'announce').mockImplementation((text) => void said.push(text));

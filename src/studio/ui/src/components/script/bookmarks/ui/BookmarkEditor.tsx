@@ -82,7 +82,10 @@ export function BookmarkEditor({ bookmark, snippet, trigger, onUpdate, onRemove 
     <Popover trigger={trigger} label="Edit bookmark" side="bottom" align="start" open={open} onOpenChange={change}>
       <div className="flex w-[min(20rem,calc(100vw-3rem))] flex-col gap-2" onKeyDown={trapTab}>
         <div className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate font-serif text-[0.8rem] text-[var(--text-muted)] italic">
+          <span
+            className="min-w-0 flex-1 truncate font-serif text-[0.8rem] text-[var(--text-muted)] italic"
+            title={snippet ? `“${snippet}”` : 'This line has changed'}
+          >
             {snippet ? `“${snippet}”` : 'This line has changed'}
           </span>
           <IconButton
