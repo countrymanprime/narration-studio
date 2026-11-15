@@ -439,22 +439,22 @@ describe('ChapterLinksTable', () => {
     expect(document.activeElement).toBe(create);
   });
 
-  // #3376 (qa-breaker): a hand-back noted by a Clear must not move focus in a panel opened after this one closed.
-  it('drops the hand-back note when the table goes away', async () => {
+  // #3376 (qa-breaker B1): a Clear that is still waiting for the host leaves its note; it must not move focus in a panel opened after the table went away.
+  it('drops a pending hand-back note when the table goes away', async () => {
     const user = userEvent.setup();
-    renderTable();
+    const api = renderTable();
+    vi.spyOn(api, 'chapterTrackUnlink').mockReturnValue(new Promise(() => {}));
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
     await pastQuiet();
-    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
-    await pastQuiet();
-    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
     cleanup();
+    // A fresh table has Opening credits unlinked, with the Create the stale note would have focused.
     renderTable();
-    await screen.findByRole('table', { name: 'Chapter links' });
-    await pastQuiet();
+    const again = chapterRow(await screen.findByRole('table', { name: 'Chapter links' }), 'Opening credits');
+    await within(again).findByRole('button', { name: /^Create a (track|folder) for/ });
     expect(document.activeElement).toBe(document.body);
   });
 

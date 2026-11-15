@@ -228,14 +228,14 @@ const HAND_BACK_MS = 15_000;
  * press replaces it, so a Cancel on one row never takes focus into that row when a Clear on another has just run, and a narrator who moves focus
  * to a real control drops it.
  */
-let handBack: { chapterId: string; to: 'change' | 'create'; until: number } | undefined;
+let handBack: { chapterId: string; to: 'change' | 'create'; label: string; until: number } | undefined;
 if (typeof document !== 'undefined')
   document.addEventListener('focusin', (event) => {
     const target = event.target;
     if (!handBack || !(target instanceof HTMLElement) || target === document.body || target.getAttribute('role') === 'dialog') return;
-    const label = target.getAttribute('aria-label') ?? '';
-    // The replacement taking focus is the hand-back itself; any other control means the narrator went there.
-    if (!/^(Change the track for |Create a (track|folder) for )/.test(label)) handBack = undefined;
+    // The replacement taking focus is the hand-back itself (its exact label, so another row's Change or Create is a narrator's own move);
+    // any other control means the narrator went there.
+    if (target.getAttribute('aria-label') !== handBack.label) handBack = undefined;
   });
 
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
@@ -316,8 +316,10 @@ function ChapterLinkRow({
   // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button (on the
   // page, or on the panel's own container), never over a control the narrator moved to. The note is the table's single one (the row is drawn anew when its link is cleared).
   const actionsRef = useRef<HTMLSpanElement>(null);
+  const replacementLabel = (to: 'change' | 'create') =>
+    to === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
   const askHandBack = (to: 'change' | 'create') => {
-    handBack = { chapterId: row.chapter.id, to, until: Date.now() + HAND_BACK_MS };
+    handBack = { chapterId: row.chapter.id, to, label: replacementLabel(to), until: Date.now() + HAND_BACK_MS };
   };
   // No dependency list: the replacement can be drawn a render or two after the state that asked for it (a Clear waits for the host), and the note keeps this a no-op until then.
   useEffect(() => {
@@ -327,7 +329,7 @@ function ChapterLinkRow({
       handBack = undefined;
       return;
     }
-    const label = note.to === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
+    const label = note.label;
     const target = Array.from(actionsRef.current?.querySelectorAll<HTMLElement>('[aria-label]') ?? []).find(
       (element) => element.getAttribute('aria-label') === label,
     );
