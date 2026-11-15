@@ -1,0 +1,40 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { UnsavedDraftsProvider } from '../../../../../studio/drafts/unsavedDrafts';
+import { TooltipProvider } from '../../../../primitives/Tooltip';
+import { MessageEditor } from './MessageEditor';
+
+afterEach(cleanup);
+
+const mount = (onSave = vi.fn()) => {
+  render(
+    <TooltipProvider>
+      <UnsavedDraftsProvider>
+        <MessageEditor initial="Original message" onSave={onSave} onCancel={vi.fn()} />
+      </UnsavedDraftsProvider>
+    </TooltipProvider>,
+  );
+  return onSave;
+};
+
+describe('MessageEditor', () => {
+  it('a blank edit is not saved: the tick is off, so only the delete button deletes (#3458 qa round 5 B1)', () => {
+    const onSave = mount();
+    const box = screen.getByLabelText('Edit message');
+    for (const blank of ['', '   ']) {
+      fireEvent.change(box, { target: { value: blank } });
+      const tick = screen.getByRole('button', { name: 'Save the note' }) as HTMLButtonElement;
+      expect(tick.getAttribute('aria-disabled') === 'true' || tick.disabled).toBe(true);
+      fireEvent.click(tick);
+    }
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('an edited message is saved trimmed', () => {
+    const onSave = mount();
+    fireEvent.change(screen.getByLabelText('Edit message'), { target: { value: '  Changed  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save the note' }));
+    expect(onSave).toHaveBeenCalledWith('Changed');
+  });
+});

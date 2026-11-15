@@ -23,7 +23,9 @@ export function MessageEditor({
   const [text, setText] = useState(initial);
   // Discard & continue over an in-page change (deleting another message) drops the edit: the editor closes and holds nothing (#3458 Y1).
   const [dropped, setDropped] = useState(false);
-  const save = useSharedSave(async () => (await onSave(text.trim())) !== false);
+  // A blank edit is not a save: sending it would delete the message (the host replaces the text with nothing), and only the delete button deletes (#3458 qa round 5 B1).
+  const blank = text.trim() === '';
+  const save = useSharedSave(async () => !blank && (await onSave(text.trim())) !== false);
   const dirty = text.trim() !== '' && text.trim() !== initial.trim();
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -49,7 +51,7 @@ export function MessageEditor({
       <NoteTextarea aria-label="Edit message" autoFocus value={text} onChange={(event) => setText(event.target.value)} />
       <div className="flex gap-1.5">
         <IconButton action="cancelEdit" label="Discard edit" size="sm" onClick={onCancel} />
-        <IconButton action="saveNote" size="sm" variant="primary" onClick={() => void save()} />
+        <IconButton action="saveNote" size="sm" variant="primary" disabledReason={blank ? 'Write the message first' : undefined} onClick={() => void save()} />
       </div>
     </div>
   );
