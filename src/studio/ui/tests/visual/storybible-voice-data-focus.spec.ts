@@ -16,3 +16,20 @@ for (const how of ['Escape', 'Close'] as const) {
     await expect(page.getByRole('button', { name: 'More actions' })).toBeFocused();
   });
 }
+
+// Opened from the keyboard: Enter on More actions, then Enter on the Voice data item.
+test('Story Bible / Voice data opened from the keyboard closes back onto More actions', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await storybibleDrivers['voice-data-panel']!(page);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'More actions' }).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('menuitem', { name: 'Voice data' }).focus();
+  await page.keyboard.press('Enter');
+  const panel = page.getByRole('dialog', { name: 'Voice data' });
+  await panel.waitFor();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(page.getByRole('button', { name: 'More actions' })).toBeFocused();
+});
