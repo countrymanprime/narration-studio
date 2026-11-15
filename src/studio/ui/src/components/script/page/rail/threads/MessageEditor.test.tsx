@@ -22,7 +22,8 @@ describe('MessageEditor', () => {
   it('a blank edit is not saved: the tick is off, so only the delete button deletes (#3458 qa round 5 B1)', () => {
     const onSave = mount();
     const box = screen.getByLabelText('Edit message');
-    for (const blank of ['', '   ']) {
+    // U+0085 is blank to the host (Go's TrimSpace strips it) though JavaScript's trim() keeps it.
+    for (const blank of ['', '   ', '\u0085', '\u00a0\u3000\u2028']) {
       fireEvent.change(box, { target: { value: blank } });
       const tick = screen.getByRole('button', { name: 'Save the note' }) as HTMLButtonElement;
       expect(tick.getAttribute('aria-disabled') === 'true' || tick.disabled).toBe(true);

@@ -4,6 +4,16 @@ import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/uns
 import { IconButton } from '../../../../primitives/IconButton';
 import { NoteTextarea } from './NoteTextarea';
 
+/**
+ * Trims what the host trims: Go's `strings.TrimSpace` strips every Unicode space (U+0085, U+00A0, U+1680, U+2000-200A, U+2028/2029, U+202F, U+205F, U+3000 and the ASCII ones), and JavaScript's
+ * `trim()` does not strip U+0085. A message of only such characters is blank to the host, which would delete it, so the page must call it blank too (#3458 qa round 6 B-1).
+ */
+const hostTrim = (text: string): string =>
+  text.replace(
+    /^[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/g,
+    '',
+  );
+
 /** One message of a thread being edited: a labelled box with Discard edit and Save, as icon buttons like Proof's note editor. It keeps its own draft until Save. */
 export function MessageEditor({
   initial,
@@ -24,16 +34,16 @@ export function MessageEditor({
   // Discard & continue over an in-page change (deleting another message) drops the edit: the editor closes and holds nothing (#3458 Y1).
   const [dropped, setDropped] = useState(false);
   // A blank edit is not a save: sending it would delete the message (the host replaces the text with nothing), and only the delete button deletes (#3458 qa round 5 B1).
-  const blank = text.trim() === '';
-  const save = useSharedSave(async () => !blank && (await onSave(text.trim())) !== false);
-  const dirty = text.trim() !== '' && text.trim() !== initial.trim();
+  const blank = hostTrim(text) === '';
+  const save = useSharedSave(async () => !blank && (await onSave(hostTrim(text))) !== false);
+  const dirty = !blank && hostTrim(text) !== hostTrim(initial);
   useEffect(() => {
     onDirtyChange?.(dirty);
     return () => onDirtyChange?.(false);
   }, [dirty, onDirtyChange]);
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft('script-note-edit', {
-    dirty: text.trim() !== '' && text.trim() !== initial.trim(),
+    dirty: !blank && hostTrim(text) !== hostTrim(initial),
     label: 'your edit of a note',
     kind: 'script-note-edit',
     many: (n) => `${plural(n, 'edit')} of notes`,
