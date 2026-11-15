@@ -660,7 +660,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'pages-navigate-away-confirm',
     description:
-      'Settings, Set on a page with a change typed into the Recording check panel and another page pressed in the navigation: the Unsaved settings confirm with its three actions, over the page',
+      'Settings, Set on a page with a change typed into the Recording check panel and another page pressed in the navigation: the Unsaved changes confirm with its three actions, over the page',
     ...REFLOW,
   },
   {

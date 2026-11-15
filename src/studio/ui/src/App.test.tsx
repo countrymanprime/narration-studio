@@ -1515,7 +1515,7 @@ describe('App Back and Forward', () => {
     await screen.findByRole('heading', { name: 'Script' });
   });
 
-  it('Back from dirty Settings shows the same "Unsaved settings" confirm as the nav, and completes the move on Save', async () => {
+  it('Back from dirty Settings shows the same "Unsaved changes" confirm as the nav, and completes the move on Save', async () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1570,7 +1570,7 @@ describe('App Back and Forward', () => {
     };
     const pastedKey = () => (screen.getByLabelText('Merriam-Webster key') as HTMLInputElement).value;
 
-    it('Switch project from Settings with unsaved changes asks Unsaved settings first, and Keep editing leaves the picker closed', async () => {
+    it('Switch project from Settings with unsaved changes asks Unsaved changes first, and Keep editing leaves the picker closed', async () => {
       await dirtySettings();
       headerSwitch();
       expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
@@ -1800,7 +1800,7 @@ describe('App Back and Forward', () => {
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which
     // sits outside the app's own tree and so needs the registry above it.
-    it('the engine panel Open in Proof from dirty Settings asks Unsaved settings first and stays on Settings', async () => {
+    it('the engine panel Open in Proof from dirty Settings asks Unsaved changes first and stays on Settings', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
       const check = await openKeptPanel('ps.coverage', 'Recording check');
@@ -1884,7 +1884,9 @@ describe('App Back and Forward', () => {
       let close = openProbe(<NoSaveHolder />);
       fireEvent.click(await screen.findByRole('button', { name: 'Go to Proof' }));
       expect(
-        await screen.findByText('Save is off: A relationship you started cannot be saved from here. Discard settings edits and a relationship before leaving?'),
+        await screen.findByText(
+          "This can't be saved yet: A relationship you started cannot be saved from here. Discard settings edits and a relationship before leaving?",
+        ),
       ).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(within(question).queryByRole('button', { name: 'Save & continue' })).toBeNull();

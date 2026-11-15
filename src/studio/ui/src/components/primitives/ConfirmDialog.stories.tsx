@@ -64,7 +64,7 @@ export const RichBody: Story = {
 // The optional third action sits in the grouped side, next to the confirm button.
 export const WithDangerAction: Story = {
   args: {
-    title: 'Unsaved settings',
+    title: 'Unsaved changes',
     body: 'Save or discard changes before continuing?',
     confirmLabel: 'Save & continue',
     dangerLabel: 'Discard & continue',
@@ -94,7 +94,7 @@ export const StayButtonHasTheFocusAndItsRing: Story = {
 export const NothingToSaveFromHere: Story = {
   args: {
     title: 'Unsaved changes',
-    body: 'Save is off: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
+    body: "This can't be saved yet: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?",
     confirmLabel: 'Discard & continue',
     confirmVariant: 'danger',
     cancelLabel: 'Keep editing',
@@ -207,7 +207,7 @@ export const EscapeDeclinesButBackdropDoesNot: Story = {
 
 export const DangerInvokesOnlyDanger: Story = {
   args: {
-    title: 'Unsaved settings',
+    title: 'Unsaved changes',
     body: 'Save or discard changes before continuing?',
     confirmLabel: 'Save & continue',
     dangerLabel: 'Discard & continue',

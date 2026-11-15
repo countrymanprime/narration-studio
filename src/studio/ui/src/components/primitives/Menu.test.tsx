@@ -228,3 +228,25 @@ describe('Menu: pageMenu', () => {
     expect((await screen.findByRole('menu')).closest('main')).toBeNull();
   });
 });
+
+describe('Menu: clipped labels (#3380)', () => {
+  // An item's label is clipped to the menu's width, so the whole label is its title, in a plain item and in a choosing one.
+  it('gives each item label its whole text as a title', async () => {
+    const user = userEvent.setup();
+    render(
+      <Menu
+        label="Sort"
+        sections={[
+          { key: 'go', items: [{ key: 'open', label: 'Open the chapter in Editing', onSelect: vi.fn() }] },
+          { key: 'order', select: 'one', items: [{ key: 'name', label: 'Sort by chapter name', checked: true, onSelect: vi.fn() }] },
+        ]}
+      >
+        Sort
+      </Menu>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Sort' }));
+    await screen.findAllByRole('menuitem');
+    expect(document.querySelector('[title="Open the chapter in Editing"]')).toBeTruthy();
+    expect(document.querySelector('[title="Sort by chapter name"]')).toBeTruthy();
+  });
+});
