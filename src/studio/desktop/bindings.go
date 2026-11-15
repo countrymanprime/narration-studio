@@ -502,6 +502,7 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	had := voiceSamplesPresent(h.services().config.projectFolder)
 	svc := h.services()
 	err := svc.manuscript.Clear()
+	cleared := err == nil
 	if err == nil {
 		// The DAW connection is project data too: the link is dropped and, when the folder holds exactly one REAPER file, found again.
 		err = clearDawConnection(h.persist, svc.settings, svc.config.projectFolder)
@@ -510,8 +511,10 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	if err == nil && had {
 		h.emitVoiceSamplesChanged()
 	}
-	// The chapter-track links go with the manuscript, so chapter sync's counts and rows must be read again (#3416).
-	h.linksChanged(err)
+	// The chapter-track links go with the manuscript, so chapter sync's counts and rows must be read again (#3416), even when a later step failed.
+	if cleared {
+		h.linksChanged(nil)
+	}
 	return encodeBinding(nil, err)
 }
 func (h *Host) ManuscriptChapters() (string, error) {
