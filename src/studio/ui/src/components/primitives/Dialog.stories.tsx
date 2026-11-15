@@ -42,7 +42,7 @@ export const ActionsEnd: Story = {
 // Affirmative actions grouped in their own flex wrapper stay together on the far side.
 export const ActionsBetweenWithGroup: Story = {
   args: {
-    title: 'Unsaved settings',
+    title: 'Unsaved changes',
     actions: (
       <>
         <Button variant="secondary">Cancel</Button>

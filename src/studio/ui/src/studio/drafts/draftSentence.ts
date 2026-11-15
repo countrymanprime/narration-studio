@@ -74,13 +74,12 @@ export function describeHeld(held: readonly DraftLabel[], room = ROOM): string {
 }
 
 /**
- * The question put when the narrator is about to leave, or go on to something that replaces the editor: its sentence and whether Save is offered.
+ * The question put when the narrator is about to leave, or to go on to something that replaces the editor (one phrase for both, "before leaving?"): its sentence and whether Save is offered.
  * Every draft saveable: "Save or discard …". Any that cannot be saved: "Discard …", with a way to keep editing, and no Save (#3400 D1: only a Discard drops text).
  */
-export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { body: string; canSave: boolean } {
+export function draftQuestion(held: readonly HeldDraft[]): { body: string; canSave: boolean } {
   // What was held went away while the question was open (an editor closed itself): there is nothing to name, and nothing to lose by going on.
   if (held.length === 0) return { body: 'There is nothing left to save or discard.', canSave: true };
-  const end = leaving ? 'leaving' : 'going on';
   // Save & continue saves all or nothing: saving an editor can close it, and with it a draft beside it that cannot be saved (an entry's Save leaves edit mode and
   // takes a half-filled relationship row along). So one draft that cannot be saved takes Save away; the narrator keeps editing, or discards.
   const stuck = held.filter((draft) => !draft.saveable);
@@ -88,11 +87,13 @@ export function draftQuestion(held: readonly HeldDraft[], leaving: boolean): { b
     // Save is gone, and the narrator is told why in one short sentence that names the thing, and what brings Save back (#3457, ux-reviewer).
     const first = stuck.find((draft) => draft.needs) ?? stuck[0]!;
     const name = length(first.label) <= STUCK_NAME ? first.label : (first.brief ?? first.label);
-    const why = first.needs ? `Save is off: ${capital(name)} still needs ${first.needs}.` : `Save is off: ${capital(name)} cannot be saved from here.`;
+    const why = first.needs
+      ? `This can't be saved yet: ${capital(name)} still needs ${first.needs}.`
+      : `This can't be saved yet: ${capital(name)} cannot be saved from here.`;
     // One held thing is named once, in the first sentence: the second says "it" (#3457, qa-breaker round 2).
-    return { body: `${why} Discard ${held.length === 1 ? (/^\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)} before ${end}?`, canSave: false };
+    return { body: `${why} Discard ${held.length === 1 ? (/^\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)} before leaving?`, canSave: false };
   }
-  return { body: `Save or discard ${describeHeld(held)} before ${end}?`, canSave: true };
+  return { body: `Save or discard ${describeHeld(held)} before leaving?`, canSave: true };
 }
 
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

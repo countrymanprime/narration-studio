@@ -48,7 +48,7 @@ test('Alt+Left from a focused invalid number box asks every time', async ({ page
     const box = entry.getByLabel('Share of each paragraph that must be read', { exact: false }).first();
     await box.fill('abc');
     await page.keyboard.press('Alt+ArrowLeft');
-    await expect(unsaved(page, 'Unsaved settings'), `attempt ${attempt + 1}`).toBeVisible();
+    await expect(unsaved(page, 'Unsaved changes'), `attempt ${attempt + 1}`).toBeVisible();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
     await expect(box).toBeFocused();
     await expect(box).toHaveValue('abc');
@@ -83,7 +83,7 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
   const box = entry.getByRole('textbox', { name: 'Longest run of missing words allowed' });
   await box.fill('7');
   await switchProject(page);
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await question.getByRole('button', { name: 'Save & continue' }).click();
   await expect(question.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   await page.keyboard.press('Escape');
@@ -94,7 +94,7 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(box).toHaveValue('7');
   await switchProject(page);
-  await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Discard & continue' }).click();
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Discard & continue' }).click();
   await expect(picker(page)).toBeVisible();
 });
 
@@ -108,7 +108,7 @@ test('the question opened from the keyboard shows a focus ring on the way to sta
   await entry.getByRole('button', { name: 'Change it here for now' }).click();
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.keyboard.press('Alt+ArrowLeft');
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await expect(question).toBeVisible();
   const cancel = question.getByRole('button', { name: 'Cancel' });
   await expect(cancel).toBeFocused();
@@ -132,7 +132,7 @@ test('a second Enter within 300 ms of the one that asked does not dismiss the qu
   await page.keyboard.press('Enter');
   // key: the second of the double press, still the echo
   await page.keyboard.press('Enter');
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await expect(question).toBeVisible();
   await page.waitForTimeout(600);
   await expect(question).toBeVisible();
@@ -149,7 +149,7 @@ test('a click on the backdrop leaves the focus inside the question', async ({ pa
   await entry.getByRole('button', { name: 'Change it here for now' }).click();
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.keyboard.press('Alt+ArrowLeft');
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await expect(question).toBeVisible();
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await page.mouse.click(5, 450);
@@ -166,7 +166,7 @@ test('an Enter held down from the press that asked does not dismiss the question
   await entry.getByRole('button', { name: 'Change it here for now' }).click();
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.getByRole('button', { name: 'Production' }).first().focus();
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   for (let press = 0; press < 3; press += 1) {
     await page.keyboard.down('Enter');
     await page.waitForTimeout(700);
@@ -191,7 +191,7 @@ test.describe('a tap on the backdrop', () => {
   test('leaves the focus inside the question', async ({ page }) => {
     await holdSettingsEdit(page);
     await page.keyboard.press('Alt+ArrowLeft');
-    const question = unsaved(page, 'Unsaved settings');
+    const question = unsaved(page, 'Unsaved changes');
     await expect(question).toBeVisible();
     await page.touchscreen.tap(5, 450);
     await page.waitForTimeout(500);
@@ -208,7 +208,7 @@ test('a click on the backdrop during a slow save keeps the focus inside the ques
   });
   await holdSettingsEdit(page);
   await switchProject(page);
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await question.getByRole('button', { name: 'Save & continue' }).click();
   await expect(question.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   await page.mouse.click(5, 450);
@@ -220,7 +220,7 @@ test('a click on the backdrop during a slow save keeps the focus inside the ques
 test('Enter on the way to stay, after the echo window, answers the question', async ({ page }) => {
   await holdSettingsEdit(page);
   await page.keyboard.press('Alt+ArrowLeft');
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await expect(question.getByRole('button', { name: 'Cancel' })).toBeFocused();
   await pressOnQuestion(page, 'Enter');
   await expect(question).toHaveCount(0);
