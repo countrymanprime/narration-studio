@@ -669,4 +669,25 @@ describe('the open edit follows its message, not its index (#3458, qa-breaker ro
     expect((card(asked.id).getByRole('textbox', { name: 'Reply or note' }) as HTMLTextAreaElement).value).toBe('');
     expect(registry.heldNow()).toHaveLength(0);
   });
+
+  it('Discard & continue on a message delete shows the edited message again, with its buttons and no empty row (#3458 Z1)', async () => {
+    const asked = await thread(3);
+    const { user } = mount();
+    await screen.findByRole('article', { name: /Query for author/ });
+    const answers: Array<() => void> = [];
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Edit this message' })[3]!);
+    await user.type(editorOf(asked.id), ' DIRTY');
+    act(() => registry.setShell({ ask: (run) => void answers.push(run), go: () => {} }));
+    await user.click(card(asked.id).getAllByRole('button', { name: 'Delete the message' })[2]!);
+    await act(async () => {
+      registry.discard();
+      answers[0]!();
+    });
+    await waitFor(async () => expect((await marks()).find((mark) => mark.id === asked.id)?.thread).toHaveLength(2));
+    expect(card(asked.id).queryByRole('textbox', { name: 'Edit message' })).toBeNull();
+    expect(card(asked.id).getByText('r3')).toBeTruthy();
+    expect(card(asked.id).getAllByRole('button', { name: 'Edit this message' })).toHaveLength(3);
+    // No list item of the card is left empty.
+    expect([...document.querySelectorAll(`[data-mark="${asked.id}"] li`)].filter((li) => li.children.length === 0 && !li.textContent)).toEqual([]);
+  });
 });

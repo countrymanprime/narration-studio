@@ -105,6 +105,12 @@ export function NoteCard({
   }
   // The edited message is gone (deleted, or Undo not yet back): the editor closes, and the page is told so it holds no edit.
   const editedGone = editedKey.current !== null && ![...messageKey.values()].includes(editedKey.current);
+  const [, redraw] = useState(0);
+  // The edit was discarded in place (Discard & continue over another message's delete): the row shows its message again; the page's own request stays as it was.
+  const endEdit = useCallback(() => {
+    editedKey.current = null;
+    redraw((n) => n + 1);
+  }, []);
   const { onCancelEdit } = actions;
   useEffect(() => {
     if (editedGone) onCancelEdit();
@@ -210,6 +216,7 @@ export function NoteCard({
                 <MessageEditor
                   initial={message.text}
                   onDirtyChange={onEditDirty}
+                  onDiscarded={endEdit}
                   onCancel={actions.onCancelEdit}
                   onSave={(text) => actions.onSaveEdit(mark.id, message.index, text)}
                 />

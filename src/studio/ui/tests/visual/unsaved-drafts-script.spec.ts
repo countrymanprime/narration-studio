@@ -181,3 +181,20 @@ test('Escape on the Mark composer with a note typed asks, and Keep editing leave
   await question.getByRole('button', { name: 'Keep editing' }).click();
   await expect(composer.getByRole('textbox').first()).toHaveValue('composer text');
 });
+
+// Discard & continue over a message delete closes the edit being typed, and the message's row reads again (#3458 Z1).
+test('Discard & continue on a message delete shows the edited message again with its buttons', async ({ page }) => {
+  const { card } = await noteWithReply(page, 'reply one');
+  await card.getByRole('button', { name: 'Reply', exact: true }).click();
+  const box = card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ });
+  await box.fill('reply two');
+  await card.getByRole('button', { name: 'Reply', exact: true }).click();
+  await expect(card.getByText('reply two')).toBeVisible();
+  await card.getByRole('button', { name: 'Edit this message' }).last().click();
+  await card.getByRole('textbox', { name: 'Edit message' }).fill('reply two DIRTY');
+  await card.getByRole('button', { name: 'Delete the message' }).nth(1).click();
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(card.getByRole('textbox', { name: 'Edit message' })).toHaveCount(0);
+  await expect(card.getByText('reply two')).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Edit this message' })).toHaveCount(2);
+});

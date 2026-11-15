@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { overlay } from '../../../../../overlay/overlayService';
+import { confirmDiscard } from '../../../../../studio/drafts/confirmDiscard';
 import { useShowInRail } from '../../data/useShowInRail';
 import { useMarks, useScriptCommands } from '../../data/useScriptData';
 import { Button } from '../../../../primitives/Button';
@@ -46,13 +46,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
   // Escape and the close button are ways out, not a decision to throw the note away: with text typed they ask. The Cancel button's own label is the decision (#3400).
   const leave = async () => {
     if (text.trim() !== '') {
-      const discard = await overlay.confirm({
-        title: 'Discard your note?',
-        body: 'What you typed is not saved yet and goes with it.',
-        confirmLabel: 'Discard',
-        cancelLabel: 'Keep editing',
-        confirmVariant: 'danger',
-      });
+      const discard = await confirmDiscard('your note');
       if (!discard) return;
     }
     onClose();

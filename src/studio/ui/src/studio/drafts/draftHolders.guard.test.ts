@@ -11,6 +11,8 @@ import { describe, expect, test } from 'vitest';
 // The reasons are a closed set, each a fact a reviewer can check:
 const MODAL =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
+const MODAL_ASKS =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx); its own Cancel button is the narrator dropping the note, and Escape and the close button ask first (confirmDiscard)';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
@@ -48,7 +50,7 @@ const EXEMPT: Record<string, string> = {
   'schedule/MilestoneTable.tsx': BLUR,
   'script/bookmarks/ui/BookmarkEditor.tsx': 'a popover that saves label and note when a field loses focus or the popover closes',
   'script/page/rail/threads/NoteTextarea.tsx': INSIDE,
-  'script/page/tools/select/MarkComposer.tsx': MODAL,
+  'script/page/tools/select/MarkComposer.tsx': MODAL_ASKS,
   'script/page/tools/select/MarksDialog.tsx': MODAL,
   'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
   'settings/DeliveryProfileEditor.tsx': MODAL,

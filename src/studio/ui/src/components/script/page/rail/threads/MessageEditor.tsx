@@ -10,12 +10,15 @@ export function MessageEditor({
   onSave,
   onCancel,
   onDirtyChange,
+  onDiscarded,
 }: {
   initial: string;
   onSave: (text: string) => unknown;
   onCancel: () => void;
   /** Whether the typed edit differs from the message, for the card around it (deleting the note over an edit asks). */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Discard & continue dropped the edit: the card stops showing this message as the one being edited, so its row reads the message again (#3458 Z1). */
+  onDiscarded?: () => void;
 }) {
   const [text, setText] = useState(initial);
   // Discard & continue over an in-page change (deleting another message) drops the edit: the editor closes and holds nothing (#3458 Y1).
@@ -37,6 +40,7 @@ export function MessageEditor({
     discard: () => {
       setText(initial);
       setDropped(true);
+      onDiscarded?.();
     },
   });
   if (dropped) return null;
