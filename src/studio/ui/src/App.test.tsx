@@ -1702,7 +1702,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
       fireEvent.change(await screen.findByDisplayValue(/New entity/), { target: { value: 'Mr Fox' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText("This can't be saved yet: The new entry “Mr Fox” still needs a category chosen. Discard it before leaving?")).toBeTruthy();
+      expect(await screen.findByText('The new entry “Mr Fox” still needs a category chosen. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1720,7 +1720,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
       fireEvent.change(await screen.findByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'anchor take' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText("This can't be saved yet: Your approval note still needs you to press Approve. Discard it before leaving?")).toBeTruthy();
+      expect(await screen.findByText('Your approval note still needs you to press Approve. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1767,9 +1767,7 @@ describe('App Back and Forward', () => {
       fireEvent.blur(rows[rows.length - 1]!);
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
       expect(
-        await screen.findByText(
-          /^This can't be saved yet: A relationship you started still needs an entry chosen under To\. Discard your .+ and a relationship before leaving\?$/,
-        ),
+        await screen.findByText(/^A relationship you started still needs an entry chosen under To\. Discard your .+ and a relationship before leaving\?$/),
       ).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
