@@ -65,7 +65,7 @@ export const RichBody: Story = {
 export const WithDangerAction: Story = {
   args: {
     title: 'Unsaved changes',
-    body: 'Save or discard changes before continuing?',
+    body: 'Save or discard changes before leaving?',
     confirmLabel: 'Save & continue',
     dangerLabel: 'Discard & continue',
     danger: fn(),
@@ -208,7 +208,7 @@ export const EscapeDeclinesButBackdropDoesNot: Story = {
 export const DangerInvokesOnlyDanger: Story = {
   args: {
     title: 'Unsaved changes',
-    body: 'Save or discard changes before continuing?',
+    body: 'Save or discard changes before leaving?',
     confirmLabel: 'Save & continue',
     dangerLabel: 'Discard & continue',
     danger: fn(),
