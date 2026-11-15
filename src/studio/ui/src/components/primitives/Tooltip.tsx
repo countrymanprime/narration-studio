@@ -253,6 +253,7 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
   const [open, setOpen] = useState(false);
   const openedByFocus = useRef(false);
   const popupRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   // Escape closes the note wherever focus is (WCAG 1.4.13: dismissible without moving the pointer or focus). Base UI closes it from its own
   // handler, but inside a dialog that handler is not reached for a note opened by hover, so the icon listens itself while its note is open.
   useEffect(() => {
@@ -281,6 +282,7 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
       }}
     >
       <Popover.Trigger
+        ref={triggerRef}
         openOnHover
         delay={HOVER_DELAY_MS}
         aria-label={label}
@@ -304,7 +306,10 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
         <Popover.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[var(--z-tooltip)]">
           {/* The text is a description, not something to move into: focus stays on the button. */}
           <Popover.Popup
-            ref={popupRef}
+            ref={(popup: HTMLDivElement | null) => {
+              popupRef.current = popup;
+              rememberHintHost(popup, triggerRef.current);
+            }}
             role="tooltip"
             initialFocus={false}
             finalFocus={false}

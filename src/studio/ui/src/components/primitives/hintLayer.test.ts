@@ -38,7 +38,7 @@ describe('hintOwnsEscape', () => {
     expect(hintOwnsEscape(dialog)).toBe(false);
   });
 
-  it('is true for a hint with no known owner (an info-icon popup), as before', () => {
+  it('is true for a hint with no known owner, the safe default', () => {
     document.body.append(dialog, outside);
     hint(null);
     expect(hintOwnsEscape(dialog)).toBe(true);

@@ -10,7 +10,7 @@ export function rememberHintHost(popup: Element | null, host: Element | null): v
   if (popup && host) hintHosts.set(popup, host);
 }
 
-/** Whether a hint showing now is the one Escape is meant for inside `dialog`: a hint on something inside it, or one whose owner is not known (an info-icon popup). */
+/** Whether a hint showing now is the one Escape is meant for inside `dialog`: a hint on something inside it, or one whose owner is not known. */
 export function hintOwnsEscape(dialog: Element | null): boolean {
   for (const popup of document.querySelectorAll(HINT_POPUP_SELECTOR)) {
     const host = hintHosts.get(popup);
