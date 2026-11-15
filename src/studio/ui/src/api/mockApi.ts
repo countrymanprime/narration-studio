@@ -452,7 +452,7 @@ export function createMockApi(
     ...system.bindings,
     ...manuscript.bindings,
     manuscriptChapters: chaptersWithCredits,
-    // The host sends chaptersync:state when a removal clears the chapter's links (chapterkind.go via linksChanged), so the mock does too.
+    // The host's ManuscriptSetChapterKind sends chaptersync:state after a successful change (bindings.go, via linksChanged), so the mock does too.
     manuscriptSetChapterKind: async (chapterId, kind) => {
       const result = await manuscript.bindings.manuscriptSetChapterKind(chapterId, kind);
       chapterTracks.publishLinksChanged();

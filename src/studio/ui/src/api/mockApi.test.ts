@@ -306,4 +306,14 @@ describe('the mock sends chapter sync state when removing a chapter from recordi
     expect(last.chapters.find((chapter) => chapter.chapterId === linked!.chapterId)).toBeUndefined();
     expect(last.linked).toBeLessThan(before.counts.linked);
   });
+
+  it('sends nothing when the change is refused', async () => {
+    const api = createMockApi({}, { chapterSync: 'activity' });
+    let sent = 0;
+    api.subscribeChapterSync(() => (sent += 1));
+    await api.chapterSyncState();
+    sent = 0;
+    await expect(api.manuscriptSetChapterKind('no-such-chapter', 'reference')).rejects.toThrow();
+    expect(sent).toBe(0);
+  });
 });
