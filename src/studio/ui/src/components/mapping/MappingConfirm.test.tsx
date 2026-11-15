@@ -120,4 +120,10 @@ describe('MappingConfirm', () => {
     await user.click(screen.getByRole('button', { name: 'Change' }));
     expect((screen.getByRole('combobox', { name: 'Track for Chapter One' }) as HTMLSelectElement).value).toBe('guid-1');
   });
+
+  // #3357: a linked track whose name is blank drew an empty span.
+  it('names a linked track with a blank name by its place, "Track 1"', () => {
+    render(<MappingConfirm chapterTitle="Chapter One" tracks={tracks} linkedTrackGuid="guid-1" linkedTrackName=" " onConfirm={vi.fn()} onClear={vi.fn()} />);
+    expect(screen.getByText('Track 1')).toBeTruthy();
+  });
 });

@@ -76,4 +76,10 @@ describe('StatTile', () => {
     expect(value.className).toContain('text-[1.375rem]');
     expect(value.className).toContain('font-medium');
   });
+
+  // #3380: an icon label is clipped to its tile, so the whole label is its title.
+  it('gives a clipped icon label its whole text as a title', () => {
+    render(<StatTile label="Narration voice samples used" value="4" icon="problem" />);
+    expect(screen.getByText('Narration voice samples used').getAttribute('title')).toBe('Narration voice samples used');
+  });
 });
