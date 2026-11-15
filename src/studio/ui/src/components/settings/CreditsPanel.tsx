@@ -186,7 +186,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const saveTemplateNow = async (): Promise<boolean> => {
     const seq = draftSeq.current;
     if (!selected && pendingCreates.current.has(seq)) {
-      notify('The first save of this template has not answered yet. It will show in the list when it does.', 'error');
+      notify('Your first save of this template is still waiting for an answer. The template appears in the list when it lands.');
       return false;
     }
     setBusy(true);
