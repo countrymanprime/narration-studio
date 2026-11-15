@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { providedCommands } from '../../../input/commandProviders';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -280,15 +280,16 @@ describe('a kept take', () => {
     const kept = { kept: true, keptId: 't-2' };
     const view = mount(stackedLines(kept));
     await flush();
-    expect(unstackButton('p-1')!.closest('[aria-label]')?.getAttribute('aria-label')).toBe(KEPT_REASON);
-    expect(screen.getAllByLabelText(KEPT_REASON).length).toBeGreaterThan(0);
+    expect(unstackButton('p-1')!.getAttribute('aria-disabled')).toBe('true');
+    act(() => unstackButton('p-1')!.focus());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(KEPT_REASON);
     await act(async () => stack.requestUnstack('p-1'));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(toast).toHaveBeenCalledWith('Undo the kept take first.');
 
     view.again(stackedLines());
     await flush();
-    expect(unstackButton('p-1')!.disabled).toBe(false);
+    expect(unstackButton('p-1')!.getAttribute('aria-disabled')).toBeNull();
     fireEvent.click(unstackButton('p-1')!);
     await flush();
     expect(dialog()).toBeTruthy();
@@ -356,11 +357,12 @@ describe('what the DAW can do', () => {
     await flush();
     const reason = DAW_SETUPS['reaper-off'].capabilities['stack_takes']!.message!;
     expect(chapterStack().getAttribute('aria-disabled')).toBe('true');
-    expect(unstackButton('p-1')!.disabled).toBe(true);
-    // The chapter's Stack all is off with its reason on the button (shown on focus); each Unstack still wears the reason as a labelled wrapper.
+    expect(unstackButton('p-1')!.getAttribute('aria-disabled')).toBe('true');
+    // Stack all and each Unstack are off with the reason on the button itself, shown on focus.
     act(() => chapterStack().focus());
     expect((await screen.findByRole('tooltip')).textContent).toBe(reason);
-    expect(screen.getAllByLabelText(reason).length).toBeGreaterThanOrEqual(1);
+    act(() => unstackButton('p-1')!.focus());
+    await waitFor(() => expect(screen.getByRole('tooltip').textContent).toBe(reason));
     const menu = buildWordMenu({ doc: marksDoc(), keys: ['p-1:0'], summary: summarize(marksDoc(), ['p-1:0'], [], (t) => t), play: vi.fn(), notify: vi.fn() });
     expect(
       menu.groups

@@ -1,5 +1,4 @@
 import { Button } from '../../primitives/Button';
-import { TooltipTarget } from '../../primitives/Tooltip';
 import { canStack, isStacked, movableTakes, type RetrySettings } from '../model/stacking';
 import { RetryBar } from './RetryBar';
 import { canCleanUp } from './stackedLine';
@@ -20,12 +19,11 @@ export interface StackControlsProps {
 
 /** A button that is off with its reason as the hint, so a control the DAW cannot do still says why. */
 function Action({ label, reason, onClick, attr }: { label: string; reason: string | undefined; onClick: () => void; attr: string }) {
-  const button = (
-    <Button variant="secondary" size="sm" disabled={reason !== undefined} {...{ [attr]: '' }} onClick={onClick}>
+  return (
+    <Button variant="secondary" size="sm" disabledReason={reason ?? ''} {...{ [attr]: '' }} onClick={onClick}>
       {label}
     </Button>
   );
-  return reason === undefined ? button : <TooltipTarget text={reason}>{button}</TooltipTarget>;
 }
 
 /**

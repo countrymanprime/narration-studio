@@ -1,6 +1,6 @@
 // @vitest-environment node
-// A `Button` or `IconButton` that is natively `disabled` inside a `TooltipTarget` says why only to a mouse: a disabled button is not in the Tab order and takes no focus, so a
-// keyboard user never reaches its tooltip and a screen reader reads a dead button with no reason (#3276: "no button that does nothing or looks like it does nothing"). A button
+// A `Button` or `IconButton` that is natively `disabled` inside a `TooltipTarget` is not in the Tab order: focus lands on the tooltip's wrapper (a group named by the reason), not on the
+// button, so the control a keyboard user and a screen reader meet is not the button itself (#3276: "no button that does nothing or looks like it does nothing"). A button
 // that is off says why with `disabledReason`, which keeps it focusable (`aria-disabled`) and shows the reason on focus. This lists the buttons still written the old way; the list
 // only shrinks: a site moves to `disabledReason` and leaves it, and a new one is not added.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -34,6 +34,16 @@ const tagOf = (node: ts.Node): string | undefined =>
 function disabledUnderTooltip(path: string): number {
   const file = ts.createSourceFile(path, readFileSync(path, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let found = 0;
+  // The button put in a variable first (`const button = <Button disabled …/>`) and then placed as `<TooltipTarget>{button}</TooltipTarget>`.
+  const inTooltip = new Set<string>();
+  const collect = (node: ts.Node): void => {
+    if (ts.isJsxElement(node) && tagOf(node) === 'TooltipTarget') {
+      for (const child of node.children)
+        if (ts.isJsxExpression(child) && child.expression && ts.isIdentifier(child.expression)) inTooltip.add(child.expression.text);
+    }
+    ts.forEachChild(node, collect);
+  };
+  collect(file);
   const visit = (node: ts.Node): void => {
     const tag = tagOf(node);
     if (tag === 'Button' || tag === 'IconButton') {
@@ -42,6 +52,11 @@ function disabledUnderTooltip(path: string): number {
       let parent: ts.Node | undefined = node.parent;
       while (parent && tagOf(parent) === undefined) parent = parent.parent;
       if (disabled && parent && tagOf(parent) === 'TooltipTarget') found += 1;
+      else if (disabled && parent === undefined) {
+        let up: ts.Node | undefined = node.parent;
+        while (up && !ts.isVariableDeclaration(up)) up = up.parent;
+        if (up && ts.isVariableDeclaration(up) && ts.isIdentifier(up.name) && inTooltip.has(up.name.text)) found += 1;
+      }
     }
     ts.forEachChild(node, visit);
   };

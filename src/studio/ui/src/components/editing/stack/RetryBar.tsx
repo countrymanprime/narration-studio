@@ -60,12 +60,12 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
         </span>
       ) : null}
       {mode === 'stack' ? (
-        // Off with its reason on the button itself (aria-disabled, in the Tab order), not a native `disabled` button under a tooltip a keyboard never reaches (#3495).
+        // Off with its reason on the button itself (aria-disabled, in the Tab order), not a native `disabled` button under a tooltip: that leaves focus on a wrapper named by the reason instead of on the button (#3495).
         <Button
           variant="secondary"
           size="sm"
           data-stack-all
-          disabledReason={reason !== undefined || count === 0 ? (reason ?? 'There are no retries to stack.') : undefined}
+          disabledReason={reason !== undefined || count === 0 ? (reason ?? 'There are no retries to stack.') : ''}
           onClick={onStack}
         >
           {STACK_TEXT.action}

@@ -84,6 +84,6 @@ export const ButtonReady: Story = { render: () => <SplitButton onSplit={fn()} />
 export const ButtonRefused: Story = {
   render: () => <SplitButton reason="REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself." onSplit={fn()} />,
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Split into takes' })).toBeDisabled();
+    await expect(within(canvasElement).getByRole('button', { name: 'Split into takes' }).getAttribute('aria-disabled')).toBe('true');
   },
 };

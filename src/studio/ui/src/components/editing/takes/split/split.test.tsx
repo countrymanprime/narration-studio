@@ -178,8 +178,9 @@ describe('a-daw-that-cannot-refuses-with-its-reason', () => {
     mount('reaper-off');
     await flush();
     const sentence = DAW_SETUPS['reaper-off'].capabilities['takes'].message!;
-    expect(splitButton().disabled).toBe(true);
-    expect(splitButton().closest('[role="group"]')?.getAttribute('aria-label')).toBe(sentence);
+    expect(splitButton().getAttribute('aria-disabled')).toBe('true');
+    act(() => splitButton().focus());
+    expect((await screen.findByRole('tooltip')).textContent).toBe(sentence);
     fireEvent.click(stack());
     await flush();
     expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' });

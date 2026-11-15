@@ -96,7 +96,7 @@ export function ModelsFolderControl() {
         size="sm"
         className="flex-none"
         pending={picking}
-        disabledReason={previous ? oldFirst : undefined}
+        disabledReason={previous ? oldFirst : ''}
         onClick={() => setAsking('change')}
       >
         Change location…
@@ -105,7 +105,7 @@ export function ModelsFolderControl() {
         <IconButton
           action="undo"
           label="Reset the models folder to the default folder"
-          disabledReason={previous ? oldFirst : undefined}
+          disabledReason={previous ? oldFirst : ''}
           className="flex-none border-transparent"
           onClick={() => setAsking('reset')}
         />
