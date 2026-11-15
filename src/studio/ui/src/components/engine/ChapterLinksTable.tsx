@@ -231,6 +231,9 @@ if (typeof document !== 'undefined')
     if (!label.startsWith('Change the track for ') && !label.startsWith('Create a ')) handBack = undefined;
   });
 
+// One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
+// The select opens on "Choose a track" and the check waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
+// the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
 function ChapterLinkRow({
   row,
   tracks,
