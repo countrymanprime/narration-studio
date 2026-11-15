@@ -94,6 +94,14 @@ describe('a-row-per-entry', () => {
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
     expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character', '']);
   });
+  // #3380: the name and the kind are clipped to their cells, so each carries its whole text as a title.
+  it('gives the clipped name, with its alias, and the kind their whole text as a title', () => {
+    setup([entry('h', 'Hatter', { aliases: [{ text: 'Mad Hatter' }] as GuideEntity['aliases'] })]);
+    const row = within(bodyRows()[0]!);
+    expect(row.getByText('Character').getAttribute('title')).toBe('Character');
+    expect(row.getAllByTitle(/^Hatter/).length).toBeGreaterThan(0);
+  });
+
   it('draws the type colour beside the kind, amber for an entry whose kind is not set, and says so', () => {
     setup([entry('a', 'Alice'), entry('n', 'Nobody', { category: 'Needs Review' })]);
     const [alice, nobody] = bodyRows().map((row) => within(row).getAllByRole('cell'));

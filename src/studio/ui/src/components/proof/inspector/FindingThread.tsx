@@ -75,7 +75,7 @@ function Message({
     >
       <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
         <span className="font-semibold tracking-widest uppercase">{WHO_LABEL[message.who]}</span>
-        <span className="min-w-0 flex-1 truncate">
+        <span className="min-w-0 flex-1 truncate" title={`${when(message.at)}${message.edited_at ? ' · edited' : ''}`}>
           {when(message.at)}
           {message.edited_at ? ' · edited' : ''}
         </span>

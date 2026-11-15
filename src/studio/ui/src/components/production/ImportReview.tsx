@@ -340,7 +340,9 @@ export function ImportReview({
           <h3 className="text-sm font-semibold">
             <HeadingLines heading={reviewedHeading(previewed, selection)} />
           </h3>
-          <p className="mt-1 line-clamp-3 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
+          <p className="mt-1 line-clamp-3 text-sm text-[var(--text-muted)]" title={previewed.firstText ?? undefined}>
+            {previewed.firstText ?? 'The first lines of the selected section appear here.'}
+          </p>
         </section>
       )}
     </div>

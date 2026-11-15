@@ -125,7 +125,10 @@ function StickyHeader({
     // 640 px the title takes two lines before it is cut, as the tools leave it little width (XSC-9).
     <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2">
       <div className="min-w-0">
-        <b className="block truncate font-['Barlow_Condensed',sans-serif] text-xl leading-7 font-semibold max-[639px]:line-clamp-2 max-[639px]:whitespace-normal">
+        <b
+          className="block truncate font-['Barlow_Condensed',sans-serif] text-xl leading-7 font-semibold max-[639px]:line-clamp-2 max-[639px]:whitespace-normal"
+          title={section ?? (chapter ? headingName(chapter) : '—')}
+        >
           {section ?? (chapter ? headingName(chapter) : '—')}
         </b>
         <div aria-live="off" className="text-sm text-[var(--text-muted)]">

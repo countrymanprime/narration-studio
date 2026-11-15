@@ -217,6 +217,8 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     await u.keyboard('{Escape}');
     h.set({ percent: 40, message: 'Scanning with Rules (1 of 2).' });
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('40% · Scanning with Rules (1 of 2).'));
+    // #3380: the line is clipped to the panel, so it carries itself as a title.
+    expect(screen.getByRole('status').getAttribute('title')).toBe('40% · Scanning with Rules (1 of 2).');
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40');
     const listed = h.calls.list;
     h.set({ phase: 'success', percent: 100, message: '3 suggestions added.' });
