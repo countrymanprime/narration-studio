@@ -1157,6 +1157,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
     fireEvent.click(within(scope).getByRole('button', { name: 'This project' }));
     expect(await screen.findByText('Save or discard changes before leaving?')).toBeTruthy();
+    // Like the shell's question with the same title, it opens on Cancel, not on the dialog body.
+    await waitFor(() => expect(document.activeElement).toBe(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' })));
     expect(within(scope).getByRole('button', { name: 'Global', hidden: true }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Discard & continue' }));
     await waitFor(() => expect(within(scope).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));

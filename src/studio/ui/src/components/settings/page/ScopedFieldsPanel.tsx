@@ -247,6 +247,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
             setPendingScope(undefined);
             void discard().then(() => setScope(next));
           }}
+          focusCancel
           cancel={() => setPendingScope(undefined)}
         />
       )}

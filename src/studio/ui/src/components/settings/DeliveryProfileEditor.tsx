@@ -110,8 +110,9 @@ export function DeliveryProfileEditor({
       description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={
         <>
+          {/* A button that drops typed text says so; with nothing changed it only closes (#3400). */}
           <Button variant="secondary" disabled={pending} onClick={onCancel}>
-            Discard changes
+            {typed ? 'Discard changes' : 'Close'}
           </Button>
           <Button onClick={save} disabled={invalid} pending={pending}>
             Save profile
