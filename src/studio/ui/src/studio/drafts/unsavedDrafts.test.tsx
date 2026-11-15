@@ -181,8 +181,9 @@ describe('the unsaved-drafts registry', () => {
             }),
         );
         const lateFailure = vi.fn();
+        const lateSuccess = vi.fn();
         const { result } = setup({ a: draft({ save }) });
-        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateFailure }));
+        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateFailure, lateSuccess }));
         let stuck!: Promise<SaveResult>;
         act(() => {
           stuck = result.current.save();
@@ -198,6 +199,46 @@ describe('the unsaved-drafts registry', () => {
           await vi.advanceTimersByTimeAsync(10);
         });
         expect(lateFailure).toHaveBeenCalledTimes(discarded ? 0 : 1);
+        // A failure is not a landing: the slow-save message must not be taken away by it (#3491 PB-2b).
+        expect(lateSuccess).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  });
+
+  it('a late save that lands tells the shell, unless the narrator discarded in between (#3491 PB-2b)', async () => {
+    for (const discarded of [false, true]) {
+      vi.useFakeTimers();
+      try {
+        let land!: (saved: boolean) => void;
+        const save = vi.fn(
+          () =>
+            new Promise<boolean>((resolve) => {
+              land = resolve;
+            }),
+        );
+        const lateSuccess = vi.fn();
+        const lateFailure = vi.fn();
+        const { result } = setup({ a: draft({ save }) });
+        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateSuccess, lateFailure }));
+        let stuck!: Promise<SaveResult>;
+        act(() => {
+          stuck = result.current.save();
+        });
+        const settled = expect(stuck).rejects.toBeInstanceOf(SaveTimeout);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(SAVE_LIMIT_MS + 1);
+        });
+        await settled;
+        expect(lateSuccess).not.toHaveBeenCalled();
+        if (discarded) act(() => void result.current.discard());
+        await act(async () => {
+          land(true);
+          await vi.advanceTimersByTimeAsync(100);
+        });
+        expect(lateSuccess).toHaveBeenCalledTimes(discarded ? 0 : 1);
+        expect(lateFailure).not.toHaveBeenCalled();
       } finally {
         vi.useRealTimers();
       }

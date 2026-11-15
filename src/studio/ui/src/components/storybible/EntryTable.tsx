@@ -296,7 +296,7 @@ function EntryRow({
       className={changed ? CHANGE_HIGHLIGHT_CLASSES : ''}
     >
       <TableCell className="overflow-hidden">
-        <span className="block truncate">
+        <span className="block truncate" title={alias !== undefined ? `${entry.canonical_name} (also “${alias}”)` : entry.canonical_name}>
           <span dir="auto" data-entry-name="" className="font-semibold">
             <Marked text={entry.canonical_name} words={words} />
           </span>
@@ -314,7 +314,9 @@ function EntryRow({
       <TableCell className="whitespace-nowrap">
         <span className="flex items-center gap-1.5">
           <Swatch colour={kindSwatch(types, entry.category)} />
-          <span className="truncate @max-[20rem]:sr-only">{kind}</span>
+          <span className="truncate @max-[20rem]:sr-only" title={kind}>
+            {kind}
+          </span>
         </span>
       </TableCell>
       <TableCell className="px-1 py-0 text-center">

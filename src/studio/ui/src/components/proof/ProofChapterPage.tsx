@@ -130,7 +130,12 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   // the title does not move between loading, failed and loaded.
   const frame = (title: string, crumb: ReactNode, children: ReactNode, status?: ReactNode) => (
     <div className="space-y-4">
-      <nav aria-label="Breadcrumb" className="h-5 truncate text-sm leading-5" style={{ color: 'var(--text-muted)' }}>
+      <nav
+        aria-label="Breadcrumb"
+        className="h-5 truncate text-sm leading-5"
+        style={{ color: 'var(--text-muted)' }}
+        title={typeof crumb === 'string' ? `Proof › ${crumb}` : undefined}
+      >
         <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {crumb}
       </nav>
       {/* The status and its button on the title's centre line (XPC-19); a button's height even without one, so the title sits at one y. */}

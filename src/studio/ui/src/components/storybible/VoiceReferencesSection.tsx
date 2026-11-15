@@ -112,7 +112,9 @@ export function VoiceReferencesSection({
           {ownReferences.map((reference) => (
             <InsetCard as="li" key={reference.id} className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{reference.snapshot.name}</div>
+                <div className="truncate text-sm font-medium" title={reference.snapshot.name}>
+                  {reference.snapshot.name}
+                </div>
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {clock(reference.snapshot.start)}–{clock(reference.snapshot.end)}
                   {reference.note ? ` · ${reference.note}` : ''}

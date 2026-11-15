@@ -141,7 +141,9 @@ function PickButton({
         className="w-full min-w-0 justify-between"
         onClick={() => setOpen(true)}
       >
-        <span className={`min-w-0 flex-1 truncate text-left normal-case ${name ? '' : 'text-[var(--text-muted)]'}`}>{name ?? 'Choose an entry'}</span>
+        <span className={`min-w-0 flex-1 truncate text-left normal-case ${name ? '' : 'text-[var(--text-muted)]'}`} title={name ?? 'Choose an entry'}>
+          {name ?? 'Choose an entry'}
+        </span>
         <Icon name="openMenu" />
       </Button>
       {open && (
