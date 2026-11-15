@@ -11,6 +11,8 @@ import { describe, expect, test } from 'vitest';
 // The reasons are a closed set, each a fact a reviewer can check:
 const MODAL =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
+const MODAL_ASKS =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx); its own Save is the way to keep what was typed, and Escape, the close button and Not now ask first (confirmDiscard)';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
@@ -22,7 +24,7 @@ const PICKER = 'a choice made by picking a row; the box only narrows the rows';
 const EXEMPT: Record<string, string> = {
   'booth/frame/LevelsMenu.tsx': AT_ONCE,
   'booth/voices/WhoIsInDialog.tsx': MODAL,
-  'credits/CreditsSetupDialog.tsx': MODAL,
+  'credits/CreditsSetupDialog.tsx': MODAL_ASKS,
   'delivery/profile/CommitBox.tsx': BLUR,
   'editing/backups/BackupsInspector.tsx': BLUR,
   'editing/cleanup/CleanupInspector.tsx': BLUR,

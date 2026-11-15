@@ -99,3 +99,22 @@ test.describe('at 320 x 300', () => {
     await expectFits(page, dialog);
   });
 });
+
+// "Set up the credits": a name typed in Narrator is asked about on Escape, the close button, Not now and Don't ask; Save is the way to keep it (#3400).
+test('Escape in the Set up the credits dialog with a Narrator typed asks, and Keep editing keeps the name', async ({ page }) => {
+  await page.goto('/?mockCredits=setup');
+  await settlePage(page);
+  const dialog = page.getByRole('dialog', { name: 'Set up the credits' });
+  const narrator = dialog.getByLabel('Narrator');
+  await narrator.fill('Sam Reader');
+  await expect(dialog.getByText('Not set yet: nothing in the manuscript names the narrator.')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  const question = page.getByRole('alertdialog', { name: 'Discard what you typed?' });
+  await expect(question).toBeVisible();
+  await expect(question.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await question.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(narrator).toHaveValue('Sam Reader');
+  await dialog.getByRole('button', { name: 'Not now' }).click();
+  await page.getByRole('alertdialog', { name: 'Discard what you typed?' }).getByRole('button', { name: 'Discard' }).click();
+  await expect(dialog).toHaveCount(0);
+});

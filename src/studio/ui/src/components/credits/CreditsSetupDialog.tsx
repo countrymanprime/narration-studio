@@ -8,6 +8,7 @@ import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import type { Notify } from '../primitives/Toast';
 import { plural } from '../../plural';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), matching CreditsPanel's
 // own map (detectedToken there goes the other way, lowerCamelCase to this form).
@@ -95,8 +96,14 @@ export function CreditsSetupDialog({
       }
       return api.creditsSetupSave(values);
     });
-  const notNow = () => run(() => api.creditsSetupDismiss('session'));
-  const dontAsk = () => run(() => api.creditsSetupDismiss('project'));
+  // Values the narrator changed from what was filled in: Escape, the close button, Not now and Don't ask would drop them, so each asks first. Save is the way to keep them (#3400).
+  const typed = state.fields.some((field) => (values[field.field] ?? '') !== (field.candidate?.value ?? ''));
+  const leaving = (action: () => Promise<CreditsSetupState>) => async () => {
+    if (typed && !(await confirmDiscard('what you typed'))) return;
+    await run(action);
+  };
+  const notNow = leaving(() => api.creditsSetupDismiss('session'));
+  const dontAsk = leaving(() => api.creditsSetupDismiss('project'));
 
   const fieldCount = state.fields.length;
 
@@ -136,7 +143,7 @@ export function CreditsSetupDialog({
               <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                 {candidateCaption(field.candidate)}
               </p>
-            ) : field.field === 'narrator' ? (
+            ) : field.field === 'narrator' && !(values.narrator ?? '').trim() ? (
               <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                 Not set yet: nothing in the manuscript names the narrator.
               </p>
@@ -145,7 +152,7 @@ export function CreditsSetupDialog({
             {field.field === 'narrator' && (
               <div className="mt-2">
                 <Checkbox checked={useForAllProjects} disabled={busy} onChange={setUseForAllProjects}>
-                  Use for all my projects (saved as your default in Settings &gt; General)
+                  Use for all my projects (saved as your default in Settings &gt; Project)
                 </Checkbox>
               </div>
             )}

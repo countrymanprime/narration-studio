@@ -3,10 +3,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { overlay } from '../../overlay/overlayService';
 import type { CreditsSetupState, NarrationApi } from '../../types';
 import { CreditsSetupDialog } from './CreditsSetupDialog';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const STATE: CreditsSetupState = {
   needed: true,
@@ -163,5 +167,40 @@ describe('CreditsSetupDialog', () => {
   it('shows no "Use for all my projects" checkbox when Narrator is not among the asked fields', () => {
     renderDialog({ ...STATE, fields: STATE.fields.filter((field) => field.field !== 'narrator') });
     expect(screen.queryByRole('checkbox', { name: /^Use for all my projects/ })).toBeNull();
+  });
+
+  describe('what the narrator typed is not dropped without asking (#3400)', () => {
+    const typeNarrator = () => fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: 'Sam Reader' } });
+
+    it.each([
+      ['the close button', () => fireEvent.click(screen.getByRole('button', { name: 'Close' }))],
+      ['Escape', () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })],
+      ['Not now', () => fireEvent.click(screen.getByRole('button', { name: 'Not now' }))],
+      ['Don’t ask for this project', () => fireEvent.click(screen.getByRole('button', { name: /^Don.t ask for this project$/ }))],
+    ])('%s asks first; Keep editing keeps the dialog and the name, Discard drops them', async (_name, leave) => {
+      const { api, onDone } = renderDialog();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      typeNarrator();
+      leave();
+      await waitFor(() => expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard what you typed?', cancelLabel: 'Keep editing' })));
+      expect(dismiss).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Sam Reader');
+      leave();
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('with nothing changed the dialog closes at once, and a typed narrator replaces the "Not set yet" line', async () => {
+      const { api, onDone } = renderDialog();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      typeNarrator();
+      expect(screen.queryByText('Not set yet: nothing in the manuscript names the narrator.')).toBeNull();
+      fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: '' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(dismiss).toHaveBeenCalledTimes(1);
+    });
   });
 });
