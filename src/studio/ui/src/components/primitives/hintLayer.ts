@@ -3,8 +3,9 @@
 export const HINT_POPUP_ATTRIBUTE = 'data-hint-popup';
 const HINT_POPUP_SELECTOR = `[${HINT_POPUP_ATTRIBUTE}]`;
 
-// The control each tooltip belongs to, so a dialog can tell whose Escape it is: a tooltip left over from the control that opened the dialog (it stays in the page about
-// 90 ms (measured) after focus moves away) is behind the dialog and does not take the dialog's Escape; one on a control inside the dialog does (#3500).
+// The control each tooltip belongs to, so a dialog can tell whose Escape it is: a tooltip left over from the control that opened the dialog (it stays in the page for a
+// moment after focus moves away: its close is a timer behind the dialog's render, about 25 ms at normal speed and later on a slow machine, #3509) is behind the dialog and
+// does not take the dialog's Escape; one on a control inside the dialog does (#3500).
 const hintHosts = new WeakMap<Element, Element>();
 export function rememberHintHost(popup: Element | null, host: Element | null): void {
   if (popup && host) hintHosts.set(popup, host);
