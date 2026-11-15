@@ -14,7 +14,7 @@ export function MockStatesPanel({ reload = () => window.location.reload() }: { r
   const [search, setSearch] = useState(() => window.location.search);
 
   function write(next: string) {
-    // The entry keeps its state: the router's `idx` is how the unsaved-drafts guard tells Back from Forward, and a state-less entry reached by Back is numbered a step ahead (#3491).
+    // The entry keeps its state: the router's `idx` is how the unsaved-drafts guard tells Back from Forward, and a panel choice must not strip it from the entry it reloads on (#3491).
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${next}${window.location.hash}`);
     setSearch(next);
     reload();
