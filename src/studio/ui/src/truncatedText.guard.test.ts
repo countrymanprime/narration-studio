@@ -87,8 +87,6 @@ const DEBT = new Set<string>([
   'components/primitives/TitleSubtitle.tsx#1',
   'components/primitives/TitleSubtitle.tsx#2',
   'components/primitives/TitleSubtitle.tsx#3',
-  // `HeadingLines` clips with a class built in a variable, and its one caller wraps the whole row in a `title` with the full name (the scan cannot see that).
-  'components/production/ImportReview.tsx#1',
 ]);
 
 describe('text that is cut off can be read in full', () => {
