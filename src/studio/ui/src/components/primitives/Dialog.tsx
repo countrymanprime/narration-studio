@@ -94,11 +94,11 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 // The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
 const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
-// The one horizontal inset of the header, the body and the action row. In a window under 360 px it is 12 px. In a 320 x 300 window the two-button
-// question row (Keep editing, Discard & continue) had under 1 px to spare at 17.6 px, and a font a hair wider wrapped it onto a second row that took the
-// sentence's room (#3457); the 12 px inset gives it and the sentence room there. It does not make the row one line in every 320 px window: in a taller
-// one the dialog keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and the buttons still wrap.
-const INSET = 'px-[var(--space-6)] max-[360px]:px-3';
+// The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px, and 8 px when the window is also under 400 px
+// tall. At 320 x 300 the question row's two widest labels (Discard & continue, Save & continue) needed 278.5 px in a row 278 px wide, so both labels broke onto a
+// second line, and a font a hair wider took the sentence's room (#3457, #3521); 8 px gives the row 9.5 px to spare. A taller 320 px window keeps its 1 rem side
+// margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
+const INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-2';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
 // empty `actions` would draw a padded blank row under the body.
@@ -181,8 +181,8 @@ export function Dialog({
   };
   // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
   // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36). Under 400 px tall the header and the
-  // action row give the gutter up: the 10 px is the room a question's two buttons need to stay on one row at 320 px, and a body that scrolls there is rare enough that
-  // an edge 10 px off is the lesser cost (#3400).
+  // action row give the gutter up, and the body keeps its own whether or not it scrolls, so there the body ends 10 px short of Close and the last action: a
+  // deliberate break of that rule, for the 10 px a question's two buttons need to stay on one line at 320 px (#3521).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable] [@media(max-height:400px)]:[scrollbar-gutter:auto]' : '';
   // Whether Base UI handed focus back as the dialog closed; when the dialog goes with its parent instead, this stays false (see the cleanup below).
   const handedBack = useRef(false);
@@ -405,7 +405,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1.5 ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

@@ -173,7 +173,7 @@ async function withLongEntryName(page: Page): Promise<void> {
 }
 
 /** `spare` is the room, in px, the sentence must have left below it in the body: a font a hair wider than this machine's may not cut it off. */
-async function expectFits(page: Page, dialog: Locator, spare = 0): Promise<void> {
+async function expectFits(page: Page, dialog: Locator, spare = 0, minSlack = 8): Promise<void> {
   const body = dialog
     .locator('p, [id]')
     .filter({ hasText: /\?$|\.$/ })
@@ -190,11 +190,35 @@ async function expectFits(page: Page, dialog: Locator, spare = 0): Promise<void>
     return '';
   }, spare);
   expect(clipped, 'the sentence is cut off by the dialog').toBe('');
+  // The two widest buttons share a row of the action row; their labels on one line plus the gap and 8 px must fit the row's inside width, so a font a hair wider
+  // does not break a label or push a button to a row of its own (the reviewer measured 278.5 px needed in 278, #3521).
+  const slack = await dialog.getByRole('button').evaluateAll((buttons) => {
+    const actions = buttons.filter((button) => button.getBoundingClientRect().top > (buttons[0]?.getBoundingClientRect().bottom ?? 0));
+    if (!actions.length) return 99;
+    const row = actions[0]!.parentElement!;
+    const own = getComputedStyle(row);
+    const gap = parseFloat(own.columnGap);
+    const inside = row.clientWidth - parseFloat(own.paddingLeft) - parseFloat(own.paddingRight);
+    const natural = actions.map((button) => {
+      const el = button as HTMLElement;
+      const before = [el.style.whiteSpace, el.style.flexShrink];
+      el.style.whiteSpace = 'nowrap';
+      el.style.flexShrink = '0';
+      const width = el.getBoundingClientRect().width;
+      [el.style.whiteSpace, el.style.flexShrink] = before;
+      return width;
+    });
+    const widest = natural.sort((a, b) => b - a).slice(0, 2);
+    return inside - (widest.reduce((sum, width) => sum + width, 0) + (widest.length - 1) * gap);
+  });
+  expect(slack, 'the action row has room to keep its two widest labels on one line').toBeGreaterThanOrEqual(minSlack);
   const view = page.viewportSize()!;
   for (const button of await dialog.getByRole('button').all()) {
     const box = (await button.boundingBox())!;
     expect(box.y + box.height, await button.innerText()).toBeLessThanOrEqual(view.height);
     expect(box.x + box.width, await button.innerText()).toBeLessThanOrEqual(view.width);
+    // A label that breaks onto a second line grows its button past one line's height (36 px); each label stays on one line.
+    expect(box.height, `${await button.innerText()} stays on one line`).toBeLessThanOrEqual(40);
   }
 }
 
@@ -224,7 +248,7 @@ test.describe('at 320 x 300', () => {
         (button as HTMLElement).style.paddingInline = `${parseFloat(own.paddingLeft) + 2}px ${parseFloat(own.paddingRight) + 2}px`;
       }),
     );
-    await expectFits(page, dialog, 8);
+    await expectFits(page, dialog, 8, 0);
   });
 
   test('the question for a long name and a started relationship shows its whole sentence', async ({ page }) => {
