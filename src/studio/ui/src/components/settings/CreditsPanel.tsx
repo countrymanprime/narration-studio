@@ -110,6 +110,9 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // that draft's: it takes over the editor only while the editor is still on it, and a second Save of the same draft waits for it instead of creating a second template (#3461 B1, B2).
   const draftSeq = useRef(0);
   const pendingCreates = useRef(new Set<number>());
+  // The id a New draft's late-answered save created, for as long as the draft lives: its next Save writes to that template and never creates another, even when the list read that
+  // should have shown it failed (#3461 round 9 C-2).
+  const createdIds = useRef(new Map<number, string>());
   const lastSent = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -193,7 +196,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     const sent = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
     try {
       // A save the host never answers gives the editor back at the limit: the picker and the buttons are free again and the text is still here (#3461 G).
-      const call = api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
+      const creating = !selected && !createdIds.current.has(seq);
+      const call = api.saveCreditsTemplate(selected?.id ?? createdIds.current.get(seq) ?? '', draftKind, draftName, draftBody);
       // A New template whose save answers after the limit has no id yet: when the answer lands and the editor is still on that draft it takes the id, so Save again does not
       // create a second template (#3461 G2).
       // Whether the host answered at all, even with a refusal: only a call still out at the limit can land later and create a template.
@@ -202,15 +206,26 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         () => void (answered = true),
         () => void (answered = true),
       );
-      if (!selected)
+      if (creating)
         void call
           .then(async (late) => {
-            if (!pendingCreates.current.delete(seq)) return;
+            if (!pendingCreates.current.has(seq)) return;
+            createdIds.current.set(seq, late.id);
             // The list is read first, and only then is it decided whether the editor is still on the draft that started this save: the narrator can pick another template, Discard or press New
             // while the read is out, and the editor and its text must stay where they went, the list only learning the template that was created (#3461 round 7 BR1). The read is the
             // templates alone, since `load` would also move a New draft onto the first template.
-            const fresh = await api.creditsTemplates();
-            setTemplates(fresh);
+            // The draft stays marked as having a save out until the read ends, so a Save pressed meanwhile (the editor's or Save & continue's) creates nothing (#3461 round 9 C-1).
+            try {
+              setTemplates(await api.creditsTemplates());
+            } catch (error) {
+              notify(
+                `The templates could not be read: ${apiErrorMessage(error)}`,
+                'error',
+                retryAction(() => void load()),
+              );
+            } finally {
+              pendingCreates.current.delete(seq);
+            }
             if (draftSeq.current !== seq || editorNow.current.id !== '') return;
             // The editor moves onto the template that was created, with what is in it now: text typed after the limit is an edit of that template still to save, not something
             // the template's own body replaces (#3461 round 7 N1). The baseline and what was last sent say what the template holds.
@@ -220,7 +235,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           })
           .catch(() => pendingCreates.current.delete(seq));
       const saved = await withinSaveLimit(call).catch((error) => {
-        if (!selected && !answered) pendingCreates.current.add(seq);
+        if (creating && !answered) pendingCreates.current.add(seq);
         throw error;
       });
       pendingCreates.current.delete(seq);

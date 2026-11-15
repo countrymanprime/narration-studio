@@ -353,6 +353,49 @@ describe('CreditsPanel', () => {
     expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('typed on the other template');
   });
 
+  it('Save during the list read after a late answer does not create twice (#3461 round 9 C-1)', async () => {
+    const { api } = renderPanel();
+    const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once, even now.');
+    const before = (await api.creditsTemplates()).length;
+    const real = api.creditsTemplates.bind(api);
+    let release: () => void = () => {};
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => void real().then(resolve);
+        }),
+    );
+    answers[0]!();
+    await waitFor(() => expect(api.creditsTemplates).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(save).toHaveBeenCalledTimes(1);
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((await real()).filter((template) => template.body === 'Only once, even now.')).toHaveLength(1);
+    expect((await real()).length).toBe(before + 1);
+  });
+
+  it('a failed list read after a late answer says so, and the next Save writes to the created template, not a new one (#3461 round 9 C-2)', async () => {
+    const { api, notify } = renderPanel();
+    const { save, answers } = await newTemplateSaveGivenUp(api, 'Created late.');
+    const real = api.creditsTemplates.bind(api);
+    vi.spyOn(api, 'creditsTemplates').mockRejectedValueOnce(new Error('The host could not list them.'));
+    answers[0]!();
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        expect.stringContaining('The templates could not be read: The host could not list them.'),
+        'error',
+        expect.anything(),
+      ),
+    );
+    const created = (await real()).find((template) => template.body === 'Created late.')!;
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Created late, then changed.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls[1]![0]).toBe(created.id);
+  });
+
   it('Save again before the first answer of a New template lands creates no second template (#3461 B2)', async () => {
     const { api } = renderPanel();
     const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once.');
