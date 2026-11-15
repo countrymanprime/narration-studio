@@ -94,10 +94,11 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 // The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
 const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
-// The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px, and 8 px when the window is also under 400 px
-// tall. At 320 x 300 the question row's two widest labels (Discard & continue, Save & continue) needed 278.5 px in a row 278 px wide, so both labels broke onto a
-// second line, and a font a hair wider took the sentence's room (#3457, #3521); 8 px gives the row 9.5 px to spare. A taller 320 px window keeps its 1 rem side
-// margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
+// The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
+// tall or less it is 8 px (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px) needed 278.5 px with an
+// 8 px gap in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room. The 8 px inset widens the row by
+// 8 px, to 286 px (7.5 px to spare), and the 6 px column gap, which the action row has at any width in a window 400 px tall or less, saves 2 px more: 9.5 px to spare. A
+// taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
 const INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-2';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
@@ -180,7 +181,7 @@ export function Dialog({
     return bodyRef.current;
   };
   // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
-  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36). Under 400 px tall the header and the
+  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36). In a window 400 px tall or less the header and the
   // action row give the gutter up, and the body keeps its own whether or not it scrolls, so there the body ends 10 px short of Close and the last action: a
   // deliberate break of that rule, for the 10 px a question's two buttons need to stay on one line at 320 px (#3521).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable] [@media(max-height:400px)]:[scrollbar-gutter:auto]' : '';

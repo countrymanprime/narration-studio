@@ -234,8 +234,9 @@ test.describe('at 320 x 300', () => {
     await expectFits(page, dialog, 8);
   });
 
-  // The three-button question is the tightest: its Discard & continue and Save & continue share the second row with 0 px to spare, so a font a hair wider than this
-  // machine's puts them on two rows and cuts the sentence (#3457, CI). Each button 2 px wider on both sides stands for that font.
+  // The three-button question is the tightest: its Discard & continue and Save & continue share the second row, which had under 1 px to spare before #3521 and has 9.5 px
+  // now, so a font a hair wider than this machine's would put them on two rows and cut the sentence (#3457, CI). Each button 2 px wider on both sides stands for that font
+  // and leaves 1.5 px.
   test('the question for an entry with a very long name still shows its whole sentence when the buttons render a hair wider', async ({ page }) => {
     await withLongEntryName(page);
     await startEntryEdit(page);
