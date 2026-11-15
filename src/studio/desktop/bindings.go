@@ -510,6 +510,8 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	if err == nil && had {
 		h.emitVoiceSamplesChanged()
 	}
+	// The chapter-track links go with the manuscript, so chapter sync's counts and rows must be read again (#3416).
+	h.linksChanged(err)
 	return encodeBinding(nil, err)
 }
 func (h *Host) ManuscriptChapters() (string, error) {
