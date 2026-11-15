@@ -4,6 +4,7 @@ import (
 	"context"
 	"desktop/internal/brand"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -62,6 +63,61 @@ func TestRenderWithFXRefusesAnIncompleteRequestAndWritesNothing(t *testing.T) {
 	}
 }
 
+// fakeBridgeFiles is the file access the fake REAPER uses. A test swaps a call for one that fails once, the way Windows fails a read or an
+// append while a virus scanner, an indexer or the host's own handle still holds the file (a sharing violation).
+type fakeBridgeFiles struct {
+	readFile  func(name string) ([]byte, error)
+	appendLog func(name, lines string) error
+}
+
+var osFakeBridgeFiles = fakeBridgeFiles{
+	readFile: os.ReadFile,
+	appendLog: func(name, lines string) error {
+		log, err := os.OpenFile(name, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+		if err != nil {
+			return err
+		}
+		_, werr := log.WriteString(lines)
+		if cerr := log.Close(); werr == nil {
+			werr = cerr
+		}
+		return werr
+	},
+}
+
+// answerOnce is one pass of the fake REAPER over dir's commands folder: each command file not in answered gets answer's lines appended to
+// events.log, in one write. A command is answered once and only once it has been both read and answered: one whose read or append failed
+// stays out of answered and is tried again on the next pass. (Marking it first left it unanswered for good, and the host waited its whole
+// answer timeout for a reply that was never coming: TestReadMasterChainIs... and TestFXRangeRefusals each ran 60 s on Windows, #3492.)
+// Each failure goes to report (the test's log, shown when the test fails), so a Windows run that hangs again says which call failed.
+// It returns how many commands it could not answer on this pass.
+func answerOnce(dir string, answered map[string]bool, files fakeBridgeFiles, report func(format string, args ...any), answer func(command []string) [][]string) (failed int) {
+	paths, _ := filepath.Glob(filepath.Join(dir, "commands", "*.cmd"))
+	for _, path := range paths {
+		if answered[path] {
+			continue
+		}
+		raw, err := files.readFile(path)
+		if err != nil {
+			report("the fake bridge could not read %s, will try again: %v", filepath.Base(path), err)
+			failed++
+			continue
+		}
+		fields, _ := bridge.DecodeFields(strings.TrimSuffix(string(raw), "\n"))
+		var lines strings.Builder
+		for _, line := range answer(fields[1:]) {
+			lines.WriteString(bridge.EncodeFields(line) + "\n")
+		}
+		if err := files.appendLog(filepath.Join(dir, "events.log"), lines.String()); err != nil {
+			report("the fake bridge could not answer %s, will try again: %v", filepath.Base(path), err)
+			failed++
+			continue
+		}
+		answered[path] = true
+	}
+	return failed
+}
+
 // answerCommands plays REAPER for one session: each command it finds gets answer's lines appended to events.log, and the client is
 // dispatched, as the host's loop would, until the test ends.
 func answerCommands(t *testing.T, client *bridge.Client, dir string, answer func(command []string) [][]string) {
@@ -71,32 +127,57 @@ func answerCommands(t *testing.T, client *bridge.Client, dir string, answer func
 	t.Cleanup(func() { cancel(); <-done })
 	go func() {
 		defer close(done)
-		seen := map[string]bool{}
+		answered := map[string]bool{}
 		for ctx.Err() == nil {
-			paths, _ := filepath.Glob(filepath.Join(dir, "commands", "*.cmd"))
-			for _, path := range paths {
-				if seen[path] {
-					continue
-				}
-				seen[path] = true
-				raw, err := os.ReadFile(path)
-				if err != nil {
-					continue
-				}
-				fields, _ := bridge.DecodeFields(strings.TrimSuffix(string(raw), "\n"))
-				log, err := os.OpenFile(filepath.Join(dir, "events.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-				if err != nil {
-					continue
-				}
-				for _, line := range answer(fields[1:]) {
-					_, _ = log.WriteString(bridge.EncodeFields(line) + "\n")
-				}
-				_ = log.Close()
-			}
+			// t.Logf is safe here: the cleanup above waits for this goroutine before the test is over.
+			answerOnce(dir, answered, osFakeBridgeFiles, t.Logf, answer)
 			_ = client.Dispatch()
 			time.Sleep(5 * time.Millisecond)
 		}
 	}()
+}
+
+// A command the fake could not read, or could not answer, on one pass is answered on a later one, and exactly once (#3492).
+func TestTheFakeBridgeAnswersACommandItCouldNotReadOrAnswerAtFirst(t *testing.T) {
+	_, dir := newClient(t)
+	command := filepath.Join(dir, "commands", "00000000.cmd")
+	if err := os.WriteFile(command, []byte(bridge.EncodeFields([]string{"1", "some_command", "run1"})+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	reads, appends := 0, 0
+	files := fakeBridgeFiles{
+		readFile: func(name string) ([]byte, error) {
+			if reads++; reads == 1 {
+				return nil, errors.New("sharing violation")
+			}
+			return os.ReadFile(name)
+		},
+		appendLog: func(name, lines string) error {
+			if appends++; appends == 1 {
+				return errors.New("sharing violation")
+			}
+			return osFakeBridgeFiles.appendLog(name, lines)
+		},
+	}
+	answered := map[string]bool{}
+	answer := func(command []string) [][]string { return [][]string{{"DONE", command[1]}} }
+	var reported []string
+	report := func(format string, args ...any) { reported = append(reported, fmt.Sprintf(format, args...)) }
+	for pass, wantFailed := range []int{1, 1, 0, 0} {
+		if got := answerOnce(dir, answered, files, report, answer); got != wantFailed {
+			t.Fatalf("pass %d: %d commands unanswered, want %d", pass+1, got, wantFailed)
+		}
+	}
+	if len(reported) != 2 {
+		t.Errorf("reported %q, want one line for the failed read and one for the failed answer", reported)
+	}
+	log, err := os.ReadFile(filepath.Join(dir, "events.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := bridge.EncodeFields([]string{"DONE", "run1"}) + "\n"; string(log) != want {
+		t.Errorf("events.log = %q, want %q (one answer)", log, want)
+	}
 }
 
 func TestReadMasterChainIsTheBridgesListInTheDAWPortsShape(t *testing.T) {
