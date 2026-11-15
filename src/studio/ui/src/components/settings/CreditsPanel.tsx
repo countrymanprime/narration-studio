@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
-import { useGuardedAction, useSharedSave, useUnsavedDraft, withinSaveLimit } from '../../studio/drafts/unsavedDrafts';
+import { useGuardedAction, useSharedSave, useUnsavedDraft, withinSaveLimit, SaveTimeout } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
@@ -186,6 +186,21 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     };
   }, [api, draftBody, draftKind, values]);
 
+  // The template list alone, bounded by the save limit: a Retry or a late answer's read only refreshes the list and never moves the editor (`load` would put a New draft onto the first
+  // template and drop what was typed in it) (#3461 round 10 C-3, C-5).
+  const readTemplates = async (): Promise<boolean> => {
+    try {
+      setTemplates(await withinSaveLimit(api.creditsTemplates()));
+      return true;
+    } catch (error) {
+      notify(
+        `The templates could not be read: ${error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error)}`,
+        'error',
+        retryAction(() => void readTemplates()),
+      );
+      return false;
+    }
+  };
   const saveTemplateNow = async (): Promise<boolean> => {
     const seq = draftSeq.current;
     if (!selected && pendingCreates.current.has(seq)) {
@@ -215,17 +230,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             // while the read is out, and the editor and its text must stay where they went, the list only learning the template that was created (#3461 round 7 BR1). The read is the
             // templates alone, since `load` would also move a New draft onto the first template.
             // The draft stays marked as having a save out until the read ends, so a Save pressed meanwhile (the editor's or Save & continue's) creates nothing (#3461 round 9 C-1).
-            try {
-              setTemplates(await api.creditsTemplates());
-            } catch (error) {
-              notify(
-                `The templates could not be read: ${apiErrorMessage(error)}`,
-                'error',
-                retryAction(() => void load()),
-              );
-            } finally {
-              pendingCreates.current.delete(seq);
-            }
+            await readTemplates();
+            pendingCreates.current.delete(seq);
             if (draftSeq.current !== seq || editorNow.current.id !== '') return;
             // The editor moves onto the template that was created, with what is in it now: text typed after the limit is an edit of that template still to save, not something
             // the template's own body replaces (#3461 round 7 N1). The baseline and what was last sent say what the template holds.
@@ -239,6 +245,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         throw error;
       });
       pendingCreates.current.delete(seq);
+      // The template exists now: whatever the list read after this shows, the next Save of this draft writes to it and creates no second one (#3461 round 10 C-4).
+      if (creating) createdIds.current.set(seq, saved.id);
       notify('Credit template saved.');
       // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, with what they
       // typed there. Text typed on this template since the save started is not in what was saved: it stays in the editor as an edit still to save, and Save template or Save & continue then sends it in a second save of its own (a second \"saved\" notice) (#3461).

@@ -396,6 +396,56 @@ describe('CreditsPanel', () => {
     expect(save.mock.calls[1]![0]).toBe(created.id);
   });
 
+  it('Retry on the templates-not-read notice only refreshes the list: a New draft started meanwhile keeps its text (#3461 round 10 C-3)', async () => {
+    const { api, notify } = renderPanel();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const { answers } = await newTemplateSaveGivenUp(api, 'Created late.');
+    vi.spyOn(api, 'creditsTemplates').mockRejectedValueOnce(new Error('The host could not list them.'));
+    answers[0]!();
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The templates could not be read'), 'error', expect.anything()));
+    // A second New draft, with text typed in it, and then Retry.
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'second draft text' } });
+    const retry = notify.mock.calls.find((call) => String(call[0]).includes('could not be read'))![2] as { onAction: () => void };
+    retry.onAction();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('second draft text');
+  });
+
+  it('a save answered in time whose list read then fails: the next Save writes to the created template (#3461 round 10 C-4)', async () => {
+    const { api } = renderPanel();
+    await editTemplate();
+    const save = vi.spyOn(api, 'saveCreditsTemplate');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Created at once.' } });
+    vi.spyOn(api, 'creditsTemplates').mockRejectedValue(new Error('The host could not list them.'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    vi.mocked(api.creditsTemplates).mockRestore();
+    const created = (await api.creditsTemplates()).find((template) => template.body === 'Created at once.')!;
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Created at once, then changed.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save.mock.calls[1]![0]).toBe(created.id);
+  });
+
+  it('a late answer whose list read never answers releases the draft after the limit (#3461 round 10 C-5)', async () => {
+    const { api } = renderPanel();
+    const { save, answers } = await newTemplateSaveGivenUp(api, 'Late and unread.');
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      answers[0]!();
+      await act(async () => {});
+      await act(async () => void vi.advanceTimersByTime(15_001));
+    } finally {
+      vi.useRealTimers();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+  });
+
   it('Save again before the first answer of a New template lands creates no second template (#3461 B2)', async () => {
     const { api } = renderPanel();
     const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once.');
