@@ -234,7 +234,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
       {pendingScope && (
         <ConfirmDialog
           title="Unsaved changes"
-          body="Save or discard changes before continuing?"
+          body="Save or discard changes before leaving?"
           confirmLabel="Save & continue"
           confirm={() => {
             const next = pendingScope;
