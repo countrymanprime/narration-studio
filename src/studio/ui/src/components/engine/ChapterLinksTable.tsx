@@ -235,7 +235,7 @@ if (typeof document !== 'undefined')
     if (!handBack || !(target instanceof HTMLElement) || target === document.body || target.getAttribute('role') === 'dialog') return;
     const label = target.getAttribute('aria-label') ?? '';
     // The replacement taking focus is the hand-back itself; any other control means the narrator went there.
-    if (!label.startsWith('Change the track for ') && !label.startsWith('Create a ')) handBack = undefined;
+    if (!/^(Change the track for |Create a (track|folder) for )/.test(label)) handBack = undefined;
   });
 
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
