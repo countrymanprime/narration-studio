@@ -149,7 +149,7 @@ describe('Story Bible entry properties', () => {
     renderDetail();
     startEditing();
     fireEvent.click(screen.getByRole('button', { name: 'Remove property Age' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(within(properties()).getByText('Age')).toBeTruthy();
   });
 });

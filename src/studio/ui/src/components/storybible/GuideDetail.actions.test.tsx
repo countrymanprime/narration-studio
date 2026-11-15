@@ -47,7 +47,7 @@ describe('Story Bible header actions by mode', () => {
     renderDetail(unlocked);
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Cancel editing' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Discard changes' })).toBeTruthy();
     const deleteButton = screen.getByRole('button', { name: 'Delete entity' });
     expect(deleteButton.className).toContain('border-[var(--danger)]');
     expect(deleteButton.className).toContain('text-[var(--danger-text)]');
@@ -68,7 +68,7 @@ describe('Story Bible header actions by mode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     // There is no way to reach Lock from here - the hazard docs/guides/using-the-app/story-bible.md left open cannot occur.
     expect(screen.queryByRole('button', { name: 'Lock entry' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     fireEvent.click(screen.getByRole('button', { name: 'Lock entry' }));
   });
 });
@@ -105,7 +105,7 @@ describe('cancel-on-a-new-unsaved-entry-drops-it-and-its-relationships', () => {
     await addEntity();
     // The draft is held by the page, not the list: it is in no row until a category is chosen.
     expect(rowNames()).toEqual(before);
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel new entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard new entry' }));
     expect(rowNames()).toEqual(before);
     expect(screen.queryByDisplayValue(/New entity/)).toBeNull();
     expect([create, edit, remove].map((spy) => spy.mock.calls.length)).toEqual([0, 0, 0]);
@@ -128,7 +128,7 @@ describe('save-keeps-it-and-leaving-an-unsaved-draft-for-another-entry-drops-it'
     await screen.findAllByText('Alice');
     const before = rowNames();
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(rowNames()).toEqual(before);
   });
 
@@ -208,7 +208,7 @@ describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
     fireEvent.keyDown(box, { key: 'Enter' });
     fireEvent.click(await screen.findByRole('button', { name: 'Merge into this entry' }));
     await waitFor(() => expect(rowNames()).not.toContain('White Rabbit'));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(rowNames()).not.toContain('White Rabbit');
   });
 });
@@ -377,7 +377,7 @@ describe('needs-review-show-menu', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark Rabbit reviewed' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.queryByRole('button', { name: 'Mark Rabbit reviewed' })).toBeNull();
     expect((await api.guideEntities()).find((row) => row.id === 'white-rabbit')?.review?.aliases).toEqual([]);
   });

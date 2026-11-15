@@ -258,8 +258,9 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
             A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
           </Heading>
         </div>
+        {/* A button that drops pasted text says so; with nothing pasted it only closes (#3400). */}
         <Button variant="secondary" onClick={onClose}>
-          Cancel
+          {text.trim() || fileName ? 'Discard import' : 'Close'}
         </Button>
       </div>
       <div className="flex flex-col gap-3.5 p-[1.1rem]">

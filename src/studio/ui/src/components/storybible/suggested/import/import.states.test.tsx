@@ -342,7 +342,7 @@ describe('the host is slow, silent or late', () => {
     paste(VALID);
     expect(await screen.findByText('Checking the text with the host…')).toBeTruthy();
     expect(addButton().getAttribute('aria-disabled')).toBe('true');
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Discard import' }));
     expect(close).toHaveBeenCalledTimes(1);
   });
 

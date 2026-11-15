@@ -1687,11 +1687,11 @@ describe('App Back and Forward', () => {
       expect(window.location.pathname).toBe('/story-bible');
       const rows = screen.getAllByRole('row').filter((row) => row.hasAttribute('data-row'));
       fireEvent.click(rows[rows.length - 1]!);
-      expect(await screen.findByText(/^Save or discard your changes to .+ before going on\?$/)).toBeTruthy();
+      expect(await screen.findByText(/^Save or discard your changes to .+ before leaving\?$/)).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
-      expect(await screen.findByText(/^Save or discard your changes to .+ before going on\?$/)).toBeTruthy();
+      expect(await screen.findByText(/^Save or discard your changes to .+ before leaving\?$/)).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect((screen.getByRole('textbox', { name: 'Description' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
@@ -1702,7 +1702,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
       fireEvent.change(await screen.findByDisplayValue(/New entity/), { target: { value: 'Mr Fox' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText('Save is off: The new entry “Mr Fox” still needs a category chosen. Discard it before leaving?')).toBeTruthy();
+      expect(await screen.findByText("This can't be saved yet: The new entry “Mr Fox” still needs a category chosen. Discard it before leaving?")).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1720,7 +1720,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
       fireEvent.change(await screen.findByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'anchor take' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText('Save is off: Your approval note still needs you to press Approve. Discard it before leaving?')).toBeTruthy();
+      expect(await screen.findByText("This can't be saved yet: Your approval note still needs you to press Approve. Discard it before leaving?")).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1768,7 +1768,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
       expect(
         await screen.findByText(
-          /^Save is off: A relationship you started still needs an entry chosen under To\. Discard your .+ and a relationship before leaving\?$/,
+          /^This can't be saved yet: A relationship you started still needs an entry chosen under To\. Discard your .+ and a relationship before leaving\?$/,
         ),
       ).toBeTruthy();
       const question = screen.getByRole('alertdialog');

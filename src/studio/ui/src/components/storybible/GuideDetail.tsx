@@ -419,7 +419,7 @@ export function GuideDetail({
     setEditing(false);
     setPropertyError(undefined);
     setDraft(draftOf(entity, speaks));
-    // Cancel editing throws the whole edit away, the name typed in Add a name with it: it would be held again, hidden, when Edit opens the entry once more (#3457 B9).
+    // Discard changes throws the whole edit away, the name typed in Add a name with it: it would be held again, hidden, when Edit opens the entry once more (#3457 B9).
     setAliasQuery('');
     setNameNote(undefined);
   };
@@ -881,7 +881,7 @@ export function GuideDetail({
                 </IconButton>
               </TooltipTarget>
               <TooltipTarget text="Discard changes and stop editing">
-                <IconButton label="Cancel editing" onClick={stopEditing}>
+                <IconButton label="Discard changes" onClick={stopEditing}>
                   <FontAwesomeIcon icon={faXmark} />
                 </IconButton>
               </TooltipTarget>
@@ -903,7 +903,7 @@ export function GuideDetail({
           )}
           {isNewDraft && (
             <TooltipTarget text="Cancel: drop this new entry">
-              <IconButton label="Cancel new entry" onClick={() => onDiscardNewDraft?.()}>
+              <IconButton label="Discard new entry" onClick={() => onDiscardNewDraft?.()}>
                 <FontAwesomeIcon icon={faXmark} />
               </IconButton>
             </TooltipTarget>

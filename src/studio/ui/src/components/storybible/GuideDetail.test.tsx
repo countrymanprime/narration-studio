@@ -98,7 +98,7 @@ describe('Story Bible read-only entries', () => {
     expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).disabled).toBe(false);
     expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
@@ -123,7 +123,7 @@ describe('Story Bible read-only entries', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Rewritten' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
     expect(screen.getByText(entity.description.text)).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
