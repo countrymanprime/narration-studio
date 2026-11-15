@@ -10,6 +10,7 @@ import type { Notify } from '../primitives/Toast';
 import { deliveryProfileKey, deliveryProfileTitle } from '../master/deliveryProfile';
 import { DeliveryProfileEditor } from './DeliveryProfileEditor';
 import { plural } from '../../plural';
+import { SaveTimeout, withinSaveLimit } from '../../studio/drafts/unsavedDrafts';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -134,13 +135,14 @@ export function useDeliveryProfiles(notify: Notify) {
     void (async () => {
       setBusy(true);
       try {
-        const saved = await api.deliverySaveProfile(change);
+        // A save the host never answers gives the editor back at the limit, with the typed numbers kept: the editor ignores every way out while a save is out (#3461 round 7 BR2).
+        const saved = await withinSaveLimit(api.deliverySaveProfile(change));
         setState(await api.deliveryProfiles());
         setEditing(undefined);
         notify(`Saved "${saved.name}", revision ${saved.revision}.`);
         window.dispatchEvent(new Event(CHANGED));
       } catch (error) {
-        setEditError(apiErrorMessage(error));
+        setEditError(error instanceof SaveTimeout ? 'The save did not finish. What you typed is still here.' : apiErrorMessage(error));
       } finally {
         setBusy(false);
       }
