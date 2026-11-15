@@ -259,11 +259,11 @@ describe('edit-then-accept-is-one-step', () => {
     await waitFor(() => expect(accept).toHaveBeenCalledWith(alias().id, 'Rabbit2'));
   });
 
-  it('Cancel the edit leaves the row as it was', async () => {
+  it('Discard edit leaves the row as it was', async () => {
     const u = userEvent.setup();
     renderRow(alias());
     await u.click(screen.getByRole('button', { name: 'Edit this suggestion' }));
-    await u.click(screen.getByRole('button', { name: 'Cancel the edit' }));
+    await u.click(screen.getByRole('button', { name: 'Discard edit' }));
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(await statusOf(alias().id)).toBe('needs-verification');
   });

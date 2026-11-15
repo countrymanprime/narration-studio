@@ -112,7 +112,7 @@ export function SuggestionRow({ suggestion, sources, context, onGoToEvidence, li
               {editing ? (
                 <>
                   <IconButton action="saveAndAccept" pending={busy} data-sug-save onClick={save} />
-                  <IconButton action="cancelEdit" onClick={() => setEditing(false)} />
+                  <IconButton action="cancelEdit" label="Discard edit" onClick={() => setEditing(false)} />
                 </>
               ) : (
                 <>

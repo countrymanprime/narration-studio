@@ -872,7 +872,7 @@
     "state": "entry-editing",
     "viewport": "desktop",
     "docName": "storybible-entry-editing",
-    "caption": "Story Bible - an entry in edit mode, with Save and Cancel shown"
+    "caption": "Story Bible - an entry in edit mode, with Save and Discard changes shown"
   },
   {
     "page": "storybible",

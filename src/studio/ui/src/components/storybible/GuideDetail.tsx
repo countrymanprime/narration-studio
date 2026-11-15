@@ -902,7 +902,7 @@ export function GuideDetail({
             </>
           )}
           {isNewDraft && (
-            <TooltipTarget text="Cancel: drop this new entry">
+            <TooltipTarget text="Discard the new entry">
               <IconButton label="Discard new entry" onClick={() => onDiscardNewDraft?.()}>
                 <FontAwesomeIcon icon={faXmark} />
               </IconButton>
