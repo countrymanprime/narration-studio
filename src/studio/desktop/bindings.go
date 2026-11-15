@@ -882,10 +882,34 @@ func (h *Host) ChapterTrackMapList() (string, error) { return encodeBinding(h.ma
 // Links reads every narration chapter's link state and track facts from one
 // parse of the saved .rpp.
 func (h *Host) ChapterTrackSet(chapterID, trackGUID string) (string, error) {
-	return encodeBinding(h.chapterTrackSet(chapterID, trackGUID))
+	set, err := h.chapterTrackSet(chapterID, trackGUID)
+	h.linksChanged(err)
+	return encodeBinding(set, err)
 }
 func (h *Host) ChapterTrackUnlink(chapterID string) (string, error) {
-	return encodeBinding(h.chapterTrackUnlink(chapterID))
+	left, err := h.chapterTrackUnlink(chapterID)
+	h.linksChanged(err)
+	return encodeBinding(left, err)
+}
+
+// linksChanged sends chaptersync:state after a link was made, changed or cleared by hand, so the Engine panel's counts and rows, the Production board
+// and every other reader of chapter sync's state follow the link at once, as they do after a sync (#3416). A failed call changed nothing and sends nothing.
+func (h *Host) linksChanged(err error) {
+	if err != nil {
+		return
+	}
+	// With no runtime and no test sink there is nobody to tell, so the state is not read (a test host that never started has neither).
+	h.mu.RLock()
+	listening := h.ctx != nil || h.chapterSyncEvents != nil
+	h.mu.RUnlock()
+	if !listening {
+		return
+	}
+	h.chapterSyncEmits.Add(1)
+	go func() {
+		defer h.chapterSyncEmits.Done()
+		h.emitChapterSyncState()
+	}()
 }
 func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chapterTrackLinks()) }
 
@@ -897,7 +921,9 @@ func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chap
 func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
 	svc := h.services()
 	creator, support := trackCreatorFrom(svc)
-	return encodeBinding(chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID))
+	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID)
+	h.linksChanged(err)
+	return encodeBinding(created, err)
 }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits
@@ -971,7 +997,9 @@ func moonshineDownloadSize(model moonshine.Model) int64 {
 // "reference" or "opening" removes it from recording, "narration" restores it. A removal clears the chapter's
 // track links. See manuscriptSetChapterKind.
 func (h *Host) ManuscriptSetChapterKind(chapterID, kind string) (string, error) {
-	return encodeBinding(h.manuscriptSetChapterKind(chapterID, kind))
+	changed, err := h.manuscriptSetChapterKind(chapterID, kind)
+	h.linksChanged(err)
+	return encodeBinding(changed, err)
 }
 
 // uiEventPrefix marks a SystemReportDiagnostic kind as a trace event for the run log rather than a failure for host.log.
