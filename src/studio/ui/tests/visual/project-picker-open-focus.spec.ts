@@ -33,3 +33,15 @@ test('Project chooser booted into with no project puts focus on the page, not th
   await page.locator('main').first().waitFor({ timeout: 20_000 });
   await expect.poll(async () => (await focusedTag(page)).tag, { message: 'focus is on the chooser page' }).toBe('MAIN');
 });
+
+// The qa-breaker's pin on #3506: with focus on the chooser's <main> (no ring drawn on a tabIndex -1 page, like the shell's own <main>), the first Tab reaches the first control, not the skip link.
+test('Project chooser: the first Tab from its page lands on a control, not the skip link', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/?mockNoProject=1');
+  await page.locator('main').first().waitFor({ timeout: 20_000 });
+  await expect.poll(async () => (await focusedTag(page)).tag).toBe('MAIN');
+  await page.keyboard.press('Tab');
+  const next = await focusedTag(page);
+  expect(next.tag, `Tab went to ${next.tag} "${next.label}"`).toBe('BUTTON');
+  expect(next.label).not.toMatch(/skip to content/i);
+});
