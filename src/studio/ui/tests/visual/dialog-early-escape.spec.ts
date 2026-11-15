@@ -1,24 +1,41 @@
 import { expect, test } from '@playwright/test';
 
-// #3500: the control that opens a dialog by keyboard shows its hint while it has focus, and the hint lingers about 90 ms (its exit animation) after focus moves into the
+// #3500: the control that opens a dialog by keyboard shows its hint while it has focus, and the hint stays in the page for about 90 ms (measured) after focus moves into the
 // dialog. The dialog took that hint for the one Escape was meant for and ignored the key. A hint on something behind the dialog is not the dialog's to answer.
-// Not through `settlePage`: it switches the motion off, and with it the lingering hint.
+//
+// The Escape is sent from inside the page, a task after focus first lands in the dialog, and the test records whether the opener's hint was in the page at that moment, so a
+// fast or slow test driver cannot turn it into a test that never meets the lingering hint. Not through `settlePage`: it switches the motion off, and with it the hint.
 for (const [name, key] of [
   ['the jump menu', 'Control+k'],
   ['the shortcut sheet', 'Shift+?'],
 ] as const) {
-  test(`Escape pressed as soon as ${name} has focus closes it with one press`, async ({ page }) => {
+  test(`Escape sent as soon as ${name} has focus closes it, with the opener's hint still showing`, async ({ page }) => {
     await page.setViewportSize({ width: 1100, height: 700 });
     await page.goto('/');
     const opener = page.getByRole('button', { name: /Jump to or run/ }).first();
     await opener.waitFor({ timeout: 40_000 });
-    // The page settling: the hints are armed lazily, on the first focus.
+    // The page settling after load, before the first focus.
     await page.waitForTimeout(1500);
     await opener.focus();
+    await page.evaluate(() => {
+      (window as unknown as { hintAtEscape?: boolean }).hintAtEscape = undefined;
+      document.addEventListener(
+        'focusin',
+        (event) => {
+          const target = event.target as HTMLElement;
+          if (!target.closest('[role="dialog"]')) return;
+          setTimeout(() => {
+            (window as unknown as { hintAtEscape?: boolean }).hintAtEscape = document.querySelector('[data-hint-popup]') !== null;
+            target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+          }, 0);
+        },
+        { capture: true, once: true },
+      );
+    });
     await page.keyboard.press(key);
-    await page.getByRole('dialog').locator(':focus').waitFor();
-    // The opener's hint is still showing at this moment: the case that was ignored.
-    await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 5_000 });
+    expect(await page.evaluate(() => (window as unknown as { hintAtEscape?: boolean }).hintAtEscape), "the opener's hint was showing when Escape came").toBe(
+      true,
+    );
   });
 }
