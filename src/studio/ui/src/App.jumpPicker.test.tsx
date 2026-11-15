@@ -126,7 +126,7 @@ describe('jump menu over the project picker', () => {
     mount({ projectFolder: '' });
     await picker();
     await openJump('>');
-    for (const name of [/^Replace manuscript…/, /^Import manuscript…/, /^Open Companion/]) {
+    for (const name of [/^Replace manuscript…/, /^Import manuscript…/, /^Open Companion/, /^Back/, /^Forward/, /^Save the DAW project/]) {
       const row = await screen.findByRole('option', { name });
       expect(row.getAttribute('aria-disabled')).toBe('true');
       expect(row.textContent).toContain('Open a project first');

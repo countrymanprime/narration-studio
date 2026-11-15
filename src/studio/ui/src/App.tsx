@@ -764,9 +764,10 @@ function AppRoutes() {
   // The catalogue commands the shell runs that can be off now, with the sentence the jump menu shows beside them (the header's buttons used to carry these).
   const shellDisabledReasons = (): Record<string, string> => {
     const off: Record<string, string> = {};
-    if (noProject) off['companion.open'] = NO_PROJECT_REASON;
-    if (!history.canGoBack) off['nav.back'] = 'No earlier page in this project';
-    if (!history.canGoForward) off['nav.forward'] = 'No later page yet';
+    // With no project there are no pages to move between and no DAW project of its own to save: the sentence is the one the other project commands give (#3263).
+    if (noProject) for (const id of ['companion.open', 'nav.back', 'nav.forward', 'project.save']) off[id] = NO_PROJECT_REASON;
+    if (!noProject && !history.canGoBack) off['nav.back'] = 'No earlier page in this project';
+    if (!noProject && !history.canGoForward) off['nav.forward'] = 'No later page yet';
     if (!journalRows || journalRows.length === 0) off['undo.last'] = 'Nothing to undo';
     if (!zoom.canZoomIn) off['zoom.in'] = 'Already at the largest size';
     if (!zoom.canZoomOut) off['zoom.out'] = 'Already at the smallest size';
