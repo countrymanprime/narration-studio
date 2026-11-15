@@ -75,7 +75,7 @@ transcription model says earlier checks are marked out of date and run again. A 
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
 Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
-says how many it holds.
+says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved changes** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
@@ -248,7 +248,9 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved changes** with "Save or discard the key you pasted before leaving?" for an exit and for a move inside Settings (another category, the search, the filter, closing **Advanced**), **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
+
+![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved changes, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
 
 ## Models and downloads
 
@@ -294,7 +296,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 - **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
 - **Render length tolerance** (under **Checks**) is how many seconds a chapter's rendered file may differ in length from the chapter before [Proof](proof.md)'s render length check is not met. It is empty until you choose it, and then that check is not required; a project may use its own.
 - **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
-- **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default.
+- **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default. Escape and the close button ask **Discard your profile edit?** once the name or a number was changed (**Keep editing** or **Discard**); the footer button reads **Close** while nothing is changed and **Discard changes** once something is, and that button is you dropping the edit. While a save runs every way out is off; a save the host does not answer within 15 seconds gives the editor back with **The save did not finish. What you typed is still here.** and the numbers you typed, and pressing Save again then waits for the first save instead of sending a second; what you type while a save runs stays in the editor as an edit still to save.
 
 ![Settings - a copy of ACX open in the delivery profile editor](../../images/ui/settings-delivery-profile.webp)
 

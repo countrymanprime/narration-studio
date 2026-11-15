@@ -46,7 +46,7 @@ describe('ConfirmDialog', () => {
     const discard = vi.fn();
     render(
       <ConfirmDialog
-        title="Unsaved settings"
+        title="Unsaved changes"
         body="Save or discard changes before leaving Settings?"
         confirmLabel="Save & continue"
         confirm={save}

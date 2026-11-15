@@ -233,8 +233,8 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
       </Panel>
       {pendingScope && (
         <ConfirmDialog
-          title="Unsaved settings"
-          body="Save or discard changes before continuing?"
+          title="Unsaved changes"
+          body="Save or discard changes before leaving?"
           confirmLabel="Save & continue"
           confirm={() => {
             const next = pendingScope;
@@ -247,6 +247,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
             setPendingScope(undefined);
             void discard().then(() => setScope(next));
           }}
+          focusCancel
           cancel={() => setPendingScope(undefined)}
         />
       )}
