@@ -1691,11 +1691,11 @@ describe('App Back and Forward', () => {
       });
     }
 
-    it('Switch project over a pasted key: Save & continue saves the key and opens the picker, and the question names it under "Unsaved settings" (#3400)', async () => {
+    it('Switch project over a pasted key: Save & continue saves the key and opens the picker, and the question names it under "Unsaved changes" (#3400)', async () => {
       const pronunciationOnlineKeySet = vi.fn(createMockApi().pronunciationOnlineKeySet);
       await openKeyBox({ pronunciationOnlineKeySet });
       headerSwitch();
-      const question = await screen.findByRole('alertdialog', { name: 'Unsaved settings' });
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
       expect(within(question).getByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
       await screen.findByRole('heading', { name: 'Choose your project' });
@@ -1707,12 +1707,12 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       const categories = screen.getByRole('navigation', { name: 'Settings categories' });
       fireEvent.click(within(categories).getByRole('button', { name: /^Appearance & keys/ }));
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
       fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'k' } });
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
@@ -1732,7 +1732,7 @@ describe('App Back and Forward', () => {
       const saveCreditsTemplate = vi.fn(createMockApi().saveCreditsTemplate);
       await openCredits({ saveCreditsTemplate });
       headerSwitch();
-      const question = await screen.findByRole('alertdialog', { name: 'Unsaved settings' });
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
       expect(within(question).getByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
       fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
       await screen.findByRole('heading', { name: 'Choose your project' });
@@ -1745,7 +1745,7 @@ describe('App Back and Forward', () => {
       await openCredits({ deleteCreditsTemplate, saveCreditsTemplate });
       const body = () => screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement;
       const cancelKeepsText = async () => {
-        expect(await screen.findByText('Save or discard your credit template edit before going on?')).toBeTruthy();
+        expect(await screen.findByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
         expect(body().value).toBe('Typed but not saved.');
@@ -1784,7 +1784,7 @@ describe('App Back and Forward', () => {
       fireEvent.change(screen.getByRole('textbox', { name: 'Body' }), { target: { value: 'Typed but not saved.' } });
       for (const next of ['theme', '']) {
         fireEvent.change(search, { target: { value: next } });
-        expect(await screen.findByText('Save or discard your credit template edit before going on?')).toBeTruthy();
+        expect(await screen.findByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
         // Cancel keeps the template, and the box reads what the results are for again (#3456): the invariant whenever no question is open.
@@ -1916,7 +1916,7 @@ describe('App Back and Forward', () => {
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(search.value).toBe('にほ');
       fireEvent.compositionEnd(search);
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(search.value).toBe('');

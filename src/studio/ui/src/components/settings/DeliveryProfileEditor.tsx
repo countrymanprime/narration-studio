@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import type { DeliveryProfile, DeliveryProfileEdit, DeliveryRule } from '../../types';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
@@ -53,6 +54,13 @@ export function DeliveryProfileEditor({
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
     Object.fromEntries(profile.rules.map((rule) => [rule.id, { off: rule.off ?? false, min: toShown(rule, rule.min), max: toShown(rule, rule.max) }])),
   );
+  // Text and numbers changed from what the profile holds: Escape and the close button would drop them, so they ask first. The button that says it discards does not (#3400).
+  const initial = useRef({ name: profile.name, drafts: JSON.stringify(drafts) });
+  const typed = name !== initial.current.name || JSON.stringify(drafts) !== initial.current.drafts;
+  const leave = async () => {
+    if (typed && !(await confirmDiscard('your profile edit'))) return;
+    onCancel();
+  };
   const fileRules = profile.rules.filter((rule) => rule.scope === 'file');
   const baseRule = (id: string) => base?.rules.find((rule) => rule.id === id);
   const platform = base?.platform ?? 'Base';
@@ -96,12 +104,12 @@ export function DeliveryProfileEditor({
       dismissOnOutsidePress={false}
       title="Edit profile"
       size="wide"
-      onClose={onCancel}
+      onClose={() => void leave()}
       description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={
         <>
           <Button variant="secondary" onClick={onCancel}>
-            Cancel
+            Discard changes
           </Button>
           <Button onClick={save} disabled={invalid} pending={pending}>
             Save profile

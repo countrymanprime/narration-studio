@@ -706,7 +706,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await expect(body).not.toHaveValue('');
     await body.fill('Typed but not saved.');
     await clickNav(page, 'Production');
-    await confirmDialog(page, 'Unsaved settings').waitFor();
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
   'key-navigate-away-confirm': async (page) => {
     // A key pasted into its box waits for Save key, so leaving with it asks first, and the question names it (#3400).
@@ -714,7 +714,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /Advanced/ }).click();
     await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
     await clickNav(page, 'Production');
-    await confirmDialog(page, 'Unsaved settings').waitFor();
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
 
   // ---- Search and filters

@@ -24,7 +24,7 @@ async function creditsDraft(page: Page): Promise<void> {
 test('Switch project over an unsaved credits template asks; Cancel keeps the editor and the text', async ({ page }) => {
   await creditsDraft(page);
   await switchProject(page);
-  const question = unsaved(page, 'Unsaved settings');
+  const question = unsaved(page, 'Unsaved changes');
   await expect(question).toContainText('Save or discard your credit template edit before leaving?');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
@@ -34,15 +34,15 @@ test('Switch project over an unsaved credits template asks; Cancel keeps the edi
 test('Alt+Left over an unsaved credits template asks too, and Discard & continue leaves', async ({ page }) => {
   await creditsDraft(page);
   await page.keyboard.press('Alt+ArrowLeft');
-  await expect(unsaved(page, 'Unsaved settings')).toBeVisible();
-  await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Discard & continue' }).click();
+  await expect(unsaved(page, 'Unsaved changes')).toBeVisible();
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Discard & continue' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Production' })).toBeVisible();
 });
 
 test('Save & continue over an unsaved credits template saves it and opens the picker', async ({ page }) => {
   await creditsDraft(page);
   await switchProject(page);
-  await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Save & continue' }).click();
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Save & continue' }).click();
   await expect(picker(page)).toBeVisible();
 });
 
@@ -52,8 +52,8 @@ test('a change inside Settings asks too: another category over an unsaved credit
     .getByRole('navigation', { name: 'Settings categories' })
     .getByRole('button', { name: /^Appearance/ })
     .click();
-  await expect(unsaved(page, 'Unsaved settings')).toContainText('before going on?');
-  await unsaved(page, 'Unsaved settings').getByRole('button', { name: 'Cancel' }).click();
+  await expect(unsaved(page, 'Unsaved changes')).toContainText('before leaving?');
+  await unsaved(page, 'Unsaved changes').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
 });
 
@@ -68,8 +68,8 @@ test('changing or clearing the Settings search over a credits template opened fr
   await page.getByRole('textbox', { name: 'Body' }).fill('Typed but not saved.');
   for (const next of ['theme', '']) {
     await search.fill(next);
-    const question = unsaved(page, 'Unsaved settings');
-    await expect(question).toContainText('Save or discard your credit template edit before going on?');
+    const question = unsaved(page, 'Unsaved changes');
+    await expect(question).toContainText('Save or discard your credit template edit before leaving?');
     await question.getByRole('button', { name: 'Cancel' }).click();
     await expect(search).toHaveValue('credits');
     await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed but not saved.');
@@ -94,7 +94,7 @@ test.describe('at 320 x 300', () => {
   test('a credits template, a draft in the Settings pane, shows its whole question', async ({ page }) => {
     await creditsDraft(page);
     await page.keyboard.press('Alt+ArrowLeft');
-    const dialog = unsaved(page, 'Unsaved settings');
+    const dialog = unsaved(page, 'Unsaved changes');
     await expect(dialog).toContainText('before leaving?');
     await expectFits(page, dialog);
   });

@@ -75,7 +75,7 @@ transcription model says earlier checks are marked out of date and run again. A 
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
 Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
-says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved settings** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
+says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved changes** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
@@ -248,9 +248,9 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved settings** with "Save or discard the key you pasted before leaving?" for an exit and "... before going on?" for a move inside Settings (another category, the search, the filter, closing **Advanced**), **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved changes** with "Save or discard the key you pasted before leaving?" for an exit and for a move inside Settings (another category, the search, the filter, closing **Advanced**), **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
 
-![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved settings, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
+![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved changes, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
 
 ## Models and downloads
 
@@ -330,14 +330,14 @@ The reset button next to **Change location…** moves the downloads back to the 
   and **Delete** removes it. Text typed in the template waits for **Save template**, so leaving Settings with it unsaved
   (the navigation, Back, the jump menu or **Switch project**), or closing the editor, picking another template, **New**,
   **Duplicate**, another category, or any change of **Search settings** (or of the filter beside it) that shows, changes or clears the
-  results, which swap the pane, asks **Unsaved settings** first: **Save & continue** saves the template, **Discard & continue** drops
+  results, which swap the pane, asks **Unsaved changes** first: **Save & continue** saves the template, **Discard & continue** drops
   it, and **Cancel** keeps the editor and the text. **Delete** removes the template and the text typed for it without asking. While **Save template** runs the template picker, **New**, **Duplicate** and **Delete** are off; text typed meanwhile is kept and saved by a second save of its own, and a new template whose save answers late takes its place in the picker instead of being created twice.
   If a save does not answer within 15 seconds, a message says saving is taking too long and **Cancel** and **Discard &
   continue** work again; the text is still in the editor, and a second **Save & continue** waits for the same save and
   does not send it again. When only a draft is held, the question names it ("Save or discard your credit template edit
   before leaving?"); with edits in Settings' own fields it keeps "Save or discard changes before leaving Settings?".
 
-  ![Settings - leaving with a credits template edited and not saved asks Unsaved settings, names the credit template edit, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-credits-leave-confirm.webp)
+  ![Settings - leaving with a credits template edited and not saved asks Unsaved changes, names the credit template edit, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-credits-leave-confirm.webp)
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
   from the project values. Wrap a part in braces to drop it, punctuation and all, when a token in it has no
   value: `[Title]{: [Subtitle]}` reads just the title for a book with no subtitle.
