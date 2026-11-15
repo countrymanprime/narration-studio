@@ -6,7 +6,7 @@ import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Select } from '../primitives/Select';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 import { deliveryProfileKey, deliveryProfileTitle } from '../master/deliveryProfile';
 import { DeliveryProfileEditor } from './DeliveryProfileEditor';
 import { plural } from '../../plural';
@@ -131,25 +131,31 @@ export function useDeliveryProfiles(notify: Notify) {
     setEditError(undefined);
     setEditing(profile);
   };
-  // A save that went past the limit with no answer is still out: pressing Save again sends nothing, and when the first one lands late it is adopted (#3461 round 7 BR3).
-  const lateSave = useRef<Promise<DeliveryProfile> | null>(null);
+  // A save that went past the limit with no answer is still out, kept by the profile it was for: pressing Save again for that profile sends nothing, and when the first one lands late it
+  // is adopted. Another profile's Save is not held by it (#3461 round 7 BR3, round 9).
+  const lateSaves = useRef(new Map<string, Promise<DeliveryProfile>>());
   /** A save that took: the list is read again in the background (the save is done, so a slow read must not hold the editor), and the editor is told which profile it now is. */
   const saved = (profile: DeliveryProfile) => {
     setEditError(undefined);
     // The editor closes itself when nothing was typed since the save was sent, and stays open on what is there when something was (#3461 round 7 BR1).
     setEditing((current) => (current?.id === profile.id ? profile : current));
     notify(`Saved "${profile.name}", revision ${profile.revision}.`);
-    void api
-      .deliveryProfiles()
+    // The row shows the profile as saved at once, so a read that fails cannot leave it at the old revision.
+    setState((current) => current && { ...current, profiles: current.profiles.map((row) => (row.id === profile.id ? profile : row)) });
+    void withinSaveLimit(api.deliveryProfiles())
       .then((next) => {
         setState(next);
         setLoadError(undefined);
       })
-      .catch((error) => setLoadError(apiErrorMessage(error)));
+      .catch((error) => {
+        const why = error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error);
+        setLoadError(why);
+        notify(`The delivery profiles could not be read: ${why}`, 'error', retryAction(load));
+      });
     window.dispatchEvent(new Event(CHANGED));
   };
   const save = (change: DeliveryProfileEdit) => {
-    if (lateSave.current) {
+    if (lateSaves.current.has(change.id)) {
       notify('Your first save of this profile is still waiting for an answer. The editor updates when it lands.');
       return;
     }
@@ -161,15 +167,15 @@ export function useDeliveryProfiles(notify: Notify) {
         saved(await withinSaveLimit(call));
       } catch (error) {
         if (error instanceof SaveTimeout) {
-          lateSave.current = call;
+          lateSaves.current.set(change.id, call);
           call.then(
             (profile) => {
-              if (lateSave.current !== call) return;
-              lateSave.current = null;
+              if (lateSaves.current.get(change.id) !== call) return;
+              lateSaves.current.delete(change.id);
               saved(profile);
             },
             () => {
-              if (lateSave.current === call) lateSave.current = null;
+              if (lateSaves.current.get(change.id) === call) lateSaves.current.delete(change.id);
             },
           );
           setEditError('The save did not finish. What you typed is still here.');
