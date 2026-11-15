@@ -84,7 +84,10 @@ export const Unstack: Story = {
 export const Refused: Story = {
   render: () => <Bar mode="stack" reason="Audacity keeps backups only when you turn them on." />,
   play: async ({ canvasElement }) => {
-    await waitFor(() => expect(within(canvasElement).getByLabelText('Audacity keeps backups only when you turn them on.')).toBeTruthy());
+    const all = within(canvasElement).getByRole('button', { name: 'Stack retries as takes' });
+    await expect(all.getAttribute('aria-disabled')).toBe('true');
+    all.focus();
+    await waitFor(() => expect(screen.getByRole('tooltip').textContent).toBe('Audacity keeps backups only when you turn them on.'));
   },
 };
 
