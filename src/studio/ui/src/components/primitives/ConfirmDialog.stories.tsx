@@ -94,7 +94,7 @@ export const StayButtonHasTheFocusAndItsRing: Story = {
 export const NothingToSaveFromHere: Story = {
   args: {
     title: 'Unsaved changes',
-    body: "This can't be saved yet: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?",
+    body: 'A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?',
     confirmLabel: 'Discard & continue',
     confirmVariant: 'danger',
     cancelLabel: 'Keep editing',

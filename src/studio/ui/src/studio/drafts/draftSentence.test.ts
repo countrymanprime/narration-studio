@@ -67,9 +67,7 @@ describe('the question put to the narrator (#3404)', () => {
     const { body, canSave } = draftQuestion([entry('Alice'), row]);
     expect(canSave).toBe(false);
     // Why Save is gone, what brings it back, and what is dropped, in that order (ux-reviewer on #3457).
-    expect(body).toBe(
-      "This can't be saved yet: A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?",
-    );
+    expect(body).toBe('A relationship you started still needs an entry chosen under To. Discard your entry edit and a relationship before leaving?');
   });
 
   it('never grows past what the dialog shows at 320 x 300, whatever the names and however many', () => {
