@@ -11,6 +11,8 @@ import { describe, expect, test } from 'vitest';
 // The reasons are a closed set, each a fact a reviewer can check:
 const MODAL =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
+const MODAL_ASKS =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx); its own Save keeps what was typed, a button that drops it says so, and Escape and the close button ask first (confirmDiscard)';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
@@ -51,7 +53,7 @@ const EXEMPT: Record<string, string> = {
   'script/page/tools/select/MarkComposer.tsx': MODAL,
   'script/page/tools/select/MarksDialog.tsx': MODAL,
   'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
-  'settings/DeliveryProfileEditor.tsx': MODAL,
+  'settings/DeliveryProfileEditor.tsx': MODAL_ASKS,
   'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,
@@ -74,7 +76,6 @@ const PENDING: Record<string, string> = {
   'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
   'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
-  'settings/controls/MwKeyBody.tsx': SCREEN('Settings'),
   'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
   'storybible/Relationships.tsx': SCREEN('Story Bible'),
   'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
@@ -193,6 +194,14 @@ describe('a link inside a dialog that opens over every page is a GuardedLink (#3
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
+const SETTINGS_PANE: Replacer[] = [
+  { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
+  {
+    file: 'settings/page/SettingsPage.tsx',
+    control: 'a search or filter that shows, changes or clears the results',
+    asks: /else guarded\(apply, \{ settle: false, onCancel: \(\) => setPending\(null\) \}\)/,
+  },
+];
 const PROOF_MOVES: Replacer[] = [
   { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
   { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
@@ -201,6 +210,7 @@ const PROOF_MOVES: Replacer[] = [
   { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
   'proof/inspector/FindingThread.tsx': PROOF_MOVES,
 };
 
@@ -255,6 +265,33 @@ describe('a control on the page that replaces a draft holder asks first (#3404)'
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// The search and the filter swap the Settings pane for the results, and clearing them swaps it back (#3404): every write of the page's category, query or filter
+// is either inside the guarded `showCategory` / `changeSearch`, or the link effect that a link already asked for in `moveTo`. A new writer fails this until it is listed.
+describe('the Settings pane is swapped only through the question (#3404)', () => {
+  const page = code(readFileSync(join(components, 'settings/page/SettingsPage.tsx'), 'utf8'));
+  const writes = (setter: string) => [...page.matchAll(new RegExp(`\\b${setter}\\(`, 'g'))].length;
+  test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
+    expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
+  });
+  test('every write of the query also clears the typed letters, so the box and the results are in step when no question is open (#3456)', () => {
+    expect((page.match(/setPending\(null\)/g) ?? []).length).toBeGreaterThanOrEqual(writes('setQuery'));
+  });
+  test('collapsing Advanced asks, since it unmounts the rows under it (#3456)', () => {
+    expect(page).toMatch(/if \(advanced\[cat\]\) guarded\(toggle\)/);
+    expect(writes('setAdvanced')).toBe(2);
+  });
+  test('a hash-only change of Settings (a pop, a typed address) is decided by the pop guard on the route and the hash, not the route alone (#3456)', () => {
+    const app = code(readFileSync(join(srcRoot, 'App.tsx'), 'utf8'));
+    expect(app).not.toMatch(/routePath\(\) !== popGuard\.route\b/);
+    expect(app).toMatch(/routeKey\(\) !== popGuard\.route/);
+  });
+  test('showCategory asks, and so does every change of the search or filter', () => {
+    expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
+    expect(page).toMatch(/onChange=\{changeQuery\}/);
+    expect(page).toMatch(/changeFilter\(next as Filter\)/);
   });
 });
 

@@ -97,12 +97,18 @@ export type SaveResult = { saved: boolean; failed: readonly HeldDraft[]; kept: r
 /** What `discard` found: the drafts whose discard threw, which are still held. */
 export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
-export type AskOptions = { settle?: boolean };
+export type AskOptions = {
+  settle?: boolean;
+  /** Runs when the narrator answers Cancel (or Keep editing): the change did not happen, so whatever showed it should show what it was. */
+  onCancel?: () => void;
+};
 type Shell = {
   ask: (run: () => void, options?: AskOptions) => void;
   go: (to: string, state?: unknown, after?: () => void) => void;
   /** A save the question stopped waiting for (the limit) has now failed: the narrator is told, since nothing else will say so. */
   lateFailure?: (outcome: { error: unknown } | { failed: readonly HeldDraft[] }) => void;
+  /** A save the question stopped waiting for has now landed: what "is taking too long" said is over. */
+  lateSuccess?: () => void;
 };
 
 const toHeld = ({ label, brief, kind, many, needs, save }: UnsavedDraft): HeldDraft => ({ label, brief, kind, many, needs, saveable: save !== undefined });
@@ -185,7 +191,9 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     });
     saved.then(
       (result) => {
-        if (gaveUp && discards.current === discardsBefore && result.failed.length > 0) shell.current?.lateFailure?.({ failed: result.failed });
+        if (!gaveUp || discards.current !== discardsBefore) return;
+        if (result.failed.length > 0) shell.current?.lateFailure?.({ failed: result.failed });
+        else shell.current?.lateSuccess?.();
       },
       (error: unknown) => {
         // After Discard & continue the text is gone and the app has moved on: there is nothing left to be told about (#3446 R-4).

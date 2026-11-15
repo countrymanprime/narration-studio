@@ -402,6 +402,9 @@ type Host struct {
 	chapterSyncRuns chapterSyncRuns
 	// chapterSyncEmits counts the chaptersync:state reads emitCoverage starts, so a test can wait for them to finish with the project folder.
 	chapterSyncEmits sync.WaitGroup
+	// chapterSyncEmitMu keeps one emitChapterSyncState at a time: each reads the state and sends it, so two started by quick link changes cannot
+	// send in the opposite order from their reads and leave the UI on the older state (#3416).
+	chapterSyncEmitMu sync.Mutex
 	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
 	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
 	// the app waits on it: a quit or a user action never blocks on this work.

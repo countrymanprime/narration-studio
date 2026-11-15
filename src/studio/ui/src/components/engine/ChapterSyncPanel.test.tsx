@@ -5,6 +5,7 @@ import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
+import { chapterSyncSummaryFacts } from './chapterSyncText';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
@@ -308,5 +309,49 @@ describe('a failed read of the sync preview', () => {
     retry.onAction();
     await screen.findByText('Needs you (1)');
     expect(chapterSyncPreview).toHaveBeenCalledTimes(2);
+  });
+});
+
+// #3416 item 2: a link made, changed or cleared anywhere moves what chapter sync says (the host sends chaptersync:state after every link path), so the Links row never keeps
+// the count the panel opened with. Each case reads the row's text again and compares it with what a fresh read of the state says it should be.
+describe('the Links row follows a link made or cleared while the panel is open', () => {
+  const mount = async () => {
+    const api = createMockApi({}, { chapterSync: 'activity' });
+    render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />}</ApiProvider>);
+    const card = await screen.findByRole('region', { name: 'Chapter sync' });
+    await within(card).findByText('Links');
+    const shown = () => within(card).getByText('Links').closest('div')!.textContent!;
+    const expected = async () => {
+      const state = await api.chapterSyncState();
+      return chapterSyncSummaryFacts({
+        lastSync: state.lastSync,
+        projectFile: state.projectFile,
+        chapters: state.chapters,
+        linked: state.counts.linked,
+        daw: { daw: 'REAPER' },
+      }).links;
+    };
+    return { api, shown, expected };
+  };
+
+  it('after a link is cleared', async () => {
+    const { api, shown, expected } = await mount();
+    const before = shown();
+    const linked = (await api.chapterSyncState()).chapters.find((chapter) => Boolean(chapter.origin));
+    expect(linked, 'the seed has a linked chapter').toBeTruthy();
+    await api.chapterTrackUnlink(linked!.chapterId);
+    await waitFor(async () => expect(shown()).toContain(await expected()));
+    expect(shown()).not.toBe(before);
+  });
+
+  it('after a track is made for a chapter that had none', async () => {
+    const { api, shown, expected } = await mount();
+    const before = shown();
+    const bare = (await api.chapterSyncState()).chapters.find((chapter) => !chapter.origin);
+    expect(bare, 'the seed has a chapter with no link').toBeTruthy();
+    const made = await api.chapterTrackCreate(bare!.chapterId);
+    expect(made.outcome).toBe('created');
+    await waitFor(async () => expect(shown()).toContain(await expected()));
+    expect(shown()).not.toBe(before);
   });
 });

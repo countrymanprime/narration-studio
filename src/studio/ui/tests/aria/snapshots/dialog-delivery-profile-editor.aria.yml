@@ -102,5 +102,5 @@
         - cell "none"
         - cell /\d+ kbps\+ CBR/
   - paragraph: The listen-only and book rules (one section per file, credits files, retail sample, consistency, channels the same in every file) are kept as in ACX. A copy cannot add a kind of rule the app does not check.
-  - button "Cancel"
+  - button "Discard changes"
   - button "Save profile"

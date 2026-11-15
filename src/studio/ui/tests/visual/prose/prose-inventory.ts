@@ -82,7 +82,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Not set yet: nothing in the manuscript names the narrator.', class: 'overlay' },
-  { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Use for all my projects (saved as your default in Settings &gt; General)', class: 'overlay' },
+  { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Use for all my projects (saved as your default in Settings &gt; Project)', class: 'overlay' },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Only empty values are filled in; nothing you have already set is changed.', class: 'overlay' },
   {
     file: 'components/delivery/page/OutputPanel.tsx',

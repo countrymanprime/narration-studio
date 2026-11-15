@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faCodeMerge, faFloppyDisk, faLock, faLockOpen, faPen, faRotate, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
+import { entryRowElement } from './entryRowElement';
 import { categoryLabel, CREATABLE_CATEGORIES } from '../../state';
 import { entryColour } from '../../kinds/entityColour';
 import { kindChipColors } from '../../kinds/kindMap';
@@ -1143,6 +1144,8 @@ export function GuideDetail({
             pending={mutation.isPending('delete')}
             confirm={() => void deleteEntry()}
             cancel={() => setConfirmation(undefined)}
+            // Asked from the row's right-click menu, which closed with its menu: the row is where the narrator was (#3416). From this panel's own Delete button the dialog goes back to that button.
+            returnFocus={() => entryRowElement(entity.id)}
           />
         )}
       </div>

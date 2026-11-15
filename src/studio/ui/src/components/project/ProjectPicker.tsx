@@ -49,8 +49,11 @@ export function ProjectPicker({
   focusSettings?: boolean;
 }) {
   const settingsButton = useRef<HTMLButtonElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (focusSettings) settingsButton.current?.focus();
+    // The control that opened the picker went away with the shell, and a first-run boot has none: focus on nothing goes to the page, not <body> (#3416 items 97, 98).
+    else if (!document.activeElement || document.activeElement === document.body) mainRef.current?.focus();
     // Only when the picker appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -222,7 +225,7 @@ export function ProjectPicker({
     <CommandScope kind="page">
       <div className="flex h-full flex-col overflow-hidden">
         <ExtensionBanner />
-        <main tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
+        <main ref={mainRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
           {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
           {/* Top-aligned: centred, the mark landed at a different height for every list length and banner (alignment audit XPJ-1, R3PJ-1). */}
           <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">
