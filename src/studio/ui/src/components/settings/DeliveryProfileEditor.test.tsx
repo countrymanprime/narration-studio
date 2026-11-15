@@ -44,4 +44,17 @@ describe('DeliveryProfileEditor', () => {
     await waitFor(() => expect(onCancel).toHaveBeenCalledTimes(1));
     expect(confirm).not.toHaveBeenCalled();
   });
+
+  it('while a save is out Escape, the close button and Discard changes do nothing, and no question is asked (#3461 round 6 B3)', async () => {
+    const onCancel = vi.fn();
+    render(<DeliveryProfileEditor profile={{ ...MOCK_ACX, builtIn: false }} base={MOCK_ACX} pending onCancel={onCancel} onSave={vi.fn()} />);
+    const confirm = vi.spyOn(overlay, 'confirm');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'My profile' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

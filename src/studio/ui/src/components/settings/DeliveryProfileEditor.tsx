@@ -57,7 +57,9 @@ export function DeliveryProfileEditor({
   // Text and numbers changed from what the profile holds: Escape and the close button would drop them, so they ask first. The button that says it discards does not (#3400).
   const initial = useRef({ name: profile.name, drafts: JSON.stringify(drafts) });
   const typed = name !== initial.current.name || JSON.stringify(drafts) !== initial.current.drafts;
+  // While a save is out every way out is off (the Discard button too): a Discard answered then would drop an editor whose save has already gone (#3461 round 6 B3).
   const leave = async () => {
+    if (pending) return;
     if (typed && !(await confirmDiscard('your profile edit'))) return;
     onCancel();
   };
@@ -108,7 +110,7 @@ export function DeliveryProfileEditor({
       description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={
         <>
-          <Button variant="secondary" onClick={onCancel}>
+          <Button variant="secondary" disabled={pending} onClick={onCancel}>
             Discard changes
           </Button>
           <Button onClick={save} disabled={invalid} pending={pending}>
