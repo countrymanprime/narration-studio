@@ -39,7 +39,7 @@ test('another finding over a typed Proof note asks Unsaved changes', async ({ pa
   await page.getByRole('textbox', { name: 'Add a note' }).blur();
   await page.keyboard.press('ArrowDown');
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('Save or discard the note you are writing before going on?');
+  await expect(question).toContainText('Save or discard the note you are writing before leaving?');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Add a note' })).toHaveValue('Typed but not saved.');
 });
@@ -70,7 +70,7 @@ test('Undo of a decision over a note typed on another finding asks Unsaved chang
   await decideThenType(page);
   await page.getByRole('button', { name: 'Undo' }).click();
   const question = unsaved(page, 'Unsaved changes');
-  await expect(question).toContainText('before going on?');
+  await expect(question).toContainText('before leaving?');
   await question.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Add a note' })).toHaveValue('Typed on the next finding.');
 });
