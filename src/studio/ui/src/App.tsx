@@ -1248,7 +1248,7 @@ function AppRoutes() {
   const unsavedSettings = pendingMove && (
     <ConfirmDialog
       title="Unsaved changes"
-      body={question?.body ?? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`}
+      body={question?.body ?? `Save or discard changes before leaving${pendingMove.kind === 'action' ? '' : ' Settings'}?`}
       confirmLabel={canSave ? 'Save & continue' : 'Discard & continue'}
       confirmVariant={canSave ? 'primary' : 'danger'}
       // The way to stay is Cancel, or Keep editing when nothing can be saved.
