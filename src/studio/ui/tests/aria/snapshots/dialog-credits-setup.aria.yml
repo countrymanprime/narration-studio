@@ -21,8 +21,8 @@
   - text: Narrator
   - textbox "Narrator"
   - paragraph: "Not set yet: nothing in the manuscript names the narrator."
-  - checkbox "Use for all my projects (saved as your default in Settings > General)" [checked]
-  - text: Use for all my projects (saved as your default in Settings > General)
+  - checkbox "Use for all my projects (saved as your default in Settings > Project)" [checked]
+  - text: Use for all my projects (saved as your default in Settings > Project)
   - paragraph:
     - text: /Only empty values are filled in; nothing you have already set is changed\. Year, Copyright Holder and Publisher were also found/
     - button "Settings > Credits"
