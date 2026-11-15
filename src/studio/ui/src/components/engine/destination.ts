@@ -1,8 +1,9 @@
+import { trackName as readable } from '../tracks/trackName';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
 /** What the DAW made for a chapter, as `ChapterTrackCreate` answers: `voice` is the Narrator inside a new chapter folder, absent for a plain track. */
-export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string } };
+export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string; index?: number } };
 
 /** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
 /** The one sentence for a link to a track the project does not hold; the host (linkGoneSentence in bindings_booth_voice.go) and the Booth mock say the same. */
@@ -70,6 +71,8 @@ export function destinationFor(layout: VoiceTracksLayout) {
 
 /** What the DAW made, named as it was given: a folder with its Narrator, or the track; and that it is not saved yet. */
 export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
-  const what = created.voice ? `Folder “${created.track.name}” with a ${created.voice.name} track` : `Track “${created.track.name}”`;
+  const what = created.voice
+    ? `Folder “${readable(created.track.name, created.track.index)}” with a ${created.voice.name} track`
+    : `Track “${readable(created.track.name, created.track.index)}”`;
   return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.`;
 }
