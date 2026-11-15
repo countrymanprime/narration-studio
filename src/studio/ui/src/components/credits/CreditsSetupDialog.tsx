@@ -79,9 +79,14 @@ export function CreditsSetupDialog({
   const moreFields = state.candidates.filter((candidate) => !askedTokens.has(candidate.token));
 
   // A call the host has not answered at the limit: the dialog is given back with what was typed, and a second press sends nothing while the first is still out (#3461 round 11 BR-D).
+  // An answer that lands after the limit finishes the setup only while the dialog holds what the save sent: text typed since stays, with the dialog (#3461 round 12 BR-E1).
   const outstanding = useRef(false);
   const lateAnswer = useRef(false);
   const mounted = useRef(true);
+  const valuesNow = useRef(values);
+  valuesNow.current = values;
+  // The "Discard what you typed?" question while it is open, so an answer that lands under it can close it unanswered instead of leaving it over nothing.
+  const asking = useRef<AbortController | null>(null);
   useEffect(
     () => () => {
       mounted.current = false;
@@ -95,12 +100,14 @@ export function CreditsSetupDialog({
     }
     setBusy(true);
     outstanding.current = true;
+    const sent = JSON.stringify(valuesNow.current);
     const call = action();
     void call.then(
       (next) => {
         outstanding.current = false;
-        // An answer that lands after the limit is still the host's: it finishes the setup if the dialog is still here.
-        if (lateAnswer.current && mounted.current) onDone(next);
+        if (!lateAnswer.current || !mounted.current || JSON.stringify(valuesNow.current) !== sent) return;
+        asking.current?.abort();
+        onDone(next);
       },
       () => void (outstanding.current = false),
     );
@@ -130,7 +137,13 @@ export function CreditsSetupDialog({
   // While Save runs every way out is off, Escape and the close button too (a Discard answered then would still be followed by the save that is already out): the buttons are disabled, and so is this (#3461 round 6 B3).
   const leaving = (action: () => Promise<CreditsSetupState>) => async () => {
     if (busy) return;
-    if (typed && !(await confirmDiscard('what you typed'))) return;
+    if (typed) {
+      const question = new AbortController();
+      asking.current = question;
+      const discard = await confirmDiscard('what you typed', question.signal);
+      if (asking.current === question) asking.current = null;
+      if (!discard) return;
+    }
     await run(action);
   };
   const notNow = leaving(() => api.creditsSetupDismiss('session'));

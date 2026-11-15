@@ -365,6 +365,24 @@ describe('CreditsPanel', () => {
     expect([...select.options].some((option) => option.value === gone)).toBe(false);
   });
 
+  it('a project values read that lands after a value was typed does not put the old value back (#3461 round 12 BR-E2)', async () => {
+    const real = createMockApi();
+    let release: () => void = () => {};
+    renderPanel({
+      creditsProjectValues: () =>
+        new Promise((resolve) => {
+          release = () => void real.creditsProjectValues().then(resolve);
+        }),
+    });
+    const title = (await screen.findByLabelText('Title')) as HTMLInputElement;
+    fireEvent.change(title, { target: { value: 'Typed before the read landed' } });
+    fireEvent.blur(title);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Typed before the read landed');
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));

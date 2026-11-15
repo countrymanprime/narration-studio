@@ -194,7 +194,12 @@ describe('CreditsSetupDialog', () => {
       const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
       typeNarrator();
       leave();
-      await waitFor(() => expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard what you typed?', cancelLabel: 'Keep editing' })));
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Discard what you typed?', cancelLabel: 'Keep editing' }),
+          expect.any(AbortSignal),
+        ),
+      );
       expect(dismiss).not.toHaveBeenCalled();
       expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Sam Reader');
       leave();
@@ -230,6 +235,54 @@ describe('CreditsSetupDialog', () => {
       await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    // A save the host answers only after the limit: the dialog was given back, the narrator went on, and then the answer lands (#3461 round 12 BR-E1).
+    const saveGivenUp = async () => {
+      let answer: (state: CreditsSetupState) => void = () => {};
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>((resolve) => (answer = resolve)));
+      const rendered = renderDialog(STATE, { creditsSetupSave });
+      typeNarrator();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await act(async () => {});
+        await act(async () => void vi.advanceTimersByTime(15_001));
+      } finally {
+        vi.useRealTimers();
+      }
+      return { ...rendered, answer: () => answer({ ...STATE, needed: false }) };
+    };
+
+    it('a late answer after the limit does not close the dialog over text typed since the save started (#3461 round 12 BR-E1)', async () => {
+      const { onDone, answer } = await saveGivenUp();
+      fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: 'Corrected Reader' } });
+      await act(async () => answer());
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(onDone).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog', { name: 'Set up the credits' })).toBeTruthy();
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Corrected Reader');
+    });
+
+    it('a late answer under an open Discard question closes the question, finishes the setup, and no question is orphaned and no dismiss is sent (#3461 round 12 BR-E1)', async () => {
+      const { api, onDone, answer } = await saveGivenUp();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      let closedUnanswered = false;
+      const confirm = vi.spyOn(overlay, 'confirm').mockImplementation(
+        (_spec, until) =>
+          new Promise<boolean>((resolve) => {
+            until?.addEventListener('abort', () => {
+              closedUnanswered = true;
+              resolve(false);
+            });
+          }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+      await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+      await act(async () => answer());
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(closedUnanswered).toBe(true);
+      expect(dismiss).not.toHaveBeenCalled();
     });
 
     it('a setup save that never answers gives the dialog back at the limit with the typed values kept, and a second Save sends nothing (#3461 round 11 BR-D)', async () => {

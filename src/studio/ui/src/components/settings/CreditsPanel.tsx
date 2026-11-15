@@ -352,6 +352,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   };
 
   const saveValue = async (key: keyof CreditValues, value: string) => {
+    // A read of the values that was started before this edit would put the old value back when it lands: it is out of date from here (#3461 round 12 BR-E2).
+    valuesSeq.current += 1;
     const next = { ...values, [key]: value };
     setValues(next);
     setSavingKey(key);
@@ -372,6 +374,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // Clear credits: every one of this project's values goes back to empty in one save, so the credits ask for them again. The template
   // library is the narrator's across projects and stays; a template is removed with Delete above.
   const clearValues = async () => {
+    valuesSeq.current += 1;
     setClearing(true);
     try {
       setValues(await api.saveCreditsProjectValues({}));
