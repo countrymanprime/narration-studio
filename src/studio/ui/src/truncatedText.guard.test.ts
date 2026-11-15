@@ -80,20 +80,15 @@ describe('the scan itself', () => {
 
 // The debt measured when the guard was added: elements that clip their text and give no way to read the rest. Fix one and delete its line.
 const DEBT = new Set<string>([
-  'components/editing/bar/SelectionBar.tsx#1',
-  'components/layout/TimerChip.tsx#1',
+  // An `<input>`: its value scrolls inside the box rather than being cut off, and the browser shows the whole value on focus.
   'components/primitives/Field.tsx#1',
   // False positives of the scan, not clips with no way to read them: the inline run sits inside a `TooltipTarget` built a few lines below it, and the
   // stacked lines are titled by their one caller (ImportReview's HeadingLines puts the whole name on the row), which the scan cannot see across files.
   'components/primitives/TitleSubtitle.tsx#1',
   'components/primitives/TitleSubtitle.tsx#2',
   'components/primitives/TitleSubtitle.tsx#3',
+  // `HeadingLines` clips with a class built in a variable, and its one caller wraps the whole row in a `title` with the full name (the scan cannot see that).
   'components/production/ImportReview.tsx#1',
-  'components/proof/ProofChapterPage.tsx#1',
-  'components/proof/inspector/FindingThread.tsx#1',
-  'components/script/bookmarks/ui/BookmarkEditor.tsx#1',
-  'components/script/page/rail/bible/EntryCard.tsx#1',
-  'components/script/page/reader/Reader.tsx#1',
 ]);
 
 describe('text that is cut off can be read in full', () => {
