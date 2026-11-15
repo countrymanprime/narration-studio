@@ -290,3 +290,20 @@ describe('the mock selects only tracks that are in the project (#3231)', () => {
     expect([refused.outcome, refused.reason]).toEqual(['refused', 'track_missing']);
   });
 });
+
+describe('the mock sends chapter sync state when removing a chapter from recording clears its links (#3416)', () => {
+  it('sends a state with the chapter no longer linked, as the host does', async () => {
+    const api = createMockApi({}, { chapterSync: 'activity' });
+    const seen: { linked: number; chapters: { chapterId: string; origin: string }[] }[] = [];
+    api.subscribeChapterSync((state) => seen.push({ linked: state.counts.linked, chapters: state.chapters }));
+    const before = await api.chapterSyncState();
+    const linked = before.chapters.find((chapter) => chapter.origin);
+    expect(linked, 'the seed has a linked chapter').toBeTruthy();
+    seen.length = 0;
+    await api.manuscriptSetChapterKind(linked!.chapterId, 'reference');
+    expect(seen.length, 'a state was sent').toBeGreaterThan(0);
+    const last = seen[seen.length - 1];
+    expect(last.chapters.find((chapter) => chapter.chapterId === linked!.chapterId)).toBeUndefined();
+    expect(last.linked).toBeLessThan(before.counts.linked);
+  });
+});

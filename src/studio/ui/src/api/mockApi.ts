@@ -452,6 +452,12 @@ export function createMockApi(
     ...system.bindings,
     ...manuscript.bindings,
     manuscriptChapters: chaptersWithCredits,
+    // The host sends chaptersync:state when a removal clears the chapter's links (chapterkind.go via linksChanged), so the mock does too.
+    manuscriptSetChapterKind: async (chapterId, kind) => {
+      const result = await manuscript.bindings.manuscriptSetChapterKind(chapterId, kind);
+      chapterTracks.publishLinksChanged();
+      return result;
+    },
     // A credits entry's status lives on the project manifest, not in the manuscript's notes (host: Service.SetChapterStatus).
     manuscriptSetChapterStatus: async (chapter, status) => {
       if (chapter !== 'credits-opening' && chapter !== 'credits-closing') return manuscript.bindings.manuscriptSetChapterStatus(chapter, status);
