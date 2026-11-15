@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { DeliveryProfile, DeliveryProfileEdit, DeliveryProfileRef, DeliveryProfilesState } from '../../types';
@@ -131,22 +131,54 @@ export function useDeliveryProfiles(notify: Notify) {
     setEditError(undefined);
     setEditing(profile);
   };
-  const save = (change: DeliveryProfileEdit) =>
+  // A save that went past the limit with no answer is still out: pressing Save again sends nothing, and when the first one lands late it is adopted (#3461 round 7 BR3).
+  const lateSave = useRef<Promise<DeliveryProfile> | null>(null);
+  /** A save that took: the list is read again in the background (the save is done, so a slow read must not hold the editor), and the editor is told which profile it now is. */
+  const saved = (profile: DeliveryProfile) => {
+    setEditError(undefined);
+    // The editor closes itself when nothing was typed since the save was sent, and stays open on what is there when something was (#3461 round 7 BR1).
+    setEditing((current) => (current?.id === profile.id ? profile : current));
+    notify(`Saved "${profile.name}", revision ${profile.revision}.`);
+    void api
+      .deliveryProfiles()
+      .then((next) => {
+        setState(next);
+        setLoadError(undefined);
+      })
+      .catch((error) => setLoadError(apiErrorMessage(error)));
+    window.dispatchEvent(new Event(CHANGED));
+  };
+  const save = (change: DeliveryProfileEdit) => {
+    if (lateSave.current) {
+      notify('Your first save of this profile is still waiting for an answer. The editor updates when it lands.');
+      return;
+    }
     void (async () => {
       setBusy(true);
+      const call = api.deliverySaveProfile(change);
       try {
         // A save the host never answers gives the editor back at the limit, with the typed numbers kept: the editor ignores every way out while a save is out (#3461 round 7 BR2).
-        const saved = await withinSaveLimit(api.deliverySaveProfile(change));
-        setState(await api.deliveryProfiles());
-        setEditing(undefined);
-        notify(`Saved "${saved.name}", revision ${saved.revision}.`);
-        window.dispatchEvent(new Event(CHANGED));
+        saved(await withinSaveLimit(call));
       } catch (error) {
-        setEditError(error instanceof SaveTimeout ? 'The save did not finish. What you typed is still here.' : apiErrorMessage(error));
+        if (error instanceof SaveTimeout) {
+          lateSave.current = call;
+          call.then(
+            (profile) => {
+              if (lateSave.current !== call) return;
+              lateSave.current = null;
+              saved(profile);
+            },
+            () => {
+              if (lateSave.current === call) lateSave.current = null;
+            },
+          );
+          setEditError('The save did not finish. What you typed is still here.');
+        } else setEditError(`The profile was not saved: ${apiErrorMessage(error)}`);
       } finally {
         setBusy(false);
       }
     })();
+  };
   const remove = (profile: DeliveryProfile) =>
     run(async () => {
       setState(await api.deliveryDeleteProfile(profile.id));

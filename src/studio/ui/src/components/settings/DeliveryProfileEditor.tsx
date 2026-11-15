@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import type { DeliveryProfile, DeliveryProfileEdit, DeliveryRule } from '../../types';
 import { Button } from '../primitives/Button';
@@ -55,8 +55,20 @@ export function DeliveryProfileEditor({
     Object.fromEntries(profile.rules.map((rule) => [rule.id, { off: rule.off ?? false, min: toShown(rule, rule.min), max: toShown(rule, rule.max) }])),
   );
   // Text and numbers changed from what the profile holds: Escape and the close button would drop them, so they ask first. The button that says it discards does not (#3400).
-  const initial = useRef({ name: profile.name, drafts: JSON.stringify(drafts) });
-  const typed = name !== initial.current.name || JSON.stringify(drafts) !== initial.current.drafts;
+  const [initial, setInitial] = useState({ name: profile.name, drafts: JSON.stringify(drafts) });
+  const typed = name !== initial.name || JSON.stringify(drafts) !== initial.drafts;
+  // What was sent by the last Save. When the profile comes back as saved (the same profile, a new revision), the editor closes if nothing was typed since, and otherwise stays open
+  // on what is there as an edit still to save against what was sent (#3461 round 7 BR1).
+  const sent = useRef<{ name: string; drafts: string } | null>(null);
+  const seen = useRef(profile);
+  useEffect(() => {
+    if (profile === seen.current) return;
+    seen.current = profile;
+    const snapshot = sent.current;
+    if (!snapshot) return;
+    if (name === snapshot.name && JSON.stringify(drafts) === snapshot.drafts) onCancel();
+    else setInitial(snapshot);
+  }, [profile, name, drafts, onCancel]);
   // While a save is out every way out is off (the Discard button too): a Discard answered then would drop an editor whose save has already gone (#3461 round 6 B3).
   const leave = async () => {
     if (pending) return;
@@ -84,6 +96,7 @@ export function DeliveryProfileEditor({
   const update = (id: string, change: Partial<Draft>) => setDrafts((current) => ({ ...current, [id]: { ...current[id], ...change } }));
   const save = () => {
     if (invalid) return;
+    sent.current = { name, drafts: JSON.stringify(drafts) };
     onSave({
       id: profile.id,
       name: name.trim(),
@@ -212,7 +225,7 @@ export function DeliveryProfileEditor({
         </p>
         {error && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            The profile was not saved: {error}
+            {error}
           </p>
         )}
       </div>
