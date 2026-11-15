@@ -16,7 +16,7 @@ import {
   type SyntheticEvent,
 } from 'react';
 import { flushSync } from 'react-dom';
-import { HINT_POPUP_ATTRIBUTE, HINT_POPUP_CLASSES } from './hintLayer';
+import { HINT_POPUP_ATTRIBUTE, HINT_POPUP_CLASSES, rememberHintHost } from './hintLayer';
 import { lastInputWasKeyboard } from './inputModality';
 import { HIT_AREA } from './hitArea';
 
@@ -228,7 +228,12 @@ export function TooltipTarget({
           />
           <BaseTooltip.Portal>
             <BaseTooltip.Positioner side="top" sideOffset={hintOffset} collisionPadding={8} className="z-[var(--z-tooltip)]">
-              <BaseTooltip.Popup role="tooltip" {...{ [HINT_POPUP_ATTRIBUTE]: '' }} className={HINT_POPUP_CLASSES}>
+              <BaseTooltip.Popup
+                ref={(popup: HTMLElement | null) => rememberHintHost(popup, host.current)}
+                role="tooltip"
+                {...{ [HINT_POPUP_ATTRIBUTE]: '' }}
+                className={HINT_POPUP_CLASSES}
+              >
                 {text}
               </BaseTooltip.Popup>
             </BaseTooltip.Positioner>

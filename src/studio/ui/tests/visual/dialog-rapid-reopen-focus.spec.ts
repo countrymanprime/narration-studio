@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // #3416 item 40 (qa-breaker on #3460): Ctrl+K, Escape, Ctrl+K, Escape in quick succession ended with focus on <main>, not on the header's "Jump to or run" button
 // the narrator started from: the second jump menu opened before the first had handed focus back, found focus on nothing and took the page for its opener.
@@ -24,15 +24,6 @@ test('Jump menu opened again straight after it closed still returns focus to the
   }
 });
 
-// An Escape pressed in the first ~50-100 ms after a dialog took focus is not heard (#3500: a product behaviour to fix, after which this loop becomes one press), so the
-// test presses it until the dialog is gone instead of guessing how long to wait.
-async function pressEscapeUntilClosed(page: Page) {
-  await expect(async () => {
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 600 });
-  }).toPass({ timeout: 20_000 });
-}
-
 // qa-breaker on the first version of the fix: the remembered opener is for the SAME dialog opened again. A different dialog opened by a page-wide key right after
 // the jump menu closed (here the "?" shortcut sheet) must not return to the jump button.
 //
@@ -57,16 +48,16 @@ for (const throttle of [1, 20]) {
     await opener.focus();
     await page.keyboard.press('Control+k');
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 20_000 });
-    // Focus is inside the menu before Escape is pressed: one pressed while the dialog is still taking focus is not heard.
+    // Escape goes to the dialog as soon as focus is inside it, with the opener's hint still on screen (#3500).
     await expect(page.getByRole('dialog').locator(':focus')).toHaveCount(1, { timeout: 20_000 });
-    await pressEscapeUntilClosed(page);
+    await page.keyboard.press('Escape');
     // The jump menu has closed and handed focus back to the control it was opened from: only now is there something to take focus away from.
     await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 20_000 });
     await expect(opener).toBeFocused({ timeout: 20_000 });
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('Shift+?');
     await expect(page.getByRole('dialog').locator(':focus')).toHaveCount(1, { timeout: 20_000 });
-    await pressEscapeUntilClosed(page);
+    await page.keyboard.press('Escape');
     // The sheet's hand-back is a tick after it closes: settle on the page the sheet returned to, then look.
     await expect(page.locator('main')).toBeFocused({ timeout: 20_000 });
     expect(await opener.evaluate((element) => element === document.activeElement), 'focus did not return to the jump button').toBe(false);

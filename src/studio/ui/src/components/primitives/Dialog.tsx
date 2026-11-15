@@ -14,7 +14,7 @@ import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { HINT_POPUP_SELECTOR } from './hintLayer';
+import { hintOwnsEscape } from './hintLayer';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
@@ -297,8 +297,7 @@ export function Dialog({
         }
         // Escape belongs to a hint or a Popover that is showing (a tooltip, a device picker, a settings panel inside the
         // dialog), and to a handler that already took it.
-        if (!dismiss || details.event.defaultPrevented || document.querySelector(HINT_POPUP_SELECTOR) || document.querySelector(POPOVER_POPUP_SELECTOR))
-          details.cancel();
+        if (!dismiss || details.event.defaultPrevented || hintOwnsEscape(popupRef.current) || document.querySelector(POPOVER_POPUP_SELECTOR)) details.cancel();
         else dismiss();
       }}
     >
