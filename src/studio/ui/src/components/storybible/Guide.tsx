@@ -537,7 +537,16 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
           </div>
         </div>
         {scanStart.dialogs}
-        <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
+        <VoiceDataPanel
+          open={voiceDataOpen}
+          onClose={() => setVoiceDataOpen(false)}
+          notify={notify}
+          entities={rows}
+          types={types}
+          player={samplePlayer}
+          // Opened from a menu item, which closed with its menu: the More actions button is where the narrator was (#3416).
+          returnFocus={() => document.querySelector<HTMLElement>('main button[aria-label="More actions"]')}
+        />
         <SamplePlayerAnnouncement text={samplePlayer.announcement} />
       </div>
     </CommandScope>
