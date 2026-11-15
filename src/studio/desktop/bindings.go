@@ -898,6 +898,13 @@ func (h *Host) linksChanged(err error) {
 	if err != nil {
 		return
 	}
+	// With no runtime and no test sink there is nobody to tell, so the state is not read (a test host that never started has neither).
+	h.mu.RLock()
+	listening := h.ctx != nil || h.chapterSyncEvents != nil
+	h.mu.RUnlock()
+	if !listening {
+		return
+	}
 	h.chapterSyncEmits.Add(1)
 	go func() {
 		defer h.chapterSyncEmits.Done()
