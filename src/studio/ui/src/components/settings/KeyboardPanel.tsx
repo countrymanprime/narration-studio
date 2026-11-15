@@ -25,14 +25,14 @@ const SCOPE_ORDER: readonly Scope[] = ['global', 'page', 'booth', 'dialog'];
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', booth: 'Booth', dialog: 'Dialog' };
 const SCOPE_APPLIES: Record<Scope, string> = {
   global: 'anywhere, except while a dialog is open',
-  page: 'the page that has the command, not the Booth',
+  page: 'the page that has the command, not the Booth or a dialog',
   booth: 'the Booth and its companion panel',
   dialog: 'while a dialog is open',
 };
 // The same phrase used mid-sentence ("No other command uses it ...").
 const SCOPE_ACTIVE: Record<Scope, string> = {
   global: 'anywhere',
-  page: 'on any page, apart from the Booth',
+  page: "on this command's page",
   booth: 'where reading happens',
   dialog: 'in this dialog',
 };
