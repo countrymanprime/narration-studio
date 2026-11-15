@@ -882,10 +882,27 @@ func (h *Host) ChapterTrackMapList() (string, error) { return encodeBinding(h.ma
 // Links reads every narration chapter's link state and track facts from one
 // parse of the saved .rpp.
 func (h *Host) ChapterTrackSet(chapterID, trackGUID string) (string, error) {
-	return encodeBinding(h.chapterTrackSet(chapterID, trackGUID))
+	set, err := h.chapterTrackSet(chapterID, trackGUID)
+	h.linksChanged(err)
+	return encodeBinding(set, err)
 }
 func (h *Host) ChapterTrackUnlink(chapterID string) (string, error) {
-	return encodeBinding(h.chapterTrackUnlink(chapterID))
+	left, err := h.chapterTrackUnlink(chapterID)
+	h.linksChanged(err)
+	return encodeBinding(left, err)
+}
+
+// linksChanged sends chaptersync:state after a link was made, changed or cleared by hand, so the Engine panel's counts and rows, the Production board
+// and every other reader of chapter sync's state follow the link at once, as they do after a sync (#3416). A failed call changed nothing and sends nothing.
+func (h *Host) linksChanged(err error) {
+	if err != nil {
+		return
+	}
+	h.chapterSyncEmits.Add(1)
+	go func() {
+		defer h.chapterSyncEmits.Done()
+		h.emitChapterSyncState()
+	}()
 }
 func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chapterTrackLinks()) }
 
@@ -897,7 +914,9 @@ func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chap
 func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
 	svc := h.services()
 	creator, support := trackCreatorFrom(svc)
-	return encodeBinding(chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID))
+	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID)
+	h.linksChanged(err)
+	return encodeBinding(created, err)
 }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits

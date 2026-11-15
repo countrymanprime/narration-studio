@@ -309,4 +309,18 @@ describe('a failed read of the sync preview', () => {
     await screen.findByText('Needs you (1)');
     expect(chapterSyncPreview).toHaveBeenCalledTimes(2);
   });
+  // #3416 item 2: a link made, changed or cleared anywhere moves what chapter sync says (the host sends chaptersync:state after every link path), so the Links row never
+  // keeps the count the panel opened with.
+  it('keeps the Links row in step with a link cleared while the panel is open', async () => {
+    const api = createMockApi({}, { chapterSync: 'activity' });
+    render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />}</ApiProvider>);
+    const card = await screen.findByRole('region', { name: 'Chapter sync' });
+    const linksOf = () => within(card).getByText('Links').closest('div')!.textContent;
+    await within(card).findByText('Links');
+    const before = linksOf();
+    const linked = (await api.chapterSyncState()).chapters.find((chapter) => chapter.origin !== null);
+    expect(linked, 'the seed has a linked chapter').toBeTruthy();
+    await api.chapterTrackUnlink(linked!.chapterId);
+    await waitFor(() => expect(linksOf()).not.toBe(before));
+  });
 });
