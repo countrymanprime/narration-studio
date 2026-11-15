@@ -65,14 +65,21 @@ export function useDeliveryProfiles(notify: Notify) {
   const [editError, setEditError] = useState<string>();
   const [deleting, setDeleting] = useState<DeliveryProfile>();
 
+  // Each read of the profiles takes a number, and only the latest read's answer is drawn: a slow read that is overtaken (or one that began before a save landed) would put a row back
+  // at an older revision (#3461 round 10 P2).
+  const reads = useRef(0);
   const load = useCallback(() => {
+    const mine = ++reads.current;
     api
       .deliveryProfiles()
       .then((next) => {
+        if (mine !== reads.current) return;
         setState(next);
         setLoadError(undefined);
       })
-      .catch((error) => setLoadError(apiErrorMessage(error)));
+      .catch((error) => {
+        if (mine === reads.current) setLoadError(apiErrorMessage(error));
+      });
   }, [api]);
   useEffect(() => {
     load();
@@ -142,22 +149,26 @@ export function useDeliveryProfiles(notify: Notify) {
     notify(`Saved "${profile.name}", revision ${profile.revision}.`);
     // The row shows the profile as saved at once, so a read that fails cannot leave it at the old revision.
     setState((current) => current && { ...current, profiles: current.profiles.map((row) => (row.id === profile.id ? profile : row)) });
+    // The other users of this hook read again first (this one too: its read is then overtaken by the read below, which is the one that says when it fails).
+    window.dispatchEvent(new Event(CHANGED));
+    const mine = ++reads.current;
     void withinSaveLimit(api.deliveryProfiles())
       .then((next) => {
+        if (mine !== reads.current) return;
         setState(next);
         setLoadError(undefined);
       })
       .catch((error) => {
+        if (mine !== reads.current) return;
         const why = error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error);
         setLoadError(why);
         notify(`The delivery profiles could not be read: ${why}`, 'error', retryAction(load));
       });
-    window.dispatchEvent(new Event(CHANGED));
   };
   const save = (change: DeliveryProfileEdit) => {
     if (lateSaves.current.has(change.id)) {
       notify('Your first save of this profile is still waiting for an answer. The editor updates when it lands.');
-      return;
+      return false;
     }
     void (async () => {
       setBusy(true);
@@ -184,6 +195,7 @@ export function useDeliveryProfiles(notify: Notify) {
         setBusy(false);
       }
     })();
+    return true;
   };
   const remove = (profile: DeliveryProfile) =>
     run(async () => {

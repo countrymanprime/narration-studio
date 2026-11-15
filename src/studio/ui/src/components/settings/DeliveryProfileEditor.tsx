@@ -48,7 +48,8 @@ export function DeliveryProfileEditor({
   pending: boolean;
   error?: string;
   onCancel: () => void;
-  onSave: (edit: DeliveryProfileEdit) => void;
+  /** False when the save was not sent (one for this profile is still out): what was typed is then not a sent text. */
+  onSave: (edit: DeliveryProfileEdit) => boolean | void;
 }) {
   const [name, setName] = useState(profile.name);
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
@@ -96,8 +97,9 @@ export function DeliveryProfileEditor({
   const update = (id: string, change: Partial<Draft>) => setDrafts((current) => ({ ...current, [id]: { ...current[id], ...change } }));
   const save = () => {
     if (invalid) return;
-    sent.current = { name, drafts: JSON.stringify(drafts) };
-    onSave({
+    const snapshot = { name, drafts: JSON.stringify(drafts) };
+    // Recorded only when the save really went: a Save the panel refused sent nothing, and the late answer of the one before is not about this text (#3461 round 10 P1).
+    const accepted = onSave({
       id: profile.id,
       name: name.trim(),
       rules: profile.rules.map((rule) => {
@@ -106,6 +108,7 @@ export function DeliveryProfileEditor({
         return { id: rule.id, off: draft.off, min: bound(draft.min, rule.min), max: bound(draft.max, rule.max) };
       }),
     });
+    if (accepted !== false) sent.current = snapshot;
   };
   const changed = (rule: DeliveryRule) => {
     const original = baseRule(rule.id);
