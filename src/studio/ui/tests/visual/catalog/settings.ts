@@ -667,7 +667,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'key-navigate-away-confirm',
     description:
-      'Settings, Voice & pronunciation with a Merriam-Webster key pasted and not saved and another page pressed in the navigation: the Unsaved settings confirm names the key, with its three actions',
+      'Settings, Voice & pronunciation with a Merriam-Webster key pasted and not saved and another page pressed in the navigation: the Unsaved changes confirm names the key, with its three actions',
     ...REFLOW,
   },
   {

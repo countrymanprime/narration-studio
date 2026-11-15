@@ -651,7 +651,7 @@ describe('Delivery', () => {
 
     fireEvent.click(within(list).getByRole('button', { name: `Edit ${name}` }));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: /Cancel/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Discard changes/ }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     fireEvent.click(within(list).getByRole('button', { name: `Delete ${name}` }));

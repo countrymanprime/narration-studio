@@ -75,7 +75,7 @@ transcription model says earlier checks are marked out of date and run again. A 
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
 Rarely changed settings sit under **Advanced** at the foot of a category, closed until you open it; the heading
-says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved settings** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
+says how many it holds. Closing **Advanced**, going to another category, searching or going Back to another category asks **Unsaved changes** first when something typed in them (a pasted key) is not saved yet; **Cancel** keeps it, and the search box then reads what the results are for.
 
 ![Settings - a project overriding a setting that is otherwise for all projects](../../images/ui/settings-override.webp)
 
@@ -248,9 +248,9 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved settings** with "Save or discard the key you pasted before leaving?" for an exit and "... before going on?" for a move inside Settings (another category, the search, the filter, closing **Advanced**), **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent. A key pasted and not yet saved is asked about when you leave Settings (the navigation, Back, the jump menu, **Switch project**), when you pick another category or follow a link to one (the engine panel's **Recording settings**), and when **Search settings** or its filter would replace the page it is on: the question is **Unsaved changes** with "Save or discard the key you pasted before leaving?" for an exit and for a move inside Settings (another category, the search, the filter, closing **Advanced**), **Save & continue** saves the key, **Discard & continue** drops it and **Cancel** keeps it in its box.
 
-![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved settings, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
+![Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved changes, names the key, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-key-leave-confirm.webp)
 
 ## Models and downloads
 

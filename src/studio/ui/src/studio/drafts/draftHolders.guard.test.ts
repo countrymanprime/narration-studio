@@ -11,6 +11,8 @@ import { describe, expect, test } from 'vitest';
 // The reasons are a closed set, each a fact a reviewer can check:
 const MODAL =
   'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx), and Cancel or Escape is the narrator saying drop it';
+const MODAL_ASKS =
+  'a modal dialog: the page behind it is inert and every exit is off while it is open (a browser Back is put back by the popstate guard in App.tsx); its own Save is the way to keep what was typed, its discard button says so, and Escape and the close button ask first (confirmDiscard)';
 const BLUR = 'saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx), so nothing typed is left';
 const AT_ONCE = 'applies each change as it is made, so there is no draft';
 const FILTER = 'a search or filter box: it holds no work, and the list it narrows is whole again when it is empty';
@@ -51,7 +53,7 @@ const EXEMPT: Record<string, string> = {
   'script/page/tools/select/MarkComposer.tsx': MODAL,
   'script/page/tools/select/MarksDialog.tsx': MODAL,
   'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
-  'settings/DeliveryProfileEditor.tsx': MODAL,
+  'settings/DeliveryProfileEditor.tsx': MODAL_ASKS,
   'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,

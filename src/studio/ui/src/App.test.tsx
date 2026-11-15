@@ -1671,11 +1671,11 @@ describe('App Back and Forward', () => {
       });
     }
 
-    it('Switch project over a pasted key: Save & continue saves the key and opens the picker, and the question names it under "Unsaved settings" (#3400)', async () => {
+    it('Switch project over a pasted key: Save & continue saves the key and opens the picker, and the question names it under "Unsaved changes" (#3400)', async () => {
       const pronunciationOnlineKeySet = vi.fn(createMockApi().pronunciationOnlineKeySet);
       await openKeyBox({ pronunciationOnlineKeySet });
       headerSwitch();
-      const question = await screen.findByRole('alertdialog', { name: 'Unsaved settings' });
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
       expect(within(question).getByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
       await screen.findByRole('heading', { name: 'Choose your project' });
@@ -1687,12 +1687,12 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       const categories = screen.getByRole('navigation', { name: 'Settings categories' });
       fireEvent.click(within(categories).getByRole('button', { name: /^Appearance & keys/ }));
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
       fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'k' } });
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
@@ -1826,7 +1826,7 @@ describe('App Back and Forward', () => {
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(search.value).toBe('にほ');
       fireEvent.compositionEnd(search);
-      expect(await screen.findByText('Save or discard the key you pasted before going on?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(search.value).toBe('');

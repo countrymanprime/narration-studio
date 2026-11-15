@@ -704,7 +704,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /Advanced/ }).click();
     await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
     await clickNav(page, 'Production');
-    await confirmDialog(page, 'Unsaved settings').waitFor();
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
 
   // ---- Search and filters

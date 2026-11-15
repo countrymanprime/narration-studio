@@ -8,7 +8,7 @@ test.setTimeout(60_000);
 
 const picker = (page: Page) => page.getByRole('heading', { name: 'Choose your project' });
 const switchProject = (page: Page) => page.getByRole('button', { name: /, switch project$/ }).click();
-const unsaved = (page: Page) => page.getByRole('alertdialog', { name: 'Unsaved settings' });
+const unsaved = (page: Page) => page.getByRole('alertdialog', { name: 'Unsaved changes' });
 
 async function pasteKey(page: Page): Promise<void> {
   await page.goto('/');
@@ -42,7 +42,7 @@ test('another category and the Settings search ask over a pasted key, and the ty
     .getByRole('navigation', { name: 'Settings categories' })
     .getByRole('button', { name: /^Appearance/ })
     .click();
-  await expect(unsaved(page)).toContainText('before going on?');
+  await expect(unsaved(page)).toContainText('before leaving?');
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
   await page.getByRole('textbox', { name: 'Search settings' }).fill('abc');
