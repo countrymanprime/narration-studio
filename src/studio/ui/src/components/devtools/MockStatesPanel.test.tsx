@@ -43,6 +43,17 @@ describe('choosing-writes-the-parameter-and-reloads', () => {
   });
 });
 
+describe('choosing-keeps-the-history-entry-state', () => {
+  it("leaves the entry's state (the router's idx) as it was, so a later Back is not read as a Forward", async () => {
+    window.history.replaceState({ idx: 3, key: 'abc' }, '', '/?mockPanel=1');
+    const user = userEvent.setup();
+    render(<MockStatesPanel reload={() => undefined} />);
+    await user.click(screen.getByRole('button', { name: 'Mock states' }));
+    await user.click(await screen.findByRole('radio', { name: '40 chapters' }));
+    expect(window.history.state).toEqual({ idx: 3, key: 'abc' });
+  });
+});
+
 describe('panel-is-keyboard-reachable', () => {
   it('closes on Escape and returns focus to the opener', async () => {
     const user = userEvent.setup();
