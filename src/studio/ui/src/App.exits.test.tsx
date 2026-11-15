@@ -149,3 +149,24 @@ describe('the message about a slow save goes with the text it speaks of (#3446 P
     expect(slow()).toBe(false);
   });
 });
+
+describe('a question is answered by a press, not by the auto-repeat of a held key (#3457 qa round 4 B2)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+  it('an auto-repeat inside a question, Enter or Space, answers nothing, and a fresh press still answers', () => {
+    document.body.innerHTML = '<div role="alertdialog"><button id="keep">Keep editing</button></div>';
+    const keep = document.getElementById('keep') as HTMLButtonElement;
+    const answered = vi.fn();
+    keep.onkeydown = answered;
+    const press = (key: string, repeat: boolean) => {
+      const event = new KeyboardEvent('keydown', { key, repeat, bubbles: true, cancelable: true });
+      keep.dispatchEvent(event);
+      return event;
+    };
+    for (const key of ['Enter', ' ']) expect(press(key, true).defaultPrevented).toBe(true);
+    expect(answered).not.toHaveBeenCalled();
+    expect(press('Enter', false).defaultPrevented).toBe(false);
+    expect(answered).toHaveBeenCalledTimes(1);
+  });
+});

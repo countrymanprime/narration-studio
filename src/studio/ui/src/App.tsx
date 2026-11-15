@@ -186,8 +186,16 @@ if (typeof window !== 'undefined') {
   window.addEventListener(
     'keydown',
     (event) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !(event.target instanceof Element && event.target.closest('[data-stay-button]')))
-        popGuard.lastAskKeyAt = event.timeStamp;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const target = event.target instanceof Element ? event.target : null;
+      // A question is answered by a press, never by the auto-repeat of a key: a key held since before it appeared (the Enter that raised it, still down) lands on its default button
+      // as a repeat and would answer it unseen. Every repeat inside a question is dropped; a fresh press always answers (#3457 qa round 4, B2).
+      if (event.repeat && target?.closest('[role="alertdialog"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!target?.closest('[data-stay-button]')) popGuard.lastAskKeyAt = event.timeStamp;
     },
     true,
   );
