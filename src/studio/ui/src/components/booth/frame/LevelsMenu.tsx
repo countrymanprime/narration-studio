@@ -364,7 +364,7 @@ function BuiltinInput({ device, onDevice, recording }: { device: string; onDevic
               {peakText(reading.peak)}
             </span>
           ) : null}
-          <span role="status" className={`min-w-0 flex-1 truncate ${refused ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}>
+          <span role="status" className={`min-w-0 flex-1 truncate ${refused ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`} title={line}>
             {line}
           </span>
           {refused ? <IconButton action="retry" label="Check again" size="xs" onClick={view.retry} /> : null}

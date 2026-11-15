@@ -147,7 +147,10 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
                     />
                   )}
                 </div>
-                <span className={`line-clamp-2 ${done || unconfirmed ? 'text-[var(--text-muted)]' : ''}`}>
+                <span
+                  className={`line-clamp-2 ${done || unconfirmed ? 'text-[var(--text-muted)]' : ''}`}
+                  title={flag.heard ? `${flag.script} · heard “${flag.heard}”` : flag.script}
+                >
                   {flag.script}
                   {flag.heard ? <span className="text-[var(--text-muted)]"> · heard “{flag.heard}”</span> : null}
                 </span>
