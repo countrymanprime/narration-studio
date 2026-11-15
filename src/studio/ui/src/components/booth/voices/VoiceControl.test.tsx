@@ -46,6 +46,14 @@ describe('the voice control', () => {
     expect(screen.queryByRole('listbox', { name: 'Voices of this chapter' })).toBeNull();
   });
 
+  // #3380: a long track or character name is clipped to the list, so each carries its name as a title.
+  it('gives each voice row its name as a title', async () => {
+    render(<Harness onChoose={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:.*Narrator/ }));
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(within(list).getAllByRole('option')[1].querySelector('[title="Queen"]')).toBeTruthy();
+  });
+
   it('draws the key as a plain number, with no keycap, and a screen reader still hears "Num"', () => {
     render(<Harness onChoose={vi.fn()} current={voices[1]} />);
     const trigger = screen.getByRole('button', { name: /^Voice:/ });

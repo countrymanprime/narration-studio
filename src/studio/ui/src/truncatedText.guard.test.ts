@@ -80,12 +80,6 @@ describe('the scan itself', () => {
 
 // The debt measured when the guard was added: elements that clip their text and give no way to read the rest. Fix one and delete its line.
 const DEBT = new Set<string>([
-  'components/booth/frame/LevelsMenu.tsx#1',
-  'components/booth/pickups/PickupSession.tsx#1',
-  'components/booth/resume/ResumeOffer.tsx#1',
-  'components/booth/suspected/SuspectedLines.tsx#1',
-  'components/booth/voices/VoiceControl.tsx#1',
-  'components/booth/voices/VoiceControl.tsx#2',
   'components/editing/bar/SelectionBar.tsx#1',
   'components/layout/TimerChip.tsx#1',
   'components/primitives/Field.tsx#1',

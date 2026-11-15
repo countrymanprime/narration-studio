@@ -130,6 +130,16 @@ describe('a pickup session in the Booth', () => {
     expect(within(card).getByText('Open')).toBeTruthy();
   });
 
+  // #3380: the script of a pickup row is clamped to three lines, so the whole line is its title.
+  it('gives a clamped pickup line its whole script as a title', async () => {
+    mount(host(LIST()), { ids: ['a', 'b', 'c'] });
+    await screen.findByText('Pickups · 3 open');
+    const card = (document.querySelector('[data-pj="a"]') as HTMLElement).closest('li') as HTMLElement;
+    const clamped = card.querySelector('.line-clamp-3') as HTMLElement;
+    expect(clamped.getAttribute('title')).toBe(clamped.textContent);
+    expect(clamped.getAttribute('title')).not.toBe('');
+  });
+
   it('n-goes-to-the-next-pickup-even-in-another-chapter: Shift+N back, wrapping', async () => {
     const { jumps } = mount(host(LIST()), { ids: ['a', 'c', 'd'] });
     await screen.findByText('Pickups · 3 open');
