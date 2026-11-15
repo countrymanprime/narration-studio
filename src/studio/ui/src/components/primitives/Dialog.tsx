@@ -94,9 +94,10 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 // The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
 const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
-// The one horizontal inset of the header, the body and the action row. In a window under 360 px it is 12 px: the two-button action row of a question
-// (Keep editing, Discard & continue) fits a 320 px window with under 1 px to spare at 17.6 px, and a font a hair wider wrapped it onto a second row that took
-// the sentence's room at 320 x 300 (#3457).
+// The one horizontal inset of the header, the body and the action row. In a window under 360 px it is 12 px. In a 320 x 300 window the two-button
+// question row (Keep editing, Discard & continue) had under 1 px to spare at 17.6 px, and a font a hair wider wrapped it onto a second row that took the
+// sentence's room (#3457); the 12 px inset gives it and the sentence room there. It does not make the row one line in every 320 px window: in a taller
+// one the dialog keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and the buttons still wrap.
 const INSET = 'px-[var(--space-6)] max-[360px]:px-3';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
