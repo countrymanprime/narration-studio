@@ -119,7 +119,9 @@ describe('CreditsSetupDialog', () => {
   // #3495: the label named "Settings > General", which Settings does not have; the narrator default is a row of the Project category (`project.narrator`).
   it('"Use for all my projects" says the default is saved in Settings > Project, a category that exists', () => {
     renderDialog(STATE);
-    expect(screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!.textContent).toContain('saved as your default in Settings > Project');
+    expect(screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!.textContent).toContain(
+      'saved as your default in Settings > Project',
+    );
   });
 
   it('unchecking "Use for all my projects" saves only the project value, not the global default', async () => {
