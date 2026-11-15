@@ -57,7 +57,7 @@ Source: [#1762](https://github.com/countrymanprime/narration-studio/pull/1762). 
 
 ## 2. Linking a project and the first screens
 
-- [ ] **2.1 Back from dirty Settings.** Needs: Packaged app. Change a setting without saving, then use the mouse Back button, and again the keyboard Back. See: the "Unsaved settings" question appears. The unrequested-pop path is unverified in WebView2. Source: [#1790](https://github.com/countrymanprime/narration-studio/pull/1790).
+- [ ] **2.1 Back from dirty Settings.** Needs: Packaged app. Change a setting without saving, then use the mouse Back button, and again the keyboard Back. See: the "Unsaved changes" question appears. The unrequested-pop path is unverified in WebView2. Source: [#1790](https://github.com/countrymanprime/narration-studio/pull/1790).
 - [ ] **2.2 Top bar at the minimum window.** Needs: Packaged app. Shrink the window to the 960 px minimum with a timer running. Look for overlap or clipped timer digits. Source: [#1790](https://github.com/countrymanprime/narration-studio/pull/1790).
 - [ ] **2.3 Replace manuscript.** Needs: Packaged app. On a real project, click "Replace and reset" once. See: one click replaces the manuscript. Source: [#1790](https://github.com/countrymanprime/narration-studio/pull/1790).
 - [ ] **2.4 Project picker on Windows.** Needs: Packaged app, Folder window. Open the picker. Paths should show with Windows backslashes (`C:\...`), not the forward slashes the mock shows. Also try creating a project with a reserved or illegal name (`CON`, `a/b`) and an existing folder, and **Change location…**. The audit could not try these against the real host. Source: open issue [#1778](https://github.com/countrymanprime/narration-studio/issues/1778).

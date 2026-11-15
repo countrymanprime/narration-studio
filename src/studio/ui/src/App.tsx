@@ -126,7 +126,7 @@ const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^
 // A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
 // the router sees it: once the route changed, the page would unmount and its edits be gone (dirty Settings), or its take left recording with no Stop
 // (the Booth's leave guard, #3325), before any prompt. History is put back where it was and the same prompt the nav asks is shown. Two things hold a
-// page: unsaved edits (dirty Settings, an editor's draft: "Unsaved settings", "Unsaved changes") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
+// page: unsaved edits (dirty Settings, an editor's draft: "Unsaved changes") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
 // router's own, which React Router adds when it mounts: listeners of one event run in the order they were added.
 const popGuard = {
   /** Whether the page shown holds unsaved edits now: dirty Settings, or a draft an editor registered (`useUnsavedDraft`). */
@@ -1094,7 +1094,7 @@ function AppRoutes() {
       if (confirmed) openPickerPastSettings();
     });
   };
-  // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved settings" question).
+  // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved changes" question).
   const openPickerPastSettings = () => {
     if (pageHolds()) setPendingMove({ kind: 'picker' });
     else setProjectPickerOpen(true);
@@ -1178,16 +1178,11 @@ function AppRoutes() {
     initialCategory: SETTINGS_ANCHORS[location.hash],
   };
   // Leaving with an edit not yet saved asks first, wherever it is held: Settings (drawn in the shell, or in the frame for no project) or an editor's draft.
-  // The title says "settings" only on the Settings page, so the question never says it for an entry or a note.
-  const onSettings = location.pathname === '/settings';
   // Settings' own fields are a form and may be many, so with edits in them the question keeps Settings' older sentence (the fallback in `body` below). A draft
   // held instead (a credits template, a pasted key) is named, on Settings as anywhere else, so the narrator can tell what they are about to lose (#3400 D4).
   // With a draft that cannot be saved held, Save & continue would save nothing (all or nothing), so the question is Discard-only and names Settings' fields too.
   const looseHeld = drafts.heldNow().some((draft) => !draft.saveable);
-  const question =
-    pendingMove && (!settingsHeld || looseHeld)
-      ? draftQuestion([...(settingsHeld ? [SETTINGS_HELD] : []), ...drafts.heldNow()], pendingMove.kind !== 'action')
-      : undefined;
+  const question = pendingMove && (!settingsHeld || looseHeld) ? draftQuestion([...(settingsHeld ? [SETTINGS_HELD] : []), ...drafts.heldNow()]) : undefined;
   // Save is offered unless something held cannot be saved; Settings' fields alone always save.
   const canSave = question?.canSave ?? true;
   // Settings' own save has no shared request of its own: a second Save & continue after the limit would send it again while the first never answered.
@@ -1228,7 +1223,7 @@ function AppRoutes() {
   };
   const unsavedSettings = pendingMove && (
     <ConfirmDialog
-      title={onSettings ? 'Unsaved settings' : 'Unsaved changes'}
+      title="Unsaved changes"
       body={question?.body ?? `Save or discard changes before ${pendingMove.kind === 'action' ? 'going on' : 'leaving Settings'}?`}
       confirmLabel={canSave ? 'Save & continue' : 'Discard & continue'}
       confirmVariant={canSave ? 'primary' : 'danger'}

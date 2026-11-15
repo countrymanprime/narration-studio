@@ -695,7 +695,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
     // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
     await clickNav(page, 'Production');
-    await confirmDialog(page, 'Unsaved settings').waitFor();
+    await confirmDialog(page, 'Unsaved changes').waitFor();
   },
 
   // ---- Search and filters
