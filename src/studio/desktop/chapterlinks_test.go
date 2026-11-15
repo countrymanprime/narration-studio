@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 // chapterLinksTrack is the Chapter I track in chapterTracksRpp; the other two
@@ -280,5 +282,99 @@ func TestChapterTrackLinksMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
 	limit := int64(len(names) + strings.Count(chapterTracksRpp, "MARKER"))
 	if len(ids) < 2 || calls == 0 || calls > limit {
 		t.Fatalf("%d chapters, %d distinct track names: %d title matches, want 1 to %d", len(ids), len(names), calls, limit)
+	}
+}
+
+// #3416: a link made, changed or cleared by hand sends chaptersync:state, so the Engine panel's counts and rows follow it as they do after a sync; a refused call sends nothing.
+func TestAChapterLinkChangedByHandSendsChapterSyncState(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	syncs := make(chan chapterSyncState, 8)
+	host.mu.Lock()
+	host.chapterSyncEvents = func(state chapterSyncState) { syncs <- state }
+	host.mu.Unlock()
+	t.Cleanup(host.chapterSyncEmits.Wait)
+	sent := func(what string) {
+		t.Helper()
+		select {
+		case <-syncs:
+		case <-time.After(10 * time.Second):
+			t.Fatalf("%s sent no chaptersync:state", what)
+		}
+	}
+	if _, err := host.ChapterTrackSet(ids[0], chapterLinksTrack); err != nil {
+		t.Fatal(err)
+	}
+	sent("setting a link")
+	if _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackII); err != nil {
+		t.Fatal(err)
+	}
+	sent("changing a link")
+	if _, err := host.ChapterTrackUnlink(ids[1]); err != nil {
+		t.Fatal(err)
+	}
+	sent("clearing a link")
+	if _, err := host.ChapterTrackSet("not-a-chapter", chapterLinksTrack); err == nil {
+		t.Fatal("linking an unknown chapter succeeded")
+	}
+	host.chapterSyncEmits.Wait()
+	select {
+	case <-syncs:
+		t.Fatal("a refused link sent chaptersync:state")
+	default:
+	}
+}
+
+// #3416: two link changes in quick succession leave the UI on the last one: the emits are serialised, so a read made before the second change cannot be sent after it.
+func TestQuickLinkChangesLeaveChapterSyncStateOnTheLastOne(t *testing.T) {
+	for round := 0; round < 25; round++ {
+		host, ids := newTestHostForChapterMatch(t)
+		var mu sync.Mutex
+		var last chapterSyncState
+		host.mu.Lock()
+		host.chapterSyncEvents = func(state chapterSyncState) {
+			mu.Lock()
+			last = state
+			mu.Unlock()
+		}
+		host.mu.Unlock()
+		if _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackII); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := host.ChapterTrackUnlink(ids[1]); err != nil {
+			t.Fatal(err)
+		}
+		host.chapterSyncEmits.Wait()
+		mu.Lock()
+		for _, chapter := range last.Chapters {
+			if chapter.ChapterID == ids[1] && chapter.TrackGUID != "" {
+				mu.Unlock()
+				t.Fatalf("round %d: the last chaptersync:state still lists a link for the cleared chapter: %+v", round, chapter)
+			}
+		}
+		mu.Unlock()
+	}
+}
+
+// #3416: clearing the project's data deletes the chapter links with the manuscript, so chaptersync:state goes out and the Engine panel stops counting them.
+func TestClearingProjectDataSendsChapterSyncStateWithNoLinks(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	if _, err := host.ChapterTrackSet(ids[0], chapterLinksTrack); err != nil {
+		t.Fatal(err)
+	}
+	syncs := make(chan chapterSyncState, 8)
+	host.mu.Lock()
+	host.chapterSyncEvents = func(state chapterSyncState) { syncs <- state }
+	host.mu.Unlock()
+	t.Cleanup(host.chapterSyncEmits.Wait)
+	if _, err := host.ManuscriptClearProjectData(true); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case state := <-syncs:
+		if state.Counts.Linked != 0 || len(state.Chapters) != 0 {
+			t.Fatalf("chaptersync:state after the clear = linked %d, %d chapters; want none", state.Counts.Linked, len(state.Chapters))
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("clearing the project's data sent no chaptersync:state")
 	}
 }

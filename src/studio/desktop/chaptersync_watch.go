@@ -162,6 +162,8 @@ func (h *Host) chapterSyncConsentOn(folder string) bool {
 
 // emitChapterSyncState sends the current state without syncing; a state that cannot be read is logged.
 func (h *Host) emitChapterSyncState() {
+	h.chapterSyncEmitMu.Lock()
+	defer h.chapterSyncEmitMu.Unlock()
 	state, err := h.chapterSyncState()
 	if err != nil {
 		if h.log != nil {

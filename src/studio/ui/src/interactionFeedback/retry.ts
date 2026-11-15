@@ -324,6 +324,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/CreditsPanel.tsx#4': yes('Saving a credits value writes the same value again.'),
   'src/components/settings/CreditsPanel.tsx#5': yes('Clearing the credits values writes the same empty values again.'),
   'src/components/settings/DeliveryProfilesPanel.tsx#1': no(DS),
+  'src/components/settings/DeliveryProfilesPanel.tsx#2': yes('Reading the profiles again asks the host the same question, and the toast carries that Retry.'),
   'src/components/settings/KeyboardPanel.tsx#1': yes('The keymap save writes the same keymap again.'),
   'src/components/settings/analysis/AnalysisToolsSection.tsx#1': no(MX),
   'src/components/settings/analysis/ToolRow.tsx#1': no(RC),

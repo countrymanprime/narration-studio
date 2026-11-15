@@ -121,6 +121,11 @@ const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role
 // A build on a static host (the public site, src/web) cannot rewrite `/proof` to index.html and may open from any sub-path or a sandboxed frame:
 // its extension (appExtension.ts) asks for routes by the address hash. The popGuard below reads the pathname, so it reads the hash route there.
 const hashRouting = (): boolean => appExtension().hashRouting === true;
+/**
+ * What a pop leaves behind: the route, and on Settings the category in the hash too, because a link from another page and the jump menu move between
+ * Settings categories by the hash alone and that swaps the panel that holds an edit (#3456).
+ */
+const routeKey = (): string => (hashRouting() || window.location.pathname !== '/settings' ? routePath() : `${routePath()}${window.location.hash}`);
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
 // A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
@@ -133,6 +138,8 @@ const popGuard = {
   dirty: () => false,
   /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
   route: '',
+  /** The path alone, for a dialog that is not left by a Back that changes the page (a change of Settings category by the hash does not count). */
+  routePath: '',
   idx: 0,
   /** Where the restore after a stopped pop has to land (the router's own `idx`), and how many corrections it was given. */
   want: 0,
@@ -182,7 +189,7 @@ const MAX_REASON = 120;
 /** The toast for a save that did not take: the message, and that the text is still here unless the message already says the narrator is (the verdicts end "so you are still here."). */
 const keptNote = (message: string): string => (/so you are still here\.$/.test(message) ? message : `${message} What you typed is still here.`);
 /** Whether the address is the route the router shows. */
-const onPageRoute = (): boolean => routePath() === popGuard.route;
+const onPageRoute = (): boolean => routeKey() === popGuard.route;
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
   window.addEventListener(
@@ -238,18 +245,18 @@ if (typeof window !== 'undefined') {
       return;
     }
     // A fragment typed or followed by hand pushes an entry the router never numbered (the router stamps every entry it makes with an `idx`), and `popstate` is how it arrives, whether or not the history grew (a typed hash in the middle of the history truncates what was ahead). Left alone it would count as entry 0 and
-    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3456).
+    // make a Back from it look like a Forward. It is one step forward of the entry it was typed on, so it is numbered as that, once (#3446).
     const state = window.history.state as { idx?: number } | null;
     if (state?.idx === undefined) {
       window.history.replaceState({ ...state, idx: popGuard.idx + 1 }, '');
     }
     const next = historyIdx();
     // A dialog open (the shortcut sheet, a question, a form) is not left by a browser Back that holds nothing: the page stays and so does its text.
-    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.route;
+    const modalHolds = !popGuard.isOwnPop() && isModalOpen() && routePath() !== popGuard.routePath;
     const settled = !modalHolds && popGuard.askLeave !== null && settleFocusedField();
-    const settingsHolds = !settled && popGuard.dirty() && routePath() !== popGuard.route;
+    const settingsHolds = !settled && popGuard.dirty() && routeKey() !== popGuard.route;
     // A field just taken off the focus may be about to report an edit: the exit is decided again once it has (the same Back, asked of the shell).
-    const leaveHolds = !settingsHolds && routePath() !== popGuard.route && (settled || modalHolds || popGuard.leaveHeld());
+    const leaveHolds = !settingsHolds && routeKey() !== popGuard.route && (settled || modalHolds || popGuard.leaveHeld());
     const ask = settingsHolds
       ? popGuard.ask
       : modalHolds
@@ -302,7 +309,7 @@ type PendingMove =
   | { kind: 'delta'; direction: 1 | -1 }
   | { kind: 'picker' }
   // A change inside the page that would drop a draft (another Settings category, another entry, Close on an editor): `run` is the change.
-  | { kind: 'action'; run: () => void };
+  | { kind: 'action'; run: () => void; onCancel?: () => void };
 
 function AppRoutes() {
   const api = useApi();
@@ -378,6 +385,16 @@ function AppRoutes() {
   const settingsSaving = useRef<Promise<boolean> | null>(null);
   const [resolving, setResolving] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove>();
+  // A question that replaces another one (Back with a question open) cancels the first: what its move would have undone on Cancel (the Settings search box) is put back (#3456 D).
+  const openMoveRef = useRef<PendingMove | undefined>(undefined);
+  openMoveRef.current = pendingMove;
+  const openMove = (next: PendingMove) => {
+    const replaced = openMoveRef.current;
+    // Not by another in-page change (more letters typed into the search while it is open): that one carries the box's text on.
+    if (replaced?.kind === 'action' && next.kind !== 'action') replaced.onCancel?.();
+    openMoveRef.current = next;
+    setPendingMove(next);
+  };
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // The engine panel: one panel for the app, opened from the header's
   // engine chip and from every pointer to the retired Tracks page.
@@ -915,7 +932,7 @@ function AppRoutes() {
   popGuard.dirty = pageHolds;
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
-    popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.ask = (direction) => openMove({ kind: 'delta', direction });
     popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
     popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
@@ -934,7 +951,7 @@ function AppRoutes() {
       setTimeout(() => askRef.current(run, options), SETTLE_MS);
       return;
     }
-    if (pageHolds()) setPendingMove({ kind: 'action', run });
+    if (pageHolds()) openMove({ kind: 'action', run, onCancel: options?.onCancel });
     else run();
   };
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
@@ -1020,8 +1037,12 @@ function AppRoutes() {
   }, [setShell, overlay]);
   useEffect(() => {
     popGuard.idx = historyIdx();
-    popGuard.route = routePath();
   }, [location.key]);
+  // The entries a fragment typed by hand makes all share the router's key `default`, so the route the pop guard compares against follows the hash too.
+  useEffect(() => {
+    popGuard.route = routeKey();
+    popGuard.routePath = routePath();
+  }, [location.key, location.hash]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
   // despite `preventDefault`, if that happens). The move already took effect; if it left
@@ -1034,7 +1055,7 @@ function AppRoutes() {
       if (leftPathname === '/settings' && settingsDirty) {
         const landedAt = location.pathname + location.hash;
         navigate('/settings');
-        setPendingMove({ kind: 'path', path: landedAt });
+        openMove({ kind: 'path', path: landedAt });
       } else if (leavesCompareRun(leftPathname, location.pathname, transcriptPhaseRef.current)) {
         void api.transcriptReset().catch(() => {});
       }
@@ -1131,15 +1152,18 @@ function AppRoutes() {
   };
   // The picker takes Settings down like a move to another page, so unsaved edits are asked about first (the same "Unsaved changes" question).
   const openPickerPastSettings = () => {
-    if (pageHolds()) setPendingMove({ kind: 'picker' });
+    if (pageHolds()) openMove({ kind: 'picker' });
     else setProjectPickerOpen(true);
   };
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
   const moveTo = (next: string, state?: unknown, after?: () => void) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
-    if (nextPath !== location.pathname && pageHolds()) {
-      setPendingMove({ kind: 'path', path: next, state, after });
+    // A link to another Settings category is a change of the hash alone, and it replaces the panel that holds the edit.
+    const switchesSettingsCategory =
+      nextPath === location.pathname && nextPath === '/settings' && next.includes('#') && `#${next.split('#')[1]}` !== location.hash;
+    if ((nextPath !== location.pathname || switchesSettingsCategory) && pageHolds()) {
+      openMove({ kind: 'path', path: next, state, after });
       return;
     }
     if (leavesCompareRun(location.pathname, nextPath.split('?')[0], data.transcript.phase)) void api.transcriptReset().catch(() => {});
@@ -1170,7 +1194,7 @@ function AppRoutes() {
   };
   const moveByDelta = (direction: 1 | -1) => {
     if (pageHolds()) {
-      setPendingMove({ kind: 'delta', direction });
+      openMove({ kind: 'delta', direction });
       return;
     }
     if (leavesCompareRun(location.pathname, undefined, data.transcript.phase)) void api.transcriptReset().catch(() => {});
@@ -1604,6 +1628,7 @@ function AppRoutes() {
   );
 
   function cancelPendingMove() {
+    if (pendingMove?.kind === 'action') pendingMove.onCancel?.();
     moveToken.current += 1;
     setResolving(false);
     setPendingMove(undefined);
