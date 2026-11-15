@@ -990,7 +990,9 @@ func moonshineDownloadSize(model moonshine.Model) int64 {
 // "reference" or "opening" removes it from recording, "narration" restores it. A removal clears the chapter's
 // track links. See manuscriptSetChapterKind.
 func (h *Host) ManuscriptSetChapterKind(chapterID, kind string) (string, error) {
-	return encodeBinding(h.manuscriptSetChapterKind(chapterID, kind))
+	changed, err := h.manuscriptSetChapterKind(chapterID, kind)
+	h.linksChanged(err)
+	return encodeBinding(changed, err)
 }
 
 // uiEventPrefix marks a SystemReportDiagnostic kind as a trace event for the run log rather than a failure for host.log.

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/contractfile"
 )
@@ -129,4 +130,20 @@ func mustJSON(t *testing.T, value any) string {
 		t.Fatal(err)
 	}
 	return string(bytes)
+}
+
+// #3416: removing a chapter from recording clears its links, so chaptersync:state goes out and the Engine panel's counts follow.
+func TestRemovingAChapterFromRecordingSendsChapterSyncState(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	syncs := make(chan chapterSyncState, 4)
+	host.mu.Lock()
+	host.chapterSyncEvents = func(state chapterSyncState) { syncs <- state }
+	host.mu.Unlock()
+	t.Cleanup(host.chapterSyncEmits.Wait)
+	setChapterKind(t, host, ids[0], "reference")
+	select {
+	case <-syncs:
+	case <-time.After(10 * time.Second):
+		t.Fatal("removing a chapter from recording sent no chaptersync:state")
+	}
 }
