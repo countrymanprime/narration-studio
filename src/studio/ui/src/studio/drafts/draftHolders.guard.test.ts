@@ -53,31 +53,24 @@ const EXEMPT: Record<string, string> = {
   'script/page/tools/select/MarkComposer.tsx': MODAL_ASKS,
   'script/page/tools/select/MarksDialog.tsx': MODAL,
   'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
-  'settings/DeliveryProfileEditor.tsx': MODAL,
+  'settings/DeliveryProfileEditor.tsx': MODAL_ASKS,
   'settings/ScopedSetting.tsx': 'a field of a Settings panel, whose edits are the Settings form: dirty Settings already asks (ScopedFieldsPanel)',
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,
-  'settings/page/StoryBibleTypesPanel.tsx': BLUR,
   'settings/row/ValueControl.tsx': BLUR,
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,
-  'storybible/VoiceReferencesSection.tsx': 'the optional note of an approval that is not made until Approve; one short phrase beside a region choice',
   'storybible/source/NamePronunciation.tsx': BLUR,
-  'storybible/suggested/import/ImportDialog.tsx': MODAL,
-  'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL,
+  'storybible/suggested/import/ImportDialog.tsx': MODAL_ASKS,
+  'storybible/voicesamples/EditVoiceSampleDialog.tsx': MODAL_ASKS,
 };
 
 // The editors below hold typed text and are joined to the registry one screen at a time (#3400). Each screen's change registers its editors, deletes their
 // entries here and lists the controls that replace them in HOLDER_REPLACED_BY. The map is empty when the last screen is in.
 const SCREEN = (screen: string) => `joins the registry in the ${screen} change of #3400; until then leaving it still drops the text`;
 const PENDING: Record<string, string> = {
-  'proof/inspector/FindingThread.tsx': SCREEN('Proof'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
-  'settings/controls/MwKeyBody.tsx': SCREEN('Settings'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/Relationships.tsx': SCREEN('Story Bible'),
-  'storybible/suggested/row/SuggestionRow.tsx': SCREEN('Story Bible'),
 };
 const DECIDED: Record<string, string> = { ...EXEMPT, ...PENDING };
 
@@ -114,6 +107,36 @@ describe('every editor that draws a text box either joins the unsaved-drafts reg
   });
 });
 
+// A dialog exempt because "Escape and the close button ask first" must call confirmDiscard: the claim in its entry is the only thing keeping a dialog that drops typed text on Escape
+// from joining the registry, so the file has to hold the question (#3457 qa round 4 B1).
+describe('a dialog exempt because its exits ask first calls confirmDiscard (#3400)', () => {
+  test('every entry that says Escape asks holds the question in its source', () => {
+    const without = Object.entries(EXEMPT)
+      .filter(([, reason]) => reason.includes('confirmDiscard'))
+      .filter(([name]) => !/confirmDiscard\(/.test(code(readFileSync(join(components, name), 'utf8'))))
+      .map(([name]) => name);
+    expect(Object.entries(EXEMPT).filter(([, reason]) => reason.includes('confirmDiscard')).length).toBeGreaterThanOrEqual(2);
+    expect(without, 'the entry says Escape asks: call confirmDiscard in the file, or give it a reason that is true').toEqual([]);
+  });
+});
+
+// A BLUR exemption is true of a box whose own blur or Enter saves it. A box whose Enter and a separate button run the same function (a New type box with an Add
+// button) saves only when one of them is pressed: blurring it commits nothing, so an exit drops the text (#3457, qa-breaker on #3446).
+const SEPARATE_COMMIT = /key === 'Enter'\)\s*\{?\s*(\w+)\(\)/g;
+describe('a box exempt because it saves on blur has no separate commit button (#3457)', () => {
+  test('no BLUR file has an Enter handler whose function a button also runs', () => {
+    const hits: string[] = [];
+    for (const { name, source } of drawing) {
+      if (EXEMPT[name] !== BLUR) continue;
+      const text = code(source);
+      for (const match of text.matchAll(SEPARATE_COMMIT)) {
+        if (new RegExp(`onClick=\\{${match[1]}\\}`).test(text)) hits.push(`${name}: ${match[1]}`);
+      }
+    }
+    expect(hits, 'make the box a holder (useUnsavedDraft with the add as its save), or commit it on blur').toEqual([]);
+  });
+});
+
 // A link that leaves a page must take the shell's guarded move, or the question is skipped and the draft goes (#3400: the Story Bible's Find in the
 // manuscript, the engine panel's Open in Proof, Script's More fields). The router's own `navigate` is for a redirect that holds nothing.
 const ROUTER_NAVIGATE = /\buseNavigate\(/;
@@ -126,11 +149,6 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
   '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',
-  'proof/PreviewPanel.tsx': SCREEN('Proof'),
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
-  'storybible/Guide.tsx': SCREEN('Story Bible'),
-  'storybible/GuideDetail.tsx': SCREEN('Story Bible'),
-  'storybible/voicesamples/RoutedVoiceSamplesSection.tsx': SCREEN('Story Bible'),
 };
 describe('a link out of a page goes through the guarded navigate (#3400)', () => {
   const sources = files(srcRoot, /\.tsx?$/)
@@ -158,8 +176,6 @@ const ROUTER_LINK = /<(Link|NavLink)\b/;
 const NO_DRAFT_PAGE = 'a link on a page that holds no draft: nothing there is lost by leaving';
 const LINK_EXEMPT: Record<string, string> = {
   'production/CreditsRowPanel.tsx': NO_DRAFT_PAGE,
-  'proof/ProofChapterPage.tsx': SCREEN('Proof'),
-  'proof/checkcard/FindingRow.tsx': SCREEN('Proof'),
 };
 describe("a link that leaves a page is a GuardedLink, not the router's Link (#3446 B3)", () => {
   const linking = files(components)
@@ -199,7 +215,34 @@ describe('a link inside a dialog that opens over every page is a GuardedLink (#3
 type Replacer = { file: string; control: string; asks: RegExp };
 const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
 const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
+const STORY_BIBLE_DETAIL: Replacer[] = [
+  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string, after\?: \(\) => void\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
+  { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
+];
+const SETTINGS_PANE: Replacer[] = [
+  { file: 'settings/page/SettingsPage.tsx', control: 'another category', asks: /guarded\(\s*\(\) => \{\s*setCat\(id\)/ },
+  {
+    file: 'settings/page/SettingsPage.tsx',
+    control: 'a search or filter that shows, changes or clears the results',
+    asks: /else guarded\(apply, \{ settle: false, onCancel: \(\) => setPending\(null\) \}\)/,
+  },
+];
+const PROOF_MOVES: Replacer[] = [
+  { file: 'proof/ProofPage.tsx', control: 'another note', asks: /if \(id !== selectedRef\.current\) guarded\(\(\) => select\(id\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'another chapter', asks: /guarded\(\(\) => choose\(next\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'the chapter step', asks: /guarded\(\(\) => step\(direction\)\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'Undo of a decision (it returns to the note)', asks: /else guardedRef\.current\(move\)/ },
+  { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
+];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
+  'settings/page/StoryBibleTypesPanel.tsx': SETTINGS_PANE,
+  'proof/inspector/FindingThread.tsx': PROOF_MOVES,
+  'storybible/GuideDetail.tsx': STORY_BIBLE_DETAIL,
+  'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
+  'storybible/VoiceReferencesSection.tsx': STORY_BIBLE_DETAIL,
+  'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
   'script/page/rail/threads/MessageEditor.tsx': [
     RAIL_TABS,
     { file: 'script/page/rail/threads/ThreadsTab.tsx', control: 'editing another message', asks: /onEdit: \(id, index\) => guarded\(/ },
@@ -211,6 +254,33 @@ const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
     { file: 'script/page/rail/words/WordsTab.tsx', control: 'another word in the chapter list', asks: /word !== row\.key && guarded\(/ },
   ],
 };
+
+// Every call that selects a note or opens a chapter on the Proof page replaces the Inspector, and with it a note typed there. The calls that do not ask are named here,
+// each with the reason (Undo's return to a note was one until the qa-breaker found it dropping a typed note, #3400).
+const PROOF_UNASKED: Record<string, string> = {
+  'select(findings[0].id)': 'the first note chosen while none is: the Inspector is empty, so no note box exists to lose',
+  'select(request.id)': "in Undo's `move`, which asks unless the narrator is already on that note and chapter (the Replacer above pins it)",
+  'choose(home)': "in Undo's `move`, together with select(request.id) (the Replacer above pins it)",
+  'select(id)': 'in the guarded closure of a clicked row, which the Replacer below pins',
+  'choose(chapterOf(note))': 'in the guarded closure of a clicked row of another chapter, which the Replacer below pins',
+  'choose(fallback.id)': 'inside step(), which every caller reaches through guarded',
+  'choose(next.id)': 'inside step(), which every caller reaches through guarded',
+};
+describe('every move on the Proof page that replaces the Inspector asks, or says why not (#3400)', () => {
+  test('a select( or choose( call outside the guarded ones is on the allowlist', () => {
+    const source = code(readFileSync(join(components, 'proof/ProofPage.tsx'), 'utf8'));
+    const calls = [...source.matchAll(/(?<![\w.])(select|choose)\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)]
+      .filter((match) => !/^(?:const|function)/.test(source.slice(Math.max(0, match.index - 6), match.index).trim()))
+      .map((match) => ({ call: `${match[1]}(${match[2]})`, at: match.index }))
+      .filter(
+        ({ at }) =>
+          !/guarded\(\(\) => $/.test(source.slice(Math.max(0, at - 14), at)) &&
+          !/guardedRef\.current\(\(\) => \{\s*$/.test(source.slice(Math.max(0, at - 60), at)),
+      );
+    const unasked = calls.map(({ call }) => call).filter((call) => !(call in PROOF_UNASKED));
+    expect(unasked, 'name the call in PROOF_UNASKED with a reason, or route it through guarded').toEqual([]);
+  });
+});
 
 describe('a control on the page that replaces a draft holder asks first (#3404)', () => {
   const holders = files(components)
@@ -259,6 +329,33 @@ describe('the Script rail view is written through the question (#3404)', () => {
       'use useShowInRail (script/page/data/useShowInRail.ts)',
     ).toEqual([]);
     expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
+  });
+});
+
+// The search and the filter swap the Settings pane for the results, and clearing them swaps it back (#3404): every write of the page's category, query or filter
+// is either inside the guarded `showCategory` / `changeSearch`, or the link effect that a link already asked for in `moveTo`. A new writer fails this until it is listed.
+describe('the Settings pane is swapped only through the question (#3404)', () => {
+  const page = code(readFileSync(join(components, 'settings/page/SettingsPage.tsx'), 'utf8'));
+  const writes = (setter: string) => [...page.matchAll(new RegExp(`\\b${setter}\\(`, 'g'))].length;
+  test('setCat, setQuery and setFilter are written only at the reviewed places', () => {
+    expect({ setCat: writes('setCat'), setQuery: writes('setQuery'), setFilter: writes('setFilter') }).toEqual({ setCat: 2, setQuery: 3, setFilter: 3 });
+  });
+  test('every write of the query also clears the typed letters, so the box and the results are in step when no question is open (#3456)', () => {
+    expect((page.match(/setPending\(null\)/g) ?? []).length).toBeGreaterThanOrEqual(writes('setQuery'));
+  });
+  test('collapsing Advanced asks, since it unmounts the rows under it (#3456)', () => {
+    expect(page).toMatch(/if \(advanced\[cat\]\) guarded\(toggle\)/);
+    expect(writes('setAdvanced')).toBe(2);
+  });
+  test('a hash-only change of Settings (a pop, a typed address) is decided by the pop guard on the route and the hash, not the route alone (#3456)', () => {
+    const app = code(readFileSync(join(srcRoot, 'App.tsx'), 'utf8'));
+    expect(app).not.toMatch(/routePath\(\) !== popGuard\.route\b/);
+    expect(app).toMatch(/routeKey\(\) !== popGuard\.route/);
+  });
+  test('showCategory asks, and so does every change of the search or filter', () => {
+    expect(page).toMatch(/showCategory = useCallback\(\s*\(id: CategoryId\) =>\s*guarded\(/);
+    expect(page).toMatch(/onChange=\{changeQuery\}/);
+    expect(page).toMatch(/changeFilter\(next as Filter\)/);
   });
 });
 

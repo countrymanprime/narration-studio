@@ -145,7 +145,7 @@ export function CreditsSetupDialog({
             {field.field === 'narrator' && (
               <div className="mt-2">
                 <Checkbox checked={useForAllProjects} disabled={busy} onChange={setUseForAllProjects}>
-                  Use for all my projects (saved as your default in Settings &gt; General)
+                  Use for all my projects (saved as your default in Settings &gt; Project)
                 </Checkbox>
               </div>
             )}

@@ -43,7 +43,8 @@ function visibleText(path: string): string[] {
       ts.isTemplateTail(node) ||
       ts.isJsxText(node)
     ) {
-      out.push(node.text);
+      // JSX text is raw source: `Settings &gt; General` is what a narrator reads as "Settings > General" (#3495), so the entities a pointer is written with are decoded.
+      out.push(ts.isJsxText(node) ? node.text.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&') : node.text);
     }
     ts.forEachChild(node, visit);
   };

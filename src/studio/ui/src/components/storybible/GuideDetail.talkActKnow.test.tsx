@@ -128,7 +128,7 @@ describe('Story Bible: how they talk, act and know', () => {
     renderDetail(character([{ key: 'says', value: 'Clipped' }]));
     await edit();
     fireEvent.change(screen.getByRole('textbox', { name: 'How they talk' }), { target: { value: 'Slowly' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.getByText('Clipped')).toBeTruthy();
     expect(screen.queryByText('Slowly')).toBeNull();
   });
