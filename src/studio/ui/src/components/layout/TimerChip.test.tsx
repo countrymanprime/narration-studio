@@ -51,5 +51,7 @@ describe('TimerChip', () => {
     expect(timer.getAttribute('aria-label')).toMatch(/^Timer running on Chapter 6, Recording: 0:42:0\d$/);
     expect(screen.getByRole('timer', { name: /^Timer running on Chapter 6, Recording: 0:42:0/ })).toBeTruthy();
     expect(timer.textContent).toMatch(/^0:42:0\d· timer on Chapter 6$/);
+    // #3380: the chapter is clipped beside the clock, so it carries itself as a title.
+    expect(screen.getByText('· timer on Chapter 6').getAttribute('title')).toBe('timer on Chapter 6');
   });
 });

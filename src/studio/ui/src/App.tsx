@@ -988,6 +988,8 @@ function AppRoutes() {
         const message = 'error' in outcome ? notSaved(outcome.error) : saveVerdict({ saved: false, failed: outcome.failed, kept: [] }).message;
         overlay.toast(keptNote(message ?? 'Not saved.'), { tone: 'error' });
       },
+      // The text is saved after all: "Saving is taking too long. What you typed is still here." would now be false (#3491 PB-2b).
+      lateSuccess: () => overlay.dismissTopic(SAVE_SLOW_TOPIC),
     });
     return () => setShell(null);
   }, [setShell, overlay]);

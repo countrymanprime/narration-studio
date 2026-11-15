@@ -111,7 +111,7 @@ export function VoiceControl({
           ),
           label: (
             <span className="inline-flex min-w-0 items-center gap-2">
-              <span className="truncate">
+              <span className="truncate" title={voiceName(voice)}>
                 <bdi>{voiceName(voice)}</bdi>
               </span>
               {voice.guid === current?.guid && arm.state === 'armed' ? <ArmDot /> : null}
@@ -130,7 +130,7 @@ export function VoiceControl({
           </span>
         ),
         label: (
-          <span className="truncate">
+          <span className="truncate" title={character.name}>
             <bdi>{character.name}</bdi>
           </span>
         ),

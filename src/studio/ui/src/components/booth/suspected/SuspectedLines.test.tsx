@@ -72,6 +72,16 @@ function host() {
 }
 
 describe('SuspectedLines', () => {
+  // #3380: the line is clamped to two lines, so the script and what was heard are its title.
+  it('gives a clamped suspected line the script and what was heard as its title', async () => {
+    const { view } = host();
+    render(view([again]));
+    const cards = await screen.findAllByRole('listitem');
+    const clamped = cards[0].querySelector('.line-clamp-2') as HTMLElement;
+    expect(clamped.getAttribute('title')).toBe(clamped.textContent);
+    expect(clamped.getAttribute('title')).toContain('heard “Alice was be Alice was beginning”');
+  });
+
   it('a-skip-or-restart-is-listed-as-a-suspected-line: shows the script words and what was heard', async () => {
     const { view } = host();
     render(view([skipped, again]));
