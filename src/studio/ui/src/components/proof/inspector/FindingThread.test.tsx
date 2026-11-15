@@ -106,6 +106,32 @@ describe('text typed while a note is being added', () => {
   });
 });
 
+describe('text typed while a note edit is being saved', () => {
+  it('stays in the edit box when the save resolves, and only what was sent is cleared (#3459 round 8)', async () => {
+    const { api, id } = await setup();
+    await addNote('First wording', 'My note');
+    let release: () => void = () => {};
+    const real = api.findingsThread.bind(api);
+    vi.spyOn(api, 'findingsThread').mockImplementation(async (id, change) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(id, change);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this note' }));
+    const box = screen.getByRole('textbox', { name: 'Edit note' }) as HTMLTextAreaElement;
+    fireEvent.change(box, { target: { value: 'Second wording' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save the note' }));
+    fireEvent.change(box, { target: { value: 'Second wording and more typed while saving' } });
+    await act(async () => {
+      release();
+    });
+    await waitFor(async () => expect((await api.findingsGet(id)).review.thread?.at(-1)?.text).toBe('Second wording'));
+    expect((screen.getByRole('textbox', { name: 'Edit note' }) as HTMLTextAreaElement).value).toBe('Second wording and more typed while saving');
+    expect(registry.heldNow().length).toBe(1);
+  });
+});
+
 describe('an edit cleared to nothing', () => {
   it('is still held, with nothing to save, so the question offers Discard only (#3400 L2)', async () => {
     await setup();

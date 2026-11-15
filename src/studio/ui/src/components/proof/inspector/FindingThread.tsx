@@ -36,8 +36,10 @@ function Message({
   const [draft, setDraft] = useState<string>();
   const saveEdit = useSharedSave(async () => {
     if (draft === undefined) return true;
-    const saved = await onEdit(draft);
-    if (saved) setDraft(undefined);
+    const sent = draft;
+    const saved = await onEdit(sent);
+    // Only what was sent is done with: text typed while the save was out stays in the box as an edit still to save, against the message as it now reads (#3459 round 8).
+    if (saved) setDraft((now) => (now === sent ? undefined : now));
     return saved;
   });
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
