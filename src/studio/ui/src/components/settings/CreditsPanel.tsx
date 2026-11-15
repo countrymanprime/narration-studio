@@ -106,7 +106,10 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // text typed on it while a save was in flight stays, as an edit still to save, and text typed on another template is never put back on this one (#3461).
   const baseline = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
   /** What the last save sent, for Save & continue to see that more was typed while it ran. */
-  const gaveUp = useRef(false);
+  // Which New template the editor is on (a number that grows with each New), and which of them had a save that went past the limit with no answer. An answer that lands late is
+  // that draft's: it takes over the editor only while the editor is still on it, and a second Save of the same draft waits for it instead of creating a second template (#3461 B1, B2).
+  const draftSeq = useRef(0);
+  const pendingCreates = useRef(new Set<number>());
   const lastSent = useRef<{ id: string; name: string; kind: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -181,6 +184,11 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   }, [api, draftBody, draftKind, values]);
 
   const saveTemplateNow = async (): Promise<boolean> => {
+    const seq = draftSeq.current;
+    if (!selected && pendingCreates.current.has(seq)) {
+      notify('The first save of this template has not answered yet. It will show in the list when it does.', 'error');
+      return false;
+    }
     setBusy(true);
     const sent = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
     try {
@@ -188,20 +196,30 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       const call = api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       // A New template whose save answers after the limit has no id yet: when the answer lands and the editor is still on that draft it takes the id, so Save again does not
       // create a second template (#3461 G2).
+      // Whether the host answered at all, even with a refusal: only a call still out at the limit can land later and create a template.
+      let answered = false;
+      void call.then(
+        () => void (answered = true),
+        () => void (answered = true),
+      );
       if (!selected)
         void call
           .then(async (late) => {
-            if (!gaveUp.current) return;
-            gaveUp.current = false;
+            if (!pendingCreates.current.delete(seq)) return;
+            // Another New was started since: that editor and its text stay as they are, and the list only learns the template that was created.
+            if (draftSeq.current !== seq || editorNow.current.id !== '') {
+              setTemplates(await api.creditsTemplates());
+              return;
+            }
             await load();
-            if (editorNow.current.id === '') setSelectedId(late.id);
+            setSelectedId(late.id);
           })
-          .catch(() => {});
+          .catch(() => pendingCreates.current.delete(seq));
       const saved = await withinSaveLimit(call).catch((error) => {
-        gaveUp.current = true;
+        if (!selected && !answered) pendingCreates.current.add(seq);
         throw error;
       });
-      gaveUp.current = false;
+      pendingCreates.current.delete(seq);
       notify('Credit template saved.');
       // The narrator may have gone to another template while this ran (Discard & continue): then the save is done and the editor stays where they went, with what they
       // typed there. Text typed on this template since the save started is not in what was saved: it stays in the editor as an edit still to save, and Save template or Save & continue then sends it in a second save of its own (a second \"saved\" notice) (#3461).
@@ -252,6 +270,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     discard: () => setTemplateDirty(false),
   });
   const newTemplate = () => {
+    draftSeq.current += 1;
     setSelectedId('');
     setDraftName(NEW_TEMPLATE_NAME);
     setDraftKind('opening');

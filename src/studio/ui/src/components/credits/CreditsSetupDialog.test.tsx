@@ -191,6 +191,24 @@ describe('CreditsSetupDialog', () => {
       expect(dismiss).toHaveBeenCalledTimes(1);
     });
 
+    it('while Save runs Escape, the close button, Not now and Don’t ask do nothing and ask nothing (#3461 round 6 B3)', async () => {
+      let finish: (state: CreditsSetupState) => void = () => {};
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>((resolve) => (finish = resolve)));
+      const { api, onDone } = renderDialog(STATE, { creditsSetupSave });
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      const confirm = vi.spyOn(overlay, 'confirm');
+      typeNarrator();
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(creditsSetupSave).toHaveBeenCalledTimes(1));
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(confirm).not.toHaveBeenCalled();
+      expect(dismiss).not.toHaveBeenCalled();
+      finish({ ...STATE, needed: false });
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    });
+
     it('with nothing changed the dialog closes at once, and a typed narrator replaces the "Not set yet" line', async () => {
       const { api, onDone } = renderDialog();
       const dismiss = vi.spyOn(api, 'creditsSetupDismiss');

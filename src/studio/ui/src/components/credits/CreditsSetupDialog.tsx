@@ -98,7 +98,9 @@ export function CreditsSetupDialog({
     });
   // Values the narrator changed from what was filled in: Escape, the close button, Not now and Don't ask would drop them, so each asks first. Save is the way to keep them (#3400).
   const typed = state.fields.some((field) => (values[field.field] ?? '') !== (field.candidate?.value ?? ''));
+  // While Save runs every way out is off, Escape and the close button too (a Discard answered then would still be followed by the save that is already out): the buttons are disabled, and so is this (#3461 round 6 B3).
   const leaving = (action: () => Promise<CreditsSetupState>) => async () => {
+    if (busy) return;
     if (typed && !(await confirmDiscard('what you typed'))) return;
     await run(action);
   };

@@ -272,6 +272,58 @@ describe('CreditsPanel', () => {
     expect((await api.creditsTemplates()).length).toBe(before + 1);
   });
 
+  // A New template whose first save went past the limit, with the answer still out: the editor is back, the text kept.
+  const newTemplateSaveGivenUp = async (api: ReturnType<typeof createMockApi>, body: string) => {
+    const real = api.saveCreditsTemplate.bind(api);
+    const answers: Array<() => void> = [];
+    const save = vi.spyOn(api, 'saveCreditsTemplate').mockImplementation(
+      (...args) =>
+        new Promise((resolve) => {
+          answers.push(() => void real(...args).then(resolve));
+        }),
+    );
+    await editTemplate();
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: body } });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+      await act(async () => {});
+      await act(async () => void vi.advanceTimersByTime(15_001));
+    } finally {
+      vi.useRealTimers();
+    }
+    return { save, answers };
+  };
+
+  it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
+    const { api } = renderPanel();
+    act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
+    const { answers } = await newTemplateSaveGivenUp(api, 'First new.');
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'second new' } });
+    answers[0]!();
+    await waitFor(async () => expect((await api.creditsTemplates()).some((template) => template.body === 'First new.')).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('second new');
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).value).not.toBe(
+      (await api.creditsTemplates()).find((template) => template.body === 'First new.')!.id,
+    );
+  });
+
+  it('Save again before the first answer of a New template lands creates no second template (#3461 B2)', async () => {
+    const { api } = renderPanel();
+    const { save, answers } = await newTemplateSaveGivenUp(api, 'Only once.');
+    const before = (await api.creditsTemplates()).length;
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(save).toHaveBeenCalledTimes(1);
+    answers[0]!();
+    await waitFor(async () => expect((await api.creditsTemplates()).length).toBe(before + 1));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((await api.creditsTemplates()).filter((template) => template.body === 'Only once.')).toHaveLength(1);
+  });
+
   it('a pick between the save landing and the list being read again still asks (#3461 B2)', async () => {
     const { api } = renderPanel();
     const release = deferSave(api);
