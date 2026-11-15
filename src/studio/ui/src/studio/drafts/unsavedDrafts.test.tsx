@@ -181,8 +181,9 @@ describe('the unsaved-drafts registry', () => {
             }),
         );
         const lateFailure = vi.fn();
+        const lateSuccess = vi.fn();
         const { result } = setup({ a: draft({ save }) });
-        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateFailure }));
+        act(() => result.current.setShell({ ask: (run) => run(), go: () => {}, lateFailure, lateSuccess }));
         let stuck!: Promise<SaveResult>;
         act(() => {
           stuck = result.current.save();
@@ -198,6 +199,8 @@ describe('the unsaved-drafts registry', () => {
           await vi.advanceTimersByTimeAsync(10);
         });
         expect(lateFailure).toHaveBeenCalledTimes(discarded ? 0 : 1);
+        // A failure is not a landing: the slow-save message must not be taken away by it (#3491 PB-2b).
+        expect(lateSuccess).not.toHaveBeenCalled();
       } finally {
         vi.useRealTimers();
       }
