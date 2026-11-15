@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -320,5 +321,36 @@ func TestAChapterLinkChangedByHandSendsChapterSyncState(t *testing.T) {
 	case <-syncs:
 		t.Fatal("a refused link sent chaptersync:state")
 	default:
+	}
+}
+
+// #3416: two link changes in quick succession leave the UI on the last one: the emits are serialised, so a read made before the second change cannot be sent after it.
+func TestQuickLinkChangesLeaveChapterSyncStateOnTheLastOne(t *testing.T) {
+	for round := 0; round < 25; round++ {
+		host, ids := newTestHostForChapterMatch(t)
+		var mu sync.Mutex
+		var last chapterSyncState
+		host.mu.Lock()
+		host.chapterSyncEvents = func(state chapterSyncState) {
+			mu.Lock()
+			last = state
+			mu.Unlock()
+		}
+		host.mu.Unlock()
+		if _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackII); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := host.ChapterTrackUnlink(ids[1]); err != nil {
+			t.Fatal(err)
+		}
+		host.chapterSyncEmits.Wait()
+		mu.Lock()
+		for _, chapter := range last.Chapters {
+			if chapter.ChapterID == ids[1] && chapter.TrackGUID != "" {
+				mu.Unlock()
+				t.Fatalf("round %d: the last chaptersync:state still lists a link for the cleared chapter: %+v", round, chapter)
+			}
+		}
+		mu.Unlock()
 	}
 }
