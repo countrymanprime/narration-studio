@@ -1,7 +1,7 @@
 // Every hint popup (a tooltip, or the popup behind an info icon) carries this attribute, so a dialog can tell that Escape
 // is meant for the hint that is showing and not for the dialog it sits in.
 export const HINT_POPUP_ATTRIBUTE = 'data-hint-popup';
-export const HINT_POPUP_SELECTOR = `[${HINT_POPUP_ATTRIBUTE}]`;
+const HINT_POPUP_SELECTOR = `[${HINT_POPUP_ATTRIBUTE}]`;
 
 // The control each tooltip belongs to, so a dialog can tell whose Escape it is: a tooltip left over from the control that opened the dialog (it stays in the page about
 // 90 ms (measured) after focus moves away) is behind the dialog and does not take the dialog's Escape; one on a control inside the dialog does (#3500).
