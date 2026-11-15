@@ -50,7 +50,7 @@ const EXEMPT: Record<string, string> = {
   'schedule/MilestoneTable.tsx': BLUR,
   'script/bookmarks/ui/BookmarkEditor.tsx': 'a popover that saves label and note when a field loses focus or the popover closes',
   'script/page/rail/threads/NoteTextarea.tsx': INSIDE,
-  'script/page/tools/select/MarkComposer.tsx': MODAL,
+  'script/page/tools/select/MarkComposer.tsx': MODAL_ASKS,
   'script/page/tools/select/MarksDialog.tsx': MODAL,
   'script/page/tools/speaker/SpeakerPicker.tsx': PICKER,
   'settings/DeliveryProfileEditor.tsx': MODAL_ASKS,
@@ -70,9 +70,6 @@ const EXEMPT: Record<string, string> = {
 // entries here and lists the controls that replace them in HOLDER_REPLACED_BY. The map is empty when the last screen is in.
 const SCREEN = (screen: string) => `joins the registry in the ${screen} change of #3400; until then leaving it still drops the text`;
 const PENDING: Record<string, string> = {
-  'script/page/rail/threads/MessageEditor.tsx': SCREEN('Script'),
-  'script/page/rail/threads/NoteCard.tsx': SCREEN('Script'),
-  'script/page/rail/words/WordCard.tsx': SCREEN('Script'),
   'settings/CreditsPanel.tsx': SCREEN('Credits'),
 };
 const DECIDED: Record<string, string> = { ...EXEMPT, ...PENDING };
@@ -216,6 +213,8 @@ describe('a link inside a dialog that opens over every page is a GuardedLink (#3
 // lists here the controls that replace it, and each of those must ask through `useGuardedAction` at the call the pattern names. A new holder cannot be added
 // without listing what replaces it, and a listed control cannot lose its question without this failing. The screens add their holders as they join.
 type Replacer = { file: string; control: string; asks: RegExp };
+const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
+const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
 const STORY_BIBLE_DETAIL: Replacer[] = [
   { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string, after\?: \(\) => void\) =>\s*guarded\(/ },
   { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
@@ -244,6 +243,16 @@ const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
   'storybible/Relationships.tsx': STORY_BIBLE_DETAIL,
   'storybible/VoiceReferencesSection.tsx': STORY_BIBLE_DETAIL,
   'storybible/suggested/row/SuggestionRow.tsx': STORY_BIBLE_DETAIL,
+  'script/page/rail/threads/MessageEditor.tsx': [
+    RAIL_TABS,
+    { file: 'script/page/rail/threads/ThreadsTab.tsx', control: 'editing another message', asks: /onEdit: \(id, index\) => guarded\(/ },
+  ],
+  'script/page/rail/threads/NoteCard.tsx': [RAIL_TABS, RAIL_LOOKUP],
+  'script/page/rail/words/WordCard.tsx': [
+    RAIL_TABS,
+    RAIL_LOOKUP,
+    { file: 'script/page/rail/words/WordsTab.tsx', control: 'another word in the chapter list', asks: /word !== row\.key && guarded\(/ },
+  ],
 };
 
 // Every call that selects a note or opens a chapter on the Proof page replaces the Inspector, and with it a note typed there. The calls that do not ask are named here,
@@ -297,6 +306,29 @@ describe('a control on the page that replaces a draft holder asks first (#3404)'
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// What shows in the Script rail is changed through `useShowInRail` (which asks), the tab strip or the word list (which ask themselves); a file that writes the tab,
+// word or entry to the view store directly would skip the question (#3404).
+const RAIL_VIEW_WRITE = /\b(?:update|updateView)\(\{[^}]*\b(?:tab|word|entryId)\b/;
+const RAIL_WRITE_EXEMPT: Record<string, string> = {
+  'script/page/layout/RailPanel.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/words/WordsTab.tsx': 'asks through useGuardedAction (listed above)',
+  'script/page/rail/bible/BibleTab.tsx':
+    'picks an entry on the Story Bible tab, whose cards hold no typed text: the Words and Notes cards are not mounted there',
+};
+describe('the Script rail view is written through the question (#3404)', () => {
+  test('no file writes the rail tab, word or entry to the view store without asking', () => {
+    const writers = files(join(components, 'script'), /\.tsx?$/)
+      .filter((path) => !SKIPPED_NAV.test(path))
+      .filter((path) => RAIL_VIEW_WRITE.test(code(readFileSync(path, 'utf8'))))
+      .map(key);
+    expect(
+      writers.filter((name) => !(name in RAIL_WRITE_EXEMPT)),
+      'use useShowInRail (script/page/data/useShowInRail.ts)',
+    ).toEqual([]);
+    expect(Object.keys(RAIL_WRITE_EXEMPT).filter((name) => !writers.includes(name))).toEqual([]);
   });
 });
 
@@ -377,5 +409,21 @@ describe('an unsaved-drafts spec answers the question through pressOnQuestion (#
           .map(({ index }) => `${name}:${index + 1}`);
       });
     expect(offenders, "use pressOnQuestion(page, key) from helpers/questionKey.ts, or state the target on the line before: '// key: a text field'").toEqual([]);
+  });
+});
+
+// Every way the Script page sends the reader somewhere (`pendingJump`, `pendingPid`) changes the chapter in view and with it what the Notes rail shows, so each asks while a
+// reply, an edit or a pronunciation is held. A new producer fails here until it asks or is listed (#3458, qa-breaker).
+describe('every Script jump asks while a draft is held (#3458)', () => {
+  const source = code(readFileSync(join(components, 'script/page/ScriptPage.tsx'), 'utf8'));
+  test('the writers of pendingJump and pendingPid are the reviewed ones', () => {
+    const writers = [...source.matchAll(/pending(?:Jump|Pid):\s*(?!\s|null)/g)].length;
+    // showMark (asks through useShowInRail), goToChapter, goToLink (two), the Notes rail's Show in text, and nothing else.
+    expect(writers).toBe(5);
+  });
+  test('goToChapter, goToLink and the Show in text of another chapter go through guarded', () => {
+    expect(source).toMatch(/goToChapter = useCallback\(\(chapterId: string\) => guarded\(/);
+    expect(source).toMatch(/goToLink = useCallback\([\s\S]*?guarded\(\(\) => update\(paragraphId/);
+    expect(source).toMatch(/else guarded\(move\)/);
   });
 });

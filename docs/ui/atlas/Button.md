@@ -143,7 +143,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/script/dictionaryInstall.tsx`
 - `src/components/script/page/chapters/CreditsSection.tsx`
 - `src/components/script/page/layout/SkipToRail.tsx`
-- `src/components/script/page/rail/threads/MessageEditor.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
 - `src/components/script/page/rail/threads/ThreadsTab.tsx`
 - `src/components/script/page/rail/words/DefinitionBlock.tsx`
