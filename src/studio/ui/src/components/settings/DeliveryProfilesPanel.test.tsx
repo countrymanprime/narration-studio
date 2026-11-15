@@ -52,20 +52,23 @@ describe('the delivery profile editor over a save that never answers', () => {
   type Save = ReturnType<typeof createMockApi>['deliverySaveProfile'];
   const openEditor = async (save: (change: Parameters<Save>[0], real: Save) => ReturnType<Save>) => {
     const api = createMockApi({}, { deliveryProfile: 'custom' });
+    const notify = vi.fn();
+    // A second custom profile, a copy of the built-in ACX one.
+    await api.deliveryDuplicateProfile('acx', '2026-09');
     const real = api.deliverySaveProfile.bind(api);
     const spy = vi.spyOn(api, 'deliverySaveProfile').mockImplementation((change) => save(change, real));
     render(
       <ApiProvider api={api}>
         <UnsavedDraftsProvider>
           <TooltipProvider>
-            <Harness notify={vi.fn()} />
+            <Harness notify={notify} />
           </TooltipProvider>
         </UnsavedDraftsProvider>
       </ApiProvider>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: /^Edit / }));
+    fireEvent.click((await screen.findAllByRole('button', { name: /^Edit / }))[0]!);
     const dialog = await screen.findByRole('dialog');
-    return { api, dialog, spy, real, name: within(dialog).getByLabelText('Name') as HTMLInputElement };
+    return { api, dialog, spy, real, notify, name: within(dialog).getByLabelText('Name') as HTMLInputElement };
   };
 
   it('text typed while the save is out is kept when the save succeeds: the editor stays open on it (#3461 round 7 BR1)', async () => {
@@ -123,5 +126,44 @@ describe('the delivery profile editor over a save that never answers', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     answer();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('a profile list read that fails after a good save says so, and the row shows the saved revision (#3461 round 9)', async () => {
+    const { api, dialog, name, notify } = await openEditor((change, real) => real(change));
+    const before = (await api.deliveryProfiles()).profiles.find((profile) => !profile.builtIn)!;
+    vi.spyOn(api, 'deliveryProfiles').mockRejectedValue(new Error('The host could not list them.'));
+    fireEvent.change(name, { target: { value: 'Tighter peak' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        expect.stringContaining('The delivery profiles could not be read: The host could not list them.'),
+        'error',
+        expect.anything(),
+      ),
+    );
+    // The row is not left on the old name and revision.
+    expect(screen.getByText('Tighter peak')).toBeTruthy();
+    expect(before.name).not.toBe('Tighter peak');
+  });
+
+  it("one profile whose save never answered does not hold another profile's Save (#3461 round 9)", async () => {
+    let calls = 0;
+    const { dialog, name, spy } = await openEditor((change, real) => (++calls === 1 ? new Promise(() => {}) : real(change)));
+    fireEvent.change(name, { target: { value: 'First profile renamed' } });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await act(async () => {});
+    await act(async () => void vi.advanceTimersByTime(15_001));
+    vi.useRealTimers();
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Discard changes' })).toHaveProperty('disabled', false));
+    // Close the first editor and save the other profile.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Discard changes' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getAllByRole('button', { name: /^Edit / })[1]!);
+    const second = await screen.findByRole('dialog');
+    fireEvent.change(within(second).getByLabelText('Name'), { target: { value: 'Second profile renamed' } });
+    fireEvent.click(within(second).getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
   });
 });
