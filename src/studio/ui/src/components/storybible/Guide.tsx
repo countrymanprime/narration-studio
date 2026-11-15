@@ -39,6 +39,7 @@ import { SortMenu } from './SortMenu';
 import { FilterChips, FilterMenu, NO_FILTER, type FilterChoice, type FilterCounts } from './FilterMenu';
 import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
+import { moreActionsButton } from './moreActionsButton';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
 import { SuggestionList } from './suggested/row/SuggestionList';
@@ -546,7 +547,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
           types={types}
           player={samplePlayer}
           // Opened from a menu item, which closed with its menu: the More actions button is where the narrator was (#3416).
-          returnFocus={() => document.querySelector<HTMLElement>('main button[aria-label="More actions"]')}
+          returnFocus={moreActionsButton}
         />
         <SamplePlayerAnnouncement text={samplePlayer.announcement} />
       </div>
