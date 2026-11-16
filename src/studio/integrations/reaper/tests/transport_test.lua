@@ -79,7 +79,7 @@ H.test('arm_lane may arm while REAPER plays: the Booth chooses a voice during pl
   H.eq(s:events()[1][1], 'ARMED')
 end)
 
-H.test('a refused press gives the narrator\'s arms back: record_stop after a record_start refused over a playing REAPER restores them', function()
+H.test('a refused press gives the arms back: record_stop after a record_start refused over a playing REAPER restores them', function()
   local s, chapter, other = new_session()
   other.armed = true
   s:send('arm_only', 'a1', chapter.guid)
@@ -93,6 +93,22 @@ H.test('a refused press gives the narrator\'s arms back: record_stop after a rec
   H.eq(arms(s), { 0, 1, 0 })
   s:send('record_stop', 's2')
   H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('after a refused press, even a paused one, the arms come back but an arm the narrator set meanwhile is kept', function()
+  local s, chapter, other = new_session()
+  local third = s.fake:add_track('Third')
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  s.fake.play_state = 2
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  third.armed = true
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 0, 1, 0, 1 })
+  H.eq(third.armed, true)
 end)
 
 H.test('record_stop with no recording of ours leaves the arms alone while REAPER records a take of the narrator', function()

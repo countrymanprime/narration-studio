@@ -464,8 +464,8 @@
   {
     "name": "record_stop stops a recording the app did not start",
     "file": "narration_transport.lua",
-    "find": "  if not state.recording then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
-    "replace": "  if false then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+    "find": "  if not state.recording then\n    -- A press that armed",
+    "replace": "  if false then\n    -- A press that armed"
   },
   {
     "name": "an arm the narrator changed during the take is overwritten",
