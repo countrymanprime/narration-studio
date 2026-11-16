@@ -154,11 +154,12 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
         const marks = marked.value.id;
         const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
-          // The take goes first: while the DAW keeps it, its pickups stay recorded.
-          const take = undoTake ? await undoTake() : null;
-          if (take && !take.ok) return take;
+          // The marks come first, then the take: the take's entry is a DAW one, which the journal only takes back while it is the newest, and the marks were written after it
+          // (a take undone first was refused with "Undo '1 pickup marked recorded' first", #3529).
           const undone = await journal.undo(marks);
-          return undone.ok ? { ok: true } : undone;
+          if (!undone.ok) return undone;
+          const take = undoTake ? await undoTake() : null;
+          return take && !take.ok ? take : { ok: true };
         };
         overlay.toastUndo(text, undo, { entry: entry ?? marks, survivesMoves });
       }

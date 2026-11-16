@@ -90,11 +90,12 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       const withTake = !saidSaved && undoTake;
       const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
       const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
-        // The take goes first when this toast is the one that said it is saved.
-        const take = withTake ? await undoTake() : null;
-        if (take && !take.ok) return take;
+        // The lines come first, then the take when this toast is the one that said it is saved: the take's entry is a DAW one, which the journal only takes back while it is the newest,
+        // and the lines were written after it (#3529).
         const undone = await journal.undo(journalEntry);
-        return undone.ok ? { ok: true } : undone;
+        if (!undone.ok) return undone;
+        const take = withTake ? await undoTake() : null;
+        return take && !take.ok ? take : { ok: true };
       };
       if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry, survivesMoves });
       else overlay.toastUndo(text, undo, { entry: journalEntry, survivesMoves });

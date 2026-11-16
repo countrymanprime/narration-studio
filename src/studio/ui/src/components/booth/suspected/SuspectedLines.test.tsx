@@ -224,6 +224,30 @@ describe('suspected lines feed Pickups', () => {
     expect(review).toHaveBeenLastCalledWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v2', status: 'unreviewed', note: '' });
   });
 
+  // #3529 (ux-reviewer): with the take's DAW entry in the real journal, the lines (written after it) must be taken back first, or the journal refuses the take ("Undo '...' first").
+  it('with the take in the real journal, the toast Undo takes the lines back and then the take', async () => {
+    const { review, wrapper, accepted } = host();
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
+    const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const inJournal = ({ children }: { children: ReactNode }) => wrapper({ children: <StudioProvider journal={journal}>{children}</StudioProvider> });
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper: inJournal });
+    const take = await journal.act<null>({
+      label: 'Recorded a take of Chapter 1',
+      touches: ['takes'],
+      daw: true,
+      run: async () => ({ ok: true, value: null }),
+      undo: async () => ({ ok: true, value: null }),
+    });
+    if (!take.ok) throw new Error('no entry');
+    await act(async () => {
+      await result.current.takeStopped({ ...read('p9'), undoTake: () => journal.undo(take.value.id), entry: take.value.id });
+    });
+    expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
+    expect(await toastUndo.mock.calls[0][1]()).toEqual({ ok: true });
+    expect(review).toHaveBeenLastCalledWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v2', status: 'unreviewed', note: '' });
+    expect(await journal.entries()).toEqual([]);
+  });
+
   it('a take that read over a flagged place adds a Speech pickup with Undo', async () => {
     const { review, wrapper, accepted } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
@@ -243,8 +267,8 @@ describe('suspected lines feed Pickups', () => {
     expect(accepted.size).toBe(0);
   });
 
-  it('with a DAW take, the toast that says the take is saved undoes the take first; a refusal leaves the lines', async () => {
-    const { review, wrapper, accepted } = host();
+  it('with a DAW take, the toast that says the take is saved takes the lines back first and then the take; the DAW refusing its take is said (#3529)', async () => {
+    const { wrapper, accepted } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
     const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper });
     const refusedTake = vi.fn(async () => ({ ok: false as const, refusal: { code: 'daw-last-action', reason: 'not the last action' } }));
@@ -253,8 +277,9 @@ describe('suspected lines feed Pickups', () => {
     });
     expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function), { entry: 3 });
     expect(await toastUndo.mock.calls[0][1]()).toEqual({ ok: false, refusal: { code: 'daw-last-action', reason: 'not the last action' } });
-    expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
-    expect(review).toHaveBeenCalledTimes(1);
+    // The lines go first: the take's DAW entry can only be taken back while it is the newest, and the lines were written after it. The refusal of the take is said.
+    expect(refusedTake).toHaveBeenCalledTimes(1);
+    expect([...accepted]).toEqual([]);
   });
 
   it('with a DAW take but another toast already saying it is saved, this Undo leaves the take alone', async () => {
