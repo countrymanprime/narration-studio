@@ -75,6 +75,8 @@ So the isolation and a focus compose: the isolation remembers the focus's state 
 
 ## Pending with the owner
 
+- **The 2000-track run is a manual release step.** It stays behind `NARRATION_CI_FOLLOW_LARGE=1` (about ten minutes, longer than the Windows job's 1200 s limit) and is run by hand before each release, not on every pull request.
+
 - Windows and the owner's audio device: every row ran on Linux with a JACK dummy device and a 640 x 480 virtual screen. The vertical scroll, the zoom margin and the timings on the narrator's own window size and screen are not measured.
 - A chapter taller than the track area (several voices), a chapter in a nested folder, and tracks with items, FX or envelopes in the timing projects.
 - What the narrator sees and hears: the flicker, if any, of the view following a chapter, and whether a 43 s stall on 2000 tracks is the same on the narrator's machine.
