@@ -1,4 +1,5 @@
 import type { WordFx } from '../../../api/contracts/wordFx';
+import { SavedProjectChip } from '../../chapterTracks/SavedProjectChip';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -582,6 +583,7 @@ export function EditingBody(props: EditingBodyProps) {
               status={
                 <>
                   {props.dawIndicator}
+                  <SavedProjectChip />
                   {chapterLink.indicator}
                 </>
               }
