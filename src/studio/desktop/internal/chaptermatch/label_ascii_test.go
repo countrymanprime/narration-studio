@@ -45,3 +45,10 @@ func TestLabelTokensOfAnASCIILabelDoNotBuildTheAccentTransform(t *testing.T) {
 		t.Fatalf("an accented label built %d accent transforms, want 1", built)
 	}
 }
+
+// BenchmarkLabelTokensASCII is the number behind #3560's ChapterSyncState figure: chapter sync tokenizes every title and track name once per pair.
+func BenchmarkLabelTokensASCII(b *testing.B) {
+	for b.Loop() {
+		LabelTokens("Chapter 12: The Mad Tea-Party")
+	}
+}
