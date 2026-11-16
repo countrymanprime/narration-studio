@@ -46,8 +46,8 @@ export function MwKeyBody() {
       announceKeyChanged();
     });
   const save = useSharedSave(saveNow);
-  // A key pasted and not yet saved is held text: leaving the page asks first (#3400).
-  useUnsavedDraft('mw-key', { dirty: draft.trim() !== '', label: 'the key you pasted', save, discard: () => setDraft('') });
+  // A key entered and not yet saved is held text: leaving the page asks first (#3400).
+  useUnsavedDraft('mw-key', { dirty: draft.trim() !== '', label: 'the key you entered', save, discard: () => setDraft('') });
   const remove = () =>
     run('remove', async () => {
       await port.pronunciationOnlineKeyClear();

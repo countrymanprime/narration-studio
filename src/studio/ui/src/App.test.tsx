@@ -1746,7 +1746,7 @@ describe('App Back and Forward', () => {
       },
       'a pasted Merriam-Webster key': {
         hold: async () => void (await openKeyBox()),
-        question: async () => screen.findByText('Save or discard the key you pasted before leaving?'),
+        question: async () => screen.findByText('Save or discard the key you entered before leaving?'),
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
         stillHeld: () => expect(pastedKey()).toBe('pasted-key-123'),
         page: '/settings',
@@ -1962,7 +1962,7 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       headerSwitch();
       const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
-      expect(within(question).getByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(within(question).getByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
       await screen.findByRole('heading', { name: 'Choose your project' });
       expect(pronunciationOnlineKeySet).toHaveBeenCalledWith('pasted-key-123');
@@ -1973,12 +1973,12 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       const categories = screen.getByRole('navigation', { name: 'Settings categories' });
       fireEvent.click(within(categories).getByRole('button', { name: /^Appearance & keys/ }));
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
       fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'k' } });
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
@@ -1988,7 +1988,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
       const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
       fireEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
       await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
       expect(pronunciationOnlineKeySet).not.toHaveBeenCalled();
@@ -2178,7 +2178,7 @@ describe('App Back and Forward', () => {
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(search.value).toBe('にほ');
       fireEvent.compositionEnd(search);
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(search.value).toBe('');
