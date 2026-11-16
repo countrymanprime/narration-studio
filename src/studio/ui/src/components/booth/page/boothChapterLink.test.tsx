@@ -212,12 +212,32 @@ describe('an unlinked chapter in the Booth', () => {
   // #3368: the Engine says "Track missing" for a link to a track the project no longer has; the Booth said "Not linked to a track".
   it('a chapter whose linked track is gone says so, not that it is not linked', async () => {
     renderUnlinked({
-      readAloudReaperState: async () => ({ ...UNLINKED, reason: 'track_missing', message: 'The track linked to "Chapter 1" is no longer in the REAPER project.' }),
+      readAloudReaperState: async () => ({
+        ...UNLINKED,
+        reason: 'track_missing',
+        message: 'The track linked to "Chapter 1" is no longer in the REAPER project.',
+      }),
     } as Partial<NarrationApi>);
     expect(await screen.findByRole('dialog', { name: /’s track is not in the project$/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Track missing. Show details', hidden: true })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Not linked to a track. Show details', hidden: true })).toBeNull();
   });
+
+  it.each([
+    ['flat', 'track', 'Track missing'],
+    ['folders', 'folder', 'Folder missing'],
+  ] as const)(
+    'a missing link in a %s project: footer, chip and setup chip say the %s is not in the project, never that there is none',
+    async (layout, noun, chip) => {
+      renderUnlinked({ readAloudReaperState: async () => ({ ...UNLINKED, reason: 'track_missing', message: 'gone' }) } as Partial<NarrationApi>, layout);
+      await screen.findByRole('dialog');
+      const why = document.getElementById('brec-why')?.textContent ?? '';
+      expect(why).toContain(`${noun} is not in the project`);
+      expect(why).not.toContain(`has no ${noun}`);
+      expect(screen.getByRole('button', { name: `${chip}. Show details`, hidden: true })).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Recording setup: REAPER, ${chip.toLowerCase()}`, hidden: true })).toBeTruthy();
+    },
+  );
 });
 
 describe('every other press that cannot start a take is said in front of the narrator', () => {

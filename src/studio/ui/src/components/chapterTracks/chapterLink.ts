@@ -43,7 +43,9 @@ export function linkStateOf(link: ChapterLink, trackExists: boolean): ChapterLin
 
 /** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. */
 export function linkStateLabel(state: ChapterLinkState, folders: boolean): string {
-  return state === 'several' && folders ? 'Several folders' : LINK_STATE_LABEL[state];
+  if (folders && state === 'several') return 'Several folders';
+  if (folders && state === 'missing') return 'Folder missing';
+  return LINK_STATE_LABEL[state];
 }
 
 const MAX_WHY = 200;

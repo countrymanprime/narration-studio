@@ -6,7 +6,11 @@ import { DAW_ANSWERS, DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw'
 import type { NarrationApi } from '../../../types';
 
 // The host's sentences for a chapter with no track and one with several, as the host words them (DAW_ANSWERS.noTrack is the fixture's own).
-export const REFUSALS = { none: DAW_ANSWERS.noTrack, several: 'More than one track is linked to this chapter in REAPER.', missing: 'The track linked to this chapter is no longer in the REAPER project.' };
+export const REFUSALS = {
+  none: DAW_ANSWERS.noTrack,
+  several: 'More than one track is linked to this chapter in REAPER.',
+  missing: 'The track linked to this chapter is no longer in the REAPER project.',
+};
 
 export const setupCapabilities = (id: DawSetupId): DawCapabilities => DAW_SETUPS[id];
 export const dawClientFor = (id: DawSetupId, chapterIds: readonly string[] = ['c1']) =>

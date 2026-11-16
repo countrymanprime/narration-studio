@@ -334,7 +334,8 @@ export function useRecordControl({
   }, [recording, project?.playState, inApp]);
   // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
   const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
-  const refusedForChapter = takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
+  const refusedForChapter =
+    takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
   useEffect(() => {
     const again = () => setReads((n) => n + 1);
