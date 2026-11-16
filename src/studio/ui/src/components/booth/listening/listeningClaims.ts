@@ -43,6 +43,12 @@ export const ownsListening = (claim: ListeningClaim | null): boolean => {
   return claim !== null && live[live.length - 1]?.claim === claim;
 };
 
+/** True when some press or cold read holds a claim on the session. */
+export const hasListeningClaim = (): boolean => {
+  prune();
+  return live.length > 0;
+};
+
 /** True when `claim` owned the session: the caller stops it now. Every older claim ended with it (the session they meant is gone). */
 export const releaseListening = (claim: ListeningClaim | null): boolean => {
   if (!ownsListening(claim)) return false;

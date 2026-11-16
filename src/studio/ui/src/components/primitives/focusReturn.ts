@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { recentDialogTarget } from './dialogClosed';
 
 // Where focus goes when a panel that stays mounted (a drawer, opened and closed through `open`) closes: the element that had
 // focus when it opened, or, when that element is gone (the click removed it, or the layout changed), into the page's <main>
@@ -6,16 +7,27 @@ import { useEffect, useRef } from 'react';
 // `Dialog` mounts fresh each time and captures its opener when it mounts, so it has its own copy of the same rule.
 export function useReturnFocusTarget(open: boolean, fallback?: () => HTMLElement | null): () => HTMLElement | boolean {
   const opener = useRef<HTMLElement | null>(null);
+  // The place a dialog that closed as this opened was handing focus back to: this panel's opener is a control inside that dialog, which goes with it.
+  const fromDialog = useRef<(() => HTMLElement | null) | null>(null);
   useEffect(() => {
     // Runs right after the panel opens, before the library moves focus into it (it does that a frame later).
-    if (open) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (open) {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      fromDialog.current = recentDialogTarget();
+    }
   }, [open]);
   return () => {
     const element = opener.current;
-    if (element?.isConnected && element !== document.body) return element;
+    // <main> as the opener (a key or a command with focus on the landmark) is focused here too: handed to Base UI it picks the header's first button (#2902).
+    if (element?.isConnected && element !== document.body) return element.tagName === 'MAIN' ? handFocusToPage() : element;
+    // What the caller names comes first: it knows the place this panel was opened for; the dialog that closed a moment ago may have been another one's.
     const elsewhere = fallback?.();
-    if (elsewhere?.isConnected) return elsewhere;
-    return document.querySelector<HTMLElement>('main') ?? true;
+    // The page's landmark named as the place (the jump menu's hand-back is <main>): focused here, since Base UI handed <main> picks the header's first button (#2902).
+    if (elsewhere?.isConnected) return elsewhere.tagName === 'MAIN' ? handFocusToPage() : elsewhere;
+    const where = fromDialog.current?.();
+    if (where?.isConnected && where.tagName !== 'MAIN') return where;
+    // <main> is focusable but not tabbable, so handed to Base UI it would pick the header's first button (#2902): focus it ourselves.
+    return handFocusToPage();
   };
 }
 
@@ -39,4 +51,34 @@ export function escapeClosesPanel(close: () => void, opener: () => HTMLElement |
     close();
     opener()?.focus();
   };
+}
+
+/** The page's <main> that can take focus: the first not inside an inert subtree (the Companion's shell is inert behind its own page, which has its own <main>). */
+function pageMain(): HTMLElement | null {
+  return [...document.querySelectorAll<HTMLElement>('main')].find((main) => !main.closest('[inert]')) ?? null;
+}
+
+/**
+ * Focuses the page's <main> (focusable, not tabbable, so handed to Base UI as a target it would pick its first tabbable, the header's button). The one place
+ * the Booth's voice hand-offs do it; false when the page has no <main>.
+ */
+export function focusPageMain(): boolean {
+  const page = pageMain();
+  // A landmark with no tab index (a page's own <main>) cannot take focus until it has one; -1 keeps it out of the Tab order.
+  if (page && !page.hasAttribute('tabindex')) page.setAttribute('tabindex', '-1');
+  page?.focus({ preventScroll: true });
+  return !!page;
+}
+
+/**
+ * For a popup that closes on a pick: hands focus to the page's <main> a tick after it has gone, unless the pick already put focus somewhere (a dialog it
+ * opened). Returns what Base UI's `finalFocus` expects. `Dialog` keeps its own opener-first rule above this one.
+ */
+export function handFocusToPage(): boolean {
+  if (!pageMain()) return true;
+  window.setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || active === document.body || !active.isConnected) focusPageMain();
+  }, 0);
+  return false;
 }

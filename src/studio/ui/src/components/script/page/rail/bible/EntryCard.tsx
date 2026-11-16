@@ -73,7 +73,9 @@ export function EntryCard({
   return (
     <article aria-label={entry.canonical_name} className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <h3 className="m-0 min-w-0 truncate text-[1rem] font-semibold">{entry.canonical_name}</h3>
+        <h3 className="m-0 min-w-0 truncate text-[1rem] font-semibold" title={entry.canonical_name}>
+          {entry.canonical_name}
+        </h3>
         <KindChip kind="entity" colour={colour} label={entry.category} shape="tag" className="shrink-0 whitespace-nowrap" />
         <StatusBadge tone="neutral" label={`first: ${first}`} className="shrink-0 whitespace-nowrap" />
         <span className="ml-auto flex gap-1">

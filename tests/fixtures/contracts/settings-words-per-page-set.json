@@ -15,6 +15,16 @@
         "unit": "words"
       },
       "value": "300"
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "true",
+      "isSet": false,
+      "key": "follow_chapter_in_daw",
+      "kind": "bool",
+      "label": "DAW follows the Booth’s chapter",
+      "value": ""
     }
   ]
 }

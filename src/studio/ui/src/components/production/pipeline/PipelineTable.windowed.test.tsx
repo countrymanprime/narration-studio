@@ -160,3 +160,29 @@ describe('PipelineTable with a long book (#1764)', () => {
     vi.unstubAllGlobals();
   });
 });
+
+// #3416 item 52 (qa-breaker): the row a panel was opened for stays drawn after the panel closes, until focus is back in the table; a row that left the list meanwhile
+// is not drawn again when it returns.
+describe('PipelineTable keepRowId', () => {
+  const drawn = (id: string) => Boolean(document.querySelector(`tbody tr[data-chapter-id="${id}"]`));
+  function tree(rows: ReturnType<typeof book>, keepRowId?: string) {
+    return (
+      <TooltipProvider>
+        <PipelineTable rows={rows} recommendations={new Map()} onGo={noop} notify={noop} onStatus={noop} keepRowId={keepRowId} />
+      </TooltipProvider>
+    );
+  }
+
+  it('draws the kept row far from the view, keeps it after the panel closes, and forgets a row that left the list', () => {
+    const all = book(5000);
+    const { rerender } = render(tree(all, 'c3000'));
+    expect(drawn('c3000')).toBe(true);
+    // The panel closes: the row stays drawn so the focus hand-back finds it.
+    rerender(tree(all));
+    expect(drawn('c3000')).toBe(true);
+    // The row leaves the list (removed from the recording), then comes back (Restore): it is not force-drawn again.
+    rerender(tree(all.filter((row) => row.id !== 'c3000')));
+    rerender(tree(all));
+    expect(drawn('c3000')).toBe(false);
+  });
+});

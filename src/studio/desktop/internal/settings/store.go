@@ -187,7 +187,8 @@ var builtinDefaults = map[string]Values{
 	// ACX's -23 to -18 dB RMS window for speech; the narrator sets their own.
 	"Editing": {"fx_cap_pct": "10", "replace_target_lufs": "-20"},
 	// Booth.words_per_page defaults to 250, the manuscript page most narrators and publishers quote.
-	"Booth": {"words_per_page": "250"},
+	// Booth.follow_chapter_in_daw defaults on: going to a chapter in the Booth also selects that chapter and its tracks in the DAW (#3427).
+	"Booth": {"words_per_page": "250", "follow_chapter_in_daw": "true"},
 }
 
 // Defaults returns the repo file's values for tool, with any key the file does

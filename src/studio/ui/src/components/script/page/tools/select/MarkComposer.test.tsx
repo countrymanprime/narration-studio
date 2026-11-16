@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { overlay } from '../../../../../overlay/overlayService';
 import { createMockApi } from '../../../../../api/mockApi';
 import type { NarrationApi } from '../../../../../types';
 import type { ReaderSelection } from '../../registry/contextProvider';
@@ -102,11 +103,47 @@ describe('a-query-needs-its-question', () => {
 });
 
 describe('focus-and-aria (composer)', () => {
-  it('is a named dialog and gives focus back to its opener on Cancel', async () => {
+  it('the footer button says Close while nothing is typed and Discard note once something is (#3400)', async () => {
+    await open('stress');
+    expect(screen.queryByRole('button', { name: 'Discard note' })).toBeNull();
+    await userEvent.type(await screen.findByRole('textbox', { name: /Note/ }), 'typed');
+    expect(screen.getByRole('button', { name: 'Discard note' })).toBeTruthy();
+  });
+
+  it('is a named dialog and gives focus back to its opener on Close', async () => {
     const { onClose } = await open('stress');
     expect(screen.getByRole('dialog', { name: 'Mark “Alice”' })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!);
     expect(onClose).toHaveBeenCalled();
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Mark it' })));
+  });
+});
+
+describe('leaving the composer with text typed (#3400, qa-breaker on #3458)', () => {
+  it('Escape asks, and Keep editing leaves the dialog and the text', async () => {
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
+    const { onClose } = await open('stress');
+    const field = await screen.findByRole('textbox', { name: /Note/ });
+    await userEvent.type(field, 'composer text');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard your note?' })));
+    expect(onClose).not.toHaveBeenCalled();
+    expect((screen.getByRole('textbox', { name: /Note/ }) as HTMLTextAreaElement).value).toBe('composer text');
+  });
+
+  it('the close button asks too, and Discard closes it', async () => {
+    vi.spyOn(overlay, 'confirm').mockResolvedValue(true);
+    const { onClose, dialog } = await open('stress');
+    await userEvent.type(await screen.findByRole('textbox', { name: /Note/ }), 'composer text');
+    await userEvent.click(within(dialog).getByRole('button', { name: /^Close/ }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('Escape with nothing typed closes at once, and the Discard note button is the narrator discarding', async () => {
+    const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(false);
+    const { onClose } = await open('stress');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

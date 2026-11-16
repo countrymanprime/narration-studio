@@ -130,6 +130,16 @@ describe('a pickup session in the Booth', () => {
     expect(within(card).getByText('Open')).toBeTruthy();
   });
 
+  // #3380: the script of a pickup row is clamped to three lines, so the whole line is its title.
+  it('gives a clamped pickup line its whole script as a title', async () => {
+    mount(host(LIST()), { ids: ['a', 'b', 'c'] });
+    await screen.findByText('Pickups · 3 open');
+    const card = (document.querySelector('[data-pj="a"]') as HTMLElement).closest('li') as HTMLElement;
+    const clamped = card.querySelector('.line-clamp-3') as HTMLElement;
+    expect(clamped.getAttribute('title')).toBe(clamped.textContent);
+    expect(clamped.getAttribute('title')).not.toBe('');
+  });
+
   it('n-goes-to-the-next-pickup-even-in-another-chapter: Shift+N back, wrapping', async () => {
     const { jumps } = mount(host(LIST()), { ids: ['a', 'c', 'd'] });
     await screen.findByText('Pickups · 3 open');
@@ -261,6 +271,38 @@ describe('a pickup session in the Booth', () => {
     });
     expect(h.items()[0].done).toBe(true);
     expect(toasts()).toEqual([]);
+  });
+
+  // #3529: Stop and leave says the take is saved and the pickups marked, with no Undo (its Undo path is #3545's), and the move to the page landed on does not take it away.
+  it('a-take-that-leaves-by-stop-and-leave-says-saved-with-no-undo-and-the-move-keeps-it', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a'] });
+    await screen.findByText('Pickups · 1 open');
+    await act(async () => {
+      await stop({ began: 0, stopped: 1, quiet: true, survivesMoves: 1 });
+    });
+    expect(h.items()[0].done).toBe(true);
+    const saved = () => overlay.getSnapshot().toasts.filter((item) => item.text === 'Take saved · 1 pickup marked recorded');
+    expect(saved()).toHaveLength(1);
+    expect(saved()[0].action).toBeUndefined();
+    act(() => overlay.dismissUndo());
+    expect(saved()).toHaveLength(1);
+  });
+
+  // #3529 (qa-breaker B1): with `later`, the sentence is raised when the page calls it (at the move), not while the marks are written.
+  it('a-take-that-leaves-by-stop-and-leave-raises-its-sentence-when-the-move-calls-for-it', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a'] });
+    await screen.findByText('Pickups · 1 open');
+    const held: (() => void)[] = [];
+    await act(async () => {
+      await stop({ began: 0, stopped: 1, quiet: true, survivesMoves: 1, later: (raise) => void held.push(raise) });
+    });
+    expect(h.items()[0].done).toBe(true);
+    expect(toasts()).toEqual([]);
+    expect(held).toHaveLength(1);
+    act(() => held[0]());
+    expect(toasts()).toEqual(['Take saved · 1 pickup marked recorded']);
   });
 
   it('done-writes-through-to-the-marker: both ways, and a refusal leaves the line open and says why', async () => {

@@ -77,6 +77,7 @@ var experimentalCommands = map[string]bool{
 	"stop_play":                  true,
 	"watch_transport":            true,
 	"arm_only":                   true,
+	"arm_lane":                   true,
 	"record_start":               true,
 	"record_stop":                true,
 	"switch_voice":               true,

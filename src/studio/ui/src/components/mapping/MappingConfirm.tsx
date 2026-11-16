@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { trackName } from '../tracks/trackName';
 import { Button } from '../primitives/Button';
-import { plainTrackChoices } from './trackChoices';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
+import { plainTrackChoices, type ChapterNameOf } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
 import type { Track, TrackMapping } from '../../types';
 
@@ -13,6 +15,8 @@ type Props = {
   links?: readonly TrackMapping[];
   /** The chapter being linked, so its own link is not a holder. */
   chapterId?: string;
+  /** Names a holder by the manuscript's current heading (`useChapterNameOf`); absent, the title the host kept. */
+  nameOf?: ChapterNameOf;
   /** The confirmed track's resolved name, when the link points at a track that still exists; omit it (leaving
    * `linkedTrackGuid` set) to show a missing-track state, or omit both to show nothing confirmed yet. */
   linkedTrackGuid?: string;
@@ -47,10 +51,11 @@ export function MappingConfirm({
   onClear,
   changeLabel = 'Change',
   clearLabel = 'Clear',
+  nameOf,
 }: Props) {
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
-  const choices = plainTrackChoices(tracks, links, chapterId);
+  const choices = plainTrackChoices(tracks, links, chapterId, nameOf);
   // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
   // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
   const initial = linkedTrackGuid ?? suggestedTrackGuid;
@@ -68,7 +73,11 @@ export function MappingConfirm({
   if (hasLink && !picking) {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm">{linkedTrackName ?? 'Linked track is missing from this project'}</span>
+        <span className="text-sm">
+          {linkedTrackName === undefined
+            ? 'Linked track is missing from this project'
+            : trackName(linkedTrackName, tracks.find((track) => track.guid === linkedTrackGuid)?.index)}
+        </span>
         <Button variant="secondary" onClick={() => setPicking(true)} disabled={busy}>
           {changeLabel}
         </Button>
@@ -90,7 +99,7 @@ export function MappingConfirm({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
-      <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
+      <Button ref={keepFocusOnRemoval} variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>
       {hasLink && (

@@ -210,6 +210,8 @@ export function createChapterTracksMock(
       };
     });
   const publishChapterSync = (state: ChapterSyncState) => chapterSyncSubscribers.forEach((fn) => fn(wireClone(state)));
+  // A link made, changed or cleared by hand moves chapter sync's counts and rows, so the state goes out as it does after a sync (#3416).
+  const publishLinksChanged = () => publishChapterSync(mockChapterSyncState(null));
   // A RecordingCoverage save the host's background loop reads at once: on or off, the notice answered, the model pair.
   const backgroundSettingsSaved = (tool: string, values: Record<string, string | null>) => {
     if (tool !== 'RecordingCoverage' || !Object.keys(values).some((key) => key.startsWith('background_'))) return;
@@ -279,6 +281,7 @@ export function createChapterTracksMock(
       const displaced = s.chapterTrackMappings.find((existing) => existing.trackGuid === trackGuid && existing.chapterId !== chapterId) ?? null;
       const link: TrackMapping = { trackGuid, chapterId, chapterTitle: title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
+      publishLinksChanged();
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
     },
     // ChapterTrackCreate (src/studio/desktop/chaptertrackcreate.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in
@@ -338,6 +341,7 @@ export function createChapterTracksMock(
         match: null,
       };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId), link];
+      publishLinksChanged();
       return wireClone({
         outcome: 'created' as const,
         documentId: mockDocumentId,
@@ -377,6 +381,7 @@ export function createChapterTracksMock(
       if (!s.chapters.some((candidate) => candidate.id === chapterId) && !CREDITS_CHECK_TITLE[chapterId])
         throw new Error('that chapter is not part of the current manuscript');
       s.chapterTrackMappings = s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId);
+      publishLinksChanged();
       return { documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) };
     },
     chapterTrackLinks: async () => {
@@ -470,7 +475,7 @@ export function createChapterTracksMock(
       return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, publishChapterSync, mockChapterSyncState, backgroundSettingsSaved };
+  return { bindings, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
 }
 
 /** The activity seed's Sync activity, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */

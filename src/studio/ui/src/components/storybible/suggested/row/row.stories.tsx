@@ -94,7 +94,7 @@ export const DuplicateFlag: Story = {
   }),
 };
 
-// Edit shows the editable text in an input with Save and accept and Cancel the edit.
+// Edit shows the editable text in an input with Save and accept and Discard edit.
 export const EditMode: Story = {
   render: row((s) => (s.payload.kind === 'alias' && s.status === 'needs-verification' && s.evidence.length > 0 ? s : undefined)),
   play: async ({ canvasElement }) => {

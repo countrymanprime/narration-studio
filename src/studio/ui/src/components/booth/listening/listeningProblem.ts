@@ -1,4 +1,4 @@
-import type { TeleprompterSession } from '../useTeleprompterSession';
+import { ACTIVE_PHASES, type TeleprompterSession } from '../useTeleprompterSession';
 
 type Session = Pick<TeleprompterSession, 'error' | 'canStart' | 'startReason' | 'device' | 'devicesLoading' | 'settingsLoaded'> & {
   /** The last start found the speech model missing and the question about it has been answered. */
@@ -19,7 +19,11 @@ const NO_MIC = 'Choose a microphone first.';
  * (the Booth starts listening first); a session that fails later leaves the take running. Nothing is said while the microphones and the saved choice are still being read.
  */
 export function listeningProblem(session: Session): string | undefined {
-  if (session.error) return `The text cannot follow your voice: ${session.error}`;
+  // A start refused because a session was already up, when none is up now, is old news (the session it met has ended): the page that adopted a take says
+  // what to do in its own sentence, and this line would only say something that is no longer true.
+  const staleRefusal =
+    /already running/i.test(session.error) && !!session.host && !ACTIVE_PHASES.includes(session.host.phase) && session.host.phase !== 'error';
+  if (session.error && !staleRefusal) return `The text cannot follow your voice: ${session.error}`;
   if (session.host?.phase === 'error')
     return `The text cannot follow your voice: ${session.host.message.trim() || 'the listening session ended with an error.'}`;
   if (session.modelMissing && !session.prompt && session.recording)

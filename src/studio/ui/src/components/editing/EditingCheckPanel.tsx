@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -130,13 +130,13 @@ function Results({
               <p>{row.text}</p>
               {row.classes.includes('silence') && row.count > 0 && (
                 <p>
-                  <Link
+                  <GuardedLink
                     className={`font-semibold underline ${HIT_AREA}`}
                     to={addressPath({ page: 'editing', chapter: chapterId, drawer: 'cleanup' })}
-                    onClick={close}
+                    onNavigate={close}
                   >
                     Clean up in Editing
-                  </Link>{' '}
+                  </GuardedLink>{' '}
                   <span style={{ color: 'var(--text-muted)' }}>to hear each candidate and trim, keep or skip it.</span>
                 </p>
               )}
@@ -172,10 +172,13 @@ export function EditingCheckPanel({
   size = 'default',
   onBack,
   backLabel = 'Back',
+  returnFocus,
 }: {
   chapter: ManuscriptChapter;
   notify: Notify;
   close: () => void;
+  /** Where focus goes on close when what opened it is gone (the Production row menu's item): the chapter's row. */
+  returnFocus?: () => HTMLElement | null;
   /** `wide` when the panel is opened from another wide slide-over (the audio engine panel), so it covers that panel whole instead of
    * cutting its cards in half (alignment audit ENX-10). */
   size?: 'default' | 'wide';
@@ -303,7 +306,7 @@ export function EditingCheckPanel({
   const stopped = job?.phase === 'cancelled' && job.chapterId === chapter.id;
 
   return (
-    <SlideOver open title={chapterName(chapter, context('Editing check'))} size={size} onClose={close}>
+    <SlideOver open title={chapterName(chapter, context('Editing check'))} size={size} onClose={close} returnFocus={returnFocus}>
       <div className="space-y-4 text-sm">
         {onBack && (
           <Button variant="secondary" size="sm" onClick={onBack}>
@@ -341,11 +344,12 @@ export function EditingCheckPanel({
             </p>
             <p>{sentenceStart(refusal.message)}</p>
             {refusal.reason === 'multiple_tracks' ? (
-              <EnginePanelLink />
+              <EnginePanelLink onOpen={close} />
             ) : (
               <ChapterTrackLinkFix
                 chapter={chapter}
                 notify={(text, tone) => (tone ? notify(text, tone) : notify(text))}
+                onNavigate={close}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();

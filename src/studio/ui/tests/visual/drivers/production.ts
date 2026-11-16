@@ -1,9 +1,11 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
 import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { MOCK_DAY } from '../lib/pinnedDay';
 import {
   type Driver,
   clickVisible,
+  onMockDay,
   confirmDialog,
   openEditingCheck,
   clickReplaceManuscript,
@@ -15,10 +17,6 @@ import {
   openTrackPanel,
   productionLoaded,
 } from './shared';
-
-// The mock's own day: the `?mockProduction=` seeds are dated against it and move to the real day when the app opens, so a state that
-// names a date (or counts days) reads the same on every run with the clock pinned here. The clock keeps ticking.
-const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
 const PIPELINE_ROWS = 'table[aria-label="Chapter pipeline"] tbody tr[data-chapter-id]';
 
@@ -170,10 +168,10 @@ export const productionDrivers: Record<string, Driver> = {
     await page.getByText('This page could not be loaded').waitFor();
     await page.getByRole('button', { name: 'Retry' }).waitFor();
   },
-  'no-data': async (page) => {
+  'no-data': onMockDay(async (page) => {
     await openProduction(page);
     await page.getByText('Set it on the Schedule').waitFor();
-  },
+  }),
   'on-pace': async (page) => {
     await page.clock.install({ time: MOCK_DAY });
     await openProduction(page, '?mockProduction=on-pace');

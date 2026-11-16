@@ -35,6 +35,11 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/App.tsx#1': no(BT),
+  'src/App.tsx#2': no(BT),
+  'src/App.tsx#3': no(BT),
+  'src/App.tsx#4': no(BT),
+  'src/App.tsx#5': no(BT),
   'src/components/production/report/ReportDialog.tsx#1': yes(
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
@@ -69,12 +74,12 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/source/PronunciationCandidates.tsx#1': yes(
     'Asking for the candidates again changes nothing; the toast carries Retry (added by the pronunciation rework).',
   ),
-  'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
-  'src/components/booth/voices/useBoothVoices.ts#5': no(RF),
-  'src/components/booth/voices/useBoothVoices.ts#6': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
-  'src/components/booth/voices/useBoothVoices.ts#7': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#5': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#6': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#7': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
   'src/components/booth/voices/useBoothVoices.ts#8': no(ED),
-  'src/components/booth/voices/useBoothVoices.ts#9': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#9': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#10': no(RF),
   'src/components/master/MasteringChain.tsx#2': no(BT),
   'src/components/layout/JumpMenu.tsx#1': no(
     'A search run as the narrator types: the next change of the query runs it again, and one toast per group replaces the last, so a Retry button would add nothing.',
@@ -97,26 +102,38 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   ),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
   'src/components/booth/page/useBoothPage.ts#3': no(RC),
-  'src/components/booth/page/useBoothPage.ts#4': no(
-    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
-  ),
-  'src/components/booth/page/useBoothPage.ts#5': no(RF),
-  'src/components/booth/page/useBoothPage.ts#6': no(
+  'src/components/booth/page/useBoothPage.ts#4': no(RF),
+  'src/components/booth/page/useBoothPage.ts#5': no(
     'Says that a take the narrator stopped while listening was still starting was kept without the text following it: nothing was lost and repeating changes nothing; Record is the control for the next take (#3321).',
   ),
-  'src/components/booth/page/useBoothPage.ts#7': yes(
+  'src/components/booth/page/useBoothPage.ts#6': yes(
     'Recording did not start because the text could not follow the voice and nothing was kept: Retry takes the same start again once the narrator has fixed the microphone or the model (there before this change).',
   ),
+  'src/components/booth/page/useBoothPage.ts#7': na(
+    'A status sentence, not a failed call: a roll the Booth stopped waiting for has landed and the narrator checks and stops the DAW there; the app does nothing to the DAW itself (#3409).',
+  ),
   'src/components/booth/page/useBoothPage.ts#8': no(
-    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+    'A roll that lands after its limit and was refused (#3409): a roll is a DAW edit that applies to the take as it is now, and R on the page is the control for the next try.',
   ),
   'src/components/booth/page/useBoothPage.ts#9': no(
-    'Ends a cold read whose model check never answered (#3321): the cold read toggle stays on the page for the next try.',
+    'Ends a roll the DAW never answered (#3409): the take may still be recording, and R on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
   'src/components/booth/page/useBoothPage.ts#10': no(
+    'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+  ),
+  'src/components/booth/page/useBoothPage.ts#11': no(
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#11': no(RC),
+  'src/components/booth/page/useBoothPage.ts#12': no(RC),
+  'src/components/booth/listening/useStopFailedSentence.ts#1': no(
+    'Says the microphone may still be open after the Booth was left with the stop refused (#3409): nothing on the page the narrator is on can stop that session, and a Retry from there could end a newer one; the sentence says to quit and reopen the app.',
+  ),
+  'src/components/booth/listening/useStopFailedSentence.ts#2': yes(
+    'Stopping the listening session again is safe because the Retry is checked against its session first: it sends nothing unless that session is still the one running, with no start or take since and the Booth still there; the toast carries Retry (#3409).',
+  ),
+  'src/components/booth/page/useBoothPage.ts#13': no(
+    "Says that a take left recording on purpose (Leave anyway) is not followed by the text (#3409): the take is the narrator's to end, Stop on the page is the control, and Record is the next try, so a Retry on the toast would be a second one.",
+  ),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),
@@ -130,9 +147,11 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     "The host's voice read changes nothing; Retry reads it again with the shared tracks (one toast for a run of failed reads).",
   ),
   'src/components/booth/voices/useBoothVoices.ts#2': no(RF),
-  'src/components/booth/voices/useBoothVoices.ts#3': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#3': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#4': no(ED),
   'src/components/credits/CreditsSetupBanner.tsx#1': no(BT),
   'src/components/credits/CreditsSetupDialog.tsx#1': no(BT),
+  'src/components/credits/CreditsSetupDialog.tsx#2': no(BT),
   'src/components/delivery/page/OutputPanel.tsx#1': yes('A build status read that went quiet: Check again reads the status again, which changes nothing.'),
   'src/components/delivery/page/OutputPanel.tsx#2': no(JM),
   'src/components/delivery/page/OutputPanel.tsx#3': no(BT),
@@ -303,12 +322,15 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/script/scriptPageHost.ts#1': yes('The definition source saves a value: Retry chooses the same source again (new in this change).'),
   'src/components/script/scriptPageHost.ts#2': no(BT),
   'src/components/script/scriptPageHost.ts#3': no(BT),
-  'src/components/settings/CreditsPanel.tsx#1': yes('Saving a credits template writes the same template again.'),
-  'src/components/settings/CreditsPanel.tsx#2': no(DS),
-  'src/components/settings/CreditsPanel.tsx#3': no(DS),
-  'src/components/settings/CreditsPanel.tsx#4': yes('Saving a credits value writes the same value again.'),
-  'src/components/settings/CreditsPanel.tsx#5': yes('Clearing the credits values writes the same empty values again.'),
+  'src/components/settings/CreditsPanel.tsx#1': yes('Reading the project values again asks the host the same question, and the toast carries that Retry.'),
+  'src/components/settings/CreditsPanel.tsx#2': yes('Reading the templates again asks the host the same question, and the toast carries that Retry.'),
+  'src/components/settings/CreditsPanel.tsx#3': yes('Saving a credits template writes the same template again.'),
+  'src/components/settings/CreditsPanel.tsx#4': no(DS),
+  'src/components/settings/CreditsPanel.tsx#5': no(DS),
+  'src/components/settings/CreditsPanel.tsx#6': yes('Saving a credits value writes the same value again.'),
+  'src/components/settings/CreditsPanel.tsx#7': yes('Clearing the credits values writes the same empty values again.'),
   'src/components/settings/DeliveryProfilesPanel.tsx#1': no(DS),
+  'src/components/settings/DeliveryProfilesPanel.tsx#2': yes('Reading the profiles again asks the host the same question, and the toast carries that Retry.'),
   'src/components/settings/KeyboardPanel.tsx#1': yes('The keymap save writes the same keymap again.'),
   'src/components/settings/analysis/AnalysisToolsSection.tsx#1': no(MX),
   'src/components/settings/analysis/ToolRow.tsx#1': no(RC),

@@ -53,7 +53,7 @@ describe('linking the project file from one page', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Link project file…', hidden: true })).toBeNull());
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    await user.click(await within(await screen.findByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name: /^Booth|^Record/ }));
+    await user.click(await within(await screen.findByRole('navigation', { name: 'Primary navigation' })).findByRole('button', { name: /^Booth|^Record/ }));
     await screen.findByRole('heading', { level: 1, name: /Booth|Record/ });
     expect(screen.queryByText(/No REAPER project file is linked/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Link project file…', hidden: true })).toBeNull();

@@ -89,6 +89,17 @@ describe('define-marks-edits-the-types', () => {
     await waitFor(() => expect(lastSaved()[0]).toMatchObject({ key: 'stress', name: 'Stress' }));
   });
 
+  it('Escape with a renamed mark type keeps the name or asks before closing (#3458)', async () => {
+    const dialog = await openDialog();
+    const name = within(dialog).getAllByLabelText('Mark name')[0]!;
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Stress');
+    expect(save).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Define how you mark up' })).toBeNull());
+    await waitFor(() => expect(lastSaved()[0]).toMatchObject({ key: 'stress', name: 'Stress' }));
+  });
+
   it('adds a mark the host names', async () => {
     const dialog = await openDialog();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add a mark' }));

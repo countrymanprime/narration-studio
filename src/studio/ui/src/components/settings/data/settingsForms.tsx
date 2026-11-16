@@ -7,7 +7,7 @@ type ScopeSettings = Record<string, ScopedSettingField[]>;
 const NO_FIELDS: ScopedSettingField[] = [];
 
 /** One panel's unsaved edits, as the page's Save & continue / Discard & continue reach them. */
-export type SettingsForm = { dirty: boolean; save: () => Promise<void>; discard: () => Promise<void> };
+export type SettingsForm = { dirty: boolean; save: () => Promise<boolean>; discard: () => Promise<void> };
 
 type SettingsFormsValue = {
   /** Every tool's fields in `scope`, once read; absent before the first read. */
@@ -53,7 +53,7 @@ export function SettingsFormsProvider({
 }: {
   notify: (message: string) => void;
   onDirtyChange: (dirty: boolean) => void;
-  registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => void;
+  registerActions: (actions: { save: () => Promise<boolean>; discard: () => Promise<void> }) => void;
   children: ReactNode;
 }) {
   const system = usePort('system');
@@ -113,10 +113,17 @@ export function SettingsFormsProvider({
     onDirtyChange(dirtyIds.size > 0);
   }, [dirtyIds, onDirtyChange]);
   useEffect(() => {
-    const each = (step: (form: SettingsForm) => Promise<void>) => async () => {
-      for (const form of [...forms.current.values()].filter((entry) => entry.dirty)) await step(form);
-    };
-    registerActions({ save: each((form) => form.save()), discard: each((form) => form.discard()) });
+    const dirtyForms = () => [...forms.current.values()].filter((entry) => entry.dirty);
+    registerActions({
+      // The first form that does not save stops the rest: the narrator stays with the edits it kept.
+      save: async () => {
+        for (const form of dirtyForms()) if (!(await form.save())) return false;
+        return true;
+      },
+      discard: async () => {
+        for (const form of dirtyForms()) await form.discard();
+      },
+    });
   }, [registerActions]);
 
   const value = useMemo(() => ({ settings, errors, load, register }), [settings, errors, load, register]);

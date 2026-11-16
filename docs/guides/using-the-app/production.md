@@ -106,13 +106,14 @@ narration chapters only: a chapter removed from recording, and reference materia
 
 The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
-chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
-**No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
-project** (no saved project could be read) or **Not read**. The Rec. cell's tip and its name for a screen reader also say how far the
+chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
+**Not linked** (no track is linked to the chapter: link one in the chapter's track panel), **Several tracks** (keep one in the track
+panel), **Track missing** (the linked track is no longer in the project), **No project** (no saved project could be read) or **Not
+read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.
 
-A ✓ in **Record** beside **No track** is not a contradiction: the tick is the chapter's stage, and you can set a stage by hand
+A ✓ in **Record** beside **Not linked** is not a contradiction: the tick is the chapter's stage, and you can set a stage by hand
 on a chapter that has no track, or keep it after unlinking the track. Nothing measures that chapter's audio until you link a track
 in its track panel, and the Record cell's tip says so.
 
@@ -154,7 +155,7 @@ shows its figures as last known and offers no playback. The panel names the trac
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
-view in your DAW itself. It is on only for a confirmed link to a track that is in the project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
+view in your DAW itself. It is on only for a confirmed link to a track that is in the project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off, and a track deleted or renamed in REAPER since the last save counts as missing or shows its new name here as it does in the audio engine panel. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
@@ -389,7 +390,7 @@ unresolved tokens. The dialog is prefilled from whatever the manuscript's own ti
 copyright line already say, with the source of each guess shown underneath; a field with nothing
 detected starts empty. Save only writes the fields you confirm — nothing already set in
 [Settings, Credits](settings.md#credits) is changed. **Not now** leaves it for this session;
-**Don't ask for this project** stops it until you replace the manuscript. Either way, a banner
+**Don't ask for this project** stops it until you replace the manuscript. With a field changed and not saved, Escape, the close button, **Not now** and **Don't ask for this project** each ask **Discard what you typed?** first (**Keep editing** or **Discard**); only Save keeps what you typed. Either way, a banner
 stays above the figures — and above the [Script](script.md) page's own Opening credits
 card — with **Fill in** to reopen the same dialog for as long as a token stays unresolved.
 

@@ -119,8 +119,8 @@ func BenchmarkRecordedLengths(b *testing.B) {
 	store := settings.New(b.TempDir(), folder)
 	b.Run("cold", func(b *testing.B) {
 		for b.Loop() {
-			cache := &projectParseCache{}
-			project, ok := cache.read(folder, store)
+			savedProjects.reset()
+			project, ok := readSelectedProject(folder, store)
 			if !ok {
 				b.Fatal("the project did not parse")
 			}
@@ -131,10 +131,9 @@ func BenchmarkRecordedLengths(b *testing.B) {
 		}
 	})
 	b.Run("warm", func(b *testing.B) {
-		cache := &projectParseCache{}
-		cache.read(folder, store)
+		readSelectedProject(folder, store)
 		for b.Loop() {
-			project, ok := cache.read(folder, store)
+			project, ok := readSelectedProject(folder, store)
 			_ = recordedLengthsFor(chapters, mappings, project, ok)
 		}
 	})

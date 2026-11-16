@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/chapterTracks/useChapterNameOf.ts#1':
+    'Reads the manuscript\'s chapter headings only to name the chapter that holds a track in a picker\'s "(linked to X)": a failed read leaves the title the host kept with the link, which is a name too, and nothing the narrator pressed depends on it.',
   'src/components/chapterTracks/ChapterTrackState.tsx#1':
     "The quiet re-read of the links detail after a change made on a screen that already has its answer (`applyMappings`): the change itself is shown, and a failed re-read marks the state stale and is retried by the next poll or the screen's own refresh, which reports a failure.",
   'src/components/chapterTracks/ChapterTrackState.tsx#2':
@@ -120,6 +122,14 @@ export const SILENT_CATCHES: Record<string, string> = {
     "A malformed Keymap.overrides document falls back to the catalogue defaults, so the keys shown and fired are the defaults; Settings' Keyboard panel is where the narrator sees and resets them.",
   'src/input/useUserKeymap.ts#2':
     "Reads the narrator's remaps for the sheet and the router; unreadable, the defaults stay, and Settings reports the real error.",
+  'src/hooks/useWindowClose.ts#1':
+    'Tells the host whether a draft is held; a failed call leaves the host believing the last answer, and nothing on the page changes for the narrator (a close the host was not told to guard goes straight through, as it did before).',
+  'src/hooks/useWindowClose.ts#2':
+    "The page saying it received the host's close request; a failed call lets the host close the window after its few seconds' wait instead of waiting for the answer, and the question is still on screen meanwhile.",
+  'src/hooks/useWindowClose.ts#3':
+    "The narrator's yes to the close question: a failed call leaves the window open with the question gone, and pressing the window's close again asks again (the host re-asks on every close while a question is open).",
+  'src/hooks/useWindowClose.ts#4':
+    "The narrator's no to the close question: a failed call leaves the host believing a question is open, and the next close asks again.",
   'src/hooks/useZoom.ts#1': 'The initial read on mount; a failure just leaves the readout at its 100% default until the next resize re-reads it.',
   'src/hooks/useZoom.ts#2':
     'A button/shortcut set (zoomIn, zoomOut, reset); a failure leaves the readout at the level before the click, which the narrator can see and try again.',

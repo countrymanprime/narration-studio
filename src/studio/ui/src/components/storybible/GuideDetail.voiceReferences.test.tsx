@@ -56,10 +56,37 @@ describe('Story Bible character detail: voice references', () => {
     const user = userEvent.setup();
     renderDetail(alice);
     await findReferenceRow('Alice ref A');
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const regionSelect = await screen.findByRole('combobox', { name: 'Approve a region for Alice' });
     await user.selectOptions(regionSelect, 'March Hare ref A');
     await user.click(screen.getByRole('button', { name: 'Approve as reference' }));
     expect(await findReferenceRow('March Hare ref A')).toBeTruthy();
+  });
+
+  it('a note typed while Approve is running is kept, and only what was sent is cleared (#3457)', async () => {
+    const alice = WIRE_ENTITIES.find((row) => row.id === 'alice');
+    if (!alice) throw new Error('fixture must include alice');
+    const api = createMockApi();
+    let release: () => void = () => {};
+    const real = api.characterApprove.bind(api);
+    vi.spyOn(api, 'characterApprove').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return real(...args);
+    });
+    const user = userEvent.setup();
+    renderDetail(alice, api);
+    await findReferenceRow('Alice ref A');
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Approve a region for Alice' }), 'March Hare ref A');
+    const note = screen.getByRole('textbox', { name: 'Note (optional)' }) as HTMLInputElement;
+    await user.type(note, 'anchor take');
+    await user.click(screen.getByRole('button', { name: 'Approve as reference' }));
+    await user.type(note, ' plus more');
+    release();
+    expect(await findReferenceRow('March Hare ref A')).toBeTruthy();
+    await waitFor(() => expect(note.value).toBe(' plus more'));
   });
 
   it('revoking a reference removes it from the list', async () => {
@@ -68,6 +95,8 @@ describe('Story Bible character detail: voice references', () => {
     const user = userEvent.setup();
     renderDetail(alice);
     const row = await findReferenceRow('Alice ref A');
+    expect(within(row).queryByRole('button', { name: 'Revoke' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     await user.click(within(row).getByRole('button', { name: 'Revoke' }));
     await waitFor(() => expect(screen.queryAllByText('Alice ref A').some((el) => el.closest('li'))).toBe(false));
   });
@@ -88,6 +117,7 @@ describe('Story Bible character detail: dialogue cue attribution', () => {
     const user = userEvent.setup();
     const api = renderDetail(alice);
     expect(await screen.findByText('“Have some wine.”')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const select = screen.getByRole('combobox', { name: 'Speaker for “Have some wine.”' });
     await user.selectOptions(select, 'Alice');
     await waitFor(async () => expect((await api.guideDialogueCues()).find((cue) => cue.id === 'cue-2')?.speaker_entity_id).toBe('alice'));

@@ -71,6 +71,19 @@ describe('PipelineTable', () => {
     }
   });
 
+  it('left-aligns the chapter name in every row while its header stays centred (owner report, #3426)', () => {
+    table();
+    const names = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell')[0]!);
+    expect(names.length).toBeGreaterThan(0);
+    for (const cell of names) {
+      expect(cell.className, cell.textContent ?? '').toContain('text-left');
+      expect(cell.className, cell.textContent ?? '').not.toContain('text-center');
+    }
+  });
+
   it('keeps the board at its natural height: it grows with the chapter list (owner report, #2251)', () => {
     table();
     const region = screen.getByRole('group', { name: 'Chapter pipeline scroll area' });

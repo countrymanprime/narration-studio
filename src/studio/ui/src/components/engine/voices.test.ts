@@ -47,7 +47,7 @@ describe('the voices of a chapter folder', () => {
       track('a4', 'Alice', 1),
       track('c5', 'Chapter 5', 0),
     ];
-    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: [], tracks: [] };
+    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] };
     expect(folderVoices(siblings, 'c3', [], setup).map((voice) => [voice.key, voice.name])).toEqual([
       ['0', 'Narrator'],
       ['1', 'Veyra'],
@@ -65,6 +65,7 @@ describe('the voices of a chapter folder', () => {
       layout: 'folders' as const,
       narratorCharacter: '',
       narratorGuids: [],
+      notVoiceGuids: [],
       tracks: [
         { track: 'Lead', characters: ['e-lead'], guids: ['l1'] },
         { track: 'Queen', characters: ['e-queen'], guids: [] },
@@ -80,7 +81,7 @@ describe('the voices of a chapter folder', () => {
 
   it('prefer a track named Narrator to one only remembered as the Narrator (#3269)', () => {
     const both = [track('c1', 'Chapter 1', 0, true), track('n1', 'Bob', 1), track('n2', 'Narrator', 1)];
-    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], tracks: [] };
+    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], notVoiceGuids: [], tracks: [] };
     expect(folderVoices(both, 'c1', [], setup).map((voice) => [voice.name, voice.key])).toEqual([
       ['Bob', '1'],
       ['Narrator', '0'],
@@ -89,7 +90,7 @@ describe('the voices of a chapter folder', () => {
 
   it('keep the Narrator track at key 0 when it is renamed (#3269)', () => {
     const renamed = [track('c1', 'Chapter 1', 0, true), track('a1', 'Alice', 1), track('n1', 'Storyteller', 1)];
-    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], tracks: [] };
+    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], notVoiceGuids: [], tracks: [] };
     expect(folderVoices(renamed, 'c1', [], setup).map((voice) => [voice.name, voice.key, voice.narrator])).toEqual([
       ['Alice', '1', false],
       ['Storyteller', '0', true],
@@ -97,7 +98,10 @@ describe('the voices of a chapter folder', () => {
   });
 
   it('give the Narrator key 0 wherever it sits and the others 1 to 9 in order (decision F)', () => {
-    const keys = folderVoices(tracks, 'c8', cast, { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }).map((v) => [v.name, v.key]);
+    const keys = folderVoices(tracks, 'c8', cast, { layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }).map((v) => [
+      v.name,
+      v.key,
+    ]);
     expect(keys).toEqual([
       ['Alice', '1'],
       ['Narrator', '0'],
@@ -112,6 +116,7 @@ describe('the voices of a chapter folder', () => {
       layout: 'folders',
       narratorCharacter: 'e-alice',
       narratorGuids: [],
+      notVoiceGuids: [],
       tracks: [{ track: 'Gardeners', characters: ['e-two', 'missing'], guids: [] }],
     });
     const by = Object.fromEntries(voices.map((v) => [v.name, v.characters.map((c) => `${c.name}:${c.source}`)]));
@@ -126,25 +131,19 @@ describe('the voices of a chapter folder', () => {
 
   it('leave a key off past nine voices', () => {
     const many = [track('f', 'Ch', 0, true), ...Array.from({ length: 11 }, (_, i) => track(`v${i}`, `Voice ${i}`, 1))];
-    expect(folderVoices(many, 'f', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }).map((v) => v.key)).toEqual([
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      '',
-      '',
-    ]);
+    expect(
+      folderVoices(many, 'f', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }).map((v) => v.key),
+    ).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '']);
   });
 
   it('give key 0 to the first Narrator only; a second one is an ordinary voice', () => {
     const twice = [track('f', 'Ch', 0, true), track('n1', 'Narrator', 1), track('x', 'Extras', 1), track('n2', 'narrator', 1)];
     expect(
-      folderVoices(twice, 'f', cast, { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }).map((v) => [v.name, v.key, v.narrator]),
+      folderVoices(twice, 'f', cast, { layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }).map((v) => [
+        v.name,
+        v.key,
+        v.narrator,
+      ]),
     ).toEqual([
       ['Narrator', '0', true],
       ['Extras', '1', false],

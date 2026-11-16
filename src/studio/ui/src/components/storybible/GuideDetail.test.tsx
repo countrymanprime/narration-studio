@@ -98,7 +98,7 @@ describe('Story Bible read-only entries', () => {
     expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).disabled).toBe(false);
     expect(screen.getByRole('button', { name: 'Save changes to this entry' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
@@ -123,7 +123,7 @@ describe('Story Bible read-only entries', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), { target: { value: 'Rewritten' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(screen.getByRole('heading', { name: entity.canonical_name })).toBeTruthy();
     expect(screen.getByText(entity.description.text)).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
@@ -441,14 +441,17 @@ describe('speaker colour field in the entry', () => {
   it('puts the colour back to Automatic with one host call', async () => {
     const api = createMockApi();
     const call = vi.spyOn(api, 'guideSetSpeakerColor');
+    const notify = vi.fn();
     const row = { ...WIRE_ENTITIES.find((entity) => entity.category === 'Character' && !entity.locked)!, speaker_color: 3 };
     render(
       <ApiProvider api={api}>
-        <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
+        <GuideDetail entity={row} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={notify} goToManuscript={vi.fn()} />
       </ApiProvider>,
     );
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
     fireEvent.change(await screen.findByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
     await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Speaker colour set to Automatic for ${row.canonical_name}.`));
   });
 
   it('is not offered on a place', () => {

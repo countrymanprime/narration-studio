@@ -46,7 +46,7 @@ describe('ConfirmDialog', () => {
     const discard = vi.fn();
     render(
       <ConfirmDialog
-        title="Unsaved settings"
+        title="Unsaved changes"
         body="Save or discard changes before leaving Settings?"
         confirmLabel="Save & continue"
         confirm={save}
@@ -135,6 +135,21 @@ describe('ConfirmDialog', () => {
       />,
     );
     expect(within(screen.getByRole('alertdialog')).getByText('everything').tagName).toBe('B');
+  });
+
+  it('keeps 4 px between its last buttons in a window 400 px tall or less, like the action row it sits in (#3521)', () => {
+    render(
+      <ConfirmDialog
+        title="Leave"
+        body="Sure?"
+        confirmLabel="Save & continue"
+        secondary={() => {}}
+        secondaryLabel="Discard & continue"
+        confirm={() => {}}
+        cancel={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Save & continue' }).parentElement!.className).toContain('[@media(max-height:400px)]:gap-1');
   });
 
   it('draws the confirm button red only for a destructive confirm', () => {
@@ -262,5 +277,25 @@ describe('ConfirmDialog', () => {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     if (safe) expect(document.activeElement).toBe(document.body);
     else await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
+  });
+});
+
+describe('ConfirmDialog stay button', () => {
+  it('marks the way to stay (Cancel, or the label that replaces it) so its focus ring and the shell can find it, and focusCancel puts the focus on it (#3446)', async () => {
+    render(
+      <ConfirmDialog
+        title="Unsaved changes"
+        body="Discard it?"
+        confirmLabel="Discard & continue"
+        cancelLabel="Keep editing"
+        focusCancel
+        confirm={vi.fn()}
+        cancel={vi.fn()}
+      />,
+    );
+    const stay = screen.getByRole('button', { name: 'Keep editing' });
+    expect(stay.hasAttribute('data-stay-button')).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(stay));
+    expect(screen.getByRole('button', { name: 'Discard & continue' }).hasAttribute('data-stay-button')).toBe(false);
   });
 });

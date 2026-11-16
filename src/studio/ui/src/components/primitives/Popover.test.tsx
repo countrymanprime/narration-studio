@@ -15,6 +15,35 @@ function renderPopover() {
   );
 }
 
+describe('Popover focus on close', () => {
+  const pickInPopover = async (focusPageOnClose: () => boolean) => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <main tabIndex={-1}>
+          <button type="button">Header button</button>
+        </main>
+        <Popover trigger={<Button>Voice</Button>} label="Voice" focusPageOnClose={focusPageOnClose}>
+          <button type="button">Pick</button>
+        </Popover>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Voice' }));
+    await user.click(await screen.findByRole('button', { name: 'Pick' }));
+    await user.keyboard('{Escape}');
+  };
+
+  it('returns focus to the trigger by default', async () => {
+    await pickInPopover(() => false);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Voice' })));
+  });
+
+  it('hands focus to <main> (not its first button) when focusPageOnClose answers true', async () => {
+    await pickInPopover(() => true);
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
+  });
+});
+
 describe('Popover', () => {
   it('opens on a click, with focus moved into it', async () => {
     const user = userEvent.setup();

@@ -8,12 +8,13 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { changedButUnread } from '../chapterTracks/useChapterLinkActions';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -24,9 +25,48 @@ import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
 /** The attribute on the element around the pipeline table; a right click (or the Menu key) on one of its body rows opens the row menu. */
 export const PIPELINE_AREA = 'data-pipeline';
 
+/**
+ * Where focus goes back to after a dialog or panel the row's menu opened (the menu item is gone by then): the control that had focus when the menu
+ * opened, else the first control in the chapter's row (a right-click leaves focus nowhere; a row is not itself focusable).
+ */
+/** A control focus can land on now: drawn, and not disabled (`focus()` on a disabled or hidden control does nothing, and focus would fall to the body). */
+const focusable = (element: HTMLElement): boolean => element.isConnected && !element.matches(':disabled') && element.getClientRects().length > 0;
+
+const firstControl = (row: Element | null): HTMLElement | null =>
+  [...(row?.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])') ?? [])].find(focusable) ?? null;
+const rowOfChapter = (chapterId: string): Element | null => document.querySelector(`tr[data-chapter-id="${CSS.escape(chapterId)}"]`);
+
+/** `near`: the chapters next to this one when the panel opened (the next, then the previous), for a row that is gone by close time (Remove from recording). */
+const backToRow =
+  (chapterId: string, opener: Element | null, near: readonly string[] = []) =>
+  (): HTMLElement | null => {
+    const row = rowOfChapter(chapterId);
+    // The control the narrator was on, when it is in this row; a right-click leaves focus on the board's scroll area or nowhere, so the row's own first control.
+    if (opener instanceof HTMLElement && row?.contains(opener) && focusable(opener)) return opener;
+    const own = firstControl(row);
+    if (own || row) return own;
+    // The row is gone: the one that took its place (the next chapter, else the previous), so the narrator keeps their place on the board.
+    for (const id of near) {
+      const control = firstControl(rowOfChapter(id));
+      if (control) return control;
+    }
+    // No neighbour is drawn either: the board's own scroll area, so focus stays on the board and not on the header.
+    const area = document.querySelector<HTMLElement>(`[${PIPELINE_AREA}] [aria-label="Chapter pipeline scroll area"]`);
+    return area && focusable(area) ? area : null;
+  };
+
+/** The chapters next to `id` in the list: the next one first, then the previous. */
+const neighboursOf = (list: readonly { id: string }[], id: string): string[] => {
+  const at = list.findIndex((entry) => entry.id === id);
+  return [list[at + 1]?.id, list[at - 1]?.id].filter((neighbour): neighbour is string => Boolean(neighbour));
+};
+
 const CREDITS_TITLE: Record<CreditsKind, string> = { opening: 'Opening credits', closing: 'Closing credits' };
 
-type Open = { kind: 'track'; chapterId: string } | { kind: 'editing'; chapter: ManuscriptChapter } | { kind: 'credits'; credits: CreditsKind };
+type Open =
+  | { kind: 'track'; chapterId: string; opener: Element | null; near: readonly string[] }
+  | { kind: 'editing'; chapter: ManuscriptChapter; opener: Element | null }
+  | { kind: 'credits'; credits: CreditsKind; opener: Element | null };
 
 /** The pages a row menu item opens; the page maps them to its own navigation. */
 type RowGo = { script: (chapterId: string) => void; booth: (chapterId: string) => void; proof: (chapterId: string) => void; master: () => void };
@@ -62,8 +102,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   // Each chapter's link state is the app's one chapter-track state, not a read of this board's own: a chapter linked or created in the Engine
   // panel shows here at once (#3355), and a change made here shows there.
-  const { details: trackLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  const { details: savedLinks, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false, detail: true, when: active });
+  // The links are read from the saved project; the tracks the Engine list and the Booth show are REAPER's now. A chapter linked to a track deleted or
+  // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
+  const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
+  const trackLinks = useMemo(
+    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    [savedLinks, liveTracks],
+  );
   const [open, setOpen] = useState<Open>();
+  // The chapter whose Check recordings dialog (an overlay, not one of the panels below) is open from the row menu.
+  const [checkingId, setCheckingId] = useState<string>();
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
@@ -75,13 +124,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       notify(describeApiError(error), 'error');
     }
   }, [api, notify]);
-  const loadTrackLinks = useCallback(async () => {
-    try {
-      await refreshLinks();
-    } catch (error) {
-      notify(describeApiError(error), 'error');
-    }
-  }, [notify, refreshLinks]);
+  // `afterWrite`: a link was just written and said so, so a failed read is "the change was made, but the list could not be read again", as every other surface says it (#3398).
+  const loadTrackLinks = useCallback(
+    async (afterWrite = false) => {
+      try {
+        await refreshLinks();
+      } catch (error) {
+        notify(afterWrite ? changedButUnread(error) : describeApiError(error), 'error');
+      }
+    },
+    [notify, refreshLinks],
+  );
   const reload = useCallback(() => {
     if (!active) return;
     void loadChapters();
@@ -119,14 +172,20 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   );
 
   // The row menu's "Show in <DAW>" (#2826): selects the chapter's linked track there, the chapter track panel's Select call.
+  // One select at a time: Enter held or pressed three times asks REAPER once, as the panel's button does on a double click.
+  const selecting = useRef(false);
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
+      if (selecting.current) return;
+      selecting.current = true;
       try {
         const result = await showInDaw({ workspace: api, findings: api, chapterTrackMap: api }, { kind: 'chapter', trackGuid }, dawName);
         if (result?.failed) notify(result.message, 'error');
         else if (result) notify(result.message);
       } catch (error) {
         notify(describeApiError(error), 'error');
+      } finally {
+        selecting.current = false;
       }
     },
     [api, notify],
@@ -165,7 +224,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const openEditingCheck = useCallback(
     (chapterId: string) => {
       const chapter = manuscriptChapter(chapterId);
-      if (chapter) setOpen({ kind: 'editing', chapter });
+      if (chapter) setOpen({ kind: 'editing', chapter, opener: document.activeElement });
     },
     [manuscriptChapter],
   );
@@ -186,12 +245,20 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         // The row is named by the chapter it draws: a windowed list draws only some of its rows, so the place in the body is not the place in the list.
         const row = list.find((entry) => entry.id === tr?.dataset.chapterId);
         if (!row) return [];
+        // What had focus when the menu opened: where a dialog or panel it opens gives focus back.
+        const opener = document.activeElement;
         // The credits are chapters: the same items, and the template's panel besides.
         const credits = creditsCheckKind(row.id);
         const chapter = find(row.id);
         const missing = chapter ? undefined : 'The chapter list is still loading';
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
-        const trackGuid = showableTrackGuid(links?.chapters.find((entry) => entry.chapterId === row.id));
+        const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
+        const trackGuid = showableTrackGuid(entry);
+        // A linked track REAPER no longer has is said to be missing, not "not linked" (the panel and the Engine row say so).
+        const noTrack =
+          entry && chapterTrackButtonState(entry).kind === 'missing'
+            ? 'The track linked to this chapter is missing from the project: choose another from the audio engine panel'
+            : 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
@@ -202,25 +269,34 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           {
             key: 'goto',
             label: showInDawLabel(dawTarget.name),
-            unavailable:
-              dawTarget.unavailable ?? (trackGuid ? undefined : 'No chapter track is linked to this chapter yet: link one from the audio engine panel'),
+            unavailable: dawTarget.unavailable ?? (trackGuid ? undefined : noTrack),
             onSelect: () => trackGuid && void select(trackGuid, dawTarget.name),
           },
           {
             key: 'track',
             label: 'Chapter track…',
             unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
-            onSelect: () => setOpen({ kind: 'track', chapterId: row.id }),
+            onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener, near: neighboursOf(list, row.id) }),
           },
-          ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits }) }] : []),
+          ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),
           {
             key: 'recording',
             label: CHECK_RECORDINGS_LABEL,
             unavailable: missing ?? latest.current.checkGate,
             // The dialog can link the chapter's track (its unmapped refusal), so the board reads the links again when it closes.
-            onSelect: () => chapter && void openCheckRecordings([chapter.id], { onClosed: () => void latest.current.loadTrackLinks() }),
+            onSelect: () => {
+              if (!chapter) return;
+              setCheckingId(chapter.id);
+              void openCheckRecordings([chapter.id], {
+                onClosed: () => {
+                  setCheckingId(undefined);
+                  void latest.current.loadTrackLinks();
+                },
+                returnFocus: backToRow(chapter.id, opener),
+              });
+            },
           },
-          { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter }) },
+          { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter, opener }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
             key: `status-${status}`,
             label: `Set status: ${STATUS_LABELS[status]}`,
@@ -245,7 +321,15 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const panels: ReactNode = (
     <>
       {chapters && <RemovedFromRecordingList chapters={chapters} restoringId={restoringId} onRestore={(chapterId) => void restore(chapterId)} />}
-      {open?.kind === 'editing' && <EditingCheckPanel key={open.chapter.id} chapter={open.chapter} notify={notify} close={closeEditing} />}
+      {open?.kind === 'editing' && (
+        <EditingCheckPanel
+          key={open.chapter.id}
+          chapter={open.chapter}
+          notify={notify}
+          close={closeEditing}
+          returnFocus={backToRow(open.chapter.id, open.opener)}
+        />
+      )}
       {trackOpen && (
         <ChapterTrackPanel
           open
@@ -258,8 +342,9 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           savedAt={trackLinks?.savedAt ?? ''}
           notify={notify}
           onClose={close}
+          returnFocus={backToRow(trackOpen.chapterId, trackOpen.opener, trackOpen.near)}
           onChanged={async () => {
-            await loadTrackLinks();
+            await loadTrackLinks(true);
             onChanged();
           }}
           onRemoveFromRecording={(kind) => removeFromRecording(trackOpen.chapterId, kind)}
@@ -273,10 +358,15 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           onStatus={(status) => void setStatus(`credits-${open.credits}`, status)}
           // Close this slide-over, then open the check, never nested over it.
           onClose={close}
+          returnFocus={backToRow(`credits-${open.credits}`, open.opener)}
         />
       )}
     </>
   );
 
-  return { panels, trackLinks, reload, openEditingCheck };
+  // The chapter a panel or dialog from the row menu is open for: its row stays drawn in a windowed list so focus has a row to return to (#3416).
+  const openChapterId =
+    checkingId ??
+    (open?.kind === 'track' ? open.chapterId : open?.kind === 'editing' ? open.chapter.id : open?.kind === 'credits' ? `credits-${open.credits}` : undefined);
+  return { panels, trackLinks, reload, openEditingCheck, openChapterId };
 }

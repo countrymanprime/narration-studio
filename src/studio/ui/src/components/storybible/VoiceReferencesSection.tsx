@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -17,7 +18,18 @@ import { clock } from '../../clock';
  * comparison or audition here, only approval).
  * Self-fetching (the pattern of the Story Bible's other sections): its own data source, independent of the entity edit form.
  */
-export function VoiceReferencesSection({ characterId, characterLabel, notify }: { characterId: string; characterLabel: string; notify: Notify }) {
+export function VoiceReferencesSection({
+  characterId,
+  characterLabel,
+  notify,
+  readOnly = false,
+}: {
+  characterId: string;
+  characterLabel: string;
+  notify: Notify;
+  /** An entry's read view lists the approved clips only; Revoke and the approve row come with Edit. */
+  readOnly?: boolean;
+}) {
   const api = useApi();
   const mutation = usePendingAction();
   const [regions, setRegions] = useState<CharacterRegion[]>();
@@ -25,6 +37,16 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
   const [loadError, setLoadError] = useState<string>();
   const [regionGuid, setRegionGuid] = useState('');
   const [note, setNote] = useState('');
+  // The note an Approve is sending: it is being saved, so it is not a draft; only what is typed after it is.
+  const [sending, setSending] = useState<string | null>(null);
+  // A note typed beside a region waits for Approve, which is the narrator's decision: the question cannot make it, so it only offers to keep editing or discard it (#3400).
+  useUnsavedDraft('approval-note', {
+    dirty: !readOnly && note.trim() !== '' && note !== sending,
+    label: 'your approval note',
+    brief: 'an approval note',
+    needs: 'you to press Approve as reference',
+    discard: () => setNote(''),
+  });
 
   const load = useCallback(async () => {
     try {
@@ -45,14 +67,19 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
   const approve = () =>
     mutation.run('approve', async () => {
       if (!regionGuid) return;
+      const sent = note;
+      setSending(sent);
       try {
-        await api.characterApprove(characterId, regionGuid, note.trim() || undefined);
+        await api.characterApprove(characterId, regionGuid, sent.trim() || undefined);
         setRegionGuid('');
-        setNote('');
+        // Only what was sent goes: a note typed while the approval was running is the next one, and stays (#3457).
+        setNote((now) => (now === sent ? '' : now.startsWith(sent) ? now.slice(sent.length) : now));
         notify('Reference approved.');
         await load();
       } catch (error) {
         notify(describeApiError(error), 'error');
+      } finally {
+        setSending(null);
       }
     });
   const revoke = (reference: ApprovedCharacterReference) =>
@@ -85,45 +112,51 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
           {ownReferences.map((reference) => (
             <InsetCard as="li" key={reference.id} className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{reference.snapshot.name}</div>
+                <div className="truncate text-sm font-medium" title={reference.snapshot.name}>
+                  {reference.snapshot.name}
+                </div>
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {clock(reference.snapshot.start)}–{clock(reference.snapshot.end)}
                   {reference.note ? ` · ${reference.note}` : ''}
                 </div>
               </div>
               {reference.changedSinceApproval && <StatusBadge tone="warning" label="Changed since approval" />}
-              <Button variant="secondary" pending={mutation.isPending(`revoke:${reference.id}`)} onClick={() => void revoke(reference)}>
-                Revoke
-              </Button>
+              {!readOnly && (
+                <Button variant="secondary" pending={mutation.isPending(`revoke:${reference.id}`)} onClick={() => void revoke(reference)}>
+                  Revoke
+                </Button>
+              )}
             </InsetCard>
           ))}
         </ul>
       )}
       {/* One row where there is room (the region 14 rem, the note the rest, then the button), else the three stacked at one width,
           never a staircase of three widths (SBX-11). */}
-      <div className="@container mt-2">
-        <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
-          <Select
-            fullWidth
-            label={`Approve a region for ${characterLabel}`}
-            value={regionGuid}
-            onChange={setRegionGuid}
-            options={[
-              { value: '', label: 'Choose a region…' },
-              ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
-            ]}
-          />
-          <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
-          <Button
-            variant="secondary"
-            disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
-            pending={mutation.isPending('approve')}
-            onClick={() => void approve()}
-          >
-            Approve as reference
-          </Button>
+      {!readOnly && (
+        <div className="@container mt-2">
+          <div className="grid grid-cols-1 items-end gap-2 @min-[36rem]:grid-cols-[14rem_minmax(0,1fr)_auto]">
+            <Select
+              fullWidth
+              label={`Approve a region for ${characterLabel}`}
+              value={regionGuid}
+              onChange={setRegionGuid}
+              options={[
+                { value: '', label: 'Choose a region…' },
+                ...(regions ?? []).map((region) => ({ value: region.guid, label: region.name || `Region ${region.index}` })),
+              ]}
+            />
+            <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
+            <Button
+              variant="secondary"
+              disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
+              pending={mutation.isPending('approve')}
+              onClick={() => void approve()}
+            >
+              Approve as reference
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -61,6 +61,10 @@ describe('footerHints', () => {
     ]);
   });
 
+  it('the-footer-does-not-grow: the Booth footer lists no Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
+    expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
+  });
+
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {
     const hints = footerHints('booth', keymap);
     expect(hints.find((hint) => hint.label === 'Bookmark')?.keys).toEqual(['B']);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useBoothVoices } from '../voices/useBoothVoices';
+import { COLD_READ_NO_VOICE, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { VoiceControl } from '../voices/VoiceControl';
@@ -71,7 +71,7 @@ import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
-import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useFollowChapterInDaw, useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -80,7 +80,6 @@ import { useBoothSpeakers } from './useBoothSpeakers';
 import { useChapterNavigation } from './useChapterNavigation';
 import { useChapterResume } from './useChapterResume';
 import { RecordedThroughChip } from '../resume/RecordedThroughChip';
-import { ChosenStartChip } from '../resume/ChosenStartChip';
 import { chapterRecordedDetail, recordedThroughLabel } from '../../../recordedThrough';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
@@ -150,6 +149,22 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const data = useBoothData(shown);
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
   const openedByAddress = useRef(asked !== null);
+  // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
+  // it is not moved. A chapter the narrator goes to is moved to (BoothSession is keyed by the chapter), and one left stops being exempt, so going
+  // back to it moves the DAW.
+  const selfOpened = useRef(new Set<string>());
+  const firstChapter = useRef(false);
+  const shownChapter = data.source?.chapter.id ?? '';
+  if (shownChapter !== '' && !firstChapter.current) {
+    firstChapter.current = true;
+    if (!openedByAddress.current) selfOpened.current.add(shownChapter);
+  }
+  const lastChapter = useRef('');
+  useEffect(() => {
+    if (lastChapter.current !== '' && lastChapter.current !== shownChapter) selfOpened.current.delete(lastChapter.current);
+    lastChapter.current = shownChapter;
+  }, [shownChapter]);
+  const moveDaw = openedByAddress.current || (shownChapter !== '' && !selfOpened.current.has(shownChapter));
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
@@ -169,7 +184,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   useFollowDawOnOpen({
     enabled: asked === null,
     chapterIds,
-    onChapter: (chapterId) => setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true }),
+    onChapter: (chapterId) => {
+      selfOpened.current.add(chapterId);
+      setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true });
+    },
   });
   // With nothing to read there is no session, so no take to protect: the page follows the address (the panel's way back changes it).
   const nothingToRead = !data.source;
@@ -226,7 +244,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         source={source}
         from={shown?.from}
         requested={asked}
-        moveDaw={openedByAddress.current}
+        moveDaw={moveDaw}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
         onReturned={() => {
@@ -374,6 +392,8 @@ function BoothSession({
     const added = await suspected.takeStopped({
       paragraphIds: new Set(read.map((unit) => unit.paragraphId)),
       quiet: take.quiet,
+      survivesMoves: take.survivesMoves,
+      later: take.later,
       saidSaved: marked > 0,
       ...(marked > 0 ? {} : { undoTake: take.undoTake, entry: take.entry }),
     });
@@ -445,8 +465,10 @@ function BoothSession({
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
+  const followChapterInDaw = useFollowChapterInDaw();
   useMoveDawOnOpen({
     enabled: moveDaw,
+    follow: followChapterInDaw,
     chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
@@ -492,12 +514,18 @@ function BoothSession({
   );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
+    coldRead: coldMode,
     notify: voiceToast,
     stopTake: page.stopTake,
+    // In Cold read mode the hook chooses nothing (`coldRead` above), so a voice choice never starts a take there; the guard keeps it from starting a cold read.
+    startTake: () => (coldMode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });
@@ -518,9 +546,9 @@ function BoothSession({
   const askFor = useCallback(
     (characterId: string, choice?: 'new' | 'existing') => {
       const character = [...cast.inChapter, ...cast.elsewhere].find((each) => each.id === characterId);
-      if (character) setWhoAsk({ kind: 'character', character, choice });
+      if (character) askWho({ kind: 'character', character, choice });
     },
-    [cast],
+    [cast, askWho],
   );
   const voiceKeys =
     voices.voices.length > 0
@@ -560,6 +588,7 @@ function BoothSession({
     chapterId,
     recording: control.recording,
     starting: control.starting,
+    endUnconfirmed: control.endUnconfirmed,
     leave: page.leave,
     adopt,
     choose,
@@ -645,7 +674,6 @@ function BoothSession({
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
   // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
-  const coldMode = page.coldRead.mode && !control.recording;
   const recordWhy = linkProblem ? dest.footerNoLink(recordName) : control.reason;
   const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
@@ -859,8 +887,6 @@ function BoothSession({
             // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time. A press's own sentence
             // (a refusal, a limit) is said by its message, so the footer does not repeat it (#3322).
             quietWhy={noticeShown || control.told}
-            // With the side panel closed its Last punch line is out of sight: the start is read here, after the timer.
-            start={!side.open && page.startParagraph !== undefined ? <ChosenStartChip paragraph={page.startParagraph} /> : undefined}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
@@ -911,11 +937,11 @@ function BoothSession({
                 }}
                 noTrack={cast.noTrack}
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
-                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : setWhoAsk({ kind: 'character', character }))}
+                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}
                 recording={control.recording}
-                onAddFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'new' })}
-                onUseFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'existing' })}
+                onAddFor={(character) => askWho({ kind: 'character', character, choice: 'new' })}
+                onUseFor={(character) => askWho({ kind: 'character', character, choice: 'existing' })}
               />
             }
           />

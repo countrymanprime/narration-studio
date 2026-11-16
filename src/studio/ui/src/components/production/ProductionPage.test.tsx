@@ -481,6 +481,40 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
+  // #3415: the board's links are read from the saved project; REAPER's tracks now say whether a linked track is still there.
+  it('keeps Show in REAPER off for a track deleted in REAPER since the save, as the Engine row and the panel say Track missing', async () => {
+    const base = createMockApi({}, { chapterSync: 'activity' });
+    const links = await base.chapterTrackLinks();
+    const linkedGuid = links.chapters.find((chapter) => chapter.status === 'confirmed')?.links[0]?.trackGuid;
+    expect(linkedGuid).toBeTruthy();
+    const tracksLive = async () => {
+      const answer = await base.tracksLive();
+      return { ...answer, project: { ...answer.project, tracks: answer.project.tracks.filter((track) => track.guid !== linkedGuid) } };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, tracksLive }, initial: { chapterSync: 'activity' } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/linked to this chapter is missing/));
+  });
+
+  it('asks REAPER once when Show in REAPER is pressed again while the first press is out', async () => {
+    let release: () => void = () => {};
+    const trackSelectInReaper = vi.fn(
+      (trackGuid: string) =>
+        new Promise<{ outcome: 'selected'; trackGuid: string }>((resolve) => (release = () => resolve({ outcome: 'selected', trackGuid }))),
+    );
+    await renderPage({ overrides: { trackSelectInReaper, dawCapabilities: selecting }, initial: { chapterSync: 'activity' } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    const goto = () => contextItemsFor(row)?.find((item) => item.key === 'goto');
+    await waitFor(() => expect(goto()?.unavailable).toBeUndefined());
+    act(() => goto()?.onSelect());
+    act(() => goto()?.onSelect());
+    act(() => goto()?.onSelect());
+    await waitFor(() => expect(trackSelectInReaper).toHaveBeenCalledTimes(1));
+    release();
+  });
+
   it('keeps Show in REAPER off for a track that is not in the saved project, as the chapter track panel does (#3168)', async () => {
     const base = createMockApi();
     const chapterTrackLinks = async () => {
@@ -495,7 +529,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/linked to this chapter is missing/);
     cleanup();
     // A suggested track, not yet linked, is off too.
     await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: suggestedLinks } });
@@ -515,6 +549,40 @@ describe('the row menu keeps the features the mock has none for', () => {
     const row = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+  });
+
+  // #3398: the link is written and "Track linked." said; the read after it fails. The narrator is told the change was made, once, never that the link failed.
+  it('says the link was made, and that the list could not be read again, when only the read after a link rejects', async () => {
+    const base = createMockApi();
+    let written = false;
+    const chapterTrackLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'matched' as const })) };
+    };
+    const chapterTrackMapList = async () => {
+      if (written) throw new Error('the project file is locked');
+      return base.chapterTrackMapList();
+    };
+    const chapterTrackSet = async (chapterId: string, trackGuid: string) => {
+      written = true;
+      return base.chapterTrackSet(chapterId, trackGuid);
+    };
+    const onManuscriptChanged = vi.fn();
+    const { notify } = await renderPage({ overrides: { chapterTrackLinks, chapterTrackMapList, chapterTrackSet }, onManuscriptChanged });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'track')?.unavailable).toBeUndefined());
+    act(() =>
+      contextItemsFor(row)
+        ?.find((item) => item.key === 'track')
+        ?.onSelect(),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The change was made, but the list could not be read again'), 'error'));
+    expect(notify.mock.calls.filter(([text]) => /linked/i.test(String(text)) && !/could not be read/.test(String(text)))).toHaveLength(1);
+    expect(notify.mock.calls.filter(([, tone]) => tone === 'error')).toHaveLength(1);
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/^Error: /), 'error');
+    // The board still hears the change and reads its own state again, whatever the links read did.
+    await waitFor(() => expect(onManuscriptChanged).toHaveBeenCalled());
   });
 
   it('matches nothing outside the pipeline', async () => {

@@ -72,9 +72,12 @@ export function useDawToolsSource(opened: number): DawToolsSource {
       ? 'Reading the REAPER project…'
       : readError
         ? `The REAPER project could not be read: ${readError.slice(0, 200)}`
-        : links.error
-          ? `The chapter links could not be read: ${links.error.slice(0, 200)}`
-          : status.off;
+        : trackState.live.stale
+          ? // A read that fails after a good one keeps the last tracks on screen; the tools say they are old rather than acting on them silently (#3415).
+            `The REAPER tracks could not be read again${trackState.live.error ? `: ${trackState.live.error.slice(0, 200).replace(/[.\s]+$/, '')}` : ''}. The last ones read are shown.`
+          : links.error
+            ? `The chapter links could not be read: ${links.error.slice(0, 200)}`
+            : status.off;
   return {
     links,
     forAudacity,

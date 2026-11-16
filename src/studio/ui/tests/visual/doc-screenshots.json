@@ -64,6 +64,20 @@
   },
   {
     "page": "script",
+    "state": "note-delete-confirm",
+    "viewport": "desktop",
+    "docName": "script-note-delete-confirm",
+    "caption": "Script - Delete the note with a reply typed under it asks first: the reply is not added yet and goes with the note"
+  },
+  {
+    "page": "script",
+    "state": "rail-pronunciation-leave-confirm",
+    "viewport": "desktop",
+    "docName": "script-rail-leave-confirm",
+    "caption": "Script - leaving with a pronunciation typed and not saved asks Unsaved changes, names it, and offers Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "script",
     "state": "reader",
     "viewport": "desktop",
     "docName": "script-reader",
@@ -446,6 +460,20 @@
     "viewport": "desktop",
     "docName": "engine-panel",
     "caption": "The audio engine panel, opened from the header chip - the linked REAPER project, the REAPER tools, chapter sync, the tracks with their chapters, and chapter links"
+  },
+  {
+    "page": "settings",
+    "state": "credits-navigate-away-confirm",
+    "viewport": "desktop",
+    "docName": "settings-credits-leave-confirm",
+    "caption": "Settings - leaving with a credits template edited and not saved asks Unsaved changes, names the credit template edit, and offers Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "settings",
+    "state": "key-navigate-away-confirm",
+    "viewport": "desktop",
+    "docName": "settings-key-leave-confirm",
+    "caption": "Settings - leaving with a Merriam-Webster key pasted and not saved asks Unsaved changes, names the key, and offers Save & continue, Discard & continue and Cancel"
   },
   {
     "page": "settings",
@@ -862,10 +890,17 @@
   },
   {
     "page": "storybible",
+    "state": "entry-leave-confirm",
+    "viewport": "desktop",
+    "docName": "storybible-entry-leave-confirm",
+    "caption": "Story Bible - leaving an entry with an edit not saved asks Unsaved changes, with Save & continue, Discard & continue and Cancel"
+  },
+  {
+    "page": "storybible",
     "state": "entry-editing",
     "viewport": "desktop",
     "docName": "storybible-entry-editing",
-    "caption": "Story Bible - an entry in edit mode, with Save and Cancel shown"
+    "caption": "Story Bible - an entry in edit mode, with Save and Discard changes shown"
   },
   {
     "page": "storybible",
@@ -1576,6 +1611,13 @@
   },
   {
     "page": "booth",
+    "state": "chosen-start",
+    "viewport": "desktop",
+    "docName": "booth-chosen-start",
+    "caption": "Booth - Start from here: the first word of the chosen phrase is underlined with the phrase tinted, in the text; the take has started there and the cursor has moved on"
+  },
+  {
+    "page": "booth",
     "state": "search-shown",
     "viewport": "desktop",
     "docName": "booth-search",
@@ -1776,6 +1818,13 @@
     "viewport": "desktop",
     "docName": "delivery-multi-export-results",
     "caption": "Delivery - a finished multi-platform build: a row per platform with its folder or why it was not built"
+  },
+  {
+    "page": "proof",
+    "state": "note-leave-confirm",
+    "viewport": "desktop",
+    "docName": "proof-note-leave-confirm",
+    "caption": "Proof - leaving with a note typed and not added asks Unsaved changes, names the note, and offers Save & continue, Discard & continue and Cancel"
   },
   {
     "page": "proof",

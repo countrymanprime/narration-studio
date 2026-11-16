@@ -119,6 +119,19 @@ describe('CheckRecordingsDialog', () => {
     await waitFor(() => expect(starts).toEqual([{ id: 'credits-opening', model: 'small' }]));
   });
 
+  // #3416 item 28: the run button leaves the page as the run starts; focus stays in the dialog instead of falling to <body>.
+  it('keeps keyboard focus in the dialog when the run button goes away as the check starts', async () => {
+    const { api } = host();
+    open(api, ['a']);
+    const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
+    const run = within(dialog).getByRole('button', { name: 'Check 1 chapter' });
+    run.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Check 1 chapter' })).toBeNull());
+    expect(document.body.contains(document.activeElement) && document.activeElement !== document.body).toBe(true);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it('shows-the-full-report-after-a-single-chapter-run-with-go-to-paragraph-and-check-again', async () => {
     const { api, results, emit } = host();
     open(api, ['a']);
@@ -149,10 +162,25 @@ describe('CheckRecordingsDialog', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(await within(dialog).findByText('Text present')).toBeTruthy();
     expect(within(dialog).getByText(/Checked .* with the small Whisper model/)).toBeTruthy();
-    expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
     expect(within(dialog).getByRole('button', { name: 'Open in Editing' })).toBeTruthy();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Back to chapters' }));
-    expect(await within(dialog).findByRole('button', { name: 'Show result: Chapter a' })).toBeTruthy();
+    // #3416 item 28: Check again leaves the page as the run starts; keyboard focus stays in the dialog.
+    const again = within(dialog).getByRole('button', { name: 'Check again' });
+    again.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    emit({ runId: 'run-2', phase: 'complete' });
+    expect(await within(dialog).findByRole('button', { name: 'Check again' })).toBeTruthy();
+    // The qa-breaker on #3460: Back to chapters and Show result leave the page as the view changes; focus stays in the dialog.
+    const back = within(dialog).getByRole('button', { name: 'Back to chapters' });
+    back.focus();
+    await userEvent.keyboard('{Enter}');
+    const show = await within(dialog).findByRole('button', { name: 'Show result: Chapter a' });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    show.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Show result: Chapter a' })).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
   it('asks-before-downloading-a-missing-model-and-checks-once-it-is-installed', async () => {

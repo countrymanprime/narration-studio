@@ -2,6 +2,7 @@
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
@@ -10,6 +11,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
+import { overlay } from '../../overlay/overlayService';
 
 afterEach(cleanup);
 
@@ -78,7 +80,7 @@ describe('ChapterLinksTable', () => {
   // qa-breaker, #3053: Opening credits took Chapter 1's track from this list and nothing on the page said Chapter 1 was now unlinked.
   it('says which chapter lost a track when a pick here takes it from another chapter', async () => {
     const user = userEvent.setup();
-    notify.mockClear();
+    const toast = vi.spyOn(overlay, 'toast');
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
@@ -90,16 +92,59 @@ describe('ChapterLinksTable', () => {
     };
     await link('Opening credits');
     await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByRole('img', { name: 'Linked' })).toBeTruthy());
-    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
+    expect(toast).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/));
     await link(headingName(WIRE_CHAPTERS[0]));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Opening credits was linked to that track and is now not linked.', 'info'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Opening credits was linked to that track and is now not linked.'));
+    toast.mockRestore();
   });
 
-  // qa-breaker: an ignored Confirm of the pair already linked ends no change, so the flag stayed up and a later takeover made elsewhere (the dialog)
-  // came as a toast beside its own warning.
-  it('does not toast a takeover made elsewhere after an ignored Confirm of the already linked track', async () => {
+  // The owner's answer on #3398: the toast leaves no notice in view state to lose, so closing the panel between the pick and the host's answer still says who lost the track.
+  it('toasts a takeover even when the panel closed before the host answered', async () => {
     const user = userEvent.setup();
-    notify.mockClear();
+    const toast = vi.spyOn(overlay, 'toast');
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    const api = createMockApi();
+    const first = WIRE_CHAPTERS[0].id;
+    const second = WIRE_CHAPTERS[1].id;
+    function Harness() {
+      const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button
+            onClick={() => {
+              links.set(first, track);
+              setTimeout(() => {
+                links.set(second, track);
+                setOpen(false);
+              }, 0);
+            }}
+          >
+            go
+          </button>
+          {open && <ChapterLinksTable links={links} notify={notify} />}
+        </>
+      );
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter initialEntries={['/production']}>
+            <Harness />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await screen.findByRole('table', { name: 'Chapter links' });
+    await user.click(screen.getByRole('button', { name: 'go' }));
+    await waitFor(() => expect(toast.mock.calls.some(([text]) => /not linked/.test(String(text)))).toBe(true));
+    toast.mockRestore();
+  });
+
+  // The takeover is toasted once, where the host answers, whichever view started the change (the table and the dialog both draw from this hook).
+  it('toasts a takeover made from elsewhere exactly once', async () => {
+    const user = userEvent.setup();
+    const toast = vi.spyOn(overlay, 'toast');
     const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
     function Harness() {
       const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
@@ -130,7 +175,8 @@ describe('ChapterLinksTable', () => {
     await user.click(within(opening()).getByRole('button', { name: /^Check the link for/ }));
     await user.click(screen.getByRole('button', { name: 'elsewhere' }));
     await waitFor(() => expect(within(opening()).queryByRole('img', { name: 'Linked' })).toBeNull());
-    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
+    expect(toast.mock.calls.filter(([text]) => /not linked/.test(String(text)))).toHaveLength(1);
+    toast.mockRestore();
   });
 
   // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
@@ -371,6 +417,45 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
     expect((within(opening).getByRole('combobox') as HTMLSelectElement).value).toBe(WIRE_TRACKS_PROJECT.tracks[0].guid);
+  });
+
+  // #3376: Cancel and Clear take their button away; focus went to the dialog, so the next Tab began at the top of the panel.
+  it("puts focus on the Change that takes Cancel's place, and on Create after Clear", async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    const change = await within(opening).findByRole('button', { name: /^Change the track for/ });
+    expect(document.activeElement).toBe(change);
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Clear the link for/ }));
+    const create = await within(opening).findByRole('button', { name: /^Create a track for/ });
+    expect(document.activeElement).toBe(create);
+  });
+
+  // #3376 (qa-breaker B1): a Clear that is still waiting for the host leaves its note; it must not move focus in a panel opened after the table went away.
+  it('drops a pending hand-back note when the table goes away', async () => {
+    const user = userEvent.setup();
+    const api = renderTable();
+    vi.spyOn(api, 'chapterTrackUnlink').mockReturnValue(new Promise(() => {}));
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await pastQuiet();
+    await user.click(await within(opening).findByRole('button', { name: /^Clear the link for/ }));
+    cleanup();
+    // A fresh table has Opening credits unlinked, with the Create the stale note would have focused.
+    renderTable();
+    const again = chapterRow(await screen.findByRole('table', { name: 'Chapter links' }), 'Opening credits');
+    await within(again).findByRole('button', { name: /^Create a (track|folder) for/ });
+    expect(document.activeElement).toBe(document.body);
   });
 
   // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.

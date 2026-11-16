@@ -1,7 +1,6 @@
 package main
 
 import (
-	"desktop/internal/manuscript"
 	"errors"
 	"fmt"
 	"os"
@@ -184,17 +183,15 @@ func (h *Host) readChapterSyncInputs() (chapterSyncInputs, error) {
 	in.dawLinked, _, _ = dawLinkFacts(h.persist, folder, svc.config.daw, nil)
 	if documentID, store, err := mappingContext(svc); err == nil {
 		in.documentID, in.store = documentID, store
-		raw, err := svc.manuscript.ChaptersUnmeasured()
+		refs, err := svc.manuscript.ChapterRefs()
 		if err != nil {
 			return chapterSyncInputs{}, err
 		}
-		for _, chapter := range raw {
-			if kind, _ := chapter["contentKind"].(string); kind != "" && kind != "narration" || manuscript.IsCredits(chapter) {
-				continue // sync names regions and links chapters by title; the credits are linked by hand
+		for _, ref := range refs {
+			if ref.ContentKind != "" && ref.ContentKind != "narration" {
+				continue // sync names regions and links chapters by title; the credits are linked by hand (they are not in refs)
 			}
-			id, _ := chapter["id"].(string)
-			title, _ := chapter["title"].(string)
-			in.chapters = append(in.chapters, chaptermatch.Chapter{ID: id, Title: title})
+			in.chapters = append(in.chapters, chaptermatch.Chapter{ID: ref.ID, Title: ref.Title})
 		}
 	}
 	return in, nil

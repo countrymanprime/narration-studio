@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { GuardedLink } from '../../studio/drafts/unsavedDrafts';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
@@ -23,6 +23,7 @@ export function CheckResult({
   retry,
   goToParagraph,
   openWorkspace,
+  onNavigate,
   actions,
 }: {
   chapter: ManuscriptChapter;
@@ -31,6 +32,8 @@ export function CheckResult({
   retry: () => Promise<void>;
   goToParagraph: (index: number) => void;
   openWorkspace?: () => void;
+  /** Runs as a link in the result (Open Proof, Open pickups, a fix link) is followed: the dialog closes, so the page is not under it. */
+  onNavigate?: () => void;
   actions: ReactNode;
 }) {
   if (loadError) {
@@ -58,7 +61,9 @@ export function CheckResult({
             Not checked yet. A check transcribes this chapter&rsquo;s audio from the saved project and compares it with the text, so you can see what is still
             to record. It changes nothing in the project.
           </p>
-          {result.reasons.length > 0 && <ReasonBlock tone="note" title="Before checking" reasons={result.reasons} chapter={chapter} onLinked={retry} />}
+          {result.reasons.length > 0 && (
+            <ReasonBlock tone="note" title="Before checking" reasons={result.reasons} chapter={chapter} onLinked={retry} onNavigate={onNavigate} />
+          )}
           {actions}
         </>
       )}
@@ -69,6 +74,7 @@ export function CheckResult({
           reasons={result.reasons}
           chapter={chapter}
           onLinked={retry}
+          onNavigate={onNavigate}
           footer={result.record ? `Checked ${formatWhen(result.record.completedAt)}. The counts below are from then; check again to update them.` : undefined}
         />
       )}
@@ -87,6 +93,7 @@ export function CheckResult({
           goToParagraph={goToParagraph}
           actionsSlot={actions}
           openWorkspace={openWorkspace}
+          onNavigate={onNavigate}
         />
       )}
       {result.state === 'stale' && !result.result && actions}
@@ -154,9 +161,9 @@ export function ReasonBlock({
                 {page.label}
               </EnginePanelLink>
             ) : (
-              <Link key={page.label} to={page.path} onClick={onNavigate} className="text-sm font-semibold underline">
+              <GuardedLink key={page.label} to={page.path} onNavigate={onNavigate} className="text-sm font-semibold underline">
                 {page.label}
-              </Link>
+              </GuardedLink>
             ),
           )}
         </div>

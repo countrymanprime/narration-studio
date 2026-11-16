@@ -73,6 +73,96 @@ H.test('arm_only needs the track APIs', function()
   H.eq(s:events(), { { 'ERROR', 'a1', 'This REAPER version cannot arm tracks.' } })
 end)
 
+-- arm_lane -------------------------------------------------------------------------------------------------------
+-- The Booth's lane choice while no take runs: the same arming as arm_only, but the arms are the narrator's from then on
+-- (nothing is remembered to put back), so the DAW keeps agreeing with the Booth after a take (#3429).
+
+H.test('arm_lane arms the named track, disarms every other one and makes no undo point', function()
+  local s, chapter, other, pickups = new_session()
+  other.armed, pickups.armed = true, true
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events(), { { 'ARMED', 'a1', chapter.guid, '2', '1' } })
+  H.eq(arms(s), { 1, 0, 0 })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('arm_lane changes nothing when the named track is the one armed already', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events(), { { 'ARMED', 'a1', chapter.guid, '0', '0' } })
+  H.eq(calls_named(s, 'SetMediaTrackInfo_Value'), 0)
+end)
+
+H.test('arm_lane is refused while REAPER is recording, and nothing changes', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s.fake.play_state = 5
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events(), { { 'ERROR', 'a1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('arm_lane reports a track that is gone and arms nothing in its place', function()
+  local s, _, other = new_session()
+  other.armed = true
+  s:send('arm_lane', 'a1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'a1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('arm_lane needs the track APIs', function()
+  local s, chapter = new_session()
+  s.fake:remove_api('SetMediaTrackInfo_Value')
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events(), { { 'ERROR', 'a1', 'This REAPER version cannot arm tracks.' } })
+end)
+
+H.test('arm_lane twice for the same track changes nothing the second time', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_lane', 'a1', chapter.guid)
+  s:send('arm_lane', 'a2', chapter.guid)
+  H.eq(s:events()[2], { 'ARMED', 'a2', chapter.guid, '0', '0' })
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
+H.test('arm_lane is refused while a record_start waits for REAPER to report recording, and the take keeps its track', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('arm_lane', 'a2', other.guid)
+  local events = s:events()
+  H.eq(events[#events], { 'ERROR', 'a2', 'REAPER is recording. Stop recording first.' })
+  H.eq(arms(s), { 1, 0, 0 })
+  for _ = 1, 3 do
+    s:tick()
+  end
+  events = s:events()
+  H.eq(events[#events], { 'RECORD_STARTED', 'r1', chapter.guid, '0.000000' })
+end)
+
+H.test('arm_lane keeps the lane armed after a take: a stop puts back nothing the Booth chose', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_lane', 'a1', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
+H.test('arm_lane forgets the arms an earlier arm_only remembered', function()
+  local s, chapter, other, pickups = new_session()
+  pickups.armed = true
+  s:send('arm_only', 'a1', other.guid)
+  s:send('arm_lane', 'a2', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
 -- record_start ---------------------------------------------------------------------------------------------------
 
 H.test('record_start records when the one armed track is the named one, and says where', function()

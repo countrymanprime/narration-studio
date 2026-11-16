@@ -40,6 +40,9 @@ func TestVoiceTracksContractGoldens(t *testing.T) {
 	decodeVoiceTracks(t)(host.VoiceTracksSetLayout("folders"))
 	decodeVoiceTracks(t)(host.VoiceTracksSetCharacters("Queen", []string{"queen-of-hearts"}))
 	decodeVoiceTracks(t)(host.VoiceTracksSetCharacters(" Gardeners ", []string{"two", "five", "seven"}))
+	if _, err := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder}).SetNotVoice("{AAAAAAAA-0000-4000-8000-000000000010}", true); err != nil {
+		t.Fatal(err)
+	}
 	payload, err = host.VoiceTracksSetNarrator("alice")
 	checkBindingContract(t, "voice-tracks-set", payload)
 	state := decodeVoiceTracks(t)(payload, err)

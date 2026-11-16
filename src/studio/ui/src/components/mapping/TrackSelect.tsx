@@ -1,6 +1,6 @@
 import { Select } from '../primitives/Select';
 import { TrackTreePicker } from './TrackTreePicker';
-import type { TrackChoice } from './trackChoices';
+import { heldLabel, type TrackChoice } from './trackChoices';
 
 /**
  * The dropdown of REAPER tracks to link a chapter to, shared by the Tracks list, the recording check and the not-linked dialog. When the matcher has a
@@ -32,7 +32,7 @@ export function TrackSelect({
       placeholder="Choose a track"
       options={choices.map((c) => ({
         value: c.guid,
-        label: c.heldBy ? `${c.name} (linked to ${c.heldBy})` : c.name,
+        label: heldLabel(c.name, c.heldBy),
         ...(grouped ? { group: c.best ? 'Best match' : 'Other tracks' } : {}),
       }))}
     />

@@ -18,6 +18,7 @@ export const voiceTracksStateSchema = z
     narratorCharacter: z.string().max(120),
     tracks: z.array(voiceTrackAssignmentSchema).max(500),
     narratorGuids: z.array(z.string().min(1).max(64)).max(2000),
+    notVoiceGuids: z.array(z.string().min(1).max(64)).max(2000),
   })
   .strict() satisfies z.ZodType<VoiceTracksState>;
 
@@ -38,6 +39,7 @@ const BOOTH_VOICE_REASONS = [
   'not_our_recording',
   'already_recording',
   'playing',
+  'starting',
 ] as const;
 
 /** `BoothVoiceSet` and `BoothVoiceGet` (src/studio/desktop/bindings_booth_voice.go). */
@@ -47,6 +49,7 @@ export const boothVoiceSchema = z
     reason: z.enum(BOOTH_VOICE_REASONS).optional(),
     message: z.string().optional(),
     trackGuid: z.string().optional(),
+    armed: z.boolean().optional(),
     at: z.number().nonnegative().optional(),
     added: z.array(boothVoiceTrackSchema).optional(),
   })

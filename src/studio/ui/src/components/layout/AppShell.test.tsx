@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell, shellPages } from './AppShell';
+import { pageNameFor, RAIL_PAGES } from './railPages';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -75,7 +76,8 @@ describe('AppShell on the Booth', () => {
 describe('AppShell nav gating', () => {
   const GATED = ['Schedule', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Master & QC', 'Delivery'];
   const REASON = 'Import a manuscript to unlock this page.';
-  const railItem = (name: string) => within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name });
+  // The rail's panel: the Primary navigation landmark and, under it, the theme item and Settings.
+  const railItem = (name: string) => within(screen.getByRole('complementary')).getByRole('button', { name });
 
   // The mock's rail draws these off with no manuscript (the mock changed first), and each page still asks for the manuscript itself.
   it('turns the nine pages that need a manuscript off with no manuscript: focusable, named, and saying why', () => {
@@ -176,6 +178,18 @@ describe('AppShell grouped navigation', () => {
     for (const label of ['Production', 'Prep', 'Record', 'Edit', 'Review', 'Finish']) {
       expect(screen.getAllByRole('group', { name: label }).length).toBeGreaterThan(0);
     }
+  });
+
+  it('names the list Primary navigation and leaves the complementary around it unnamed, so the old name cannot come back (#159)', () => {
+    renderShell();
+    const panel = screen.getByRole('complementary');
+    expect(panel.hasAttribute('aria-label')).toBe(false);
+    expect(panel.hasAttribute('aria-labelledby')).toBe(false);
+    expect(screen.queryByRole('complementary', { name: 'Primary navigation' })).toBeNull();
+    const list = within(panel).getByRole('navigation', { name: 'Primary navigation' });
+    // The theme item and Settings sit in the same panel, outside the list.
+    expect(within(list).queryByRole('button', { name: 'Settings' })).toBeNull();
+    expect(within(panel).getByRole('button', { name: 'Settings' })).toBeTruthy();
   });
 
   // The research mock (docs/research/mockups/research-mock, the frozen reference these values came from) draws a heading over every group but the first: Production and Schedule sit
@@ -619,7 +633,7 @@ describe('AppShell page change', () => {
     const live = () => screen.getByRole('status', { name: 'Page' });
     expect(live().textContent).toBe('');
     expect(document.activeElement).toBe(document.body);
-    const rail = within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Proof' });
+    const rail = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Proof' });
     rail.focus();
     rerender(shell('/editing'));
     expect(live().textContent).toBe('Editing');
@@ -678,5 +692,12 @@ describe('AppShell page footer', () => {
     const footer = document.querySelector('[data-page-footer]')!;
     expect(footer.childElementCount).toBe(0);
     expect(footer.className).not.toMatch(/border|p[xy]?-/);
+  });
+
+  // #3529: a sentence names where a move goes from RAIL_PAGES; it must be the rail's own list.
+  it('RAIL_PAGES is the rail and Settings, as the jump menu lists them', () => {
+    expect(RAIL_PAGES).toEqual(shellPages({ hasManuscript: true, dawFileLinked: true }).map((page) => ({ name: page.label, path: page.id })));
+    expect(pageNameFor('/editing/chapter-2?x=1')).toBe('Editing');
+    expect(pageNameFor('/nowhere')).toBeUndefined();
   });
 });

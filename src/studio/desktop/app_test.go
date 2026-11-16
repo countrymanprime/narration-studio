@@ -864,6 +864,38 @@ func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
 	contractfile.Check(t, "settings-fx-cap-set", map[string]any{"Editing": editing()})
 }
 
+// Booth.follow_chapter_in_daw (#3427) is a bool that reads on for a fresh install: going to a chapter in the Booth moves the DAW unless the
+// narrator turned it off. Saved off it reads off, at the computer's scope the Booth reads it from.
+func TestSettingsFollowChapterInDawDefaultsOnAndSavesOff(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := newTestHost(t)
+	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
+	read := func() map[string]any {
+		t.Helper()
+		fields, err := host.settingsForScope("global")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, field := range fields["Booth"].([]map[string]any) {
+			if field["key"] == "follow_chapter_in_daw" {
+				return field
+			}
+		}
+		t.Fatal("Booth has no follow_chapter_in_daw field")
+		return nil
+	}
+	if first := read(); first["kind"] != "bool" || first["effectiveValue"] != "true" || first["isSet"] != false {
+		t.Fatalf("fresh field = %v, want a bool reading true, unset", first)
+	}
+	off := "false"
+	if err := host.saveSettings("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
+		t.Fatal(err)
+	}
+	if saved := read(); saved["effectiveValue"] != "false" || saved["isSet"] != true {
+		t.Fatalf("saved field = %v, want false and set", saved)
+	}
+}
+
 // Booth.words_per_page is where the Booth draws its page breaks: a whole number of words from 50 to 1000 that reads as 250 (a manuscript
 // page) on a fresh install. A save outside the range, or not a whole number, is refused and leaves the stored figure as it was. The tool's
 // fields are pinned as the Booth reads them: unset (settings-words-per-page.json) and with 300 saved for the project

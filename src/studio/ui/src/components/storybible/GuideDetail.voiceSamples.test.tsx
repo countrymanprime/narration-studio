@@ -59,8 +59,8 @@ describe('the Voice samples section of an entry', () => {
     const samples = await section();
     const references = await screen.findByText('Reference clips');
     expect(samples.compareDocumentPosition(references) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await screen.findByText('Hatter ref A');
-    expect(screen.queryByRole('button', { name: /^Play Hatter ref A/ })).toBeNull();
+    await screen.findByText('Hatter ref (moved)');
+    expect(screen.queryByRole('button', { name: /^Play Hatter ref/ })).toBeNull();
     expect(document.body.textContent).not.toContain('future integration');
   });
 
@@ -81,7 +81,7 @@ describe('the Voice samples section of an entry', () => {
     expect(await menuItems(user, more)).toEqual(['Rename…', 'Move to a character…', 'Delete…']);
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
     expect(await menuItems(user, screen.getByRole('button', { name: 'More about Tea party, quick' }))).toEqual(['Rename…']);
   });
 

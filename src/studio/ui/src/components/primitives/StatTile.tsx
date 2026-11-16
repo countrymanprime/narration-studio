@@ -49,7 +49,9 @@ export function StatTile({
         {icon ? (
           <>
             <Icon name={icon} />
-            <span className="truncate">{label}</span>
+            <span className="truncate" title={label}>
+              {label}
+            </span>
           </>
         ) : (
           label

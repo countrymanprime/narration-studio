@@ -228,6 +228,62 @@ def folder_add_last_child(env: Env) -> str:
 
 @scenario(
     "booth_voices",
+    "go_to, read_place",
+    "#3427: go_to a chapter folder selects the folder and its voices and no other track; read_place reads the folder back; go_to a voice selects only it",
+)
+def go_to_a_folder_selects_its_voices(env: Env) -> str:
+    g = folder_book(env)
+
+    def selected() -> dict:
+        return env.lua(
+            """
+            local out = {}
+            for i = 0, reaper.CountTracks(0) - 1 do
+              local t = reaper.GetTrack(0, i)
+              out[select(2, reaper.GetTrackName(t))] = math.floor(reaper.GetMediaTrackInfo_Value(t, 'I_SELECTED'))
+            end
+            return out
+            """
+        )
+
+    env.ok("go_to", g["Chapter 3"], "end", "", until="PLACE_SET")
+    folder = selected()
+    assert folder == {"Chapter 3": 1, "Narrator": 1, "Veyra": 1, "Drone": 1, "Chapter 4": 0}, folder
+    place = env.ok("read_place", until="PLACE")
+    assert place[2].upper() == g["Chapter 3"].upper() and place[3] == "4", place
+    env.ok("go_to", g["Veyra"], "at", "1.5", until="PLACE_SET")
+    voice = selected()
+    assert voice == {"Chapter 3": 0, "Narrator": 0, "Veyra": 1, "Drone": 0, "Chapter 4": 0}, voice
+    return f"folder selection {folder}; read_place {place[2:4]}; a voice alone {voice}"
+
+
+@scenario(
+    "booth_voices",
+    "arm_lane, record_start, record_stop",
+    "#3429: arm_lane arms the chosen voice and disarms the rest while stopped, and the arm stays after a take (nothing is put back)",
+    needs_audio=True,
+)
+def arm_lane_keeps_the_choice(env: Env) -> str:
+    g = folder_book(env)
+    arm_only_by_hand(env, "Narrator")
+    armed = env.ok("arm_lane", g["Veyra"], until="ARMED")
+    assert armed[2] == g["Veyra"], armed
+    after = {r["name"]: r["arm"] for r in structure(env)}
+    assert after == {"Chapter 3": 0, "Narrator": 0, "Veyra": 1, "Drone": 0, "Chapter 4": 0}, after
+    again = env.ok("arm_lane", g["Veyra"], until="ARMED")
+    assert again[4] == "0", f"a second arm_lane for the armed voice must change nothing: {again}"
+    env.lua("reaper.SetEditCurPos(2, false, false) return true")
+    env.ok("record_start", g["Veyra"], until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 3.2, timeout=8, what="the take to run over a second")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    kept = {r["name"]: r["arm"] for r in structure(env)}
+    assert kept == after, f"the arms after the take {kept} differ from the Booth's choice {after}"
+    return f"arms after arm_lane {after}; after a take {kept}"
+
+
+@scenario(
+    "booth_voices",
     "arm_only, record_start, record_stop",
     "voices phase 0: arm_only on a child inside a folder; the folder stays unarmed and records nothing; the take is one item on that child",
     needs_audio=True,

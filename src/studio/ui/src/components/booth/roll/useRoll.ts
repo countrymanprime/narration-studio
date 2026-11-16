@@ -1,7 +1,9 @@
+import { trackName as readable } from '../../tracks/trackName';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
 import { sentenceOr } from '../record/sentenceOr';
 import { rollConfirmSpec } from './rollConfirm';
@@ -107,9 +109,16 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     rolling.current = true;
     try {
       const seconds = s.takeSeconds;
-      const result = await actionsRef.current.roll(to, { confirmed });
+      const result = await actionsRef.current.roll(to, { confirmed }).catch((error: unknown): DawResult => {
+        // A call that fails (the bridge broke) is a sentence, never a silent press or an unhandled error.
+        return { ok: false, changed: false, undoSteps: 0, message: `Rolling again did not go through: ${apiErrorMessage(error)}` };
+      });
+      // The take ended while the roll was out (Stop): nothing is said, logged or moved for a take that is over, whatever the roll answered.
+      if (!sessionRef.current.recording) return;
       if (!result.ok) {
-        actionsRef.current.refuse(sentenceOr(result.refused, sentenceOr(result.message, 'The DAW refused to roll again.')));
+        // An empty message is a failure the Booth already said (the roll's limit).
+        const said = sentenceOr(result.refused, sentenceOr(result.message, ''));
+        if (said) actionsRef.current.refuse(said);
         return;
       }
       lastRollAt.current = Date.now();
@@ -349,7 +358,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
         if (outdated(mine)) return;
         // The narrator is told which track is recorded over before the take starts, never only after.
-        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`, PRESS_NOTE_TOPIC);
+        actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${readable(target.trackName)}` : ''}.`, PRESS_NOTE_TOPIC);
         return await actionsRef.current.beginTake(target.start);
       } finally {
         endWait(mine);

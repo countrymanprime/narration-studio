@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { ExtractionImportPlan, ImportFormat } from '../../../../api/contracts/extraction';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
+import { confirmDiscard } from '../../../../studio/drafts/confirmDiscard';
 import { useJournal } from '../../../../studio/StudioProvider';
 import { Button } from '../../../primitives/Button';
 import { Icon } from '../../../primitives/Icon';
@@ -138,6 +139,8 @@ function Preview({ plan }: { plan: ExtractionImportPlan }) {
 
 export type ImportDialogProps = {
   onClose: () => void;
+  /** Filled in by the dialog with its question for Escape: true closes, false keeps it open. Absent, Escape needs none (the dialog is rendered inside a test). */
+  exitGuard?: MutableRefObject<(() => boolean | Promise<boolean>) | null>;
   /** Called after an import and after its undo, so the page can read the suggestions again. */
   onChanged?: () => void;
 };
@@ -147,7 +150,7 @@ export type ImportDialogProps = {
  * undoable step. The page reads a chosen file as text and sends the text and a format hint, never a name or path (D72); the host
  * does every parse and every number in the preview.
  */
-export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
+export function ImportDialog({ onClose, onChanged, exitGuard }: ImportDialogProps) {
   const port = usePort('extraction');
   const journal = useJournal();
   const prompts = useImportPrompts();
@@ -188,6 +191,22 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
     };
   }, []);
   const example = prompts[exampleFormat]?.example ?? '';
+  // Escape closes through the overlay host, which asks this first: pasted text or a chosen file is dropped only by the button that says Discard import, and an exit asks (#3400).
+  const typed = Boolean(text.trim() || fileName);
+  const typedNow = useRef(typed);
+  // While Add runs the text is on its way to the host, so closing the dialog drops nothing and asks nothing.
+  typedNow.current = typed && !adding;
+  // What the box holds now, and the text of the file that last filled it: choosing a file over anything else typed or pasted replaces it, so it asks first (#3457 qa round 5 B1).
+  const textNow = useRef(text);
+  textNow.current = text;
+  const lastRead = useRef('');
+  useEffect(() => {
+    if (!exitGuard) return;
+    exitGuard.current = async () => !typedNow.current || confirmDiscard('your import');
+    return () => {
+      exitGuard.current = null;
+    };
+  }, [exitGuard]);
 
   const choose = async (file: File) => {
     const mine = ++reading.current;
@@ -204,6 +223,9 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
         setFileProblem(read ? 'That file has only blank space in it.' : 'That file is empty.');
         return;
       }
+      if (textNow.current.trim() && textNow.current !== lastRead.current && !(await confirmDiscard('the text you entered'))) return;
+      if (mine !== reading.current || !alive.current) return;
+      lastRead.current = read;
       setText(read);
       setHint(hintFromName(file.name));
       setFileName(displayName(file.name));
@@ -258,8 +280,9 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
             A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
           </Heading>
         </div>
+        {/* A button that drops pasted text says so; with nothing pasted it only closes (#3400). */}
         <Button variant="secondary" onClick={onClose}>
-          Cancel
+          {typed ? 'Discard import' : 'Close'}
         </Button>
       </div>
       <div className="flex flex-col gap-3.5 p-[1.1rem]">

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EditingCheckPanel } from './EditingCheckPanel';
 import { ApiProvider } from '../../api/ApiContext';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
@@ -19,19 +20,20 @@ const chapter = WIRE_CHAPTERS[6];
 
 type Initial = Parameters<typeof createMockApi>[1];
 
-function renderPanel(initial: Initial = {}) {
+function renderPanel(initial: Initial = {}, openEngine?: () => void) {
   const api = createMockApi({}, initial);
   const notify = vi.fn();
   const close = vi.fn();
-  render(
+  const body = (
     <MemoryRouter>
       <ApiProvider api={api}>
         <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
           <EditingCheckPanel chapter={chapter} notify={notify} close={close} />
         </ChapterTrackStateProvider>
       </ApiProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  render(openEngine ? <EnginePanelProvider value={openEngine}>{body}</EnginePanelProvider> : body);
   return { api, notify, close };
 }
 
@@ -296,5 +298,17 @@ describe("the check starts against the shared state's document (#3413)", () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check editing' }));
     await waitFor(() => expect(start).toHaveBeenCalled());
     expect(start.mock.calls[0][0]).toBe(documentId);
+  });
+
+  // #3416 item 60: the pointer opened the engine panel and left this slide-over open under it.
+  it('a multiple-tracks refusal points to the engine panel and closes this panel as it opens', async () => {
+    const user = userEvent.setup();
+    const openEngine = vi.fn();
+    const { close } = renderPanel({ editing: { refusal: 'multiple_tracks' } }, openEngine);
+    const dialog = await panel();
+    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    await user.click(await within(dialog).findByRole('button', { name: 'Open the audio engine panel' }));
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(openEngine).toHaveBeenCalledTimes(1);
   });
 });

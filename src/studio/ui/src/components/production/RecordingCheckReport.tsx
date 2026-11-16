@@ -34,6 +34,7 @@ export function RecordingCheckReport({
   goToParagraph,
   actionsSlot,
   openWorkspace,
+  onNavigate,
 }: {
   chapter: ManuscriptChapter;
   report: CoverageReport;
@@ -45,6 +46,8 @@ export function RecordingCheckReport({
   actionsSlot?: ReactNode;
   /** "Open in Editing" (the summary component is shared and the dialog gets it). Undefined when there is none to open. */
   openWorkspace?: () => void;
+  /** Runs when a link in the report (Open Proof, Open pickups) is followed: the dialog that holds it closes. */
+  onNavigate?: () => void;
 }) {
   const { complete, headline, detail } = verdict(report, judgement);
   const refs = paragraphRefs(
@@ -170,8 +173,8 @@ export function RecordingCheckReport({
             })}
           </ul>
         )}
-        <ProofPickupNotes chapterId={chapter.id} count={otherPickups ?? 0} />
-        <PickupListCount available={pickupsCapability.available} remaining={pickupsRemaining} />
+        <ProofPickupNotes chapterId={chapter.id} count={otherPickups ?? 0} onNavigate={onNavigate} />
+        <PickupListCount available={pickupsCapability.available} remaining={pickupsRemaining} onNavigate={onNavigate} />
       </section>
       {report.paragraphs.length > 0 && (
         <Disclosure

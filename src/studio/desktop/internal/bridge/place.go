@@ -41,7 +41,7 @@ func (a *Actions) ReadPlace(ctx context.Context) (Place, error) {
 	return Place{TrackGUID: fields[2], Selected: selected, Cursor: cursor}, nil
 }
 
-// GoTo selects trackGUID (and only it) and puts the edit cursor at target, answering the cursor REAPER now holds. It never starts or
+// GoTo selects trackGUID, and the tracks inside it when it is a folder (a chapter and its voices), and puts the edit cursor at target, answering the cursor REAPER now holds. It never starts or
 // seeks playback and opens no undo block. A track that is gone is a *TrackStaleError; a time that is not a usable number is refused
 // before anything is sent.
 func (a *Actions) GoTo(ctx context.Context, trackGUID string, target PlaceTarget) (float64, error) {

@@ -5,6 +5,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { scriptDrivers } from './drivers/script';
 import { settlePage } from './helpers/settle';
+import { goToPage, selectReaderWord } from './drivers/shared';
 
 async function drive(page: Page, state: string, size: { width: number; height: number }): Promise<void> {
   await page.setViewportSize(size);
@@ -85,3 +86,42 @@ for (const size of [
     expect.soft(g.inset, "the sentence on the rail's 16 px inset").toBe(16);
   });
 }
+
+// A reply typed in a note's card is held by the page, so a delete of one of its messages asks first; Cancel leaves the message and the reply, and Save & continue sends the
+// reply and deletes the message in the same card (#3404, #3400).
+test('deleting a message of a note asks while a reply is typed under it, and the reply is kept', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Script');
+  await selectReaderWord(page, 'Rabbit');
+  await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+  await page.getByRole('menuitem').first().click();
+  const composer = page.getByRole('dialog');
+  await composer.getByRole('textbox').first().fill('First message');
+  await composer
+    .getByRole('button', { name: /^(Add|Save|Mark)/ })
+    .last()
+    .click();
+  const rail = page.locator('section[aria-label="Words, Story Bible and marks"]').first();
+  await rail.getByRole('tab', { name: 'Notes', exact: true }).click();
+  const card = rail.getByRole('article').first();
+  await card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }).fill('Second message');
+  await card
+    .getByRole('button', { name: /^(Add|Reply)/ })
+    .first()
+    .click();
+  await expect(card.getByText('Second message')).toBeVisible();
+  await card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ }).fill('Typed reply keep me');
+  await card.getByRole('button', { name: 'Delete the message' }).first().click();
+  const question = page.getByRole('alertdialog', { name: 'Unsaved changes' });
+  await expect(question).toContainText('Save or discard your reply');
+  await question.getByRole('button', { name: 'Cancel' }).click();
+  await expect(card.getByText('First message')).toBeVisible();
+  await expect(card.getByText('Second message')).toBeVisible();
+  await expect(card.getByRole('textbox', { name: /^(Add to this note|Reply or note)$/ })).toHaveValue('Typed reply keep me');
+  await card.getByRole('button', { name: 'Delete the message' }).first().click();
+  await page.getByRole('alertdialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Save & continue' }).click();
+  await expect(card.getByText('Typed reply keep me')).toBeVisible();
+  await expect(card.getByText('First message')).toHaveCount(0);
+});

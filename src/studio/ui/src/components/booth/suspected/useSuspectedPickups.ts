@@ -9,13 +9,17 @@ import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './sus
 import { pluralWord, formatCount } from '../../../plural';
 
 /**
- * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is
+ * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast unless `survivesMoves` is set (Stop and leave: the sentence is shown with no Undo, and the move does not take it
+ * away, #3529). `saidSaved`: another toast already said the take is
  * saved. `undoTake` and `entry`: the take's history entry when a DAW stopped it and this toast is the one that says so; its Undo takes the take
  * back in the DAW before the lines.
  */
 export type SuspectedTake = {
   paragraphIds: ReadonlySet<string>;
   quiet?: boolean;
+  survivesMoves?: number;
+  /** As on a pickup session's take: the sentence is raised when the move happens. */
+  later?: (raise: () => void) => void;
   saidSaved?: boolean;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
@@ -39,7 +43,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   latest.current = { chapterId, flags };
 
   const takeStopped = useCallback(
-    async ({ paragraphIds, quiet = false, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
+    async ({ paragraphIds, quiet = false, survivesMoves, later, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
       const { chapterId: chapter, flags: all } = latest.current;
       const read = keptLines(suspectedLines(all, paragraphIds));
       if (read.length === 0) return 0;
@@ -84,9 +88,16 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
         refused = apiErrorMessage(reason);
       }
       if (refused) overlay.toast(refused, { tone: 'error' });
-      if (changed.length === 0 || quiet) return changed.length;
+      if (changed.length === 0 || (quiet && !survivesMoves)) return changed.length;
       const withTake = !saidSaved && undoTake;
       const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
+      // Stop and leave: the sentence is shown on the page landed on, with no Undo (see #3545 for the Undo path).
+      if (quiet) {
+        const say = () => overlay.toast(text);
+        if (later) later(say);
+        else say();
+        return changed.length;
+      }
       const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
         // The take goes first when this toast is the one that said it is saved.
         const take = withTake ? await undoTake() : null;

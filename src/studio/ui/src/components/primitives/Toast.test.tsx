@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
-import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
+import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_ERROR_MS, TOAST_INFO_MS, TOAST_MAX_MS, ToastRegion, toastLifetimeMs, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -58,6 +58,31 @@ describe('ToastRegion', () => {
     expect(region.className).toContain('z-[var(--z-toast)]');
   });
 
+  // #3416 item 39 (qa-breaker): a press on a toast's plain text over a dialog that ignores outside presses moved focus from the dialog's control to <body>.
+  it('does not take focus from a modal when its plain text is pressed, and leaves its own buttons alone', () => {
+    document.documentElement.setAttribute('data-modal-open', '');
+    try {
+      render(
+        <ToastRegion messages={[{ id: 1, text: 'REAPER stopped recording', tone: 'info', action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />,
+      );
+      const text = createEvent.mouseDown(screen.getByText('REAPER stopped recording'), { cancelable: true, bubbles: true });
+      fireEvent(screen.getByText('REAPER stopped recording'), text);
+      expect(text.defaultPrevented).toBe(true);
+      const button = createEvent.mouseDown(screen.getByRole('button', { name: 'Dismiss message' }), { cancelable: true, bubbles: true });
+      fireEvent(screen.getByRole('button', { name: 'Dismiss message' }), button);
+      expect(button.defaultPrevented).toBe(false);
+    } finally {
+      document.documentElement.removeAttribute('data-modal-open');
+    }
+  });
+
+  it('leaves a press on its text alone when no modal is open', () => {
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    const press = createEvent.mouseDown(screen.getByText('Message 1'), { cancelable: true, bubbles: true });
+    fireEvent(screen.getByText('Message 1'), press);
+    expect(press.defaultPrevented).toBe(false);
+  });
+
   it('keeps two live regions mounted, so a message that arrives later is announced', () => {
     render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
     expect(screen.getByRole('status').getAttribute('aria-live')).toBe('polite');
@@ -107,12 +132,29 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(9);
   });
 
-  it('never dismisses an error by itself, however long it stays', () => {
+  it('keeps an error longer than an information message, and dismisses it at its own limit (#3431)', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(3)]} dismiss={dismiss} />);
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 20));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 2));
     expect(dismiss).not.toHaveBeenCalled();
-    expect(screen.getByText('Failure 3')).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - TOAST_INFO_MS * 2 - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(3);
+  });
+
+  it('holds an error while the pointer is on it or focus is in it, and gives it the full time again after', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(4)]} dismiss={dismiss} />);
+    const toast = screen.getByText('Failure 4').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 3));
+    expect(dismiss).not.toHaveBeenCalled();
+    fireEvent.pointerLeave(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
   });
 
   it('dismisses the message whose button was pressed', () => {
@@ -427,4 +469,95 @@ describe('ToastRegion inside a modal (issue 2949)', () => {
     screen.getByRole('button', { name: 'Done' }).focus();
     await tabInsideTrap(user);
   });
+});
+
+// #3431: every toast has a bounded lifetime. Whatever tone or `durationMs` a caller passes (none, zero, negative, NaN, Infinity, huge), the toast goes by TOAST_MAX_MS.
+describe('toast lifetime', () => {
+  const asks: Array<number | undefined> = [undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER, 1, TOAST_ACTION_MS];
+  for (const tone of ['info', 'error'] as const) {
+    for (const durationMs of asks) {
+      it(`${tone} with durationMs ${String(durationMs)} has a finite, positive lifetime of at most TOAST_MAX_MS, and is dismissed by then`, () => {
+        const message: ToastMessage = { id: 1, text: 'Lifetime check', tone, durationMs };
+        const stays = toastLifetimeMs(message);
+        expect(Number.isFinite(stays)).toBe(true);
+        expect(stays).toBeGreaterThan(0);
+        expect(stays).toBeLessThanOrEqual(TOAST_MAX_MS);
+        const dismiss = vi.fn();
+        render(<ToastRegion messages={[message]} dismiss={dismiss} />);
+        act(() => void vi.advanceTimersByTime(TOAST_MAX_MS));
+        expect(dismiss).toHaveBeenCalledWith(1);
+      });
+    }
+  }
+
+  it('gives an error a longer default than an information message', () => {
+    expect(toastLifetimeMs({ tone: 'error' })).toBe(TOAST_ERROR_MS);
+    expect(toastLifetimeMs({ tone: 'info' })).toBe(TOAST_INFO_MS);
+    expect(TOAST_ERROR_MS).toBeGreaterThan(TOAST_INFO_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: 1 })).toBe(TOAST_ERROR_MS);
+    expect(toastLifetimeMs({ tone: 'error', durationMs: TOAST_MAX_MS })).toBe(TOAST_MAX_MS);
+  });
+});
+
+// Owner, 2026-11-16 (#3430): Escape closes the Booth and nothing else; a toast never closes on Escape (a toast that comes up must not make the key close the
+// Booth by accident). A toast closes on its timer, which pauses while the pointer or focus is on it.
+describe('Escape and a toast', () => {
+  it('does not dismiss a toast that has focus, and the key reaches the page untouched', () => {
+    const dismiss = vi.fn();
+    const page = vi.fn();
+    render(
+      <div onKeyDown={page}>
+        <ToastRegion messages={[failure(8), info(9)]} dismiss={dismiss} />
+      </div>,
+    );
+    for (const name of ['Dismiss message']) {
+      for (const button of screen.getAllByRole('button', { name })) {
+        act(() => button.focus());
+        const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        button.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    expect(dismiss).not.toHaveBeenCalled();
+    expect(page).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Failure 8')).toBeTruthy();
+  });
+
+  it('a toast with focus on its Retry button also keeps Escape for the page', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[{ ...failure(7), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={dismiss} />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    act(() => retry.focus());
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    retry.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(dismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe('a hold that starts while the toast fades', () => {
+  for (const tone of ['info', 'error'] as const) {
+    for (const how of ['pointer', 'focus'] as const) {
+      for (const offset of [0, 140, 149, 1]) {
+        it(`${tone}, ${how} at ${offset} ms before its end: visible again while held, and a full lifetime after release (#3431)`, () => {
+          const dismiss = vi.fn();
+          const stays = tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+          render(<ToastRegion messages={[{ id: 1, text: 'Held', tone }]} dismiss={dismiss} />);
+          const toast = screen.getByText('Held').closest('[data-tone]') as HTMLElement;
+          act(() => void vi.advanceTimersByTime(stays - Math.max(offset, 1)));
+          if (how === 'pointer') fireEvent.pointerEnter(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).focus());
+          act(() => void vi.advanceTimersByTime(1000));
+          expect(toast.className).not.toContain('opacity-0');
+          expect(dismiss).not.toHaveBeenCalled();
+          if (how === 'pointer') fireEvent.pointerLeave(toast);
+          else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).blur());
+          act(() => void vi.advanceTimersByTime(stays - 1));
+          expect(dismiss).not.toHaveBeenCalled();
+          act(() => void vi.advanceTimersByTime(1));
+          expect(dismiss).toHaveBeenCalledWith(1);
+        });
+      }
+    }
+  }
 });

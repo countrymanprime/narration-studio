@@ -170,7 +170,7 @@ var eventSpecs = map[string]eventSpec{
 	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
 	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
 	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
-	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
+	// arm_only, arm_lane, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during
 	// the recording (undo_last's record_take), was appended to both stop answers later: optional, so an older script's still reads.

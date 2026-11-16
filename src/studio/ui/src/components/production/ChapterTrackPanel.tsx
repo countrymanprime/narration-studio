@@ -14,6 +14,7 @@ import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -49,6 +50,7 @@ export function ChapterTrackPanel({
   onClose,
   onChanged,
   onRemoveFromRecording,
+  returnFocus,
 }: {
   open: boolean;
   chapterId: string;
@@ -67,12 +69,15 @@ export function ChapterTrackPanel({
   onChanged: () => Promise<void>;
   /** Reclassifies the chapter (manuscriptSetChapterKind); the caller re-reads the chapter list and ChapterTrackLinks
    * and shows its own notify/error. Rejects on failure, which keeps the confirm open for a retry. */
+  /** Where focus goes on close when what opened it is gone (the row menu's item): the chapter's row. */
+  returnFocus?: () => HTMLElement | null;
   onRemoveFromRecording: (kind: ManuscriptContentKind) => Promise<void>;
 }) {
   const api = useApi();
   const actions = useChapterLinkActions();
   // The tracks are the shared state's, the same ones the Engine list and the Booth show (REAPER's now, the saved file's when it is not open).
   const trackState = useChapterTrackState({ when: open });
+  const nameOf = useChapterNameOf(open);
   const tracks: Track[] | undefined = trackState.project?.tracks;
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
@@ -100,7 +105,7 @@ export function ChapterTrackPanel({
   const link_ = async (trackGuid: string) => {
     setBusy(true);
     try {
-      const { linkedNotice } = await actions.set(chapterId, trackGuid);
+      const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
       notify(linkedNotice);
       await onChanged();
     } catch (error) {
@@ -139,7 +144,7 @@ export function ChapterTrackPanel({
   const missing = state?.kind === 'missing';
   const conflict = link?.status === 'ambiguous' && link.links.length > 1;
   return (
-    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose}>
+    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
         <p role="status">Reading the saved project…</p>
       ) : (
@@ -151,8 +156,8 @@ export function ChapterTrackPanel({
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${link.track.trackName}”` : ''} is not in the project now. It may have been deleted or the project
-                saved elsewhere. Link another track below.
+                The linked track{link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or
+                the project saved elsewhere. Link another track below.
               </span>
             </InsetCard>
           )}
@@ -251,7 +256,7 @@ export function ChapterTrackPanel({
                 {link.candidates.map((candidate) => (
                   <InsetCard as="li" key={candidate.trackGuid} className="flex items-center justify-between gap-2">
                     <span>
-                      {candidate.trackName}
+                      {trackName(candidate.trackName, candidate.trackIndex)}
                       {candidate.region && <span style={{ color: 'var(--text-muted)' }}> · region "{candidate.region.name}"</span>}
                     </span>
                     <Button disabled={busy} pending={busy} onClick={() => void link_(candidate.trackGuid)}>
@@ -289,6 +294,7 @@ export function ChapterTrackPanel({
                   // A track another chapter holds is labelled "(linked to X)" before the press, as the Engine panel's picker does.
                   links={trackState.mappings}
                   chapterId={chapterId}
+                  nameOf={nameOf}
                   // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
                   linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
                   linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}
@@ -314,7 +320,13 @@ export function ChapterTrackPanel({
         </div>
       )}
       {removeOpen && (
-        <RemoveFromRecordingDialog chapterTitle={shortName} busy={busy} onConfirm={(kind) => void remove(kind)} onCancel={() => setRemoveOpen(false)} />
+        <RemoveFromRecordingDialog
+          chapterTitle={shortName}
+          busy={busy}
+          onConfirm={(kind) => void remove(kind)}
+          onCancel={() => setRemoveOpen(false)}
+          returnFocus={returnFocus}
+        />
       )}
     </SlideOver>
   );
@@ -342,7 +354,9 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
           style={hollow ? { borderColor: 'var(--non-text)' } : { background: trackSummary.color || 'var(--non-text)', borderColor: 'transparent' }}
         />
         <div className="min-w-0">
-          <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">{link.track?.trackName ?? chapterTitle}</div>
+          <div className="font-['Barlow_Condensed',sans-serif] text-lg font-semibold uppercase">
+            {link.track ? trackName(link.track.trackName, trackSummary?.index) : chapterTitle}
+          </div>
           {trackSummary && <div style={{ color: 'var(--text-muted)' }}>Track {trackSummary.index + 1}</div>}
         </div>
       </div>

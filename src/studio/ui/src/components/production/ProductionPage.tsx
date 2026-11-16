@@ -430,6 +430,7 @@ export function ProductionPage({
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
                     offerCheck
+                    keepRowId={tools.openChapterId}
                     justChanged={changedRow.changed}
                     onStatus={(chapterId) => {
                       changedRow.mark(chapterId);

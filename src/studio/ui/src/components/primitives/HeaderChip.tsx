@@ -41,7 +41,7 @@ export function HeaderChip({
   'aria-label': ariaLabel,
   title,
   'aria-busy': ariaBusy,
-  readout = false,
+  focusable = false,
   className = '',
 }: {
   tone?: HeaderChipTone;
@@ -56,13 +56,12 @@ export function HeaderChip({
   /** The native hint on a chip that is a button (what pressing it does). */
   title?: string;
   'aria-busy'?: boolean;
-  /** A readout, not a control: the surface as its fill and a dashed rim in the muted text colour, so it does not read as the filled chips beside it that can be pressed. */
-  readout?: boolean;
+  /** A chip that is not a button but has a hint the keyboard must reach (a `TooltipTarget` shows it on focus): it takes one Tab stop. */
+  focusable?: boolean;
   /** Placement only (`flex-none`, or `min-w-0` for a chip that truncates): the look is the chip's. */
   className?: string;
 }) {
   const classes = `${CHIP} ${short ? 'max-md:px-[0.375rem]' : ''} ${className}`.replace(/\s+/g, ' ').trim();
-  const look = readout ? { ...TONE[tone], background: 'var(--surface)', borderColor: 'var(--text-muted)', borderStyle: 'dashed' } : TONE[tone];
   const content = (
     <>
       {dot && <Dot color={dot} />}
@@ -78,13 +77,13 @@ export function HeaderChip({
         aria-label={ariaLabel}
         aria-busy={ariaBusy || undefined}
         className={`${classes} ${HIT_AREA_32} cursor-pointer hover:shadow-[inset_0_0_0_1px_var(--accent)] disabled:pointer-events-none disabled:opacity-60`}
-        style={look}
+        style={TONE[tone]}
       >
         {content}
       </button>
     );
   return (
-    <span role={role} aria-label={ariaLabel} aria-busy={ariaBusy || undefined} className={classes} style={look}>
+    <span role={role} aria-label={ariaLabel} aria-busy={ariaBusy || undefined} tabIndex={focusable ? 0 : undefined} className={classes} style={TONE[tone]}>
       {content}
     </span>
   );

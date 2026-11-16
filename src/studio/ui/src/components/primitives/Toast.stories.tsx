@@ -21,7 +21,7 @@ const failure = (id: number, text: string): ToastMessage => ({ id, text, tone: '
 // An information message dismisses itself after five seconds (Storybook stops timers from mattering for the screenshot).
 export const Information: Story = { args: { messages: [info(1, 'Entry saved.')] } };
 
-// An error stays until it is dismissed, and carries an icon and a coloured edge so it is not told apart by colour alone.
+// An error stays for `TOAST_ERROR_MS` unless it is dismissed first, and carries an icon and a coloured edge so it is not told apart by colour alone.
 export const ErrorMessage: Story = { args: { messages: [failure(1, 'The Story Bible file could not be read. It was kept next to the original.')] } };
 
 // One long word (a Windows path) wraps inside the toast and the window instead of running off both edges (#2793).

@@ -1,7 +1,6 @@
-// A refused press says its sentence once, and a start the narrator chose is shown wherever the side panel is closed (#3322, #3319). The mock's DAW
-// refuses the start through `__NARRATION_MOCK_OVERRIDES__`, the start is chosen with Start from here, and each window size the Booth supports is
-// driven: the sentence is on screen once (the message, not again in the footer), the message is not cut off or sideways, the footer keeps its
-// size, and "Next roll starts from ¶ n" is readable in the side panel or, with the panel closed, as the chip in the top bar.
+// A refused press says its sentence once (#3322). The mock's DAW refuses the start through `__NARRATION_MOCK_OVERRIDES__`, the start is chosen with
+// Start from here, and each window size the Booth supports is driven: the sentence is on screen once (the message, not again in the footer), and the
+// message is not cut off or sideways.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
@@ -46,7 +45,7 @@ const timesSaid = (page: Page, sentence: string) =>
 for (const scheme of ['light', 'dark'] as const) {
   for (const { width, height } of SIZES) {
     if (scheme === 'dark' && width !== 360 && width !== 1100) continue;
-    test(`${width}x${height} ${scheme}: a refused start is said once, whole, and the chosen start is shown`, async ({ page }) => {
+    test(`${width}x${height} ${scheme}: a refused start is said once and whole`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width, height });
       await openRefusing(page);
@@ -79,24 +78,13 @@ for (const scheme of ['light', 'dark'] as const) {
         };
       });
       expect(await toastProblems(page)).toEqual([]);
-      // In the 300 px window the chosen start's readout (and its gap) takes about 30 px more of the toast's room: the text may then scroll, from its first line, inside
-      // the toast (it is still whole in the window, checked above), where it is whole in every other size.
-      if (height > 300) expect(fits.clipped).toBe(false);
+      expect(fits.clipped).toBe(false);
       expect(fits.inside).toBe(true);
       expect(fits.dismissInside).toBe(true);
       expect(fits.sideways).toBe(false);
       // One message, not a stack of them: it leaves most of the window to the text.
       expect(fits.share).toBeLessThan(0.5);
       expect(await page.locator('[data-toast-region] [data-tone]').count()).toBe(1);
-
-      // The chosen start is shown somewhere at every size: the panel's line while it is open, the top bar's chip while it is closed.
-      await toast.getByRole('button', { name: 'Dismiss message' }).click();
-      const chip = page.locator('[data-chosen-start]');
-      const panelLine = page.getByText(/^Next roll starts from ¶ \d+$/);
-      if ((await chip.count()) > 0) await expect(chip).toBeVisible();
-      else await expect(panelLine).toBeVisible();
-      expect((await chip.count()) + (await panelLine.filter({ visible: true }).count())).toBe(1);
-      if ((await chip.count()) > 0) await expect(chip).toHaveText(/^Starts ¶ \d+$/);
     });
   }
 }
@@ -142,8 +130,6 @@ for (const [length, label] of [
   }
 }
 
-// A chosen start adds nothing to the top bar, the text or the footer: with the reading moved to the same word by a plain click (which also offers "Resume at"),
-// the bar and the reading area are the size they are after Start from here, the footer is the size it was before, and the readout stands just above the footer's rim (#3319).
 const bars = (page: Page) =>
   page.evaluate(() => ({
     bar: document.querySelector('[data-booth-side-keep]')!.getBoundingClientRect().height,
@@ -154,49 +140,7 @@ const settleBar = async (page: Page) => {
   await expect(page.locator('[data-recorded-through]')).toBeVisible();
   await page.waitForTimeout(500);
 };
-for (const { width, height } of SIZES) {
-  test(`${width}x${height}: a chosen start adds nothing to the top bar or the text beyond what moving the reading does, and nothing to the footer`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height });
-    // Only the reading moved.
-    await openRefusing(page);
-    await settleBar(page);
-    const idle = await bars(page);
-    await page.locator('[data-booth-text] [data-word]').nth(40).click();
-    await page.waitForTimeout(500);
-    const moved = await bars(page);
-    // The reading moved and a start was chosen.
-    await openRefusing(page);
-    await settleBar(page);
-    await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-    await page
-      .getByRole('menuitem', { name: /Start from here/ })
-      .first()
-      .click();
-    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
-    await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).click();
-    await page.waitForTimeout(500);
-    const chosen = await bars(page);
-    expect(chosen.bar).toBe(moved.bar);
-    expect(chosen.text).toBe(moved.text);
-    expect(chosen.footer).toBe(idle.footer);
-    // Closed panel: the readout is on the footer's timer row; open panel (the wide window): the panel says it and none is drawn.
-    const chip = page.locator('[data-chosen-start]');
-    if ((await chip.count()) > 0) {
-      await expect(chip).toBeVisible();
-      // Standing just above the footer's rim, taking no room in the footer's rows.
-      const edge = await page.evaluate(() => {
-        const footer = document.querySelector('#btimer')!.closest('.border-t')!.getBoundingClientRect();
-        const chip = document.querySelector('[data-chosen-start]')!.getBoundingClientRect();
-        return Math.abs(chip.bottom - footer.top);
-      });
-      expect(edge).toBeLessThan(4);
-    }
-  });
-}
-
-// The top bar and the text keep their size from idle to a take running (the REC pill): a chosen start (above) and this state add no row. At 320 px the REC pill itself
+// The top bar and the text keep their size from idle to a take running (the REC pill): this state adds no row. At 320 px the REC pill itself
 // wraps the tools group on main as well (101 -> 131 px at 320x300, there before this change), so that width is not asserted here; it is listed in the PR.
 for (const { width, height } of SIZES.filter((size) => size.width >= 360)) {
   test(`${width}x${height}: the top bar and the text keep their size from idle to a take`, async ({ page }) => {

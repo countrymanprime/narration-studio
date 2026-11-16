@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { rightClickVisibleWord } from '../helpers/visibleWord';
 import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
@@ -20,7 +21,7 @@ const HEADINGS = '?mockManuscript=mixed';
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 // The DAW refuses the start with a sentence, as the mock's REAPER does with a locked track: a press ends with its refusal, and a start chosen with Start from here is kept.
 const REFUSAL = 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.';
-async function refusedStart(page: Page, dismiss: boolean): Promise<void> {
+async function refusedStart(page: Page): Promise<void> {
   await page.addInitScript((sentence) => {
     (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
       readAloudRecordStart: () => Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence }),
@@ -35,7 +36,6 @@ async function refusedStart(page: Page, dismiss: boolean): Promise<void> {
     .click();
   const toast = page.locator('[data-toast-region] [data-tone="error"]');
   await toast.waitFor();
-  if (dismiss) await toast.getByRole('button', { name: 'Dismiss message' }).click();
   await record(page).and(page.locator(':not([aria-busy="true"])')).waitFor();
 }
 
@@ -135,8 +135,7 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
-  'chosen-start': (page) => refusedStart(page, true),
-  'refused-start': (page) => refusedStart(page, false),
+  'refused-start': (page) => refusedStart(page),
   voices: async (page) => {
     await readyToRecord(page, '?mockVoiceFolders=1');
     await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();
@@ -557,6 +556,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-bmk-margin] [data-bm-kind="stop"]').waitFor();
     await page.getByText('Stopping place marked.').waitFor();
     // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
+  // Start from here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
+  'chosen-start': async (page) => {
+    await readyToRecord(page);
+    await rightClickVisibleWord(page);
+    await page.getByRole('menuitem', { name: 'Start from here' }).click();
+    await page.locator('[data-booth-text] [data-start]').first().waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.

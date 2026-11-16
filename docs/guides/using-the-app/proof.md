@@ -236,7 +236,9 @@ proofer's replies. Choose **Proofer replied** to paste in what the proofer wrote
 and press **Add note**, which sits beside the box. Each note has a line with who wrote it, when (the date and time as
 the rest of the app writes them) and the pencil and bin, and the note under it at the full width; edit it with the pencil, or delete it, with **Undo** to
 bring it back where it was. The notes are kept with the project beside your decisions, are not a decision themselves,
-and stay with the note when a check runs again.
+and stay with the note when a check runs again. A note typed and not yet added, or an edit of one not yet saved, is asked about when you leave Proof, and also when you pick another note or chapter, or step to the next note after a decision, which would replace the note box (**Unsaved changes**, with **Save & continue**, **Discard & continue** and **Cancel**). **Undo** of a decision asks too when it would return to another note or chapter than the one you are on. The X beside an edit being typed is **Discard edit**: it drops the edit at once, without asking. An edit of a note that you cleared to nothing cannot be saved, so its question reads "Your note edit can't be saved yet. Discard it before leaving?" and offers only **Keep editing** and **Discard & continue**.
+
+![Proof - leaving with a note typed and not added asks Unsaved changes, names the note, and offers Save & continue, Discard & continue and Cancel](../../images/ui/proof-note-leave-confirm.webp)
 
 ![Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next](../../images/ui/proof-note-thread.webp)
 
@@ -324,7 +326,7 @@ The view runs the full width of the page, like Proof, with its breadcrumb and ti
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
 If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings** beside it opens
-[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. A chapter with no linked REAPER track says so in a line
+[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. When the tracks are the saved project's, not REAPER's now, a **Saved project** mark in the title row says so (hold the pointer on it for why). A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)

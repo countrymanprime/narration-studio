@@ -4936,6 +4936,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'companionModeEnter',
       'companionModeExit',
       'windowSaveZoom',
+      'windowCloseGuard',
+      'windowCloseAsked',
+      'windowCloseAnswer',
     ];
     const NOT_A_REQUEST = [
       'mediaUrl',
@@ -4945,6 +4948,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeNotices',
       'subscribeJobEnded',
       'subscribeManuscriptDropped',
+      'subscribeWindowCloseRequested',
       'subscribeVoiceSamples',
       'subscribeTranscript',
       'subscribeCoverage',
@@ -6503,7 +6507,7 @@ describe('the voice tracks bindings', () => {
     await expect(api.voiceTracksSetLayout('nested' as 'flat')).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('a\nb', ['two'])).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('Queen', [''])).rejects.toThrow();
-    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [] });
+    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [] });
   });
 
   it("the Booth's voice choice: an unlinked chapter refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {
@@ -6522,7 +6526,7 @@ describe('the voice tracks bindings', () => {
     expect((await api.boothVoiceSet(chapterId, '{F0LD-V01CE}')).reason).toBe('not_a_voice');
     const selected = await api.boothVoiceSet(chapterId, '{v01ce-rabb1t}');
     expectMatches(boothVoiceSchema, selected, 'mock booth voice (selected)');
-    expect(selected).toEqual({ outcome: 'selected', trackGuid: '{V01CE-RABB1T}' });
+    expect(selected).toEqual({ outcome: 'selected', trackGuid: '{V01CE-RABB1T}', armed: true });
     const started = await api.readAloudRecordStart(chapterId);
     expect(started.trackGuid).toBe('{V01CE-RABB1T}');
     const switched = await api.boothVoiceSet(chapterId, '{V01CE-EXTRAS}');

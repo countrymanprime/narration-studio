@@ -68,6 +68,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'error',
   },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
+  {
+    file: 'components/mapping/ChapterTrackLinkFix.tsx',
+    text: 'This project is no longer open, so its tracks cannot be read. Close this and open the project again.',
+    class: 'error',
+  },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
@@ -77,7 +82,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Not set yet: nothing in the manuscript names the narrator.', class: 'overlay' },
-  { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Use for all my projects (saved as your default in Settings &gt; General)', class: 'overlay' },
+  { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Use for all my projects (saved as your default in Settings &gt; Project)', class: 'overlay' },
   { file: 'components/credits/CreditsSetupDialog.tsx', text: 'Only empty values are filled in; nothing you have already set is changed.', class: 'overlay' },
   {
     file: 'components/delivery/page/OutputPanel.tsx',
@@ -430,7 +435,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/settings/BackupsSection.tsx', text: 'The backups settings could not be read: ….', class: 'error' },
   { file: 'components/settings/BackupsSection.tsx', text: 'The change was not saved: ….', class: 'error' },
   { file: 'components/settings/CapabilitySection.tsx', text: "The DAW's capabilities could not be read: ….", class: 'error' },
-  { file: 'components/settings/CreditsPanel.tsx', text: 'Credits could not be loaded: ….', class: 'error' },
   {
     file: 'components/settings/CreditsPanel.tsx',
     text: 'The global narrator default is …; a narrator override here applies only to this project.',

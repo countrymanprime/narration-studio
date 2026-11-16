@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { overlay } from '../../overlay/overlayService';
 import type { CreditsSetupState, NarrationApi } from '../../types';
+import { CATEGORIES, categoryLabel } from '../settings/registry/categories';
+import { ROWS } from '../settings/registry/rows';
 import { CreditsSetupDialog } from './CreditsSetupDialog';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const STATE: CreditsSetupState = {
   needed: true,
@@ -116,6 +122,15 @@ describe('CreditsSetupDialog', () => {
     expect(label.parentElement!.className).toContain('mt-2');
   });
 
+  // #3495: the label named "Settings > General", which Settings does not have; the narrator default is the `project.narrator` row, in the category labelled "Project".
+  it('"Use for all my projects" names the Settings category that holds the narrator default', () => {
+    renderDialog(STATE);
+    const narratorRow = ROWS.find((row) => row.id === 'project.narrator')!;
+    const named = `Settings > ${categoryLabel(narratorRow.cat)}`;
+    expect(CATEGORIES.some((category) => category.id === narratorRow.cat)).toBe(true);
+    expect(screen.getByRole('checkbox', { name: /^Use for all my projects/ }).closest('label')!.textContent).toContain(`saved as your default in ${named}`);
+  });
+
   it('unchecking "Use for all my projects" saves only the project value, not the global default', async () => {
     const saveSettings = vi.fn().mockResolvedValue({});
     const creditsSetupSave = vi.fn().mockResolvedValue(STATE);
@@ -163,5 +178,134 @@ describe('CreditsSetupDialog', () => {
   it('shows no "Use for all my projects" checkbox when Narrator is not among the asked fields', () => {
     renderDialog({ ...STATE, fields: STATE.fields.filter((field) => field.field !== 'narrator') });
     expect(screen.queryByRole('checkbox', { name: /^Use for all my projects/ })).toBeNull();
+  });
+
+  describe('what the narrator typed is not dropped without asking (#3400)', () => {
+    const typeNarrator = () => fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: 'Sam Reader' } });
+
+    it.each([
+      ['the close button', () => fireEvent.click(screen.getByRole('button', { name: 'Close' }))],
+      ['Escape', () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })],
+      ['Not now', () => fireEvent.click(screen.getByRole('button', { name: 'Not now' }))],
+      ['Don’t ask for this project', () => fireEvent.click(screen.getByRole('button', { name: /^Don.t ask for this project$/ }))],
+    ])('%s asks first; Keep editing keeps the dialog and the name, Discard drops them', async (_name, leave) => {
+      const { api, onDone } = renderDialog();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      typeNarrator();
+      leave();
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Discard what you typed?', cancelLabel: 'Keep editing' }),
+          expect.any(AbortSignal),
+        ),
+      );
+      expect(dismiss).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Sam Reader');
+      leave();
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('while Save runs Escape, the close button, Not now and Don’t ask do nothing and ask nothing (#3461 round 6 B3)', async () => {
+      let finish: (state: CreditsSetupState) => void = () => {};
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>((resolve) => (finish = resolve)));
+      const { api, onDone } = renderDialog(STATE, { creditsSetupSave });
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      const confirm = vi.spyOn(overlay, 'confirm');
+      typeNarrator();
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(creditsSetupSave).toHaveBeenCalledTimes(1));
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(confirm).not.toHaveBeenCalled();
+      expect(dismiss).not.toHaveBeenCalled();
+      finish({ ...STATE, needed: false });
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    });
+
+    it('with nothing changed the dialog closes at once, and a typed narrator replaces the "Not set yet" line', async () => {
+      const { api, onDone } = renderDialog();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      typeNarrator();
+      expect(screen.queryByText('Not set yet: nothing in the manuscript names the narrator.')).toBeNull();
+      fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: '' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(dismiss).toHaveBeenCalledTimes(1);
+    });
+
+    // A save the host answers only after the limit: the dialog was given back, the narrator went on, and then the answer lands (#3461 round 12 BR-E1).
+    const saveGivenUp = async () => {
+      let answer: (state: CreditsSetupState) => void = () => {};
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>((resolve) => (answer = resolve)));
+      const rendered = renderDialog(STATE, { creditsSetupSave });
+      typeNarrator();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await act(async () => {});
+        await act(async () => void vi.advanceTimersByTime(15_001));
+      } finally {
+        vi.useRealTimers();
+      }
+      return { ...rendered, answer: () => answer({ ...STATE, needed: false }) };
+    };
+
+    it('a late answer after the limit does not close the dialog over text typed since the save started (#3461 round 12 BR-E1)', async () => {
+      const { onDone, answer } = await saveGivenUp();
+      fireEvent.change(screen.getByLabelText('Narrator'), { target: { value: 'Corrected Reader' } });
+      await act(async () => answer());
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(onDone).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog', { name: 'Set up the credits' })).toBeTruthy();
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Corrected Reader');
+    });
+
+    it('a late answer under an open Discard question closes the question, finishes the setup, and no question is orphaned and no dismiss is sent (#3461 round 12 BR-E1)', async () => {
+      const { api, onDone, answer } = await saveGivenUp();
+      const dismiss = vi.spyOn(api, 'creditsSetupDismiss');
+      let closedUnanswered = false;
+      const confirm = vi.spyOn(overlay, 'confirm').mockImplementation(
+        (_spec, until) =>
+          new Promise<boolean>((resolve) => {
+            until?.addEventListener('abort', () => {
+              closedUnanswered = true;
+              resolve(false);
+            });
+          }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+      await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+      await act(async () => answer());
+      await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+      expect(closedUnanswered).toBe(true);
+      expect(dismiss).not.toHaveBeenCalled();
+    });
+
+    it('a setup save that never answers gives the dialog back at the limit with the typed values kept, and a second Save sends nothing (#3461 round 11 BR-D)', async () => {
+      const creditsSetupSave = vi.fn(() => new Promise<CreditsSetupState>(() => {}));
+      const { notify, onDone } = renderDialog(STATE, { creditsSetupSave });
+      typeNarrator();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await act(async () => {});
+        expect(screen.getByRole('button', { name: 'Not now' })).toHaveProperty('disabled', true);
+        await act(async () => void vi.advanceTimersByTime(15_001));
+      } finally {
+        vi.useRealTimers();
+      }
+      expect(notify).toHaveBeenCalledWith('The save did not finish. What you typed is still here.', 'error');
+      expect(screen.getByRole('button', { name: 'Not now' })).toHaveProperty('disabled', false);
+      expect(screen.getByLabelText('Narrator')).toHaveProperty('value', 'Sam Reader');
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await act(async () => {});
+      expect(creditsSetupSave).toHaveBeenCalledTimes(1);
+      expect(notify).toHaveBeenCalledWith('Your first save is still waiting for an answer.');
+      expect(onDone).not.toHaveBeenCalled();
+    });
   });
 });

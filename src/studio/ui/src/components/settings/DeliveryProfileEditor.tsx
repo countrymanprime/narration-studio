@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import type { DeliveryProfile, DeliveryProfileEdit, DeliveryRule } from '../../types';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
@@ -47,12 +48,34 @@ export function DeliveryProfileEditor({
   pending: boolean;
   error?: string;
   onCancel: () => void;
-  onSave: (edit: DeliveryProfileEdit) => void;
+  /** False when the save was not sent (one for this profile is still out): what was typed is then not a sent text. */
+  onSave: (edit: DeliveryProfileEdit) => boolean | void;
 }) {
   const [name, setName] = useState(profile.name);
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
     Object.fromEntries(profile.rules.map((rule) => [rule.id, { off: rule.off ?? false, min: toShown(rule, rule.min), max: toShown(rule, rule.max) }])),
   );
+  // Text and numbers changed from what the profile holds: Escape and the close button would drop them, so they ask first. The button that says it discards does not (#3400).
+  const [initial, setInitial] = useState({ name: profile.name, drafts: JSON.stringify(drafts) });
+  const typed = name !== initial.name || JSON.stringify(drafts) !== initial.drafts;
+  // What was sent by the last Save. When the profile comes back as saved (the same profile, a new revision), the editor closes if nothing was typed since, and otherwise stays open
+  // on what is there as an edit still to save against what was sent (#3461 round 7 BR1).
+  const sent = useRef<{ name: string; drafts: string } | null>(null);
+  const seen = useRef(profile);
+  useEffect(() => {
+    if (profile === seen.current) return;
+    seen.current = profile;
+    const snapshot = sent.current;
+    if (!snapshot) return;
+    if (name === snapshot.name && JSON.stringify(drafts) === snapshot.drafts) onCancel();
+    else setInitial(snapshot);
+  }, [profile, name, drafts, onCancel]);
+  // While a save is out every way out is off (the Discard button too): a Discard answered then would drop an editor whose save has already gone (#3461 round 6 B3).
+  const leave = async () => {
+    if (pending) return;
+    if (typed && !(await confirmDiscard('your profile edit'))) return;
+    onCancel();
+  };
   const fileRules = profile.rules.filter((rule) => rule.scope === 'file');
   const baseRule = (id: string) => base?.rules.find((rule) => rule.id === id);
   const platform = base?.platform ?? 'Base';
@@ -74,7 +97,9 @@ export function DeliveryProfileEditor({
   const update = (id: string, change: Partial<Draft>) => setDrafts((current) => ({ ...current, [id]: { ...current[id], ...change } }));
   const save = () => {
     if (invalid) return;
-    onSave({
+    const snapshot = { name, drafts: JSON.stringify(drafts) };
+    // Recorded only when the save really went: a Save the panel refused sent nothing, and the late answer of the one before is not about this text (#3461 round 10 P1).
+    const accepted = onSave({
       id: profile.id,
       name: name.trim(),
       rules: profile.rules.map((rule) => {
@@ -83,6 +108,7 @@ export function DeliveryProfileEditor({
         return { id: rule.id, off: draft.off, min: bound(draft.min, rule.min), max: bound(draft.max, rule.max) };
       }),
     });
+    if (accepted !== false) sent.current = snapshot;
   };
   const changed = (rule: DeliveryRule) => {
     const original = baseRule(rule.id);
@@ -96,12 +122,13 @@ export function DeliveryProfileEditor({
       dismissOnOutsidePress={false}
       title="Edit profile"
       size="wide"
-      onClose={onCancel}
+      onClose={() => void leave()}
       description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={
         <>
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
+          {/* A button that drops typed text says so; with nothing changed it only closes (#3400). */}
+          <Button variant="secondary" disabled={pending} onClick={onCancel}>
+            {typed ? 'Discard changes' : 'Close'}
           </Button>
           <Button onClick={save} disabled={invalid} pending={pending}>
             Save profile
@@ -201,7 +228,7 @@ export function DeliveryProfileEditor({
         </p>
         {error && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            The profile was not saved: {error}
+            {error}
           </p>
         )}
       </div>

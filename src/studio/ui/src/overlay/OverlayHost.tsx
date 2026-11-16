@@ -47,7 +47,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
         {content}
       </SlideOver>
     );
-  const { title, headerless, size, dismissOnOutsidePress, returnFocus } = entry.spec;
+  const { title, headerless, size, dismissOnOutsidePress, returnFocus, beforeClose } = entry.spec;
   return (
     <Dialog
       title={title}
@@ -55,7 +55,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
       size={size}
       dismissOnOutsidePress={dismissOnOutsidePress}
       returnFocus={returnFocus}
-      onClose={entry.close}
+      onClose={beforeClose ? () => void Promise.resolve(beforeClose()).then((closes) => closes && entry.close()) : entry.close}
       actions={null}
     >
       {content}

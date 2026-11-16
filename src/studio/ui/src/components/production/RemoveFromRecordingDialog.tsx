@@ -11,11 +11,14 @@ export function RemoveFromRecordingDialog({
   busy,
   onConfirm,
   onCancel,
+  returnFocus,
 }: {
   chapterTitle: string;
   busy: boolean;
   onConfirm: (kind: ManuscriptContentKind) => void;
   onCancel: () => void;
+  /** Where focus goes when the chapter's panel (and this question's opener with it) is gone by close time: the board, near the removed row. */
+  returnFocus?: () => HTMLElement | null;
 }) {
   return (
     <ConfirmDialog
@@ -30,6 +33,7 @@ export function RemoveFromRecordingDialog({
       confirm={() => onConfirm('reference')}
       cancel={onCancel}
       pending={busy}
+      returnFocus={returnFocus}
     />
   );
 }

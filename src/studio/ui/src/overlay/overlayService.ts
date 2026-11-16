@@ -32,6 +32,11 @@ type DialogSpec =
       dismissOnOutsidePress: boolean;
       /** Where focus goes on close when the element that had it is gone (a menu item closes as it runs); absent, the page's <main>. */
       returnFocus?: () => HTMLElement | null;
+      /**
+       * Asked when Escape (or any way out the dialog's own buttons do not take) is about to close it: false keeps it open. A dialog holding typed text puts its question here, so the
+       * overlay host's Escape does not drop the text with no question (#3400). Its own buttons call `close` themselves and are not asked.
+       */
+      beforeClose?: () => boolean | Promise<boolean>;
       render: (api: { close: () => void }) => ReactNode;
     }
   | {
@@ -49,7 +54,7 @@ type ToastOptions = {
   /** Leads an information message with the glyph of what it is about; an error always leads with its warning glyph. */
   icon?: ToastMessage['icon'];
   topic?: string;
-  /** How long an information message stays, when longer than the usual five seconds. */ durationMs?: number;
+  /** How long the message stays when it needs a different time than its tone's (an error is never shorter than its default; no toast outlasts `TOAST_MAX_MS`). */ durationMs?: number;
 };
 
 /** An open layer. The primitive that draws it owns focus, stacking and Escape; this is only what to draw and who to tell. */
@@ -73,7 +78,12 @@ const OVERLAY_TOAST_LIMIT = 4;
  * What an Undo toast is tied to (audit cluster 21): the journal entry it undoes, so it goes when that entry is undone from the header,
  * the keys or History. Every Undo toast has one; a change the journal does not hold has no Undo toast.
  */
-type UndoToastOptions = { durationMs?: number; entry: number };
+type UndoToastOptions = {
+  durationMs?: number;
+  entry: number;
+  /** The toast outlives this many moves: one raised as the narrator leaves ("Take saved" after Stop and leave) is about a change they are leaving, and must be there on the page they land on. */
+  survivesMoves?: number;
+};
 
 export type OverlayService = {
   /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
@@ -193,7 +203,7 @@ export function createOverlayService(): OverlayService {
             },
           },
         },
-        { entry: options.entry },
+        { entry: options.entry, survives: options.survivesMoves },
       );
     },
     settleUndo: (live) => {
@@ -201,7 +211,14 @@ export function createOverlayService(): OverlayService {
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
     },
     dismissUndo: () => {
-      if (snapshot.toasts.some((m) => m.undo)) update({ toasts: snapshot.toasts.filter((m) => !m.undo) });
+      if (!snapshot.toasts.some((m) => m.undo)) return;
+      const lives = (m: ToastMessage) => (m.undo?.survives ?? 0) > 0;
+      // A toast that outlives moves loses one of them; every other Undo toast goes.
+      update({
+        toasts: snapshot.toasts
+          .filter((m) => !m.undo || lives(m))
+          .map((m) => (m.undo && lives(m) ? { ...m, undo: { ...m.undo, survives: (m.undo.survives ?? 1) - 1 } } : m)),
+      });
     },
     announce: (text) => update({ announcement: text }),
     open: (spec) => {

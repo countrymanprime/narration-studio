@@ -303,6 +303,94 @@ describe('Settings: row layout', () => {
     expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
   });
 
+  it('an invalid draft clears the Saved mark, whatever the motion preference (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    // jsdom runs no animation, so a Saved mark that only a fade hides is still on screen here, as it is under reduced motion.
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+  });
+
+  it('Saved comes back after a refusal when the row is reset (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    // A Reset settles no number box: it is a write of its own and says Saved, as it does with no refusal before it.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+  });
+
+  it('a project-box write does not show Saved while the computer box still shows a refusal (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    // The row draws a second number box for the project; writing there is another write, and the computer box's reason is still on screen.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBeGreaterThan(1));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy();
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+  });
+
+  it('a refused REAPER path (a rule of the row, not of a number) hides the Saved mark of the path before it (#2989)', async () => {
+    await renderPage();
+    await openAdvanced();
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    fireEvent.change(box, { target: { value: '/usr/bin/reaper' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('daw.reaperPath')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '/usr/bin/other' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('daw.reaperPath').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    expect(within(row('daw.reaperPath')).queryByText('Saved')).toBeNull();
+  });
+
+  it('a refusal in the project box hides Saved, and Use computer setting brings it back (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const computer = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(computer, { target: { value: '3' } });
+    fireEvent.blur(computer);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBe(2));
+    // The override's own write re-draws the row, so the box is looked up afresh on each try (a slow machine re-draws after the first look).
+    await waitFor(() => {
+      const project = within(row('stt.workers')).getAllByRole('textbox')[1]!;
+      fireEvent.change(project, { target: { value: '999999' } });
+      fireEvent.blur(project);
+      expect(within(row('stt.workers')).getAllByRole('textbox')[1]!.getAttribute('aria-invalid')).toBe('true');
+    });
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    // Dropping the override writes again and replaces the refused box: Saved is for that write.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Use computer setting for/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeNull();
+  });
+
   it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));

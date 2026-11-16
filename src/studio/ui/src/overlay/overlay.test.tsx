@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from '../components/primitives/Dialog';
-import { TOAST_INFO_MS } from '../components/primitives/Toast';
+import { TOAST_ERROR_MS, TOAST_INFO_MS } from '../components/primitives/Toast';
 import { OverlayHost } from './OverlayHost';
 import { OverlayProvider, useOverlay } from './OverlayProvider';
 import { createOverlayService, type OverlayService } from './overlayService';
@@ -396,15 +396,18 @@ describe('overlay.toast', () => {
     expect(screen.queryByText('Saved voice sample.')).toBeNull();
   });
 
-  it('an error toast stays until dismissed', () => {
+  it('an error toast outlasts an information toast, can be dismissed, and goes at its own limit (#3431)', () => {
     vi.useFakeTimers();
     mount();
     act(() => service.toast('Could not save.', { tone: 'error' }));
     expect(within(screen.getByRole('alert')).getByText('Could not save.')).toBeTruthy();
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 20));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 2));
     expect(screen.getByText('Could not save.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss message' }));
     expect(screen.queryByText('Could not save.')).toBeNull();
+    act(() => service.toast('Could not save again.', { tone: 'error' }));
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(screen.queryByText('Could not save again.')).toBeNull();
   });
 });
 
@@ -462,6 +465,24 @@ describe('an Undo toast goes when its change is no longer there to undo', () => 
     expect(screen.queryByText('Deleted the note')).toBeNull();
     expect(screen.getByText('REAPER is starting')).toBeTruthy();
     expect(screen.getByText('Could not save.')).toBeTruthy();
+  });
+
+  it('an Undo toast raised as the narrator leaves outlives the one move it was raised for, and goes at the next (#3529)', () => {
+    mount();
+    act(() => service.toastUndo('Take saved', ok, { entry: 1, survivesMoves: 1 }));
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 2 }));
+    act(() => service.dismissUndo());
+    expect(screen.getByText('Take saved')).toBeTruthy();
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    act(() => service.dismissUndo());
+    expect(screen.queryByText('Take saved')).toBeNull();
+  });
+
+  it('an Undo toast that outlives a move still goes when its entry is undone elsewhere (#3529)', () => {
+    mount();
+    act(() => service.toastUndo('Take saved', ok, { entry: 1, survivesMoves: 1 }));
+    act(() => service.settleUndo(() => false));
+    expect(screen.queryByText('Take saved')).toBeNull();
   });
 
   it('an Undo toast raised after dismissUndo shows (the new page can raise its own)', () => {

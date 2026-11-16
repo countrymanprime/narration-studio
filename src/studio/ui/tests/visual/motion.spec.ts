@@ -6,7 +6,7 @@ import { goToPage, openSettings } from './drivers/shared';
 // is the only run that sees the motion a narrator sees: a control eases on the fast token, nothing loops on a page at rest, and
 // both ways of asking for reduced motion (Windows, and <html data-motion="reduce">, which the Settings Motion row sets) stop it. styles.css defines the tokens and
 // the `motion-ok:` variant; src/motion.test.ts checks that every utility uses them.
-const RAIL = 'aside[aria-label="Primary navigation"] > div';
+const RAIL = '[data-nav-rail] > div';
 
 /** A row drawn with the "this changed" classes, as an action's row would be: its animation durations, and its background once
  * any animation has run to its end. */

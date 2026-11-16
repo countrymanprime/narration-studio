@@ -5,6 +5,7 @@ import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { NoticeChip } from './RecordSetup';
+import { dialogChapterName } from '../../chapterTracks/useChapterLinkActions';
 
 export type Created = Extract<ChapterTrackCreateResult, { outcome: 'created' }>;
 
@@ -53,13 +54,14 @@ export function ChapterLinkNotice({
           dawName={dawName}
           several={several}
           // The host's own sentence points at the audio engine panel; this dialog is that fix, so it says what Record waits for instead.
-          sentence={several ? dest.recordWaitsSeveral(chapterName) : dest.recordWaits(chapterName)}
+          sentence={several ? dest.recordWaitsSeveral(dialogChapterName(chapterName)) : dest.recordWaits(dialogChapterName(chapterName))}
           create={create ? { available: create.available, message: create.message } : undefined}
           onLinked={(_result, created) => {
             dialog.close();
             onLinked(created);
           }}
           onCheckedAgain={onCheckAgain}
+          returnFocus={() => document.querySelector<HTMLElement>('#brec-link button')}
           onClose={dialog.close}
         />
       )}

@@ -13,14 +13,6 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
-    state: 'chosen-start',
-    description:
-      'Booth after Start from here on a phrase the DAW refused to start on, the refusal dismissed (#3319): the start is kept and shown as the dashed readout "Starts ¶ n" standing just above the footer\'s rim at the right while the side panel is closed (1280 px and narrower, a drawer), and as "Next roll starts from ¶ n" in the panel\'s Last punch while it is open (wide); the phrase is tinted in the text, and the footer is the height it is with no start chosen (the top bar may gain the "Resume at" row, as it does on main whenever the reading moves)',
-    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
-    ...REFLOW_AND_SMALL_WINDOW,
-  },
-  {
-    page: 'booth',
     state: 'refused-start',
     description:
       'Booth after the DAW refused the start (#3322): one error message with the refusal sentence and Check again above the footer, whole and inside the window (its action row under the text in a window of 24 rem or less); the sentence is not drawn again in the footer, which keeps its size, and no note about the start is beside it',
@@ -232,7 +224,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'leave-dialog',
     description:
-      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
+      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth for Script stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -395,6 +387,13 @@ export const boothStates: StateEntry[] = [
     state: 'page-break-stop',
     description:
       'Booth (as setup) with the reading stepped down to the first page break (the end of the paragraph that holds the 250th word): a dashed hairline across the text between two paragraphs and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'chosen-start',
+    description:
+      'Booth (as setup) after right-clicking a word that is in view and choosing Start from here (#3319): the first word of that sentence is underlined with the sentence tinted, so the place the next take starts from shows in the text itself. The take starts there at once (STOP, a few seconds in, so the cursor has moved on from the start word, and the toasts "Starting from ¶ n" and "was not recorded before" are up); the side panel is open at 1440 and shut below that',
     ...REFLOW,
   },
   {

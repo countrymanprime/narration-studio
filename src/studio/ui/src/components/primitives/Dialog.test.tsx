@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -272,6 +272,20 @@ describe('Dialog is a real modal', () => {
     expect(screen.getByRole('dialog', { name: 'Add note' })).toBeTruthy();
   });
 
+  // #3416 item 39: a press on the dim area around the popup landed on nothing focusable, so the browser moved focus to <body> while a dialog that ignores outside
+  // presses stayed open, and the next Tab started from the page behind it (on the Booth's Stop recording? it reached "Stop and leave").
+  it('keeps focus where it is when the dim area around the popup is pressed, and leaves a press inside the popup alone', async () => {
+    await openDialog();
+    const popup = screen.getByRole('dialog', { name: 'Add note' });
+    const viewport = popup.parentElement as HTMLElement;
+    const outside = createEvent.mouseDown(viewport, { cancelable: true, bubbles: true });
+    fireEvent(viewport, outside);
+    expect(outside.defaultPrevented, 'the press outside the popup does not take focus away').toBe(true);
+    const inside = createEvent.mouseDown(popup, { cancelable: true, bubbles: true });
+    fireEvent(popup, inside);
+    expect(inside.defaultPrevented, 'a press inside the popup is the browser’s own').toBe(false);
+  });
+
   it('closes on a backdrop press only when the dialog opts in with dismissOnOutsidePress (a palette, not a confirm)', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -434,7 +448,10 @@ describe('Dialog size="full"', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add note' });
     expect(dialog.className).toContain(DIALOG_WIDTHS.form);
     expect(dialog.className).not.toContain('70vw');
-    expect(dialog.style.maxHeight).toMatch(/^min\(80dvh, (calc\()?92dvh - 4.75rem\)?\)$/);
+    // A class and not an inline style, so a window 260 px tall or less can give the toast's 4.75rem back (#2998); the cap above that is the same.
+    expect(dialog.className).toContain('max-h-[min(80dvh,calc(92dvh-4.75rem))]');
+    expect(dialog.className).toContain('[@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]');
+    expect(dialog.style.maxHeight).toBe('');
     expect(dialog.style.height).toBe('');
   });
 
@@ -713,5 +730,103 @@ describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
     expect(screen.getByText('Say what this does').className).not.toContain('sr-only');
     expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:min-h-0`);
     expect(document.querySelector('h2')!.parentElement!.className).toContain(`${short}:min-h-0`);
+    // The header and the action row also trim their padding and give up the scrollbar gutter there, which a three-button question's second row needs (#3400).
+    for (const part of [screen.getByRole('button', { name: 'OK' }).parentElement!, document.querySelector('h2')!.parentElement!]) {
+      expect(part.className).toContain(`${short}:py-1.5`);
+      expect(part.className).toContain(`${short}:[scrollbar-gutter:auto]`);
+    }
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:gap-x-1`);
+    // And the inset is 8 px on the header and 6 px on the action row in a window 360 px wide or less and 400 px tall or less, so a question's two widest labels keep one line at
+    // 320 x 300 with the room the CI render of them needs (#3521).
+    const narrow = '[@media(max-width:360px)_and_(max-height:400px)]';
+    expect(document.querySelector('h2')!.parentElement!.className).toContain(`${narrow}:px-2`);
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${narrow}:px-1.5`);
+  });
+});
+
+// #3416: a dialog that opens by itself finds the page's <main> focused, which is not where a narrator was: the opener the page names wins.
+describe('Dialog returnFocus for a dialog that opened by itself', () => {
+  function SelfOpened() {
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+      document.querySelector('main')!.focus();
+      setOpen(true);
+    }, []);
+    return (
+      <div>
+        <main tabIndex={-1}>
+          <button>The chip</button>
+        </main>
+        {open && (
+          <Dialog
+            dismissOnOutsidePress={false}
+            title="Self"
+            onClose={() => setOpen(false)}
+            returnFocus={() => document.querySelector('button')}
+            actions={<Button>Go</Button>}
+          >
+            <p>Body</p>
+          </Dialog>
+        )}
+      </div>
+    );
+  }
+  it('returns focus to the named opener, not <main>', async () => {
+    render(<SelfOpened />);
+    await screen.findByRole('dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'The chip' })));
+  });
+});
+
+// #3416 item 27: a dialog removed together with the thing that opened it (a link made takes away the notice, and the Booth's Record that had focus
+// when the dialog came up is off until then) hands focus to <main>, not <body>.
+describe('Dialog removed together with its parent', () => {
+  function WithParent() {
+    const [shown, setShown] = useState(false);
+    const [linked, setLinked] = useState(false);
+    return (
+      <div>
+        <main tabIndex={-1} data-testid="landmark">
+          <button disabled={!linked} onClick={() => setShown(true)}>
+            Record
+          </button>
+          <button onClick={() => setShown(true)}>Open</button>
+        </main>
+        {shown && (
+          <section>
+            <Dialog
+              dismissOnOutsidePress={false}
+              title="Link"
+              onClose={() => setShown(false)}
+              actions={
+                <Button
+                  onClick={() => {
+                    setLinked(false);
+                    setShown(false);
+                  }}
+                >
+                  Link track
+                </Button>
+              }
+            >
+              <p>Body</p>
+            </Dialog>
+          </section>
+        )}
+      </div>
+    );
+  }
+  it('focus lands on the page landmark when the opener is off and the whole parent goes', async () => {
+    render(<WithParent />);
+    // The dialog opens from a control that is off by the time it closes.
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    await userEvent.click(opener);
+    opener.setAttribute('disabled', '');
+    const action = await screen.findByRole('button', { name: 'Link track' });
+    action.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('landmark')));
   });
 });

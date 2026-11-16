@@ -139,7 +139,8 @@ test.describe('The jump menu returns focus on Escape', () => {
     await page.getByRole('dialog').waitFor();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    expect(await page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
+    // Focus is handed back a tick after the menu is gone, so a loaded runner could read it first; the wait still fails if it never lands (#3520).
+    await expect.poll(() => page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
   });
 });
 
@@ -269,6 +270,7 @@ test.describe('The undo history returns focus on Escape to whatever opened it', 
     await page.locator('[data-slide-over]').waitFor();
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-slide-over]')).toHaveCount(0);
-    expect(await page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
+    // Focus is handed back a tick after the panel is gone, so a loaded runner can read it first (shard Linux 4/6 of #3457, #3520); the wait still fails if it never lands.
+    await expect.poll(() => page.evaluate(() => document.querySelector('main')?.contains(document.activeElement))).toBe(true);
   });
 });

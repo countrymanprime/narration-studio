@@ -26,13 +26,18 @@ export function settingsPageItems({ shown, daw, showCategory, showRow }: Setting
     hint: 'blurb' in category ? category.blurb : undefined,
     run: () => showCategory(category.id),
   }));
-  const rows: PageItem[] = ROWS.filter((row) => row.needs === 'reaper' || shown(row)).map((row) => ({
+  const rows: PageItem[] = ROWS.filter((row) => row.needs !== undefined || shown(row)).map((row) => ({
     id: `row.${row.id}`,
     label: row.label,
     group: categoryLabel(row.cat),
     hint: row.desc,
     keywords: [row.section, ...(row.syn ? [row.syn] : [])],
-    disabledReason: row.needs === 'reaper' && daw !== 'REAPER' ? `Only applies when recording with REAPER (this project uses ${daw})` : undefined,
+    disabledReason:
+      row.needs === 'reaper' && daw !== 'REAPER'
+        ? `Only applies when recording with REAPER (this project uses ${daw})`
+        : row.needs === 'daw' && daw === 'Built-in'
+          ? `Only applies when recording with a DAW (this project uses ${daw})`
+          : undefined,
     run: () => showRow(row.cat, row.id),
   }));
   const moved: PageItem[] = PAGE_SETTINGS.map((setting) => ({

@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { confirmDiscard } from '../../../studio/drafts/confirmDiscard';
 import { VOICE_SAMPLE_LABEL_MAX, VOICE_SAMPLE_NOTE_MAX, type VoiceSample } from '../../../api/contracts/voiceSamples';
 import { Button } from '../../primitives/Button';
 import { Dialog } from '../../primitives/Dialog';
@@ -26,6 +27,12 @@ export function EditVoiceSampleDialog({
   const [note, setNote] = useState(sample.note);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState('');
+  // Escape and the close button ask once the label or the note was changed; the button that says it discards does not (#3400).
+  const typed = label !== sample.label || note !== sample.note;
+  const leave = async () => {
+    if (typed && !(await confirmDiscard('your changes to the voice sample'))) return;
+    onCancel();
+  };
   const busy = useRef(false);
 
   const submit = async (event: FormEvent): Promise<void> => {
@@ -46,12 +53,12 @@ export function EditVoiceSampleDialog({
   return (
     <Dialog
       title="Rename voice sample"
-      onClose={onCancel}
+      onClose={() => void leave()}
       dismissOnOutsidePress={false}
       actions={
         <>
           <Button type="button" variant="secondary" onClick={onCancel}>
-            Cancel
+            {typed ? 'Discard changes' : 'Close'}
           </Button>
           <Button type="submit" form="rename-voice-sample" variant="primary" pending={saving}>
             Save

@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-type Extra = { stopTake?: () => Promise<boolean>; onNoTrack?: (key: number) => void; asking?: boolean };
+type Extra = { coldRead?: boolean; stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
   const api = given ?? createMockApi({}, seed);
@@ -113,7 +113,7 @@ describe("the Booth's voices", () => {
     ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
   ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
     const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }),
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }),
       chapterTrackMapList: async () => ({
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
@@ -138,6 +138,90 @@ describe("the Booth's voices", () => {
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
   });
 
+  it('a voice key with no take running starts the take once the host has accepted the voice; a pick from the list does not (#3430)', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const { hook } = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    await act(async () => hook.current.byKey(1));
+    await waitFor(() => expect(startTake).toHaveBeenCalledTimes(1));
+    expect(hook.current.current?.name).toBe('White Rabbit');
+    await act(async () => hook.current.choose(hook.current.voices[2]));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).toHaveBeenCalledTimes(1);
+  });
+
+  it('a voice key starts nothing when the host refuses the voice, or while a take runs', async () => {
+    const startTake = vi.fn(() => Promise.resolve());
+    const refused = await mount({ voiceFolders: true }, false, undefined, { startTake });
+    refused.api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'No.' });
+    await act(async () => refused.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
+    cleanup();
+    const recording = await mount({ voiceFolders: true }, true, undefined, { startTake });
+    await act(async () => recording.hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(startTake).not.toHaveBeenCalled();
+  });
+
+  // Owner, 2026-11-16 (#3430): a cold read records nothing and needs no lane, so in Cold read mode the voices make no host call (no lane choice, no arm read).
+  describe('in Cold read mode', () => {
+    it('a voice key, a pick from the list and Num + / Num - choose nothing at the host, and say why', async () => {
+      const startTake = vi.fn(() => Promise.resolve());
+      const { api, notify, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true, startTake });
+      const set = vi.spyOn(api, 'boothVoiceSet');
+      await act(async () => hook.current.byKey(1));
+      await act(async () => hook.current.choose(hook.current.voices[2]));
+      await act(async () => hook.current.step(1));
+      await act(async () => hook.current.step(-1));
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      expect(set).not.toHaveBeenCalled();
+      expect(startTake).not.toHaveBeenCalled();
+      expect(hook.current.current?.name).toBe('Narrator');
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
+    });
+
+    it('a key with no track does not ask who is in it', async () => {
+      const onNoTrack = vi.fn();
+      const { hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true, onNoTrack });
+      await act(async () => hook.current.byKey(7));
+      expect(onNoTrack).not.toHaveBeenCalled();
+    });
+
+    it('adding a track and putting a character on a voice make no host call', async () => {
+      const { api, notify, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true });
+      const add = vi.spyOn(api, 'boothVoiceAdd');
+      const setCharacters = vi.spyOn(api, 'voiceTracksSetCharacters');
+      let added: boolean | undefined;
+      let used: boolean | undefined;
+      await act(async () => {
+        added = await hook.current.add('Alice', []);
+        used = await hook.current.use(hook.current.voices[1], ['c1']);
+      });
+      expect([added, used]).toEqual([false, false]);
+      expect(add).not.toHaveBeenCalled();
+      expect(setCharacters).not.toHaveBeenCalled();
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
+    });
+
+    it('reads no arm state from the DAW, so the control shows none', async () => {
+      const api = createMockApi({}, { voiceFolders: true });
+      const read = vi.spyOn(api, 'readAloudReaperState');
+      const { hook } = await mount({ voiceFolders: true }, false, api, { coldRead: true });
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      expect(read).not.toHaveBeenCalled();
+      expect(hook.current.arm.state).toBe('unknown');
+    });
+
+    it('back in Record mode the keys choose and start again', async () => {
+      const startTake = vi.fn(() => Promise.resolve());
+      const { api, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: false, startTake });
+      const set = vi.spyOn(api, 'boothVoiceSet');
+      await act(async () => hook.current.byKey(1));
+      await waitFor(() => expect(startTake).toHaveBeenCalledTimes(1));
+      expect(set).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('a refused choice is a toast and keeps the voice', async () => {
     const { api, notify, hook } = await mount({ voiceFolders: true });
     api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
@@ -145,6 +229,36 @@ describe("the Booth's voices", () => {
     await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(notify).toHaveBeenCalledWith('That track is not a voice of this chapter.', 'error');
     expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it("a voice the DAW would not arm is still chosen, and the DAW's refusal is a toast (#3429)", async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => ({
+      ...(await set(chapter, guid)),
+      armed: undefined,
+      reason: 'already_recording',
+      message: 'REAPER is already recording. The Booth will record on this voice, but the armed track in REAPER did not change.',
+    });
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('did not change'), 'error');
+    expect(hook.current.current?.key).toBe('1');
+  });
+
+  it('a voice the DAW armed is chosen with no toast (#3429)', async () => {
+    const { api, notify, hook } = await mount({ voiceFolders: true });
+    const answers: unknown[] = [];
+    const set = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => {
+      const answer = await set(chapter, guid);
+      answers.push(answer);
+      return answer;
+    };
+    await act(async () => hook.current.byKey(1));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(answers).toEqual([expect.objectContaining({ outcome: 'selected', armed: true })]);
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'error');
   });
 
   it('a second key pressed while the host answers the first is sent after it: the last key wins', async () => {
@@ -266,6 +380,26 @@ describe("the Booth's voices", () => {
       const { hook } = await mount({}, false, api);
       await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
       expect(hook.current.voices.map((voice) => voice.guid)).not.toContain('{V01CE-RABB1T}');
+      cleanup();
+    }
+  });
+
+  // #3331: a child the narrator marked as not a voice (a music bed) is not listed, in either layout, and listed again once unmarked.
+  it('leaves out a child marked as not a voice, and lists it again when unmarked', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const target = first.hook.current.voices.find((voice) => !voice.narrator)!;
+    cleanup();
+    const marking = (guids: string[]) => ({ ...api, voiceTracksGet: async () => ({ ...(await api.voiceTracksGet()), notVoiceGuids: guids }) });
+    for (const layout of ['flat', 'folders'] as const) {
+      await api.voiceTracksSetLayout(layout);
+      const { hook } = await mount({}, false, marking([target.guid.toLowerCase()]));
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(hook.current.voices.map((voice) => voice.guid)).not.toContain(target.guid);
+      cleanup();
+      const again = await mount({}, false, marking([]));
+      await waitFor(() => expect(again.hook.current.voices.map((voice) => voice.guid)).toContain(target.guid));
       cleanup();
     }
   });

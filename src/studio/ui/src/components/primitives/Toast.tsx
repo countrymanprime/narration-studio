@@ -10,7 +10,7 @@ export type ToastTone = 'info' | 'error';
 export type ToastAction = { label: string; onAction: () => void };
 /** The Retry a failure toast carries where repeating the action is safe (a start that the host guards or an idempotent save). */
 export const retryAction = (retry: () => void): ToastAction => ({ label: 'Retry', onAction: retry });
-/** `durationMs` is how long an information message stays when it needs longer than `TOAST_INFO_MS` (an Undo the narrator may want ten seconds for). */
+/** `durationMs` is how long a message stays when it needs a different time than its tone's (an Undo the narrator may want ten seconds for); `toastLifetimeMs` bounds it. */
 export type ToastMessage = {
   id: number;
   text: string;
@@ -20,22 +20,35 @@ export type ToastMessage = {
   topic?: string;
   durationMs?: number;
   /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
-  undo?: { entry?: number };
+  undo?: { entry?: number; /** How many more moves (a page or chapter change that dismisses Undo toasts) the toast outlives. */ survives?: number };
 };
-/** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed.
+/** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed or `TOAST_ERROR_MS` has passed.
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
  * `icon` leads an information message with the glyph of what it is about (the track glyph for a chapter sync); an error always
  * leads with its warning glyph. */
 export type Notify = (text: string, tone?: ToastTone, action?: ToastAction, icon?: IconDefinition, durationMs?: number, topic?: string) => void;
 
-/** How long an information message stays. An error has no timer. */
+/** How long an information message stays. */
 export const TOAST_INFO_MS = 5_000;
+/** How long an error stays: longer than an information message, so it can be read and its Retry reached, but not for ever. */
+export const TOAST_ERROR_MS = 20_000;
+/** The longest any toast stays, whatever `durationMs` asks for. */
+export const TOAST_MAX_MS = 60_000;
 /** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
 /** How long an action has to put focus where it wants (the Schedule's restored row, after its Undo resolves) before focus is handed back to where it was. */
 // shortcut: a fixed wait, not the action's own promise (`onAction` returns nothing); upgrade when an action reports when it is done.
 export const ACTION_FOCUS_MS = 250;
+
+/** How long a message stays: its tone's time, or the `durationMs` it asked for when that is a positive number (an error is never shorter than its own default), and never more than `TOAST_MAX_MS`. Every toast has a timer, so none is made without a bounded lifetime. */
+export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs'>): number {
+  const asked = message.durationMs;
+  const base = message.tone === 'error' ? TOAST_ERROR_MS : TOAST_INFO_MS;
+  const own = typeof asked === 'number' && Number.isFinite(asked) && asked > 0 ? asked : base;
+  // An error is never shorter than its default, whatever a caller asks: it stays longer than an information message.
+  return Math.min(message.tone === 'error' ? Math.max(own, base) : own, TOAST_MAX_MS);
+}
 
 function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss: (id: number) => void; alone: boolean }) {
   const [leaving, setLeaving] = useState(false);
@@ -51,13 +64,13 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
     watch.observe(el);
     return () => watch.disconnect();
   }, [message.text]);
-  const sticky = message.tone === 'error';
+  const isError = message.tone === 'error';
   const { id } = message;
   // In a window of 24rem or less a message that is the only one showing and has an action puts it, and Dismiss, on a row under the text, so the text keeps the width of the toast instead
   // of the sliver left beside two buttons (#3322); a stack keeps the buttons beside the text, because rows of buttons under each of several messages would not fit a short window; the text's basis is what the glyph leaves of the row, so the buttons wrap under it and no earlier.
   const withAction = message.action !== undefined && alone;
-  const glyph = sticky || message.icon !== undefined;
-  const stays = message.durationMs ?? TOAST_INFO_MS;
+  const glyph = isError || message.icon !== undefined;
+  const stays = toastLifetimeMs(message);
   // A pointer resting on the toast or focus inside it holds the timer; leaving starts the full time again, so a message is never taken from under a hand or a key.
   const hover = useRef(false);
   const focused = useRef(false);
@@ -81,14 +94,18 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
     );
   };
   useEffect(() => {
-    if (sticky || held) return;
+    // A hold that starts in the fade brings the toast back: it was not taken away, and it gets its full time again on release.
+    if (held) {
+      setLeaving(false);
+      return;
+    }
     const fade = window.setTimeout(() => setLeaving(true), stays - FADE_MS);
     const remove = window.setTimeout(() => dismiss(id), stays);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, sticky, stays, held]);
+  }, [dismiss, id, stays, held]);
   return (
     <div
       data-tone={message.tone}
@@ -110,8 +127,8 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
       className={`relative flex ${withAction ? 'max-[24rem]:flex-wrap max-[24rem]:[--toast-action-row:2.75rem]' : ''} min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
-      {sticky && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
-      {sticky ? (
+      {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
+      {isError ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />
@@ -221,12 +238,18 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
         {
           '--toast-n': Math.max(1, messages.length),
           // The bars the toasts rise above (`--toast-clear`, the Booth's footer and notice) never take more of a short window than leaves the toasts 8rem to stand in.
-          // ... and, with several toasts, the room each needs at its least (45 px, 0.5rem apart): four toasts would otherwise stand 30 px above the top of a 300 px window (#3322). That cap wins over `--toast-clear`: a stack of three or four in a small window may lie over a bar's own note (the Booth's start readout), by design, because every toast and button must stay inside the window.
+          // ... and, with several toasts, the room each needs at its least (45 px, 0.5rem apart): four toasts would otherwise stand 30 px above the top of a 300 px window (#3322). That cap wins over `--toast-clear`: a stack of three or four in a small window may lie over a bar's own note, by design, because every toast and button must stay inside the window.
           '--toast-reserve':
             'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - max(8rem, calc(var(--toast-n, 1) * 2.8125rem + (var(--toast-n, 1) - 1) * 0.5rem + 0.25rem))))',
         } as CSSProperties
       }
       onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
+      // While a modal is open, a press on a toast's plain text would take focus from the dialog's control to <body> (the toast is outside the dialog); a press on
+      // the toast's own button or link is the browser's.
+      onMouseDown={(event) => {
+        if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
+          event.preventDefault();
+      }}
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">

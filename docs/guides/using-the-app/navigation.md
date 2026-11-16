@@ -11,6 +11,8 @@ the notes still open (the figure the Proof page draws as Open; pickups have thei
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
+A screen reader lists one navigation landmark, **Primary navigation**, at every window width (the sidebar, the icon layout and the drawer); the theme item and **Settings** sit just below it in the same panel, outside that list.
+
 The page you are on is marked with an accent-coloured bar down the left edge of its item, on a slightly darker background; in the icon layout the bar still shows beside the icon.
 
 In the icon layout the rail shows only the icons, centred, with a thin line where each group's heading would be.
@@ -48,7 +50,15 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
-recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved settings**), or a take recording in the Booth (**Stop recording?**).
+recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved changes**), text typed in an editor that has not been saved yet (**Unsaved changes**; each page's own guide says which of its editors do this), or a take recording in the Booth (**Stop recording?**, which names the page you are going to, by the name the rail gives it: "Leaving the Booth for Script stops it."; after **Stop and leave** stops the take, **Take saved** shows on that page, with its **Undo** unless the take marked pickups or added suspected lines to them, see [the Booth](booth.md)). **Save & continue** never drops anything: when a save fails it keeps you where you are, with what you typed, and says so; when a save does not answer within 15 seconds it stops waiting and gives you **Cancel** and **Discard & continue** back. When something typed cannot be saved from the question at all, the question says so in one sentence ("... still needs ...") and offers only **Keep editing** and **Discard & continue**; a page's guide names which of its editors can be in that state. A way out that is not a button saying it discards (going to another page) asks; where an editor holds text, its own Escape and closing its panel ask the same way (each page's guide says which editors do); a button that says it discards or deletes (**Discard changes**, **Delete**, **Discard**) does not. Only **Discard & continue** drops what you typed. Closing the app window asks the same question when unsaved changes or text in an editor are held (not for a take that is recording): **Cancel** keeps the window open with what you typed, **Save & continue** saves and then closes it, and **Discard & continue** closes it and drops what you typed. Closing the app to install an update does not ask: save or discard before you accept it.
+
+In [Settings](settings.md), edited fields and the settings panels under **Set on a page**, a key pasted into the Merriam-Webster box, and a [credit template](settings.md#credits) edited and not yet saved, are held this way. Changing the category, the search or the filter, or closing **Advanced**, over one of them asks too (**Unsaved changes**, "... before leaving?"), and **Cancel** keeps the text, with the Search box showing what the results are for.
+
+On [Proof](proof.md), a note typed on a finding and not yet added, or an edit of one not yet saved, is held this way.
+
+In the [Story Bible](story-bible.md), an entry being edited, a relationship, a name typed in **Add a name**, a note beside **Approve**, a suggestion's edit and a name typed in **New type** (Settings) are held this way; a new entry before a category is chosen and the ones that cannot be saved from the question say so ("... still needs a category chosen." or "... can't be saved yet.").
+
+On the [Script](script.md), a reply or an edit of a note message typed and not yet saved, and a pronunciation typed under **Save to my dictionary**, are held this way, and so is a note being written in the Mark dialog.
 
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
@@ -131,6 +141,10 @@ Back and Forward respect the same checks the nav does: leaving unsaved changes i
 first, and leaving a chapter's [Proof view](proof.md#the-chapter-view) while a comparison is under way or
 showing results resets it the same way. They only move between pages — closing a slide-over, the previous
 chapter, or the previous Story Bible entry are not Back steps.
+
+A browser Back (or Alt+Left) while a dialog is open does not leave the page: the dialog and what you typed stay.
+
+A box that saves when you click or Tab out of it saves what you typed before any of these moves, even when the move comes from a key and the cursor is still in the box.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
 **This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
@@ -215,6 +229,8 @@ A linked track whose audio cannot play (a source file missing on disk, or an ite
 
 ### REAPER tools
 
+If REAPER stops answering after the tools have read its tracks, the tools go off and say the tracks could not be read again; they come back when a read succeeds.
+
 When the project has tracks, the REAPER tools sit in their own card under the project, one icon each; hold the pointer on one for its name. **Link chapters to tracks** and
 **Prepare the chapter render** change the project open in REAPER, through the app's bridge
 REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the
@@ -224,7 +240,7 @@ bridge in REAPER and connects to it without you running anything in REAPER.
 items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
 have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
-clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog and the Chapter links list both say which chapter is now not linked; the dialog's Read current stamps button waits while a stamp runs, and Stamp waits while a read runs. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the track picker counts them (“Chapters · 8 tracks”). A folder in that dialog's list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
+clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it. The track's name in the pick list says who holds it first (“Click Track (linked to Chapter 2: The Pool of Tears)”), by the chapter's name as the manuscript has it now, the same in every pick list and in the message after a pick, and a toast says which chapter is now not linked, from the dialog and from the Chapter links list alike; if the change was made but the list could not be read again, the message says so; the dialog's Read current stamps button waits while a stamp runs, and Stamp waits while a read runs. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the track picker counts them (“Chapters · 8 tracks”). A folder in that dialog's list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
 carry the chapter's identity, and **Stamp N items** writes it. A folder that holds a track another chapter is linked to still links when chosen, and a line under the table says the folder also holds another chapter's track: the items on that other track stay with the other chapter. While a stamp runs the pickers are off, and the button reads **Close**, which leaves the dialog without stopping the stamp. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
 of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
@@ -304,7 +320,7 @@ point at it for the whole sentence. The panel reads them again when it opens, af
 and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
 once and answers each press with a message ("Read 5 tracks from REAPER.", or "Read the tracks in the saved project."), even when nothing changed. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
 the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
-other pages, such as Editing and Proof, read the saved project and see it only once it is saved.
+Editing, Proof and Pickups read the same tracks, and while they are the saved project's each shows a **Saved project** mark.
 
 ![Chapter links when REAPER is not answering: the header says the tracks are the saved project's](../../images/ui/engine-panel-live-tracks-saved.webp)
 
@@ -439,7 +455,7 @@ how many you linked: "8 chapters linked automatically, 1 by you"), **Background 
 links you already made are kept); while it is off the same place has **Turn on**, drawn as the switch's other position, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
-right track and press the link icon (**Link this track**), the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
+right track from every track of the project (the sync's own suggestion first, and a track another chapter holds says so, “Click Track (linked to Chapter 2: The Pool of Tears)”) and press **Link**, the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
 recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.

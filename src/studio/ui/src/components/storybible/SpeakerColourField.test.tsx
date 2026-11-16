@@ -8,6 +8,15 @@ afterEach(cleanup);
 const entry = (speaker_color?: number) => ({ id: 'e1', speaker_color });
 
 describe('SpeakerColourField', () => {
+  it('read-only, names the colour as text and has no select', () => {
+    render(<SpeakerColourField entity={entry(4)} speaks readOnly onChange={vi.fn()} />);
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.getByText('Red')).toBeTruthy();
+    cleanup();
+    render(<SpeakerColourField entity={entry()} speaks readOnly onChange={vi.fn()} />);
+    expect(screen.getByText(/^Automatic \(/)).toBeTruthy();
+  });
+
   it('a speaker colour is offered for any type that can speak, and not for one that cannot', () => {
     const { container } = render(<SpeakerColourField entity={entry()} speaks={false} onChange={vi.fn()} />);
     expect(container.innerHTML).toBe('');

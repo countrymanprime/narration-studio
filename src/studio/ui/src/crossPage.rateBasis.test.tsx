@@ -16,7 +16,7 @@ configure({ asyncUtilTimeout: 12_000 });
 beforeEach(() => window.history.replaceState(null, '', '/production'));
 afterEach(cleanup);
 
-const rail = async (name: RegExp) => within(await screen.findByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name });
+const rail = async (name: RegExp) => within(await screen.findByRole('navigation', { name: 'Primary navigation' })).findByRole('button', { name });
 
 describe('the Schedule basis toggle', () => {
   it('moves the rate the Schedule divides words by, not just the Production popover', async () => {

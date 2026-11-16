@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { CreditsSetupState, CreditValues, DetectedCandidate } from '../../types';
@@ -8,6 +8,8 @@ import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import type { Notify } from '../primitives/Toast';
 import { plural } from '../../plural';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
+import { SaveTimeout, withinSaveLimit } from '../../studio/drafts/unsavedDrafts';
 
 // A DetectedCandidate's token is a credits.Values Go field name ("Title", "CopyrightHolder"), matching CreditsPanel's
 // own map (detectedToken there goes the other way, lowerCamelCase to this form).
@@ -76,12 +78,47 @@ export function CreditsSetupDialog({
   const askedTokens = new Set(state.fields.map((field) => field.token));
   const moreFields = state.candidates.filter((candidate) => !askedTokens.has(candidate.token));
 
+  // A call the host has not answered at the limit: the dialog is given back with what was typed, and a second press sends nothing while the first is still out (#3461 round 11 BR-D).
+  // An answer that lands after the limit finishes the setup only while the dialog holds what the save sent: text typed since stays, with the dialog (#3461 round 12 BR-E1).
+  const outstanding = useRef(false);
+  const lateAnswer = useRef(false);
+  const mounted = useRef(true);
+  const valuesNow = useRef(values);
+  valuesNow.current = values;
+  // The "Discard what you typed?" question while it is open, so an answer that lands under it can close it unanswered instead of leaving it over nothing.
+  const asking = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
   const run = async (action: () => Promise<CreditsSetupState>) => {
+    if (outstanding.current) {
+      notify('Your first save is still waiting for an answer.');
+      return;
+    }
     setBusy(true);
+    outstanding.current = true;
+    const sent = JSON.stringify(valuesNow.current);
+    const call = action();
+    void call.then(
+      (next) => {
+        outstanding.current = false;
+        if (!lateAnswer.current || !mounted.current || JSON.stringify(valuesNow.current) !== sent) return;
+        asking.current?.abort();
+        onDone(next);
+      },
+      () => void (outstanding.current = false),
+    );
+    lateAnswer.current = false;
     try {
-      onDone(await action());
+      onDone(await withinSaveLimit(call));
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      if (error instanceof SaveTimeout) {
+        lateAnswer.current = true;
+        notify('The save did not finish. What you typed is still here.', 'error');
+      } else notify(apiErrorMessage(error), 'error');
     } finally {
       setBusy(false);
     }
@@ -95,8 +132,22 @@ export function CreditsSetupDialog({
       }
       return api.creditsSetupSave(values);
     });
-  const notNow = () => run(() => api.creditsSetupDismiss('session'));
-  const dontAsk = () => run(() => api.creditsSetupDismiss('project'));
+  // Values the narrator changed from what was filled in: Escape, the close button, Not now and Don't ask would drop them, so each asks first. Save is the way to keep them (#3400).
+  const typed = state.fields.some((field) => (values[field.field] ?? '') !== (field.candidate?.value ?? ''));
+  // While Save runs every way out is off, Escape and the close button too (a Discard answered then would still be followed by the save that is already out): the buttons are disabled, and so is this (#3461 round 6 B3).
+  const leaving = (action: () => Promise<CreditsSetupState>) => async () => {
+    if (busy) return;
+    if (typed) {
+      const question = new AbortController();
+      asking.current = question;
+      const discard = await confirmDiscard('what you typed', question.signal);
+      if (asking.current === question) asking.current = null;
+      if (!discard) return;
+    }
+    await run(action);
+  };
+  const notNow = leaving(() => api.creditsSetupDismiss('session'));
+  const dontAsk = leaving(() => api.creditsSetupDismiss('project'));
 
   const fieldCount = state.fields.length;
 
@@ -136,7 +187,7 @@ export function CreditsSetupDialog({
               <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                 {candidateCaption(field.candidate)}
               </p>
-            ) : field.field === 'narrator' ? (
+            ) : field.field === 'narrator' && !(values.narrator ?? '').trim() ? (
               <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                 Not set yet: nothing in the manuscript names the narrator.
               </p>
@@ -145,7 +196,7 @@ export function CreditsSetupDialog({
             {field.field === 'narrator' && (
               <div className="mt-2">
                 <Checkbox checked={useForAllProjects} disabled={busy} onChange={setUseForAllProjects}>
-                  Use for all my projects (saved as your default in Settings &gt; General)
+                  Use for all my projects (saved as your default in Settings &gt; Project)
                 </Checkbox>
               </div>
             )}

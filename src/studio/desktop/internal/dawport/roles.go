@@ -362,7 +362,7 @@ type PlaceTarget struct {
 }
 
 // PlaceFollower lets the app follow the narrator's place in the project and take them somewhere in it: ReadPlace says which track is
-// selected and where the cursor is, GoTo selects a track and puts the cursor at its end or at a time. Neither starts playback or adds an
+// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end or at a time. Neither starts playback or adds an
 // undo step. The caller names a track by the id the engine gave it (the chapter's link), never a path. A track the engine no longer has
 // is the engine's stale error; a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
 type PlaceFollower interface {
@@ -422,6 +422,13 @@ type Recorder interface {
 // old voice still recording.
 type VoiceSwitcher interface {
 	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
+}
+
+// LaneArmer is a Recorder that can arm the lane the Booth chose while no take runs, so the engine's armed track follows the app's
+// (#3429). Unlike ArmOnly, the engine puts nothing back at a stop: the arm is the narrator's choice. Refused while the engine records
+// (the take is switched with VoiceSwitcher); a track that is gone is a stale error. Only an engine with record-armed tracks (REAPER) has it.
+type LaneArmer interface {
+	ArmLane(ctx context.Context, trackGUID string) (Armed, error)
 }
 
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),

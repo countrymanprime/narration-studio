@@ -4,7 +4,7 @@ import { folderLinkLabel, holdsWords, kindInWords } from '../engine/voices';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
-import type { TrackChoice } from './trackChoices';
+import { heldNote, type TrackChoice } from './trackChoices';
 
 type Entry = TreeTrack & { choice: TrackChoice };
 
@@ -101,7 +101,7 @@ export function TrackTreePicker({
       label: trackLabel(node.track),
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
       // What a folder holds, then where it sits and who holds it: "3 voices · Narration · linked to Chapter 2".
-      note: [holds(node, folders), path, entry.heldBy ? `linked to ${entry.heldBy}` : ''].filter(Boolean).join(' · ') || undefined,
+      note: [holds(node, folders), path, entry.heldBy ? heldNote(entry.heldBy) : ''].filter(Boolean).join(' · ') || undefined,
       disabledReason: blocked ? NO_AUDIO : voice ? VOICE : undefined,
       disabledNote: blocked ? `${holds(node, folders)} · no audio` : voice ? 'A voice of its folder' : undefined,
       ...place,

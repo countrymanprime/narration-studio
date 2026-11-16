@@ -1,11 +1,20 @@
-import { markDialogClosed } from './dialogClosed';
+/** Focuses the first of these that takes it: a disabled control, or one that left the page, does not, and focus must not fall to <body> for want of one. */
+function focusFirst(targets: readonly (HTMLElement | null | undefined)[]): void {
+  for (const target of targets) {
+    if (!target?.isConnected) continue;
+    target.focus({ preventScroll: true });
+    if (document.activeElement === target) return;
+  }
+}
+
+import { countDialogOpen, markDialogClosed, recentDialogTarget, rememberClosedTarget } from './dialogClosed';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { HINT_POPUP_SELECTOR } from './hintLayer';
+import { hintOwnsEscape } from './hintLayer';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
@@ -82,15 +91,37 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
   wide: 'max-w-[56rem]',
 };
 
-// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
-const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
+// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`). In a window 260 px tall or less (400% zoom is 275 x 200)
+// the toast's room is given up and the popup may take the window less its margin: a short question then fits whole (#2998). Between 261 and 400 px the cap is unchanged.
+const DIALOG_MAX_HEIGHT = 'max-h-[min(80dvh,calc(92dvh-4.75rem))] [@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]';
 
-// The one horizontal inset of the header, the body and the action row.
-const INSET = 'px-[var(--space-6)]';
+// The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
+// tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
+// needed 278.5 px with the 8 px between them in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room.
+// The 6 px action-row inset makes the row 290 px inside, and the 4 px between the two (the action row's gap and the gap of the wrapper ConfirmDialog keeps them in, both
+// at any width in a window 400 px tall or less) makes the need 274.5 px: 15.5 px to spare locally, 11 px with the CI render of the labels (about 4.5 px wider), 3 px with
+// a further 8 px. A taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
+const INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-2';
+// The action row takes 6 px, not 8, in that same window, so its buttons run 2 px out from the text above them on each side: with 8 px the CI render of the labels left
+// 5.0 px of the 8 px the guard asks for, and its hair-wider case -3.0 px (#3521).
+const ACTIONS_INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-1.5';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
 // empty `actions` would draw a padded blank row under the body.
 const hasContent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false && node !== '';
+
+// The control a dialog was opened from, remembered for a moment as it goes away: the same dialog opened again straight after (Ctrl+K, Escape, Ctrl+K in quick
+// succession) finds focus on nothing, since the first has not handed it back yet, and would take the page for its opener (#3416). Only the same dialog
+// (its title): another dialog opened from the page, a page-wide key's or a confirm that stays on <body>, has no business returning to this opener.
+const RECENT_OPENER_MS = 600;
+let recentOpener: { element: HTMLElement; at: number; title: string } | null = null;
+function openerAtMount(title: string): HTMLElement | null {
+  const active = document.activeElement;
+  const nowhere = !(active instanceof HTMLElement) || active === document.body;
+  if (nowhere && recentOpener && recentOpener.title === title && Date.now() - recentOpener.at < RECENT_OPENER_MS && recentOpener.element.isConnected)
+    return recentOpener.element;
+  return active instanceof HTMLElement ? active : null;
+}
 
 // The one modal shell. Base UI supplies the behaviour: the page behind is hidden from
 // assistive technology and unreachable by Tab, Tab loops inside, focus moves in on open and comes back on close. This
@@ -103,6 +134,7 @@ const hasContent = (node: ReactNode): boolean => node !== undefined && node !== 
 //   `autoFocus`, and returns to the element that opened the dialog, or into the page's <main> when that is gone.
 // Dialogs are mounted conditionally (`{open && <Dialog />}`), so `open` is always true here and the parent's unmount is
 // the close; no exit animation exists to wait for.
+
 export function Dialog({
   title,
   onClose,
@@ -137,15 +169,15 @@ export function Dialog({
   const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
-  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
+  const [opener] = useState(() => openerAtMount(title));
+  // Opened by a control inside another dialog (a jump menu result), as against by a page key after one closed: only the former takes the closing one's place.
+  const [openedFromDialog] = useState(() => Boolean(opener?.closest('[role=dialog], [role=alertdialog]')));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
   const top = (placement ?? 'top') === 'top';
   // Toasts keep to the window's bottom-right corner while a dialog is open, under its action row, rather than rising above the page's bottom bars.
   // A full-size dialog covers that corner whatever the toast does, and the jump menu has no action row.
   useToastsClearOfModal(width !== 'full' && width !== 'palette');
-  // The slide-over behind this dialog ignores the second press of a double click on one of its buttons (dialogClosed.ts).
-  useEffect(() => markDialogClosed, []);
 
   const initialFocus = () => {
     const focused = document.activeElement;
@@ -154,19 +186,89 @@ export function Dialog({
     return bodyRef.current;
   };
   // A scrolling body keeps a stable gutter for its bar (styles.css), so its content ends that much short of the header's and the action row's;
-  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
-  const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
+  // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36). In a window 400 px tall or less the header and the
+  // action row give the gutter up, and the body keeps its own whether or not it scrolls, so there the body ends 10 px short of Close and the last action: a
+  // deliberate break of that rule, for the 10 px a question's two buttons need to stay on one line at 320 px (#3521).
+  const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable] [@media(max-height:400px)]:[scrollbar-gutter:auto]' : '';
+  // Whether Base UI handed focus back as the dialog closed; when the dialog goes with its parent instead, this stays false (see the cleanup below).
+  const handedBack = useRef(false);
+  const latest = useRef({ returnFocus, stayOnBody, title });
+  latest.current = { returnFocus, stayOnBody, title };
+  useEffect(() => countDialogOpen(), []);
+  // A dialog opened by a control inside another that closed (a jump menu result: "Show keyboard shortcuts") has the closing one's popup for its opener, which goes
+  // with it: where the closed one was handing focus back is the place to return to, after what this dialog's own caller names (#3416).
+  const closedBefore = useRef<(() => HTMLElement | null) | null>(null);
+  // Read once, when the dialog first mounts: a development double run of the effects (mount, cleanup, mount) would otherwise find this dialog's own place, left by the
+  // cleanup, and ask itself where to go, for ever.
+  const readClosedBefore = useRef(false);
+  useEffect(() => {
+    if (readClosedBefore.current) return;
+    readClosedBefore.current = true;
+    closedBefore.current = openedFromDialog ? recentDialogTarget() : null;
+  }, [openedFromDialog]);
+  const namedPlace = (): HTMLElement | null => {
+    const named = latest.current.returnFocus?.();
+    if (named?.isConnected) return named;
+    // A closed dialog's `returnFocus` is asked late, long after what it looks for may be gone (a lookup that throws): that is no place to go, not an error.
+    let before: HTMLElement | null | undefined;
+    try {
+      before = closedBefore.current?.();
+    } catch {
+      before = null;
+    }
+    return before?.isConnected && before.tagName !== 'MAIN' ? before : null;
+  };
+  const placeWhenClosed = (): HTMLElement | null => {
+    if (opener && opener !== document.body && opener.isConnected && opener.tagName !== 'MAIN') return opener;
+    try {
+      return namedPlace();
+    } catch {
+      return null;
+    }
+  };
+  const placeRef = useRef(placeWhenClosed);
+  placeRef.current = placeWhenClosed;
+  // The slide-over behind this dialog ignores the second press of a double click on one of its buttons, and one opened as this closes returns focus to
+  // where this dialog would have (dialogClosed.ts).
+  useEffect(
+    () => () => {
+      markDialogClosed();
+      rememberClosedTarget(() => placeRef.current());
+    },
+    [opener],
+  );
+  // A dialog that is removed together with the thing around it (a link made takes away the notice that opened its dialog, chip and all) never gets its
+  // close hand-back, and focus would fall to <body>. Hand it back the same way, a tick later, only when focus is on nothing.
+  useEffect(
+    () => () => {
+      if (opener && opener !== document.body && opener.isConnected) recentOpener = { element: opener, at: Date.now(), title: latest.current.title };
+      if (handedBack.current) return;
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (active && active !== document.body && active.isConnected) return;
+        if (latest.current.stayOnBody && (!opener || opener === document.body)) return;
+        const named = namedPlace();
+        const useOpener = opener?.isConnected && opener !== document.body && !(opener.tagName === 'MAIN' && named?.isConnected);
+        focusFirst([useOpener ? opener : named, document.querySelector<HTMLElement>('main')]);
+      }, 0);
+    },
+    [opener],
+  );
   const finalFocus = () => {
+    handedBack.current = true;
+    const named = namedPlace();
     // The action that closed this dialog already moved focus to its destination (a jump menu result focuses what it went to): leave it there.
     const now = document.activeElement;
-    if (now instanceof HTMLElement && now !== document.body && !popupRef.current?.contains(now) && !now.closest('[data-base-ui-focus-guard]')) return false;
+    const landmark = now instanceof HTMLElement && now.tagName === 'MAIN' && named?.isConnected;
+    if (now instanceof HTMLElement && now !== document.body && !landmark && !popupRef.current?.contains(now) && !now.closest('[data-base-ui-focus-guard]'))
+      return false;
     let target: HTMLElement | null;
-    if (opener?.isConnected && opener !== document.body) target = opener;
+    // A dialog that opened by itself had the page's landmark for an opener, which is nowhere a narrator was: the page's own named opener wins over it.
+    if (opener?.isConnected && opener !== document.body && !(opener.tagName === 'MAIN' && named?.isConnected)) target = opener;
     else if (stayOnBody && (!opener || opener === document.body)) return false;
     else {
       // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark. <main> is focusable
       // (tabIndex -1) but not tabbable, so handed to Base UI it would pick its first tabbable, the header's project button (#2902): focus it here.
-      const named = returnFocus?.();
       target = named?.isConnected ? named : document.querySelector<HTMLElement>('main');
     }
     if (!target) return true;
@@ -176,8 +278,11 @@ export function Dialog({
     // Only focus that is on nothing (the body, or the removed popup) is handed back; focus on anything else, another dialog included, stays.
     window.setTimeout(() => {
       const active = document.activeElement;
-      const nowhere = !active || active === document.body || !active.isConnected || popupRef.current?.contains(active);
-      if (nowhere && back.isConnected) back.focus({ preventScroll: true });
+      const nowhere =
+        !active || active === document.body || !active.isConnected || popupRef.current?.contains(active) || (landmark && active.tagName === 'MAIN');
+      // The page may have drawn its landmark again meanwhile, or the opener may be a control that is off now (the Booth's Record before a link is made):
+      // <main> is the last stop, so focus does not fall to <body>.
+      if (nowhere) focusFirst([back, document.querySelector<HTMLElement>('main')]);
     }, 0);
     return false;
   };
@@ -203,8 +308,7 @@ export function Dialog({
         }
         // Escape belongs to a hint or a Popover that is showing (a tooltip, a device picker, a settings panel inside the
         // dialog), and to a handler that already took it.
-        if (!dismiss || details.event.defaultPrevented || document.querySelector(HINT_POPUP_SELECTOR) || document.querySelector(POPOVER_POPUP_SELECTOR))
-          details.cancel();
+        if (!dismiss || details.event.defaultPrevented || hintOwnsEscape(popupRef.current) || document.querySelector(POPOVER_POPUP_SELECTOR)) details.cancel();
         else dismiss();
       }}
     >
@@ -213,7 +317,12 @@ export function Dialog({
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
         <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
         <Parts.Viewport
-          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
+          // A press on the dim area around the popup (and on the backdrop under it) is a press on nothing that can take focus, so the browser would move focus to
+          // <body> while the dialog stays open (a dialog that ignores outside presses) and the next Tab would start from the page behind it. Keep focus where it is.
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) event.preventDefault();
+          }}
+          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:260px)]:p-1! [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
         >
           <Parts.Popup
             ref={popupRef}
@@ -240,13 +349,15 @@ export function Dialog({
               if (!popupRef.current?.contains(event.relatedTarget as Node | null)) begunInHold.current.clear();
             }}
             finalFocus={finalFocus}
-            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
-              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
+            // At 260 px of height or less (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
+            // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
+            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:260px)]:overflow-y-auto ${
+              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT}`
             }`}
             style={{
               height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
-              // At most 80dvh, and ending at least 4.75rem above the window's bottom edge, the room a toast keeps there while a dialog is open.
-              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : DIALOG_MAX_HEIGHT,
+              // A full-size dialog fills the window less its margin; every other size's cap is the `DIALOG_MAX_HEIGHT` class above.
+              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
               background: 'var(--surface)',
               borderColor: 'var(--line-strong)',
               boxShadow: 'var(--shadow-lg)',
@@ -257,9 +368,11 @@ export function Dialog({
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
               <div
-                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2`}
+                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:260px)]:py-1! [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5`}
               >
-                <Parts.Title className={`flex-1 ${OVERLAY_TITLE_CLASS}`}>{title}</Parts.Title>
+                <Parts.Title title={title} className={`flex-1 ${OVERLAY_TITLE_CLASS} [@media(max-height:400px)]:line-clamp-3`}>
+                  {title}
+                </Parts.Title>
                 {onClose && (
                   <IconButton label="Close" onClick={onClose}>
                     <FontAwesomeIcon icon={faXmark} />
@@ -271,7 +384,7 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:260px)]:min-h-14 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
                   top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
@@ -279,7 +392,7 @@ export function Dialog({
                   (`scroll-y-edges`), so a row cut by the action row reads as more to scroll (R3GL-3, R3EN2-13). */}
               <div
                 data-dialog-content
-                className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:400px)]:py-2'}`}
+                className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:260px)]:py-0.5! [@media(max-height:400px)]:py-2'}`}
               >
                 {hasContent(description) && (
                   <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
@@ -300,7 +413,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1 ${ACTIONS_INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:260px)]:gap-y-1! [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

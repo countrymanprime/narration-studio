@@ -4,6 +4,8 @@ import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 export type CheckRecordingsOptions = {
   /** Runs once the dialog has gone, however it closed: the opener reads what the check changed. */
   onClosed?: () => void;
+  /** Where focus goes when the opener is gone by close time (a row-menu item that ran and closed): the row it was opened for. */
+  returnFocus?: () => HTMLElement | null;
 };
 
 /**
@@ -19,6 +21,7 @@ export function openCheckRecordings(
   return service.open({
     kind: 'dialog',
     dismissOnOutsidePress: false,
+    returnFocus: options.returnFocus,
     title: 'Check recordings',
     // Two columns, the options and the chapters, each wide enough that the form shows whole at a 900 px tall window (alignment audit XPF-2).
     size: 'wide',

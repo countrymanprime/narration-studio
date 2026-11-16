@@ -22,6 +22,9 @@ export type VoiceTracksState = {
   tracks: VoiceTrackAssignment[];
   /** The tracks (GUIDs, lower case) that were named Narrator: renaming the Narrator track keeps it key 0. */
   narratorGuids: string[];
+  /** The tracks (GUIDs, lower case) the narrator marked as not a voice (a music bed, room tone): never the recording target and not listed
+   * as a voice (#3331). A GUID survives a rename of the track in the DAW. */
+  notVoiceGuids: string[];
 };
 
 /**
@@ -45,9 +48,13 @@ export type BoothVoice = {
     | 'timeout'
     | 'not_our_recording'
     | 'already_recording'
-    | 'playing';
+    | 'playing'
+    | 'starting';
   message?: string;
   trackGuid?: string;
+  /** `selected` from `BoothVoiceSet` only: the DAW's armed track is now this voice (#3429). When the DAW refused, `reason` and `message`
+   * say so on a `selected` answer: the Booth still records on the voice, but the DAW's arms did not change. */
+  armed?: boolean;
   at?: number;
   /** `BoothVoiceGet` only: the voices the Booth added to the chapter's folder this session (`BoothVoiceAdd`) that the saved project
    * does not hold yet. The page lists them after the folder's saved children until the narrator saves in the DAW. */

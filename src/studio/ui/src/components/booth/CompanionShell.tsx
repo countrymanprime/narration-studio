@@ -22,6 +22,8 @@ import type { TeleprompterSession } from './useTeleprompterSession';
 import { CompanionThisChapter } from './CompanionThisChapter';
 import { PickupsCompanionSummary } from '../pickups/PickupsCompanionSummary';
 import { clockTenths } from '../../clock';
+import { useOverlay } from '../../overlay/OverlayProvider';
+import { useStopFailedSentence } from './listening/useStopFailedSentence';
 
 type Props = {
   session: TeleprompterSession;
@@ -113,6 +115,8 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, ma
   const transport = useDawTransport();
   const playhead = playheadBadge(transport, !t.active ? null : t.host.phase === 'stopping' ? 'stopping' : t.paused ? 'paused' : 'reading');
   useWholeWindow(root);
+  // The stop that failed is said as the Booth says it, in a toast above the script, not in the scrolling pane where the voice has moved the reader away from it.
+  useStopFailedSentence(useOverlay(), t);
 
   useEffect(() => {
     root?.focus();
