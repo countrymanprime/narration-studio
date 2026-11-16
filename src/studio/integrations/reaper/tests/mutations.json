@@ -3190,6 +3190,18 @@
     "replace": "if false then"
   },
   {
+    "name": "a refused press leaves the narrator's arms changed: record_stop with no recording of ours restores nothing",
+    "file": "narration_transport.lua",
+    "find": "    if not recording() then\n      restore_arms(state)\n    end\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
+    "replace": "    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+  },
+  {
+    "name": "record_stop restores the arms under the narrator's own recording",
+    "file": "narration_transport.lua",
+    "find": "    if not recording() then\n      restore_arms(state)\n    end",
+    "replace": "    restore_arms(state)"
+  },
+  {
     "name": "arm_only arms a playing REAPER, so a press the heartbeat let through leaves the narrator's arms changed",
     "file": "narration_transport.lua",
     "find": "if not keep and reaper.GetPlayState() ~= 0 then",

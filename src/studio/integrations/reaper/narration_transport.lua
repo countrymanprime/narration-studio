@@ -941,6 +941,12 @@ end
 
 local function record_stop(session_dir, state, run_id)
   if not state.recording then
+    -- A press that armed and was then refused (record_start found REAPER playing, punch_to failed) has no recording of ours to stop, but
+    -- its arms are still the app's to put back: the host's stop after a refusal is how they come back. Not while REAPER records, which
+    -- is the narrator's own take.
+    if not recording() then
+      restore_arms(state)
+    end
     event(session_dir, 'RECORD_NOT_OURS', run_id)
     return
   end
