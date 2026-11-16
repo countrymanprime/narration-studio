@@ -12,6 +12,7 @@ import { forgetAppTake } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
 import { loadLastPlace } from './lastPlace';
+import type { NarrationApi } from '../../../types';
 
 const KEY = 'narration.booth.lastPlace./proj';
 const keep = (place: object) => window.localStorage.setItem(KEY, JSON.stringify(place));
@@ -29,10 +30,10 @@ function Address() {
   return null;
 }
 
-function renderPage({ search = '', projectFolder = '/proj' }: { search?: string; projectFolder?: string } = {}) {
+function renderPage({ search = '', projectFolder = '/proj', api = {} }: { search?: string; projectFolder?: string; api?: Partial<NarrationApi> } = {}) {
   // BoothHost defaults to ?chapter=c1; an empty search is the Booth opened with no chapter named.
   return render(
-    <BoothHost api={pageApi()} daw={dawFor('reaper')} journal={newJournal()} overlay={createOverlayService()} search={search}>
+    <BoothHost api={pageApi(api as never)} daw={dawFor('reaper')} journal={newJournal()} overlay={createOverlayService()} search={search}>
       <BoothNextPage hasManuscript navigate={vi.fn()} projectFolder={projectFolder} />
       <Address />
     </BoothHost>,
@@ -124,5 +125,17 @@ describe('the Booth returns to where the narrator left it', () => {
     renderPage();
     await waitFor(() => expect(document.body.textContent).toContain('The Garden was quiet'));
     vi.restoreAllMocks();
+  });
+});
+
+describe('the DAW goes back to the chapter the narrator left after a restart (#3428, A12)', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  it.each([['c1'], ['c2']])('moves the DAW to the kept chapter %s once, when the DAW is there to follow', async (chapterId) => {
+    keep({ chapterId, paragraphId: chapterId === 'c1' ? 'p3' : 'q1', word: 2 });
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter } });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith(chapterId, expect.any(String), expect.any(Number)));
+    await settle();
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
   });
 });

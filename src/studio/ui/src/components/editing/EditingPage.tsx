@@ -27,6 +27,8 @@ import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
 import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';
 import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
+import { loadSharedChapter, saveSharedChapter } from '../masterqc/page/sharedChapter';
+import { useDawPullBack } from '../../hooks/useDawPullBack';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -52,6 +54,8 @@ export interface EditingPageProps {
   onOpenStoryBible?: (entityId: string) => void;
   /** How long after the app opens an unconnected DAW is waited for before its dialog opens by itself (tests pass 0). */
   dawConnectGraceMs?: number;
+  /** The open project, whose last chapter the page opens on when none is asked for (kept in browser storage, so it survives a restart). */
+  projectFolder?: string;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -91,6 +95,7 @@ function EditingLoaded({
   onChapter,
   onOpenStoryBible,
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
+  projectFolder = '',
 }: EditingPageProps) {
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
@@ -140,8 +145,16 @@ function EditingLoaded({
     [chapters],
   );
   // With none asked for, the page opens on the first chapter with text; the credits (first in the list) are one step away.
-  const landing = list.find((c) => !chapters?.find((item) => item.id === c.id && isCreditsChapter(item))) ?? list[0];
+  const first = list.find((c) => !chapters?.find((item) => item.id === c.id && isCreditsChapter(item))) ?? list[0];
+  // The chapter the narrator was last on in this project comes first, so the DAW is taken back to it after a restart (#3428, A12); a chapter the
+  // book no longer has opens the first one.
+  const [remembered] = useState(() => (projectFolder ? loadSharedChapter(projectFolder) : ''));
+  const landing = list.find((c) => c.id === remembered) ?? first;
   const chapter = list.find((c) => c.id === chosen) ?? landing;
+  const shownId = chapter?.id;
+  useEffect(() => {
+    if (projectFolder && shownId) saveSharedChapter(projectFolder, shownId);
+  }, [projectFolder, shownId]);
   // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
   usePrefetchPeaks(
     list.map((c) => c.id),
@@ -281,6 +294,7 @@ function EditingChapter({
 }: ChapterProps) {
   // The DAW goes to this chapter's tracks too (Booth.follow_chapter_in_daw), once per chapter: the component is keyed by it.
   useDawGoesToChapter(chapterId);
+  useDawPullBack(chapterId);
   const { source, setCuts, setEffects, reloadAccepted, reread, retry } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {

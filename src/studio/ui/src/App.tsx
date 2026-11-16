@@ -1504,13 +1504,16 @@ function AppRoutes() {
                   with no manuscript the page asks for one. */}
                         <Route
                           path="/editing"
-                          element={gated('editing', <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />)}
+                          element={gated(
+                            'editing',
+                            <EditingRoute hasManuscript={Boolean(data.manuscript)} projectFolder={data.projectFolder} onImport={() => guardedNavigate('/')} />,
+                          )}
                         />
                         <Route
                           path="/editing/:chapterId"
                           element={
                             <EditingGate gated={gated}>
-                              <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
+                              <EditingRoute hasManuscript={Boolean(data.manuscript)} projectFolder={data.projectFolder} onImport={() => guardedNavigate('/')} />
                             </EditingGate>
                           }
                         />
@@ -1692,7 +1695,7 @@ function EditingGate({
   return gated('editing', children, chapterId);
 }
 
-function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onImport: () => void }) {
+function EditingRoute({ hasManuscript, projectFolder, onImport }: { hasManuscript: boolean; projectFolder: string; onImport: () => void }) {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -1702,6 +1705,7 @@ function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onI
   return (
     <EditingPage
       hasManuscript={hasManuscript}
+      projectFolder={projectFolder}
       chapterId={chapterId}
       findingId={params.get('finding') ?? undefined}
       passageId={params.get('passage') ?? undefined}

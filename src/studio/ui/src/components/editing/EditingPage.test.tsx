@@ -191,6 +191,42 @@ describe('EditingPage', () => {
     expect(dawGoToChapter.mock.calls.map((call) => call[0])).toEqual(['c1', 'c2']);
   });
 
+  it('opens on the chapter the narrator was last on in this project, and sends the DAW there (a restart, #3428 A12)', async () => {
+    window.localStorage.setItem('narration.proof.lastChapter./proj', 'c2');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', api: { dawGoToChapter } });
+    await screen.findByText('This chapter has no text yet.');
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c2', 'start', 0));
+    cleanup();
+    // A chapter the book no longer has, and another project, open the first chapter as before.
+    window.localStorage.setItem('narration.proof.lastChapter./proj', 'gone');
+    const first = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', api: { dawGoToChapter: first } });
+    await script();
+    await waitFor(() => expect(first).toHaveBeenCalledExactlyOnceWith('c1', 'start', 0));
+    window.localStorage.clear();
+  });
+
+  it('puts the DAW back on the chapter when the window regains focus and the narrator selected something else', async () => {
+    const dawGoToChapter = vi.fn(async (_chapterId: string, _where: string, _seconds: number) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const dawPlace = vi.fn(async () => ({ ok: true, message: '', chapterId: 'c9', selected: 1, cursor: 7 }));
+    mount({ chapterId: 'c1', api: { dawGoToChapter, dawPlace } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    await act(async () => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenLastCalledWith('c1', 'at', 7));
+    expect(dawGoToChapter).toHaveBeenCalledTimes(2);
+  });
+
+  it('remembers the chapter it is on for the project', async () => {
+    mount({ projectFolder: '/proj' });
+    await script();
+    await waitFor(() => expect(window.localStorage.getItem('narration.proof.lastChapter./proj')).toBe('c1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await waitFor(() => expect(window.localStorage.getItem('narration.proof.lastChapter./proj')).toBe('c2'));
+    window.localStorage.clear();
+  });
+
   it('not-transcribed-state', async () => {
     mount({ api: { heard: false } });
     await script();
