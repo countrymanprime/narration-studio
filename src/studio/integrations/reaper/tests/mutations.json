@@ -3108,8 +3108,8 @@
   {
     "name": "the narrator's track selection is not put back",
     "file": "narration_transport.lua",
-    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetTrackSelected(track, row.selected)",
-    "replace": "      if false then\n        reaper.SetTrackSelected(track, row.selected)"
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)",
+    "replace": "      if false then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)"
   },
   {
     "name": "the isolation file is left behind after everything is put back",
@@ -3728,5 +3728,17 @@
     "file": "narration_track_select.lua",
     "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n",
     "replace": ""
+  },
+  {
+    "name": "play isolation selects the played track with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)\n",
+    "replace": "      reaper.SetTrackSelected(other, row.set_selected)\n"
+  },
+  {
+    "name": "play isolation restore puts the selection back with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)\n",
+    "replace": "        reaper.SetTrackSelected(track, row.selected)\n"
   }
 ]

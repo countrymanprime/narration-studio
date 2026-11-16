@@ -235,6 +235,10 @@ local function flag(value)
   return value ~= 0
 end
 
+-- The selection is written through I_SELECTED: REAPER 7.82 raises GetProjectStateChangeCount by one per SetTrackSelected call (the host turns that into
+-- daw_project_edited and Editing re-reads its word table), and an I_SELECTED, I_SOLO or B_MUTE write leaves the count, the undo history and the dirty flag
+-- alone (docs/research/2026-11-16-select-without-edit-real-reaper.md).
+
 -- Puts back what the isolation changed. Answers the rows whose track REAPER could not find (the narrator switched to another project tab), which are kept
 -- on disk and tried again.
 local function put_back(rows)
@@ -248,7 +252,7 @@ local function put_back(rows)
         reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.solo)
       end
       if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then
-        reaper.SetTrackSelected(track, row.selected)
+        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)
       end
       if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then
         reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', row.mute)
@@ -405,7 +409,7 @@ local function isolate(state, track)
       reaper.SetMediaTrackInfo_Value(other, 'I_SOLO', row.set_solo)
     end
     if flag(reaper.GetMediaTrackInfo_Value(other, 'I_SELECTED')) ~= row.set_selected then
-      reaper.SetTrackSelected(other, row.set_selected)
+      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)
     end
     if row.set_mute ~= nil and row.mute ~= row.set_mute then
       reaper.SetMediaTrackInfo_Value(other, 'B_MUTE', row.set_mute)
