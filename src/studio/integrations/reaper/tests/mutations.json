@@ -3726,26 +3726,20 @@
   {
     "name": "monitoring the narrator turned off or changed meanwhile is put back anyway",
     "file": "narration_monitor.lua",
-    "find": "    elseif reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then",
-    "replace": "    elseif true then"
+    "find": "      if track and reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then",
+    "replace": "      if track then"
   },
   {
     "name": "monitoring that was on already is set and put back as if it were ours",
     "file": "narration_monitor.lua",
-    "find": "    if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then",
-    "replace": "    if true then"
+    "find": "    local needs = reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0",
+    "replace": "    local needs = true"
   },
   {
     "name": "monitor_restore touches the monitoring while REAPER records",
     "file": "narration_monitor.lua",
     "find": "    if busy() then\n      state.waiting",
     "replace": "    if false then\n      state.waiting"
-  },
-  {
-    "name": "changing the lane leaves the earlier lane monitored",
-    "file": "narration_monitor.lua",
-    "find": "    local _, _, left = put_back(others)\n    state.rows = left\n",
-    "replace": "    state.rows = others\n"
   },
   {
     "name": "a restore that waited for a recording is never finished",
@@ -3756,8 +3750,8 @@
   {
     "name": "a monitoring turned on is put back to on",
     "file": "narration_monitor.lua",
-    "find": "        state.rows[#state.rows + 1] = { guid = guid, was = 0 }",
-    "replace": "        state.rows[#state.rows + 1] = { guid = guid, was = 1 }"
+    "find": "{ guid = guid, was = 0, project = here }",
+    "replace": "{ guid = guid, was = 1, project = here }"
   },
   {
     "name": "arm_lane monitors without being asked",
@@ -3786,26 +3780,14 @@
   {
     "name": "the ledger of a closed REAPER is read while another take runs",
     "file": "narration_monitor.lua",
-    "find": "    if busy() then\n      return\n    end\n    if state.waiting then",
-    "replace": "    if state.waiting then"
+    "find": "    if busy() then\n      return\n    end\n    recover()",
+    "replace": "    recover()"
   },
   {
     "name": "a damaged ledger row writes a value the lane never had",
     "file": "narration_monitor.lua",
-    "find": "line:match('^([^\\t]+)\\t0$')",
-    "replace": "line:match('^([^\\t]+)\\t%-?%d+$')"
-  },
-  {
-    "name": "a row whose track REAPER cannot find is dropped from the ledger",
-    "file": "narration_monitor.lua",
-    "find": "    if not track then\n      left[#left + 1] = row",
-    "replace": "    if not track then\n      kept = kept"
-  },
-  {
-    "name": "the lane being armed again loses its own row",
-    "file": "narration_monitor.lua",
-    "find": "    if mine then\n      state.rows[#state.rows + 1] = mine",
-    "replace": "    if false then\n      state.rows[#state.rows + 1] = mine"
+    "find": "line:match('^([^\\t]+)\\t0\\t([^\\t]*)$')",
+    "replace": "line:match('^([^\\t]+)\\t%-?%d+\\t([^\\t]*)$')"
   },
   {
     "name": "a crashed REAPER's leftover rows are never put back",
@@ -3816,13 +3798,61 @@
   {
     "name": "a waiting restore cannot be dropped when the Booth is entered again",
     "file": "narration_monitor.lua",
-    "find": "    if args[2] == 'cancel' then",
+    "find": "    if mode == 'cancel' then",
     "replace": "    if false then"
+  },
+  {
+    "name": "a row of another project is applied to a track of the same GUID",
+    "file": "narration_monitor.lua",
+    "find": "    if row.project ~= here then\n      left[#left + 1] = row",
+    "replace": "    if false then\n      left[#left + 1] = row"
+  },
+  {
+    "name": "a leftover ledger is erased by a restore that runs before the file is read",
+    "file": "narration_monitor.lua",
+    "find": "    recover()\n    local restored, kept, left = put_back(state.rows)",
+    "replace": "    local restored, kept, left = put_back(state.rows)"
   },
   {
     "name": "monitoring is turned on although its ledger cannot be written",
     "file": "narration_monitor.lua",
-    "find": "if save(state.rows) or mine then",
-    "replace": "if true then"
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a lane already on the ledger is not turned on again when the ledger cannot be rewritten",
+    "file": "narration_monitor.lua",
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if needs and not written then"
+  },
+  {
+    "name": "the lane being armed matches a row of another project",
+    "file": "narration_monitor.lua",
+    "find": "      if row.project ~= here then\n        away[#away + 1] = row",
+    "replace": "      if false then\n        away[#away + 1] = row"
+  },
+  {
+    "name": "changing the lane leaves the earlier lane monitored",
+    "file": "narration_monitor.lua",
+    "find": "    put_back(others)\n    state.rows = after",
+    "replace": "    state.rows = after"
+  },
+  {
+    "name": "the lane being armed again loses its own row",
+    "file": "narration_monitor.lua",
+    "find": "    if mine then\n      after[#after + 1] = mine",
+    "replace": "    if false then\n      after[#after + 1] = mine"
+  },
+  {
+    "name": "a leftover row with another spelling of the GUID is never matched",
+    "file": "narration_monitor.lua",
+    "find": "guid = normalize_guid(guid), was = 0",
+    "replace": "guid = guid, was = 0"
+  },
+  {
+    "name": "an unknown second argument of monitor_restore falls through to a restore",
+    "file": "narration_monitor.lua",
+    "find": "    if mode ~= '' and mode ~= 'cancel' then",
+    "replace": "    if false then"
   }
 ]

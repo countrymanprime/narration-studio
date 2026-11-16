@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
 const ASK_EVERY_MS = 2000;
 const ASK_FOR_MS = 20_000;
+/** How long after a refused arm it is tried once more (the DAW may still have been finishing a take). */
+const RETRY_AFTER_MS = 3000;
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
@@ -114,11 +116,14 @@ export function useMoveDawOnOpen({
  * `useMoveDawOnOpen`, so each chapter gone to arms its own track; it is sent once per chapter, when the DAW can arm (`canArm`) and
  * Booth.follow_chapter_in_daw is on (`follow`). There is no time limit: the arm is what the narrator asked for on entering the Booth, so a DAW that connects
  * late, a setting that is read late and a cold read of any length (`enabled` false while it runs) each arm once when they allow it, and a DAW that can
- * never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said and nothing is changed.
+ * never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said and nothing is changed; it is tried once more
+ * 3 seconds later, or once the take has stopped when one is running.
  *
- * A voice chosen during a take is switched to without touching the DAW's monitoring (the DAW is never changed while it records), so when the take stops
- * (`recording` goes from true to false) the chosen voice is armed and monitored again, by the same call: the one voice the next take records on.
- * Choosing another voice while stopped arms and monitors it through `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
+ * A Booth entered during a take still sends the call: the host answers it without arming and drops a release that waits for the take, so the
+ * monitoring does not flicker off and on at the stop. A voice chosen during a take is switched to without touching the DAW's monitoring (the DAW
+ * is never changed while it records), so when a take stops after one of those, or after an arm sent during it, the chosen voice (`voice`) is armed and
+ * monitored by the same call. A take with no voice change owes nothing. Choosing another voice while stopped arms and monitors it through
+ * `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
  */
 export function useArmBoothOnOpen({
   enabled,
@@ -126,34 +131,66 @@ export function useArmBoothOnOpen({
   chapterId,
   canArm,
   recording = false,
+  voice = '',
   say,
 }: {
   enabled: boolean;
   follow: boolean | undefined;
   chapterId: string;
   canArm: boolean;
-  /** A take runs now: nothing is sent, and the call is made once it stops. */
+  /** A take runs now. */
   recording?: boolean;
+  /** The voice the next take records on, as the host chose it; a change of it during a take is owed an arm once the take stops. */
+  voice?: string;
   say: (sentence: string) => void;
 }) {
   const place = usePort('dawPlace');
   const done = useRef(false);
   const wasRecording = useRef(false);
+  const owed = useRef(false);
+  const lastVoice = useRef(voice);
+  const retried = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const recordingRef = useRef(recording);
+  recordingRef.current = recording;
+  const [attempt, setAttempt] = useState(0);
   const sayRef = useRef(say);
   sayRef.current = say;
-  // A take that stopped: the voice chosen during it is armed and monitored now.
-  if (wasRecording.current && !recording) done.current = false;
+  if (recording && voice !== lastVoice.current) owed.current = true;
+  lastVoice.current = voice;
+  if (wasRecording.current && !recording) {
+    if (owed.current) {
+      done.current = false;
+      retried.current = false;
+    }
+    owed.current = false;
+  }
   wasRecording.current = recording;
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
   useEffect(() => {
-    if (!enabled || follow !== true || done.current || chapterId === '' || !canArm || recording) return;
+    if (!enabled || follow !== true || done.current || chapterId === '' || !canArm) return;
     done.current = true;
+    if (recording) owed.current = true;
+    const refused = (sentence: string | null) => {
+      if (sentence !== null && !retried.current) sayRef.current(sentence);
+      if (retried.current) return;
+      retried.current = true;
+      retryTimer.current = setTimeout(() => {
+        if (recordingRef.current) {
+          owed.current = true;
+          return;
+        }
+        done.current = false;
+        setAttempt((n) => n + 1);
+      }, RETRY_AFTER_MS);
+    };
     void place
       .dawArmBoothVoice(chapterId)
       .then((result) => {
-        if (!result.ok) sayRef.current(result.refused ?? result.message);
+        if (!result.ok) refused(result.refused ?? result.message);
       })
       .catch(() => sayRef.current("The DAW could not arm this chapter's voice. Arm it by hand, or press Check again."));
-  }, [enabled, follow, chapterId, canArm, recording, place]);
+  }, [enabled, follow, chapterId, canArm, recording, attempt, place]);
 }
 
 /**

@@ -6,21 +6,22 @@
 -- already monitors, in either way, is left exactly as it is, and is not ours to put back. Setting it adds no undo point, does not mark
 -- the project unsaved and does not move the project's change count (REAPER 7.82 on Linux, docs/research/2026-11-16-booth-arms-and-monitors.md).
 --
--- What was turned on is remembered (a row per track: its GUID and the value it had), and monitor_restore puts it back where the value is still
--- the one this file set: a track the narrator switched off or to auto meanwhile is theirs and is kept. The lane the Booth moved to makes the
--- earlier lane's row go back at once, so one voice at a time is monitored. The rows are also written to a file in REAPER's resource folder,
--- so a REAPER closed while a lane was monitored is put right by the bridge's first tick (or its first arm_lane with monitor), as
--- narration_transport.lua does for a play, and never while REAPER records. A row whose track is not in the open project, because the project is
--- not loaded yet or the track is gone, stays on the ledger until the next monitor_restore. The ledger is keyed by track GUID only, across
--- projects. A real REAPER crash with a lane monitored is pending (the harness reads a leftover file, not a killed process); see
--- docs/architecture/reaper-bridge.md.
+-- What was turned on is remembered (a row per track: its GUID, the value it had and the project file it was written in), and monitor_restore puts
+-- it back where the value is still the one this file set: a track the narrator switched off or to auto meanwhile is theirs and is kept. The lane the
+-- Booth moved to makes the earlier lane's row go back at once, so one voice at a time is monitored.
 --
--- monitor_restore with a second argument `cancel` only drops a restore that is waiting (the Booth was entered again during the take).
+-- The rows are also written to a file in REAPER's resource folder, so a REAPER closed while a lane was monitored is put right the first time this
+-- bridge can: its first tick, or its first arm_lane with monitor or monitor_restore if one comes before it, as narration_transport.lua does for a
+-- play, and never while REAPER records. A row is applied only while the project file it was written in is in front; a row of another project stays
+-- on the ledger until then, and a row of the project in front whose track is gone is dropped. Only a row of value 0 is accepted from the file, so a
+-- damaged file cannot write another value into a track. A real REAPER crash with a lane monitored is pending (the harness reads a leftover file,
+-- not a killed process); see docs/architecture/reaper-bridge.md.
+--
 -- monitor_restore answers MONITOR_RESTORED|run|restored|kept|waiting. While REAPER records, or a record_start is waiting for REAPER to report
 -- recording, it touches nothing and answers waiting 1: the rows are put back on the first tick after the recording has stopped, so leaving the
 -- Booth during a take neither cuts the narrator's monitoring nor leaves it on for good. What a waited restore did is never reported: no event
--- follows the stop. The file is read once per bridge start, when nothing
--- records; only a row of value 0 is accepted from it, so a damaged file cannot write another value into a track.
+-- follows the stop. A second argument `cancel` only drops a restore that is waiting (the Booth was entered again during the take); any other second
+-- argument is an ERROR and changes nothing.
 
 local core = ...
 local event = core.event
@@ -48,6 +49,11 @@ end
 local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
 end
+-- The file of the project in front (the active tab), '' for one never saved: a row belongs to the project it was written in.
+local function project_path()
+  local _, path = reaper.EnumProjects(-1, '')
+  return path or ''
+end
 local function ledger_path()
   return core.join(reaper.GetResourcePath(), LEDGER_FILE)
 end
@@ -62,26 +68,29 @@ local function save(rows)
   if not out then
     return false
   end
+  local written = true
   for _, row in ipairs(rows) do
-    out:write(row.guid, '\t', row.was, '\n')
+    written = out:write(row.guid, '\t', row.was, '\t', row.project, '\n') and written
   end
-  out:close()
-  return true
+  return out:close() and written and true or false
 end
 
--- Puts back the rows whose track still holds the value this file set. Answers how many were put back, how many were kept, and the rows whose
--- track REAPER cannot find (another project tab is in front), which stay on the ledger.
+-- Puts back the rows of the project in front whose track still holds the value this file set. Answers how many were put back, how many were kept,
+-- and the rows of another project, which stay on the ledger until that project is in front. A row of this project whose track is gone is dropped.
 local function put_back(rows)
   local restored, kept, left = 0, 0, {}
+  local here = project_path()
   for _, row in ipairs(rows) do
-    local track = find_track(row.guid)
-    if not track then
+    if row.project ~= here then
       left[#left + 1] = row
-    elseif reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then
-      reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', row.was)
-      restored = restored + 1
     else
-      kept = kept + 1
+      local track = find_track(row.guid)
+      if track and reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then
+        reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', row.was)
+        restored = restored + 1
+      elseif track then
+        kept = kept + 1
+      end
     end
   end
   return restored, kept, left
@@ -99,9 +108,9 @@ return function(registry)
     return take ~= nil and not take.started
   end
 
-  -- Once per bridge start, and never while a take runs: puts back the rows a closed or crashed REAPER left in the file. It also runs before the first
-  -- write of this bridge, which would otherwise replace the file. This bridge has written nothing yet when it runs, so every row in the file is a leftover; what could not
-  -- be found is kept.
+  -- Once per bridge start: puts back the rows a closed or crashed REAPER left in the file. Every path that writes the file runs it first, since a
+  -- write would replace the file; this bridge has written nothing yet when it runs, so every row in the file is a leftover. Rows of another project
+  -- are kept.
   local function recover()
     if state.recovered then
       return
@@ -116,9 +125,9 @@ return function(registry)
     pcall(function()
       for line in input:lines() do
         -- Only a 0 is something this file turns on from, so no other value is ever written back.
-        local guid = line:match('^([^\t]+)\t0$')
+        local guid, project = line:match('^([^\t]+)\t0\t([^\t]*)$')
         if guid then
-          rows[#rows + 1] = { guid = guid, was = 0 }
+          rows[#rows + 1] = { guid = normalize_guid(guid), was = 0, project = project }
         end
       end
     end)
@@ -133,45 +142,48 @@ return function(registry)
     end
   end
 
-  -- Turns monitoring on for `track` when it is off, after putting back the other lanes this file monitored. Answers 1 when it turned it on.
+  -- Turns monitoring on for `track` when it is off, after putting back the other lanes this file monitored. Answers 1 when it turned it on. The ledger
+  -- is written first: nothing is switched when it cannot be (a REAPER that crashed with a lane on and no row would leave it on for good), except that a
+  -- lane already on the ledger is turned on again.
   registry.monitor_lane = function(track)
     -- The Booth is entered again: a restore that waited for a recording to stop is not to take this lane's monitoring back.
     state.waiting = false
     recover()
     local guid = normalize_guid(reaper.GetTrackGUID(track))
-    local others, mine = {}, nil
+    local here = project_path()
+    local mine, others, away = nil, {}, {}
     for _, row in ipairs(state.rows) do
-      if row.guid == guid then
+      if row.project ~= here then
+        away[#away + 1] = row
+      elseif row.guid == guid then
         mine = row
       else
         others[#others + 1] = row
       end
     end
-    local _, _, left = put_back(others)
-    state.rows = left
+    local needs = reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0
+    local after = away
     if mine then
-      state.rows[#state.rows + 1] = mine
+      after[#after + 1] = mine
+    elseif needs then
+      after[#after + 1] = { guid = guid, was = 0, project = here }
     end
-    local turned = 0
-    if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then
-      if not mine then
-        state.rows[#state.rows + 1] = { guid = guid, was = 0 }
-      end
-      -- A value is turned on only once the ledger that puts it back is on disk: a REAPER that crashes with it unwritten would leave it on for good.
-      if save(state.rows) or mine then
-        reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', ON)
-        turned = 1
-      else
-        state.rows[#state.rows] = nil
-      end
-    else
-      save(state.rows)
+    local written = save(after)
+    if needs and not mine and not written then
+      return 0
     end
-    return turned
+    put_back(others)
+    state.rows = after
+    if needs then
+      reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', ON)
+      return 1
+    end
+    return 0
   end
 
-  -- Puts back what this file turned on, or leaves it to the first tick without a recording.
+  -- Puts back what this file turned on, after reading a leftover the file may hold.
   local function release()
+    recover()
     local restored, kept, left = put_back(state.rows)
     state.rows = left
     save(state.rows)
@@ -179,31 +191,37 @@ return function(registry)
   end
 
   registry.register('monitor_restore', function(ctx, args)
-    if args[2] == 'cancel' then
+    local run = args[1] or ''
+    local mode = args[2] or ''
+    if mode ~= '' and mode ~= 'cancel' then
+      event(ctx.session_dir, 'ERROR', run, 'Unsupported monitor_restore argument.')
+      return
+    end
+    if mode == 'cancel' then
       -- The Booth was entered again while a restore waited for a take: it is not to take the lane back when the take stops. Touches nothing else.
       state.waiting = false
-      event(ctx.session_dir, 'MONITOR_RESTORED', args[1] or '', 0, 0, 0)
+      event(ctx.session_dir, 'MONITOR_RESTORED', run, 0, 0, 0)
       return
     end
     if busy() then
       state.waiting = #state.rows > 0
-      event(ctx.session_dir, 'MONITOR_RESTORED', args[1] or '', 0, 0, state.waiting and 1 or 0)
+      event(ctx.session_dir, 'MONITOR_RESTORED', run, 0, 0, state.waiting and 1 or 0)
       return
     end
     state.waiting = false
     local restored, kept = release()
-    event(ctx.session_dir, 'MONITOR_RESTORED', args[1] or '', restored, kept, 0)
+    event(ctx.session_dir, 'MONITOR_RESTORED', run, restored, kept, 0)
   end)
 
-  -- Called by the tick loop once a tick: finishes a restore that waited for a recording to stop, then recovers the file.
+  -- Called by the tick loop once a tick: recovers the file, then finishes a restore that waited for a recording to stop.
   registry.monitor_tick = function()
     if busy() then
       return
     end
+    recover()
     if state.waiting then
       state.waiting = false
       release()
     end
-    recover()
   end
 end

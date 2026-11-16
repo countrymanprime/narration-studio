@@ -519,15 +519,6 @@ function BoothSession({
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
   // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
   const coldMode = page.coldRead.mode && !control.recording;
-  // Entering the chapter arms the voice the next take records on and monitors it (the same switch as the move above); a cold read waits for its end.
-  useArmBoothOnOpen({
-    enabled: !coldMode && source.kind === 'chapter',
-    follow: followChapterInDaw,
-    chapterId,
-    canArm: !!control.capabilities?.capabilities.record?.available,
-    recording: control.recording,
-    say: (sentence) => sayDawArming(overlay, sentence),
-  });
   const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
@@ -540,6 +531,16 @@ function BoothSession({
     startTake: () => (coldMode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
+  });
+  // Entering the chapter arms the voice the next take records on and monitors it (the same switch as the move above); a cold read waits for its end.
+  useArmBoothOnOpen({
+    enabled: !coldMode && source.kind === 'chapter',
+    follow: followChapterInDaw,
+    chapterId,
+    canArm: !!control.capabilities?.capabilities.record?.available,
+    recording: control.recording,
+    voice: voices.current?.guid ?? '',
+    say: (sentence) => sayDawArming(overlay, sentence),
   });
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
