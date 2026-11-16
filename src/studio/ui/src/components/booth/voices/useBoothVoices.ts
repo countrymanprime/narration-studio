@@ -510,6 +510,13 @@ export function useBoothVoices({
     const others = armedNow.filter((guid) => guid !== current?.guid.toLowerCase() && voices.some((voice) => voice.guid.toLowerCase() === guid));
     return { lane: others.length === 1 ? others[0] : '', key: [...armedNow].sort().join(' ') };
   }, [read, hostVoice.guid, asking, epoch, current, voices]);
+  // A chapter change, or a read that failed (the DAW went quiet), forgets what was acted on: the next report is a fresh one.
+  useEffect(() => {
+    followed.current = '';
+  }, [chapterId]);
+  useEffect(() => {
+    if (!read) followed.current = '';
+  }, [read]);
   useEffect(() => {
     if (armedByHand === null) return;
     if (armedByHand.lane === '') {

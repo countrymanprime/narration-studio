@@ -1035,6 +1035,30 @@ describe('a lane armed in the DAW', () => {
     expect(set).not.toHaveBeenCalled();
   });
 
+  it('follows the same armed set again after a read that failed in between', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
+    const both = state({ status: 'several_armed', armedCount: 2, trackGuid: narrator, armedTrackGuids: [narrator, RABBIT] });
+    // The DAW keeps reporting the set as it is; the host accepts and the Booth takes White Rabbit.
+    const dawState = { current: both as ReturnType<typeof state> | 'fail' };
+    api.readAloudReaperState = async () => {
+      if (dawState.current === 'fail') throw new Error('no answer');
+      return dawState.current;
+    };
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const { hook } = await mount({}, false, api);
+    await settle();
+    expect(set.mock.calls.map((call) => call[1])).toEqual([RABBIT]);
+    // The DAW goes quiet, then reports the Narrator armed beside White Rabbit again: the same set, now a new arm.
+    dawState.current = 'fail';
+    await act(async () => hook.current.reload());
+    await settle();
+    dawState.current = both;
+    await act(async () => hook.current.reload());
+    await settle();
+    expect(set.mock.calls.map((call) => call[1])).toEqual([RABBIT, narrator]);
+  });
+
   it('a read taken while this app recorded is not followed when the take stops', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     api.readAloudReaperState = async () => state({ armedTrackGuids: [RABBIT] });
