@@ -203,6 +203,14 @@ describe('why-the-original-cannot-be-played', () => {
     const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, null);
     expect(result.current.unavailable(pickup(15))).toContain('This chapter is not linked to a track');
   });
+  // qa-breaker (#3568, B2): the button of the line that is playing is Stop; unlinking its chapter meanwhile must not make it a disabled Stop.
+  it('keeps Stop on for the line that is playing', async () => {
+    const { result } = await mountRead(DAW_SETUPS.reaper, {}, false, null);
+    expect(result.current.unavailable(pickup(15))).toContain('not linked to a track');
+    await act(() => result.current.play(pickup(15)));
+    expect(result.current.playingId).toBe('p1');
+    expect(result.current.unavailable(pickup(15))).toBeUndefined();
+  });
   it('stays on for a linked chapter, and before the links were first read', async () => {
     const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, 'tr');
     expect(result.current.unavailable(pickup(15))).toBeUndefined();

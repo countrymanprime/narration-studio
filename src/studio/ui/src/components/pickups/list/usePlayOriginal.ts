@@ -74,10 +74,12 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const unavailable = useCallback(
     (pickup: PickupItem): string | undefined => {
       if (pickup.at === null && pickup.time === null) return NO_PLACE;
+      // The line that is playing keeps its Stop: a chapter unlinked meanwhile must not leave a play that cannot be stopped (qa B2).
+      if (pickup.id === playingId) return undefined;
       if (linksReadAt !== null && chapterLink(mappings, pickup.chapterId).state === 'unlinked') return noSpotReason('unlinked');
       return undefined;
     },
-    [mappings, linksReadAt],
+    [mappings, linksReadAt, playingId],
   );
 
   const clearTimer = (): void => {
