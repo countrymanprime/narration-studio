@@ -63,6 +63,17 @@ func TestRecordPressRefusesFromTheHeartbeatWithoutReadingATrack(t *testing.T) {
 	}
 }
 
+// The heartbeat can be a beat behind: the bridge's arm_only then refuses a REAPER that has just started playing, and the press says so.
+func TestRecordPressAnswersPlayingWhenArmOnlyRefusesAPlayingReaper(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	host.reachability = heartbeatWith("0")
+	recorder := &fakeRecorder{armErr: bridge.ErrPlaying}
+	result, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, &countingTrackStates{}, ids[0])
+	if err != nil || result.Reason != "playing" || len(recorder.calls) != 1 {
+		t.Fatalf("result %+v, err %v, calls %v; want playing after ArmOnly and no RecordStart", result, err, recorder.calls)
+	}
+}
+
 func TestRecordPressAsksTheBridgeWhenTheHeartbeatCannotTellTheTransport(t *testing.T) {
 	reader := &countingTrackStates{state: bridge.TrackState{Recording: true}}
 	result, _ := pressWith(t, "", reader)
