@@ -96,10 +96,10 @@ const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
 // tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
-// needed 278.5 px with an 8 px gap in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room. The 6 px
-// action-row inset makes the row 290 px inside and the 4 px column gap, which the action row has at any width in a window 400 px tall or less, needs 274.5 px: 15.5 px to
-// spare locally, 11 px with the CI render of the labels (about 4.5 px wider). A taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the
-// header and action row, and its buttons still wrap.
+// needed 278.5 px with the 8 px between them in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room.
+// The 6 px action-row inset makes the row 290 px inside, and the 4 px between the two (the action row's gap and the gap of the wrapper ConfirmDialog keeps them in, both
+// at any width in a window 400 px tall or less) makes the need 274.5 px: 15.5 px to spare locally, 11 px with the CI render of the labels (about 4.5 px wider), 3 px with
+// a further 8 px. A taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
 const INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-2';
 // The action row takes 6 px, not 8, in that same window, so its buttons run 2 px out from the text above them on each side: with 8 px the CI render of the labels left
 // 5.0 px of the 8 px the guard asks for, and its hair-wider case -3.0 px (#3521).

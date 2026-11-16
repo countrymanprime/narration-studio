@@ -137,6 +137,21 @@ describe('ConfirmDialog', () => {
     expect(within(screen.getByRole('alertdialog')).getByText('everything').tagName).toBe('B');
   });
 
+  it('keeps 4 px between its last buttons in a window 400 px tall or less, like the action row it sits in (#3521)', () => {
+    render(
+      <ConfirmDialog
+        title="Leave"
+        body="Sure?"
+        confirmLabel="Save & continue"
+        secondary={() => {}}
+        secondaryLabel="Discard & continue"
+        confirm={() => {}}
+        cancel={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Save & continue' }).parentElement!.className).toContain('[@media(max-height:400px)]:gap-1');
+  });
+
   it('draws the confirm button red only for a destructive confirm', () => {
     const { rerender } = render(<ConfirmDialog title="Delete entry" body="Sure?" confirmLabel="Delete entry" confirm={() => {}} cancel={() => {}} />);
     expect(screen.getByRole('button', { name: 'Delete entry' }).className).toContain('bg-[var(--accent)]');
