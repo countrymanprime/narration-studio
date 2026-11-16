@@ -23,6 +23,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
+import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
 import { PageFooterProvider } from '../primitives/KeyHints';
 
 /** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
@@ -60,7 +61,8 @@ function renderPage({
   before = [],
   hasManuscript = true,
   footer = null,
-}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean; footer?: HTMLElement | null } = {}) {
+  trackState = false,
+}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean; footer?: HTMLElement | null; trackState?: boolean } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   // The toast's Undo goes away on a real five-second timer. A loaded runner takes longer than that between the decision and the click, so the
@@ -80,7 +82,27 @@ function renderPage({
                   path="/proof"
                   element={
                     <PageFooterProvider value={footer}>
-                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" transcript={WIRE_TRANSCRIPT} notify={() => {}} dawFileLinked {...handlers} />
+                      {trackState ? (
+                        <ProjectTrackProviders projectFolder="/p" enabled notify={() => {}}>
+                          <ProofPage
+                            hasManuscript={hasManuscript}
+                            projectFolder="/p"
+                            transcript={WIRE_TRANSCRIPT}
+                            notify={() => {}}
+                            dawFileLinked
+                            {...handlers}
+                          />
+                        </ProjectTrackProviders>
+                      ) : (
+                        <ProofPage
+                          hasManuscript={hasManuscript}
+                          projectFolder="/p"
+                          transcript={WIRE_TRANSCRIPT}
+                          notify={() => {}}
+                          dawFileLinked
+                          {...handlers}
+                        />
+                      )}
                     </PageFooterProvider>
                   }
                 />
@@ -849,5 +871,21 @@ describe('Compare on the Proof page (#2822)', () => {
     renderPage({ at: '/proof?chapter=all' });
     await noteRows();
     expect(screen.queryByRole('button', { name: 'Compare with the script' })).toBeNull();
+  });
+});
+
+// #3394: a first tracks read that failed said nothing here: the timeline slot stayed empty, as if the chapter was never recorded. It says the one
+// sentence every page says (the others are in chapterTracks/tracksUnreadable.test.tsx).
+describe('Proof when the tracks could not be read (#3394)', () => {
+  it('says the shared sentence in the timeline slot, not that there is no recording', async () => {
+    const api = createMockApi({
+      manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })),
+      tracksLive: async () => {
+        throw new Error('REAPER did not answer.');
+      },
+    });
+    renderPage({ api, at: '/proof?chapter=chapter-1', trackState: true });
+    expect(await screen.findByText('The tracks could not be read: REAPER did not answer.')).toBeTruthy();
+    expect(screen.queryByText('No recording for this chapter yet.')).toBeNull();
   });
 });

@@ -77,9 +77,11 @@ const mockNoRpp = mockParams.has('mockNoRpp');
 // `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
 // `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
-// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.
+// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks; `unreadable` refuses
+// every read, the first too, so every page says the tracks could not be read.
 const mockLiveTracksParam = mockParams.get('mockLiveTracks');
-const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
+const mockLiveTracks: 'saved' | 'failing' | 'unreadable' | undefined =
+  mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' || mockLiveTracksParam === 'unreadable' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
 // `?mockEmptyTracks=1`: every track of the saved project holds no item (a chapter never recorded), so Editing's note says its track is empty.

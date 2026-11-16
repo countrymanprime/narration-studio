@@ -64,10 +64,12 @@ import (
 	"desktop/internal/stages"
 	"desktop/internal/teleprompter"
 	"desktop/internal/trace"
+	"desktop/internal/tracks"
 	"desktop/internal/transcript"
 	"desktop/internal/tts"
 	"desktop/internal/ttsport"
 	"desktop/internal/update"
+	"desktop/internal/wakelock"
 	"desktop/internal/whisper"
 	"desktop/internal/wiktextract"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -416,6 +418,14 @@ type Host struct {
 	chapterSyncWatch chapterSyncWatcher
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
+	// wake holds the operating system's "do not sleep" request while a take records (wakelock_host.go). wakeInhibitor is a seam for
+	// tests: nil means the operating system's own request.
+	wake          *wakelock.Keeper
+	wakeOnce      sync.Once
+	wakeMu        sync.Mutex
+	wakeInhibitor wakelock.Inhibitor
+	// +checklocks:wakeMu
+	wakeRefused atomic.Bool
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
 	powerState func() coverage.Power
 	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
@@ -755,10 +765,13 @@ func (h *Host) configureLocked(next config) {
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
-	projectFolder, settingsStore := h.config.projectFolder, h.settings
+	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
 	h.coverage = coverage.New(coverage.Config{
 		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
-		ProjectFile:    func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
+		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
+		ChapterAudio: func(project tracks.Project) tracks.Project {
+			return chapterAudio(coverageReporter, projectFolder, project)
+		},
 		LoadManuscript: h.manuscript.Load,
 		// A credits row's check measures the same first-of-kind template
 		// render the Home row and the teleprompter show (h.creditsScript), never manuscript
@@ -781,7 +794,7 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetRecordedFractions(coverageRecordedFractions(h.coverage, settingsStore))
 	// A chapter's recordedSeconds is its one confirmed track's recorded length in the saved .rpp, and a reason otherwise;
 	// never an estimate.
-	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript))
+	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript, h.persist))
 	// The opening and closing credits are chapters of the list too, opening first and closing last (internal/manuscript/credits.go).
 	h.manuscript.SetCredits(h.creditsChapters)
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
@@ -1322,6 +1335,8 @@ func (h *Host) ServiceShutdown() error {
 	// A REAPER recording this app started is stopped before the app quits (threat-model row 5k): otherwise REAPER
 	// keeps recording with nothing left open to stop it.
 	h.stopReadAloudRecordingOnShutdown()
+	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
+	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
 	// and the words files it finished are already on disk.
 	if check := h.services().coverage; check != nil {

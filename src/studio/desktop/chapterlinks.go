@@ -294,7 +294,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 			row.Members = chapterMembersOf(project, row.Links[0].TrackGUID, linkedTracks, setup)
 		}
 		if result.Track != nil {
-			if end, ok := chaptermatch.RecordedEnd(project, *result.Track); ok {
+			if end, ok := chaptermatch.RecordedEnd(chapterAudioFrom(setup, project), *result.Track); ok {
 				row.RecordedEnd = &end
 			}
 		}

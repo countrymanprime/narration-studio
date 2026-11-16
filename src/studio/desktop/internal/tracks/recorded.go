@@ -78,9 +78,10 @@ func overlaps(item Item, span Span) bool {
 
 // ChapterRecordedEnd is RecordedEnd for the chapter linked to guid: for a folder of voices the item that ends last on the folder or on any
 // track inside it (nested folders included), so the chapter's end is the latest spot recorded on any voice. A plain track answers its
-// own, as Track.RecordedEnd does. It reports false when the project does not hold guid or nothing unmuted is recorded there.
+// own, as Track.RecordedEnd does. A track WithAudioSkip names is not counted. It reports false when the project does not hold guid or nothing
+// unmuted is recorded there.
 func (p Project) ChapterRecordedEnd(guid string, within *Span) (RecordedEnd, bool) {
-	members, ok := p.WithDescendants(guid)
+	members, ok := p.ChapterMembers(guid)
 	if !ok {
 		return RecordedEnd{}, false
 	}

@@ -13,6 +13,6 @@
   - button "Create a new track"
   - paragraph:
     - status: "Waiting for Chapter 1: Down the Rabbit-Hole to be linked."
-    - text: /Last checked \d+ s ago, from the project as last saved\./
+    - text: /Last checked \d+ s ago\./
   - button "Check again"
   - button "Link track"

@@ -16,7 +16,7 @@ import (
 // chapterRecorded reads each chapter's recorded length the way Home does: through ManuscriptChapters.
 func chapterRecorded(t *testing.T, host *Host) map[string]map[string]any {
 	t.Helper()
-	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript))
+	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript, host.persist))
 	chapters, err := host.manuscript.Chapters()
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func TestRecordedSecondsFollowsASavedProjectAndSaysWhenThereIsNone(t *testing.T)
 	if _, err := host.ChapterTrackSet(ids[0], chapterLinksTrack); err != nil {
 		t.Fatal(err)
 	}
-	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript))
+	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript, host.persist))
 	read := func() map[string]any {
 		chapters, err := host.manuscript.Chapters()
 		if err != nil {
