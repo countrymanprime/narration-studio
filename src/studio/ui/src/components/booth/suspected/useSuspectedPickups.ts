@@ -9,8 +9,8 @@ import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './sus
 import { pluralWord, formatCount } from '../../../plural';
 
 /**
- * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast unless `survivesMoves` is set (Stop and leave: the toast is raised and outlives that many page
- * moves, #3529). `saidSaved`: another toast already said the take is
+ * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast unless `survivesMoves` is set (Stop and leave: the sentence is shown with no Undo, and the move does not take it
+ * away, #3529). `saidSaved`: another toast already said the take is
  * saved. `undoTake` and `entry`: the take's history entry when a DAW stopped it and this toast is the one that says so; its Undo takes the take
  * back in the DAW before the lines.
  */
@@ -89,16 +89,20 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       if (changed.length === 0 || (quiet && !survivesMoves)) return changed.length;
       const withTake = !saidSaved && undoTake;
       const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
+      // Stop and leave: the sentence is shown on the page landed on, with no Undo (see #3545 for the Undo path).
+      if (quiet) {
+        overlay.toast(text);
+        return changed.length;
+      }
       const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
-        // The lines come first, then the take when this toast is the one that said it is saved: the take's entry is a DAW one, which the journal only takes back while it is the newest,
-        // and the lines were written after it (#3529).
-        const undone = await journal.undo(journalEntry);
-        if (!undone.ok) return undone;
+        // The take goes first when this toast is the one that said it is saved.
         const take = withTake ? await undoTake() : null;
-        return take && !take.ok ? take : { ok: true };
+        if (take && !take.ok) return take;
+        const undone = await journal.undo(journalEntry);
+        return undone.ok ? { ok: true } : undone;
       };
-      if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry, survivesMoves });
-      else overlay.toastUndo(text, undo, { entry: journalEntry, survivesMoves });
+      if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry });
+      else overlay.toastUndo(text, undo, { entry: journalEntry });
       return changed.length;
     },
     [teleprompter, findings, overlay, journal],

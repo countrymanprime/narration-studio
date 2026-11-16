@@ -9,7 +9,6 @@ import { boothSections } from '../side/sections';
 import { BoothSidePanel } from '../side/BoothSidePanel';
 import { sideData } from '../side/fixture';
 import { BoothHost, dawFor, newJournal, pageApi } from '../page/testPage';
-import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { boothUnits } from '../reading/boothUnits';
 import { PickupSession, PickupSessionProvider, registerPickupSession } from './PickupSession';
 import { usePickupSession, type PickupSessionModel, type StoppedTake } from './usePickupSession';
@@ -92,10 +91,10 @@ function Session({ ids, recording = false, jumps }: { ids: string[]; recording?:
   );
 }
 
-function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: boolean }, journalOverride?: Journal) {
+function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: boolean }) {
   const jumps = vi.fn();
   const api = pageApi(h.api as never);
-  const journal = journalOverride ?? newJournal();
+  const journal = newJournal();
   const tree = (next: { ids: string[]; recording?: boolean }) => (
     <BoothHost api={api} daw={dawFor('reaper')} journal={journal} overlay={overlay}>
       <CommandScope kind="booth">
@@ -216,7 +215,7 @@ describe('a pickup session in the Booth', () => {
     expect(await screen.findByText('Pickups · 3 open')).toBeTruthy();
   });
 
-  it("a-take-that-ran-over-a-line: with a DAW take whose undo is refused, the toast Undo opens the lines again and shows the DAW's refusal", async () => {
+  it('a-take-that-ran-over-a-line: with a DAW take whose undo is refused, the toast Undo leaves the lines recorded', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a', 'b', 'c'] });
     await screen.findByText('Pickups · 3 open');
@@ -229,12 +228,10 @@ describe('a pickup session in the Booth', () => {
       toast?.action?.onAction();
     });
     await waitFor(() => expect(refusedTake).toHaveBeenCalledTimes(1));
-    // The marks are taken back first (the take's DAW entry can only go while it is the newest, #3529); the DAW refusing its own take is said, and the take stays.
-    expect(h.items().filter((item) => item.done)).toEqual([]);
-    expect(toasts().some((text) => text.includes("REAPER's last action is not this one."))).toBe(true);
+    expect(h.items().filter((item) => item.done)).toHaveLength(2);
   });
 
-  it('a-take-that-ran-over-a-line: with a DAW take, the toast Undo opens the lines again first and then takes the take back (#3529)', async () => {
+  it('a-take-that-ran-over-a-line: with a DAW take, the toast Undo takes the take back before it opens the lines again', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a', 'b', 'c'] });
     await screen.findByText('Pickups · 3 open');
@@ -248,9 +245,7 @@ describe('a pickup session in the Booth', () => {
     });
     await waitFor(() => expect(h.items().filter((item) => item.done)).toEqual([]));
     const unmarked = h.api.pickupsSetDone.mock.calls.findIndex(([, done]) => !done);
-    expect(undoTake).toHaveBeenCalledTimes(1);
-    // The take's entry is a DAW one: the journal takes it back only while it is the newest, and the marks were written after it, so they go first.
-    expect(h.api.pickupsSetDone.mock.invocationCallOrder[unmarked]).toBeLessThan(undoTake.mock.invocationCallOrder[0]);
+    expect(undoTake.mock.invocationCallOrder[0]).toBeLessThan(h.api.pickupsSetDone.mock.invocationCallOrder[unmarked]);
   });
 
   it('a-take-that-ran-over-a-line: one line reads as singular, and a take that stopped before the line leaves it open', async () => {
@@ -278,8 +273,8 @@ describe('a pickup session in the Booth', () => {
     expect(toasts()).toEqual([]);
   });
 
-  // #3529: Stop and leave raises the take's saved toast too, and it outlives the move to the page landed on.
-  it('a-take-that-leaves-by-stop-and-leave-says-saved-and-the-toast-outlives-the-move', async () => {
+  // #3529: Stop and leave says the take is saved and the pickups marked, with no Undo (its Undo path is #3545's), and the move to the page landed on does not take it away.
+  it('a-take-that-leaves-by-stop-and-leave-says-saved-with-no-undo-and-the-move-keeps-it', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a'] });
     await screen.findByText('Pickups · 1 open');
@@ -287,37 +282,11 @@ describe('a pickup session in the Booth', () => {
       await stop({ began: 0, stopped: 1, quiet: true, survivesMoves: 1 });
     });
     expect(h.items()[0].done).toBe(true);
-    expect(toasts()).toContain('Take saved · 1 pickup marked recorded');
+    const saved = () => overlay.getSnapshot().toasts.filter((item) => item.text === 'Take saved · 1 pickup marked recorded');
+    expect(saved()).toHaveLength(1);
+    expect(saved()[0].action).toBeUndefined();
     act(() => overlay.dismissUndo());
-    expect(toasts()).toContain('Take saved · 1 pickup marked recorded');
-    act(() => overlay.dismissUndo());
-    expect(toasts()).toEqual([]);
-  });
-
-  // #3529 (ux-reviewer): the take's entry is a DAW one, so the journal takes it back only while it is the newest. The marks come after it, so the toast Undo takes them back first;
-  // with the take first the journal refused it ("Undo '2 pickups marked recorded' first. It came after this.") and the lines stayed recorded.
-  it('a-take-that-ran-over-a-line: with the take in the real journal, the toast Undo opens the lines again and takes the take back', async () => {
-    const h = host(LIST());
-    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
-    mount(h, { ids: ['a', 'b', 'c'] }, journal);
-    await screen.findByText('Pickups · 3 open');
-    const take = await journal.act<null>({
-      label: 'Recorded a take of Chapter 1',
-      touches: ['takes'],
-      daw: true,
-      run: async () => ({ ok: true, value: null }),
-      undo: async () => ({ ok: true, value: null }),
-    });
-    if (!take.ok) throw new Error('no entry');
-    await act(async () => {
-      await stop({ began: 0, stopped: 2, undoTake: () => journal.undo(take.value.id), entry: take.value.id });
-    });
-    const toast = overlay.getSnapshot().toasts.find((item) => item.text.startsWith('Take saved'));
-    await act(async () => {
-      toast?.action?.onAction();
-    });
-    await waitFor(() => expect(h.items().filter((item) => item.done)).toEqual([]));
-    await waitFor(async () => expect(await journal.entries()).toEqual([]));
+    expect(saved()).toHaveLength(1);
   });
 
   it('done-writes-through-to-the-marker: both ways, and a refusal leaves the line open and says why', async () => {

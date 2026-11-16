@@ -28,7 +28,7 @@ export type PickupSessionOptions = {
 
 /**
  * Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no error toast and, unless `survivesMoves` is set, no toast and no Undo.
- * `survivesMoves`: the stop is the narrator's Stop and leave, so the toast that says the take is saved is still raised, and outlives that many page moves (#3529). `undoTake` and
+ * `survivesMoves`: the stop is the narrator's Stop and leave, so the sentence that says the take is saved is still shown, as a plain toast with no Undo, which the move does not take away (#3529). `undoTake` and
  * `entry`: the take's history entry, when a DAW stopped it; the toast's Undo takes the take back in the DAW before the marks.
  */
 export type StoppedTake = {
@@ -152,16 +152,20 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
       }
       if (!quiet || survivesMoves) {
         const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
+        // Stop and leave: the sentence is shown on the page landed on, with no Undo (an Undo toast goes at the next move, and this one's Undo is #3545's to get right).
+        if (quiet) {
+          overlay.toast(text);
+          return targets.length;
+        }
         const marks = marked.value.id;
         const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
-          // The marks come first, then the take: the take's entry is a DAW one, which the journal only takes back while it is the newest, and the marks were written after it
-          // (a take undone first was refused with "Undo '1 pickup marked recorded' first", #3529).
-          const undone = await journal.undo(marks);
-          if (!undone.ok) return undone;
+          // The take goes first: while the DAW keeps it, its pickups stay recorded.
           const take = undoTake ? await undoTake() : null;
-          return take && !take.ok ? take : { ok: true };
+          if (take && !take.ok) return take;
+          const undone = await journal.undo(marks);
+          return undone.ok ? { ok: true } : undone;
         };
-        overlay.toastUndo(text, undo, { entry: entry ?? marks, survivesMoves });
+        overlay.toastUndo(text, undo, { entry: entry ?? marks });
       }
       return targets.length;
     },
