@@ -212,13 +212,12 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	playing, recording, known := heartbeatTransport(svc)
 	if !known && reader != nil {
 		state, err := dawport.TrackStateNoItems(ctx, reader, guid)
+		timeline.Mark("track_state") // stamped only when a track was read: the heartbeat's answer costs nothing to time
 		if err != nil {
-			timeline.Mark("track_state")
 			return readAloudRecordRefusal(name, err), nil
 		}
 		playing, recording = state.Playing, state.Recording
 	}
-	timeline.Mark("track_state")
 	switch {
 	case recording:
 		return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
