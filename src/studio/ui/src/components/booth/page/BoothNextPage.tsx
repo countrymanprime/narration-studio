@@ -169,6 +169,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     if (lastChapter.current !== '' && lastChapter.current !== shownChapter) selfOpened.current.delete(lastChapter.current);
     lastChapter.current = shownChapter;
   }, [shownChapter]);
+  // The chapter the narrator left the Booth on is read first: the DAW may already be on it (a return from another page), and then it is not moved.
+  const readDawFirst = !openedByAddress.current && kept !== null && kept.chapterId === shownChapter;
   const moveDaw = openedByAddress.current || (shownChapter !== '' && !selfOpened.current.has(shownChapter));
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
@@ -186,7 +188,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   useFollowDawOnOpen({
-    enabled: asked === null,
+    // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
+    enabled: asked === null && planned === null,
     chapterIds,
     onChapter: (chapterId) => {
       selfOpened.current.add(chapterId);
@@ -249,6 +252,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         from={shown?.from}
         requested={asked}
         moveDaw={moveDaw}
+        readDawFirst={readDawFirst}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
         onReturned={() => {
@@ -276,6 +280,7 @@ type SessionProps = {
   requested: BoothChapterTarget | null;
   /** The Booth was opened at a chapter: the DAW is moved to it too. */
   moveDaw: boolean;
+  readDawFirst: boolean;
   /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
   projectFolder: string;
   returnTo?: LastPlace;
@@ -300,6 +305,7 @@ function BoothSession({
   from,
   requested,
   moveDaw,
+  readDawFirst,
   projectFolder,
   returnTo,
   onReturned,
@@ -477,6 +483,7 @@ function BoothSession({
     chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
+    onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
 

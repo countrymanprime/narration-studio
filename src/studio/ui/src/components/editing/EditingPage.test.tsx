@@ -192,14 +192,14 @@ describe('EditingPage', () => {
   });
 
   it('opens on the chapter the narrator was last on in this project, and sends the DAW there (a restart, #3428 A12)', async () => {
-    window.localStorage.setItem('narration.proof.lastChapter./proj', 'c2');
+    window.localStorage.setItem('narration.editing.lastChapter./proj', 'c2');
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     mount({ projectFolder: '/proj', api: { dawGoToChapter } });
     await screen.findByText('This chapter has no text yet.');
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c2', 'start', 0));
     cleanup();
     // A chapter the book no longer has, and another project, open the first chapter as before.
-    window.localStorage.setItem('narration.proof.lastChapter./proj', 'gone');
+    window.localStorage.setItem('narration.editing.lastChapter./proj', 'gone');
     const first = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     mount({ projectFolder: '/proj', api: { dawGoToChapter: first } });
     await script();
@@ -218,12 +218,60 @@ describe('EditingPage', () => {
     expect(dawGoToChapter).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps its own chapter: Proof's last chapter is neither read nor overwritten", async () => {
+    window.localStorage.setItem('narration.proof.lastChapter./proj', 'c2');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c1', 'start', 0));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./proj')).toBe('c1'));
+    expect(window.localStorage.getItem('narration.proof.lastChapter./proj')).toBe('c2');
+    window.localStorage.clear();
+  });
+
+  it('an address wins over the remembered chapter, and a bad address opens the first chapter and sends the DAW there', async () => {
+    window.localStorage.setItem('narration.editing.lastChapter./proj', 'c2');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', chapterId: 'nope', api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c1', 'start', 0));
+    window.localStorage.clear();
+  });
+
+  it('a remembered value that is not a chapter of the book opens the first chapter', async () => {
+    window.localStorage.setItem('narration.editing.lastChapter./proj', '{"x":[1');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c1', 'start', 0));
+    window.localStorage.clear();
+  });
+
+  it("does not save the old project's chapter under a new project folder", async () => {
+    const tree = (projectFolder: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={pageApi()} daw={dawFor('reaper')} journal={newJournal()}>
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId="c2" />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+    const view = render(tree('/a'));
+    await screen.findByText('This chapter has no text yet.');
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('c2'));
+    view.rerender(tree('/b'));
+    // The chapters are read again for the new project before anything is kept for it.
+    expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBeNull();
+    await act(async () => {});
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('c2'));
+    window.localStorage.clear();
+  });
+
   it('remembers the chapter it is on for the project', async () => {
     mount({ projectFolder: '/proj' });
     await script();
-    await waitFor(() => expect(window.localStorage.getItem('narration.proof.lastChapter./proj')).toBe('c1'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./proj')).toBe('c1'));
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
-    await waitFor(() => expect(window.localStorage.getItem('narration.proof.lastChapter./proj')).toBe('c2'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./proj')).toBe('c2'));
     window.localStorage.clear();
   });
 

@@ -11,12 +11,3 @@ export function saveSharedChapter(projectFolder: string, chapterId: string): voi
     /* storage unavailable: the choice lasts for this visit only */
   }
 }
-
-/** The chapter last remembered for this project (Proof, Master & QC and Editing share it), or '' when none is kept or storage cannot be read. */
-export function loadSharedChapter(projectFolder: string): string {
-  try {
-    return window.localStorage.getItem(key(projectFolder)) ?? '';
-  } catch {
-    return '';
-  }
-}

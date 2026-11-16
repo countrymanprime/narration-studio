@@ -206,9 +206,39 @@ describe('useDawPullBack', () => {
     await waitFor(() => expect(failing.dawGoToChapter).toHaveBeenCalledTimes(2));
   });
 
-  it('goes to the start of the chapter when the cursor read is not a usable time', async () => {
-    const { dawGoToChapter } = await renderPullBack({ place: async () => on('c-2', Number.NaN) });
+  it.each([
+    ['not a number', Number.NaN],
+    ['below zero', -1],
+    ['infinite', Number.POSITIVE_INFINITY],
+  ])('sends nothing when the cursor read is %s (the selection is restored only with the cursor left alone)', async (_name, cursor) => {
+    const { dawPlace, dawGoToChapter } = await renderPullBack({ place: async () => on('c-2', cursor) });
     await focus();
-    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c-1', 'start', 0));
+    await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('a read that never settles does not stop the next focus after the chapter changes', async () => {
+    const first = vi.fn(() => new Promise<DawPlace>(() => undefined));
+    const second = vi.fn(async () => on('c-9', 3));
+    const calls = [first, second];
+    const place = vi.fn(() => (calls.shift() ?? second)());
+    const { dawGoToChapter, rerender } = await renderPullBack({ place });
+    await focus();
+    await focus();
+    expect(place).toHaveBeenCalledTimes(1);
+    rerender({ id: 'c-2' });
+    await focus();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c-2', 'at', 3));
+  });
+
+  it('a read that settles after the chapter changed moves nothing', async () => {
+    let release: (place: DawPlace) => void = () => undefined;
+    const { dawGoToChapter, rerender } = await renderPullBack({ place: () => new Promise<DawPlace>((resolve) => (release = resolve)) });
+    await focus();
+    rerender({ id: 'c-2' });
+    await act(async () => release(on('c-9', 1)));
+    await act(async () => {});
+    expect(dawGoToChapter).not.toHaveBeenCalled();
   });
 });

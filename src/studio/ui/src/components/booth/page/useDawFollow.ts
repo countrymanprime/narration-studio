@@ -79,6 +79,7 @@ export function useMoveDawOnOpen({
   canFollow,
   target,
   say,
+  onlyIfElsewhere = false,
 }: {
   enabled: boolean;
   follow: boolean | undefined;
@@ -86,10 +87,22 @@ export function useMoveDawOnOpen({
   canFollow: boolean;
   target: { where: 'end' } | { where: 'at'; seconds: number } | null;
   say: (sentence: string) => void;
+  /**
+   * The chapter is the one the narrator was last on (kept across a restart), so the DAW may well be on it already: it is read first, and nothing is sent
+   * when its selection is exactly this chapter's folder and children, so a narrator who only came back to the Booth keeps the cursor they placed.
+   */
+  onlyIfElsewhere?: boolean;
 }) {
   const place = usePort('dawPlace');
   const done = useRef(false);
   const openedAt = useRef(Date.now());
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const sayRef = useRef(say);
   sayRef.current = say;
   const where = target?.where;
@@ -99,11 +112,27 @@ export function useMoveDawOnOpen({
     done.current = true;
     // A DAW that connected long after the Booth opened is not moved: the narrator has been working by then.
     if (Date.now() - openedAt.current > ASK_FOR_MS) return;
+    const send = () =>
+      place
+        .dawGoToChapter(chapterId, where, seconds)
+        .then((result) => {
+          if (!result.ok) sayRef.current(result.refused ?? result.message);
+        })
+        .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'));
+    if (!onlyIfElsewhere) {
+      void send();
+      return;
+    }
+    // The DAW is read first; a read that did not answer, or a failed one, is the same as a DAW on another chapter, and the move is tried.
     void place
-      .dawGoToChapter(chapterId, where, seconds)
-      .then((result) => {
-        if (!result.ok) sayRef.current(result.refused ?? result.message);
-      })
-      .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'));
-  }, [enabled, follow, chapterId, canFollow, where, seconds, place]);
+      .dawPlace()
+      .then(
+        (found) => found,
+        () => null,
+      )
+      .then((found) => {
+        if (!mounted.current || (found?.ok && found.chapterId === chapterId)) return;
+        return send();
+      });
+  }, [enabled, follow, chapterId, canFollow, where, seconds, place, onlyIfElsewhere]);
 }

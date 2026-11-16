@@ -130,12 +130,50 @@ describe('the Booth returns to where the narrator left it', () => {
 
 describe('the DAW goes back to the chapter the narrator left after a restart (#3428, A12)', () => {
   const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-  it.each([['c1'], ['c2']])('moves the DAW to the kept chapter %s once, when the DAW is there to follow', async (chapterId) => {
+  const dawOn = (chapterId: string) => vi.fn(async () => ({ ok: true, message: '', chapterId, selected: 1, cursor: 5 }));
+  it.each([['c1'], ['c2']])('after a restart the DAW is moved to the kept chapter %s once, when the DAW is on another', async (chapterId) => {
     keep({ chapterId, paragraphId: chapterId === 'c1' ? 'p3' : 'q1', word: 2 });
     const dawGoToChapter = goTo();
-    renderPage({ api: { dawGoToChapter } });
+    const dawPlace = dawOn(chapterId === 'c1' ? 'c2' : 'c1');
+    renderPage({ api: { dawGoToChapter, dawPlace } });
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith(chapterId, expect.any(String), expect.any(Number)));
     await settle();
     expect(dawGoToChapter).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([['c1'], ['c2']])('the DAW already on the kept chapter %s is read and not moved', async (chapterId) => {
+    keep({ chapterId, paragraphId: chapterId === 'c1' ? 'p3' : 'q1', word: 2 });
+    const dawGoToChapter = goTo();
+    const dawPlace = dawOn(chapterId);
+    renderPage({ api: { dawGoToChapter, dawPlace } });
+    await waitFor(() => expect(dawPlace).toHaveBeenCalled());
+    await settle();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('a DAW with nothing selected is moved to the kept chapter', async () => {
+    keep({ chapterId: 'c2', paragraphId: 'q1', word: 2 });
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: dawOn('') } });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith('c2', expect.any(String), expect.any(Number)));
+  });
+
+  it('a kept chapter that is gone is nothing remembered: the Booth follows the DAW and moves it nowhere', async () => {
+    keep({ chapterId: 'deleted', paragraphId: 'x', word: 1 });
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: dawOn('c2') } });
+    await waitFor(() => expect(address).toContain('chapter=c2'));
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('garbage in the kept place is nothing remembered too', async () => {
+    window.localStorage.setItem(KEY, '{"chapterId": 7}');
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: dawOn('c2') } });
+    await waitFor(() => expect(address).toContain('chapter=c2'));
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
   });
 });
