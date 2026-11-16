@@ -180,6 +180,12 @@ describe("the Booth's voices", () => {
       expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
     });
 
+    it('a chapter with no voices gets the reason alone, not a pointer to Record', async () => {
+      const { notify, hook } = await mount({}, false, undefined, { coldRead: true });
+      await act(async () => hook.current.byKey(1));
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice.', 'info');
+    });
+
     it('a key with no track does not ask who is in it', async () => {
       const onNoTrack = vi.fn();
       const { hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true, onNoTrack });
