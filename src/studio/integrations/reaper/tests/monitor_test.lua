@@ -309,7 +309,24 @@ end)
 
 H.test('a damaged ledger row cannot write any value but the off a lane had', function()
   local s, narrator, veyra, drone = new_session()
-  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid .. '\t99\n' .. veyra.guid .. '\t1\n' .. drone.guid .. '\t-3\n')
+  H.write_file(
+    s:path('narration_monitor_ledger.txt'),
+    narrator.guid
+      .. '\t99'
+      .. '\t'
+      .. s.fake.project_path
+      .. '\n'
+      .. veyra.guid
+      .. '\t1'
+      .. '\t'
+      .. s.fake.project_path
+      .. '\n'
+      .. drone.guid
+      .. '\t-3'
+      .. '\t'
+      .. s.fake.project_path
+      .. '\n'
+  )
   narrator.rec_mon, veyra.rec_mon, drone.rec_mon = 1, 1, 1
   s:tick()
   H.eq(monitors(s), { 1, 1, 1 })

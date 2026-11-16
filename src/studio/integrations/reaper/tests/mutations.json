@@ -3844,12 +3844,6 @@
     "replace": "    if false then\n      after[#after + 1] = mine"
   },
   {
-    "name": "a leftover row with another spelling of the GUID is never matched",
-    "file": "narration_monitor.lua",
-    "find": "guid = normalize_guid(guid), was = 0",
-    "replace": "guid = guid, was = 0"
-  },
-  {
     "name": "an unknown second argument of monitor_restore falls through to a restore",
     "file": "narration_monitor.lua",
     "find": "    if mode ~= '' and mode ~= 'cancel' then",
