@@ -12,7 +12,9 @@ import (
 // fakeHeartbeatDAW is REAPER's side of the change counter: every heartbeat carries it, an edit raises it, and a chapter move (go_to) leaves it
 // alone because narration_track_select.lua selects with I_SELECTED, which REAPER does not count. This fake only states that behaviour; the Lua
 // harness test "go_to leaves the project change count alone" (src/studio/integrations/reaper/tests/track_select_test.lua) and the real-REAPER row
-// in scripts/ci/real-reaper/scenarios_select_count.py are what prove the command does it.
+// in scripts/ci/real-reaper/scenarios_select_count.py are what prove the command does it. This test only shows the host stays quiet while the
+// count is unchanged and would have passed before the fix: it is not the guard for the fix. emitEventSink is a package global read without a
+// lock, so this test must not run in parallel; it is reset in cleanup.
 type fakeHeartbeatDAW struct{ count int }
 
 func (f *fakeHeartbeatDAW) goTo() {}

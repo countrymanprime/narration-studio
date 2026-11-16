@@ -986,7 +986,9 @@ function Fake:add_item_api(api)
   function api.SetTrackSelected(track, selected)
     fake.calls[#fake.calls + 1] = { name = 'SetTrackSelected', selected = selected }
     track.selected = selected
+    -- Counted as an edit, yet the project stays clean (IsProjectDirty 0) in the recorded run, so saved_count moves with it.
     fake.change_count = fake.change_count + 1
+    fake.saved_count = fake.saved_count + 1
   end
   function api.SetOnlyTrackSelected(track)
     for _, other in ipairs(fake.tracks) do

@@ -193,6 +193,7 @@ end)
 
 -- #3560: the host emits daw_project_edited whenever GetProjectStateChangeCount moves, and REAPER 7.82 counts every SetTrackSelected call
 -- as an edit, so a go_to that selected a chapter with it made Editing re-read its word table for nothing.
+-- It sends 'end' only: cover 'start' here once #3563 lands it.
 H.test('go_to a folder leaves the project change count alone, however often it runs', function()
   local s, t = folder_session()
   local before = s.fake.change_count

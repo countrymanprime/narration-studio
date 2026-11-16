@@ -345,4 +345,6 @@ H.test('7.82/Linux: SetTrackSelected counts as an edit per call, SetOnlyTrackSel
   reaper_api.SetTrackSelected(b, true)
   reaper_api.SetTrackSelected(b, true)
   H.eq(reaper_api.GetProjectStateChangeCount(0), before + 2, 'one per call, even for the state it already has')
+  H.eq(reaper_api.IsProjectDirty(0), 0, 'the project stays clean')
+  H.eq(#fake.undo, 0, 'no undo point')
 end)
