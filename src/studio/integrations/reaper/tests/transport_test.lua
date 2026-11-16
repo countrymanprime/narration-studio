@@ -111,6 +111,34 @@ H.test('after a refused press, even a paused one, the arms come back but an arm 
   H.eq(third.armed, true)
 end)
 
+H.test('record_stop keeps the arms moved for a start the watch gave up on, so a late start records on the app track only', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_fails = true
+  s:send('record_start', 'r1', chapter.guid)
+  for _ = 1, 40 do
+    s:tick()
+  end
+  s:events()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
+H.test('the arms a guarded record_stop kept come back at the next stop once REAPER no longer records', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  s.fake.play_state = 5
+  s:send('record_stop', 's1')
+  H.eq(arms(s), { 1, 0, 0 })
+  s.fake.play_state = 0
+  s:send('record_stop', 's2')
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
 H.test('record_stop with no recording of ours leaves the arms alone while REAPER records a take of the narrator', function()
   local s, chapter, other = new_session()
   other.armed = true
