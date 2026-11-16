@@ -1,10 +1,11 @@
 import type { NarrationApi } from '../types';
 
 /**
- * The host reads that may share one answer while it is on its way: each is a pure question about the project, the DAW or the settings, so two
+ * The host reads that may share one answer while it is on its way: each is a question about the project, the DAW or the settings that changes nothing a repeat would not (`pickupsList` flushes waiting marker states to the DAW and the list file, which is idempotent and done by the first call), so two
  * identical calls made while the first is still unanswered get the first's answer (#3560). Measured on a 17 h book, 118 of the 505 host calls
  * of the eleven pages' cold loads were such repeats (the same read, the same arguments, issued by several components that mounted together).
- * Only reads belong here: a method that changes anything, or whose answer must be as of the moment it is asked after another call, does not.
+ * Only reads belong here: a method that changes anything a repeat would not, or whose answer must be as of the moment it is asked after another call, does not. Adding one is a deliberate edit of this list and of the test that pins it.
+ * The invalidation by host events relies on the name: a handler is passed to a method named `subscribe…` (all of them are), so a new callback-taking method with another name would not move the epoch.
  */
 export const COALESCED_READS: ReadonlySet<string> = new Set([
   'bookmarksList',
@@ -114,7 +115,7 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
             const settled = () => {
               epoch += 1;
             };
-            Promise.resolve(outcome).then(settled, settled);
+            outcome.then(settled, settled); // the call's own thenable, so this runs before the caller's continuation, whatever promise class it is
           }
           return outcome;
         }

@@ -87,6 +87,55 @@ describe('withCoalescedReads', () => {
     expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
   });
 
+  it('sends a read asked after the window is shown again to the host', () => {
+    const { api, calls } = gated();
+    const wrapped = withCoalescedReads(api);
+    void wrapped.manuscriptChapters();
+    document.dispatchEvent(new Event('visibilitychange'));
+    void wrapped.manuscriptChapters();
+    expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
+  });
+
+  it('holds when a write answers with a promise of another class (Wails answers with its own)', async () => {
+    class Custom<T> extends Promise<T> {}
+    const calls: string[] = [];
+    let answerWrite: (value: unknown) => void = () => undefined;
+    const api = {
+      manuscriptChapters: vi.fn(() => {
+        calls.push('read');
+        return calls.length === 1 ? new Promise(() => undefined) : Promise.resolve([]); // the poll that began mid-write never answers in this test
+      }),
+      manuscriptSetChapterStatus: vi.fn(() => new Custom((resolve) => (answerWrite = resolve))),
+    } as unknown as NarrationApi;
+    const wrapped = withCoalescedReads(api);
+    const write = wrapped.manuscriptSetChapterStatus('c1', 'finalized');
+    void wrapped.manuscriptChapters(); // began while the write ran
+    answerWrite(undefined);
+    await write.then(() => wrapped.manuscriptChapters());
+    expect(calls).toEqual(['read', 'read']);
+  });
+
+  it('pins the list of coalesced reads: a new entry is a deliberate edit', () => {
+    expect([...COALESCED_READS].sort()).toEqual(
+      [
+        'bookmarksList',
+        'chapterSyncState',
+        'dawCapabilities',
+        'dawChoice',
+        'findingsSummary',
+        'manuscriptChapters',
+        'measureState',
+        'pickupsList',
+        'productionOverview',
+        'productionPlan',
+        'readAloudReaperState',
+        'recorderState',
+        'settingsForScope',
+        'workspaceAlignment',
+      ].sort(),
+    );
+  });
+
   it('gives each caller its own copy, so one that edits its list does not change another', async () => {
     const { api, waiting } = gated();
     const wrapped = withCoalescedReads(api);
