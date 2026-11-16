@@ -28,6 +28,16 @@ export const proofChapterDrivers: Record<string, Driver> = {
     // The panel says the failure, so no toast says it again (#2494): the picture is the panel alone.
     await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
+  'tracks-unreadable': async (page) => {
+    await page.goto('/?mockLiveTracks=unreadable');
+    await settlePage(page);
+    await goToPage(page, 'Proof');
+    await page.evaluate((path) => {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, '/proof?chapter=chapter-1');
+    await page.getByText('The tracks could not be read: REAPER did not answer in time.').first().waitFor();
+  },
   'saved-project': async (page) => {
     await page.goto('/?mockLiveTracks=saved');
     await settlePage(page);

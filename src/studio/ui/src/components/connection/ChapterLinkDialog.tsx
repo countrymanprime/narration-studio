@@ -279,7 +279,7 @@ export function ChapterLinkDialog({
               ? `Waiting for ${chapterName} to be linked to a ${dest.noun} that is in the project.`
               : `Waiting for ${chapterName} to be linked.`}
         </span>{' '}
-        {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago, from the project as last saved.`}
+        {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago.`}
       </p>
     </ResolveShell>
   );

@@ -7,7 +7,7 @@ import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
-import { chapterLink, linkStateOf, type ChapterLinkState } from '../../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 /** Seconds of the recording heard before and after the line's place. */
@@ -160,12 +160,12 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           return { played: false, why };
         },
       };
-      const { project, mappings, reread, live: read } = shared.current;
+      const { project, mappings, reread } = shared.current;
       const link = chapterLink(mappings, pickup.chapterId);
       const found = project ? chapterTrackOf(project.tracks, link.trackGuid) : undefined;
       const spot = sourceSpot(found?.items ?? [], pickup);
       // Why there is nothing to play, in the link's own terms (the same words the Engine list and Editing use), not one sentence for every case.
-      const missing = !project ? (read.error ? `The tracks could not be read: ${read.error}` : NO_AUDIO) : noSpotReason(linkStateOf(link, Boolean(found)));
+      const missing = tracksUnreadable(shared.current) ?? (!project ? NO_AUDIO : noSpotReason(linkStateOf(link, Boolean(found))));
       // The state is a few seconds old at most; a press asks it to read again for the next one.
       const app: PlaybackProvider<PickupItem> = {
         name: APP,
