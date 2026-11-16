@@ -1500,7 +1500,7 @@ function AppRoutes() {
                             )
                           }
                         />
-                        {/* Editing (the research mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
+                        {/* Editing (the research mock's Editing page): the chapter's script is the editor. `/editing` opens the chapter you were last on, or the first chapter with text when none is remembered;
                   with no manuscript the page asks for one. */}
                         <Route
                           path="/editing"

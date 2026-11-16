@@ -266,6 +266,39 @@ describe('EditingPage', () => {
     window.localStorage.clear();
   });
 
+  it('two quick Next clicks end on the newest chapter: the DAW is last sent there and that is the one kept', async () => {
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ projectFolder: '/proj', chapterId: 's1', api: { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) } });
+    await screen.findByRole('button', { name: /Change chapter/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s3'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./proj')).toBe('s3'));
+    expect(dawGoToChapter.mock.calls.map((call) => call[0])).not.toContain('s4');
+    window.localStorage.clear();
+  });
+
+  it("a project switch opens the other project's own chapter, not the one the first project was on", async () => {
+    window.localStorage.setItem('narration.editing.lastChapter./a', 's2');
+    window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const api = { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) };
+    const tree = (projectFolder: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+    const view = render(tree('/a'));
+    await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s2'));
+    view.rerender(tree('/b'));
+    await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s4'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('s4'));
+    expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('s2');
+    window.localStorage.clear();
+  });
+
   it('remembers the chapter it is on for the project', async () => {
     mount({ projectFolder: '/proj' });
     await script();

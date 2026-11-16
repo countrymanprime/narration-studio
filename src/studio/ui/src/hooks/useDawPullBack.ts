@@ -19,9 +19,10 @@ import { useFollowChapterInDaw } from './useDawGoesToChapter';
  * Nothing runs while the DAW records (the host refuses the move too), when the DAW cannot follow or is not answering, when the chapter has no linked
  * track (the refusal is silent), or when the setting is off or not read yet. Two focus events in a row are one check, and one more is made after it
  * when a second arrived meanwhile; there is no queue, no timer and no standing read. A check whose page has gone or whose chapter changed while it
- * waited sends nothing: the chapter change has moved the DAW itself.
+ * waited sends nothing: the chapter change has moved the DAW itself. `busy` is the page's move on open, when it has one under way: nothing is sent
+ * while it runs. A read or move that never settles is bounded by the host (3 seconds a call), not by a timer here.
  */
-export function useDawPullBack(chapterId: string | undefined): void {
+export function useDawPullBack(chapterId: string | undefined, busy?: { readonly current: boolean }): void {
   const place = usePort('dawPlace');
   const follow = useFollowChapterInDaw();
   const { caps } = useDawCapabilities();
@@ -49,7 +50,7 @@ export function useDawPullBack(chapterId: string | undefined): void {
     const pullBack = async (wanted: string, mine: number) => {
       try {
         const found = await place.dawPlace();
-        if (generation.current !== mine || !found.ok || found.chapterId === wanted) return;
+        if (generation.current !== mine || busy?.current || !found.ok || found.chapterId === wanted) return;
         // A cursor that cannot be read is not guessed at: the selection is restored only with the cursor left where it is.
         if (!Number.isFinite(found.cursor) || found.cursor < 0) return;
         await place.dawGoToChapter(wanted, 'at', found.cursor);
@@ -58,6 +59,8 @@ export function useDawPullBack(chapterId: string | undefined): void {
       }
     };
     const onFocus = () => {
+      // The page's own move on open is under way: it puts the DAW on the chapter, so a second move for the same chapter is not sent.
+      if (busy?.current) return;
       if (running.current) {
         again.current = true;
         return;
@@ -82,5 +85,5 @@ export function useDawPullBack(chapterId: string | undefined): void {
       running.current = false;
       again.current = false;
     };
-  }, [active, place]);
+  }, [active, place, busy]);
 }

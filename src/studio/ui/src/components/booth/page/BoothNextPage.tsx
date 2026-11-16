@@ -476,8 +476,7 @@ function BoothSession({
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
-  useDawPullBack(chapterId);
-  useMoveDawOnOpen({
+  const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
     chapterId,
@@ -486,6 +485,7 @@ function BoothSession({
     onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
+  useDawPullBack(chapterId, moving);
 
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,

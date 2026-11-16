@@ -69,6 +69,9 @@ export function useFollowDawOnOpen({
  * The Booth page mounts this once per chapter (the session is keyed by it), so every chapter the narrator goes to is moved to; the track selected
  * is the chapter's folder and the tracks inside it (go_to). `follow` is Booth.follow_chapter_in_daw: off, or not read yet, moves nothing.
  *
+ * Returns a ref that is true from the moment the move (or the read before it) starts until it ends, so the pull-back on focus does not send a second move
+ * for the same chapter meanwhile.
+ *
  * `target` is null until the line is known (the chapter's words are read); `enabled` is false for a chapter the Booth opened on by itself (the one
  * it followed the DAW to, or last left), where the DAW already is.
  */
@@ -92,9 +95,10 @@ export function useMoveDawOnOpen({
    * when its selection is exactly this chapter's folder and children, so a narrator who only came back to the Booth keeps the cursor they placed.
    */
   onlyIfElsewhere?: boolean;
-}) {
+}): { readonly current: boolean } {
   const place = usePort('dawPlace');
   const done = useRef(false);
+  const moving = useRef(false);
   const openedAt = useRef(Date.now());
   const mounted = useRef(true);
   useEffect(() => {
@@ -110,15 +114,21 @@ export function useMoveDawOnOpen({
   useEffect(() => {
     if (!enabled || follow !== true || done.current || chapterId === '' || where === undefined || !canFollow) return;
     done.current = true;
-    // A DAW that connected long after the Booth opened is not moved: the narrator has been working by then.
-    if (Date.now() - openedAt.current > ASK_FOR_MS) return;
+    // A DAW that connected long after the Booth opened is not moved: the narrator has been working by then. The age is checked again once the read
+    // answers, since the read can come back long after it was asked (no timer: the check is made when the answer arrives).
+    const tooLate = () => Date.now() - openedAt.current > ASK_FOR_MS;
+    if (tooLate()) return;
+    moving.current = true;
     const send = () =>
       place
         .dawGoToChapter(chapterId, where, seconds)
         .then((result) => {
           if (!result.ok) sayRef.current(result.refused ?? result.message);
         })
-        .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'));
+        .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'))
+        .finally(() => {
+          moving.current = false;
+        });
     if (!onlyIfElsewhere) {
       void send();
       return;
@@ -131,8 +141,12 @@ export function useMoveDawOnOpen({
         () => null,
       )
       .then((found) => {
-        if (!mounted.current || (found?.ok && found.chapterId === chapterId)) return;
+        if (!mounted.current || tooLate() || (found?.ok && found.chapterId === chapterId)) {
+          moving.current = false;
+          return;
+        }
         return send();
       });
   }, [enabled, follow, chapterId, canFollow, where, seconds, place, onlyIfElsewhere]);
+  return moving;
 }
