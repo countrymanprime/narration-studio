@@ -16,9 +16,11 @@ async function openConfirmOverPanel(page: Page) {
   return { confirm, panel };
 }
 
-/** Holds Escape: the key goes down, then repeats `repeats` times at the keyboard's rate, then comes up. */
+/** Holds Escape: the key goes down, then after the keyboard's repeat delay repeats `repeats` times at the keyboard's rate, then comes up. */
 async function holdEscape(page: Page, repeats: number) {
   await page.keyboard.down('Escape');
+  // A keyboard waits about half a second before it repeats, then repeats about every 30 ms.
+  await page.waitForTimeout(500);
   for (let i = 0; i < repeats; i++) {
     await page.waitForTimeout(30);
     await page.keyboard.down('Escape');
