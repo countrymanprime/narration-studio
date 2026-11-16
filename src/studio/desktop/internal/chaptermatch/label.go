@@ -74,6 +74,16 @@ var (
 	letterThenDigits = regexp.MustCompile(`([A-Za-z])(\d)`)
 )
 
+// isASCII is whether every byte of text is plain ASCII.
+func isASCII(text string) bool {
+	for i := 0; i < len(text); i++ {
+		if text[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
+}
+
 // accentFolder removes accents. It is built per call: a transform.Chain keeps state between calls and is not safe for
 // concurrent use, and chapter sync reads labels from several goroutines at once.
 func accentFolder() transform.Transformer {
@@ -97,9 +107,12 @@ func LabelTokens(text string) ([]string, Marker) { return LabelTokensWith(compar
 // LabelTokensWith is LabelTokens with a project's equivalence list (compare.py's label_tokens with _CUSTOM_CANON): each
 // canonical token is then the project's canon for it.
 func LabelTokensWith(t compare.Tokenizer, text string) ([]string, Marker) {
-	folded, _, err := transform.String(accentFolder(), text)
-	if err != nil {
-		folded = text
+	folded := text
+	if !isASCII(text) { // plain ASCII has no accents to fold, and most titles and track names are: the transform costs more than the rest of the label
+		var err error
+		if folded, _, err = transform.String(accentFolder(), text); err != nil {
+			folded = text
+		}
 	}
 	folded = letterThenDigits.ReplaceAllString(folded, "$1 $2")
 	raw := compare.RawTokens(folded)
