@@ -678,3 +678,47 @@ func TestEvaluateChapterBasisWarnsWhenProjectFilePredatesTheLedgerRecord(t *test
 		t.Fatal("basis label should still be present")
 	}
 }
+
+// #3608: two items of one chapter that share an item GUID (a track copied in from another project) must each be fingerprinted, or the
+// second hides the first and a trim of the first reads as a recomposable move.
+func TestADuplicateItemGUIDTrimmedReadsTrimmedAndNotRecomposable(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	items := func(firstLength float64) []tracks.Item {
+		return []tracks.Item{staleItem("dup", "a.wav", 0, firstLength, false, 0, 1), staleItem("dup", "b.wav", 30, 20, false, 0, 1)}
+	}
+	before := fingerprintOfItems(t, items(60), sources)
+	after := fingerprintOfItems(t, items(55), sources)
+
+	if got := len(before.ItemFingerprints); got != 2 {
+		t.Fatalf("%d item fingerprints for two items that share a GUID, want 2", got)
+	}
+	result := EvaluateFingerprints(completeRecordFor(before), after, "track-1", "v1", "params-1")
+	if result.State != StateStale || !reasonSet(result.Reasons)[ReasonItemTrimmed] || reasonSet(result.Reasons)[ReasonItemMoved] {
+		t.Fatalf("State/Reasons = %q/%v, want stale/item_trimmed", result.State, result.Reasons)
+	}
+	if result.Recomposable {
+		t.Fatal("a trim changes the analysis key and must not be recomposable, whatever the GUID")
+	}
+	if len(result.ChangedItemGUIDs) != 1 {
+		t.Fatalf("ChangedItemGUIDs = %v, want the one trimmed item", result.ChangedItemGUIDs)
+	}
+}
+
+func TestADuplicateItemGUIDChapterReadsCurrentWhenNothingChanged(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	items := []tracks.Item{staleItem("dup", "a.wav", 0, 60, false, 0, 1), staleItem("dup", "b.wav", 30, 20, false, 0, 1)}
+	fingerprint := fingerprintOfItems(t, items, sources)
+	if result := EvaluateFingerprints(completeRecordFor(fingerprint), fingerprintOfItems(t, items, sources), "track-1", "v1", "params-1"); result.State != StateCurrent {
+		t.Fatalf("State/Reasons = %q/%v, want current", result.State, result.Reasons)
+	}
+}
+
+func TestItemsWithUniqueGUIDsKeepTheirGUIDAsTheKey(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	fingerprint := fingerprintOfItems(t, []tracks.Item{staleItem("one", "a.wav", 0, 60, false, 0, 1), staleItem("two", "b.wav", 30, 20, false, 0, 1)}, sources)
+	for _, guid := range []string{"one", "two"} {
+		if _, ok := fingerprint.ItemFingerprints[guid]; !ok {
+			t.Fatalf("keys = %v, want the item GUID %q as its key (older ledger records stay readable)", fingerprint.ItemFingerprints, guid)
+		}
+	}
+}

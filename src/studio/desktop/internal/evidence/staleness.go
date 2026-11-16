@@ -152,11 +152,13 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 	itemFacts := map[string]LedgerItemFact{}
 	var newestSource time.Time
 	entries := make([]TrackFingerprintEntry, 0, len(items))
+	seen := map[string]int{}
 
 	for _, item := range items {
 		if !item.Supported || item.GUID == "" {
 			continue
 		}
+		itemID := itemKey(seen, item.GUID)
 		take := item.Active()
 		if take.SourceFile == "" {
 			continue
@@ -170,12 +172,12 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 		}
 
 		played := ItemPlayedRange(item)
-		key := ComputeAnalysisKey(identity, played, take.PlayRate)
-		fingerprint := ComputeItemFingerprint(key, item)
+		analysisKey := ComputeAnalysisKey(identity, played, take.PlayRate)
+		fingerprint := ComputeItemFingerprint(analysisKey, item)
 
-		itemFingerprints[item.GUID] = fingerprint
-		analysisKeys[item.GUID] = key
-		itemFacts[item.GUID] = LedgerItemFact{
+		itemFingerprints[itemID] = fingerprint
+		analysisKeys[itemID] = analysisKey
+		itemFacts[itemID] = LedgerItemFact{
 			Position:       item.Position,
 			Length:         item.Length,
 			Muted:          item.Muted,
@@ -492,4 +494,16 @@ func newestRecordTime(ledger *LedgerStore, chapterID string) (time.Time, error) 
 		}
 	}
 	return newest, nil
+}
+
+// itemKey is the key an item is stored under in a LedgerFingerprint's maps: its GUID, so every record written before this stays readable.
+// Two items of one chapter can share a GUID (a track copied in from another project), and keyed alike the second would hide the first, so a
+// trim of the first read as a recomposable move (#3608): a repeat gets "#2", "#3" after its GUID, in the order the items are given (the
+// chapter's items are sorted by position).
+func itemKey(seen map[string]int, guid string) string {
+	seen[guid]++
+	if seen[guid] == 1 {
+		return guid
+	}
+	return guid + "#" + strconv.Itoa(seen[guid])
 }
