@@ -305,7 +305,7 @@ describe('every-way-out-asks-while-recording', () => {
     await press('Escape');
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
     expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
     // The question holds the take while it is open.
     expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
@@ -529,7 +529,7 @@ describe('a-built-in-take-is-guarded-too', () => {
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     await press('Escape');
-    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth stops it.');
+    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it.');
     await act(async () => page.dialog()!.answer(false));
     page.view.unmount();
     await settle();
@@ -577,6 +577,7 @@ describe('a-reading-only-session-keeps-running', () => {
     expect(page.journal.checkLeave('/proof')).toBe('allow');
     await press('Escape');
     expect(page.dialog()?.spec.title).toBe('Stop reading?');
+    expect(page.dialog()?.spec.body).toBe('Reading is still listening. Leaving the Booth for Script stops it; nothing recorded is affected.');
     await act(async () => page.dialog()!.answer(true));
     await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
     expect(page.teleprompterStop).toHaveBeenCalled();
@@ -2226,7 +2227,7 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(await page.journal.entries()).toHaveLength(1);
   });
 
-  it('Stop and leave journals the take too, so it can be undone from the next page', async () => {
+  it('Stop and leave journals the take too, says it saved with an Undo, and the Undo takes it back', async () => {
     const page = renderPage({ journal: dawJournal });
     await record(page);
     await press('Escape');
@@ -2234,7 +2235,82 @@ describe('a-take-is-undone-in-the-daw', () => {
     await act(async () => page.dialog()?.answer(true));
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
     await waitFor(async () => expect((await page.journal.entries()).map((row) => row.label)).toEqual(['Recorded a take of Chapter One']));
+    // #3529: the leave tells the take saved with its Undo, as a plain Stop does, and the toast is the global one, so it outlives the page. This test pinned the opposite (no toast, the
+    // take only in the history) before the leave was held to the plain Stop's feedback.
+    await waitFor(() => expect(toastNamed(page, 'Take saved')).toBeTruthy());
+    await act(async () => {
+      await toastNamed(page, 'Take saved')?.action?.onAction();
+    });
+    expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1);
+    expect(await page.journal.entries()).toEqual([]);
+  });
+
+  // #3529 (qa-breaker B1): the passage map's run is written between the stop and the move and can take seconds, longer than a toast lives. A toast raised before it
+  // expired on the Booth and the narrator landed with no "Take saved"; it is raised at the move, so its clock starts there.
+  it('Stop and leave with a passage-map write that takes a long while raises Take saved with Undo at the move, not before the write', async () => {
+    let finishRun: () => void = () => {};
+    const slowRun = vi.fn(() => new Promise<never[]>((resolve) => (finishRun = () => resolve([]))));
+    const page = renderPage({ journal: dawJournal, api: { passageMapRecordRun: slowRun } as Partial<NarrationApi> });
+    await record(page);
+    await press('Escape');
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()?.answer(true));
+    await waitFor(() => expect(slowRun).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.navigate).not.toHaveBeenCalled();
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
+    await act(async () => finishRun());
+    await waitFor(() => expect(page.navigate).toHaveBeenCalled());
+    const saved = toastNamed(page, 'Take saved');
+    expect(saved?.action?.label).toBe('Undo');
+  });
+
+  // ux-reviewer and qa-breaker on the B1 fix (N1): REAPER's transport says the take ended and its stop reply trails by more than the leave's grace, so the move does not wait for the reply.
+  // What the reply tells afterwards is raised at once, on the page landed on, not held for good.
+  it('Stop and leave whose stop reply trails the DAW ending the take past the grace still says Take saved with Undo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const daw = dawFor('reaper');
+    const listeners = new Set<(transport: { recording: boolean }) => void>();
+    const push = (recording: boolean) => listeners.forEach((listener) => listener({ recording }));
+    daw.subscribeTransport = ((listener: (transport: { recording: boolean }) => void) => (
+      listeners.add(listener),
+      () => listeners.delete(listener)
+    )) as unknown as typeof daw.subscribeTransport;
+    const stop = daw.recordStop.bind(daw);
+    daw.recordStop = (async () => {
+      push(false);
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      return stop();
+    }) as typeof daw.recordStop;
+    const page = renderPage({ daw, journal: dawJournal });
+    await record(page);
+    act(() => push(true));
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    await act(() => vi.advanceTimersByTimeAsync(3000));
+    await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
+  });
+
+  // N3: a stop answered after the 8 s deadline (the "Could not stop the take" question is up) says the take is saved where the narrator is, once.
+  it('a stop answered after the deadline says Take saved with Undo once, while the question stays', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const daw = dawFor('reaper');
+    const stop = daw.recordStop.bind(daw);
+    daw.recordStop = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10_000));
+      return stop();
+    }) as typeof daw.recordStop;
+    const page = renderPage({ daw, journal: dawJournal });
+    await record(page);
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await act(() => vi.advanceTimersByTimeAsync(8500));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(toastNamed(page, 'Take saved')).toBeUndefined();
+    await act(() => vi.advanceTimersByTimeAsync(2500));
+    await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => toast.text === 'Take saved')).toHaveLength(1);
   });
 
   it('a take with the built-in recorder is not a DAW entry', async () => {

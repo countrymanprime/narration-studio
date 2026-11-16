@@ -91,6 +91,11 @@ export const appFeedback: Record<string, FeedbackRow> = {
   // the settled level is also persisted to disk, debounced by
   // the same settle as the announcement, so it survives a quit; the zoom chip has already shown the new level, so there
   // is nothing more to acknowledge here.
+  'src/hooks/useWindowClose.ts::subscribeWindowCloseRequested#1': subscription("The host's request to ask the unsaved-changes question before the window closes (window:close-requested): the app's one subscription, for as long as it is open."),
+  'src/hooks/useWindowClose.ts::windowCloseGuard#1': row('effect', 'instant', 'na', 'na', 'na', 'silent', 'na', 'exempt', "Tells the host whether a draft is held, so a close of the window is put to the page as a question; a failed call leaves the host believing the last answer, and nothing on the page changes for the narrator (an unarmed close goes straight through, as it did before)."),
+  'src/hooks/useWindowClose.ts::windowCloseAsked#1': row('effect', 'instant', 'na', 'na', 'na', 'silent', 'na', 'exempt', "The page saying it received the host's close request; a failed call lets the host close the window after its few seconds' wait instead of waiting for the answer, and the question is still on screen meanwhile."),
+  'src/hooks/useWindowClose.ts::windowCloseAnswer#1': row('click', 'instant', 'na', 'na', 'na', 'silent', 'na', 'exempt', "The narrator's yes to the close question: a failed call leaves the window open with the question gone, and pressing the window's close again asks again (the host re-asks on every close while a question is open)."),
+  'src/hooks/useWindowClose.ts::windowCloseAnswer#2': row('click', 'instant', 'na', 'na', 'na', 'silent', 'na', 'exempt', "The narrator's no to the close question: a failed call leaves the host believing a question is open, and the next close asks again."),
   'src/hooks/useZoom.ts::windowSaveZoom#1': row('timer', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', "The debounced persist of the settled level; a failed write just leaves the next launch opening at the last level that did save, with no error surfaced for a header control that already did what the narrator asked."),
 
   // useDawRecording.ts: the DAW port's live transport state, read only

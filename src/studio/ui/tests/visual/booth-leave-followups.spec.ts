@@ -12,6 +12,8 @@ test.setTimeout(60_000);
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const question = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
+// The question for a take whose end the DAW did not confirm (#3528): titled for the page the move goes to (#3529), never "Stop recording?", which would claim a take is running.
+const quietQuestion = (page: Page, destination = 'Script') => page.getByRole('alertdialog', { name: `Leave for ${destination}?` });
 const picker = (page: Page) => page.getByRole('heading', { name: 'Choose your project' });
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
 const onBooth = (page: Page) => page.evaluate(() => window.location.pathname === '/booth');
@@ -205,10 +207,10 @@ test('a DAW that went quiet before Escape still asks', async ({ page }) => {
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
   await page.waitForTimeout(1500);
   await page.keyboard.press('Escape');
-  await expect(question(page)).toBeVisible();
+  await expect(quietQuestion(page)).toBeVisible();
   expect(await onBooth(page)).toBe(true);
-  await question(page).getByRole('button', { name: /Stay/ }).click();
-  await expect(question(page)).toHaveCount(0);
+  await quietQuestion(page).getByRole('button', { name: /Stay/ }).click();
+  await expect(quietQuestion(page)).toHaveCount(0);
   expect(await onBooth(page)).toBe(true);
 });
 
@@ -220,6 +222,19 @@ test('quiet() and Escape in the same tick still ask', async ({ page }) => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
   });
   await expect(question(page)).toBeVisible();
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('a DAW that went quiet before the jump menu goes to Proof asks "Leave for Proof?"', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Control+KeyK');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('Go to Proof');
+  await page.keyboard.press('Enter');
+  await expect(quietQuestion(page, 'Proof')).toBeVisible();
+  await expect(quietQuestion(page, 'Proof')).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
   expect(await onBooth(page)).toBe(true);
 });
 
@@ -235,7 +250,7 @@ test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks 
   await refused.getByRole('button', { name: /Keep recording/ }).click();
   await expect(refused).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await expect(question(page)).toBeVisible();
+  await expect(question(page).or(quietQuestion(page))).toBeVisible();
   expect(await onBooth(page)).toBe(true);
 });
 
@@ -256,8 +271,8 @@ test('a hung capabilities read after the take ended: Stop and leave ends in the 
   });
   await page.waitForTimeout(500);
   await page.keyboard.press('Escape');
-  await expect(question(page)).toBeVisible();
-  await question(page).getByRole('button', { name: /^Stop/ }).click();
+  await expect(quietQuestion(page)).toBeVisible();
+  await quietQuestion(page).getByRole('button', { name: /^Stop/ }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
   await expect(refused).toBeVisible({ timeout: 25_000 });
   await refused.getByRole('button', { name: /Stay/ }).click();
@@ -380,32 +395,40 @@ test('Enter held on the jump menu row from before the question opens: its repeat
 // at 320 x 300 nothing covers a button of the question, at its corners or centre.
 test.describe('at 320 x 300', () => {
   test.use({ viewport: { width: 320, height: 300 } });
-  test('the question after the DAW went quiet is not covered by the toast, and says only what is known', async ({ page }) => {
-    await page.addInitScript(NEVER_STOPS);
-    await recording(page);
-    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
-    await page.waitForTimeout(1500);
-    await page.keyboard.press('Escape');
-    await expect(question(page)).toBeVisible();
-    await expect(question(page)).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
-    for (const name of ['Stay', 'Stop and leave']) {
-      const button = question(page).getByRole('button', { name });
-      await expect(button).toBeVisible();
-      const covered = await button.evaluate((el) => {
-        const box = el.getBoundingClientRect();
-        const points = [
-          [box.left + 5, box.top + 5],
-          [box.right - 5, box.top + 5],
-          [box.left + 5, box.bottom - 4],
-          [box.right - 5, box.bottom - 4],
-          [box.left + box.width / 2, box.top + box.height / 2],
-        ] as const;
-        return points.filter(([x, y]) => {
-          const hit = document.elementFromPoint(x, y);
-          return !hit || !(el === hit || el.contains(hit));
-        }).length;
-      });
-      expect(covered, `${name} is covered at ${covered} of 5 points`).toBe(0);
-    }
-  });
+  // The title names the page, so the longest rail name ("Master & QC") must not push the dialog into the toast either.
+  for (const destination of ['Script', 'Master & QC']) {
+    test(`the question after the DAW went quiet, leaving for ${destination}, is not covered by the toast, and says only what is known`, async ({ page }) => {
+      await page.addInitScript(NEVER_STOPS);
+      await recording(page);
+      await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+      await page.waitForTimeout(1500);
+      if (destination === 'Script') await page.keyboard.press('Escape');
+      else {
+        await page.keyboard.press('Control+KeyK');
+        await page.getByRole('combobox', { name: 'Jump menu' }).fill(`Go to ${destination}`);
+        await page.keyboard.press('Enter');
+      }
+      await expect(quietQuestion(page, destination)).toBeVisible();
+      await expect(quietQuestion(page, destination)).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
+      for (const name of ['Stay', 'Stop and leave']) {
+        const button = quietQuestion(page, destination).getByRole('button', { name });
+        await expect(button).toBeVisible();
+        const covered = await button.evaluate((el) => {
+          const box = el.getBoundingClientRect();
+          const points = [
+            [box.left + 5, box.top + 5],
+            [box.right - 5, box.top + 5],
+            [box.left + 5, box.bottom - 4],
+            [box.right - 5, box.bottom - 4],
+            [box.left + box.width / 2, box.top + box.height / 2],
+          ] as const;
+          return points.filter(([x, y]) => {
+            const hit = document.elementFromPoint(x, y);
+            return !hit || !(el === hit || el.contains(hit));
+          }).length;
+        });
+        expect(covered, `${name} is covered at ${covered} of 5 points`).toBe(0);
+      }
+    });
+  }
 });

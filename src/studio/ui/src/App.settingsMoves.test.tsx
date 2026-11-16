@@ -62,6 +62,18 @@ const sources: Source[] = [
     kept: () => screen.getByLabelText('Merriam-Webster key'),
     expected: 'pasted-key-123',
   },
+  {
+    name: 'a credit template edit',
+    hold: async () => {
+      category(/^Project/);
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit credits…' }));
+      const body = (await screen.findByLabelText('Body')) as HTMLTextAreaElement;
+      await waitFor(() => expect(body.value).not.toBe(''));
+      fireEvent.change(body, { target: { value: 'Typed template text.' } });
+    },
+    kept: () => screen.getByLabelText('Body'),
+    expected: 'Typed template text.',
+  },
 ];
 
 const moves: Record<string, () => void> = {

@@ -391,6 +391,8 @@ function BoothSession({
     const added = await suspected.takeStopped({
       paragraphIds: new Set(read.map((unit) => unit.paragraphId)),
       quiet: take.quiet,
+      survivesMoves: take.survivesMoves,
+      later: take.later,
       saidSaved: marked > 0,
       ...(marked > 0 ? {} : { undoTake: take.undoTake, entry: take.entry }),
     });

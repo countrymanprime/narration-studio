@@ -136,3 +136,13 @@ func watchFileDrop(window *application.WebviewWindow, onDrop func(paths []string
 		onDrop(event.Context().DroppedFiles())
 	})
 }
+
+// watchWindowClosing runs allow in the window's closing hook, which runs before the listener that closes it; when allow says no, the close is cancelled
+// (Wails v3 `WindowEvent.Cancel`), so the window stays open until the page has been asked and answers (windowclose.go).
+func watchWindowClosing(window *application.WebviewWindow, allow func() bool) {
+	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		if !allow() {
+			event.Cancel()
+		}
+	})
+}

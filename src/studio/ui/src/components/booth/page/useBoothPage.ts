@@ -46,6 +46,7 @@ import { useTakeClock } from './useTakeClock';
 import { claimListening, joinListening, type ListeningClaim, ownsListening, releaseListening, unclaimListening } from '../listening/listeningClaims';
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
+import { pageNameFor } from '../../layout/railPages';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
@@ -59,11 +60,12 @@ const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 const STAYED_MS = 500;
 /** Why Cold read is off during a take (the toggle and its jump-menu entry). */
 const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
-const STOP_READING = {
+/** The question for a session that only listens: it names the page the move goes to, as the recording question does (#3529). */
+const stopReading = (destination: string | undefined) => ({
   title: 'Stop reading?',
-  body: 'Reading is still listening. Leaving the Booth stops it; nothing recorded is affected.',
+  body: `Reading is still listening. Leaving the Booth${destination ? ` for ${destination}` : ''} stops it; nothing recorded is affected.`,
   confirmLabel: 'Stop and leave',
-};
+});
 /** How long a menu has to appear after it is asked for before its hold is let go. */
 const MENU_GRACE_MS = 1000;
 
@@ -241,17 +243,35 @@ export function useBoothPage(options: BoothPageOptions) {
   const [opened, setOpened] = useState<OpenedResume | null>(null);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
-  const tellStopped = useCallback(async (quiet: boolean): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
-    const began = takeBegan.current;
-    const entry = takeEntry.current;
-    takeEntry.current = null;
-    const journal = latestJournal.current;
-    const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
-    if (began === null) return { marked: 0, take: undo };
-    takeBegan.current = null;
-    const take = { quiet, ...undo };
-    return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
+  // What a Stop and leave says about the take, held until the move (`arrived`): the passage map's run is written between the stop and the move and can take seconds, longer than a toast lives.
+  const arrival = useRef<(() => void)[]>([]);
+  const released = useRef(false);
+  // After the release (`arrived`) nothing is held: a stop that answers late says it at once.
+  const later = useCallback((raise: () => void) => (released.current ? raise() : void arrival.current.push(raise)), []);
+  const arrived = useCallback(() => {
+    released.current = true;
+    const raise = arrival.current;
+    arrival.current = [];
+    for (const say of raise) say();
   }, []);
+  const tellStopped = useCallback(
+    async (
+      quiet: boolean,
+      survivesMoves?: number,
+      hold?: (raise: () => void) => void,
+    ): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
+      const began = takeBegan.current;
+      const entry = takeEntry.current;
+      takeEntry.current = null;
+      const journal = latestJournal.current;
+      const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
+      if (began === null) return { marked: 0, take: undo };
+      takeBegan.current = null;
+      const take = { quiet, survivesMoves, later: hold, ...undo };
+      return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
+    },
+    [],
+  );
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
@@ -980,22 +1000,39 @@ export function useBoothPage(options: BoothPageOptions) {
   const markStopped = control.stopped;
   const latestDaw = useRef(control.capabilities?.daw);
   latestDaw.current = control.capabilities?.daw;
-  const stopRecording = useCallback(async (): Promise<DawResult> => {
-    // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
-    const stopAsked = await limited(
-      'recordStop',
-      appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
-    );
-    const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
-    // Undoable from the next page: a DAW's take is in the history before the page goes.
-    if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
-    // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
-    if (result.ok) markStopped();
-    if (result.ok && latest.current.session.active) latest.current.session.stop();
-    // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
-    if (result.ok) void tellStopped(true);
-    return result;
-  }, [daw, tellStopped, markStopped, keepTake, appStop]);
+  const stopRecording = useCallback(
+    async (options?: { deferTell?: boolean }): Promise<DawResult> => {
+      const hold = options?.deferTell ? later : undefined;
+      if (hold) {
+        arrival.current = [];
+        released.current = false;
+      }
+      // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
+      const stopAsked = await limited(
+        'recordStop',
+        appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
+      );
+      const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
+      // Undoable from the next page: a DAW's take is in the history before the page goes.
+      if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
+      // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
+      if (result.ok) markStopped();
+      if (result.ok && latest.current.session.active) latest.current.session.stop();
+      // Stopped on the way out: the take is told as saved, with its Undo, as after a plain Stop, and the toast outlives the move (#3529). A take that marked pickups, or added suspected
+      // lines, says it was saved in their toast ("Take saved · N pickups marked recorded", raised by the same stop with the same `survivesMoves`), so this page adds nothing then.
+      if (result.ok) {
+        const { marked, take } = await tellStopped(true, 1, hold);
+        if (marked === 0 && take.undoTake && take.entry !== undefined) {
+          const { undoTake, entry } = take;
+          const say = () => overlay.toastUndo(TAKE_SAVED, undoTake, { entry, survivesMoves: 1 });
+          if (hold) hold(say);
+          else say();
+        }
+      }
+      return result;
+    },
+    [daw, tellStopped, later, markStopped, keepTake, appStop, overlay],
+  );
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({
@@ -1055,6 +1092,7 @@ export function useBoothPage(options: BoothPageOptions) {
       endConfirmed: control.endConfirmed,
       endUnconfirmed: control.endUnconfirmed,
       flush: writer.flush,
+      arrived,
     },
     { guard: shellGuard, overlay: heldConfirm },
   );
@@ -1106,7 +1144,7 @@ export function useBoothPage(options: BoothPageOptions) {
       void leave(exitTo, navigate);
       return;
     }
-    void overlay.confirm(STOP_READING).then((yes) => {
+    void overlay.confirm(stopReading(pageNameFor(exitTo))).then((yes) => {
       if (!yes) return;
       // A take may have begun while the question was open (the start was out, or the narrator pressed Record): it is read again now, and asked about.
       if (latest.current.takeOut) {

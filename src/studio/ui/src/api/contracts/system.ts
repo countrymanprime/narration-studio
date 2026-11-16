@@ -131,4 +131,16 @@ export interface SystemApi {
    * (one app-wide level, not per project). Called from the header's useZoom hook, debounced, whenever the
    * level settles - a button, a shortcut, or the resize re-read that picks up an external Ctrl+wheel/pinch change. */
   windowSaveZoom(level: number): Promise<void>;
+  /** Tells the host whether the page holds a draft that closing the window would drop (`pageHolds` in App.tsx). While it does, a close of the
+   * window is cancelled by the host and put to the page as `window:close-requested`; with nothing held a close goes straight through (#3526). */
+  windowCloseGuard(held: boolean): Promise<void>;
+  /** The page received `window:close-requested` and is asking the narrator: the host then waits for the answer instead of closing the window on its own after a few seconds. */
+  windowCloseAsked(): Promise<void>;
+  /** The narrator's answer to the close question: true closes the window now (they saved, or chose Discard & continue), false keeps it open. */
+  windowCloseAnswer(closeWindow: boolean): Promise<void>;
+  /** The `window:close-requested` event: the host cancelled a close of the window because the page holds a draft, and wants the unsaved-changes question put. */
+  subscribeWindowCloseRequested(onRequested: () => void): () => void;
 }
+
+/** The payload of `window:close-requested`: nothing (the request is the event itself). */
+export type WindowCloseRequested = Record<string, never>;

@@ -5,6 +5,7 @@ import type { CreditsRenderResult, CreditTemplate, RetailSample } from '../../..
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { useGuardedAction } from '../../../studio/drafts/unsavedDrafts';
 import { CreditsPanel } from '../CreditsPanel';
 import { useSettingsHost } from '../row/SettingsHost';
 import { clock } from '../../../clock';
@@ -53,6 +54,7 @@ export function CreditsRowBody() {
   const api = usePort('credits');
   const { notify } = useSettingsHost();
   const [editing, setEditing] = useState(false);
+  const guarded = useGuardedAction();
   const [summary, setSummary] = useState<Summary>();
   const [problem, setProblem] = useState('');
 
@@ -104,7 +106,7 @@ export function CreditsRowBody() {
         </>
       )}
       <div>
-        <Button variant="secondary" size="sm" aria-expanded={editing} onClick={() => setEditing((open) => !open)}>
+        <Button variant="secondary" size="sm" aria-expanded={editing} onClick={() => (editing ? guarded(() => setEditing(false)) : setEditing(true))}>
           {editing ? 'Close credits editor' : 'Edit credits…'}
         </Button>
       </div>

@@ -7,6 +7,7 @@ import type {
   ProjectAttachState,
   SaveDiagnosticsResult,
   TraceBatchResult,
+  WindowCloseRequested,
   WindowZoom,
 } from '../contracts/system';
 import { transcriptStateSchema } from './transcript';
@@ -80,3 +81,6 @@ export const diagnosticsPreviewSchema = z.object({
 
 /** WindowZoom's and WindowSetZoom's answer. */
 export const windowZoomSchema = z.object({ level: z.number() }) satisfies z.ZodType<WindowZoom>;
+
+/** The `window:close-requested` event: no fields; a close of the window the host cancelled because a draft is held. */
+export const windowCloseRequestedSchema = z.object({}).strict() satisfies z.ZodType<WindowCloseRequested>;

@@ -81,6 +81,9 @@ const hostAPIVersion = 165
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
 type Host struct {
+	// windowClose decides what a close of the main window does (windowclose.go); set once in main before the window opens, nil in a test.
+	windowClose *closeGate
+
 	// dawStateLogged is the last DAW state written to the run log, so a poll that finds nothing new writes nothing (dawlog.go).
 	dawStateLogMu sync.Mutex
 	// +checklocks:dawStateLogMu

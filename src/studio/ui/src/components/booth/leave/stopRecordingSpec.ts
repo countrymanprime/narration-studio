@@ -9,11 +9,14 @@ export const IGNORE_ENTER_MS = 400;
 /**
  * The question asked when the narrator leaves the Booth while a take records. `dawName` comes from the capability report
  * ("REAPER", "Audacity", "the built-in recorder"), never hard-coded. A recording the app did not start is never stopped
- * so that question says the DAW keeps recording and offers no stop. `endUnconfirmed`: the take is over as far as the Booth can tell, but the DAW went quiet before it
- * said so, so the question says it may still be recording.
+ * so that question says the DAW keeps recording and offers no stop. `destination` is the rail page the move goes to, named in the sentence when there is one. `endUnconfirmed`: the
+ * take is over as far as the Booth can tell, but the DAW went quiet before it said so, so the question says it may still be recording and names the page in its title.
  */
-export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false, endUnconfirmed = false): ConfirmSpec {
+export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false, destination?: string, endUnconfirmed = false): ConfirmSpec {
   const subject = dawName.charAt(0).toUpperCase() + dawName.slice(1);
+  // Where the move goes, when a page of the rail owns it: "Leaving the Booth for Script ..." (#3529).
+  // A destination that is the Booth itself is another chapter of it: the take stops, but the narrator does not leave.
+  const leaving = destination === 'Booth' ? 'Opening another chapter' : destination ? `Leaving the Booth for ${destination}` : 'Leaving the Booth';
   if (!startedByApp) {
     return {
       title: 'Leave the Booth?',
@@ -28,7 +31,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     // The DAW has not said it records: the question never claims it does. It closes by itself if the start ends with no take.
     return {
       title: 'Leave while a take is starting?',
-      body: `${subject} is starting a take. Leaving the Booth stops it once it has started.`,
+      body: `${subject} is starting a take. ${leaving} stops it once it has started.`,
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
       safeDefault: true,
@@ -36,10 +39,11 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     };
   }
   if (endUnconfirmed) {
-    // The take ended in the Booth's eyes, but the DAW stopped answering before it said so: the question says only what is known (#3528). The body is no longer than the running
-    // question's in a 320 px window, so the dialog does not grow into the toast that says the DAW stopped answering; "Stay" does not claim the take is recording.
+    // The take ended in the Booth's eyes, but the DAW stopped answering before it said so: the question says only what is known (#3528), so its title does not claim a take is
+    // running ("Leave for Script?", where "Stop recording?" would), and the page is named there (#3529's destination) so the body stays as short as it was: no longer than the
+    // running question's in a 320 px window, so the dialog does not grow into the toast that says the DAW stopped answering. "Stay" does not claim the take is recording.
     return {
-      title: 'Stop recording?',
+      title: destination === 'Booth' ? 'Open another chapter?' : destination ? `Leave for ${destination}?` : 'Leave the Booth?',
       body: `${subject} may still be recording. Leaving tries to stop the take.`,
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
@@ -49,7 +53,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
   }
   return {
     title: 'Stop recording?',
-    body: `${subject} is recording. Leaving the Booth stops it.`,
+    body: `${subject} is recording. ${leaving} stops it.`,
     confirmLabel: 'Stop and leave',
     cancelLabel: KEEP_RECORDING,
     safeDefault: true,

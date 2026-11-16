@@ -8,6 +8,7 @@ import {
   noticeSchema,
   saveDiagnosticsResultSchema,
   traceBatchResultSchema,
+  windowCloseRequestedSchema,
   windowZoomSchema,
 } from '../schemas/system';
 
@@ -21,6 +22,7 @@ export const systemGoldens: Record<string, z.ZodType> = {
   'system-trace-batch.json': traceBatchResultSchema,
   'system-diagnostics-preview.json': diagnosticsPreviewSchema,
   'window-zoom.json': windowZoomSchema,
+  'window-close-requested.json': windowCloseRequestedSchema,
   'system-notice.json': noticeSchema,
   'job-ended-success.json': jobEndedSchema,
   'job-ended-error.json': jobEndedSchema,

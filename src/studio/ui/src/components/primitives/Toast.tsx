@@ -20,7 +20,7 @@ export type ToastMessage = {
   topic?: string;
   durationMs?: number;
   /** Set on an Undo toast by the overlay service: the toast offers to take a change back, and goes when that change is no longer there to take back. */
-  undo?: { entry?: number };
+  undo?: { entry?: number; /** How many more moves (a page or chapter change that dismisses Undo toasts) the toast outlives. */ survives?: number };
 };
 /** How a page or a component tells the narrator something. An error is announced at once and stays until it is dismissed or `TOAST_ERROR_MS` has passed.
  * `action` adds one button (for example Undo) before the dismiss button; pressing it runs the action and dismisses the toast.
