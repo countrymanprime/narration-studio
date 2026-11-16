@@ -59,6 +59,51 @@ describe('useDawGoesToChapter', () => {
     await waitFor(() => expect(dawGoToChapter).toHaveBeenLastCalledWith('c-2', 'start', 0));
   });
 
+  it('does not move the DAW again for the same chapter when it reconnects', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    const real = await capsWith(true);
+    const off = await capsWith(false);
+    let push: (caps: DawCapabilities) => void = () => undefined;
+    renderHook(() => useDawGoesToChapter('c-1'), {
+      wrapper: wrapperFor({
+        dawGoToChapter,
+        settingsForScope: async () => setting('true'),
+        dawCapabilities: async () => real,
+        subscribeDawCapabilities: (onUpdate: (caps: DawCapabilities) => void) => {
+          push = onUpdate;
+          return () => undefined;
+        },
+      }),
+    });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    act(() => push(off));
+    act(() => push(real));
+    await act(async () => {});
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows a DAW that connects after the page opened, once', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    const real = await capsWith(true);
+    const off = await capsWith(false);
+    let push: (caps: DawCapabilities) => void = () => undefined;
+    renderHook(() => useDawGoesToChapter('c-1'), {
+      wrapper: wrapperFor({
+        dawGoToChapter,
+        settingsForScope: async () => setting('true'),
+        dawCapabilities: async () => off,
+        subscribeDawCapabilities: (onUpdate: (caps: DawCapabilities) => void) => {
+          push = onUpdate;
+          return () => undefined;
+        },
+      }),
+    });
+    await act(async () => {});
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+    act(() => push(real));
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c-1', 'start', 0));
+  });
+
   it.each([
     ['the setting is off', { setting: 'false' }],
     ['the DAW cannot follow', { available: false }],

@@ -26,7 +26,7 @@ export function useFollowChapterInDaw(): boolean | undefined {
 /**
  * The DAW follows the page: opening a chapter on a page that works on one chapter's tracks (Editing, Pickups scoped to a chapter) selects that
  * chapter's folder and the tracks inside it in the DAW and puts the cursor where its audio starts. It is sent once per chapter, when the setting
- * is on and the DAW can follow (`follow_position`), so a DAW that is not connected, or one that connects later, is followed from that moment and a
+ * is on and the DAW can follow (`follow_position`), so a DAW that is not connected, or one that connects later, is followed from that moment (once: a DAW that drops and returns is not moved again) and a
  * DAW that never can is left alone without a word. A refusal (a chapter with no linked track, a track the DAW no longer has) moves nothing and
  * says nothing: the page's own DAW notices say why. `chapterId` is undefined or '' for a page with no chapter in view.
  */
@@ -38,11 +38,8 @@ export function useDawGoesToChapter(chapterId: string | undefined): void {
   const sent = useRef<string | null>(null);
   const wanted = follow === true && canFollow && chapterId ? chapterId : null;
   useEffect(() => {
-    if (wanted === null) {
-      sent.current = null;
-      return;
-    }
-    if (sent.current === wanted) return;
+    // A DAW that goes quiet and comes back is not moved again for the same chapter: the narrator may have moved it by hand since.
+    if (wanted === null || sent.current === wanted) return;
     sent.current = wanted;
     // The newest chapter wins: a call for a chapter the narrator has already left is not undone, the next one moves the DAW on.
     place.dawGoToChapter(wanted, 'start', 0).catch(() => undefined);
