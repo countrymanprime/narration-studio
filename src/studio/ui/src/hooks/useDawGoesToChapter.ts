@@ -37,6 +37,10 @@ export function useDawGoesToChapter(chapterId: string | undefined): void {
   const canFollow = !!caps?.capabilities.follow_position?.available;
   const sent = useRef<string | null>(null);
   const wanted = follow === true && canFollow && chapterId ? chapterId : null;
+  // A page with no chapter in view (Pickups showing every chapter) forgets the last one, so choosing it again moves the DAW again.
+  useEffect(() => {
+    if (!chapterId) sent.current = null;
+  }, [chapterId]);
   useEffect(() => {
     // A DAW that goes quiet and comes back is not moved again for the same chapter: the narrator may have moved it by hand since.
     if (wanted === null || sent.current === wanted) return;

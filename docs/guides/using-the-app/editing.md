@@ -123,7 +123,7 @@ words it heard show the next time you open the chapter.
 
 ## The DAW follows the chapter
 
-Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once per chapter while the DAW can follow, and again if the DAW disconnects and reconnects while you stay on the chapter. It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
+Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
 
 ## The DAW tools menu
 

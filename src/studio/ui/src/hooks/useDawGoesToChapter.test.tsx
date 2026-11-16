@@ -82,6 +82,15 @@ describe('useDawGoesToChapter', () => {
     expect(dawGoToChapter).toHaveBeenCalledTimes(1);
   });
 
+  it('moves again when the chapter is chosen again after a page with no chapter', async () => {
+    const { dawGoToChapter, rerender } = await renderFollow({});
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    rerender({ id: '' });
+    await act(async () => {});
+    rerender({ id: 'c-1' });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(2));
+  });
+
   it('follows a DAW that connects after the page opened, once', async () => {
     const dawGoToChapter = vi.fn(async () => moved);
     const real = await capsWith(true);
