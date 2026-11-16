@@ -12,7 +12,14 @@ import { overlay } from './overlay/overlayService';
 import { ThemeProvider } from './theme/ThemeContext';
 import { useUnsavedDraft } from './studio/drafts/unsavedDrafts';
 
-const probe = vi.hoisted(() => ({ saves: vi.fn(), hang: false, blurSave: false, inDialog: false, land: undefined as ((saved: boolean) => void) | undefined }));
+const probe = vi.hoisted(() => ({
+  saves: vi.fn(),
+  hang: false,
+  blurSave: false,
+  refocus: false,
+  inDialog: false,
+  land: undefined as ((saved: boolean) => void) | undefined,
+}));
 vi.mock('./components/script/page/ScriptPage', () => ({
   ScriptPage: function ProbePage() {
     // A blur-saving field holds nothing until the focus leaves it (`blurSave`), the way a Settings row or a due date does.
@@ -31,7 +38,18 @@ vi.mock('./components/script/page/ScriptPage', () => ({
       },
       discard: () => setDirty(false),
     });
-    const field = probe.blurSave ? <input aria-label="Blur-save field" onBlur={() => setDirty(true)} /> : null;
+    const field = probe.blurSave ? (
+      <input
+        aria-label="Blur-save field"
+        onBlur={(event) => {
+          setDirty(true);
+          if (probe.refocus) {
+            const box = event.currentTarget;
+            setTimeout(() => box.focus(), 0);
+          }
+        }}
+      />
+    ) : null;
     return (
       <>
         <h1>Probe page</h1>
@@ -52,6 +70,7 @@ beforeEach(() => {
   probe.saves.mockClear();
   probe.hang = false;
   probe.blurSave = false;
+  probe.refocus = false;
   probe.inDialog = false;
   probe.land = undefined;
   window.history.replaceState(null, '', '/');
@@ -204,6 +223,17 @@ describe('closing the window with a registered draft held asks, and the host is 
       expect(probe.saves).not.toHaveBeenCalled();
     });
   }
+
+  it('a close with a field that takes the focus back on blur still ends in a question (#3536)', async () => {
+    probe.blurSave = true;
+    probe.refocus = true;
+    const host = await mountWithHost();
+    act(() => screen.getByLabelText('Blur-save field').focus());
+    await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(true));
+    host.request();
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(false));
+  });
 
   it('never answers yes before the narrator has answered', async () => {
     const host = await mountWithHost();

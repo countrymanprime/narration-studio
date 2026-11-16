@@ -968,8 +968,9 @@ function AppRoutes() {
   const askRef = useRef<(run: () => void, options?: AskOptions) => void>(() => {});
   askRef.current = (run, options) => {
     // A change made from the box being typed in (the Settings search) leaves the focus where it is: blurring it would stop the typing.
-    if (options?.settle !== false && settleFocusedField(options?.forClose)) {
-      setTimeout(() => askRef.current(run, options), SETTLE_MS);
+    // Once: a field that takes the focus back on blur must not keep the question from ever opening (and, on a close, the window from ever answering).
+    if (options?.settle !== false && !options?.settled && settleFocusedField(options?.forClose)) {
+      setTimeout(() => askRef.current(run, { ...options, settled: true }), SETTLE_MS);
       return;
     }
     if (pageHolds()) openMove({ kind: 'action', run, onCancel: options?.onCancel });

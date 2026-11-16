@@ -101,6 +101,8 @@ export type AskOptions = {
   settle?: boolean;
   /** The window is closing (#3526): settle any editable field, in a dialog too, since the page goes away whatever has the focus. */
   forClose?: boolean;
+  /** Set by the shell on its own retry: the focused field was settled once already and is not settled again. */
+  settled?: boolean;
   /** Runs when the narrator answers Cancel (or Keep editing): the change did not happen, so whatever showed it should show what it was. */
   onCancel?: () => void;
 };
