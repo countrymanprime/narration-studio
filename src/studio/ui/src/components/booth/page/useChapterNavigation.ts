@@ -41,18 +41,21 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
   const followed = useRef({ requested, current, recording, starting, endUnconfirmed, leave, adopt, choose });
   followed.current = { requested, current, recording, starting, endUnconfirmed, leave, adopt, choose };
   // The chapter the narrator already said yes to (Stop and leave, or Leave anyway) in the question a change from the picker, Next or Previous asked: writing it to the address
-  // brings it back here as a request, and it must open, not ask a second time.
-  const confirmed = useRef<string | null>(null);
+  // brings it back here as a request, and it must open, not ask a second time. The answer belongs to that one request: it is read once, by the next request whatever it asks for,
+  // and never beats a take that records or starts (a running take always asks).
+  const confirmed = useRef<{ chapter: string; at: number } | null>(null);
   useEffect(() => {
     const now = followed.current;
+    // It also expires: the address is written in the same breath as the answer, so a request that comes much later is not the one it was given for.
+    const answered = confirmed.current && Date.now() - confirmed.current.at <= PENDING_STEP_MS ? confirmed.current.chapter : null;
+    confirmed.current = null;
     if (!now.requested || requestedQuery === null) return;
     const target = now.requested;
     if (sameSource(target, now.current)) {
       if (target.from) now.adopt(target);
       return;
     }
-    if (confirmed.current === target.chapter) {
-      confirmed.current = null;
+    if (answered === target.chapter && !now.recording && !now.starting) {
       now.adopt(target);
       return;
     }
@@ -76,6 +79,7 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
   // queued in order instead of every one stepping from the chapter still on screen and all but the first being lost.
   const asked = useRef<{ id: string; at: number } | null>(null);
   const changeChapter = (target: BoothChapterTarget) => {
+    confirmed.current = null;
     // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
     if (sameSource(target, current) && !asked.current) return;
     if (recording) {
@@ -93,7 +97,9 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
     // A DAW that went quiet may still be recording: the change asks the same question the address does (it stops the take if the narrator says so), not a silent move.
     if (endUnconfirmed?.()) {
       void leave(`/booth${boothQuery(target)}`, () => {
-        confirmed.current = target.chapter;
+        // The address already asks for this chapter (a link came while the question was open): writing it changes nothing and no request follows, so it opens here.
+        if (requestedQuery === boothQuery(target)) adopt(target);
+        else confirmed.current = { chapter: target.chapter, at: Date.now() };
         go();
       });
       return;

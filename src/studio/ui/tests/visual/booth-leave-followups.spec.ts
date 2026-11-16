@@ -326,6 +326,41 @@ for (const route of chapterRoutes) {
   });
 }
 
+// qa-breaker M1: a yes belongs to the request it was given for. A link to the same chapter arrives while the question for Next is open; Stop and leave, the refusal and Leave anyway then
+// open that chapter once, and no yes is left behind: a later link to it asks again, like any other.
+test('a stale yes does not open a chapter without asking: after Leave anyway, later links to chapters still ask', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1500);
+  const link = (chapter: string) =>
+    page.evaluate((id) => {
+      window.history.pushState({}, '', `/booth?chapter=${id}`);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, chapter);
+  const picker = page.locator("[aria-label^='Chapter:']").first();
+  await page.getByRole('button', { name: 'Next chapter', exact: true }).click();
+  const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
+  await expect(chapterQuestion).toBeVisible();
+  await link('chapter-2');
+  await chapterQuestion.getByRole('button', { name: 'Stop and leave' }).click();
+  const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await page.waitForTimeout(600);
+  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  // Where the Booth landed is not this test's business (a link that arrives while a question is open is #3555's); what matters is that no yes is left for either link below.
+  const shown = await picker.getAttribute('aria-label');
+  for (const chapter of ['chapter-3', 'chapter-2']) {
+    if (shown?.startsWith(`Chapter: Chapter ${chapter.slice(-1)}:`)) continue;
+    await link(chapter);
+    await expect(chapterQuestion).toBeVisible();
+    await chapterQuestion.getByRole('button', { name: 'Stay' }).click();
+    await expect(chapterQuestion).toHaveCount(0);
+    await expect(picker).toHaveAttribute('aria-label', shown ?? '');
+  }
+});
+
 test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks again', async ({ page }) => {
   await recording(page);
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));

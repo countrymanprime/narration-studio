@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoothChapterTarget } from './boothQuery';
 import { useChapterNavigation } from './useChapterNavigation';
 
@@ -244,4 +244,90 @@ describe('every chapter route x every answer, with the end unconfirmed', () => {
       else expect(choose).toHaveBeenCalledWith({ chapter: 'a' });
     });
   }
+});
+
+// qa-breaker M1: the narrator's yes belongs to the request it was given for. If the address ends up somewhere else (a link that came while the question was open), no marker may
+// stay behind to let a later request for that chapter open without asking, least of all during a running take.
+describe('a yes the address then overrides leaves no marker behind', () => {
+  beforeEach(() => void vi.useFakeTimers({ toFake: ['Date'] }));
+  afterEach(() => void vi.useRealTimers());
+  type Props = { requested: BoothChapterTarget | null; recording: boolean };
+  const mount = () => {
+    const answer = { yes: true };
+    const leave = vi.fn((_path: string, proceed: () => void) => {
+      if (answer.yes) proceed();
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const choose = vi.fn();
+    const view = renderHook(
+      ({ requested, recording }: Props) =>
+        useChapterNavigation({ requested, chapterId: 'a', recording, endUnconfirmed: () => true, leave, adopt, choose, chapters: CHAPTERS, toast: vi.fn() }),
+      { initialProps: { requested: null, recording: false } as Props },
+    );
+    return { leave, adopt, choose, view, answer };
+  };
+  for (const later of [{ chapter: 'c' }, null] as const) {
+    for (const recording of [true, false]) {
+      it(`a yes for b, the address then ${later ? 'asks for c' : 'is cleared'}: a later request for b asks (recording ${recording})`, async () => {
+        const { leave, adopt, view, answer } = mount();
+        // The question for b is answered, but the address was already moved off b by something else: `choose` writes nothing the hook sees.
+        act(() => view.result.current.changeChapter({ chapter: 'b' }));
+        expect(leave).toHaveBeenCalledTimes(1);
+        view.rerender({ requested: later, recording: false });
+        // From here a question is only asked, not answered: a request that opens without asking is the break.
+        answer.yes = false;
+        adopt.mockClear();
+        leave.mockClear();
+        // Later than the answer's own request: the yes has expired, and a running take never opens on a yes at all.
+        vi.setSystemTime(Date.now() + 2500);
+        view.rerender({ requested: { chapter: 'b' }, recording });
+        await act(async () => {});
+        expect(leave).toHaveBeenCalledTimes(1);
+        expect(adopt).not.toHaveBeenCalled();
+      });
+    }
+  }
+  // The yes is stamped when it is given (Stop and leave, Leave anyway), not when the question opened: a slow stop or a late press does not expire it.
+  it('a Leave anyway pressed long after the question opened still opens the chapter', async () => {
+    let proceed: () => void = () => {};
+    const leave = vi.fn((_path: string, p: () => void) => {
+      proceed = p;
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const view = renderHook(() => {
+      const [requested, setRequested] = useState<BoothChapterTarget | null>(null);
+      return useChapterNavigation({
+        requested,
+        chapterId: 'a',
+        recording: false,
+        endUnconfirmed: () => true,
+        leave,
+        adopt,
+        choose: setRequested,
+        chapters: CHAPTERS,
+        toast: vi.fn(),
+      });
+    });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    vi.setSystemTime(Date.now() + 30_000);
+    await act(async () => proceed());
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+  });
+  it('a yes while the address already asks for that chapter opens it at once, with no marker left', async () => {
+    const { leave, adopt, view, answer } = mount();
+    view.rerender({ requested: { chapter: 'b' }, recording: false });
+    await act(async () => {});
+    leave.mockClear();
+    adopt.mockClear();
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+    answer.yes = false;
+    view.rerender({ requested: { chapter: 'c' }, recording: false });
+    await act(async () => {});
+    view.rerender({ requested: { chapter: 'b' }, recording: true });
+    await act(async () => {});
+    expect(leave).toHaveBeenLastCalledWith('/booth?chapter=b', expect.any(Function));
+  });
 });
