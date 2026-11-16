@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell, shellPages } from './AppShell';
+import { pageNameFor, RAIL_PAGES } from './railPages';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
@@ -691,5 +692,12 @@ describe('AppShell page footer', () => {
     const footer = document.querySelector('[data-page-footer]')!;
     expect(footer.childElementCount).toBe(0);
     expect(footer.className).not.toMatch(/border|p[xy]?-/);
+  });
+
+  // #3529: a sentence names where a move goes from RAIL_PAGES; it must be the rail's own list.
+  it('RAIL_PAGES is the rail and Settings, as the jump menu lists them', () => {
+    expect(RAIL_PAGES).toEqual(shellPages({ hasManuscript: true, dawFileLinked: true }).map((page) => ({ name: page.label, path: page.id })));
+    expect(pageNameFor('/editing/chapter-2?x=1')).toBe('Editing');
+    expect(pageNameFor('/nowhere')).toBeUndefined();
   });
 });

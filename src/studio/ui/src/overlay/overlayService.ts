@@ -78,7 +78,12 @@ const OVERLAY_TOAST_LIMIT = 4;
  * What an Undo toast is tied to (audit cluster 21): the journal entry it undoes, so it goes when that entry is undone from the header,
  * the keys or History. Every Undo toast has one; a change the journal does not hold has no Undo toast.
  */
-type UndoToastOptions = { durationMs?: number; entry: number };
+type UndoToastOptions = {
+  durationMs?: number;
+  entry: number;
+  /** The toast outlives this many moves: one raised as the narrator leaves ("Take saved" after Stop and leave) is about a change they are leaving, and must be there on the page they land on. */
+  survivesMoves?: number;
+};
 
 export type OverlayService = {
   /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
@@ -198,7 +203,7 @@ export function createOverlayService(): OverlayService {
             },
           },
         },
-        { entry: options.entry },
+        { entry: options.entry, survives: options.survivesMoves },
       );
     },
     settleUndo: (live) => {
@@ -206,7 +211,14 @@ export function createOverlayService(): OverlayService {
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
     },
     dismissUndo: () => {
-      if (snapshot.toasts.some((m) => m.undo)) update({ toasts: snapshot.toasts.filter((m) => !m.undo) });
+      if (!snapshot.toasts.some((m) => m.undo)) return;
+      const lives = (m: ToastMessage) => (m.undo?.survives ?? 0) > 0;
+      // A toast that outlives moves loses one of them; every other Undo toast goes.
+      update({
+        toasts: snapshot.toasts
+          .filter((m) => !m.undo || lives(m))
+          .map((m) => (m.undo && lives(m) ? { ...m, undo: { ...m.undo, survives: (m.undo.survives ?? 1) - 1 } } : m)),
+      });
     },
     announce: (text) => update({ announcement: text }),
     open: (spec) => {

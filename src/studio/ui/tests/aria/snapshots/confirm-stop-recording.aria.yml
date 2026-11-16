@@ -11,6 +11,6 @@
 - alertdialog "Stop recording?":
   - heading "Stop recording?" [level=2]
   - button "Close"
-  - paragraph: /is recording\. Leaving the Booth stops it/
+  - paragraph: /is recording\. Leaving the Booth for Script stops it/
   - button "Keep recording"
   - button "Stop and leave"

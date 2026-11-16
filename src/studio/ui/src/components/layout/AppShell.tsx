@@ -18,6 +18,7 @@ import { EngineChip, type EngineState } from './EngineChip';
 import { HeaderChip } from '../primitives/HeaderChip';
 import type { NavCounts } from './useNavCounts';
 import { brand } from '../../brand.gen';
+import { isActivePath, pageNameFor } from './railPages';
 
 // The rail's items. What each one needs is not here: `navAvailability` is the one table the rail, the drawer and the jump menu read.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse };
@@ -58,11 +59,8 @@ export function shellPages(facts: NavFacts): { id: string; label: string; disabl
     disabledReason: navAvailability(item.path, facts).reason,
   }));
 }
-export const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
+export { isActivePath };
 const APP_NAME = `${brand.name}`;
-const ALL_PAGES: { name: string; path: string }[] = [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings' }];
-/** The rail's name for the page `pathname` is on (`/editing/chapter-2` is Editing), or undefined for a path no rail item owns. */
-const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(pathname, page.path))?.name;
 // The skip link: hidden until it takes focus, then drawn over the top of the window. It is the first tab stop on every page.
 const SKIP_LINK_CLASS =
   'sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[var(--z-popover)] focus:rounded-[var(--radius-button)] focus:bg-[var(--surface)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--text)] focus:shadow-[var(--shadow-lg)] focus:outline-2 focus:outline-offset-2 focus:outline-[var(--accent)]';

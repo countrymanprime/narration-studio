@@ -134,13 +134,39 @@ describe('useBoothLeaveGuard', () => {
       decide: expect.any(Function),
       ask: {
         title: 'Stop recording?',
-        body: 'Audacity is recording. Leaving the Booth stops it.',
+        body: 'Audacity is recording. Leaving the Booth for Proof stops it.',
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
         ignoreEnterAfterMs: IGNORE_ENTER_MS,
       },
     });
+  });
+
+  // #3529: the question names the page the move goes to, and says nothing of a destination no rail page owns.
+  it.each([
+    ['/script', ' for Script'],
+    ['/script?chapter=c2', ' for Script'],
+    ['/editing/chapter-2', ' for Editing'],
+    ['/settings#audio', ' for Settings'],
+    ['/', ' for Production'],
+    ['/somewhere-else', ''],
+  ])('names where leaving goes: %s', (to, named) => {
+    const { store } = setup();
+    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it.` } });
+  });
+
+  // #3529 (ux-reviewer): a chapter link into the Booth during a take is a move within the Booth: the take stops, the narrator does not leave, and the question says so.
+  it('a destination that is the Booth itself reads as opening another chapter, not as leaving', () => {
+    const { store } = setup();
+    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({ ask: { body: 'REAPER is recording. Opening another chapter stops it.' } });
+  });
+
+  it('the question the Booth asks for its own exit names the destination too', () => {
+    const t = setup();
+    act(() => void t.hook.result.current.leave('/proof', t.go));
+    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+    act(() => t.dialog()!.answer(false));
   });
 
   it('names the built-in recorder', () => {
@@ -200,6 +226,33 @@ describe('useBoothLeaveGuard', () => {
     act(() => dialog()!.answer(true));
     await act(() => done);
     expect(order).toEqual(['stop', 'flush', 'go']);
+  });
+
+  // #3529 (qa-breaker B1): what says the take is saved is held by the stop and raised by `arrived`, after the run is written and just before the move.
+  it('a-leave-mid-take: the stop is asked to hold its telling, and `arrived` comes after the flush and before the navigation', async () => {
+    const order: string[] = [];
+    const stop = vi.fn(async (_options?: { deferTell?: boolean }) => {
+      order.push('stop');
+      return ok;
+    });
+    const { go, hook, dialog } = setup(
+      {
+        flush: vi.fn(async () => {
+          order.push('flush');
+        }),
+        arrived: () => order.push('arrived'),
+      },
+      stop,
+    );
+    go.mockImplementation(() => order.push('go'));
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    act(() => dialog()!.answer(true));
+    await act(() => done);
+    expect(stop).toHaveBeenCalledWith({ deferTell: true });
+    expect(order).toEqual(['stop', 'flush', 'arrived', 'go']);
   });
 
   it('a-leave-mid-take-flushes-the-run: nothing is flushed when the stop is refused, the question is declined, or the app did not start the take', async () => {
@@ -554,6 +607,43 @@ describe('useBoothLeaveGuard', () => {
         expect(t.stopRecording).toHaveBeenCalledTimes(1);
       });
 
+      // qa-breaker/ux-reviewer on the B1 fix: the DAW ended the take while the stop was out, so the move is not waited on the stop's answer; what the stop holds back is released
+      // there too, and an answer that comes after is raised at once (the page's `arrived`), not held for good.
+      it('a take that ended during the stop wait releases what the stop held back before the move', async () => {
+        vi.useFakeTimers();
+        const arrived = vi.fn();
+        const t = setup({ endConfirmed: async () => true, arrived }, never);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(arrived).toHaveBeenCalledTimes(1);
+      });
+
+      it('a stop that is not answered in time releases what it held back, so a late answer is not held for good', async () => {
+        vi.useFakeTimers();
+        const arrived = vi.fn();
+        const t = setup({ arrived }, never);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 100);
+        });
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(arrived).toHaveBeenCalledTimes(1);
+        expect(t.go).not.toHaveBeenCalled();
+      });
+
       it('a take already over when the narrator says yes (the DAW answering) is not stopped, and they leave', async () => {
         const t = setup({ endConfirmed: async () => true });
         let done: Promise<void> = Promise.resolve();
@@ -737,7 +827,7 @@ describe('useBoothLeaveGuard', () => {
         ask: {
           title: 'Leave while a take is starting?',
           cancelLabel: 'Stay',
-          body: 'REAPER is starting a take. Leaving the Booth stops it once it has started.',
+          body: 'REAPER is starting a take. Leaving the Booth for Proof stops it once it has started.',
         },
       });
     });
@@ -790,7 +880,7 @@ describe('useBoothLeaveGuard', () => {
       hook.rerender({ ...session, recording: true, startPending: false });
       // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
       await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
-      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);

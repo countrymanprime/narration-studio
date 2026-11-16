@@ -216,7 +216,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'leave-dialog',
     description:
-      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
+      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth for Script stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

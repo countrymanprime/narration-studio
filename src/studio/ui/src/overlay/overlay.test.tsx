@@ -467,6 +467,24 @@ describe('an Undo toast goes when its change is no longer there to undo', () => 
     expect(screen.getByText('Could not save.')).toBeTruthy();
   });
 
+  it('an Undo toast raised as the narrator leaves outlives the one move it was raised for, and goes at the next (#3529)', () => {
+    mount();
+    act(() => service.toastUndo('Take saved', ok, { entry: 1, survivesMoves: 1 }));
+    act(() => service.toastUndo('Waived 00:10', ok, { entry: 2 }));
+    act(() => service.dismissUndo());
+    expect(screen.getByText('Take saved')).toBeTruthy();
+    expect(screen.queryByText('Waived 00:10')).toBeNull();
+    act(() => service.dismissUndo());
+    expect(screen.queryByText('Take saved')).toBeNull();
+  });
+
+  it('an Undo toast that outlives a move still goes when its entry is undone elsewhere (#3529)', () => {
+    mount();
+    act(() => service.toastUndo('Take saved', ok, { entry: 1, survivesMoves: 1 }));
+    act(() => service.settleUndo(() => false));
+    expect(screen.queryByText('Take saved')).toBeNull();
+  });
+
   it('an Undo toast raised after dismissUndo shows (the new page can raise its own)', () => {
     mount();
     act(() => service.dismissUndo());
