@@ -41,7 +41,7 @@ H.test('chapter_track_state reports the transport, the project, the arms and the
   chapter.rec_input = 1024
   s:send('chapter_track_state', 't1', chapter.guid)
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', CH1, '0', '2.500000', '1.250000', path, '0', '7', '1', '2', '1024', '', '', '' },
+    { 'TRACK_STATE', 't1', CH1, '0', '2.500000', '1.250000', path, '0', '7', '1', '2', '1024', '', '', '', '' },
     { 'TRACK_STATE_END', 't1', '0', '0' },
   })
 end)
@@ -93,7 +93,7 @@ H.test('chapter_track_state lists every item on the named track with its active 
   s.fake:add_item(pickups, { position = 1, length = 1, source = 'pickup.wav' })
   s:send('chapter_track_state', 't1', chapter.guid)
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '' },
+    { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '', '' },
     { 'TRACK_ITEM', 't1', first.guid, first.takes[1].guid, '0.000000', '4.000000', '0.000000', '1.000000', 'C:\\Audio\\ch1|take 1.wav', '0' },
     { 'TRACK_ITEM', 't1', trimmed.guid, trimmed.takes[1].guid, '10.000000', '3.000000', '1.500000', '1.250000', 'ch1-b.wav', '0' },
     { 'TRACK_STATE_END', 't1', '2', '2' },
@@ -147,7 +147,7 @@ H.test('chapter_track_state with no track answers the transport and the arms, an
   s.fake:add_item(chapter, { position = 0, length = 1, source = 'a.wav' })
   s:send('chapter_track_state', 't1', '')
   H.eq(s:events(), {
-    { 'TRACK_STATE', 't1', '', '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '1', '', '', '', '' },
+    { 'TRACK_STATE', 't1', '', '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '1', '', '', '', '', CH1 },
     { 'TRACK_STATE_END', 't1', '0', '0' },
   })
 end)
@@ -327,7 +327,7 @@ H.test('chapter_track_state with none answers the state row and the item total, 
   s:send('chapter_track_state', 't1', chapter.guid, 'none')
   local events = s:events()
   H.eq(#events, 2)
-  H.eq(events[1], { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '' })
+  H.eq(events[1], { 'TRACK_STATE', 't1', CH1, '0', '0.000000', '0.000000', s.fake.project_path, '0', '0', '0', '0', '0', '', '', '', '' })
   H.eq(events[2], { 'TRACK_STATE_END', 't1', '0', '2' })
 end)
 
@@ -398,4 +398,28 @@ H.test('chapter_track_state with children and no track answers the transport onl
   s:send('chapter_track_state', 't1', '', 'children')
   local events = s:events()
   H.eq({ events[1][1], events[1][3], events[2][1], events[2][3], events[2][4] }, { 'TRACK_STATE', '', 'TRACK_STATE_END', '0', '0' })
+end)
+
+-- The armed track's GUID (#3429): the Booth follows a lane armed in REAPER by hand, so the read says which track is armed, not only how many.
+H.test('chapter_track_state names the one armed track, whichever track was asked about', function()
+  local s, _, pickups = new_session()
+  pickups.armed = true
+  s:send('chapter_track_state', 't1', '')
+  local row = s:events()[1]
+  H.eq({ row[10], row[11], row[#row] }, { '0', '1', pickups.guid })
+end)
+
+H.test('chapter_track_state names no armed track when none or several are armed', function()
+  local s, chapter, pickups = new_session()
+  s:send('chapter_track_state', 't1', chapter.guid)
+  chapter.armed, pickups.armed = true, true
+  s:send('chapter_track_state', 't2', chapter.guid)
+  local rows = {}
+  for _, event in ipairs(s:events()) do
+    if event[1] == 'TRACK_STATE' then
+      rows[#rows + 1] = event
+    end
+  end
+  H.eq({ rows[1][#rows[1]], rows[2][#rows[2]] }, { '', '' }, 'nothing armed, then two armed: never a guess')
+  H.eq(rows[2][11], '2')
 end)

@@ -13,7 +13,13 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-type Extra = { stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
+type Extra = {
+  stopTake?: () => Promise<boolean>;
+  startTake?: () => Promise<unknown>;
+  onNoTrack?: (key: number) => void;
+  asking?: boolean;
+  followDaw?: boolean;
+};
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
   const api = given ?? createMockApi({}, seed);
@@ -693,5 +699,95 @@ describe("the Booth's voices", () => {
       await act(async () => hook.current.byKey(2));
       expect(hook.current.standIn).toBeUndefined();
     });
+  });
+});
+
+// A lane armed in the DAW by hand is the Booth's voice too (#3429, owner answer 4 on #3430).
+describe('a lane armed in the DAW', () => {
+  const RABBIT = '{V01CE-RABB1T}';
+  const state = (over: Record<string, unknown>) => ({
+    status: 'other_armed' as const,
+    message: '',
+    trackGuid: '{V01CE-N4RRAT0R}',
+    armedCount: 1,
+    playing: false,
+    recording: false,
+    ...over,
+  });
+  const settle = () => act(async () => new Promise((r) => setTimeout(r, 15)));
+  const arming = async (extra: Extra = {}, recording = false, refuse = false) => {
+    const api = createMockApi({}, { voiceFolders: true });
+    if (refuse) api.boothVoiceSet = async () => ({ outcome: 'refused' as const, reason: 'not_a_voice' as const, message: 'No.' });
+    const answer = { current: state({ armedTrackGuid: RABBIT }) as ReturnType<typeof state> };
+    api.readAloudReaperState = async () => answer.current;
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const mounted = await mount({}, recording, api, extra);
+    await settle();
+    return { ...mounted, api, answer, set };
+  };
+
+  it('becomes the Booth voice, once, and does not bounce back', async () => {
+    const { hook, answer, set } = await arming();
+    expect(set).toHaveBeenCalledExactlyOnceWith(chapterId, RABBIT);
+    expect(hook.current.current?.name).toBe('White Rabbit');
+    // The DAW now reports the voice the Booth just took as the one armed: nothing more is sent, however often it is read.
+    answer.current = state({ status: 'ready', trackGuid: RABBIT, armedTrackGuid: RABBIT });
+    for (let i = 0; i < 3; i++) {
+      await act(async () => hook.current.reload());
+      await settle();
+    }
+    expect(set).toHaveBeenCalledTimes(1);
+  });
+
+  it('is asked of the host once while it keeps refusing, not on every read', async () => {
+    const { hook, set } = await arming({}, false, true);
+    expect(set).toHaveBeenCalledTimes(1);
+    for (let i = 0; i < 3; i++) {
+      await act(async () => hook.current.reload());
+      await settle();
+    }
+    expect(set).toHaveBeenCalledTimes(1);
+  });
+
+  it('is followed again when the narrator arms yet another voice by hand', async () => {
+    const { hook, answer, set } = await arming();
+    answer.current = state({ status: 'ready', trackGuid: RABBIT, armedTrackGuid: RABBIT });
+    await act(async () => hook.current.reload());
+    await settle();
+    answer.current = state({ trackGuid: RABBIT, armedTrackGuid: '{V01CE-EXTRAS}' });
+    await act(async () => hook.current.reload());
+    await settle();
+    expect(set).toHaveBeenLastCalledWith(chapterId, '{V01CE-EXTRAS}');
+    expect(hook.current.current?.name).toBe('Extras');
+  });
+
+  it("is not followed while this app records, in a cold read, or for a track that is not one of the chapter's voices", async () => {
+    const recording = await arming({}, true);
+    expect(recording.set).not.toHaveBeenCalled();
+    cleanup();
+    const cold = await arming({ followDaw: false });
+    expect(cold.set).not.toHaveBeenCalled();
+    cleanup();
+    const api = createMockApi({}, { voiceFolders: true });
+    api.readAloudReaperState = async () => state({ armedTrackGuid: '{SOME-OTHER-TRACK}' });
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    await mount({}, false, api);
+    await settle();
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('is not followed from a count of several, an unreadable DAW or an older script that names no track', async () => {
+    const several = await arming();
+    several.set.mockClear();
+    several.answer.current = state({ status: 'several_armed', armedCount: 2, armedTrackGuid: undefined });
+    await act(async () => several.hook.current.reload());
+    await settle();
+    expect(several.set).not.toHaveBeenCalled();
+    several.api.readAloudReaperState = async () => {
+      throw new Error('no answer');
+    };
+    await act(async () => several.hook.current.reload());
+    await settle();
+    expect(several.set).not.toHaveBeenCalled();
   });
 });

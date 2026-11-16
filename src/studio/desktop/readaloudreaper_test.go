@@ -199,6 +199,27 @@ func TestReadAloudReaperStateBindingAnswersJSON(t *testing.T) {
 	}
 }
 
+// The one armed track is named only when exactly one is armed (#3429): the Booth follows a lane armed in REAPER by hand with it, and never
+// from a count of several, where it would be guessing.
+func TestTheArmedTrackIsNamedOnlyWhenExactlyOneIsArmed(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	armed := "{AAAAAAAA-0000-4000-8000-0000000000B7}"
+	for name, row := range map[string]struct {
+		state bridge.TrackState
+		want  string
+	}{
+		"another track armed": {bridge.TrackState{ArmedCount: 1, ArmedGUID: armed}, armed},
+		"the chapter's own":   {bridge.TrackState{ArmedCount: 1, TrackArmed: true, ArmedGUID: armed}, armed},
+		"several armed":       {bridge.TrackState{ArmedCount: 2, ArmedGUID: armed}, ""},
+		"none armed":          {bridge.TrackState{}, ""},
+		"an older script":     {bridge.TrackState{ArmedCount: 1}, ""},
+	} {
+		if got := readState(t, host, &fakeTrackStates{state: row.state}, ids[0]).ArmedTrackGUID; got != row.want {
+			t.Errorf("%s: ArmedTrackGUID = %q, want %q", name, got, row.want)
+		}
+	}
+}
+
 // The binding's answers, pinned for the UI's schema: one of each status and reason.
 func TestContractReadAloudReaperStates(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
@@ -207,6 +228,7 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 		"ready":               {state: bridge.TrackState{TrackArmed: true, ArmedCount: 1}},
 		"not_armed":           {state: bridge.TrackState{}},
 		"other_armed":         {state: bridge.TrackState{ArmedCount: 1}},
+		"other_armed_named":   {state: bridge.TrackState{ArmedCount: 1, ArmedGUID: "{AAAAAAAA-0000-4000-8000-0000000000B7}"}},
 		"several_armed":       {state: bridge.TrackState{TrackArmed: true, ArmedCount: 3}},
 		"recording_elsewhere": {state: bridge.TrackState{ArmedCount: 1, Recording: true, Playing: true, PlayState: 5}},
 		"track_missing":       {err: &bridge.TrackStaleError{GUID: readAloudTrack}},

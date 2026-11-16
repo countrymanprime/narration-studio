@@ -523,6 +523,8 @@ function BoothSession({
     startTake: () => (page.coldRead.mode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
+    // A cold read needs no lane: a lane armed in the DAW is not taken as the Booth's voice there (#3429).
+    followDaw: !page.coldRead.mode,
   });
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);

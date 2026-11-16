@@ -44,8 +44,11 @@ type readAloudReaperState struct {
 	Message    string `json:"message"`
 	TrackGUID  string `json:"trackGuid,omitempty"`
 	ArmedCount *int   `json:"armedCount,omitempty"`
-	Playing    bool   `json:"playing"`
-	Recording  bool   `json:"recording"`
+	// ArmedTrackGUID is the one track REAPER has armed when exactly one is (empty with none or several, or from a bridge script older than
+	// the field): the Booth follows a lane armed in REAPER by hand with it (#3429).
+	ArmedTrackGUID string `json:"armedTrackGuid,omitempty"`
+	Playing        bool   `json:"playing"`
+	Recording      bool   `json:"recording"`
 }
 
 const (
@@ -187,6 +190,9 @@ func readAloudRefusal(err error, title, guid string) readAloudReaperState {
 func classifyReadAloud(state bridge.TrackState, title, guid string) readAloudReaperState {
 	armed := state.ArmedCount
 	answer := readAloudReaperState{TrackGUID: guid, ArmedCount: &armed, Playing: state.Playing, Recording: state.Recording}
+	if armed == 1 {
+		answer.ArmedTrackGUID = state.ArmedGUID
+	}
 	switch {
 	case state.Recording:
 		answer.Status, answer.Message = readAloudRecordingElsewhere, "REAPER is already recording. Stop it in REAPER before recording with reading."

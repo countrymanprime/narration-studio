@@ -308,3 +308,32 @@ func TestChapterTrackStateNoItemsKeepsAStaleTrackAStaleError(t *testing.T) {
 		t.Fatalf("err = %v, want a *TrackStaleError", err)
 	}
 }
+
+// armedGuid (#3429) is the Booth's way to learn which track REAPER has armed, not only how many; an older script's row has no such field.
+func TestChapterTrackStateReadsTheOneArmedTrackAndNothingFromAnOlderScript(t *testing.T) {
+	armed := "{AAAAAAAA-0000-4000-8000-0000000000B7}"
+	for name, row := range map[string]struct {
+		field []string
+		want  string
+	}{
+		"one armed":       {[]string{"1", "1", "", "", "", "", armed}, armed},
+		"lower case":      {[]string{"1", "1", "", "", "", "", "{aaaaaaaa-0000-4000-8000-0000000000b7}"}, armed},
+		"several armed":   {[]string{"0", "2", "", "", "", "", ""}, ""},
+		"an older script": {[]string{"0", "1", "", "", "", ""}, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			startFakeReaper(t, client, dir, func(command []string) [][]string {
+				base := []string{"TRACK_STATE", run(command), testTrack, "0", "0.000000", "0.000000", "C:/p/Book.rpp", "0", "7"}
+				return [][]string{append(base, row.field...), {"TRACK_STATE_END", run(command), "0", "0"}}
+			})
+			got, err := actions.ChapterTrackState(context.Background(), testTrack)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.ArmedGUID != row.want {
+				t.Fatalf("ArmedGUID = %q, want %q", got.ArmedGUID, row.want)
+			}
+		})
+	}
+}

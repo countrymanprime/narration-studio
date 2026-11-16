@@ -398,8 +398,8 @@
   {
     "name": "every track counts as armed",
     "file": "narration_track_state.lua",
-    "find": "if armed(reaper.GetTrack(0, index)) then",
-    "replace": "if true then"
+    "find": "    if armed(track) then\n      count = count + 1",
+    "replace": "    if true then\n      count = count + 1"
   },
   {
     "name": "a muted item is reported as playing",
@@ -3716,5 +3716,11 @@
     "file": "narration_track_select.lua",
     "find": "      target = math.max(target, track_end(member))\n",
     "replace": ""
+  },
+  {
+    "name": "chapter_track_state names an armed track when several are armed",
+    "file": "narration_track_state.lua",
+    "find": "(count == 1 and only) and",
+    "replace": "only and"
   }
 ]

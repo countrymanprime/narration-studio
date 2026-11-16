@@ -63,6 +63,7 @@ export function useBoothVoices({
   startTake,
   onNoTrack,
   asking = false,
+  followDaw = true,
 }: {
   chapterId: string;
   recording: boolean;
@@ -75,6 +76,8 @@ export function useBoothVoices({
   onNoTrack?: (key: number) => void;
   /** The page's "Who is in Num N?" is open: a voice key does nothing until it closes. */
   asking?: boolean;
+  /** A lane armed in the DAW by hand becomes the Booth's voice (#3429). False in a cold read, which needs no lane. */
+  followDaw?: boolean;
 }): BoothVoices {
   const teleprompter = usePort('teleprompter');
   const storyBible = usePort('storyBible');
@@ -91,7 +94,7 @@ export function useBoothVoices({
   const [stopping, setStopping] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [revision, setRevision] = useState(0);
-  const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
+  const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number; armedTrackGuid?: string } | null>(null);
 
   // The chapter's one link, once the shared state has answered: a chapter with no one link has no folder to read.
   const answered = trackState.readAt !== null;
@@ -187,7 +190,11 @@ export function useBoothVoices({
     let live = true;
     teleprompter
       .readAloudReaperState(chapterId)
-      .then((state) => live && setReaper({ chapterId, status: state.status, trackGuid: state.trackGuid ?? '', armedCount: state.armedCount }))
+      .then(
+        (state) =>
+          live &&
+          setReaper({ chapterId, status: state.status, trackGuid: state.trackGuid ?? '', armedCount: state.armedCount, armedTrackGuid: state.armedTrackGuid }),
+      )
       .catch(() => live && setReaper(null));
     return () => {
       live = false;
@@ -434,6 +441,23 @@ export function useBoothVoices({
 
   const reload = refreshAll;
   const read = reaper?.chapterId === chapterId ? reaper : null;
+  // A lane armed in the DAW by hand is the Booth's voice too (#3429). The read says one other track is armed and which: when that is another
+  // voice of this chapter and the app is neither recording nor choosing, the Booth takes it through the host, which arms a track REAPER has
+  // armed already (a no-op), so nothing bounces back. A guid asked once is not asked again until the DAW reports something else, so a refusal
+  // is not repeated on every read; a read that was in flight when the app chose is dropped with its effect.
+  const followed = useRef('');
+  const armedByHand = read?.status === 'other_armed' ? (read.armedTrackGuid ?? '').toLowerCase() : '';
+  useEffect(() => {
+    if (armedByHand === '') {
+      followed.current = '';
+      return;
+    }
+    if (!followDaw || recording || choosing || asking || followed.current === armedByHand) return;
+    const voice = voices.find((each) => each.guid.toLowerCase() === armedByHand);
+    if (!voice || voice.guid.toLowerCase() === current?.guid.toLowerCase()) return;
+    followed.current = armedByHand;
+    choose(voice);
+  }, [armedByHand, followDaw, recording, choosing, asking, voices, current, choose]);
   // During this app's take the voice it records on is armed: the start and every switch answer say so, and the state read then only says REAPER records.
   const arm: BoothVoices['arm'] = recording
     ? { state: 'armed' }

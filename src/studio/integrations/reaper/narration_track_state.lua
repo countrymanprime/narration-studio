@@ -12,7 +12,8 @@
 -- and TRACK_STATE_END carries 0 listed and the track's total (a Record press and the polls read only the state). Any other option is refused.
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
--- inputDevice|outputDevice|recInputName, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
+-- inputDevice|outputDevice|recInputName|armedGuid (the one armed track, empty with none or several; appended for the Booth following a
+-- lane armed in REAPER, #3429, so an older script's row still reads), then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
 -- sourceFile|muted per item (at most ITEM_LIMIT; muted is the last field, and with 'children' the item's track GUID
 -- follows it), then TRACK_STATE_END|run|listed|total.
 
@@ -49,14 +50,17 @@ end
 local function armed(track)
   return reaper.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0
 end
-local function armed_count()
-  local count = 0
+-- How many tracks are armed, and the GUID of the armed one when exactly one is ('' for none or several, so a caller never guesses).
+local function armed_summary()
+  local count, only = 0, nil
   for index = 0, reaper.CountTracks(0) - 1 do
-    if armed(reaper.GetTrack(0, index)) then
+    local track = reaper.GetTrack(0, index)
+    if armed(track) then
       count = count + 1
+      only = track
     end
   end
-  return count
+  return count, (count == 1 and only) and normalize_guid(reaper.GetTrackGUID(only)) or ''
 end
 -- The input (IDENT_IN) or output (IDENT_OUT) device REAPER has open, or empty when it has none open or cannot say.
 local function audio_device(attribute)
@@ -129,6 +133,7 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
   local _, rpp = reaper.EnumProjects(-1, '')
   rpp = rpp or ''
   local rec_input = track and math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_RECINPUT')) or nil
+  local armed_total, armed_guid = armed_summary()
   event(
     session_dir,
     'TRACK_STATE',
@@ -141,11 +146,12 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
     rpp == '' and 1 or 0,
     reaper.GetProjectStateChangeCount(0),
     (track and armed(track)) and 1 or 0,
-    armed_count(),
+    armed_total,
     rec_input or '',
     audio_device('IDENT_IN'),
     audio_device('IDENT_OUT'),
-    rec_input and input_channel_name(rec_input) or ''
+    rec_input and input_channel_name(rec_input) or '',
+    armed_guid
   )
   if option ~= 'children' or not track then
     local total = track and reaper.CountTrackMediaItems(track) or 0

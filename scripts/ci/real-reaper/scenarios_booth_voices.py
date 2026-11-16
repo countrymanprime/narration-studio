@@ -259,6 +259,44 @@ def go_to_a_folder_selects_its_voices(env: Env) -> str:
 
 @scenario(
     "booth_voices",
+    "chapter_track_state",
+    "#3429: chapter_track_state names the one armed track (armedGuid) for the Booth to follow, and names none for no track or several",
+)
+def state_names_the_armed_track(env: Env) -> str:
+    g = folder_book(env)
+
+    def armed_guid() -> str:
+        row = env.ok("chapter_track_state", g["Chapter 3"], "none", until="TRACK_STATE")
+        return row[-1] if len(row) > 14 and row[-1].startswith("{") else ""
+
+    arm_only_by_hand(env, "Veyra")
+    one = armed_guid()
+    assert one.upper() == g["Veyra"].upper(), (one, g["Veyra"])
+    env.lua(
+        """
+        for i = 0, reaper.CountTracks(0) - 1 do
+          reaper.SetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM', 1)
+        end
+        return true
+        """
+    )
+    several = armed_guid()
+    assert several == "", several
+    env.lua(
+        """
+        for i = 0, reaper.CountTracks(0) - 1 do
+          reaper.SetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM', 0)
+        end
+        return true
+        """
+    )
+    none = armed_guid()
+    assert none == "", none
+    return f"one armed {one}; several armed {several!r}; none armed {none!r}"
+
+
+@scenario(
+    "booth_voices",
     "arm_lane, record_start, record_stop",
     "#3429: arm_lane arms the chosen voice and disarms the rest while stopped, and the arm stays after a take (nothing is put back)",
     needs_audio=True,
