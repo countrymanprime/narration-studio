@@ -639,6 +639,13 @@ local function arm_only(session_dir, state, run_id, guid_text, keep)
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
   end
+  -- A press that arms to record is refused while REAPER plays or is paused before any arm moves, as record_start would after: the
+  -- host takes the transport from the heartbeat, which can be a beat behind, and the arms put back need a take of ours. The Booth's
+  -- lane choice (keep) may arm while the transport runs.
+  if not keep and reaper.GetPlayState() ~= 0 then
+    event(session_dir, 'ERROR', run_id, 'REAPER is playing. Stop it first.')
+    return
+  end
   local target = find_track(guid_text)
   if not target then
     event(session_dir, 'TRACK_STALE', run_id, guid_text)
