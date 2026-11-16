@@ -448,10 +448,10 @@ describe('Dialog size="full"', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add note' });
     expect(dialog.className).toContain(DIALOG_WIDTHS.form);
     expect(dialog.className).not.toContain('70vw');
-    // A class and not an inline style, so a window 400 px tall or less can give the toast's 4.75rem back gradually, with no height where the cap falls (#2998, #3548):
+    // A class and not an inline style, so a window under 300 px tall can give the toast's 4.75rem back gradually, with no height where the cap falls (#2998, #3548):
     // the cap is the normal one plus a ramp, and never more than the window less 0.5rem. tests/visual/dialog-height-sweep.spec.ts holds it over every height.
     expect(dialog.className).toContain('min(80dvh,calc(92dvh_-_4.75rem))');
-    expect(dialog.className).toContain('clamp(0px,calc(0.64*(400px_-_100dvh)),5.6rem)');
+    expect(dialog.className).toContain('clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)');
     expect(dialog.className).toContain('calc(100dvh_-_0.5rem)');
     expect(dialog.style.maxHeight).toBe('');
     expect(dialog.style.height).toBe('');

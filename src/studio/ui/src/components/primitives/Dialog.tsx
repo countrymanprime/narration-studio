@@ -36,7 +36,7 @@ type DialogProps = {
   // false: Escape is ignored even though there is an `onClose`. For a dialog whose close would abort work in flight (a
   // running download): the header button and Cancel are the deliberate ways out, a stray key is not.
   escapeCloses?: boolean;
-  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall (less where that would reach within 4.75rem of the bottom edge; in a window 400 px tall or less the cap ramps up toward the whole window, which it reaches at 261 px; see `DIALOG_MAX_HEIGHT`): 'confirm' (a question
+  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall (less where that would reach within 4.75rem of the bottom edge; below 300 px the cap ramps up to the whole window, which it reaches at 261 px; see `DIALOG_MAX_HEIGHT`): 'confirm' (a question
   // and its answers, the default for an alert), 'form' (a few fields, the default otherwise), 'palette' (the jump menu), 'wide' (a table
   // or a list of rows with controls). 'full' fills the viewport with a fixed 1rem margin on every side and scrolls its body, for a surface
   // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
@@ -91,11 +91,12 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
   wide: 'max-w-[56rem]',
 };
 
-// The popup hangs 8vh down (12vh for the palette), so a tall window's cap leaves at least 4.75rem under it for a toast (`ToastRegion`): 80dvh, or 92dvh less 4.75rem when that is less.
-// As the window gets short that toast room is given up gradually, not at one height: from 400 px of height down the cap grows by 0.64 px for every px the window loses (up to 5.6rem), until at 261 px
-// it is the whole window less its margin, which is what a window 260 px tall or less (400% zoom is 275 x 200) gets: a short question then fits whole (#2998). The cap never shrinks as the window
-// grows, so there is no height at which the room falls off a cliff (the body was 56 px tall at 260 px and 20 px at 261, and a sentence was cut mid-line from 262 to 292 px; #3548, #3549).
-const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(0.64*(400px_-_100dvh)),5.6rem)))]';
+// The popup hangs 8vh down (12vh for the palette), so a tall window's cap leaves at least 4.75rem under it for a toast (`ToastRegion`): 80dvh, or 92dvh less 4.75rem when that is less. That
+// holds down to 300 px of height, where tests/visual/toast-region.spec.ts keeps a toast off the action row (320x300). Below 300 px the toast's room is given back gradually: the cap grows
+// by 2.26 px for every px the window loses (up to 6rem), so at 261 px it is the whole window less 0.5rem, which is what a window 260 px tall or less (400% zoom is 275 x 200) gets, so a
+// short question fits whole (#2998). The cap is continuous in the window's height, so there is no height at which the room falls off a cliff (the body was 56 px tall at 260 px and 20 px
+// at 261, and a sentence was cut mid-line from 262 to 292 px; #3548, #3549). Between 261 and 300 px a shorter window gets a taller popup, up to the window's own height, and the toast room shrinks with it.
+const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)))]';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
 // tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
