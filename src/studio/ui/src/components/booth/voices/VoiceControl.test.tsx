@@ -10,9 +10,9 @@ import { VoiceControl } from './VoiceControl';
 afterEach(cleanup);
 
 const voices: Voice[] = [
-  { guid: 'n', name: 'Narrator', key: '0', narrator: true, characters: [] },
-  { guid: 'q', name: 'Queen', key: '1', narrator: false, characters: [{ id: 'queen', name: 'Queen of Hearts', source: 'alias' }] },
-  { guid: 'x', name: '   ', key: '2', narrator: false, characters: [] },
+  { guid: 'n', name: 'Narrator', key: '0', narrator: true, notVoice: false, characters: [] },
+  { guid: 'q', name: 'Queen', key: '1', narrator: false, notVoice: false, characters: [{ id: 'queen', name: 'Queen of Hearts', source: 'alias' }] },
+  { guid: 'x', name: '   ', key: '2', narrator: false, notVoice: false, characters: [] },
 ];
 
 function Harness({

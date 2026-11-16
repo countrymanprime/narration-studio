@@ -11,6 +11,8 @@ import { KeyCap } from '../primitives/KeyCap';
 import { Panel } from '../primitives/Panel';
 import { Popover } from '../primitives/Popover';
 import { Select } from '../primitives/Select';
+import { StatusBadge } from '../primitives/StatusBadge';
+import { Switch } from '../primitives/Switch';
 import { SpeakerTag } from '../primitives/SpeakerTag';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToggleGroup } from '../primitives/ToggleGroup';
@@ -40,6 +42,7 @@ export function VoicesCard({
   onLayout,
   onTrackCharacters,
   onNarratorCharacter,
+  onNotAVoice,
   layoutInCard,
   bare = false,
 }: {
@@ -51,6 +54,8 @@ export function VoicesCard({
   onLayout: (layout: VoiceTracksLayout) => void;
   onTrackCharacters: (track: string, ids: string[]) => void;
   onNarratorCharacter: (id: string) => void;
+  /** Marks the child with this track GUID as not a voice (a music bed), or a voice again. */
+  onNotAVoice: (guid: string, notAVoice: boolean) => void;
   /** True while Chapter sync is not drawing its Layout row, so this card carries the switch. */
   layoutInCard: boolean;
   /** Draws no card of its own (no frame, no title): inside a Settings row, whose label is the title. The chapter picker sits above the table. */
@@ -100,24 +105,30 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['Key', 'Track', 'Characters', 'Actions']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['Key', 'Track', 'Characters', 'Voice', 'Actions']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>
                     <TableHeader>Track</TableHeader>
                     <TableHeader>Characters</TableHeader>
+                    <TableHeader>Voice</TableHeader>
                     <TableHeader hiddenLabel="Actions" />
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {voices.map((voice) => (
-                    <TableRow key={voice.guid}>
+                    <TableRow key={voice.guid} className={voice.notVoice ? 'opacity-60' : ''}>
                       <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
                       <TableCell className="[overflow-wrap:anywhere]">
                         <bdi>{trackName(voice.name)}</bdi>
                       </TableCell>
                       <TableCell>
                         <VoiceCharacters voice={voice} />
+                      </TableCell>
+                      <TableCell>
+                        <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
+                          <span className="sr-only">{`${shortName(trackName(voice.name))} counts as a voice`}</span>
+                        </Switch>
                       </TableCell>
                       <TableCell align="right">
                         <CharacterPicker
@@ -163,6 +174,7 @@ export function VoicesCard({
 }
 
 function VoiceCharacters({ voice }: { voice: Voice }) {
+  if (voice.notVoice) return <StatusBadge tone="neutral" label="Not a voice" />;
   if (voice.characters.length === 0) return <span style={{ color: 'var(--text-muted)' }}>{voice.narrator ? 'Narration' : 'No character'}</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
@@ -226,6 +238,14 @@ function CharacterPicker({
   onTrackCharacters: (track: string, ids: string[]) => void;
   onNarratorCharacter: (id: string) => void;
 }) {
+  if (voice.notVoice) {
+    const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
+    return (
+      <TooltipTarget text={reason}>
+        <IconButton label={`Choose who the ${shortName(voice.name.trim())} track records`} action="edit" size="sm" disabledReason={reason} />
+      </TooltipTarget>
+    );
+  }
   const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${shortName(voice.name.trim())} track records`;
   if (!voice.narrator && !savable(voice.name)) {
     const reason =

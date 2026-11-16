@@ -53,6 +53,7 @@ function VoiceFolders() {
       onLayout={voices.setLayout}
       onTrackCharacters={voices.setTrackCharacters}
       onNarratorCharacter={voices.setNarratorCharacter}
+      onNotAVoice={voices.setNotAVoice}
       layoutInCard={false}
       bare
     />

@@ -14,6 +14,8 @@ export type Voice = {
   /** "0" for the Narrator track, "1" to "9" for the others in REAPER order, "" past nine. */
   key: string;
   narrator: boolean;
+  /** The narrator marked this child as not a voice (a music bed): it has no key and records no character, and the Booth does not list it. */
+  notVoice: boolean;
   characters: VoiceCharacter[];
 };
 
@@ -76,14 +78,16 @@ export function folderVoices(tracks: readonly Track[], folderGuid: string, entit
   let next = 1;
   let narratorSeen = false;
   const children = folderChildren(tracks, folderGuid);
-  const anyNamed = children.some((child) => same(child.name, NARRATOR));
+  const anyNamed = children.some((child) => same(child.name, NARRATOR) && !setup.notVoiceGuids.includes(child.guid.toLowerCase()));
   return children.map((track) => {
     // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.
     // A track named Narrator is the Narrator; one only remembered as it before a rename is, when no track in the folder is named so.
+    const notVoice = setup.notVoiceGuids.includes(track.guid.toLowerCase());
+    if (notVoice) return { guid: track.guid, name: track.name, key: '', narrator: false, notVoice, characters: [] };
     const narrator = !narratorSeen && (same(track.name, NARRATOR) || (!anyNamed && setup.narratorGuids.includes(track.guid.toLowerCase())));
     if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
     if (!narrator) next += 1;
-    return { guid: track.guid, name: track.name, key, narrator, characters: charactersOf(track, entities, setup, narrator) };
+    return { guid: track.guid, name: track.name, key, narrator, notVoice, characters: charactersOf(track, entities, setup, narrator) };
   });
 }

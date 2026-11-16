@@ -30,7 +30,7 @@ const cast = [
 ] as unknown as GuideEntity[];
 
 function draw(setup: VoiceTracksState, layoutInCard = true) {
-  const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn() };
+  const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
   render(<VoicesCard tracks={tracks} chapters={chapters} mappings={mappings} setup={setup} characters={cast} layoutInCard={layoutInCard} {...handlers} />);
   return handlers;
 }
@@ -156,6 +156,7 @@ describe('the Voices card', () => {
         onLayout={vi.fn()}
         onTrackCharacters={vi.fn()}
         onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
       />,
     );
     const buttons = within(screen.getByRole('table')).getAllByRole('button');
@@ -181,9 +182,40 @@ describe('the Voices card', () => {
         onLayout={vi.fn()}
         onTrackCharacters={vi.fn()}
         onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
       />,
     );
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByText('This folder has no tracks yet.')).toBeTruthy();
+  });
+
+  it('every child counts as a voice by default, and turning its switch off marks it', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
+    const queen = screen.getByRole('switch', { name: 'Queen counts as a voice' });
+    expect(queen.getAttribute('aria-checked')).toBe('true');
+    await userEvent.setup().click(queen);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('a child marked as not a voice stays listed, dimmed and labelled, with no key, no characters to choose and a switch that turns it back on', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['queen'], tracks: [] });
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(2);
+    const marked = rows[1];
+    expect(within(marked).getByText('Queen')).toBeTruthy();
+    expect(within(marked).getByText('Not a voice')).toBeTruthy();
+    expect(marked.className).toContain('opacity-60');
+    expect(within(marked).getByRole('button', { name: 'Choose who the Queen track records' }).getAttribute('aria-disabled')).toBe('true');
+    const queen = within(marked).getByRole('switch', { name: 'Queen counts as a voice' });
+    expect(queen.getAttribute('aria-checked')).toBe('false');
+    await userEvent.setup().click(queen);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', false);
+  });
+
+  it('a marked Narrator has no key 0', () => {
+    draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    expect(within(rows[0]).getByText('Not a voice')).toBeTruthy();
+    expect(within(rows[1]).getByText('1')).toBeTruthy();
   });
 });

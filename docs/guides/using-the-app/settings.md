@@ -140,7 +140,7 @@ picked and the app asks the first time it could sync. It is the same choice as *
 
 **Voices** (REAPER only, under **Chapter sync**) is the Voices card of the engine panel on the page: with the **Voice folders** layout it
 lists the voices of one chapter's folder with their keys, and the pencil beside a voice chooses the characters that track records, or, for
-the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track. Its tracks are the ones REAPER has now, as in the engine panel and the Booth, so a voice you rename in REAPER shows here before you save.
+the Narrator, the one character it also voices. The **Voice** switch on a voice's row turns it off for a track that is not a voice (a music bed): the row stays, dimmed and marked **Not a voice**, and the Booth never records on it. With the **Flat** layout the row says each chapter records on one track. Its tracks are the ones REAPER has now, as in the engine panel and the Booth, so a voice you rename in REAPER shows here before you save.
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
 

@@ -3258,6 +3258,15 @@ export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise
     return $Call.ByID(4074868469, characterID);
 }
 
+/**
+ * VoiceTracksSetNotAVoice marks the track with guid as not a voice (a music bed, room tone), or makes it a voice again with false. A
+ * marked track is never the recording target and is not a voice in the Booth; it stays in the folder. The chapters' rows follow at once,
+ * so chaptersync:state is sent like after a link change.
+ */
+export function VoiceTracksSetNotAVoice(guid: string, notAVoice: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1820023934, guid, notAVoice);
+}
+
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {
     return $Call.ByID(477322835, modelID);
 }
