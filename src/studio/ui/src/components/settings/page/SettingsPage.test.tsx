@@ -303,6 +303,57 @@ describe('Settings: row layout', () => {
     expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
   });
 
+  it('an invalid draft clears the Saved mark, whatever the motion preference (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    // jsdom runs no animation, so a Saved mark that only a fade hides is still on screen here, as it is under reduced motion.
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+  });
+
+  it('Saved comes back after a refusal when the row is reset (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    // A Reset settles no number box: it is a write of its own and says Saved, as it does with no refusal before it.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+  });
+
+  it('a project-box write does not show Saved while the computer box still shows a refusal (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    // The row draws a second number box for the project; writing there is another write, and the computer box's reason is still on screen.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBeGreaterThan(1));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy();
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+  });
+
   it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
