@@ -75,7 +75,7 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 		return nil, err
 	}
 	notes := s.loadNotes()
-	paragraphs := objects(data["paragraphs"])
+	paragraphIDs := paragraphIDsByChapter(objects(data["paragraphs"]))
 	recorded, lengths, through := map[string]float64{}, map[string]RecordedLength{}, map[string]recordedthrough.Through{}
 	if measure {
 		recorded, lengths = s.recordedFractions(), s.recordedLengths()
@@ -92,7 +92,7 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 		if isFrontMatter(chapter) {
 			continue
 		}
-		payload := chapterPayload(chapter, notes, recorded, paragraphs, true)
+		payload := chapterPayload(chapter, notes, recorded, paragraphIDs[text(chapter, "id")], true)
 		if length, known := lengths[text(chapter, "id")]; known {
 			if length.Unavailable != "" {
 				payload["recordedUnavailable"] = string(length.Unavailable)
@@ -295,7 +295,7 @@ func paragraphPayload(paragraph map[string]any) map[string]any {
 
 // chapterPayload is one chapter as the reader contract sends it. recordedFraction is present only for a chapter the
 // recording coverage measured (recorded, from RecordedFractions): never a guess from the status.
-func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, paragraphs []map[string]any, includeParagraphs bool) map[string]any {
+func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, paragraphIDs []map[string]any, includeParagraphs bool) map[string]any {
 	status := "not_started"
 	if stored, ok := object(notes["chapterStatus"])[text(chapter, "id")].(string); ok {
 		status = stored
@@ -316,13 +316,21 @@ func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, 
 		result["recordedFraction"] = fraction
 	}
 	if includeParagraphs {
-		ids := []map[string]any{}
-		for _, paragraph := range paragraphs {
-			if text(paragraph, "chapterId") == text(chapter, "id") {
-				ids = append(ids, map[string]any{"id": text(paragraph, "id"), "index": paragraph["index"]})
-			}
+		if paragraphIDs == nil {
+			paragraphIDs = []map[string]any{}
 		}
-		result["paragraphIds"] = ids
+		result["paragraphIds"] = paragraphIDs
 	}
 	return result
+}
+
+// paragraphIDsByChapter is each chapter's paragraph ids, in order, from one pass over the paragraphs: finding them chapter by chapter
+// scanned every paragraph for every chapter, which grew with the square of the book (#3560).
+func paragraphIDsByChapter(paragraphs []map[string]any) map[string][]map[string]any {
+	byChapter := map[string][]map[string]any{}
+	for _, paragraph := range paragraphs {
+		chapterID := text(paragraph, "chapterId")
+		byChapter[chapterID] = append(byChapter[chapterID], map[string]any{"id": text(paragraph, "id"), "index": paragraph["index"]})
+	}
+	return byChapter
 }
