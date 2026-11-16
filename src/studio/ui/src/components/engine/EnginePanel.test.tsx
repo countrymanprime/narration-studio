@@ -95,6 +95,19 @@ describe('EnginePanel', () => {
     expect(chapters.mock.calls.length).toBe(chaptersBefore);
   });
 
+  it('shows a chapter renamed in the manuscript when the window regains focus, without a link press reading the book', async () => {
+    let title = 'Chapter 1';
+    const base = createMockApi();
+    const original = base.manuscriptChapters.bind(base);
+    const api = renderPanel({ manuscriptChapters: async () => (await original()).map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter)) });
+    void api;
+    const table = await trackTable();
+    await within(table).findAllByRole('button', { name: 'Use this track for Chapter 1' });
+    title = 'Renamed One';
+    window.dispatchEvent(new Event('focus'));
+    expect((await within(table).findAllByRole('button', { name: 'Use this track for Renamed One' })).length).toBeGreaterThan(0);
+  });
+
   it('offers Recording settings, where the engine is chosen, since every DAW chip leads here', async () => {
     const open = vi.fn();
     renderPanel({}, {}, {}, open);

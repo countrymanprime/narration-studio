@@ -88,7 +88,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
-  // A change was written and the list could not be read again since: the next failed read says so too (the change callback re-runs the read).
+  // A change was written and the list could not be read again since: the next failed read says so too.
   const staleAfterChange = useRef(false);
   // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes the "change was made but not read" line away: the list
   // under it is current again.
@@ -97,6 +97,20 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     staleAfterChange.current = false;
     setError('');
   }, [linksReadAt]);
+
+  // The chapter list is read on mount and not again by a link press (#3272), so a re-import (a job ending) or a return to the window reads it again:
+  // the rows show a renamed, added or removed chapter without waiting for the panel to be reopened.
+  const system = usePort('system');
+  useEffect(() => {
+    if (!enabled) return;
+    const readChapters = () => manuscript.manuscriptChapters().then(setChapters, () => undefined);
+    const stop = system.subscribeJobEnded(readChapters);
+    window.addEventListener('focus', readChapters);
+    return () => {
+      stop();
+      window.removeEventListener('focus', readChapters);
+    };
+  }, [enabled, manuscript, system]);
 
   const reload = useCallback(async () => {
     const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);

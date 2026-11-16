@@ -93,7 +93,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   // An Audacity project's tracks: the snapshot the host takes while Audacity answers.
   const [audacityProject, setAudacityProject] = useState<TracksProject>();
   const [error, setError] = useState('');
-  // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
+  // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the stage recommendations re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
   // Asks the chapter links to read again after a change made elsewhere (chapter sync). A change the links make themselves is not one: they have the answer.
