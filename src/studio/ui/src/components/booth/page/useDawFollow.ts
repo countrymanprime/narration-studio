@@ -112,41 +112,48 @@ export function useMoveDawOnOpen({
  * Entering the Booth on a chapter arms the track its next take records on (the voice chosen, else the Narrator voice) and turns that track's input
  * monitoring on when it is off, so the narrator hears themselves before pressing Record (#3428). The page mounts this once per chapter, as
  * `useMoveDawOnOpen`, so each chapter gone to arms its own track; it is sent once per chapter, when the DAW can arm (`canArm`) and
- * Booth.follow_chapter_in_daw is on (`follow`). A DAW that connected long after the Booth opened is not asked (the narrator has been working by then), and
- * one that can never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said and nothing is changed. A cold read arms
- * nothing (`enabled` false); the arm is sent once it ends.
+ * Booth.follow_chapter_in_daw is on (`follow`). There is no time limit: the arm is what the narrator asked for on entering the Booth, so a DAW that connects
+ * late, a setting that is read late and a cold read of any length (`enabled` false while it runs) each arm once when they allow it, and a DAW that can
+ * never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said and nothing is changed.
  *
- * Choosing another voice arms and monitors it through `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
+ * A voice chosen during a take is switched to without touching the DAW's monitoring (the DAW is never changed while it records), so when the take stops
+ * (`recording` goes from true to false) the chosen voice is armed and monitored again, by the same call: the one voice the next take records on.
+ * Choosing another voice while stopped arms and monitors it through `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
  */
 export function useArmBoothOnOpen({
   enabled,
   follow,
   chapterId,
   canArm,
+  recording = false,
   say,
 }: {
   enabled: boolean;
   follow: boolean | undefined;
   chapterId: string;
   canArm: boolean;
+  /** A take runs now: nothing is sent, and the call is made once it stops. */
+  recording?: boolean;
   say: (sentence: string) => void;
 }) {
   const place = usePort('dawPlace');
   const done = useRef(false);
-  const openedAt = useRef(Date.now());
+  const wasRecording = useRef(false);
   const sayRef = useRef(say);
   sayRef.current = say;
+  // A take that stopped: the voice chosen during it is armed and monitored now.
+  if (wasRecording.current && !recording) done.current = false;
+  wasRecording.current = recording;
   useEffect(() => {
-    if (!enabled || follow !== true || done.current || chapterId === '' || !canArm) return;
+    if (!enabled || follow !== true || done.current || chapterId === '' || !canArm || recording) return;
     done.current = true;
-    if (Date.now() - openedAt.current > ASK_FOR_MS) return;
     void place
       .dawArmBoothVoice(chapterId)
       .then((result) => {
         if (!result.ok) sayRef.current(result.refused ?? result.message);
       })
       .catch(() => sayRef.current("The DAW could not arm this chapter's voice. Arm it by hand, or press Check again."));
-  }, [enabled, follow, chapterId, canArm, place]);
+  }, [enabled, follow, chapterId, canArm, recording, place]);
 }
 
 /**

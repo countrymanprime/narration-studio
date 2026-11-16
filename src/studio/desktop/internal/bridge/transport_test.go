@@ -363,3 +363,16 @@ func TestReleaseMonitorReadsWhatWasPutBackAndWhetherItWaits(t *testing.T) {
 		t.Fatal("an unsupported command must be an error")
 	}
 }
+
+func TestKeepMonitorSendsCancelAndAnswersWhileRecording(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"MONITOR_RESTORED", run(command), "0", "0", "0"}}
+	})
+	if err := actions.KeepMonitor(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if command := fake.commands()[0]; command[1] != "monitor_restore" || command[3] != "cancel" {
+		t.Fatalf("command = %v", command)
+	}
+}

@@ -224,3 +224,118 @@ H.test('the ledger a running bridge wrote is not read back as a leftover', funct
   s:tick()
   H.eq(monitors(s), { 0, 1, 0 })
 end)
+
+H.test('a leftover ledger is put back even when a lane was monitored before the first tick', function()
+  local s, narrator, veyra = new_session()
+  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid .. '\t0\n')
+  narrator.rec_mon = 1
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  H.eq(monitors(s), { 0, 1, 0 }, "the crashed REAPER's lane went back and the new lane is monitored")
+  H.eq(ledger(s), veyra.guid .. '\t0\n', "the file holds this bridge's lane only once the leftover is put back")
+end)
+
+H.test('monitor_restore while a record_start is pending waits, and puts the monitoring back once the take is over', function()
+  local s, narrator = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:send('monitor_restore', 'm1')
+  H.eq(monitors(s), { 1, 0, 0 }, 'the take is starting: the monitoring is not cut')
+  for _ = 1, 4 do
+    s:tick()
+  end
+  H.eq(monitors(s), { 1, 0, 0 }, 'the take runs')
+  s:send('record_stop', 's1')
+  s:tick()
+  H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('monitor_restore while a record_start is pending answers waiting', function()
+  local s, narrator = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:events()
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm1', '0', '0', '1' } })
+end)
+
+H.test('the leftover ledger is not read while REAPER records, and is put back after the stop', function()
+  local s, narrator = new_session()
+  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid .. '\t0\n')
+  narrator.rec_mon = 1
+  s.fake.play_state = 5
+  s:tick()
+  H.eq(monitors(s), { 1, 0, 0 })
+  H.truthy(ledger(s), 'the file is kept')
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(monitors(s), { 0, 0, 0 })
+  H.eq(ledger(s), nil)
+end)
+
+H.test('a damaged ledger row cannot write any value but the off a lane had', function()
+  local s, narrator, veyra, drone = new_session()
+  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid .. '\t99\n' .. veyra.guid .. '\t1\n' .. drone.guid .. '\t-3\n')
+  narrator.rec_mon, veyra.rec_mon, drone.rec_mon = 1, 1, 1
+  s:tick()
+  H.eq(monitors(s), { 1, 1, 1 })
+end)
+
+H.test('a restore that waits for a take is dropped when the Booth is entered again during it', function()
+  local s, _, veyra = new_session()
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s.fake.play_state = 5
+  s:send('monitor_restore', 'm1')
+  s:events()
+  s:send('monitor_restore', 'm2', 'cancel')
+  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm2', '0', '0', '0' } })
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(monitors(s), { 0, 1, 0 }, 'the narrator is back in the Booth, so the lane stays monitored')
+  s:send('monitor_restore', 'm3')
+  H.eq(monitors(s), { 0, 0, 0 }, 'a later leave still puts it back')
+end)
+
+H.test('cancel with no restore waiting changes nothing', function()
+  local s, _, veyra = new_session()
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s:events()
+  s:send('monitor_restore', 'm1', 'cancel')
+  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm1', '0', '0', '0' } })
+  H.eq(monitors(s), { 0, 1, 0 })
+end)
+
+H.test('monitoring is not turned on when the ledger that puts it back cannot be written', function()
+  local s, _, veyra = new_session()
+  host.makedirs(s:path('narration_monitor_ledger.txt'))
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  H.eq(s:events(), { { 'ARMED', 'a1', veyra.guid, '0', '1', '0' } })
+  H.eq(monitors(s), { 0, 0, 0 })
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm1', '0', '0', '0' } })
+end)
+
+-- The recorded run (docs/research/2026-11-16-booth-arms-and-monitors.md) read 1 on a track the CI helper inserted, while the fake answers 0 for a
+-- track nobody set. A track that starts monitored is left on and never put back, whichever start REAPER has.
+H.test('a track that starts monitored, as the recorded run found one, is left on and not put back', function()
+  local s, narrator = new_session()
+  narrator.rec_mon = 1
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events(), { { 'ARMED', 'a1', narrator.guid, '0', '1', '0' }, { 'MONITOR_RESTORED', 'm1', '0', '0', '0' } })
+  H.eq(monitors(s), { 1, 0, 0 })
+end)
+
+H.test('a voice switched to during a take is not monitored then, and is monitored by the arm sent after the stop', function()
+  local s, narrator, veyra = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s:send('record_start', 'r1', narrator.guid)
+  s:send('switch_voice', 'v1', veyra.guid)
+  H.eq(monitors(s), { 1, 0, 0 }, "the DAW's monitoring is not touched while it records")
+  s:send('record_stop', 's1')
+  s:events()
+  s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+  H.eq(s:events()[1][6], '1', 'the voice the next take records on is monitored')
+  H.eq(monitors(s), { 0, 1, 0 }, 'one voice at a time')
+end)

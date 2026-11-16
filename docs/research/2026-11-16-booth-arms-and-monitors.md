@@ -14,3 +14,9 @@
 - With a take running on the monitored lane, `arm_lane` with `monitor` was refused (`ERROR`, nothing changed), and `monitor_restore` answered `waiting` 1 and touched nothing; the monitoring went back to 0 on the first tick after the stop.
 
 **Pending (owner):** a live microphone and an audio device, to hear that the narrator is monitored when they enter the Booth and that the monitored voice stops sounding after leaving; monitoring while a voice switches during a take (`switch_voice` does not turn monitoring on for the voice it moves to); Windows; the ledger after a real REAPER crash (the harness reads a leftover file, not a killed process).
+
+**Known limits:**
+
+- A narrator who switches a monitored track off and on again by hand leaves it reading 1, the value the bridge set, so it cannot tell that track from its own and puts it back to off when the Booth is left.
+- The ledger file and the rows in memory live in REAPER. If the app crashes (not REAPER), the monitoring stays on until the next Booth entry and leave, or until REAPER restarts and the bridge's first tick reads the file.
+- A row for a track that was deleted, or is in another project tab, stays on the ledger until REAPER restarts, since the two cannot be told apart.

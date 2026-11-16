@@ -88,7 +88,7 @@ func TestEnteringTheBoothNeverArmsDuringATakeThisAppRunsOrStarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(fake.calls) != 0 {
-		t.Fatalf("the DAW was asked during a take: %v", fake.calls)
+		t.Fatalf("the DAW was asked to arm during a take: %v", fake.calls)
 	}
 }
 
@@ -137,4 +137,16 @@ func TestBoothArmingContractGoldensAreCurrent(t *testing.T) {
 	contractfile.Check(t, "daw-arm-booth-voice-done", armBoothVoice(t, host, &fakeLaneRecorder{}, ids[0]))
 	contractfile.Check(t, "daw-arm-booth-voice-refused", armBoothVoice(t, host, &fakeLaneRecorder{laneErr: bridge.ErrRecording}, ids[0]))
 	contractfile.Check(t, "daw-release-booth-monitor-done", dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeLaneRecorder{}))
+}
+
+func TestEnteringTheBoothWhileTheDAWRecordsDropsAWaitingRelease(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{laneErr: bridge.ErrRecording}
+	got := armBoothVoice(t, host, fake, ids[0])
+	if got.OK || got.Refused == "" {
+		t.Fatalf("a DAW that records refuses the arm: %+v", got)
+	}
+	if !reflect.DeepEqual(fake.calls, []string{"ArmLane", "KeepMonitor"}) {
+		t.Fatalf("calls %v, want the refused arm and then the dropped release", fake.calls)
+	}
 }

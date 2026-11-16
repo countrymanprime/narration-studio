@@ -3738,7 +3738,7 @@
   {
     "name": "monitor_restore touches the monitoring while REAPER records",
     "file": "narration_monitor.lua",
-    "find": "    if recording() then\n      state.waiting",
+    "find": "    if busy() then\n      state.waiting",
     "replace": "    if false then\n      state.waiting"
   },
   {
@@ -3750,14 +3750,8 @@
   {
     "name": "a restore that waited for a recording is never finished",
     "file": "narration_monitor.lua",
-    "find": "    if state.waiting and not recording() then",
-    "replace": "    if false then"
-  },
-  {
-    "name": "a bridge reads its own ledger back as a leftover",
-    "file": "narration_monitor.lua",
-    "find": "    if not input or #state.rows > 0 then",
-    "replace": "    if not input then"
+    "find": "    if state.waiting then\n      state.waiting = false\n      release()",
+    "replace": "    if false then\n      state.waiting = false\n      release()"
   },
   {
     "name": "a monitoring turned on is put back to on",
@@ -3776,5 +3770,59 @@
     "file": "narration_monitor.lua",
     "find": "    -- The Booth is entered again: a restore that waited for a recording to stop is not to take this lane's monitoring back.\n    state.waiting = false\n",
     "replace": ""
+  },
+  {
+    "name": "a lane monitored before the first tick overwrites the crashed REAPER's ledger",
+    "file": "narration_monitor.lua",
+    "find": "    recover()\n    local guid",
+    "replace": "    local guid"
+  },
+  {
+    "name": "a restore cuts the monitoring while a record_start waits for REAPER",
+    "file": "narration_monitor.lua",
+    "find": "    return take ~= nil and not take.started",
+    "replace": "    return false"
+  },
+  {
+    "name": "the ledger of a closed REAPER is read while another take runs",
+    "file": "narration_monitor.lua",
+    "find": "    if busy() then\n      return\n    end\n    if state.waiting then",
+    "replace": "    if state.waiting then"
+  },
+  {
+    "name": "a damaged ledger row writes a value the lane never had",
+    "file": "narration_monitor.lua",
+    "find": "line:match('^([^\\t]+)\\t0$')",
+    "replace": "line:match('^([^\\t]+)\\t%-?%d+$')"
+  },
+  {
+    "name": "a row whose track REAPER cannot find is dropped from the ledger",
+    "file": "narration_monitor.lua",
+    "find": "    if not track then\n      left[#left + 1] = row",
+    "replace": "    if not track then\n      kept = kept"
+  },
+  {
+    "name": "the lane being armed again loses its own row",
+    "file": "narration_monitor.lua",
+    "find": "    if mine then\n      state.rows[#state.rows + 1] = mine",
+    "replace": "    if false then\n      state.rows[#state.rows + 1] = mine"
+  },
+  {
+    "name": "a crashed REAPER's leftover rows are never put back",
+    "file": "narration_monitor.lua",
+    "find": "    local _, _, left = put_back(rows)\n    for _, row",
+    "replace": "    local left = rows\n    for _, row"
+  },
+  {
+    "name": "a waiting restore cannot be dropped when the Booth is entered again",
+    "file": "narration_monitor.lua",
+    "find": "    if args[2] == 'cancel' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "monitoring is turned on although its ledger cannot be written",
+    "file": "narration_monitor.lua",
+    "find": "if save(state.rows) or mine then",
+    "replace": "if true then"
   }
 ]

@@ -525,6 +525,7 @@ function BoothSession({
     follow: followChapterInDaw,
     chapterId,
     canArm: !!control.capabilities?.capabilities.record?.available,
+    recording: control.recording,
     say: (sentence) => sayDawArming(overlay, sentence),
   });
   const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);

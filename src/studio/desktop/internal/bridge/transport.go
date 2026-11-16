@@ -121,6 +121,13 @@ func (a *Actions) ReleaseMonitor(ctx context.Context) (MonitorReleased, error) {
 	return MonitorReleased{Restored: int(numberAt(fields, 2)), Kept: int(numberAt(fields, 3)), Waiting: numberAt(fields, 4) != 0}, nil
 }
 
+// KeepMonitor drops a ReleaseMonitor that is waiting for a recording to stop (monitor_restore with cancel): the narrator is back in the Booth, so the
+// lane stays monitored when the recording stops. It changes nothing else and is answered while REAPER records.
+func (a *Actions) KeepMonitor(ctx context.Context) error {
+	_, err := a.request(ctx, "monitor_restore", []string{"MONITOR_RESTORED"}, "cancel")
+	return err
+}
+
 func (a *Actions) arm(ctx context.Context, command, trackGUID string, extra ...string) (Armed, error) {
 	events, err := a.request(ctx, command, []string{"ARMED", "TRACK_STALE"}, append([]string{trackGUID}, extra...)...)
 	if err != nil {

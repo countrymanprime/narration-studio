@@ -441,6 +441,9 @@ type LaneArmer interface {
 // engine puts it back itself once the recording stops. Only an engine with input monitoring on its tracks (REAPER) has it.
 type MonitorReleaser interface {
 	ReleaseMonitor(ctx context.Context) (MonitorReleased, error)
+	// KeepMonitor drops a release that waits for a recording to stop, for a narrator who is back in the Booth during the take. It is answered
+	// while the engine records and changes nothing else.
+	KeepMonitor(ctx context.Context) error
 }
 
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),

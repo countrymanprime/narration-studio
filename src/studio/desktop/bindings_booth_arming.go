@@ -35,10 +35,13 @@ func (h *Host) DawArmBoothVoice(chapterID string) (string, error) {
 	svc := h.services()
 	ctx, cancel := context.WithTimeout(context.Background(), boothArmTimeout)
 	defer cancel()
+	recorder := recorderFrom(svc)
 	if h.recordStarting() || h.readAloudRecordingFor(chapterID) {
+		// Back in the Booth during a take: arming waits for the stop (the page arms again then), and a release that waits is dropped.
+		keepBoothMonitor(ctx, recorder)
 		return encodeBinding(dawport.Result{OK: true}, nil)
 	}
-	return encodeBinding(dawArmBoothVoiceIn(ctx, svc, readAloudAdapterName(svc), recorderFrom(svc), chapterID))
+	return encodeBinding(dawArmBoothVoiceIn(ctx, svc, readAloudAdapterName(svc), recorder, chapterID))
 }
 
 func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string) (dawport.Result, error) {
@@ -63,9 +66,20 @@ func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, reco
 	}
 	armed, err := armer.ArmLane(ctx, target, true)
 	if err != nil {
+		if errors.Is(err, bridge.ErrRecording) {
+			keepBoothMonitor(ctx, recorder)
+		}
 		return dawport.Refused(boothArmRefusal(name, err)), nil
 	}
 	return dawport.Result{OK: true, Changed: armed.Changed || armed.Monitored}, nil
+}
+
+// keepBoothMonitor drops a monitoring release that waits for a take to stop, when the narrator is back in the Booth during it. Best effort: a recorder
+// without the role, or one that does not answer, leaves the release to the page's arm after the stop.
+func keepBoothMonitor(ctx context.Context, recorder dawport.Recorder) {
+	if releaser, ok := recorder.(dawport.MonitorReleaser); ok {
+		_ = releaser.KeepMonitor(ctx)
+	}
 }
 
 // DawReleaseBoothMonitor puts back the input monitoring the Booth turned on, when the narrator leaves the Booth or the app closes: only the

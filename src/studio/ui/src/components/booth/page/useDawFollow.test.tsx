@@ -250,15 +250,70 @@ describe('arming the Booth voice on entry (#3428)', () => {
     await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
   });
 
-  it('does not arm a DAW that connected long after the Booth opened', async () => {
+  it('arms a DAW that connects late, once, however long after the Booth opened', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     const dawArmBoothVoice = vi.fn(async () => moved);
     const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
       initialProps: { ...base, canArm: false },
       wrapper: wrapperFor({ dawArmBoothVoice }),
     });
-    vi.setSystemTime(Date.now() + 21_000);
+    vi.setSystemTime(Date.now() + 3_600_000);
     rerender({ ...base, canArm: true });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+    rerender({ ...base, canArm: true });
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+  });
+
+  it('arms once a cold read ends however long it ran', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, enabled: false },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    vi.setSystemTime(Date.now() + 120_000);
+    await act(async () => {});
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+    rerender({ ...base, enabled: true });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+  });
+
+  it('arms once a setting that was read late turns out to be on', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, follow: undefined as boolean | undefined },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    vi.setSystemTime(Date.now() + 60_000);
+    rerender({ ...base, follow: true });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+  });
+
+  it('sends nothing during a take, and arms the voice chosen during it once the take stops', async () => {
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, recording: true },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    await act(async () => {});
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+    rerender({ ...base, recording: false });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+    rerender({ ...base, recording: true });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+    rerender({ ...base, recording: false });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not arm again after a take when the switch is off', async () => {
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, follow: false as boolean | undefined, recording: true },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    rerender({ ...base, follow: false, recording: false });
     await act(async () => {});
     expect(dawArmBoothVoice).not.toHaveBeenCalled();
   });

@@ -121,6 +121,11 @@ func (f *fakeLaneRecorder) ArmLane(_ context.Context, guid string, monitor bool)
 	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: monitor}, nil
 }
 
+func (f *fakeLaneRecorder) KeepMonitor(context.Context) error {
+	f.calls = append(f.calls, "KeepMonitor")
+	return nil
+}
+
 func (f *fakeLaneRecorder) ReleaseMonitor(context.Context) (dawport.MonitorReleased, error) {
 	f.calls = append(f.calls, "ReleaseMonitor")
 	f.monitorReleased++
