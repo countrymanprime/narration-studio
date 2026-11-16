@@ -346,3 +346,12 @@ func TestSwitchVoiceMovesTheTakeToAnotherVoiceAndTellsTheRefusalsApart(t *testin
 		t.Fatal("an answer for another track must be an error")
 	}
 }
+
+func TestRecordStartLeavesOutAMarkedGUIDThatHoldsACommaSoItIsNeverReadAsTwo(t *testing.T) {
+	if got := notVoiceList([]string{"{B1}", "z,{B2}", "", "{B3}"}); got != "{B1},{B3}" {
+		t.Fatalf("list %q, want only the two well-formed entries", got)
+	}
+	if got := notVoiceList([]string{"a,b"}); got != "" {
+		t.Fatalf("list %q, want nothing so no argument is sent", got)
+	}
+}

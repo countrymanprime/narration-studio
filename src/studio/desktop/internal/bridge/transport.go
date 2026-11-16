@@ -122,8 +122,8 @@ func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts Record
 		args = append(args, string(opts.Start))
 		if opts.Start == ChapterEnd {
 			args = append(args, opts.Folder)
-			if len(opts.NotVoice) > 0 {
-				args = append(args, strings.Join(opts.NotVoice, ","))
+			if list := notVoiceList(opts.NotVoice); list != "" {
+				args = append(args, list)
 			}
 		}
 	}
@@ -196,4 +196,16 @@ func (a *Actions) OnRecordEnded(handler func(RecordEnded)) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.onRecordEnded = handler
+}
+
+// notVoiceList is the list argument for the GUIDs of marked tracks: one comma-separated text, with any entry that holds a comma left out (it
+// would be read as two GUIDs; REAPER never makes such a GUID, a hostile project file could).
+func notVoiceList(guids []string) string {
+	kept := make([]string, 0, len(guids))
+	for _, guid := range guids {
+		if guid != "" && !strings.Contains(guid, ",") {
+			kept = append(kept, guid)
+		}
+	}
+	return strings.Join(kept, ",")
 }

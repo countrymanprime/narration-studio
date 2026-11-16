@@ -859,7 +859,7 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule, f
     end
     local here = stopped_here()
     if not here then
-      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)
+      reaper.SetEditCurPos(folder and math.max(folder_end(folder, guid_set(skip_text)), track_end(target)) or track_end(target), true, false)
     end
   end
   state.stop_guard = nil

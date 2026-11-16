@@ -312,18 +312,31 @@ H.test('a folder the host names as not a voice leaves out every track inside it,
 end)
 
 H.test('the chapter folder itself is never left out, even when the list names it and every track inside it', function()
-  local s, folder, narrator, bed = bed_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local bed = s.fake:add_track('Music bed')
+  folder.folder_depth = 1
+  bed.folder_depth = -1
   s.fake:add_item(folder, { position = 0, length = 10 })
+  s.fake:add_item(bed, { position = 0, length = 120 })
+  narrator.armed = true
   s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid, folder.guid .. ',' .. bed.guid .. ',' .. narrator.guid)
   H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '10.000000' } })
 end)
 
-H.test('a track the host names as not a voice is still a target that is inside the folder', function()
+H.test('a track the host names as not a voice is still a target inside the folder, and the take starts after its own audio', function()
   local s, folder, narrator, bed = bed_session()
   narrator.armed = false
   bed.armed = true
   s:send('record_start', 'r1', bed.guid, 'chapter_end', folder.guid, bed.guid)
-  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', bed.guid, '60.000000' } })
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', bed.guid, '120.000000' } })
+end)
+
+H.test('the list does not change a refusal: a folder that does not resolve is stale and nothing moves', function()
+  local s, _, narrator, bed = bed_session()
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', '{00000000-0000-4000-8000-0000000000FF}', bed.guid)
+  H.eq(s:events()[1][1], 'TRACK_STALE')
 end)
 
 H.test('record_start with chapter_end refuses a target that is not inside the folder and moves nothing', function()

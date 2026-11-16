@@ -2970,13 +2970,13 @@
   {
     "name": "the end rule ignores where the last take stopped",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and math.max(folder_end(folder, guid_set(skip_text)), track_end(target)) or track_end(target), true, false)",
     "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
     "name": "the end rule keeps any cursor, so a take records over later audio",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and math.max(folder_end(folder, guid_set(skip_text)), track_end(target)) or track_end(target), true, false)",
     "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
@@ -3758,5 +3758,17 @@
     "file": "narration_transport.lua",
     "find": "    local guid = normalize_guid(token)\n    if guid ~= '' then\n      set[guid] = true",
     "replace": "    local guid = tostring(token)\n    if guid ~= '' then\n      set[guid] = true"
+  },
+  {
+    "name": "the armed track can be left out of its own end",
+    "file": "narration_transport.lua",
+    "find": "math.max(folder_end(folder, guid_set(skip_text)), track_end(target))",
+    "replace": "folder_end(folder, guid_set(skip_text))"
+  },
+  {
+    "name": "a skipped folder never closes, so every track after it is dropped",
+    "file": "narration_transport.lua",
+    "find": "    if inside > 0 then\n      inside = inside + delta",
+    "replace": "    if inside > 0 then\n      inside = inside"
   }
 ]
