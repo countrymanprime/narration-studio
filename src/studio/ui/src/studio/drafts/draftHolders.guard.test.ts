@@ -216,7 +216,11 @@ type Replacer = { file: string; control: string; asks: RegExp };
 const RAIL_TABS: Replacer = { file: 'script/page/layout/RailPanel.tsx', control: 'the rail tabs', asks: /guarded\(\(\) => update\(\{ tab/ };
 const RAIL_LOOKUP: Replacer = { file: 'script/page/data/useShowInRail.ts', control: 'a lookup from the text', asks: /if \(replaces\) guarded\(show\)/ };
 const STORY_BIBLE_DETAIL: Replacer[] = [
-  { file: 'storybible/Guide.tsx', control: 'another row', asks: /selectRow = \(id\?: string, after\?: \(\) => void\) => \{[\s\S]*?\n {4}guarded\(/ },
+  {
+    file: 'storybible/Guide.tsx',
+    control: 'another row',
+    asks: /selectRow = \(id\?: string, after\?: \(\) => void\) => \{[\s\S]*?if \(id !== undefined && id === selectedId && !pendingNewEntity && !looseId\)[\s\S]*?\n {4}guarded\(/,
+  },
   { file: 'storybible/Guide.tsx', control: 'Add entry', asks: /addEntity = \(\) =>\s*guarded\(/ },
   { file: 'storybible/Guide.tsx', control: 'a suggestion opened from the list', asks: /onOpenLoose=\{\(id\) => guarded\(/ },
 ];

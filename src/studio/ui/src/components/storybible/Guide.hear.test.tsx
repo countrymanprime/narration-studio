@@ -159,4 +159,13 @@ describe('the-entry-list-plays-a-pronunciation', () => {
     expect(asked, 'the same entry stays open, so nothing is asked').toBe(0);
     expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Alice B');
   });
+
+  it('asks when Hear is pressed on the entry that was open while a new entry is being named, because that entry would replace the new one', async () => {
+    await renderGuide(false);
+    fireEvent.click(row('Alice'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    asked = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Hear Alice' }));
+    await waitFor(() => expect(asked).toBe(1));
+  });
 });

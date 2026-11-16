@@ -315,8 +315,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     // The entry already open takes its own command with no move to ask about (one question, not two); another one is opened first, and the command follows the answer.
     ask: (id: string, kind: EntryCommand['kind']) => {
       const send = () => setCommand({ id, kind, nonce: Math.random() });
-      if (id === selectedId) send();
-      else selectRow(id, send);
+      // `selectRow` knows when the move goes nowhere (the entry already open) and when it does not (a new entry or a loose suggestion stands in front of it).
+      selectRow(id, send);
     },
   };
   const live = useRef(liveNow);
