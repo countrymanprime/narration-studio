@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BoothChapterTarget } from './boothQuery';
 import { useChapterNavigation } from './useChapterNavigation';
+
+type Base = Omit<Parameters<typeof useChapterNavigation>[0], 'requested' | 'choose'>;
+// The hook with a real address: `choose` puts the target in `requested`, as writing it to the URL does.
+const withAddress = (base: Base) =>
+  renderHook(() => {
+    const [requested, setRequested] = useState<BoothChapterTarget | null>(null);
+    return useChapterNavigation({ ...base, requested, choose: setRequested });
+  });
 
 const CHAPTERS = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
@@ -153,4 +162,86 @@ describe('every route to another chapter asks when the DAW went quiet and the en
     expect(args.leave).not.toHaveBeenCalled();
     expect(args.choose).toHaveBeenCalledWith({ chapter: 'b' });
   });
+});
+
+// ux-reviewer on the chapter question: writing the confirmed chapter to the address brings it back as a request, and with the end still unconfirmed it asked a second time (Leave anyway
+// landed nowhere). The hook is run here with a real `choose` that puts the target in `requested`, as the address does, and the leave question answered yes: it must ask once and open the chapter.
+describe('a chapter the narrator said yes to opens without a second question', () => {
+  const run = (change: (api: ReturnType<typeof useChapterNavigation>) => void, chapterId = 'a') => {
+    const leave = vi.fn((_path: string, proceed: () => void) => {
+      proceed();
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const base = { chapterId, recording: false, endUnconfirmed: () => true, leave, adopt, chapters: CHAPTERS, toast: vi.fn() };
+    const view = withAddress(base);
+    act(() => change(view.result.current));
+    return { leave, adopt };
+  };
+  it('the picker asks once and the chapter opens', () => {
+    const { leave, adopt } = run((api) => api.changeChapter({ chapter: 'b' }));
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+  });
+  it('Next and Previous ask once and the chapter opens', () => {
+    const next = run((api) => api.step(1));
+    expect(next.leave).toHaveBeenCalledTimes(1);
+    expect(next.adopt).toHaveBeenCalledWith({ chapter: 'b' });
+    const previous = run((api) => api.step(-1), 'b');
+    expect(previous.leave).toHaveBeenCalledTimes(1);
+    expect(previous.adopt).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+});
+
+// Class guard (qa-breaker N1): every route to another chapter, with the DAW quiet, asks exactly once whichever way it is answered, and a yes opens the chapter; a stay does not.
+describe('every chapter route x every answer, with the end unconfirmed', () => {
+  const routes: [string, (api: ReturnType<typeof useChapterNavigation>) => void, string, string][] = [
+    ['the picker', (api) => api.changeChapter({ chapter: 'c' }), 'a', 'c'],
+    ['Next', (api) => api.step(1), 'a', 'b'],
+    ['Previous', (api) => api.step(-1), 'b', 'a'],
+  ];
+  for (const [route, change, from, to] of routes) {
+    for (const answer of ['yes', 'stay'] as const) {
+      it(`${route}, ${answer}: asks once and ${answer === 'yes' ? 'opens' : 'does not open'} the chapter`, async () => {
+        const leave = vi.fn((_path: string, proceed: () => void) => {
+          if (answer === 'yes') proceed();
+          return Promise.resolve();
+        });
+        const adopt = vi.fn();
+        const base = { chapterId: from, recording: false, endUnconfirmed: () => true, leave, adopt, chapters: CHAPTERS, toast: vi.fn() };
+        const view = withAddress(base);
+        await act(async () => change(view.result.current));
+        expect(leave).toHaveBeenCalledTimes(1);
+        if (answer === 'yes') expect(adopt).toHaveBeenCalledWith({ chapter: to });
+        else expect(adopt).not.toHaveBeenCalled();
+      });
+    }
+  }
+  for (const answer of ['yes', 'stay'] as const) {
+    it(`an address, ${answer}: asks once and ${answer === 'yes' ? 'opens' : 'keeps'} the chapter`, async () => {
+      const leave = vi.fn((_path: string, proceed: () => void) => {
+        if (answer === 'yes') proceed();
+        return Promise.resolve();
+      });
+      const adopt = vi.fn();
+      const choose = vi.fn();
+      renderHook(() =>
+        useChapterNavigation({
+          requested: { chapter: 'b' },
+          chapterId: 'a',
+          recording: false,
+          endUnconfirmed: () => true,
+          leave,
+          adopt,
+          choose,
+          chapters: CHAPTERS,
+          toast: vi.fn(),
+        }),
+      );
+      await act(async () => {});
+      expect(leave).toHaveBeenCalledTimes(1);
+      if (answer === 'yes') expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+      else expect(choose).toHaveBeenCalledWith({ chapter: 'a' });
+    });
+  }
 });

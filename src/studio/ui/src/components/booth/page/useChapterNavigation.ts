@@ -40,12 +40,20 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
   const requestedQuery = requested ? boothQuery(requested) : null;
   const followed = useRef({ requested, current, recording, starting, endUnconfirmed, leave, adopt, choose });
   followed.current = { requested, current, recording, starting, endUnconfirmed, leave, adopt, choose };
+  // The chapter the narrator already said yes to (Stop and leave, or Leave anyway) in the question a change from the picker, Next or Previous asked: writing it to the address
+  // brings it back here as a request, and it must open, not ask a second time.
+  const confirmed = useRef<string | null>(null);
   useEffect(() => {
     const now = followed.current;
     if (!now.requested || requestedQuery === null) return;
     const target = now.requested;
     if (sameSource(target, now.current)) {
       if (target.from) now.adopt(target);
+      return;
+    }
+    if (confirmed.current === target.chapter) {
+      confirmed.current = null;
+      now.adopt(target);
       return;
     }
     // A take that is only starting, or whose end the DAW did not confirm, is asked about like a running one (the leave question says so); the chapter does not change under it.
@@ -84,7 +92,10 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
     };
     // A DAW that went quiet may still be recording: the change asks the same question the address does (it stops the take if the narrator says so), not a silent move.
     if (endUnconfirmed?.()) {
-      void leave(`/booth${boothQuery(target)}`, go);
+      void leave(`/booth${boothQuery(target)}`, () => {
+        confirmed.current = target.chapter;
+        go();
+      });
       return;
     }
     go();

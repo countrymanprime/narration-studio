@@ -274,6 +274,58 @@ test('a DAW that went quiet, then a link to another chapter of the Booth, asks "
   expect(await onBooth(page)).toBe(true);
 });
 
+// ux-reviewer on the chapter question: with the DAW quiet and the stop never answered, Stop and leave ends in "Could not stop the take", and Leave anyway must OPEN the chapter. It
+// used to write the address, which brought the chapter back as a request and asked a second time, so no chapter ever opened (the picker needed a second round for Chapter 3).
+const chapterRoutes = [
+  {
+    via: 'Next chapter',
+    expected: 'Chapter 2',
+    go: (page: Page) => page.getByRole('button', { name: 'Next chapter', exact: true }).click(),
+  },
+  {
+    via: 'the chapter picker',
+    expected: 'Chapter 3',
+    go: async (page: Page) => {
+      await page.locator("[aria-label^='Chapter:']").first().click();
+      await page.getByRole('menuitemradio', { name: /^Chapter 3:/ }).click();
+    },
+  },
+  {
+    via: 'the jump menu',
+    expected: 'Chapter 3',
+    go: async (page: Page) => {
+      await page.keyboard.press('Control+KeyK');
+      await page.getByRole('combobox', { name: 'Jump menu' }).fill('Chapter 3: A Caucus');
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Enter');
+    },
+  },
+] as const;
+for (const route of chapterRoutes) {
+  test(`a DAW that went quiet, then ${route.via}: Stop and leave, the refusal and Leave anyway open the chapter with no second question`, async ({ page }) => {
+    await page.addInitScript(NEVER_STOPS);
+    await recording(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+    await page.waitForTimeout(1500);
+    await route.go(page);
+    const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
+    await expect(chapterQuestion).toBeVisible();
+    await chapterQuestion.getByRole('button', { name: 'Stop and leave' }).click();
+    const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+    await expect(refused).toBeVisible({ timeout: 14_000 });
+    // "Leave anyway" ignores a press for its first 0.4 s (a double click on the button it replaced).
+    await page.waitForTimeout(600);
+    await refused.getByRole('button', { name: 'Leave anyway' }).click();
+    // The chapter is shown (the address is cleared once it is adopted), and nothing asks again.
+    const picker = page.locator("[aria-label^='Chapter:']").first();
+    await expect(picker).toHaveAttribute('aria-label', new RegExp(`^Chapter: ${route.expected}:`));
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await expect(picker).toHaveAttribute('aria-label', new RegExp(`^Chapter: ${route.expected}:`));
+    expect(await onBooth(page)).toBe(true);
+  });
+}
+
 test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks again', async ({ page }) => {
   await recording(page);
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
