@@ -1,6 +1,9 @@
 package main
 
 import (
+	"strings"
+
+	"desktop/internal/dawport"
 	"desktop/internal/persist"
 	"desktop/internal/tracks"
 	"desktop/internal/voicetracks"
@@ -25,4 +28,65 @@ func chapterAudioFrom(setup voicetracks.State, project tracks.Project) tracks.Pr
 		return project
 	}
 	return project.WithAudioSkip(setup.IsNotVoice)
+}
+
+// chapterAudioSkip is the rule for REAPER's live read of the folder linked to chapter guid (dawport.ChapterAudioState): it names the tracks
+// whose items are not the chapter's audio, a track marked as not a voice and every track inside a marked folder (#3558). The chapter's own
+// track is never named. nil means every item counts. It reads the saved project, which knows the folder's shape; a track marked but not in
+// the saved project yet is still named through the mark itself.
+func chapterAudioSkip(reporter *persist.Reporter, folder string, project tracks.Project, guid string) func(trackGUID string) bool {
+	ruled := chapterAudio(reporter, folder, project)
+	all, ok := project.WithDescendants(guid)
+	if !ok {
+		all = nil
+	}
+	kept, _ := ruled.ChapterMembers(guid)
+	left := map[string]bool{}
+	for _, track := range kept {
+		left[strings.ToLower(track.GUID)] = true
+	}
+	inside := map[string]bool{}
+	for _, track := range all {
+		inside[strings.ToLower(track.GUID)] = true
+	}
+	var dropped []string
+	for id := range inside {
+		if !left[id] {
+			dropped = append(dropped, id)
+		}
+	}
+	own := strings.ToLower(guid)
+	return func(trackGUID string) bool {
+		id := strings.ToLower(trackGUID)
+		if id == own {
+			return false
+		}
+		for _, drop := range dropped {
+			if drop == id {
+				return true
+			}
+		}
+		return ruled.SkipsAudio(trackGUID)
+	}
+}
+
+// withoutSkippedTracks is state less the items on tracks skip names, with ItemsTotal lowered by the same count so "a read that lists fewer
+// items than the project has" still means what it did. A nil skip, or one that names nothing here, answers state itself.
+func withoutSkippedTracks(state dawport.TrackState, skip func(trackGUID string) bool) dawport.TrackState {
+	if skip == nil {
+		return state
+	}
+	kept := make([]dawport.TrackItem, 0, len(state.Items))
+	for _, item := range state.Items {
+		if item.TrackGUID != "" && skip(item.TrackGUID) {
+			continue
+		}
+		kept = append(kept, item)
+	}
+	if len(kept) == len(state.Items) {
+		return state
+	}
+	state.ItemsTotal -= len(state.Items) - len(kept)
+	state.Items = kept
+	return state
 }

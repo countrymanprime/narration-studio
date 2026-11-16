@@ -96,17 +96,20 @@ func (h *Host) passageMapStamp(svc hostServices, reader trackStateReader, chapte
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), passageMapStampTimeout)
 	defer cancel()
-	return stampFromChapter(ctx, reader, links[0])
+	// The folder's shape comes from the live-over-saved list, as every page's does, so a track added in REAPER and not saved yet is seen.
+	project, _ := liveSelectedProject(svc)
+	return stampFromChapter(ctx, reader, links[0], chapterAudioSkip(h.persist, svc.config.projectFolder, project, links[0]))
 }
 
 // stampFromChapter is the stamp of the last item recorded in the chapter linked to guid: for a folder of voices the item that starts latest on
-// any voice inside it, since the linked folder track holds none of its own (#3043). No items, or a DAW that does not answer, is no stamp.
-func stampFromChapter(ctx context.Context, reader trackStateReader, guid string) (passagemap.Stamp, error) {
+// any voice inside it, since the linked folder track holds none of its own (#3043); skip names the tracks that are not the chapter's audio
+// (a music bed marked as not a voice, #3558). No items, or a DAW that does not answer, is no stamp.
+func stampFromChapter(ctx context.Context, reader trackStateReader, guid string, skip func(trackGUID string) bool) (passagemap.Stamp, error) {
 	state, err := dawport.ChapterAudioState(ctx, reader, guid)
 	if err != nil {
 		return passagemap.Stamp{}, err
 	}
-	item, ok := lastRecordedItem(state.Items)
+	item, ok := lastRecordedItem(withoutSkippedTracks(state, skip).Items)
 	if !ok {
 		return passagemap.Stamp{}, nil
 	}

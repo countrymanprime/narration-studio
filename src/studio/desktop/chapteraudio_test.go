@@ -128,7 +128,9 @@ func TestEveryHostReadOfAChapterSAudioAppliesTheRule(t *testing.T) {
 				continue
 			}
 			seen++
-			if !strings.Contains(line, "chapterAudio(") && !strings.Contains(line, "chapterAudioFrom(") {
+			// A project the same file already ruled (`ruled := chapterAudio(...)`) is as good as the call itself.
+			ruledAbove := strings.Contains(line, "(ruled,") && strings.Contains(string(raw), "ruled := chapterAudio(")
+			if !strings.Contains(line, "chapterAudio(") && !strings.Contains(line, "chapterAudioFrom(") && !ruledAbove {
 				t.Errorf("%s:%d reads a chapter's audio without chapterAudio: a track marked as not a voice would count: %s", file, number+1, trimmed)
 			}
 		}
