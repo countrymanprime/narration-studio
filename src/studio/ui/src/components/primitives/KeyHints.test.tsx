@@ -11,6 +11,29 @@ const hints = [
   { keys: ['Space'], label: 'Play' },
 ];
 
+describe('KeyHints, a hint that is off', () => {
+  it('strikes only its words, keeps the caps whole, and says why to a pointer and a screen reader', () => {
+    render(
+      <KeyHints
+        hints={[
+          { keys: ['Num', '-'], label: 'Voice', id: 'v', off: true, offReason: 'A cold read needs no voice' },
+          { keys: ['R'], label: 'Roll', id: 'r' },
+        ]}
+      />,
+    );
+    const off = document.getElementById('v') as HTMLElement;
+    expect(off.getAttribute('data-off')).toBe('');
+    expect(off.getAttribute('title')).toBe('A cold read needs no voice');
+    expect(within(off).getByText('Voice').className).toContain('line-through');
+    expect(off.querySelector('kbd')?.className ?? '').not.toContain('line-through');
+    expect(off.textContent).toContain('(A cold read needs no voice)');
+    const on = document.getElementById('r') as HTMLElement;
+    expect(on.hasAttribute('data-off')).toBe(false);
+    expect(on.getAttribute('title')).toBeNull();
+    expect(within(on).getByText('Roll').className).not.toContain('line-through');
+  });
+});
+
 describe('KeyHints', () => {
   it('footer-is-a-note-region', () => {
     render(<KeyHints hints={hints} />);

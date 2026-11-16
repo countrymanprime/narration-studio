@@ -5,7 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
-import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_ERROR_MS, TOAST_INFO_MS, TOAST_MAX_MS, ToastRegion, toastLifetimeMs, type ToastMessage } from './Toast';
+import {
+  ACTION_FOCUS_MS,
+  TOAST_ACTION_MS,
+  TOAST_HEIGHT_PROPERTY,
+  useToastsClearOfModal,
+  TOAST_ERROR_MS,
+  TOAST_INFO_MS,
+  TOAST_MAX_MS,
+  ToastRegion,
+  toastLifetimeMs,
+  type ToastMessage,
+} from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -527,4 +538,64 @@ describe('a hold that starts while the toast fades', () => {
       }
     }
   }
+});
+
+// #3605 / #3601: a dialog in a window under 300 px tall takes what is left above the toasts, so they publish how much of the window's bottom they take, but only
+// while a toast shows over an open dialog: nothing in a normal window reads it or changes.
+describe('the room the toasts take, published for a dialog in a short window', () => {
+  const published = () => document.documentElement.style.getPropertyValue(TOAST_HEIGHT_PROPERTY);
+  function Modal({ open }: { open: boolean }) {
+    useToastsClearOfModal(open);
+    return null;
+  }
+  afterEach(() => document.documentElement.style.removeProperty(TOAST_HEIGHT_PROPERTY));
+
+  it('is set while a toast shows over an open dialog, in px, and goes with either', async () => {
+    const { rerender } = render(
+      <>
+        <Modal open />
+        <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+    expect(published()).toMatch(/^\d+px$/);
+    rerender(
+      <>
+        <Modal open />
+        <ToastRegion messages={[]} dismiss={vi.fn()} />
+      </>,
+    );
+    expect(published()).toBe('');
+    rerender(
+      <>
+        <Modal open />
+        <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+    expect(published()).not.toBe('');
+    rerender(
+      <>
+        <Modal open={false} />
+        <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(published()).toBe('');
+  });
+
+  it('is not set for a toast with no dialog open, and not left behind when the region unmounts', () => {
+    const { unmount } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    expect(published()).toBe('');
+    unmount();
+    const modal = render(
+      <>
+        <Modal open />
+        <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+    expect(published()).not.toBe('');
+    modal.unmount();
+    expect(published()).toBe('');
+  });
 });

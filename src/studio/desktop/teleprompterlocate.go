@@ -134,14 +134,16 @@ func (h *Host) locateTail(svc hostServices, live trackStateReader, chapterID, tr
 	}
 	result.Track = &trackOption{GUID: candidate.TrackGUID, Name: candidate.TrackName, Index: candidate.TrackIndex}
 	result.DAWSource, result.DAWAt = dawSourceSaved, liveAtEnd
-	end, ok := chaptermatch.RecordedEnd(chapterAudio(h.persist, svc.config.projectFolder, project), *candidate)
+	ruled := chapterAudio(h.persist, svc.config.projectFolder, project)
+	end, ok := chaptermatch.RecordedEnd(ruled, *candidate)
 	if state, reachable := readLiveTrack(context.Background(), live, project.Path, candidate.TrackGUID); reachable {
+		state = withoutSkippedTracks(state, chapterAudioSkip(h.persist, svc.config.projectFolder, project, candidate.TrackGUID))
 		result.DAWSource = dawSourceLive
 		if recordingOn(state) {
 			result.Status, result.DAWAt = locateRecording, ""
 			return result, nil
 		}
-		end, result.DAWAt, ok = liveRecordedEnd(state, savedTrack(project, candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder)
+		end, result.DAWAt, ok = liveRecordedEnd(state, savedTrack(ruled, candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder)
 	}
 	if !ok {
 		result.Status = locateNoRecording
@@ -202,11 +204,12 @@ func locateTrack(match chapterTrackMatch, project tracks.Project, trackGUID stri
 	return nil, fmt.Errorf("that track is not in the selected REAPER project")
 }
 
-// savedTrack is the saved project's track guid names, or nil when the .rpp does not have it.
+// savedTrack is the saved project's track guid names, or nil when the .rpp does not have it. A folder of voices is the voices the project's
+// chapter-audio rule leaves in (tracks.Project.WithAudioSkip).
 func savedTrack(project tracks.Project, guid string) *tracks.Track {
 	for i := range project.Tracks {
 		if strings.EqualFold(project.Tracks[i].GUID, guid) {
-			if members, _ := project.WithDescendants(project.Tracks[i].GUID); len(members) > 1 {
+			if members, _ := project.ChapterMembers(project.Tracks[i].GUID); len(members) > 1 {
 				// A folder of voices: one track holding every voice's items, which is how the live read lists them.
 				merged := project.Tracks[i]
 				merged.Items = nil

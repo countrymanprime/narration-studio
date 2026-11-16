@@ -128,7 +128,15 @@ func TestEveryHostReadOfAChapterSAudioAppliesTheRule(t *testing.T) {
 				continue
 			}
 			seen++
-			if !strings.Contains(line, "chapterAudio(") && !strings.Contains(line, "chapterAudioFrom(") {
+			// A project ruled a few lines above in the same function (`ruled := chapterAudio(...)`) is as good as the call itself.
+			ruledAbove := false
+			if strings.Contains(line, "(ruled,") {
+				lines := strings.Split(string(raw), "\n")
+				for _, above := range lines[max(0, number-6):number] {
+					ruledAbove = ruledAbove || strings.Contains(above, "ruled := chapterAudio(")
+				}
+			}
+			if !strings.Contains(line, "chapterAudio(") && !strings.Contains(line, "chapterAudioFrom(") && !ruledAbove {
 				t.Errorf("%s:%d reads a chapter's audio without chapterAudio: a track marked as not a voice would count: %s", file, number+1, trimmed)
 			}
 		}
@@ -187,4 +195,59 @@ func TestACorruptVoiceSetupIsKeptAsideAndReportedAndMarksNothing(t *testing.T) {
 	if len(told) != 1 {
 		t.Fatalf("a second read told the narrator again: %q", told)
 	}
+}
+
+// #3594: the owner's rule is that a chapter's folder and its children are one chapter's voices, except a track marked as not a voice. A
+// track another chapter is linked to, inside the folder, is not marked, so its audio counts toward the outer chapter, while the Booth
+// still never offers it as a voice to record on (a recording-target rule, chapterVoicesIn). These tests pin the audio half; a change that
+// leaves a nested chapter's track out of the outer chapter's audio contradicts the rule and must come with the owner's new one.
+func TestANestedChaptersLinkedTrackStillCountsInTheOuterChaptersRecordedLength(t *testing.T) {
+	host, ids := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders)
+	linkChapter(t, host, ids[1], musicBedTrack)
+	got := chapterRecorded(t, host)
+	if seconds := got[ids[0]]["recordedSeconds"]; seconds != 300.0 {
+		t.Fatalf("outer recorded seconds = %v, want 300: the nested chapter's track is one of the folder's voices", seconds)
+	}
+	if seconds := got[ids[1]]["recordedSeconds"]; seconds != 300.0 {
+		t.Fatalf("nested recorded seconds = %v, want its own track's 300", seconds)
+	}
+}
+
+func TestANestedChaptersLinkedTrackStillCountsInTheOuterChaptersRecordedEnd(t *testing.T) {
+	host, ids := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders)
+	linkChapter(t, host, ids[1], musicBedTrack)
+	links, err := host.chapterTrackLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID == ids[0] {
+			if row.RecordedEnd == nil || row.RecordedEnd.ProjectTime != 300 {
+				t.Fatalf("outer recorded end = %+v, want 300: the nested track's item ends there", row.RecordedEnd)
+			}
+			return
+		}
+	}
+	t.Fatal("the outer chapter's row is missing")
+}
+
+func TestAMarkedNestedChaptersTrackIsStillLeftOutOfTheOuterChaptersAudio(t *testing.T) {
+	host, ids := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders, musicBedTrack)
+	linkChapter(t, host, ids[1], musicBedTrack)
+	if seconds := chapterRecorded(t, host)[ids[0]]["recordedSeconds"]; seconds != 10.0 {
+		t.Fatalf("outer recorded seconds = %v, want 10: a mark leaves the track out even when a chapter is linked to it", seconds)
+	}
+	links, err := host.chapterTrackLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID == ids[0] {
+			if row.RecordedEnd == nil || row.RecordedEnd.ProjectTime != 10 {
+				t.Fatalf("outer recorded end = %+v, want 10: a mark leaves the track out of the end too", row.RecordedEnd)
+			}
+			return
+		}
+	}
+	t.Fatal("the outer chapter's row is missing")
 }
