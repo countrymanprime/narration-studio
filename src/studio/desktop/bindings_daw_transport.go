@@ -65,6 +65,8 @@ func (h *Host) dawTransportChanged() (map[string]any, bool) {
 // change reaches the UI within one tick of that heartbeat.
 func (h *Host) pollDawTransport() {
 	payload, changed := h.dawTransportChanged()
+	// The computer stays awake while any take records; this runs every tick, changed or not (wakelock_host.go).
+	h.keepAwake()
 	h.mu.RLock()
 	ctx := h.ctx
 	h.mu.RUnlock()
