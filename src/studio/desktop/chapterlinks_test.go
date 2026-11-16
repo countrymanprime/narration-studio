@@ -378,3 +378,54 @@ func TestClearingProjectDataSendsChapterSyncStateWithNoLinks(t *testing.T) {
 		t.Fatal("clearing the project's data sent no chaptersync:state")
 	}
 }
+
+// The owner's decision on #3272: unlinking reads only the chapter being unlinked. Work done, not time: the chapter payloads built (one per
+// chapter by every chapter list, none by the one-title lookup) are counted around each action.
+func TestLinkingAndUnlinkingAChapterBuildNoChapterPayload(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+
+	before := manuscript.ChapterPayloadsBuilt()
+	if _, err := host.manuscript.ChaptersUnmeasured(); err != nil {
+		t.Fatal(err)
+	}
+	if built := manuscript.ChapterPayloadsBuilt() - before; built < int64(len(ids)) {
+		t.Fatalf("the chapter list built %d payloads for %d chapters: the counter cannot see a whole-book read", built, len(ids))
+	}
+
+	// With a listener the host also reads the sync state after each change (#3272): that read must not list the whole book either.
+	host.chapterSyncEvents = func(chapterSyncState) {}
+	before = manuscript.ChapterPayloadsBuilt()
+	for _, id := range ids {
+		if _, _, err := chapterLinksFor(host.services(), id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if built := manuscript.ChapterPayloadsBuilt() - before; built != 0 {
+		t.Fatalf("chapterLinksFor (the title and links Create reads twice) built %d chapter payloads, want none", built)
+	}
+	steps := []struct {
+		name string
+		do   func() error
+	}{
+		{"ChapterTrackSet", func() error { _, err := host.ChapterTrackSet(ids[1], chapterLinksTrackIJ); return err }},
+		{"ChapterTrackUnlink", func() error { _, err := host.ChapterTrackUnlink(ids[1]); return err }},
+		{"ChapterTrackUnlink of a credits row", func() error { _, err := host.ChapterTrackUnlink("credits-opening"); return err }},
+	}
+	for _, step := range steps {
+		before := manuscript.ChapterPayloadsBuilt()
+		if err := step.do(); err != nil {
+			t.Fatalf("%s: %v", step.name, err)
+		}
+		host.chapterSyncEmits.Wait() // the state read a change starts runs on its own goroutine
+		if built := manuscript.ChapterPayloadsBuilt() - before; built != 0 {
+			t.Fatalf("%s built %d chapter payloads (the book has %d chapters), want none", step.name, built, len(ids))
+		}
+	}
+	before = manuscript.ChapterPayloadsBuilt()
+	if _, err := host.ChapterTrackUnlink("not-a-chapter"); err == nil {
+		t.Fatal("unlinking an unknown chapter succeeded")
+	}
+	if built := manuscript.ChapterPayloadsBuilt() - before; built != 0 {
+		t.Fatalf("refusing an unknown chapter built %d chapter payloads, want none", built)
+	}
+}

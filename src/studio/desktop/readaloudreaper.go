@@ -133,16 +133,12 @@ func chapterLinksFor(svc hostServices, chapterID string) (string, []string, erro
 	if kind, ok := creditsid.Kind(chapterID); ok {
 		title, found = creditsid.Title(kind), true
 	} else {
-		chapters, err := svc.manuscript.ChaptersUnmeasured()
+		raw, ok, err := svc.manuscript.ChapterTitle(chapterID)
 		if err != nil {
 			return "", nil, err
 		}
-		for _, chapter := range chapters {
-			if id, _ := chapter["id"].(string); id == chapterID {
-				raw, _ := chapter["title"].(string)
-				title, found = displayTitle(raw), true
-				break
-			}
+		if ok {
+			title, found = displayTitle(raw), true
 		}
 	}
 	if !found {

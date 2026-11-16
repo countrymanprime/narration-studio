@@ -2,9 +2,6 @@ package main
 
 import (
 	"desktop/internal/creditsid"
-	"os"
-	"sync"
-	"time"
 
 	"desktop/internal/evidence"
 	"desktop/internal/manuscript"
@@ -17,7 +14,6 @@ import (
 // or why there are none. Confirmed links are the only source: a name match, however confident, is never read here.
 // It is bound to one project's folder, settings and manuscript in configureLocked.
 func recordedLengths(folder string, store *settings.Store, service *manuscript.Service) manuscript.RecordedLengths {
-	cache := &projectParseCache{}
 	return func() map[string]manuscript.RecordedLength {
 		data, err := service.Load()
 		if err != nil {
@@ -31,7 +27,7 @@ func recordedLengths(folder string, store *settings.Store, service *manuscript.S
 		if err != nil {
 			return nil
 		}
-		project, readable := cache.read(folder, store)
+		project, readable := readSelectedProject(folder, store)
 		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, project, readable)
 	}
 }
@@ -80,41 +76,4 @@ func chapterIDs(data map[string]any) []string {
 		}
 	}
 	return ids
-}
-
-// projectParseCache keeps the last parse of the selected .rpp while its path, modification time and size are
-// unchanged, so reading the chapter list again (after a status change, a check, an import) costs a stat, not a parse.
-type projectParseCache struct {
-	mu sync.Mutex
-	// +checklocks:mu
-	path string
-	// +checklocks:mu
-	modTime time.Time
-	// +checklocks:mu
-	size int64
-	// +checklocks:mu
-	project tracks.Project
-}
-
-func (c *projectParseCache) read(folder string, store *settings.Store) (tracks.Project, bool) {
-	path, err := selectedProjectFile(folder, store)
-	if err != nil {
-		return tracks.Project{}, false
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return tracks.Project{}, false
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.path == path && c.modTime.Equal(info.ModTime()) && c.size == info.Size() {
-		return c.project, true
-	}
-	project, err := readProject(path)
-	if err != nil {
-		c.path = ""
-		return tracks.Project{}, false
-	}
-	c.path, c.modTime, c.size, c.project = path, info.ModTime(), info.Size(), project
-	return project, true
 }

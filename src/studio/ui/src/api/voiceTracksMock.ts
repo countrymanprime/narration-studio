@@ -14,11 +14,12 @@ function validName(text: string): boolean {
 export function createVoiceTracksMock(
   initial?: Partial<VoiceTracksState>,
 ): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
-  let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], ...initial };
+  let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [], ...initial };
   const snapshot = (): VoiceTracksState => ({
     ...state,
     tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters], guids: [...entry.guids] })),
     narratorGuids: [...state.narratorGuids],
+    notVoiceGuids: [...state.notVoiceGuids],
   });
   return {
     voiceTracksGet: async () => snapshot(),

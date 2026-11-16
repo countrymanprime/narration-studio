@@ -27,6 +27,9 @@ export type BoothLeaveSession = {
   arrived?: () => void;
 };
 
+/** True when nothing records now but the end of the take is not known to have come with the DAW answering: it may still be recording. */
+const unconfirmedEnd = (session: BoothLeaveSession): boolean => !session.recording && !!session.endUnconfirmed?.();
+
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
@@ -139,7 +142,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       const run = async (): Promise<boolean> => {
         const mine = take.current;
         const startedByApp = now.startedByApp ?? true;
-        let spec = stopRecordingSpec(now.daw.name, startedByApp, now.startPending, destination);
+        let spec = stopRecordingSpec(now.daw.name, startedByApp, now.startPending, destination, unconfirmedEnd(now));
         let refusedOnce = false;
         // Whether the question asked is the one about a start still pending; the re-ask after the start landed is an ordinary recording question.
         let startAsked = !!now.startPending;
@@ -150,7 +153,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           // The start landed as a take while the question was open: it is asked again as the recording question, with its own Enter hold.
           if (reask.current && !gone.current) {
             reask.current = false;
-            spec = stopRecordingSpec(now.daw.name, startedByApp, false, destination);
+            spec = stopRecordingSpec(now.daw.name, startedByApp, false, destination, unconfirmedEnd(sessionRef.current));
             startAsked = false;
             continue;
           }
@@ -256,7 +259,10 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     guard.setLeaveGuard((next) => {
       const now = sessionRef.current;
       if (!now.recording && !asking.current && !now.endUnconfirmed?.()) return 'allow';
-      return { ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true, now.startPending, pageNameFor(next)), decide: () => decide(next) };
+      return {
+        ask: stopRecordingSpec(now.daw.name, now.startedByApp ?? true, now.startPending, pageNameFor(next), unconfirmedEnd(now)),
+        decide: () => decide(next),
+      };
     });
     return () => guard.setLeaveGuard(null);
   }, [guard, decide]);

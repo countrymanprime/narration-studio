@@ -50,15 +50,58 @@ describe('useBoothLeaveGuard', () => {
       }
     });
 
+    // #3528: the question says only what is known. A DAW that went quiet may still be recording, and a take that really runs keeps the plain sentence. Its title names the page
+    // (#3529's destination, from the same move) and does not claim a take is running ("Stop recording?" would).
+    it('says the DAW may still be recording when the end is unconfirmed, and keeps the running sentence for a take that runs', () => {
+      const quiet = setup({ recording: false, endUnconfirmed: () => true });
+      act(() => void quiet.hook.result.current.leave('/script', quiet.go));
+      expect(quiet.dialog()?.spec.body).toBe('REAPER may still be recording. Leaving tries to stop the take.');
+      expect(quiet.dialog()?.spec.title).toBe('Leave for Script?');
+      expect(quiet.dialog()?.spec.confirmLabel).toBe('Stop and leave');
+      expect(quiet.dialog()?.spec).toMatchObject({ cancelLabel: 'Stay' });
+      act(() => quiet.dialog()!.answer(false));
+      // The shell's leave verdict (the nav, Back, Forward) carries the same sentence and names its page.
+      const verdict = setup({ recording: false, endUnconfirmed: () => true }).store.checkLeave('/proof');
+      expect(verdict).toEqual({
+        decide: expect.any(Function),
+        ask: expect.objectContaining({ title: 'Leave for Proof?', body: 'REAPER may still be recording. Leaving tries to stop the take.' }),
+      });
+      const running = setup({ recording: true, endUnconfirmed: () => true });
+      act(() => void running.hook.result.current.leave('/script', running.go));
+      expect(running.dialog()?.spec.title).toBe('Stop recording?');
+      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
+      act(() => running.dialog()!.answer(false));
+    });
+
+    // #3528 with #3529: the title names the page the move goes to, for each kind of destination, and never claims a take is running.
+    it.each([
+      ['/script', 'Leave for Script?'],
+      ['/proof', 'Leave for Proof?'],
+      ['/script?chapter=c2', 'Leave for Script?'],
+      ['/settings#audio', 'Leave for Settings?'],
+      ['/booth?chapter=chapter-3', 'Open another chapter?'],
+      ['/not-a-rail-page', 'Leave the Booth?'],
+    ])('with the end unconfirmed, leaving for %s asks "%s"', (next, title) => {
+      const { store } = setup({ recording: false, endUnconfirmed: () => true });
+      // The narrator stays in the Booth for a chapter change, so its sentence says opening, not leaving.
+      const body =
+        title === 'Open another chapter?'
+          ? 'REAPER may still be recording. Opening another chapter tries to stop the take.'
+          : 'REAPER may still be recording. Leaving tries to stop the take.';
+      expect(store.checkLeave(next)).toMatchObject({ ask: { title, body, cancelLabel: 'Stay' } });
+    });
+
     it('asks, tries the stop, and asks "Could not stop the take" when the stop is refused', async () => {
       const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false }, refusal);
       act(() => void t.hook.result.current.leave('/script', t.go));
-      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      expect(t.dialog()?.spec.title).toBe('Leave for Script?');
       act(() => t.dialog()!.answer(true));
       await flush();
       await flush();
       expect(t.stopRecording).toHaveBeenCalledTimes(1);
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      // The refusal reached from this question offers Stay, as the question did, not "Keep recording".
+      expect(t.dialog()?.spec).toMatchObject({ cancelLabel: 'Stay', confirmLabel: 'Leave anyway' });
       expect(t.go).not.toHaveBeenCalled();
       act(() => t.dialog()!.answer(false));
     });
@@ -115,7 +158,7 @@ describe('useBoothLeaveGuard', () => {
       act(() => t.dialog()!.answer(false));
       await flush();
       act(() => void t.hook.result.current.leave('/script', t.go));
-      expect(t.dialog()?.spec.title).toBe('Stop recording?');
+      expect(t.dialog()?.spec.title).toBe('Leave for Script?');
       act(() => t.dialog()!.answer(false));
       expect(t.go).not.toHaveBeenCalled();
     });

@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"sync"
+	"time"
 
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/audacity"
@@ -197,8 +200,15 @@ var projectReaderRole = func() (dawport.ProjectReader, error) {
 	return dawport.Role[dawport.ProjectReader](resolver, dawport.CapProjectRead)
 }
 
-// readProject is tracks.go's, chapterlinks.go's and recordedlengths.go's shared way to parse a saved .rpp each asks the resolver for the dawport.ProjectReader role instead of calling tracks.Parse directly.
-func readProject(path string) (tracks.Project, error) {
+// readProject is the host's one way to read a saved project file (a REAPER .rpp, or an Audacity snapshot): tracks.go, chapterlinks.go,
+// recordedlengths.go and the analyses (projectFileReader) all come here. The parse is kept while the file's path, modification time and
+// size are unchanged (savedProjects), so a call on an unchanged file costs a stat. The Project it returns is shared: callers read it and
+// never write into it (mergeLiveTracks copies the tracks it changes).
+func readProject(path string) (tracks.Project, error) { return savedProjects.read(path, parseProject) }
+
+// parseProject reads the file at path: an Audacity snapshot through the Audacity adapter's reader, anything else through the DAW port's
+// project-read role (a REAPER .rpp).
+func parseProject(path string) (tracks.Project, error) {
 	if audacity.IsSnapshot(path) {
 		return audacity.SnapshotReader{}.ReadProject(path)
 	}
@@ -209,6 +219,110 @@ func readProject(path string) (tracks.Project, error) {
 	return reader.ReadProject(path)
 }
 
+// projectCacheSize is how many saved projects the cache keeps: the selected file and the one it was switched from, with room to spare.
+const projectCacheSize = 4
+
+// projectCache keeps the parse of each of the last few saved project files while its path, modification time and size are unchanged (#3287).
+// What invalidates an entry is the file's own change: a rewrite that keeps both its size and its modification time is not seen, the trade
+// the manuscript's parse cache makes too. A parse that fails is not kept.
+type projectCache struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	entries []projectCacheEntry // oldest first
+}
+
+type projectCacheEntry struct {
+	path    string
+	modTime time.Time
+	size    int64
+	project tracks.Project
+}
+
+// read answers path's parse from the cache, or parses it (parse) and keeps it. A file that cannot be examined is parsed, so the parser
+// reports why.
+func (c *projectCache) read(path string, parse func(string) (tracks.Project, error)) (tracks.Project, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return parse(path)
+	}
+	if project, ok := c.lookup(path, info); ok {
+		return withCurrentSources(project), nil
+	}
+	// Parsed outside the lock: a slow parse of one project must not hold up cached reads of another. Two callers that miss together parse twice.
+	project, err := parse(path)
+	if err != nil {
+		c.forget(path)
+		return tracks.Project{}, err
+	}
+	c.mu.Lock()
+	c.entries = slices.DeleteFunc(c.entries, func(entry projectCacheEntry) bool { return entry.path == path })
+	if len(c.entries) >= projectCacheSize {
+		c.entries = c.entries[1:]
+	}
+	c.entries = append(c.entries, projectCacheEntry{path: path, modTime: info.ModTime(), size: info.Size(), project: project})
+	c.mu.Unlock()
+	// The caller gets a copy, as on a hit: what it writes into never reaches the cached parse.
+	return withCurrentSources(project), nil
+}
+
+func (c *projectCache) lookup(path string, info os.FileInfo) (tracks.Project, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, entry := range c.entries {
+		if entry.path == path && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+			return entry.project, true
+		}
+	}
+	return tracks.Project{}, false
+}
+
+func (c *projectCache) forget(path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = slices.DeleteFunc(c.entries, func(entry projectCacheEntry) bool { return entry.path == path })
+}
+
+// withCurrentSources is project with each item's and take's SourceAvailable asked of the disk again: the parse records whether the
+// audio file was there, and that changes without the .rpp changing (a take deleted, a drive mounted). It copies the tracks it changes,
+// so the cached parse stays as it was.
+func withCurrentSources(project tracks.Project) tracks.Project {
+	list := make([]tracks.Track, len(project.Tracks))
+	for i, track := range project.Tracks {
+		track.Items = slices.Clone(track.Items)
+		for j := range track.Items {
+			item := &track.Items[j]
+			item.SourceAvailable = sourceAvailable(item.SourceFile, item.SourceAvailable)
+			item.Takes = slices.Clone(item.Takes)
+			for k := range item.Takes {
+				take := &item.Takes[k]
+				take.SourceAvailable = sourceAvailable(take.SourceFile, take.SourceAvailable)
+			}
+		}
+		list[i] = track
+	}
+	project.Tracks = list
+	return project
+}
+
+// sourceAvailable is whether file is a readable file now; a source with no file (an Audacity clip) keeps what the reader said.
+func sourceAvailable(file string, parsed bool) bool {
+	if file == "" {
+		return parsed
+	}
+	info, err := os.Stat(file)
+	return err == nil && !info.IsDir()
+}
+
+// reset forgets every parse. Only for tests, and benchmarks that want a cold read.
+func (c *projectCache) reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = nil
+}
+
+// savedProjects is the host's one cache of saved project parses.
+var savedProjects = &projectCache{}
+
 // projectFileReader is the offline reader the analyses are given (coverage, editing, the character bible, voice samples): a REAPER
 // project through the REAPER adapter, or an Audacity snapshot through the Audacity adapter's, told apart by the file (the snapshot's
 // fixed name), never by a label from the page.
@@ -216,9 +330,4 @@ type projectFileReader struct{}
 
 var _ dawport.ProjectReader = projectFileReader{}
 
-func (projectFileReader) ReadProject(path string) (tracks.Project, error) {
-	if audacity.IsSnapshot(path) {
-		return audacity.SnapshotReader{}.ReadProject(path)
-	}
-	return reaper.ProjectReader{}.ReadProject(path)
-}
+func (projectFileReader) ReadProject(path string) (tracks.Project, error) { return readProject(path) }

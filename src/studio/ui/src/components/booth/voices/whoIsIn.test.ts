@@ -125,8 +125,10 @@ describe('who is in it', () => {
       ['{NEW}', 0, true],
       ['{NN}', 1, false],
     ]);
-    expect(folderVoices(merged, '{NEW}', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }).map((voice) => voice.guid)).toEqual([
-      '{NN}',
-    ]);
+    expect(
+      folderVoices(merged, '{NEW}', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }).map(
+        (voice) => voice.guid,
+      ),
+    ).toEqual(['{NN}']);
   });
 });
