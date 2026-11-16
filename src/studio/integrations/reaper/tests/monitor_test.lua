@@ -460,3 +460,40 @@ H.test('monitor_restore refuses a second argument it does not know and changes n
   H.eq(s:events(), { { 'ERROR', 'm1', 'Unsupported monitor_restore argument.' } })
   H.eq(monitors(s), { 0, 1, 0 })
 end)
+
+H.test("choosing another voice puts the earlier voice's monitoring back at once, not on a later tick", function()
+  local s, narrator, veyra = new_session()
+  -- A ghost row has been tried already, so the tick has nothing new to try until the project or its track count changes.
+  H.write_file(s:path('narration_monitor_ledger.txt'), '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\n')
+  s:tick()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+  H.eq(monitors(s), { 0, 1, 0 })
+end)
+
+-- A symlink to /dev/full opens for writing and fails when the buffer is flushed on close: a disk that is full.
+local function full_disk_ledger(s)
+  os.remove(s:path('narration_monitor_ledger.txt'))
+  H.truthy(os.execute("ln -s /dev/full '" .. s:path('narration_monitor_ledger.txt') .. "'"), 'the harness can make a symlink')
+end
+
+H.test('monitoring is not turned on when the ledger write fails on close, as on a full disk', function()
+  local s, _, veyra = new_session()
+  full_disk_ledger(s)
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  H.eq(s:events(), { { 'ARMED', 'a1', veyra.guid, '0', '1', '0' } })
+  H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('a ledger that could not be written after a lane was put back is written again on a tick', function()
+  local s, narrator, veyra = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+  full_disk_ledger(s)
+  s:send('monitor_restore', 'm0', 'cancel')
+  veyra.rec_mon = 1
+  s:send('arm_lane', 'a3', veyra.guid, 'monitor')
+  os.remove(s:path('narration_monitor_ledger.txt'))
+  s:tick()
+  H.eq(ledger(s), row(s, veyra), 'the file lists the lane that is still monitored, and no other')
+end)

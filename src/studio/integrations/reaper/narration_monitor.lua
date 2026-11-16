@@ -1,6 +1,7 @@
 -- Input monitoring for the Booth's lane (REAPER's I_RECMON), loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk
 -- argument. The Booth records the narrator's voice, who needs to hear it, so arm_lane (narration_transport.lua) with its `monitor` argument
--- turns monitoring on for the lane it arms when the track has it off, through monitor_lane below. Nothing here asks REAPER anything else.
+-- turns monitoring on for the lane it arms when the track has it off, through monitor_lane below. It reads the track list, the play state and the
+-- open project, and writes only I_RECMON and its ledger file.
 --
 -- I_RECMON reads 0 (off), 1 (on) or 2 (on, but silent while recording: REAPER's "auto" tape mode). Only 0 is changed: a track the narrator
 -- already monitors, in either way, is left exactly as it is, and is not ours to put back. Setting it adds no undo point, does not mark
@@ -124,7 +125,8 @@ return function(registry)
     for _, row in ipairs(state.rows) do
       all[#all + 1] = row
     end
-    return save(all)
+    state.unsaved = not save(all)
+    return not state.unsaved
   end
 
   -- Once per bridge start: puts back the rows a closed or crashed REAPER left in the file. Every path that writes the file runs it first, since a
@@ -139,13 +141,13 @@ return function(registry)
       return
     end
     local rows = {}
-    -- A file that cannot be read (a folder of that name) has no rows.
+    -- A file that cannot be read (a folder of that name) has no rows, and only its first 64 KB is read.
     pcall(function()
-      for line in input:lines() do
+      for line in (input:read(65536) or ''):gmatch('[^\n]+') do
         -- Only a 0 is something this file turns on from, so no other value is ever written back.
         local guid = line:match('^([^\t]+)\t0$')
         if guid then
-          rows[#rows + 1] = { guid = normalize_guid(guid), was = 0 }
+          rows[#rows + 1] = { guid = guid, was = 0 }
         end
       end
     end)
@@ -226,13 +228,17 @@ return function(registry)
     event(ctx.session_dir, 'MONITOR_RESTORED', run, restored, kept, 0)
   end)
 
-  -- Called by the tick loop once a tick: recovers the file, finishes a restore that waited for a recording to stop, and tries the ghosts again when the
+  -- Called by the tick loop once a tick: recovers the file, rewrites a ledger that could not be written, finishes a restore that waited for a recording to stop, and tries the ghosts again when the
   -- project in front or its track count has changed since they were last tried.
   registry.monitor_tick = function()
     if busy() then
       return
     end
     recover()
+    -- A ledger that could not be written after lanes were put back would still list them: it is written again.
+    if state.unsaved then
+      persist()
+    end
     if state.waiting then
       state.waiting = false
       release()

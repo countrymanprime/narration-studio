@@ -3878,5 +3878,11 @@
     "file": "narration_transport.lua",
     "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
     "replace": "      if row.set_mute ~= nil then\n"
+  },
+  {
+    "name": "a ledger that could not be written is never written again",
+    "file": "narration_monitor.lua",
+    "find": "    if state.unsaved then\n      persist()",
+    "replace": "    if false then\n      persist()"
   }
 ]
