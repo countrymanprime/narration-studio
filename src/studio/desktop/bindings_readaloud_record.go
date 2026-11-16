@@ -207,18 +207,22 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	if refused != nil {
 		return *refused, nil
 	}
-	if reader != nil {
+	// Whether REAPER plays or records is in the heartbeat, which REAPER sends at once when either starts or stops (#3360): the bridge is
+	// asked (without the track's items) only when the heartbeat cannot tell. record_start itself refuses a playing or recording REAPER.
+	playing, recording, known := heartbeatTransport(svc)
+	if !known && reader != nil {
 		state, err := dawport.TrackStateNoItems(ctx, reader, guid)
-		timeline.Mark("track_state")
+		timeline.Mark("track_state") // stamped only when a track was read: the heartbeat's answer costs nothing to time
 		if err != nil {
 			return readAloudRecordRefusal(name, err), nil
 		}
-		switch {
-		case state.Recording:
-			return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
-		case state.Playing:
-			return readAloudRecordRefusal(name, bridge.ErrPlaying), nil
-		}
+		playing, recording = state.Playing, state.Recording
+	}
+	switch {
+	case recording:
+		return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
+	case playing:
+		return readAloudRecordRefusal(name, bridge.ErrPlaying), nil
 	}
 	armed, err := recorder.ArmOnly(ctx, guid)
 	timeline.Mark("armed")
@@ -406,4 +410,13 @@ func (h *Host) stopReadAloudRecordingOnShutdown() {
 		_, _ = recorder.RecordStop(ctx)
 	}
 	h.clearReadAloudRecording()
+}
+
+// heartbeatTransport is whether REAPER plays and records as its last fresh heartbeat said, and whether that is known.
+func heartbeatTransport(svc hostServices) (playing, recording, known bool) {
+	if svc.reachability == nil {
+		return false, false, false
+	}
+	transport, known := svc.reachability.Transport()
+	return transport.Playing, transport.Recording, known
 }
