@@ -156,7 +156,7 @@ const popGuard = {
   /** True while a page's leave guard asks before leaving. */
   leaveHeld: (): boolean => false,
   /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
-  askLeave: null as ((direction: 1 | -1) => void) | null,
+  askLeave: null as ((direction: 1 | -1, settled?: boolean) => void) | null,
 };
 /**
  * A field that saves when it loses focus (a Settings row, a due date, a limit) keeps what was typed as a draft until then, and a page that goes away under the
@@ -266,7 +266,7 @@ if (typeof window !== 'undefined') {
       : modalHolds
         ? () => {}
         : settled
-          ? (direction: 1 | -1) => void setTimeout(() => popGuard.askLeave?.(direction), SETTLE_MS)
+          ? (direction: 1 | -1) => void setTimeout(() => popGuard.askLeave?.(direction, true), SETTLE_MS)
           : popGuard.askLeave;
     if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
       popGuard.idx = next;
@@ -341,7 +341,7 @@ function AppRoutes() {
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
-  const attemptDeltaRef = useRef<(direction: 1 | -1, fromPop?: boolean) => void>(() => {});
+  const attemptDeltaRef = useRef<(direction: 1 | -1, fromPop?: boolean, settled?: boolean) => void>(() => {});
   const guardedForwardRef = useRef<() => void>(() => {});
   const prevPathnameRef = useRef(location.pathname);
   // The page the last move left. `unexpectedPop` is set one render after the location changes, by which time
@@ -752,10 +752,10 @@ function AppRoutes() {
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
-  const guardedNavigateRef = useRef<(next: string, state?: unknown, after?: () => void) => void>(() => {});
+  const guardedNavigateRef = useRef<(next: string, state?: unknown, after?: () => void, settled?: boolean) => void>(() => {});
   // Opening the project picker draws it in place of the shell, which takes the page down: it is an exit like any other, so a page's leave guard asks
   // first (the Booth while a take records or a start is out). Set below, where the guard's answer is read.
-  const guardedPickerRef = useRef<() => void>(() => {});
+  const guardedPickerRef = useRef<(settled?: boolean) => void>(() => {});
   const openProjectPicker = () => guardedPickerRef.current();
   // A jump-menu move closes the project picker drawn over the project. When the address changes, the path effect below closes it once the move
   // has landed (closing first mounts the old page again, and the Booth rewrites its own address, undoing the move). When it stays the same (a
@@ -955,7 +955,7 @@ function AppRoutes() {
   useEffect(() => {
     popGuard.ask = (direction) => openMove({ kind: 'delta', direction });
     popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
-    popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
+    popGuard.askLeave = (direction, settled) => attemptDeltaRef.current(direction, true, settled);
     popGuard.idx = historyIdx();
     return () => {
       popGuard.ask = null;
@@ -1136,10 +1136,11 @@ function AppRoutes() {
   // The page's own question when it has one (the Booth's stops the take and keeps the narrator in the Booth when the DAW refuses), else the plain confirm.
   const answerLeave = (verdict: Exclude<ReturnType<typeof journal.checkLeave>, 'allow'>) => (verdict.decide ? verdict.decide() : overlay.confirm(verdict.ask));
   // `after` is the caller's side effect of the move (closing the panel the link was in): it runs only when the move goes ahead, never when the question is cancelled.
-  const guardedMove = (next: string, state?: unknown, after?: () => void) => {
-    // A box that saves on blur reports its edit a moment after it loses the focus: the exit is decided then, with the flags it set.
-    if (settleFocusedField()) {
-      setTimeout(() => guardedNavigateRef.current(next, state, after), SETTLE_MS);
+  const guardedMove = (next: string, state?: unknown, after?: () => void, settled = false) => {
+    // A box that saves on blur reports its edit a moment after it loses the focus: the exit is decided then, with the flags it set. Once: a field that
+    // takes the focus back on blur would otherwise be settled for ever and the question never open (#3541).
+    if (!settled && settleFocusedField()) {
+      setTimeout(() => guardedNavigateRef.current(next, state, after, true), SETTLE_MS);
       return;
     }
     const nextPath = next.split(/[?#]/)[0] || '/';
@@ -1160,9 +1161,9 @@ function AppRoutes() {
     guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
   };
   guardedNavigateRef.current = guardedMove;
-  guardedPickerRef.current = () => {
-    if (settleFocusedField()) {
-      setTimeout(() => guardedPickerRef.current(), SETTLE_MS);
+  guardedPickerRef.current = (settled = false) => {
+    if (!settled && settleFocusedField()) {
+      setTimeout(() => guardedPickerRef.current(true), SETTLE_MS);
       return;
     }
     const verdict = journal.checkLeave('');
@@ -1199,9 +1200,9 @@ function AppRoutes() {
   // a Proof chapter view with a run resets the run. Each moves exactly one page, and does nothing where `useAppHistory` already
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).
-  const attemptDelta = (direction: 1 | -1, fromPop = false) => {
-    if (settleFocusedField()) {
-      setTimeout(() => attemptDeltaRef.current(direction, fromPop), SETTLE_MS);
+  const attemptDelta = (direction: 1 | -1, fromPop = false, settled = false) => {
+    if (!settled && settleFocusedField()) {
+      setTimeout(() => attemptDeltaRef.current(direction, fromPop, true), SETTLE_MS);
       return;
     }
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.

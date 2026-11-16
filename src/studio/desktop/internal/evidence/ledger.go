@@ -74,7 +74,7 @@ type LedgerScope struct {
 
 // LedgerFingerprint is the fingerprint state a record was computed against,
 // so the evaluator can compare it to the project's fingerprints now.
-// ItemFingerprints, AnalysisKeys and ItemFacts are all keyed by item GUID.
+// ItemFingerprints, AnalysisKeys and ItemFacts are all keyed by item GUID (a second item that repeats a GUID in one chapter is keyed "GUID#2", and so on: itemKey).
 type LedgerFingerprint struct {
 	TrackFingerprint TrackFingerprint           `json:"trackFingerprint"`
 	ItemFingerprints map[string]ItemFingerprint `json:"itemFingerprints,omitempty"`
