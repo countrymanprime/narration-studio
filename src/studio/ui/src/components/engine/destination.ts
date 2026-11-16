@@ -1,3 +1,4 @@
+import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
 import { trackName as readable } from '../tracks/trackName';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
@@ -35,16 +36,19 @@ export function destinationFor(layout: VoiceTracksLayout) {
     missingTitle: (chapter: string) => `${chapter}’s ${noun} is not in the project`,
     notLinkedChip: `Not linked to a ${noun}`,
     severalChip: folders ? 'Linked to several folders' : 'Linked to several tracks',
+    missingChip: LINK_STATE_LABEL.missing,
     linkButton: `Link ${noun}`,
     pickerLabel: (chapter: string) => `${folders ? 'Folder' : 'Track'} for ${chapter}`,
     /** The Booth dialog's sentence while Record waits for a link. */
     recordWaits: (chapter: string) => `Record can't start until ${chapter} has ${a} to record on.`,
+    recordWaitsMissing: (chapter: string) => `Record can't start until ${chapter} is linked to ${a} that is in the project.`,
     recordWaitsSeveral: (chapter: string) => `Record can't start: a take needs exactly one ${noun} for ${chapter}. Linking one replaces the others.`,
     /** The footer's reason beside Record. */
     footerNoLink: (chapter: string) => `${chapter} has no ${noun} to record on. Press Record to link one.`,
     linkedToast: (chapter: string) => `${chapter} is linked to its ${noun}. Press Record when you are ready.`,
     /** The setup chip's words and tooltip sentence for a chapter with no link or several. */
     chipNoTrack: { words: `no ${noun}`, sentence: `this chapter has no ${noun} to record on` },
+    chipMissing: { words: LINK_STATE_LABEL.missing.toLowerCase(), sentence: `this chapter’s ${noun} is not in the project` },
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),

@@ -637,7 +637,7 @@ function BoothSession({
   // the notices answer, so each one reopens its dialog.
   const [recordAsks, setRecordAsks] = useState(0);
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
-  const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
+  const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks' || control.gate?.cause === 'track_missing');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
   // What the top-bar chip says besides the DAW's own state: the Booth's gate first (the same finding its notices and footer word), then what
   // the DAW answered for the chapter. A state in which Record still works (another track armed) is not shown.
@@ -647,7 +647,9 @@ function BoothSession({
       ? 'no_track'
       : control.gate?.cause === 'several_tracks'
         ? 'several_tracks'
-        : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
+        : control.gate?.cause === 'track_missing'
+          ? 'track_missing'
+          : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
           ? 'recording_elsewhere'
           : control.dawStatus === 'unavailable'
             ? 'not_connected'
@@ -657,7 +659,7 @@ function BoothSession({
   const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
-      ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
+      ((block.cause === 'no_track' || block.cause === 'several_tracks' || block.cause === 'track_missing') && linkProblem) ||
       ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
     if (noticeUp) return setRecordAsks((n) => n + 1);
     overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
@@ -833,7 +835,7 @@ function BoothSession({
                       chapterId={recordId}
                       chapterName={recordName}
                       dawName={page.dawName}
-                      several={control.gate?.cause === 'several_tracks'}
+                      state={control.gate?.cause === 'several_tracks' ? 'several' : control.gate?.cause === 'track_missing' ? 'missing' : 'unlinked'}
                       create={capabilities.capabilities.track_create}
                       asked={recordAsks}
                       onLinked={linked}

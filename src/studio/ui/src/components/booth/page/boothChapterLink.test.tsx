@@ -208,6 +208,16 @@ describe('an unlinked chapter in the Booth', () => {
     expect(await screen.findByRole('dialog', { name: 'Chapter One is linked to more than one track' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Linked to several tracks. Show details', hidden: true })).toBeTruthy();
   });
+
+  // #3368: the Engine says "Track missing" for a link to a track the project no longer has; the Booth said "Not linked to a track".
+  it('a chapter whose linked track is gone says so, not that it is not linked', async () => {
+    renderUnlinked({
+      readAloudReaperState: async () => ({ ...UNLINKED, reason: 'track_missing', message: 'The track linked to "Chapter 1" is no longer in the REAPER project.' }),
+    } as Partial<NarrationApi>);
+    expect(await screen.findByRole('dialog', { name: /’s track is not in the project$/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Track missing. Show details', hidden: true })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Not linked to a track. Show details', hidden: true })).toBeNull();
+  });
 });
 
 describe('every other press that cannot start a take is said in front of the narrator', () => {
