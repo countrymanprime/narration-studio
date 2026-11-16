@@ -221,7 +221,7 @@ func TestSummaryFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	denyRead(t, path)
+	makeUnreadable(t, path)
 	if _, err := store.Summary(); err == nil {
 		t.Fatal("Summary must report a scope file it cannot read, not undercount")
 	}

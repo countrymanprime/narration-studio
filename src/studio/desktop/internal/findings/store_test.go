@@ -5,67 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 
 	"desktop/internal/persist"
 )
-
-// denyListing removes the current user's permission to list dir's own
-// contents (icacls "(RD)") without touching whether dir itself is visible as
-// an entry of its parent, so it reproduces a real, portable
-// permission-denied os.ReadDir failure on Windows (this repo only runs
-// locally on Windows; CI is the same). It restores the permission via
-// t.Cleanup so the temp directory can still be removed afterwards.
-func denyListing(t *testing.T, dir string) {
-	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("permission-denied simulation uses icacls, which is Windows-only")
-	}
-	user := os.Getenv("USERNAME")
-	if user == "" {
-		t.Skip("USERNAME is not set; cannot target an icacls deny rule")
-	}
-	if out, err := exec.Command("icacls", dir, "/deny", user+":(RD)").CombinedOutput(); err != nil {
-		t.Skipf("icacls deny unavailable in this environment: %v: %s", err, out)
-	}
-	t.Cleanup(func() {
-		_, _ = exec.Command("icacls", dir, "/remove:d", user).CombinedOutput()
-	})
-	// An elevated process (as on CI runners) holds backup privilege, and Go
-	// opens directories with backup semantics, so the deny is not enforced.
-	if _, err := os.ReadDir(dir); err == nil {
-		t.Skip("icacls deny is not enforced for this (elevated) process")
-	}
-}
-
-// denyRead removes the current user's permission to read path's own data
-// ("(RD)" on a file means read data, not list-directory), so a later
-// os.ReadFile on it fails with a real, portable permission error rather than
-// fs.ErrNotExist. It restores the permission via t.Cleanup.
-func denyRead(t *testing.T, path string) {
-	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("permission-denied simulation uses icacls, which is Windows-only")
-	}
-	user := os.Getenv("USERNAME")
-	if user == "" {
-		t.Skip("USERNAME is not set; cannot target an icacls deny rule")
-	}
-	if out, err := exec.Command("icacls", path, "/deny", user+":(RD)").CombinedOutput(); err != nil {
-		t.Skipf("icacls deny unavailable in this environment: %v: %s", err, out)
-	}
-	t.Cleanup(func() {
-		_, _ = exec.Command("icacls", path, "/remove:d", user).CombinedOutput()
-	})
-	// See denyListing: an elevated process reads past the deny.
-	if _, err := os.ReadFile(path); err == nil {
-		t.Skip("icacls deny is not enforced for this (elevated) process")
-	}
-}
 
 func testFinding(id, chapter string, evidenceVersion string) Finding {
 	return Finding{
@@ -531,7 +476,7 @@ func TestScopeFilesFailsWhenAnAnalyzerSubdirectoryCannotBeListed(t *testing.T) {
 	}
 
 	analyzerDir := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare")
-	denyListing(t, analyzerDir)
+	makeUnreadable(t, analyzerDir)
 
 	if _, err := store.List(Query{}); err == nil {
 		t.Fatal("List must fail when an analyzer subdirectory exists but cannot be listed")
@@ -685,7 +630,7 @@ func TestListFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	}
 
 	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
-	denyRead(t, scopePath)
+	makeUnreadable(t, scopePath)
 
 	if _, err := store.List(Query{}); err == nil {
 		t.Fatal("List must surface a real read failure on a scope file scopeFiles already found, not swallow it")
@@ -700,7 +645,7 @@ func TestGetFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	}
 
 	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
-	denyRead(t, scopePath)
+	makeUnreadable(t, scopePath)
 
 	if _, _, err := store.Get("f1"); err == nil {
 		t.Fatal("Get must surface locate's read failure on a scope file, not swallow it")
