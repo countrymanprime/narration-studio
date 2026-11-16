@@ -101,6 +101,10 @@ type Token = UnitWords['words'][number];
 const GHOST =
   'outline-dashed outline-[0.06em] outline-offset-[0.04em] outline-[var(--text-muted)] bg-[color-mix(in_srgb,var(--text-muted)_14%,transparent)] after:absolute after:top-[-0.34em] after:left-1/2 after:h-[0.22em] after:-translate-x-1/2 after:border-l-[0.07em] after:border-dashed after:border-[var(--text-muted)] after:content-[""]';
 
+// The chosen start's mark: an accent underline under the sentence's first word, in a second channel (shape) besides the sentence's tint, and
+// clear of the cursor's fill and the ghost's dashed outline.
+const START = 'underline decoration-[var(--accent)] decoration-[0.14em] underline-offset-[0.22em]';
+
 // What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
 // the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own
 // fill and text colour, and a word already read is dimmed.
@@ -158,6 +162,9 @@ const UnitView = memo(function UnitView({
           const said = mode === 'cur' && token.index < wcur;
           const read = mode === 'done' || said;
           const heard = token.index === ghost;
+          // The chosen start (Start from here) is the first word of its sentence, which is where the take really starts: marked on the word itself,
+          // so it shows with the side panel closed, in a small window, and during a take (when the cursor is the voice's and moved elsewhere).
+          const start = from && token.index === 0;
           const look = wordLook(token, now, said);
           return (
             <Fragment key={token.index}>
@@ -166,16 +173,19 @@ const UnitView = memo(function UnitView({
                 data-current={now ? '' : undefined}
                 data-read={read ? '' : undefined}
                 data-ghost={heard ? '' : undefined}
+                data-start={start ? '' : undefined}
                 data-find={token.find ? (token.find.kind === 'find' && token.find.current ? 'current' : 'match') : undefined}
                 aria-current={now ? 'true' : undefined}
-                aria-description={now ? 'Current word' : heard ? 'Cold read: heard here' : undefined}
+                aria-description={
+                  [now ? 'Current word' : heard ? 'Cold read: heard here' : '', start ? 'Next take starts here' : ''].filter(Boolean).join('. ') || undefined
+                }
                 title={token.mark?.title}
                 style={look}
                 className={`relative rounded-[0.12em] motion-ok:transition-colors ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
-                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''}`}
+                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''} ${start ? START : ''}`}
               >
                 {token.text}
               </span>
