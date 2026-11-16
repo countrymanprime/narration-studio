@@ -24,13 +24,18 @@ type closeGate struct {
 
 	mu sync.Mutex
 	// armed is true while the page holds a draft.
+	// +checklocks:mu
 	armed bool
 	// asking is true from the request until the page answers (or the page was found not to answer).
+	// +checklocks:mu
 	asking bool
 	// confirmed lets the next close through: the narrator said yes, or the page could not be asked.
+	// +checklocks:mu
 	confirmed bool
-	timer     *time.Timer
+	// +checklocks:mu
+	timer *time.Timer
 	// generation numbers each question, so a timer from an earlier one cannot close the window under a later one.
+	// +checklocks:mu
 	generation int
 }
 
@@ -63,6 +68,7 @@ func (g *closeGate) closing() bool {
 }
 
 // restartTimer starts the wait for the page to say it received the current request; the caller holds g.mu.
+// +checklocks:g.mu
 func (g *closeGate) restartTimer() {
 	if g.timer != nil {
 		g.timer.Stop()
