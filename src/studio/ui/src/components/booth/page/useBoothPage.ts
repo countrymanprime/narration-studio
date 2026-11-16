@@ -1091,6 +1091,7 @@ export function useBoothPage(options: BoothPageOptions) {
       settle: control.settle,
       endConfirmed: control.endConfirmed,
       endUnconfirmed: control.endUnconfirmed,
+      dawRecordingNow: () => daw.projectState().then((state) => state.playState === 'recording'),
       flush: writer.flush,
       arrived,
     },
