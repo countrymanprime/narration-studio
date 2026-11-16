@@ -121,6 +121,9 @@ func TestLeavingTheBoothPutsTheMonitoringBack(t *testing.T) {
 	if got := dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeVoiceRecorder{}); !reflect.DeepEqual(got, dawport.Result{OK: true}) {
 		t.Fatalf("a DAW with no monitoring to put back: %+v", got)
 	}
+	if got := dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeLaneRecorder{laneErr: bridge.ErrScriptOutdated}); !reflect.DeepEqual(got, dawport.Result{OK: true}) {
+		t.Fatalf("a script from before the command: %+v", got)
+	}
 	refused := dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeLaneRecorder{laneErr: context.DeadlineExceeded})
 	if refused.OK || !strings.Contains(refused.Refused, "did not") {
 		t.Fatalf("a DAW that did not answer: %+v", refused)

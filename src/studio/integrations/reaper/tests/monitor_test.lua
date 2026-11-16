@@ -156,6 +156,17 @@ H.test('monitor_restore while REAPER records touches nothing, and puts the monit
   H.eq(ledger(s), nil)
 end)
 
+H.test('a restore that waited does not take back a lane monitored after the recording stopped', function()
+  local s, narrator, veyra = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s.fake.play_state = 5
+  s:send('monitor_restore', 'm1')
+  s.fake.play_state = 0
+  s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+  s:tick()
+  H.eq(monitors(s), { 0, 1, 0 }, 'the Booth was entered again, so its lane stays monitored')
+end)
+
 H.test('a restore that waited does nothing when there was nothing to put back', function()
   local s = new_session()
   s.fake.play_state = 5

@@ -3770,5 +3770,11 @@
     "file": "narration_transport.lua",
     "find": "args[3] == 'monitor' and registry.monitor_lane or nil",
     "replace": "registry.monitor_lane"
+  },
+  {
+    "name": "a restore that waited takes back a lane monitored after the recording stopped",
+    "file": "narration_monitor.lua",
+    "find": "    -- The Booth is entered again: a restore that waited for a recording to stop is not to take this lane's monitoring back.\n    state.waiting = false\n",
+    "replace": ""
   }
 ]

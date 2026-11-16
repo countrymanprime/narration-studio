@@ -85,6 +85,10 @@ func dawReleaseBoothMonitorIn(ctx context.Context, name string, recorder dawport
 	}
 	released, err := releaser.ReleaseMonitor(ctx)
 	if err != nil {
+		// A script from before this command never turned any monitoring on, so there is nothing to put back and nothing to say.
+		if errors.Is(err, bridge.ErrScriptOutdated) {
+			return dawport.Result{OK: true}
+		}
 		return dawport.Refused(boothArmRefusal(name, err))
 	}
 	return dawport.Result{OK: true, Changed: released.Restored > 0}

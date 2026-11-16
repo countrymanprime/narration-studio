@@ -83,6 +83,8 @@ return function(registry)
 
   -- Turns monitoring on for `track` when it is off, after putting back the other lanes this file monitored. Answers 1 when it turned it on.
   registry.monitor_lane = function(track)
+    -- The Booth is entered again: a restore that waited for a recording to stop is not to take this lane's monitoring back.
+    state.waiting = false
     local guid = normalize_guid(reaper.GetTrackGUID(track))
     local others, mine = {}, nil
     for _, row in ipairs(state.rows) do
