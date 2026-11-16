@@ -8,8 +8,10 @@ afterEach(cleanup);
 function mount(drawer: Drawer, onClose = vi.fn()) {
   render(
     <div>
-      <aside aria-label="Primary navigation">
-        <a href="#nav">Production</a>
+      <aside>
+        <nav aria-label="Primary navigation">
+          <a href="#nav">Production</a>
+        </nav>
       </aside>
       <button aria-expanded={drawer === 'ch'}>Chapters</button>
       <ScriptColumns drawer={drawer} onClose={onClose} chapters={<button>Chapter one</button>} reader={<p>Reader</p>} rail={<button>Rail tool</button>} />

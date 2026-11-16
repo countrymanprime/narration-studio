@@ -82,20 +82,23 @@ export const ActiveWithCount: Story = { args: { active: true, icon: faWaveSquare
 // The collapsed rail (medium widths in AppShell): the label becomes the aria-label and the tooltip.
 export const IconRail: Story = {
   render: () => (
-    <nav className={railFrame} aria-label="Primary navigation">
-      <NavButton active icon={faHouse} onClick={fn()} iconOnly>
-        Home
-      </NavButton>
-      <NavButton active={false} icon={faFileLines} onClick={fn()} iconOnly disabled disabledReason={MANUSCRIPT_REQUIRED_REASON}>
-        Manuscript
-      </NavButton>
-      <NavButton active={false} icon={faWaveSquare} onClick={fn()} iconOnly disabled disabledReason={MANUSCRIPT_REQUIRED_REASON}>
-        Proofing
-      </NavButton>
+    // As the shell draws it: an unnamed complementary holding the named navigation of pages, and the Settings item outside that list.
+    <aside className={railFrame}>
+      <nav className="flex flex-col gap-1" aria-label="Primary navigation">
+        <NavButton active icon={faHouse} onClick={fn()} iconOnly>
+          Home
+        </NavButton>
+        <NavButton active={false} icon={faFileLines} onClick={fn()} iconOnly disabled disabledReason={MANUSCRIPT_REQUIRED_REASON}>
+          Manuscript
+        </NavButton>
+        <NavButton active={false} icon={faWaveSquare} onClick={fn()} iconOnly disabled disabledReason={MANUSCRIPT_REQUIRED_REASON}>
+          Proofing
+        </NavButton>
+      </nav>
       <NavButton active={false} icon={faGear} onClick={fn()} iconOnly>
         Settings
       </NavButton>
-    </nav>
+    </aside>
   ),
 };
 

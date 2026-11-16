@@ -179,6 +179,18 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
+  it('names the list Primary navigation and leaves the complementary around it unnamed, so the old name cannot come back (#159)', () => {
+    renderShell();
+    const panel = screen.getByRole('complementary');
+    expect(panel.hasAttribute('aria-label')).toBe(false);
+    expect(panel.hasAttribute('aria-labelledby')).toBe(false);
+    expect(screen.queryByRole('complementary', { name: 'Primary navigation' })).toBeNull();
+    const list = within(panel).getByRole('navigation', { name: 'Primary navigation' });
+    // The theme item and Settings sit in the same panel, outside the list.
+    expect(within(list).queryByRole('button', { name: 'Settings' })).toBeNull();
+    expect(within(panel).getByRole('button', { name: 'Settings' })).toBeTruthy();
+  });
+
   // The research mock (docs/research/mockups/research-mock, the frozen reference these values came from) draws a heading over every group but the first: Production and Schedule sit
   // straight under the brand block. The first group keeps its name for a screen reader, as an `aria-label` in place of the heading.
   it('draws a heading over every group but the first, which is named by aria-label', () => {
