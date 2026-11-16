@@ -32,11 +32,22 @@ var refusals = map[string]error{
 	"REAPER has not started recording yet.": ErrRecordingNotStarted,
 }
 
-// Armed is what arm_only did: the track it armed, how many others it disarmed, and whether anything changed.
+// Armed is what arm_only did: the track it armed, how many others it disarmed, and whether anything changed. Monitored is true when
+// arm_lane was asked to monitor and this call turned the lane's input monitoring on (it was off); a lane the narrator already monitors is
+// left alone and reads false.
 type Armed struct {
 	TrackGUID string
 	Disarmed  int
 	Changed   bool
+	Monitored bool
+}
+
+// MonitorReleased is what monitor_restore did: how many lanes' input monitoring it put back to off, and how many it kept because the
+// narrator changed them since. Waiting is true when REAPER was recording: nothing was touched and the rest is put back once the
+// recording stops, on REAPER's own next tick.
+type MonitorReleased struct {
+	Restored, Kept int
+	Waiting        bool
 }
 
 // StartRule says where recording begins. StartHere leaves the edit cursor where it is. AtEnd (the third argument of
@@ -89,12 +100,29 @@ func (a *Actions) ArmOnly(ctx context.Context, trackGUID string) (Armed, error) 
 
 // ArmLane is ArmOnly for the Booth's lane choice while no take runs (arm_lane): the same arming and the same refusals, but REAPER
 // remembers no arms to put back, so the lane stays armed after a take and the app and the DAW keep agreeing (#3429).
-func (a *Actions) ArmLane(ctx context.Context, trackGUID string) (Armed, error) {
+//
+// With monitor, REAPER also turns the lane's input monitoring on when it is off, and puts the lane it monitored before back (ReleaseMonitor
+// puts back the last one). The refusals are the same.
+func (a *Actions) ArmLane(ctx context.Context, trackGUID string, monitor bool) (Armed, error) {
+	if monitor {
+		return a.arm(ctx, "arm_lane", trackGUID, "monitor")
+	}
 	return a.arm(ctx, "arm_lane", trackGUID)
 }
 
-func (a *Actions) arm(ctx context.Context, command, trackGUID string) (Armed, error) {
-	events, err := a.request(ctx, command, []string{"ARMED", "TRACK_STALE"}, trackGUID)
+// ReleaseMonitor puts back the input monitoring ArmLane turned on (monitor_restore): to off, and only on a lane that still has it as REAPER
+// was left, so a monitoring the narrator changed meanwhile is kept. While REAPER records it changes nothing and says so (Waiting).
+func (a *Actions) ReleaseMonitor(ctx context.Context) (MonitorReleased, error) {
+	events, err := a.request(ctx, "monitor_restore", []string{"MONITOR_RESTORED"})
+	if err != nil {
+		return MonitorReleased{}, err
+	}
+	fields := events[len(events)-1].Fields
+	return MonitorReleased{Restored: int(numberAt(fields, 2)), Kept: int(numberAt(fields, 3)), Waiting: numberAt(fields, 4) != 0}, nil
+}
+
+func (a *Actions) arm(ctx context.Context, command, trackGUID string, extra ...string) (Armed, error) {
+	events, err := a.request(ctx, command, []string{"ARMED", "TRACK_STALE"}, append([]string{trackGUID}, extra...)...)
 	if err != nil {
 		return Armed{}, err
 	}
@@ -105,7 +133,7 @@ func (a *Actions) arm(ctx context.Context, command, trackGUID string) (Armed, er
 	if event.Fields[2] != normalizeGUID(trackGUID) {
 		return Armed{}, fmt.Errorf("REAPER armed another track than the one this app asked for")
 	}
-	return Armed{TrackGUID: event.Fields[2], Disarmed: int(numberAt(event.Fields, 3)), Changed: event.Fields[4] == "1"}, nil
+	return Armed{TrackGUID: event.Fields[2], Disarmed: int(numberAt(event.Fields, 3)), Changed: event.Fields[4] == "1", Monitored: numberAt(event.Fields, 5) != 0}, nil
 }
 
 // RecordStart asks REAPER to record on trackGUID, which must be the one armed track, while REAPER is stopped, from

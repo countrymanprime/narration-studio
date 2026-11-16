@@ -97,6 +97,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/leave/useBoothLeaveGuard.ts#1': no(RC),
   'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
+  'src/components/booth/page/BoothNextPage.tsx#5': no(
+    "Says that the DAW would not arm the chapter's voice on entry or put its monitoring back on leaving: the voice list's own press arms again and the setup notice's Check again reads the DAW afresh, so a retry here would repeat a call the narrator has already moved past (#3428).",
+  ),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
   'src/components/booth/page/useBoothPage.ts#3': no(RF),

@@ -107,3 +107,66 @@ export function useMoveDawOnOpen({
       .catch(() => sayRef.current('The DAW could not be moved to this chapter. Move it by hand, or press Check again.'));
   }, [enabled, follow, chapterId, canFollow, where, seconds, place]);
 }
+
+/**
+ * Entering the Booth on a chapter arms the track its next take records on (the voice chosen, else the Narrator voice) and turns that track's input
+ * monitoring on when it is off, so the narrator hears themselves before pressing Record (#3428). The page mounts this once per chapter, as
+ * `useMoveDawOnOpen`, so each chapter gone to arms its own track; it is sent once per chapter, when the DAW can arm (`canArm`) and
+ * Booth.follow_chapter_in_daw is on (`follow`). A DAW that connected long after the Booth opened is not asked (the narrator has been working by then), and
+ * one that can never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said and nothing is changed. A cold read arms
+ * nothing (`enabled` false); the arm is sent once it ends.
+ *
+ * Choosing another voice arms and monitors it through `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
+ */
+export function useArmBoothOnOpen({
+  enabled,
+  follow,
+  chapterId,
+  canArm,
+  say,
+}: {
+  enabled: boolean;
+  follow: boolean | undefined;
+  chapterId: string;
+  canArm: boolean;
+  say: (sentence: string) => void;
+}) {
+  const place = usePort('dawPlace');
+  const done = useRef(false);
+  const openedAt = useRef(Date.now());
+  const sayRef = useRef(say);
+  sayRef.current = say;
+  useEffect(() => {
+    if (!enabled || follow !== true || done.current || chapterId === '' || !canArm) return;
+    done.current = true;
+    if (Date.now() - openedAt.current > ASK_FOR_MS) return;
+    void place
+      .dawArmBoothVoice(chapterId)
+      .then((result) => {
+        if (!result.ok) sayRef.current(result.refused ?? result.message);
+      })
+      .catch(() => sayRef.current("The DAW could not arm this chapter's voice. Arm it by hand, or press Check again."));
+  }, [enabled, follow, chapterId, canArm, place]);
+}
+
+/**
+ * Leaving the Booth puts back the input monitoring it turned on (only that, and only where the narrator has not changed it since; the DAW holds a
+ * restore that waits for a recording to stop). Mounted once per Booth visit, not per chapter, so stepping through chapters keeps one voice monitored at a time
+ * without a release between. A DAW that would not answer is said (`say`): the monitoring may still be on there.
+ */
+export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
+  const place = usePort('dawPlace');
+  const sayRef = useRef(say);
+  sayRef.current = say;
+  useEffect(
+    () => () => {
+      void place
+        .dawReleaseBoothMonitor()
+        .then((result) => {
+          if (!result.ok) sayRef.current(result.refused ?? result.message);
+        })
+        .catch(() => sayRef.current('The DAW could not put its input monitoring back. Check it by hand.'));
+    },
+    [place],
+  );
+}

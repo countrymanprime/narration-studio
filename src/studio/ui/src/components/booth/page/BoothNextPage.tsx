@@ -71,7 +71,7 @@ import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -137,6 +137,9 @@ function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNo
 }
 
 function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: string) => void; exitTo: string; projectFolder: string }) {
+  // Leaving the Booth puts back the input monitoring it turned on; stepping through chapters inside it does not.
+  const overlay = useOverlay();
+  useReleaseBoothMonitorOnLeave((sentence) => sayDawArming(overlay, sentence));
   const [params, setParams] = useSearchParams();
   const asked = useMemo(() => readBoothQuery(params), [params]);
   // The pickup session the address opened; opening the Booth any other way is no session. It stays across chapter changes.
@@ -516,6 +519,14 @@ function BoothSession({
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
   // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
   const coldMode = page.coldRead.mode && !control.recording;
+  // Entering the chapter arms the voice the next take records on and monitors it (the same switch as the move above); a cold read waits for its end.
+  useArmBoothOnOpen({
+    enabled: !coldMode && source.kind === 'chapter',
+    follow: followChapterInDaw,
+    chapterId,
+    canArm: !!control.capabilities?.capabilities.record?.available,
+    say: (sentence) => sayDawArming(overlay, sentence),
+  });
   const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
@@ -962,4 +973,9 @@ function BoothSession({
       </ContextMenuHost>
     </CommandScope>
   );
+}
+
+/** What the Booth says when the DAW would not arm a voice on entry, or would not put the monitoring back on leaving: the DAW's own sentence, one toast per topic. */
+function sayDawArming(overlay: ReturnType<typeof useOverlay>, sentence: string) {
+  overlay.toast(sentence, { tone: 'error', topic: 'daw-arming' });
 }

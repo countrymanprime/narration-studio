@@ -435,6 +435,8 @@ export interface DawMockControl {
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: DawGoToWhere; seconds: number }[];
+  /** The chapters the Booth asked the DAW to arm (`dawArmBoothVoice`), oldest first, and how many times it asked to put the monitoring back (`dawReleaseBoothMonitor`). */
+  armed(): { chapterIds: string[]; releases: number };
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
   syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
@@ -493,6 +495,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
+  // What the Booth asked of the DAW's armed tracks and input monitoring (dawArmBoothVoice, dawReleaseBoothMonitor).
+  const armedChapters: string[] = [];
+  let monitorReleases = 0;
   // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
   const sync: {
     playing: boolean;
@@ -685,6 +690,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       place = { chapterId, cursor };
     },
     moves: () => moved.map((move) => ({ ...move })),
+    armed: () => ({ chapterIds: [...armedChapters], releases: monitorReleases }),
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
@@ -769,6 +775,18 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       moved.push({ chapterId, where, seconds: where === 'at' ? seconds : 0 });
       place = { chapterId, cursor: where === 'at' ? seconds : where === 'start' ? 0 : place.cursor };
       return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    // The host's answers (bindings_booth_arming.go): a DAW with no record capability is left alone without a word; a refusal carries its sentence.
+    dawArmBoothVoice: async (chapterId) => {
+      const support = currentCapabilities(live).capabilities.record;
+      if (!support?.available) return { ok: true, changed: false, message: '', undoSteps: 0 };
+      if (currentTransport(live, currentCapabilities(live)).recording) return refusedMove('REAPER is recording. Stop recording first.');
+      armedChapters.push(chapterId);
+      return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    dawReleaseBoothMonitor: async () => {
+      monitorReleases += 1;
+      return { ok: true, changed: armedChapters.length > 0, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.

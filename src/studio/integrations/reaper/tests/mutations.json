@@ -3722,5 +3722,53 @@
     "file": "narration_track_select.lua",
     "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n",
     "replace": ""
+  },
+  {
+    "name": "monitoring the narrator turned off or changed meanwhile is put back anyway",
+    "file": "narration_monitor.lua",
+    "find": "    elseif reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then",
+    "replace": "    elseif true then"
+  },
+  {
+    "name": "monitoring that was on already is set and put back as if it were ours",
+    "file": "narration_monitor.lua",
+    "find": "    if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then",
+    "replace": "    if true then"
+  },
+  {
+    "name": "monitor_restore touches the monitoring while REAPER records",
+    "file": "narration_monitor.lua",
+    "find": "    if recording() then\n      state.waiting",
+    "replace": "    if false then\n      state.waiting"
+  },
+  {
+    "name": "changing the lane leaves the earlier lane monitored",
+    "file": "narration_monitor.lua",
+    "find": "    local _, _, left = put_back(others)\n    state.rows = left\n",
+    "replace": "    state.rows = others\n"
+  },
+  {
+    "name": "a restore that waited for a recording is never finished",
+    "file": "narration_monitor.lua",
+    "find": "    if state.waiting and not recording() then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a bridge reads its own ledger back as a leftover",
+    "file": "narration_monitor.lua",
+    "find": "    if not input or #state.rows > 0 then",
+    "replace": "    if not input then"
+  },
+  {
+    "name": "a monitoring turned on is put back to on",
+    "file": "narration_monitor.lua",
+    "find": "        state.rows[#state.rows + 1] = { guid = guid, was = 0 }",
+    "replace": "        state.rows[#state.rows + 1] = { guid = guid, was = 1 }"
+  },
+  {
+    "name": "arm_lane monitors without being asked",
+    "file": "narration_transport.lua",
+    "find": "args[3] == 'monitor' and registry.monitor_lane or nil",
+    "replace": "registry.monitor_lane"
   }
 ]

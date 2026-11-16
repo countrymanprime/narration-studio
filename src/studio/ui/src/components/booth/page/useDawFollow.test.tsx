@@ -8,7 +8,7 @@ import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 
 afterEach(() => {
   cleanup();
@@ -217,5 +217,89 @@ describe('Booth.follow_chapter_in_daw (#3427)', () => {
       }),
     });
     await waitFor(() => expect(failing.result.current).toBe(true));
+  });
+});
+
+describe('arming the Booth voice on entry (#3428)', () => {
+  const base = { enabled: true, follow: true as boolean | undefined, chapterId: 'c-1', canArm: true };
+
+  it('arms the chapter once, when the DAW can arm and the switch is on', async () => {
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const say = vi.fn();
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say }), { initialProps: base, wrapper: wrapperFor({ dawArmBoothVoice }) });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+    rerender({ ...base });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+    expect(say).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing while the switch is off or unread, the DAW cannot arm, a cold read runs or there is no chapter, and asks once each allows it', async () => {
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, follow: false as boolean | undefined },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    rerender({ ...base, follow: undefined });
+    rerender({ ...base, canArm: false });
+    rerender({ ...base, enabled: false });
+    rerender({ ...base, chapterId: '' });
+    await act(async () => {});
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+    rerender({ ...base });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
+  });
+
+  it('does not arm a DAW that connected long after the Booth opened', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: { ...base, canArm: false },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    vi.setSystemTime(Date.now() + 21_000);
+    rerender({ ...base, canArm: true });
+    await act(async () => {});
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+  });
+
+  it('says a refusal and a failed call, and changes nothing else', async () => {
+    const refused = vi.fn(async () => ({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER is already recording.' }));
+    const say = vi.fn();
+    renderHook(() => useArmBoothOnOpen({ ...base, say }), { wrapper: wrapperFor({ dawArmBoothVoice: refused }) });
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith('REAPER is already recording.'));
+    const failing = vi.fn(async () => {
+      throw new Error('bridge down');
+    });
+    const sayFailure = vi.fn();
+    renderHook(() => useArmBoothOnOpen({ ...base, say: sayFailure }), { wrapper: wrapperFor({ dawArmBoothVoice: failing }) });
+    await waitFor(() => expect(sayFailure).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('putting the monitoring back on leaving the Booth (#3428)', () => {
+  it('releases once, when the Booth unmounts, and not while it stays', async () => {
+    const dawReleaseBoothMonitor = vi.fn(async () => moved);
+    const say = vi.fn();
+    const { rerender, unmount } = renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor }) });
+    rerender();
+    await act(async () => {});
+    expect(dawReleaseBoothMonitor).not.toHaveBeenCalled();
+    unmount();
+    await waitFor(() => expect(dawReleaseBoothMonitor).toHaveBeenCalledTimes(1));
+    expect(say).not.toHaveBeenCalled();
+  });
+
+  it('says a refusal and a failed call, since the monitoring may still be on', async () => {
+    const refused = vi.fn(async () => ({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER did not answer within 3 seconds.' }));
+    const say = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: refused }) }).unmount();
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith('REAPER did not answer within 3 seconds.'));
+    const failing = vi.fn(async () => {
+      throw new Error('bridge down');
+    });
+    const sayFailure = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(sayFailure), { wrapper: wrapperFor({ dawReleaseBoothMonitor: failing }) }).unmount();
+    await waitFor(() => expect(sayFailure).toHaveBeenCalledTimes(1));
   });
 });
