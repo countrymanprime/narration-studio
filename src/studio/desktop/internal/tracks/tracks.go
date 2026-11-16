@@ -283,6 +283,12 @@ func (p Project) WithAudioSkip(skip func(guid string) bool) Project {
 	return p
 }
 
+// SkipsAudio reports whether WithAudioSkip names the track guid names: the track itself, not what is inside it when it is a folder
+// (ChapterMembers drops those too). A project with no rule skips nothing.
+func (p Project) SkipsAudio(guid string) bool {
+	return p.audioSkip != nil && p.audioSkip(guid)
+}
+
 // ChapterMembers is WithDescendants less the tracks WithAudioSkip names and what is inside a skipped folder: the tracks whose audio
 // is the chapter's. The track guid names is always kept, so a mark on a chapter's own track cannot make it missing. With no rule it is
 // WithDescendants.
