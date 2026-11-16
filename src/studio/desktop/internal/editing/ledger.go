@@ -28,18 +28,17 @@ type ItemScopeInput struct {
 	TrackGUID  string
 	Item       tracks.Item
 	Key        evidence.AnalysisKey
-	// Occurrence is which of the items of this chapter that share Item's GUID this one is, counting from 0 in the order the chapter lists them.
-	Occurrence int
+	// ScopeKey is the name this item's record gives it (scopeKeys.key): empty means the item's GUID, which every record written before twins
+	// were told apart used.
+	ScopeKey string
 }
 
-// scopeKey is the name a record's scope and fingerprint maps give this item: its GUID, so every record written before twins were told apart
-// stays readable, and "GUID#2", "GUID#3" for the later items of a chapter that share it (a track copied in from another project). Keyed by the
-// GUID alone, two twins read each other's record, and re-scanning one made the other stale (#3617).
+// scopeKey is the name a record's scope and fingerprint maps give this item: its GUID unless the caller named it otherwise (ScopeKey).
 func (in ItemScopeInput) scopeKey() string {
-	if in.Occurrence <= 0 {
-		return in.Item.GUID
+	if in.ScopeKey != "" {
+		return in.ScopeKey
 	}
-	return in.Item.GUID + "#" + strconv.Itoa(in.Occurrence+1)
+	return in.Item.GUID
 }
 
 // itemFingerprint computes in.Item's own single-item LedgerFingerprint,
@@ -111,15 +110,29 @@ func scopesOneItem(scope evidence.LedgerScope, key string) bool {
 	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == key
 }
 
-// occurrences counts, per item GUID, the items of one chapter seen so far, so the scan and the freshness read give the same item the same
-// ItemScopeInput.Occurrence: both walk the chapter's items in the order the track lists them.
-type occurrences map[string]int
+// scopeKeys hands out the names the items of one chapter give their records. An item's GUID is its name, so every record written before
+// twins were told apart stays readable; a later item that repeats a GUID (a track copied in from another project) is "GUID#2", "GUID#3", the
+// first name no item has taken (a real GUID that already ends in "#2" keeps its own). Keyed by the GUID alone, two twins read each other's
+// record and re-scanning one made the other stale (#3617). The scan (scan.go) and the freshness read (provider.go) walk the track's items in
+// the same order and ask for a key for every item, including one they then skip, so an item keeps its name whether or not a twin before it can
+// be analysed.
+type scopeKeys struct {
+	taken map[string]bool
+	seen  map[string]int
+}
 
-func newOccurrences() occurrences { return occurrences{} }
+func newScopeKeys() *scopeKeys { return &scopeKeys{taken: map[string]bool{}, seen: map[string]int{}} }
 
-// next is how many items with this GUID came before this one, and counts this one.
-func (o occurrences) next(guid string) int {
-	n := o[guid]
-	o[guid] = n + 1
-	return n
+// key is the next unused name for an item with this GUID, or "" for the first (its GUID itself).
+func (k *scopeKeys) key(guid string) string {
+	k.seen[guid]++
+	candidate := guid
+	for n := k.seen[guid]; k.taken[candidate]; n++ {
+		candidate = guid + "#" + strconv.Itoa(n)
+	}
+	k.taken[candidate] = true
+	if candidate == guid {
+		return ""
+	}
+	return candidate
 }

@@ -142,7 +142,7 @@ func twinScopes() (first, second ItemScopeInput) {
 	a := itemWith(func(item *tracks.Item, _ *tracks.Take) { item.GUID, item.Position = "dup", 0 })
 	b := itemWith(func(item *tracks.Item, _ *tracks.Take) { item.GUID, item.Position = "dup", 30 })
 	first, second = scopeFor(a), scopeFor(b)
-	second.Occurrence = 1
+	second.ScopeKey = "dup#2"
 	return first, second
 }
 
