@@ -243,7 +243,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const [opened, setOpened] = useState<OpenedResume | null>(null);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
-  const tellStopped = useCallback(async (quiet: boolean): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
+  const tellStopped = useCallback(async (quiet: boolean, survivesMoves?: number): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
     const began = takeBegan.current;
     const entry = takeEntry.current;
     takeEntry.current = null;
@@ -251,7 +251,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
     if (began === null) return { marked: 0, take: undo };
     takeBegan.current = null;
-    const take = { quiet, ...undo };
+    const take = { quiet, survivesMoves, ...undo };
     return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
   }, []);
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
@@ -994,10 +994,10 @@ export function useBoothPage(options: BoothPageOptions) {
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
     if (result.ok) markStopped();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
-    // Stopped on the way out: the pickups it read over are marked without a toast of their own, as the page is going. The take is told as saved, with its Undo, as after a
-    // plain Stop, and the toast outlives the page (#3529); a take that marked pickups says it was saved in the pickups' own sentence, so it says nothing more.
+    // Stopped on the way out: the take is told as saved, with its Undo, as after a plain Stop, and the toast outlives the move (#3529). A take that marked pickups, or added suspected
+    // lines, says it was saved in their toast ("Take saved · N pickups marked recorded", raised by the same stop with the same `survivesMoves`), so this page adds nothing then.
     if (result.ok) {
-      const { marked, take } = await tellStopped(true);
+      const { marked, take } = await tellStopped(true, 1);
       if (marked === 0 && take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry, survivesMoves: 1 });
     }
     return result;

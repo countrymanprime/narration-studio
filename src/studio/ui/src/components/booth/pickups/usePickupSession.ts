@@ -27,10 +27,18 @@ export type PickupSessionOptions = {
 };
 
 /**
- * Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no toast and no Undo. `undoTake` and
+ * Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no error toast and, unless `survivesMoves` is set, no toast and no Undo.
+ * `survivesMoves`: the stop is the narrator's Stop and leave, so the toast that says the take is saved is still raised, and outlives that many page moves (#3529). `undoTake` and
  * `entry`: the take's history entry, when a DAW stopped it; the toast's Undo takes the take back in the DAW before the marks.
  */
-export type StoppedTake = { began: number; stopped: number; quiet?: boolean; undoTake?: () => Promise<Result<unknown>>; entry?: number };
+export type StoppedTake = {
+  began: number;
+  stopped: number;
+  quiet?: boolean;
+  survivesMoves?: number;
+  undoTake?: () => Promise<Result<unknown>>;
+  entry?: number;
+};
 
 export type PickupSessionModel = {
   active: boolean;
@@ -121,7 +129,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   );
 
   const takeStopped = useCallback(
-    async ({ began, stopped, quiet = false, undoTake, entry }: StoppedTake): Promise<number> => {
+    async ({ began, stopped, quiet = false, survivesMoves, undoTake, entry }: StoppedTake): Promise<number> => {
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
@@ -142,7 +150,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         if (!quiet) overlay.toast(marked.refusal.reason, { tone: 'error' });
         return 0;
       }
-      if (!quiet) {
+      if (!quiet || survivesMoves) {
         const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
         const marks = marked.value.id;
         const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
@@ -152,7 +160,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
           const undone = await journal.undo(marks);
           return undone.ok ? { ok: true } : undone;
         };
-        overlay.toastUndo(text, undo, { entry: entry ?? marks });
+        overlay.toastUndo(text, undo, { entry: entry ?? marks, survivesMoves });
       }
       return targets.length;
     },

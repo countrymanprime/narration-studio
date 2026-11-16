@@ -273,6 +273,22 @@ describe('a pickup session in the Booth', () => {
     expect(toasts()).toEqual([]);
   });
 
+  // #3529: Stop and leave raises the take's saved toast too, and it outlives the move to the page landed on.
+  it('a-take-that-leaves-by-stop-and-leave-says-saved-and-the-toast-outlives-the-move', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a'] });
+    await screen.findByText('Pickups · 1 open');
+    await act(async () => {
+      await stop({ began: 0, stopped: 1, quiet: true, survivesMoves: 1 });
+    });
+    expect(h.items()[0].done).toBe(true);
+    expect(toasts()).toContain('Take saved · 1 pickup marked recorded');
+    act(() => overlay.dismissUndo());
+    expect(toasts()).toContain('Take saved · 1 pickup marked recorded');
+    act(() => overlay.dismissUndo());
+    expect(toasts()).toEqual([]);
+  });
+
   it('done-writes-through-to-the-marker: both ways, and a refusal leaves the line open and says why', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a'] });
