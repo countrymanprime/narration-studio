@@ -571,6 +571,8 @@ function BoothSession({
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
+    // A cold read needs no voice: the list would only refuse every pick, so the key says so like the other voice keys.
+    if (coldMode) return voiceToast(COLD_READ_NO_VOICE);
     if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(voices.linkKind), 'info');
     voices.reload();
     setVoiceListOpen(true);

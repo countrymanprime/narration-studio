@@ -1,3 +1,4 @@
+import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
 import { releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,7 +19,7 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 export const VOICE_CONTROL_ID = 'bvoice';
 
 /** Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW. */
-export const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
+export const COLD_READ_NO_VOICE = `${COLD_READ_NO_VOICE_REASON}. Choose Record to pick one.`;
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */

@@ -65,6 +65,17 @@ test('struck hints still pass the contrast rule (axe color-contrast on the hint 
   }
 });
 
+test('Num . in a cold read opens no list and says why, like the other struck voice keys; in Record mode it opens the list', async ({ page }) => {
+  await openBooth(page);
+  await setMode(page, 'Cold read');
+  await page.keyboard.press('NumpadDecimal');
+  await expect(page.getByText('A cold read needs no voice. Choose Record to pick one.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Voices' })).toHaveCount(0);
+  await setMode(page, 'Record');
+  await page.keyboard.press('NumpadDecimal');
+  await expect(page.getByRole('dialog', { name: 'Voices' })).toBeVisible();
+});
+
 test('a Record-mode footer has no struck hint', async ({ page }) => {
   await openBooth(page);
   await expect(hints(page).locator('[data-off]')).toHaveCount(0);

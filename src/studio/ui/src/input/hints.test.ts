@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG, findCommand } from './commands.catalog';
 import { gesture } from './gestures';
-import { codeLabel, FOOTER_SPECS, footerHints, gestureKeys, nonKeyHints } from './hints';
+import { COLD_READ_NO_VOICE_REASON, codeLabel, FOOTER_SPECS, footerHints, gestureKeys, nonKeyHints } from './hints';
 import { defaultKeymap } from './keymap';
 
 describe('codeLabel', () => {
@@ -73,7 +73,7 @@ describe('footerHints', () => {
     expect(voice(folders).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
     expect(voice(folders).every((hint) => !hint.off)).toBe(true);
     expect(voice(cold).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
-    expect(voice(cold).every((hint) => hint.off === true && hint.offReason === 'A cold read needs no voice')).toBe(true);
+    expect(voice(cold).every((hint) => hint.off === true && hint.offReason === COLD_READ_NO_VOICE_REASON)).toBe(true);
     // The other hints stay as they were, and a cold read with no voice folders adds nothing.
     expect(footerHints('booth', keymap, undefined, undefined, new Set(['coldRead' as const]))).toEqual(footerHints('booth', keymap));
   });

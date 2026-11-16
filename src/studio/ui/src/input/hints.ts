@@ -67,8 +67,8 @@ export type FooterSurface = 'booth' | 'proof';
  */
 // The Booth footer lists no row for `booth.mode.switch` (Alt+Space): it is one row at the widths it was before, and a hint would wrap it below about 1274 px.
 // The key is in the shortcut sheet (?) and Settings (`hints.test.ts` pins the footer's list).
-/** Why the Booth's voice hints are struck through in a cold read. */
-const COLD_READ_NO_VOICE_HINT = 'A cold read needs no voice';
+/** Why the Booth's voice keys do nothing in a cold read: the hints' tooltip, and the start of the sentence the keys answer with. */
+export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';
 
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
@@ -80,9 +80,9 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     { id: 'bookmark.prev', with: ['bookmark.next'], label: 'Bookmarks' },
     { id: 'booth.pickup.next', label: 'Next pickup', when: 'pickupSession' },
     // A chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md): the keys 1 to 9 are on the voice list.
-    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
-    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
-    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
+    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
+    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
+    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],
