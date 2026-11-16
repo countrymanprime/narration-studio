@@ -175,6 +175,8 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
 // While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
 // least 4.75rem above the bottom edge (`Dialog`), so a toast there is clear of its action row (alignment audit cause P), and the bars a toast
 // otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
+// In a window under 300 px tall, where the dialog's cap grows toward the whole window (`DIALOG_MAX_HEIGHT`, #3548), no room is left under the popup: the toasts then move to the top-left
+// corner, over the dialog's title and leaving its Close button at the right free, so they never sit on its action row or its buttons (#3601). The toast's own Dismiss and Tab (`routeTabAcrossToasts`) reach it. The bars behind the scrim are not what a toast covers there.
 // A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
 let openModals = 0;
@@ -244,7 +246,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
         if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
           event.preventDefault();
       }}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:299px)]:[:root[data-modal-open]_&]:top-[var(--page-gutter)]! [@media(max-height:299px)]:[:root[data-modal-open]_&]:right-auto! [@media(max-height:299px)]:[:root[data-modal-open]_&]:bottom-auto! [@media(max-height:299px)]:[:root[data-modal-open]_&]:left-[var(--page-gutter)]! [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-w-[calc(100vw_-_2*var(--page-gutter)_-_3.5rem)]!"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {messages

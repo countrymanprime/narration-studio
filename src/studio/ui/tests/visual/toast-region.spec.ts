@@ -215,3 +215,32 @@ test.describe('a modal with a toast showing, 320x300', () => {
     expect([...seen].sort()).toEqual(['dialog', 'toast']);
   });
 });
+
+// In a window under 300 px tall a dialog's popup can take most of the window (`DIALOG_MAX_HEIGHT`), so a toast raised while it is open moves to the top-right corner and
+// never sits on its buttons (#3601): at every short size from 320 px wide (a 275 px wide window, 400% zoom, makes the toast 200 px tall, more than the dialog leaves: #3605) a toast and a dialog share, the centre of each dialog button is the button, and the toast stays inside the window.
+for (const [width, height] of [
+  [320, 299],
+  [320, 290],
+  [320, 280],
+  [320, 261],
+  [320, 200],
+] as const) {
+  test(`a toast over a dialog does not sit on its buttons at ${width}x${height}`, async ({ page }) => {
+    await CASES.find((c) => c.name === 'with-dialog')!.open(page);
+    await page.setViewportSize({ width, height });
+    await settleLayout(page);
+    const covered: string[] = [];
+    for (const button of await page.getByRole('dialog').getByRole('button').all()) {
+      if (!(await button.isVisible())) continue;
+      const box = (await button.boundingBox())!;
+      const hit = await page.evaluate(
+        ([x, y]) => Boolean(document.elementFromPoint(x!, y!)?.closest('[data-toast-region]')),
+        [box.x + box.width / 2, box.y + box.height / 2],
+      );
+      if (hit) covered.push(await button.innerText());
+    }
+    expect(covered, 'dialog buttons under the toast').toEqual([]);
+    const toast = (await regions(page).boundingBox())!;
+    expect(toast.y >= -1 && toast.y + toast.height <= height + 1, 'the toast is inside the window').toBe(true);
+  });
+}
