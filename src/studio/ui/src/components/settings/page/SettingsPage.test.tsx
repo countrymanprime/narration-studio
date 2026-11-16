@@ -354,6 +354,40 @@ describe('Settings: row layout', () => {
     expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
   });
 
+  it('a refused REAPER path (a rule of the row, not of a number) hides the Saved mark of the path before it (#2989)', async () => {
+    await renderPage();
+    await openAdvanced();
+    const box = await within(row('daw.reaperPath')).findByRole('textbox', { name: 'REAPER program' });
+    fireEvent.change(box, { target: { value: '/usr/bin/reaper' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('daw.reaperPath')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '/usr/bin/other' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('daw.reaperPath').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    expect(within(row('daw.reaperPath')).queryByText('Saved')).toBeNull();
+  });
+
+  it('a refusal in the project box hides Saved, and Use computer setting brings it back (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const computer = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(computer, { target: { value: '3' } });
+    fireEvent.blur(computer);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBe(2));
+    const project = within(row('stt.workers')).getAllByRole('textbox')[1]!;
+    fireEvent.change(project, { target: { value: '999999' } });
+    fireEvent.blur(project);
+    await waitFor(() => expect(project.getAttribute('aria-invalid')).toBe('true'));
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    // Dropping the override writes again and replaces the refused box: Saved is for that write.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Use computer setting for/ }));
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeNull();
+  });
+
   it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
