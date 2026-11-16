@@ -32,6 +32,16 @@ describe('the chapter-link writers', () => {
     const files = sources(join(root, 'components')).map((path) => ({ path: relative(root, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
     expect(linkWriters(files)).toEqual([OWNER]);
   });
+  // One sentence for a failed link write, raised as a toast (#3365): a screen that wrote its own "could not be made" line would say it differently.
+  it('only linkFailure.ts words a failed link write', () => {
+    const files = sources(join(root, 'components')).map((path) => ({ path: relative(root, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
+    const own = files
+      .filter(
+        (f) => /useChapterLinkActions/.test(f.text) && /`The link could not be|The link could not be (made|removed): |\bcould not be added: /.test(f.text),
+      )
+      .map((f) => f.path);
+    expect(own).toEqual([]);
+  });
   it('sees each binding it guards', () => {
     for (const call of ['chapterTrackSet', 'chapterTrackUnlink', 'chapterTrackCreate'])
       expect(linkWriters([{ path: 'x.tsx', text: `await api.${call}(a, b);` }])).toEqual(['x.tsx']);

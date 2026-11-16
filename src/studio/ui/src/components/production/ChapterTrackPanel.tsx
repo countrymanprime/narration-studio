@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
 import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
@@ -8,7 +9,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBackward, faForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
-import { describeApiError } from '../../api/errorMessage';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
@@ -109,7 +109,7 @@ export function ChapterTrackPanel({
       notify(linkedNotice);
       await onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence('set', error), 'error');
     } finally {
       setBusy(false);
     }
@@ -122,7 +122,7 @@ export function ChapterTrackPanel({
       notify('Track unlinked.');
       await onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence('unlink', error), 'error');
     } finally {
       setBusy(false);
     }

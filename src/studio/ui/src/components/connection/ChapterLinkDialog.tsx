@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -138,14 +139,6 @@ export function ChapterLinkDialog({
   }, [projectNow, onClose]);
   const linksRef = useRef(links);
   linksRef.current = links;
-  // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
-  const open = useRef(true);
-  useEffect(
-    () => () => {
-      open.current = false;
-    },
-    [],
-  );
   const checkAgain = useCallback(() => {
     // Presses while a check is out are ignored: five presses would start five reads and five page re-reads.
     if (readingRef.current) return;
@@ -174,9 +167,7 @@ export function ChapterLinkDialog({
       },
       (error: unknown) => {
         setLinking(false);
-        const text = `The link could not be made: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('set', error), { tone: 'error' });
       },
     );
   };
@@ -192,14 +183,11 @@ export function ChapterLinkDialog({
         if (result.outcome === 'created') {
           applyMappings(result.mappings);
           onLinked(result, result);
-        } else if (open.current) setRefused(result.message);
-        else overlay.toast(result.message, { tone: 'error' });
+        } else overlay.toast(result.message, { tone: 'error' });
       },
       (error: unknown) => {
         setCreating(false);
-        const text = `The ${dest.noun} could not be added: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('create', error, dest.noun), { tone: 'error' });
       },
     );
   };

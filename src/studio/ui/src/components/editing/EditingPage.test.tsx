@@ -303,7 +303,7 @@ describe('EditingPage', () => {
       expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
     });
 
-    it('shows a refused link in the dialog and keeps it open', async () => {
+    it('says a refused link as a toast and keeps the dialog open', async () => {
       mount({
         api: {
           ...unlinked,
@@ -315,7 +315,10 @@ describe('EditingPage', () => {
       const open = await dialog();
       await within(open).findByRole('combobox');
       fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
-      expect((await within(open).findByRole('alert')).textContent).toContain('The chapter is not in the manuscript.');
+      await waitFor(() =>
+        expect(overlay.getSnapshot().toasts.some((t) => /The link could not be made: .*The chapter is not in the manuscript\./.test(t.text))).toBe(true),
+      );
+      expect(within(open).queryByRole('alert')).toBeNull();
     });
 
     it('says when the saved project has no tracks, and a failed read of them, each with Check again', async () => {

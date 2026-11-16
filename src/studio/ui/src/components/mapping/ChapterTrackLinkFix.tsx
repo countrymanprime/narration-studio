@@ -1,8 +1,8 @@
 import { useRef } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useChapterTrackState, useChapterTrackProject } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
@@ -65,7 +65,7 @@ export function ChapterTrackLinkFix({
             await onLinked();
           } catch (reason) {
             // A toast, the picker stays: the narrator can choose again once the cause is gone.
-            notify(`The link could not be made: ${apiErrorMessage(reason)}`, 'error');
+            notify(linkFailureSentence('set', reason), 'error');
           }
         })
       }

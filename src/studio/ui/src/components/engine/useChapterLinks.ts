@@ -7,6 +7,7 @@ import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
 import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -140,7 +141,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // refreshKey has no meaning of its own: it only asks this effect to run again after a change made elsewhere (chapter sync's panel).
   }, [reload, refreshKey, enabled]);
 
-  const change = (chapterId: string, write: () => Promise<unknown>, quietAfter = false) => {
+  const change = (chapterId: string, kind: 'set' | 'unlink', write: () => Promise<unknown>, quietAfter = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusyChapterId(chapterId);
@@ -164,12 +165,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
           },
           (reason: unknown) => {
             staleAfterChange.current = true;
-            setError(changedButUnread(reason));
+            // The change was made: said once, as a toast like every failed link write (#3365); the next failed read says it again, in the page.
+            overlay.toast(linkFailureSentence('unread', reason), { tone: 'error' });
           },
         ),
       )
       .then(() => onChanged())
-      .catch((reason) => setError(written ? changedButUnread(reason) : apiErrorMessage(reason)))
+      .catch((reason) => overlay.toast(linkFailureSentence(written ? 'unread' : kind, reason), { tone: 'error' }))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
@@ -183,12 +185,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // A chapter with several links is not linked to one track: choosing one of them replaces the rest, so it reaches the host.
     const link = chapterLink(mappings, chapterId);
     if (link.state === 'linked' && link.trackGuid === trackGuid) return;
-    change(chapterId, () => actions.set(chapterId, trackGuid, nameOf));
+    change(chapterId, 'set', () => actions.set(chapterId, trackGuid, nameOf));
   };
   // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
   const unlink = (chapterId: string) =>
     change(
       chapterId,
+      'unlink',
       async () => {
         const result = await actions.unlink(chapterId);
         applyMappings(result.mappings);

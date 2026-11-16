@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
@@ -133,7 +134,7 @@ export function ChapterSyncPanel({
       await loadPreview();
       onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence('set', error), 'error');
     } finally {
       setLinkingChapterId('');
     }
