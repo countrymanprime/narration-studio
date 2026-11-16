@@ -148,4 +148,15 @@ describe('the-entry-list-plays-a-pronunciation', () => {
     expect(await screen.findByText(/This local voice is needed to play “Hatter”/)).toBeTruthy();
     expect(asked).toBe(1);
   });
+
+  it('does not ask to leave when the row of the entry already open is pressed again', async () => {
+    await renderGuide(false);
+    fireEvent.click(row('Alice'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Alice B' } });
+    asked = 0;
+    fireEvent.click(row('Alice'));
+    expect(asked, 'the same entry stays open, so nothing is asked').toBe(0);
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Alice B');
+  });
 });

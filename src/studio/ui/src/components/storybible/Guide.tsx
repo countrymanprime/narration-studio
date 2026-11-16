@@ -281,13 +281,19 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     });
   // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
   // `after` runs only once the move goes ahead (a command for the entry it opens): a Cancel must not leave it queued for the next time the entry is opened (#3457).
-  const selectRow = (id?: string, after?: () => void) =>
+  const selectRow = (id?: string, after?: () => void) => {
+    // The entry already open, with no new entry or loose suggestion in front of it, goes nowhere: nothing to ask about (a press on its own row, or its own Hear).
+    if (id !== undefined && id === selectedId && !pendingNewEntity && !looseId) {
+      after?.();
+      return;
+    }
     guarded(() => {
       setPendingNewEntity(undefined);
       setLooseId(null);
       setSelectedId(id);
       after?.();
     });
+  };
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({
