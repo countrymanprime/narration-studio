@@ -191,6 +191,18 @@ export const boothDrivers: Record<string, Driver> = {
       .getByText(/has no track to record on/)
       .waitFor();
   },
+  // The DAW cannot add a track from the app: Create is off and its reason is on its tooltip, not a line in the dialog (#3365).
+  'record-unlinked-create-off': async (page) => {
+    await openBooth(page, `${UNLINKED}&mockDawCreate=off`);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    const create = dialog.getByRole('button', { name: 'Create a new track' });
+    await create.waitFor();
+    await create.hover();
+    await page
+      .getByRole('tooltip')
+      .getByText(/cannot add a track from this app/)
+      .waitFor();
+  },
   // Create a new track: REAPER adds one named after the chapter and it is linked; the message says so and Record is ready.
   'record-unlinked-created': async (page) => {
     await openBooth(page, UNLINKED);

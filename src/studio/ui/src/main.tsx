@@ -343,6 +343,8 @@ const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // there and offers **Save in REAPER and read**), or a project that was never saved, whose save the host refuses (`never-saved`).
 const mockDawUnsaved = (['1', 'never-saved'] as const).find((seed) => seed === mockParams.get('mockDawUnsaved'));
 const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
+// `?mockDawCreate=off`: the DAW cannot add a track from the app, so the Link dialog's Create is off and its reason is on the button's tooltip.
+const mockDawCreateOff = mockParams.get('mockDawCreate') === 'off';
 // `?mockRollReplaces=1` declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
 const mockRollReplaces = mockParams.has('mockRollReplaces');
@@ -722,6 +724,7 @@ const mockInitial = {
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,
+    mockDawCreateOff ? { noTrackCreate: true } : undefined,
     mockDawUnsaved ? { savedAt: '2026-11-10T09:00', unsavedChanges: true, neverSaved: mockDawUnsaved === 'never-saved' } : undefined,
     mockRollReplaces ? { depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,

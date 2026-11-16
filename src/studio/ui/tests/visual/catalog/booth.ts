@@ -84,6 +84,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-unlinked-create-off',
+    description:
+      'The same dialog when the DAW cannot add a track from the app (?mockDawCreate=off): Create a new track is off, with no line of explanation in the dialog; hovering or focusing it shows why on its tooltip, and Link track and Check again work as before',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-created',
     description:
       'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',
