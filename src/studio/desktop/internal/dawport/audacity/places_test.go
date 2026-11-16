@@ -115,6 +115,19 @@ func TestGoToStartPutsTheCursorWhereTheTracksAudioBegins(t *testing.T) {
 	})
 }
 
+func TestGoToRefusesWhileTheAppRecordsAndMovesNothing(t *testing.T) {
+	session, server := placesProject(t)
+	session.transport.set(true, true)
+	if err := session.GoTo(t.Context(), "audacity:Chapter 2", dawport.PlaceTarget{End: true}); !errors.Is(err, bridge.ErrRecording) {
+		t.Fatalf("GoTo while recording = %v", err)
+	}
+	server.With(func(p *abt.Project) {
+		if p.Tracks[0].Selected || p.Tracks[1].Selected || p.SelStart != 0 {
+			t.Errorf("something moved: %v %v cursor %v", p.Tracks[0].Selected, p.Tracks[1].Selected, p.SelStart)
+		}
+	})
+}
+
 func TestChapterTrackStateReadsTheTrackAndWhatTheAppStarted(t *testing.T) {
 	session, server := placesProject(t)
 	ctx := t.Context()

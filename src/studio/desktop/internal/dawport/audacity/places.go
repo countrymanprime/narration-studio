@@ -106,10 +106,13 @@ func (s *Session) ReadPlace(ctx context.Context) (dawport.Place, error) {
 	return place, nil
 }
 
-// GoTo selects trackID alone and puts the cursor at the end or the start of what is on it, or at a time in project seconds. It starts nothing.
+// GoTo selects trackID alone and puts the cursor at the end or the start of what is on it, or at a time in project seconds. It starts nothing and refuses while this app's recording runs.
 func (s *Session) GoTo(ctx context.Context, trackID string, target dawport.PlaceTarget) error {
 	if trackID == "" {
 		return errors.New("choose a track to go to")
+	}
+	if _, recording := s.transport.snapshot(); recording {
+		return bridge.ErrRecording
 	}
 	track, _, err := s.trackByID(ctx, trackID)
 	if err != nil {
