@@ -126,3 +126,25 @@ test('Take saved is on the page landed on when the passage map write takes 6 sec
   await page.waitForTimeout(2500);
   await expect(saved(page)).toBeVisible();
 });
+
+// ux-reviewer and qa-breaker on the B1 fix (N1): REAPER's transport says the take ended, and its stop reply trails by 2.5 s, more than the leave's 1.5 s grace. The move does not wait
+// for the reply, so "Take saved" with Undo is raised when the reply comes, on the page landed on, and is not held for good.
+test("Take saved is on the page landed on when REAPER's stop reply trails its transport by 2.5 seconds", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown>; __NARRATION_MOCK_DAW__: { record: (what: string) => unknown } };
+    w.__NARRATION_MOCK_OVERRIDES__ = Object.assign(w.__NARRATION_MOCK_OVERRIDES__ ?? {}, {
+      readAloudRecordStop: async () => {
+        w.__NARRATION_MOCK_DAW__.record('stop');
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        return { outcome: 'stopped', undoPoints: 1, message: '' };
+      },
+    });
+  });
+  await recording(page);
+  await page.waitForTimeout(1200);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 20_000 }).toBe('/script');
+  await expect(saved(page)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+});

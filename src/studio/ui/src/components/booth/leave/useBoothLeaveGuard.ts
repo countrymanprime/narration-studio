@@ -23,7 +23,7 @@ export type BoothLeaveSession = {
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
   flush?: () => Promise<void>;
-  /** Called when the stop is confirmed and the run is written, immediately before `go`: raises what `stopRecording({ deferTell })` held back. */
+  /** Called when an attempt to stop and leave ends (the stop confirmed and the run written, just before `go`; or the DAW's end, a refusal, no answer): raises what `stopRecording({ deferTell })` held back and lets a later answer raise at once. */
   arrived?: () => void;
 };
 
@@ -208,9 +208,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               else if (stopped.value.ok) {
                 // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
-                if (gone.current) return false;
-                sessionRef.current.arrived?.();
-                return true;
+                return !gone.current;
               } else sentence = stopped.value.refused ?? (stopped.value.message || '');
               // Not stopped: the take still runs, so it is not this decision's to call handled.
               answeredFor.current = -1;
@@ -221,6 +219,9 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               }
             }
           } finally {
+            // Whatever this attempt ended in releases what the stop held back (`deferTell`): a move (after the run is written, before `go`), the take the DAW ended while the stop was
+            // still out, a refusal or a gone page. Nothing stays held for good: an answer that comes after this is raised at once, where the narrator is.
+            sessionRef.current.arrived?.();
             waiting.current = false;
             overlay.dismissTopic(STOPPING_TOPIC);
           }

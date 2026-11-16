@@ -607,6 +607,43 @@ describe('useBoothLeaveGuard', () => {
         expect(t.stopRecording).toHaveBeenCalledTimes(1);
       });
 
+      // qa-breaker/ux-reviewer on the B1 fix: the DAW ended the take while the stop was out, so the move is not waited on the stop's answer; what the stop holds back is released
+      // there too, and an answer that comes after is raised at once (the page's `arrived`), not held for good.
+      it('a take that ended during the stop wait releases what the stop held back before the move', async () => {
+        vi.useFakeTimers();
+        const arrived = vi.fn();
+        const t = setup({ endConfirmed: async () => true, arrived }, never);
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = t.hook.result.current.leave('/script', t.go);
+        });
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        t.hook.rerender({ ...t.session, recording: false });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+        await act(() => done);
+        expect(t.go).toHaveBeenCalledWith('/script');
+        expect(arrived).toHaveBeenCalledTimes(1);
+      });
+
+      it('a stop that is not answered in time releases what it held back, so a late answer is not held for good', async () => {
+        vi.useFakeTimers();
+        const arrived = vi.fn();
+        const t = setup({ arrived }, never);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 100);
+        });
+        expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+        expect(arrived).toHaveBeenCalledTimes(1);
+        expect(t.go).not.toHaveBeenCalled();
+      });
+
       it('a take already over when the narrator says yes (the DAW answering) is not stopped, and they leave', async () => {
         const t = setup({ endConfirmed: async () => true });
         let done: Promise<void> = Promise.resolve();

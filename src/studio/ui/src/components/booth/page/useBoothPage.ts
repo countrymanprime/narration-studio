@@ -245,8 +245,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeBegan = useRef<number | null>(null);
   // What a Stop and leave says about the take, held until the move (`arrived`): the passage map's run is written between the stop and the move and can take seconds, longer than a toast lives.
   const arrival = useRef<(() => void)[]>([]);
-  const later = useCallback((raise: () => void) => void arrival.current.push(raise), []);
+  const released = useRef(false);
+  // After the release (`arrived`) nothing is held: a stop that answers late says it at once.
+  const later = useCallback((raise: () => void) => (released.current ? raise() : void arrival.current.push(raise)), []);
   const arrived = useCallback(() => {
+    released.current = true;
     const raise = arrival.current;
     arrival.current = [];
     for (const say of raise) say();
@@ -1000,7 +1003,10 @@ export function useBoothPage(options: BoothPageOptions) {
   const stopRecording = useCallback(
     async (options?: { deferTell?: boolean }): Promise<DawResult> => {
       const hold = options?.deferTell ? later : undefined;
-      if (hold) arrival.current = [];
+      if (hold) {
+        arrival.current = [];
+        released.current = false;
+      }
       // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
       const stopAsked = await limited(
         'recordStop',
