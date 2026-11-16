@@ -35,6 +35,13 @@ func chapterAudioFrom(setup voicetracks.State, project tracks.Project) tracks.Pr
 // track is never named. nil means every item counts. It reads the saved project, which knows the folder's shape; a track marked but not in
 // the saved project yet is still named through the mark itself.
 func chapterAudioSkip(reporter *persist.Reporter, folder string, project tracks.Project, guid string) func(trackGUID string) bool {
+	// The link's own spelling can differ from the project's (case, a stray space): find the track the project names and use its GUID.
+	for _, track := range project.Tracks {
+		if strings.EqualFold(track.GUID, strings.TrimSpace(guid)) {
+			guid = track.GUID
+			break
+		}
+	}
 	ruled := chapterAudio(reporter, folder, project)
 	all, ok := project.WithDescendants(guid)
 	if !ok {
@@ -86,7 +93,7 @@ func withoutSkippedTracks(state dawport.TrackState, skip func(trackGUID string) 
 	if len(kept) == len(state.Items) {
 		return state
 	}
-	state.ItemsTotal -= len(state.Items) - len(kept)
+	state.ItemsTotal = max(0, state.ItemsTotal-(len(state.Items)-len(kept)))
 	state.Items = kept
 	return state
 }

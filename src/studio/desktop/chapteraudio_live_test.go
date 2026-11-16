@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -185,5 +187,124 @@ func TestARippleStillNamesTheChaptersFolderWhenAChildIsMarkedAsNotAVoice(t *test
 	onlyBed, bedIDs := newFolderHost(t, folderRppWithItems([4]string{musicBedTrack, "Music bed", "0", "300"}), voicetracks.LayoutFolders, musicBedTrack)
 	if got := readChapterFolderTrack(onlyBed.services(), bedIDs[0]); got != voiceFolderTrack {
 		t.Fatalf("ripple folder = %q for a folder holding only a marked bed, want %q", got, voiceFolderTrack)
+	}
+}
+
+// bedCursor answers the folder read with the edit cursor each call is given, one after the other (the last one repeats).
+type bedCursor struct {
+	bedLive
+	mu      sync.Mutex
+	cursors []float64
+	calls   int
+}
+
+func (f *bedCursor) ChapterFolderState(ctx context.Context, guid string) (dawport.TrackState, error) {
+	state, err := f.bedLive.ChapterFolderState(ctx, guid)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	state.EditCursor = f.cursors[min(f.calls, len(f.cursors)-1)]
+	f.calls++
+	return state, err
+}
+
+// Following REAPER reports the cursor only when it settles on the chapter's recorded audio. A cursor parked inside a marked bed (here at 150 s,
+// where only the bed plays) is not on the chapter's audio, so no event; with no rule it is (#3558).
+func followEvents(t *testing.T, skip func(string) bool) []resumeFollowEvent {
+	t.Helper()
+	reader := &bedCursor{bedLive: bedLive{projectPath: "C:/p/Alice.rpp"}, cursors: []float64{20, 150, 150}}
+	var mu sync.Mutex
+	var events []resumeFollowEvent
+	loop := resumeFollowLoop{
+		reader:      reader,
+		projectPath: "C:/p/Alice.rpp",
+		trackGUID:   voiceFolderTrack,
+		follower:    newResumeFollower("c-1", nil, nil, t.TempDir()),
+		skip:        skip,
+		sessionBusy: func() bool { return false },
+		emit: func(event resumeFollowEvent) {
+			mu.Lock()
+			defer mu.Unlock()
+			events = append(events, event)
+		},
+		interval: 2 * time.Millisecond,
+		lifetime: 300 * time.Millisecond,
+	}
+	loop.run(t.Context())
+	mu.Lock()
+	defer mu.Unlock()
+	return append([]resumeFollowEvent(nil), events...)
+}
+
+func TestFollowingReaperDoesNotReportACursorParkedInAMarkedBed(t *testing.T) {
+	host, _ := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders, musicBedTrack)
+	saved, err := selectedProject(host.services())
+	if err != nil {
+		t.Fatal(err)
+	}
+	skip := chapterAudioSkip(host.persist, host.config.projectFolder, saved, voiceFolderTrack)
+	if events := followEvents(t, skip); len(events) != 0 {
+		t.Fatalf("events = %+v, want none: the cursor is at 150 s where only the marked bed plays", events)
+	}
+	if events := followEvents(t, nil); len(events) != 1 || events[0].Reason != followCursorMoved {
+		t.Fatalf("with no rule events = %+v, want one cursor_moved (the bed counts as audio)", events)
+	}
+}
+
+func TestDroppingASkippedTracksItemsKeepsTheItemCountsHonest(t *testing.T) {
+	skipBed := func(guid string) bool { return guid == musicBedTrack }
+	items := []dawport.TrackItem{{ItemGUID: "n", TrackGUID: narratorTrack}, {ItemGUID: "b", TrackGUID: musicBedTrack}, {ItemGUID: "x"}}
+	whole := withoutSkippedTracks(dawport.TrackState{ItemsTotal: 3, Items: items}, skipBed)
+	if len(whole.Items) != 2 || whole.ItemsTotal != 2 {
+		t.Fatalf("a whole read: %d items, total %d; want 2 and 2 (an item with no track is kept)", len(whole.Items), whole.ItemsTotal)
+	}
+	truncated := withoutSkippedTracks(dawport.TrackState{ItemsTotal: 50, Items: items}, skipBed)
+	if truncated.ItemsTotal <= len(truncated.Items) {
+		t.Fatalf("a read that listed 3 of 50 items must stay cut short after dropping one: %d items, total %d", len(truncated.Items), truncated.ItemsTotal)
+	}
+	if same := withoutSkippedTracks(dawport.TrackState{ItemsTotal: 3, Items: items}, nil); len(same.Items) != 3 || same.ItemsTotal != 3 {
+		t.Fatalf("no rule must change nothing: %+v", same)
+	}
+}
+
+func TestTheLiveSkipNamesTheSubtreeWhateverSpellingTheLinkHas(t *testing.T) {
+	folder := t.TempDir()
+	if _, err := voicetracks.New(voicetracks.Config{Project: folder}).SetNotVoice("{M}", true); err != nil {
+		t.Fatal(err)
+	}
+	project := tracks.Project{Tracks: []tracks.Track{
+		{GUID: "{F}", IsFolder: true},
+		{GUID: "{N}", Depth: 1},
+		{GUID: "{M}", Depth: 1, IsFolder: true},
+		{GUID: "{M1}", Depth: 2},
+	}}
+	for _, link := range []string{"{F}", "{f}", " {F} "} {
+		skip := chapterAudioSkip(nil, folder, project, link)
+		if !skip("{M}") || !skip("{M1}") || skip("{N}") || skip("{F}") {
+			t.Errorf("link %q: skip({M})=%v skip({M1})=%v skip({N})=%v skip({F})=%v, want true true false false", link, skip("{M}"), skip("{M1}"), skip("{N}"), skip("{F}"))
+		}
+	}
+}
+
+func TestTheLiveSkipSeesAMarkedFolderAddedInReaperAndNotSavedYet(t *testing.T) {
+	folder := t.TempDir()
+	if _, err := voicetracks.New(voicetracks.Config{Project: folder}).SetNotVoice("{NEWF}", true); err != nil {
+		t.Fatal(err)
+	}
+	live := tracks.Project{Tracks: []tracks.Track{
+		{GUID: "{F}", IsFolder: true},
+		{GUID: "{N}", Depth: 1},
+		{GUID: "{NEWF}", Depth: 1, IsFolder: true},
+		{GUID: "{NEWC}", Depth: 2},
+	}}
+	if !chapterAudioSkip(nil, folder, live, "{F}")("{NEWC}") {
+		t.Fatal("a child of a marked folder the live list knows must be skipped")
+	}
+}
+
+func TestWithoutSkippedTracksNeverLowersTheTotalBelowZero(t *testing.T) {
+	skip := func(guid string) bool { return guid == musicBedTrack }
+	state := withoutSkippedTracks(dawport.TrackState{ItemsTotal: 1, Items: []dawport.TrackItem{{TrackGUID: musicBedTrack}, {TrackGUID: musicBedTrack}, {TrackGUID: narratorTrack}}}, skip)
+	if state.ItemsTotal != 0 || len(state.Items) != 1 {
+		t.Fatalf("total %d with %d items, want 0 and 1", state.ItemsTotal, len(state.Items))
 	}
 }

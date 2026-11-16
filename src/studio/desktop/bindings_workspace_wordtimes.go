@@ -56,8 +56,9 @@ func (h *Host) liveTrackState(ctx context.Context, svc hostServices, support daw
 		return bridge.TrackState{}, false
 	}
 	// A track marked as not a voice is not the chapter's audio (#3558): its items are not word-time or punch candidates.
-	saved, _ := selectedProject(svc)
-	state = withoutSkippedTracks(state, chapterAudioSkip(h.persist, svc.config.projectFolder, saved, guid))
+	// The folder's shape comes from the live-over-saved list (a folder added in REAPER and not saved yet is seen), as the passage stamp's does.
+	project, _ := liveSelectedProject(svc)
+	state = withoutSkippedTracks(state, chapterAudioSkip(h.persist, svc.config.projectFolder, project, guid))
 	if state.ItemsTotal > len(state.Items) {
 		return bridge.TrackState{}, false
 	}

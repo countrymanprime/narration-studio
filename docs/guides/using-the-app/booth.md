@@ -432,7 +432,7 @@ Each chapter opens where you left off in it, in this order:
 A chapter edited since it was recorded loses the places that named its old words: the Booth then uses the track's length, or the
 word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
 
-On a chapter linked to a folder of voices, a track in it that you marked as not a voice (a music bed) is left out of all of this, whether REAPER is open or not: where the chapter's recording ends, where the Booth places you from the recording, which recording a passage mark is stamped with, and the recording the word-times view and a pickup's lookup read.
+On a chapter linked to a folder of voices, a track in it that you marked as not a voice (a music bed) is left out of all of this, whether REAPER is open or not: where the Booth reads the chapter's recording to end, where it places you from the recording, which recording a passage mark is stamped with, and the recording the word-times view and a pickup's lookup read. Starting a take at the end of the chapter's audio inside REAPER itself still counts the bed.
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
 the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
