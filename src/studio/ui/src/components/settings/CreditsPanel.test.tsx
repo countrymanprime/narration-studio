@@ -497,7 +497,7 @@ describe('CreditsPanel', () => {
     });
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The project values could not be read'), 'error', expect.anything()));
     expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true);
-    expect(screen.getByText(/could not be read: use Retry/)).toBeTruthy();
+    expect(screen.getByText('The values could not be read.')).toBeTruthy();
     const retry = notify.mock.calls.find((call) => String(call[0]).includes('project values could not be read'))![2] as { onAction: () => void };
     await act(async () => retry.onAction());
     await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false));

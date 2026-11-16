@@ -570,7 +570,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         </p>
         {!valuesLoaded && !loadError && (
           <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {valuesFailed ? 'This project’s values could not be read: use Retry in the notice.' : <>Reading this project&rsquo;s values&hellip;</>}
+            {valuesFailed ? 'The values could not be read.' : <>Reading this project&rsquo;s values&hellip;</>}
           </p>
         )}
         {/* Two short fields to a line once the editor has room for them (XSE2-11). */}
