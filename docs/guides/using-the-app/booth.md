@@ -411,6 +411,8 @@ When your DAW is connected and following is on, the Booth and the DAW stay toget
 
 The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW); the Booth then never moves the DAW.
 
+The same switch arms your voice. Opening the Booth on a chapter, or going to another, arms the track the next take records on (the voice you chose, else the Narrator voice, or the chapter's one track) and turns that track's input monitoring on if it is off, so you hear yourself before you press Record; choosing another voice arms that one and puts the earlier voice's monitoring back. A track you already monitor, in either of REAPER's modes, is left as it is. Leaving the Booth, or closing the app, puts back only the monitoring the Booth turned on, and only where you have not changed it since. Nothing is armed or changed while REAPER records (a toast says so); leaving mid-take puts the monitoring back after the stop. Arming applies to REAPER only: Audacity has no record arm or input monitoring to set, so the Booth leaves it alone, and a cold read arms nothing.
+
 ## Where you stopped
 
 Each chapter opens where you left off in it, in this order:

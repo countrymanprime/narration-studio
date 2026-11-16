@@ -1931,7 +1931,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// from a chapter's first word (pageBreakLayout.ts). A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
 	// Booth.follow_chapter_in_daw: going to a chapter in the Booth, Editing or (scoped to one chapter) Pickups selects that chapter's track and the tracks inside it in the DAW and
-	// puts the DAW's cursor there (DawGoToChapter); off leaves the DAW where the narrator put it. On by default (#3427).
+	// puts the DAW's cursor there (DawGoToChapter); the Booth also arms its voice and turns its input monitoring on when off (DawArmBoothVoice, BoothVoiceSet), put back on leaving (DawReleaseBoothMonitor); off leaves the DAW where the narrator put it. On by default (#3427, #3428).
 	"Booth": {{"words_per_page", "Words per page", "number", nil}, {"follow_chapter_in_daw", "DAW follows your chapter", "bool", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates
