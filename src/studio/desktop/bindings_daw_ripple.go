@@ -41,6 +41,8 @@ func chapterFolderTrack(svc hostServices, chapterID string) string {
 // chapterFolderOf is the saved-project read behind chapterFolderTrack; a test swaps it (and restores it) to stand in for a project file.
 var chapterFolderOf = readChapterFolderTrack
 
+// Every track of the folder moves with its chapter, one marked as not a voice (a music bed) too: not a voice means not recorded or transcribed,
+// not detached from the chapter's timeline (owner decision on #3558; TestARippleStillNamesTheChaptersFolder...).
 func readChapterFolderTrack(svc hostServices, chapterID string) string {
 	link, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil || refused != nil {

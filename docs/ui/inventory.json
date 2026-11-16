@@ -1908,6 +1908,7 @@
       "stories": [
         "Default",
         "Few Hints",
+        "Off Hint",
         "Is A Note Region"
       ],
       "consumers": [

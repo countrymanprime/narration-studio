@@ -3108,8 +3108,8 @@
   {
     "name": "the narrator's track selection is not put back",
     "file": "narration_transport.lua",
-    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetTrackSelected(track, row.selected)",
-    "replace": "      if false then\n        reaper.SetTrackSelected(track, row.selected)"
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)",
+    "replace": "      if false then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)"
   },
   {
     "name": "the isolation file is left behind after everything is put back",
@@ -3770,5 +3770,29 @@
     "file": "narration_transport.lua",
     "find": "    if inside > 0 then\n      inside = inside + delta",
     "replace": "    if inside > 0 then\n      inside = inside"
+  },
+  {
+    "name": "play isolation selects the played track with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)\n",
+    "replace": "      reaper.SetTrackSelected(other, row.set_selected)\n"
+  },
+  {
+    "name": "play isolation restore puts the selection back with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)\n",
+    "replace": "        reaper.SetTrackSelected(track, row.selected)\n"
+  },
+  {
+    "name": "play restore puts the selection back over a selection the narrator changed during the play",
+    "file": "narration_transport.lua",
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n",
+    "replace": "      if true then\n"
+  },
+  {
+    "name": "play restore puts the mute back over a mute the narrator set during the play",
+    "file": "narration_transport.lua",
+    "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
+    "replace": "      if row.set_mute ~= nil then\n"
   }
 ]
