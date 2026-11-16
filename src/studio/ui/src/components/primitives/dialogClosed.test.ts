@@ -2,30 +2,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import './dialogClosed';
 
-// A held Escape closes one layer (#3549 B3): its repeats never reach a listener, a new press always does.
+// A held Escape closes one layer (#3549 B3): its repeats are stopped before any listener, a new press always goes through. A stopped event reads
+// `stopImmediatePropagation` call, which the test watches, so it needs no keydown listener of its own.
 describe('held Escape', () => {
-  const seen = vi.fn();
-  afterEach(() => {
-    document.removeEventListener('keydown', seen);
-    seen.mockClear();
-  });
+  const stop = vi.spyOn(Event.prototype, 'stopImmediatePropagation');
+  afterEach(() => stop.mockClear());
+  const stopped = (init: KeyboardEventInit): boolean => {
+    stop.mockClear();
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+    return stop.mock.calls.length > 0;
+  };
 
-  const press = (init: KeyboardEventInit) => document.body.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
-
-  it('lets a press of Escape through and stops its auto-repeats', () => {
-    document.addEventListener('keydown', seen);
-    press({ key: 'Escape' });
-    expect(seen).toHaveBeenCalledTimes(1);
-    press({ key: 'Escape', repeat: true });
-    press({ key: 'Escape', repeat: true });
-    expect(seen).toHaveBeenCalledTimes(1);
-    press({ key: 'Escape' });
-    expect(seen).toHaveBeenCalledTimes(2);
+  it('stops the auto-repeats of Escape and lets a press through', () => {
+    expect(stopped({ key: 'Escape' })).toBe(false);
+    expect(stopped({ key: 'Escape', repeat: true })).toBe(true);
+    expect(stopped({ key: 'Escape', repeat: true })).toBe(true);
+    expect(stopped({ key: 'Escape' })).toBe(false);
   });
 
   it('leaves the repeat of any other key alone', () => {
-    document.addEventListener('keydown', seen);
-    press({ key: 'ArrowDown', repeat: true });
-    expect(seen).toHaveBeenCalledTimes(1);
+    expect(stopped({ key: 'ArrowDown', repeat: true })).toBe(false);
   });
 });
