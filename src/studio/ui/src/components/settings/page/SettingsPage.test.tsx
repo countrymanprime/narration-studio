@@ -377,10 +377,13 @@ describe('Settings: row layout', () => {
     await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
     fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
     await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBe(2));
-    const project = within(row('stt.workers')).getAllByRole('textbox')[1]!;
-    fireEvent.change(project, { target: { value: '999999' } });
-    fireEvent.blur(project);
-    await waitFor(() => expect(project.getAttribute('aria-invalid')).toBe('true'));
+    // The override's own write re-draws the row, so the box is looked up afresh on each try (a slow machine re-draws after the first look).
+    await waitFor(() => {
+      const project = within(row('stt.workers')).getAllByRole('textbox')[1]!;
+      fireEvent.change(project, { target: { value: '999999' } });
+      fireEvent.blur(project);
+      expect(within(row('stt.workers')).getAllByRole('textbox')[1]!.getAttribute('aria-invalid')).toBe('true');
+    });
     expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
     // Dropping the override writes again and replaces the refused box: Saved is for that write.
     fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Use computer setting for/ }));
