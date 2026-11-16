@@ -5,7 +5,7 @@
 import { creditsKindOfId } from '../credits/creditsEntries';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { readPickupIds } from '../booth/page/boothQuery';
+import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
@@ -97,7 +97,8 @@ export function AddressGate({
   page: AddressPage;
   /**
    * The page is holding something the narrator has not let go of (the Booth, while a take records or its end is not confirmed): an address it cannot act on does not
-   * replace it. A chapter the list lacks goes to the page, which asks as it does for any chapter; a malformed address is said in a message and ignored (#3555 item 4).
+   * replace it. A chapter the list lacks, or an address the page can still read a chapter from, goes to the page, which asks as it does for any chapter; an address that names
+   * none is said in a message and ignored (#3555 item 4).
    */
   held?: boolean;
   /** The `:chapterId` the route matched, for Editing. */
@@ -111,10 +112,12 @@ export function AddressGate({
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
   const overlay = useOverlay();
   const keep = held && page === 'booth' && (read.kind === 'bad' || check.state !== 'ok');
-  const ignored = keep && read.kind === 'bad' ? `${search}${hash}` : null;
+  // An address the Booth can still read a chapter from is the Booth's to ask about, as for any chapter; one that names none is said here and ignored.
+  const ignored = keep && read.kind === 'bad' && readBoothQuery(new URLSearchParams(search)) === null ? `${search}${hash}` : null;
+  const reason = read.kind === 'bad' ? read.message : '';
   useEffect(() => {
-    if (ignored !== null) overlay.toast('That link could not be opened, so the Booth stays. The take goes on.');
-  }, [ignored, overlay]);
+    if (ignored !== null) overlay.toast(`${reason} The Booth stays and the take goes on.`);
+  }, [ignored, overlay, reason]);
   if (keep) return <>{children}</>;
   if (read.kind === 'bad') return <BadAddress page={page} message={read.message} />;
   if (check.state === 'checking') return <CheckingLink page={page} />;

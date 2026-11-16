@@ -32,16 +32,27 @@ const arrive = (page: Page, address: string) =>
   }, address);
 
 // A chapter the manuscript lacks (or a line it lacks) is asked about like any other chapter; an address that cannot be read at all is said in a message and ignored.
-const ASKS = ['/booth?chapter=nope', '/booth?chapter=chapter-2&para=p1&at=3', '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A'];
+const ASKS = [
+  '/booth?chapter=nope',
+  '/booth?chapter=chapter-2&para=p1&at=3',
+  '/booth?chapter=chapter-2&para=p1&at=-5',
+  '/booth?chapter=chapter-2&chapter=chapter-3',
+  '/booth?chapter=chapter-2%01',
+  `/booth?chapter=${'x'.repeat(600)}`,
+  '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A',
+];
 const MESSAGE = ['/booth?chapter='];
 const question = (page: Page) => page.getByRole('alertdialog', { name: 'Stop recording?' });
-const said = (page: Page) => page.getByText('That link could not be opened, so the Booth stays. The take goes on.');
+const said = (page: Page) => page.getByText('The Booth stays and the take goes on.');
 
 for (const address of ASKS) {
   test(`${address} during a take asks like any chapter, and Keep recording leaves the take running`, async ({ page }) => {
     await recording(page);
     await arrive(page, address);
     await expect(question(page)).toBeVisible();
+    // One answer, never the question and a message that contradicts it.
+    await expect(page.getByRole('alertdialog')).toHaveCount(1);
+    await expect(said(page)).toHaveCount(0);
     await expect(page.getByText('This link could not be opened')).toHaveCount(0);
     expect(await dawRecording(page)).toBe(true);
     expect(await stops(page)).toBe(0);
