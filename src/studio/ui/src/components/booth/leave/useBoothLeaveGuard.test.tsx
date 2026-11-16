@@ -134,13 +134,33 @@ describe('useBoothLeaveGuard', () => {
       decide: expect.any(Function),
       ask: {
         title: 'Stop recording?',
-        body: 'Audacity is recording. Leaving the Booth stops it.',
+        body: 'Audacity is recording. Leaving the Booth for Proof stops it.',
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
         ignoreEnterAfterMs: IGNORE_ENTER_MS,
       },
     });
+  });
+
+  // #3529: the question names the page the move goes to, and says nothing of a destination no rail page owns.
+  it.each([
+    ['/script', ' for Script'],
+    ['/script?chapter=c2', ' for Script'],
+    ['/editing/chapter-2', ' for Editing'],
+    ['/settings#audio', ' for Settings'],
+    ['/', ' for Production'],
+    ['/somewhere-else', ''],
+  ])('names where leaving goes: %s', (to, named) => {
+    const { store } = setup();
+    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it.` } });
+  });
+
+  it('the question the Booth asks for its own exit names the destination too', () => {
+    const t = setup();
+    act(() => void t.hook.result.current.leave('/proof', t.go));
+    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+    act(() => t.dialog()!.answer(false));
   });
 
   it('names the built-in recorder', () => {
@@ -737,7 +757,7 @@ describe('useBoothLeaveGuard', () => {
         ask: {
           title: 'Leave while a take is starting?',
           cancelLabel: 'Stay',
-          body: 'REAPER is starting a take. Leaving the Booth stops it once it has started.',
+          body: 'REAPER is starting a take. Leaving the Booth for Proof stops it once it has started.',
         },
       });
     });
@@ -790,7 +810,7 @@ describe('useBoothLeaveGuard', () => {
       hook.rerender({ ...session, recording: true, startPending: false });
       // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
       await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
-      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);

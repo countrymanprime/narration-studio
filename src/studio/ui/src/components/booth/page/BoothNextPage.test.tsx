@@ -305,7 +305,7 @@ describe('every-way-out-asks-while-recording', () => {
     await press('Escape');
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
     expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
     // The question holds the take while it is open.
     expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
@@ -529,7 +529,7 @@ describe('a-built-in-take-is-guarded-too', () => {
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     await press('Escape');
-    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth stops it.');
+    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it.');
     await act(async () => page.dialog()!.answer(false));
     page.view.unmount();
     await settle();
@@ -2226,7 +2226,7 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(await page.journal.entries()).toHaveLength(1);
   });
 
-  it('Stop and leave journals the take too, so it can be undone from the next page', async () => {
+  it('Stop and leave journals the take too, says it saved with an Undo, and the Undo takes it back', async () => {
     const page = renderPage({ journal: dawJournal });
     await record(page);
     await press('Escape');
@@ -2234,7 +2234,14 @@ describe('a-take-is-undone-in-the-daw', () => {
     await act(async () => page.dialog()?.answer(true));
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
     await waitFor(async () => expect((await page.journal.entries()).map((row) => row.label)).toEqual(['Recorded a take of Chapter One']));
-    expect(toastNamed(page, 'Take saved')).toBeUndefined();
+    // #3529: the leave tells the take saved with its Undo, as a plain Stop does, and the toast is the global one, so it outlives the page. This test pinned the opposite (no toast, the
+    // take only in the history) before the leave was held to the plain Stop's feedback.
+    await waitFor(() => expect(toastNamed(page, 'Take saved')).toBeTruthy());
+    await act(async () => {
+      await toastNamed(page, 'Take saved')?.action?.onAction();
+    });
+    expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1);
+    expect(await page.journal.entries()).toEqual([]);
   });
 
   it('a take with the built-in recorder is not a DAW entry', async () => {

@@ -992,10 +992,14 @@ export function useBoothPage(options: BoothPageOptions) {
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
     if (result.ok) markStopped();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
-    // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
-    if (result.ok) void tellStopped(true);
+    // Stopped on the way out: the pickups it read over are marked without a toast of their own, as the page is going. The take is told as saved, with its Undo, as after a
+    // plain Stop, and the toast outlives the page (#3529); a take that marked pickups says it was saved in the pickups' own sentence, so it says nothing more.
+    if (result.ok) {
+      const { marked, take } = await tellStopped(true);
+      if (marked === 0 && take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
+    }
     return result;
-  }, [daw, tellStopped, markStopped, keepTake, appStop]);
+  }, [daw, tellStopped, markStopped, keepTake, appStop, overlay]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({

@@ -9,10 +9,12 @@ export const IGNORE_ENTER_MS = 400;
 /**
  * The question asked when the narrator leaves the Booth while a take records. `dawName` comes from the capability report
  * ("REAPER", "Audacity", "the built-in recorder"), never hard-coded. A recording the app did not start is never stopped
- * so that question says the DAW keeps recording and offers no stop.
+ * so that question says the DAW keeps recording and offers no stop. `destination` is the rail page the move goes to, named in the sentence when there is one.
  */
-export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false): ConfirmSpec {
+export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false, destination?: string): ConfirmSpec {
   const subject = dawName.charAt(0).toUpperCase() + dawName.slice(1);
+  // Where the move goes, when a page of the rail owns it: "Leaving the Booth for Script ..." (#3529).
+  const leaving = destination ? `Leaving the Booth for ${destination}` : 'Leaving the Booth';
   if (!startedByApp) {
     return {
       title: 'Leave the Booth?',
@@ -27,7 +29,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     // The DAW has not said it records: the question never claims it does. It closes by itself if the start ends with no take.
     return {
       title: 'Leave while a take is starting?',
-      body: `${subject} is starting a take. Leaving the Booth stops it once it has started.`,
+      body: `${subject} is starting a take. ${leaving} stops it once it has started.`,
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
       safeDefault: true,
@@ -36,7 +38,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
   }
   return {
     title: 'Stop recording?',
-    body: `${subject} is recording. Leaving the Booth stops it.`,
+    body: `${subject} is recording. ${leaving} stops it.`,
     confirmLabel: 'Stop and leave',
     cancelLabel: KEEP_RECORDING,
     safeDefault: true,
