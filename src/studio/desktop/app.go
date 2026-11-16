@@ -64,6 +64,7 @@ import (
 	"desktop/internal/stages"
 	"desktop/internal/teleprompter"
 	"desktop/internal/trace"
+	"desktop/internal/tracks"
 	"desktop/internal/transcript"
 	"desktop/internal/tts"
 	"desktop/internal/ttsport"
@@ -764,10 +765,13 @@ func (h *Host) configureLocked(next config) {
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
-	projectFolder, settingsStore := h.config.projectFolder, h.settings
+	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
 	h.coverage = coverage.New(coverage.Config{
 		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
-		ProjectFile:    func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
+		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
+		ChapterAudio: func(project tracks.Project) tracks.Project {
+			return chapterAudio(coverageReporter, projectFolder, project)
+		},
 		LoadManuscript: h.manuscript.Load,
 		// A credits row's check measures the same first-of-kind template
 		// render the Home row and the teleprompter show (h.creditsScript), never manuscript
@@ -790,7 +794,7 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetRecordedFractions(coverageRecordedFractions(h.coverage, settingsStore))
 	// A chapter's recordedSeconds is its one confirmed track's recorded length in the saved .rpp, and a reason otherwise;
 	// never an estimate.
-	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript))
+	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript, h.persist))
 	// The opening and closing credits are chapters of the list too, opening first and closing last (internal/manuscript/credits.go).
 	h.manuscript.SetCredits(h.creditsChapters)
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })

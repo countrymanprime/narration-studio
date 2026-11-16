@@ -64,8 +64,8 @@ type plan struct {
 // refused instead of reporting the missing item's text as unread.
 func buildPlan(project tracks.Project, trackGUID string, identify evidence.SourceIdentifier) (plan, error) {
 	// A chapter linked to a REAPER folder of voices covers every track inside it (docs/prds/booth-voice-tracks.prd.md, phase 2b); a
-	// track that is not a folder is itself alone.
-	members, ok := project.WithDescendants(trackGUID)
+	// track that is not a folder is itself alone. A track marked as not a voice (a music bed) is not the chapter's audio (tracks.Project.WithAudioSkip).
+	members, ok := project.ChapterMembers(trackGUID)
 	if !ok {
 		return plan{}, unknown(ReasonMappedTrackMissing, "the chapter's confirmed track is not in the saved REAPER project")
 	}

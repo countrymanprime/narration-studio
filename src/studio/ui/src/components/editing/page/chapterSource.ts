@@ -35,7 +35,11 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
  * reads the saved project only, so a take recorded since the last save is not there yet and the way forward is to save, not to record.
  */
 export type ChapterAudio =
-  { kind: 'ready' } | { kind: 'unlinked' | 'missing' } | { kind: 'empty'; folder?: boolean; unsaved?: boolean | 'unknown'; missing?: boolean };
+  | { kind: 'ready' }
+  | { kind: 'unlinked' | 'missing' }
+  | { kind: 'empty'; folder?: boolean; unsaved?: boolean | 'unknown'; missing?: boolean }
+  // The tracks could not be read, so nothing says whether there is audio: `reason` is the shared sentence (`tracksUnreadable`).
+  | { kind: 'unreadable'; reason: string };
 
 /** Everything the page reads for one chapter, as the ports answered. */
 export interface ChapterRead {
@@ -65,7 +69,10 @@ export function audioOf(
   liveItems: number,
   folder = false,
   unsaved: boolean | 'unknown' = false,
+  unreadable: string | null = null,
 ): ChapterAudio {
+  // A project that could not be read says nothing about the link, but a page with nothing that proves audio exists must say why it plays nothing.
+  if (link === 'unknown' && unreadable !== null && trackItems === 0 && liveItems === 0) return { kind: 'unreadable', reason: unreadable };
   if (link === 'unknown' || trackItems > 0 || liveItems > 0) return { kind: 'ready' };
   // A linked track the saved project lacks may be one added since the last save: with unsaved changes that is a save to make, not a link to fix.
   // A chapter with several links plays its first track, as it did before the one vocabulary: it is `linked` here.

@@ -112,6 +112,8 @@ type resumeFollowLoop struct {
 	projectPath string
 	trackGUID   string
 	follower    *resumeFollower
+	// skip names the tracks whose items are not the chapter's audio (chapterAudioSkip); nil counts every item.
+	skip        func(trackGUID string) bool
 	sessionBusy func() bool
 	emit        func(resumeFollowEvent)
 	interval    time.Duration
@@ -139,7 +141,7 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 		if !ok || ctx.Err() != nil {
 			continue
 		}
-		event, stop := l.follower.step(state)
+		event, stop := l.follower.step(withoutSkippedTracks(state, l.skip))
 		if event != nil {
 			l.emit(*event)
 		}
@@ -189,7 +191,8 @@ func (h *Host) teleprompterResumeFollowWith(svc hostServices, reader trackStateR
 		reader:      reader,
 		projectPath: project.Path,
 		trackGUID:   candidate.TrackGUID,
-		follower:    newResumeFollower(chapterID, savedTrack(project, candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder),
+		follower:    newResumeFollower(chapterID, savedTrack(chapterAudio(h.persist, svc.config.projectFolder, project), candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder),
+		skip:        chapterAudioSkip(h.persist, svc.config.projectFolder, project, candidate.TrackGUID),
 		sessionBusy: svc.teleprompter.Busy,
 		emit:        emit,
 		interval:    resumeFollowInterval,

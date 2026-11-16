@@ -199,7 +199,7 @@ func TestLastRecordedItemIsTheOneThatStartsLatestOnAnyVoice(t *testing.T) {
 
 func TestThePassageMapStampReadsTheFolderSoAVoiceFolderIsNotUnstamped(t *testing.T) {
 	reader := &folderReader{}
-	stamp, err := stampFromChapter(t.Context(), reader, "{F}")
+	stamp, err := stampFromChapter(t.Context(), reader, "{F}", nil)
 	if err != nil || stamp.ItemGUID != "i2" || len(reader.asked) != 1 || reader.asked[0] != "folder:{F}" {
 		t.Fatalf("stamp %+v, %v, asked %v; want the folder's last item", stamp, err, reader.asked)
 	}

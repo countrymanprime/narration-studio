@@ -3108,8 +3108,8 @@
   {
     "name": "the narrator's track selection is not put back",
     "file": "narration_transport.lua",
-    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetTrackSelected(track, row.selected)",
-    "replace": "      if false then\n        reaper.SetTrackSelected(track, row.selected)"
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)",
+    "replace": "      if false then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)"
   },
   {
     "name": "the isolation file is left behind after everything is put back",
@@ -3696,7 +3696,7 @@
   {
     "name": "go_to a folder leaves its tracks unselected",
     "file": "narration_track_select.lua",
-    "find": "  for _, member in ipairs(members) do\n    reaper.SetTrackSelected(member, true)\n  end\n",
+    "find": "  for _, member in ipairs(members) do\n    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)\n  end\n",
     "replace": ""
   },
   {
@@ -3716,6 +3716,12 @@
     "file": "narration_track_select.lua",
     "find": "      target = math.max(target, track_end(member))\n",
     "replace": ""
+  },
+  {
+    "name": "go_to selects a folder's tracks with SetTrackSelected, which counts as a project edit",
+    "file": "narration_track_select.lua",
+    "find": "    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)\n",
+    "replace": "    reaper.SetTrackSelected(member, true)\n"
   },
   {
     "name": "go_to moves while REAPER records",
@@ -3848,5 +3854,29 @@
     "file": "narration_monitor.lua",
     "find": "  return out:close() and written and true or false",
     "replace": "  return true"
+  },
+  {
+    "name": "play isolation selects the played track with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)\n",
+    "replace": "      reaper.SetTrackSelected(other, row.set_selected)\n"
+  },
+  {
+    "name": "play isolation restore puts the selection back with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)\n",
+    "replace": "        reaper.SetTrackSelected(track, row.selected)\n"
+  },
+  {
+    "name": "play restore puts the selection back over a selection the narrator changed during the play",
+    "file": "narration_transport.lua",
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n",
+    "replace": "      if true then\n"
+  },
+  {
+    "name": "play restore puts the mute back over a mute the narrator set during the play",
+    "file": "narration_transport.lua",
+    "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
+    "replace": "      if row.set_mute ~= nil then\n"
   }
 ]

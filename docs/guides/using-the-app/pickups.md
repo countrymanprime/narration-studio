@@ -98,7 +98,7 @@ removals in a row are one message that counts them ("Removed 3 lines from pickup
 
 ### When REAPER is not connected
 
-A **REAPER not connected** mark appears at the right end of the list's header, before **Check recordings**. It opens the dialog described on [Production](production.md): **Link project file…** when no REAPER project is linked yet, **Start REAPER**, and **Check again**. The list stays readable and editable; markers and checks wait until REAPER is running. A **Saved project** mark beside it says the chapters' tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why and when they were read); it goes away when REAPER answers.
+A **REAPER not connected** mark appears at the right end of the list's header, before **Check recordings**. It opens the dialog described on [Production](production.md): **Link project file…** when no REAPER project is linked yet, **Start REAPER**, and **Check again**. The list stays readable and editable; markers and checks wait until REAPER is running. When REAPER cannot play the line itself and the tracks could not be read, Hear the original says **The tracks could not be read** and why. A **Saved project** mark beside it says the chapters' tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why and when they were read); it goes away when REAPER answers.
 
 ### When the list cannot be read
 

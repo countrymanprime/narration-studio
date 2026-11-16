@@ -980,10 +980,15 @@ function Fake:add_item_api(api)
     return fake:selected_tracks()[index + 1]
   end
   -- Deselects every track, then selects the one named (select_track, narration_track_select.lua). Real REAPER opens no
-  -- undo point for a selection change; the fake records nothing in self.undo either.
+  -- undo point for a selection change; the fake records nothing in self.undo either. REAPER 7.82 raises
+  -- GetProjectStateChangeCount by one per SetTrackSelected call, even for the state the track already has, and not for
+  -- SetOnlyTrackSelected or an I_SELECTED write (docs/research/2026-11-16-select-without-edit-real-reaper.md).
   function api.SetTrackSelected(track, selected)
     fake.calls[#fake.calls + 1] = { name = 'SetTrackSelected', selected = selected }
     track.selected = selected
+    -- Counted as an edit, yet the project stays clean (IsProjectDirty 0) in the recorded run, so saved_count moves with it.
+    fake.change_count = fake.change_count + 1
+    fake.saved_count = fake.saved_count + 1
   end
   function api.SetOnlyTrackSelected(track)
     for _, other in ipairs(fake.tracks) do
@@ -1914,6 +1919,8 @@ function Fake:add_lane_api(api)
       track.muted = value ~= 0
     elseif key == 'I_SOLO' then
       track.solo = value
+    elseif key == 'I_SELECTED' then
+      track.selected = value ~= 0
     elseif key == 'I_FOLDERDEPTH' then
       track.folder_depth = value
     elseif key == 'I_RECINPUT' then
