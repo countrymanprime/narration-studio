@@ -20,9 +20,11 @@ const closeAskTimeout = 3 * time.Second
 type closeGate struct {
 	ask      func()
 	closeNow func()
-	wait     time.Duration
 
 	mu sync.Mutex
+	// wait is how long the host waits for the page to say it received a request; it is set when the gate is made and read under mu.
+	// +checklocks:mu
+	wait time.Duration
 	// armed is true while the page holds a draft.
 	// +checklocks:mu
 	armed bool
@@ -39,8 +41,8 @@ type closeGate struct {
 	generation int
 }
 
-func newCloseGate(ask, closeNow func()) *closeGate {
-	return &closeGate{ask: ask, closeNow: closeNow, wait: closeAskTimeout}
+func newCloseGate(ask, closeNow func(), wait time.Duration) *closeGate {
+	return &closeGate{ask: ask, closeNow: closeNow, wait: wait}
 }
 
 // arm records whether the page holds a draft that a close would drop.

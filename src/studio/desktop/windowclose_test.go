@@ -6,10 +6,15 @@ import (
 	"time"
 )
 
+const testWait = 40 * time.Millisecond
+
 func newTestGate() (*closeGate, *atomic.Int32, *atomic.Int32) {
+	return newTestGateWait(testWait)
+}
+
+func newTestGateWait(wait time.Duration) (*closeGate, *atomic.Int32, *atomic.Int32) {
 	var asked, closed atomic.Int32
-	gate := newCloseGate(func() { asked.Add(1) }, func() { closed.Add(1) })
-	gate.wait = 40 * time.Millisecond
+	gate := newCloseGate(func() { asked.Add(1) }, func() { closed.Add(1) }, wait)
 	return gate, &asked, &closed
 }
 
@@ -96,7 +101,7 @@ func TestAPageThatSaidItReceivedTheRequestIsWaitedForLongerThanTheTimeout(t *tes
 	gate.arm(true)
 	gate.closing()
 	gate.asked()
-	time.Sleep(4 * gate.wait)
+	time.Sleep(4 * testWait)
 	if closed.Load() != 0 {
 		t.Fatal("the window closed on its own after the page had received the request")
 	}
@@ -143,15 +148,14 @@ func TestAnAcknowledgedSecondRequestIsWaitedFor(t *testing.T) {
 	gate.asked()
 	gate.closing()
 	gate.asked()
-	time.Sleep(4 * gate.wait)
+	time.Sleep(4 * testWait)
 	if closed.Load() != 0 {
 		t.Fatal("the window closed although the page acknowledged the second request")
 	}
 }
 
 func TestATimerFromAnEarlierQuestionCannotCloseTheWindowUnderALaterOne(t *testing.T) {
-	gate, _, closed := newTestGate()
-	gate.wait = 60 * time.Millisecond
+	gate, _, closed := newTestGateWait(60 * time.Millisecond)
 	gate.arm(true)
 	gate.closing()
 	gate.answer(false)
