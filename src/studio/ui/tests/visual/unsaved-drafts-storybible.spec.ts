@@ -248,9 +248,10 @@ test.describe('at 320 x 300', () => {
     await expectFits(page, dialog, 8);
   });
 
-  // The three-button question is the tightest: its Discard & continue and Save & continue share the second row, which had under 1 px to spare before #3521. CI's render of the
-  // labels is about 4.5 px wider than a local one, and a font a hair wider still is a further 8 px: each button 3.125 px wider on both sides stands for the two together (12.5 px
-  // in all), and the labels must still be on one line with the real gap between them (15.5 px to spare locally with 4 px between the two, 3.0 px left here).
+  // The three-button question is the tightest: its Discard & continue and Save & continue share the second row, which had under 1 px to spare before #3521. Each button 2 px
+  // wider on both sides (8 px over the two) stands for a font a hair wider than the one the page renders in, and the labels must still be on one line with the real gap between
+  // them: 7.5 px to spare locally with 4 px between the two, and 3 px in CI, whose own render of the labels is already about 4.5 px wider than a local one. (An earlier version
+  // added 12.5 px, which counted that 4.5 px twice: it measured -1.5 px in CI.)
   test('the question for an entry with a very long name still shows its whole sentence when the buttons render a hair wider', async ({ page }) => {
     await withLongEntryName(page);
     await startEntryEdit(page);
@@ -260,7 +261,7 @@ test.describe('at 320 x 300', () => {
     await dialog.getByRole('button').evaluateAll((buttons) =>
       buttons.forEach((button) => {
         const own = getComputedStyle(button);
-        (button as HTMLElement).style.paddingInline = `${parseFloat(own.paddingLeft) + 3.125}px ${parseFloat(own.paddingRight) + 3.125}px`;
+        (button as HTMLElement).style.paddingInline = `${parseFloat(own.paddingLeft) + 2}px ${parseFloat(own.paddingRight) + 2}px`;
       }),
     );
     await expectFits(page, dialog, 8, 0);
