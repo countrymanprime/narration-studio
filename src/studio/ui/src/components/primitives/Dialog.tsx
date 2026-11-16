@@ -95,11 +95,15 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
-// tall or less it is 8 px (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px) needed 278.5 px with an
-// 8 px gap in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room. The 8 px inset widens the row by
-// 8 px, to 286 px (7.5 px to spare), and the 6 px column gap, which the action row has at any width in a window 400 px tall or less, saves 2 px more: 9.5 px to spare. A
-// taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the header and action row, and its buttons still wrap.
+// tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
+// needed 278.5 px with an 8 px gap in a row 278 px inside at 12 px, so both labels broke onto a second line, and a font a hair wider took the sentence's room. The 6 px
+// action-row inset makes the row 290 px inside and the 4 px column gap, which the action row has at any width in a window 400 px tall or less, needs 274.5 px: 15.5 px to
+// spare locally, 11 px with the CI render of the labels (about 4.5 px wider). A taller 320 px window keeps its 1 rem side margins and the 10 px scrollbar gutter on the
+// header and action row, and its buttons still wrap.
 const INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-2';
+// The action row takes 6 px, not 8, in that same window, so its buttons run 2 px out from the text above them on each side: with 8 px the CI render of the labels left
+// 5.0 px of the 8 px the guard asks for, and its hair-wider case -3.0 px (#3521).
+const ACTIONS_INSET = 'px-[var(--space-6)] max-[360px]:px-3 [@media(max-width:360px)_and_(max-height:400px)]:px-1.5';
 
 // An empty description (a job message that has not arrived yet) would leave `aria-describedby` pointing at nothing, and an
 // empty `actions` would draw a padded blank row under the body.
@@ -406,7 +410,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1.5 ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1 ${ACTIONS_INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

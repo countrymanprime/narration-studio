@@ -732,10 +732,12 @@ describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
       expect(part.className).toContain(`${short}:py-1.5`);
       expect(part.className).toContain(`${short}:[scrollbar-gutter:auto]`);
     }
-    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:gap-x-1.5`);
-    // And the shared inset is 8 px in a window under 360 px wide and under 400 px tall, so a question's two widest labels keep one line at 320 x 300 (#3521).
-    for (const part of [screen.getByRole('button', { name: 'OK' }).parentElement!, document.querySelector('h2')!.parentElement!])
-      expect(part.className).toContain('[@media(max-width:360px)_and_(max-height:400px)]:px-2');
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:gap-x-1`);
+    // And the inset is 8 px on the header and 6 px on the action row in a window 360 px wide or less and 400 px tall or less, so a question's two widest labels keep one line at
+    // 320 x 300 with the room the CI render of them needs (#3521).
+    const narrow = '[@media(max-width:360px)_and_(max-height:400px)]';
+    expect(document.querySelector('h2')!.parentElement!.className).toContain(`${narrow}:px-2`);
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${narrow}:px-1.5`);
   });
 });
 
