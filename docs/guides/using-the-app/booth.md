@@ -309,8 +309,10 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 **F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space**, **Enter**, the numpad's Enter and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
-**Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
+**Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts: the first word of that phrase is underlined and the phrase is tinted, in the text itself, and the text moves there (during a take the voice keeps the cursor, so the underline shows where the start is);
 during a take it rolls again from that phrase, as **R** does. The mark is for that one take: when the take ends, "Next roll starts from" goes and the next Record starts where the recording ends. A take is held while the menu is open.
+
+![Booth - Start from here: the first word of the chosen phrase is underlined with the phrase tinted, in the text; the take has started there and the cursor has moved on](../../images/ui/booth-chosen-start.webp)
 
 Any move of your place replaces the start you chose: **Resume at**, a click on a word, the arrow keys, **Next phrase** and **Back one phrase**, a find jump, a bookmark jump in the chapter, and a jump to a pickup. "Next roll starts from" goes with it, and **Record** (Space) starts from where the text now shows you, never from the earlier mark. This holds for a start kept after a refused take and for one chosen with **Record from here** on the Script. A move that lands on the phrase you chose, or that does not move the text (an arrow at the end of the chapter, or a step inside the phrase), keeps the start. Once you have moved off the phrase, the start is gone: moving back does not bring it back. A bookmark in another chapter opens that chapter at the bookmark and chooses no start. **Record from here** and **Start from here** set the start again.
 
