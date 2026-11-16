@@ -39,6 +39,8 @@ test.describe('a held Escape closes only the top layer', () => {
     const { confirm, panel } = await openConfirmOverPanel(page);
     await holdEscape(page, 12);
     await expect(confirm).toBeHidden();
+    // Without this the test would pass on a build where the held key had already closed the slide-over.
+    await expect(panel).toBeAttached();
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
   });
