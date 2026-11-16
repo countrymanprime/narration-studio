@@ -7,7 +7,8 @@ import { REREAD_GIVES_UP_MS, useRereadFeedback } from './useRereadFeedback';
 
 // Owner rule: a button never does nothing or looks like it does nothing. Read again is pending until the read comes back, and says so when it found nothing.
 
-const read = (kind: 'ready' | 'empty'): ChapterRead => ({ audio: { kind } }) as ChapterRead;
+const read = (kind: 'ready' | 'empty' | 'unreadable'): ChapterRead =>
+  ({ audio: kind === 'unreadable' ? { kind, reason: 'The tracks could not be read: REAPER did not answer.' } : { kind } }) as ChapterRead;
 
 describe('useRereadFeedback', () => {
   it('is pending from the press until the page reads again, then says there is still no audio', () => {
@@ -21,6 +22,17 @@ describe('useRereadFeedback', () => {
     rerender({ r: read('empty') });
     expect(result.current.rereading).toBe(false);
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('Chapter One again from the saved project: there is still no audio'));
+    toast.mockRestore();
+  });
+
+  // #3586 (qa, intent): a read again that fails again is the shared sentence in the note, not a second wording that claims the saved project was read.
+  it('does not claim the saved project was read when the tracks could not be read again', () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const { result, rerender } = renderHook(({ r }) => useRereadFeedback(r, 'Chapter One', vi.fn()), { initialProps: { r: read('unreadable') } });
+    act(() => result.current.reread());
+    rerender({ r: read('unreadable') });
+    expect(result.current.rereading).toBe(false);
+    expect(toast).not.toHaveBeenCalled();
     toast.mockRestore();
   });
 

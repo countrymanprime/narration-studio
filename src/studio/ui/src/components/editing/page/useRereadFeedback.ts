@@ -21,7 +21,9 @@ export function useRereadFeedback(read: ChapterRead, chapterName: string, onRere
     seen.current = read;
     if (!rereading) return;
     setRereading(false);
-    if (read.audio.kind !== 'ready') overlay.toast(`Read ${nameIn(chapterName)} again from the saved project: there is still no audio in it.`);
+    // Tracks that could not be read say so in the note and the shared state's own toast: "read the saved project, still no audio" would be false.
+    if (read.audio.kind !== 'ready' && read.audio.kind !== 'unreadable')
+      overlay.toast(`Read ${nameIn(chapterName)} again from the saved project: there is still no audio in it.`);
   }, [read, rereading, chapterName]);
   // A read that never returns ends in a toast, not in a button pending for good.
   useEffect(() => {

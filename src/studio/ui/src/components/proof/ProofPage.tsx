@@ -538,7 +538,7 @@ export function ProofPage({
                   <p className="text-sm text-[var(--text-muted)]">Reading the recording…</p>
                 ) : unreadable ? (
                   // The tracks could not be read, so nothing says whether the chapter was recorded: the one sentence every page says (#3394).
-                  <p className="text-sm text-[var(--text-muted)]">{unreadable}</p>
+                  <p className="text-sm [overflow-wrap:anywhere] text-[var(--text-muted)]">{unreadable}</p>
                 ) : hasRecording(chapter.recordedSeconds) ? (
                   <p className="text-sm text-[var(--text-muted)]">No recording for this chapter yet.</p>
                 ) : // The check card above already says there is no recording to check (alignment audit XPF-16).
