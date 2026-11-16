@@ -398,8 +398,8 @@
   {
     "name": "every track counts as armed",
     "file": "narration_track_state.lua",
-    "find": "if armed(reaper.GetTrack(0, index)) then",
-    "replace": "if true then"
+    "find": "    if armed(track) then\n      count = count + 1",
+    "replace": "    if true then\n      count = count + 1"
   },
   {
     "name": "a muted item is reported as playing",
