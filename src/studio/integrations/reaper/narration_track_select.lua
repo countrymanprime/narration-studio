@@ -30,6 +30,12 @@ local function normalize_guid(guid)
   return '{' .. bare .. '}'
 end
 
+-- GetPlayState is a bit field (1 playing, 2 paused, 4 recording), read with arithmetic so the file stays free of the
+-- bitwise operators older Lua lacks.
+local function recording()
+  return math.floor(reaper.GetPlayState() / 4) % 2 == 1
+end
+
 local function find_track(guid)
   for index = 0, reaper.CountTracks(0) - 1 do
     local track = reaper.GetTrack(0, index)
@@ -135,7 +141,7 @@ end
 
 local function go_to(session_dir, run_id, guid_text, where, seconds_text)
   -- Selecting tracks and moving the cursor in the middle of a take could arm another track or move the take, so a recording is never touched.
-  if reaper.GetPlayState() & 4 == 4 then
+  if recording() then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
     return
   end
