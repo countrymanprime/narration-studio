@@ -175,8 +175,6 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
 // While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
 // least 4.75rem above the bottom edge (`Dialog`), so a toast there is clear of its action row (alignment audit cause P), and the bars a toast
 // otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
-// In a window under 300 px tall, where the dialog's cap grows toward the whole window (`DIALOG_MAX_HEIGHT`, #3548), no room is left under the popup: the toasts then move to the top-left
-// corner, over the dialog's title and leaving its Close button at the right free, so they never sit on its action row or its buttons (#3601). The toast's own Dismiss and Tab (`routeTabAcrossToasts`) reach it. The bars behind the scrim are not what a toast covers there.
 // A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
 let openModals = 0;
@@ -190,6 +188,38 @@ export function useToastsClearOfModal(active: boolean): void {
       if (openModals === 0) document.documentElement.removeAttribute(MODAL_OPEN_ATTRIBUTE);
     };
   }, [active]);
+}
+
+/** The custom property the toasts publish while they show over a dialog: how much of the window's bottom they take (their height, the gap under them and 0.5rem of air), in px. */
+export const TOAST_HEIGHT_PROPERTY = '--toast-h';
+
+/**
+ * While a toast shows over an open modal dialog, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top. A dialog in a short window
+ * (`Dialog`, under 300 px tall) takes what is left above it, so a toast never sits on its content or its focused control (#3605, #3601). With no toast, or no dialog open, the
+ * property is not set, so nothing in a normal window changes. It follows the region's height, a resize of the window and a dialog opening or closing.
+ */
+function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
+  useEffect(() => {
+    const root = document.documentElement;
+    const box = region.current;
+    if (!showing || !box) return;
+    const publish = () => {
+      if (!root.hasAttribute(MODAL_OPEN_ATTRIBUTE)) root.style.removeProperty(TOAST_HEIGHT_PROPERTY);
+      else root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${Math.ceil(window.innerHeight - box.getBoundingClientRect().top + 8)}px`);
+    };
+    publish();
+    const resize = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(publish);
+    resize?.observe(box);
+    const modal = new MutationObserver(publish);
+    modal.observe(root, { attributes: true, attributeFilter: [MODAL_OPEN_ATTRIBUTE] });
+    window.addEventListener('resize', publish);
+    return () => {
+      resize?.disconnect();
+      modal.disconnect();
+      window.removeEventListener('resize', publish);
+      root.style.removeProperty(TOAST_HEIGHT_PROPERTY);
+    };
+  }, [region, showing]);
 }
 
 const TABBABLE =
@@ -227,10 +257,14 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
+  const region = useRef<HTMLDivElement>(null);
+  const showing = messages.length > 0;
+  useToastHeightPublished(region, showing);
   // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
   // the primitives portal to <body>, and a toast raised from one was drawn underneath it.
   return createPortal(
     <div
+      ref={region}
       data-toast-region
       style={
         {
@@ -246,7 +280,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
         if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
           event.preventDefault();
       }}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:299px)]:[:root[data-modal-open]_&]:top-[var(--page-gutter)]! [@media(max-height:299px)]:[:root[data-modal-open]_&]:right-auto! [@media(max-height:299px)]:[:root[data-modal-open]_&]:bottom-auto! [@media(max-height:299px)]:[:root[data-modal-open]_&]:left-[var(--page-gutter)]! [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-w-[calc(100vw_-_2*var(--page-gutter)_-_3.5rem)]!"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {messages

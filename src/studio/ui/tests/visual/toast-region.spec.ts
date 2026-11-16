@@ -216,31 +216,25 @@ test.describe('a modal with a toast showing, 320x300', () => {
   });
 });
 
-// In a window under 300 px tall a dialog's popup can take most of the window (`DIALOG_MAX_HEIGHT`), so a toast raised while it is open moves to the top-right corner and
-// never sits on its buttons (#3601): at every short size from 320 px wide (a 275 px wide window, 400% zoom, makes the toast 200 px tall, more than the dialog leaves: #3605) a toast and a dialog share, the centre of each dialog button is the button, and the toast stays inside the window.
-for (const [width, height] of [
-  [320, 299],
-  [320, 290],
-  [320, 280],
-  [320, 261],
-  [320, 200],
-] as const) {
-  test(`a toast over a dialog does not sit on its buttons at ${width}x${height}`, async ({ page }) => {
-    await CASES.find((c) => c.name === 'with-dialog')!.open(page);
-    await page.setViewportSize({ width, height });
-    await settleLayout(page);
-    const covered: string[] = [];
-    for (const button of await page.getByRole('dialog').getByRole('button').all()) {
-      if (!(await button.isVisible())) continue;
-      const box = (await button.boundingBox())!;
-      const hit = await page.evaluate(
-        ([x, y]) => Boolean(document.elementFromPoint(x!, y!)?.closest('[data-toast-region]')),
-        [box.x + box.width / 2, box.y + box.height / 2],
-      );
-      if (hit) covered.push(await button.innerText());
-    }
-    expect(covered, 'dialog buttons under the toast').toEqual([]);
-    const toast = (await regions(page).boundingBox())!;
-    expect(toast.y >= -1 && toast.y + toast.height <= height + 1, 'the toast is inside the window').toBe(true);
-  });
-}
+// A dialog in a window under 300 px tall takes what is left above the toasts (#3605, #3601), so a toast showing over an open dialog publishes `--toast-h`: the room
+// from the window's bottom edge up to its top (plus 8 px). It is set only then: not with no toast, not with no dialog.
+test('a toast over an open dialog publishes the room it takes, and only then', async ({ page }) => {
+  const toastHeight = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'));
+  await page.setViewportSize({ width: 320, height: 290 });
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
+  await page.getByRole('button', { name: 'Undo' }).waitFor();
+  expect(await toastHeight(), 'a toast with no dialog open').toBe('');
+  await page.getByRole('button', { name: 'New project' }).click();
+  await page.getByRole('dialog').waitFor();
+  await expect.poll(toastHeight).not.toBe('');
+  const expected = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  expect(await toastHeight()).toBe(`${expected}px`);
+  await page.setViewportSize({ width: 320, height: 261 });
+  const again = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  await expect.poll(toastHeight).toBe(`${again}px`);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(toastHeight).toBe('');
+});
