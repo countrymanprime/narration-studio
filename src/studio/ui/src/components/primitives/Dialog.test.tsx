@@ -727,6 +727,17 @@ describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
     expect(screen.getByText('Say what this does').className).not.toContain('sr-only');
     expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:min-h-0`);
     expect(document.querySelector('h2')!.parentElement!.className).toContain(`${short}:min-h-0`);
+    // The header and the action row also trim their padding and give up the scrollbar gutter there, which a three-button question's second row needs (#3400).
+    for (const part of [screen.getByRole('button', { name: 'OK' }).parentElement!, document.querySelector('h2')!.parentElement!]) {
+      expect(part.className).toContain(`${short}:py-1.5`);
+      expect(part.className).toContain(`${short}:[scrollbar-gutter:auto]`);
+    }
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:gap-x-1`);
+    // And the inset is 8 px on the header and 6 px on the action row in a window 360 px wide or less and 400 px tall or less, so a question's two widest labels keep one line at
+    // 320 x 300 with the room the CI render of them needs (#3521).
+    const narrow = '[@media(max-width:360px)_and_(max-height:400px)]';
+    expect(document.querySelector('h2')!.parentElement!.className).toContain(`${narrow}:px-2`);
+    expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${narrow}:px-1.5`);
   });
 });
 

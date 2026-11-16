@@ -78,7 +78,7 @@ export function ConfirmDialog({
           <Button variant="secondary" disabled={pending} onClick={cancel} autoFocus={focusCancel} data-stay-button>
             {cancelLabel}
           </Button>
-          <div className="flex gap-2">
+          <div className="flex gap-2 [@media(max-height:400px)]:gap-1">
             {danger && (
               <Button variant="danger-solid" disabled={pending} onClick={danger}>
                 {dangerLabel}
