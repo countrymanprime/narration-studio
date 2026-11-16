@@ -14,7 +14,7 @@ export type ChapterTrackRow = {
   trackName?: string;
   state: ChapterLinkState;
   /** How many confirmed links the chapter holds: more than one is `several`, and a new pick replaces all of them. */
-  linkCount?: number;
+  linkCount: number;
 };
 
 /** Builds one row per narration chapter (reference chapters are hidden here the way the page-flip reader hides them,
@@ -25,7 +25,7 @@ export function chapterTrackRows(chapters: ManuscriptChapter[], tracks: Track[],
   return chapters.filter(isNarrationChapter).map((chapter) => {
     const link = chapterLink(mappings, chapter.id);
     const mapping = link.mappings[0];
-    if (!mapping) return { chapter, state: 'unlinked' as const };
+    if (!mapping) return { chapter, state: 'unlinked' as const, linkCount: 0 };
     const track = trackByGuid.get(mapping.trackGuid);
     const state = linkStateOf(link, Boolean(track));
     return { chapter, mapping, trackName: track?.name, state, linkCount: link.mappings.length };
