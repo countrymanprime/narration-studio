@@ -931,6 +931,18 @@ function AppRoutes() {
   // must still find it (#3404).
   const pageHolds = () => settingsHeld || drafts.heldNow().length > 0;
   popGuard.dirty = pageHolds;
+  // A window close or a reload leaves the page, not just the route, so no in-app question can ask: the engine's own prompt is the only one, and it asks only while the
+  // page holds what the in-app question would ask about (Settings' edited fields or an editor's draft), read when the event comes (#3455).
+  useEffect(() => {
+    const ask = (event: BeforeUnloadEvent) => {
+      if (!popGuard.dirty()) return;
+      event.preventDefault();
+      // Older engines show the prompt only when a string is assigned; the text is the engine's own, never this one.
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', ask);
+    return () => window.removeEventListener('beforeunload', ask);
+  }, []);
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => openMove({ kind: 'delta', direction });
