@@ -127,14 +127,16 @@ export function ChapterSyncPanel({
   const link = async (chapterId: string, trackGuid: string) => {
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
+    let written = false;
     try {
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
+      written = true;
       notify(linkedNotice);
       await loadPreview();
       onChanged();
     } catch (error) {
-      notify(linkFailureSentence('set', error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'set', error), 'error');
     } finally {
       setLinkingChapterId('');
     }

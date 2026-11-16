@@ -42,6 +42,13 @@ describe('the chapter-link writers', () => {
       .map((f) => f.path);
     expect(own).toEqual([]);
   });
+  // A caller of the actions hook that catches a failed write must word it through linkFailureSentence (#3365), not describeApiError or its own string.
+  it('every screen that writes a link words its failure with linkFailureSentence', () => {
+    const files = sources(join(root, 'components')).map((path) => ({ path: relative(root, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
+    const writers = files.filter((f) => /\bactions\.(set|unlink|create)\(/.test(f.text) && f.path !== OWNER).map((f) => f.path);
+    expect(writers.length).toBeGreaterThan(3);
+    for (const path of writers) expect(files.find((f) => f.path === path)?.text, path).toContain('linkFailureSentence');
+  });
   it('sees each binding it guards', () => {
     for (const call of ['chapterTrackSet', 'chapterTrackUnlink', 'chapterTrackCreate'])
       expect(linkWriters([{ path: 'x.tsx', text: `await api.${call}(a, b);` }])).toEqual(['x.tsx']);

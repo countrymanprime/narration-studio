@@ -104,25 +104,29 @@ export function ChapterTrackPanel({
 
   const link_ = async (trackGuid: string) => {
     setBusy(true);
+    let written = false;
     try {
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
+      written = true;
       notify(linkedNotice);
       await onChanged();
     } catch (error) {
-      notify(linkFailureSentence('set', error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'set', error), 'error');
     } finally {
       setBusy(false);
     }
   };
   const unlink = async () => {
     setBusy(true);
+    let written = false;
     try {
       await actions.unlink(chapterId);
+      written = true;
       setUnlinkedFrom(linkRead);
       notify('Track unlinked.');
       await onChanged();
     } catch (error) {
-      notify(linkFailureSentence('unlink', error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'unlink', error), 'error');
     } finally {
       setBusy(false);
     }

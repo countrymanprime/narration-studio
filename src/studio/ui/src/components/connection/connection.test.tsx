@@ -501,9 +501,12 @@ describe('the not-linked dialog', () => {
       chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
       chapterTrackCreate,
     });
-    expect(await screen.findByText('Audacity cannot add a track from this app.')).toBeTruthy();
-    const button = screen.getByRole('button', { name: 'Create a new track' });
+    const button = await screen.findByRole('button', { name: 'Create a new track' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
+    // The reason is on the tooltip, not a line in the dialog (#3365).
+    expect(screen.queryByText('Audacity cannot add a track from this app.')).toBeNull();
+    await userEvent.hover(button);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Audacity cannot add a track from this app.');
     await userEvent.click(button);
     expect(chapterTrackCreate).not.toHaveBeenCalled();
   });

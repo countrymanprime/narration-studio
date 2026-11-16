@@ -6,8 +6,9 @@ export type ResolveAction = {
   label: string;
   onPress: () => void;
   pending?: boolean;
-  /** Why the action is off; the button stays focusable and the reason is on the page, not only in a hint. */
   disabled?: boolean;
+  /** Why the action is off, on its tooltip (#3365); the button stays focusable. */
+  disabledReason?: string;
 };
 
 /**
@@ -38,7 +39,11 @@ export function ResolveShell({
     <Button
       variant={variant}
       pending={action.pending}
-      {...(action.disabled ? { 'aria-disabled': true } : {})}
+      {...(action.disabledReason !== undefined
+        ? { disabledReason: action.disabled ? action.disabledReason : '' }
+        : action.disabled
+          ? { 'aria-disabled': true }
+          : {})}
       onClick={action.disabled ? undefined : action.onPress}
     >
       {action.label}

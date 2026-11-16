@@ -199,7 +199,15 @@ export function ChapterLinkDialog({
   const createWhat = dest.noun;
   const withNarrator = folders ? ', with a Narrator track in it,' : '';
   const createOff = create?.available === false;
-  const createAction = { label: createLabel, onPress: createTrack, pending: creating, disabled: createOff || linking };
+  // Why Create is off sits on its tooltip, not in the page (#3365); while a link is out it is off with no reason of its own.
+  const createOffWhy = create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`;
+  const createAction = {
+    label: createLabel,
+    onPress: createTrack,
+    pending: creating,
+    disabled: createOff || linking,
+    disabledReason: createOff ? createOffWhy : '',
+  };
   const title = missing ? dest.missingTitle(chapterName) : several ? dest.severalTitle(chapterName) : dest.notLinkedTitle(chapterName);
   return (
     <ResolveShell
@@ -240,18 +248,13 @@ export function ChapterLinkDialog({
               variant="secondary"
               size="sm"
               pending={creating}
-              {...(createAction.disabled ? { 'aria-disabled': true } : {})}
+              disabledReason={createAction.disabled ? createAction.disabledReason : ''}
               onClick={createAction.disabled ? undefined : createTrack}
             >
               {createLabel}
             </Button>
           </div>
         </>
-      )}
-      {createOff && (
-        <p className="text-[var(--text-muted)]">
-          {create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`}
-        </p>
       )}
       {refused && (
         <p role="alert" className="text-[var(--danger-text)]">
