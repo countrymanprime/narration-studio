@@ -174,3 +174,16 @@ func TestEveryLiveReaderOfAChaptersFolderDropsTheSkippedTracks(t *testing.T) {
 		t.Fatalf("found %d live readers, want at least 5: the guard no longer finds them, update it", seen)
 	}
 }
+
+// The ripple keeps every track of the chapter's folder, a marked one too (owner decision on #3558): "not a voice" means not recorded and not
+// transcribed, not detached from the chapter's timeline, and a bed left behind by a ripple would be out of sync with its chapter.
+func TestARippleStillNamesTheChaptersFolderWhenAChildIsMarkedAsNotAVoice(t *testing.T) {
+	host, ids := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders, musicBedTrack)
+	if got := readChapterFolderTrack(host.services(), ids[0]); got != voiceFolderTrack {
+		t.Fatalf("ripple folder = %q, want %q: a marked music bed moves with its chapter", got, voiceFolderTrack)
+	}
+	onlyBed, bedIDs := newFolderHost(t, folderRppWithItems([4]string{musicBedTrack, "Music bed", "0", "300"}), voicetracks.LayoutFolders, musicBedTrack)
+	if got := readChapterFolderTrack(onlyBed.services(), bedIDs[0]); got != voiceFolderTrack {
+		t.Fatalf("ripple folder = %q for a folder holding only a marked bed, want %q", got, voiceFolderTrack)
+	}
+}
