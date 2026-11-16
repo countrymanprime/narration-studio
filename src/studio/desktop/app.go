@@ -64,6 +64,7 @@ import (
 	"desktop/internal/stages"
 	"desktop/internal/teleprompter"
 	"desktop/internal/trace"
+	"desktop/internal/tracks"
 	"desktop/internal/transcript"
 	"desktop/internal/tts"
 	"desktop/internal/ttsport"
@@ -768,6 +769,7 @@ func (h *Host) configureLocked(next config) {
 	h.coverage = coverage.New(coverage.Config{
 		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
 		ProjectFile:    func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
+		ChapterAudio:   func(project tracks.Project) tracks.Project { return chapterAudio(projectFolder, project) },
 		LoadManuscript: h.manuscript.Load,
 		// A credits row's check measures the same first-of-kind template
 		// render the Home row and the teleprompter show (h.creditsScript), never manuscript

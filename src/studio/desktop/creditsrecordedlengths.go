@@ -38,7 +38,7 @@ func (h *Host) CreditsRecordedLengths() (string, error) {
 			return "", fmt.Errorf("could not read the chapter track links: %w", err)
 		}
 		project, readable := readSelectedProject(svc.config.projectFolder, svc.settings)
-		lengths = recordedLengthsFor(ids, mappings, project, readable)
+		lengths = recordedLengthsFor(ids, mappings, chapterAudio(svc.config.projectFolder, project), readable)
 	}
 	return encodeBinding(map[string]any{
 		"opening": creditsRecordedLengthPayload(lengths[ids[0]]),

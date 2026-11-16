@@ -28,7 +28,7 @@ func recordedLengths(folder string, store *settings.Store, service *manuscript.S
 			return nil
 		}
 		project, readable := readSelectedProject(folder, store)
-		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, project, readable)
+		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, chapterAudio(folder, project), readable)
 	}
 }
 
