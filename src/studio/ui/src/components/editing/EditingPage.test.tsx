@@ -179,7 +179,7 @@ describe('EditingPage', () => {
   });
 
   it('stepping to another chapter sends the DAW there once', async () => {
-    const dawGoToChapter = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     mount({ api: { dawGoToChapter } });
     await script();
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
