@@ -1,6 +1,7 @@
 // Text typed in the Script rail and not saved (a pronunciation under "Save to my dictionary", a reply to a note, an edit of a message) is asked about when the
 // narrator leaves, or goes on to something that replaces the card it is typed in: another rail tab, another word, a lookup from the text (#3400).
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expectFits, widenButtons } from './helpers/questionFits';
 import { settlePage } from './helpers/settle';
 import { goToPage, selectReaderWord } from './drivers/shared';
 
@@ -199,4 +200,38 @@ test('Discard & continue on a message delete shows the edited message again with
   await expect(card.getByRole('textbox', { name: 'Edit message' })).toHaveCount(0);
   await expect(card.getByText('reply two')).toBeVisible();
   await expect(card.getByRole('button', { name: 'Edit this message' })).toHaveCount(2);
+});
+
+// The three-button question (Cancel, Discard & continue, Save & continue) at the smallest window keeps its whole sentence with room to spare, every label on one line, and the two
+// widest labels' row with room for a font a hair wider (the same guard as the Story Bible's, #3521).
+test.describe('at 320 x 300', () => {
+  const SMALL = { width: 320, height: 300 };
+
+  test('the question over a typed pronunciation shows its whole sentence and keeps its labels on one line', async ({ page }) => {
+    await typePronunciation(page, 'tired', 'TY-erd');
+    await page.setViewportSize(SMALL);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const question = unsaved(page, 'Unsaved changes');
+    await expect(question).toContainText('Save or discard your “tired” pronunciation before leaving?');
+    await expectFits(page, question, 8);
+  });
+
+  test('the same question still fits when its buttons render a hair wider', async ({ page }) => {
+    await typePronunciation(page, 'tired', 'TY-erd');
+    await page.setViewportSize(SMALL);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const question = unsaved(page, 'Unsaved changes');
+    await expect(question).toContainText('pronunciation');
+    await widenButtons(question, 2);
+    await expectFits(page, question, 8, 0);
+  });
+
+  test('the question over a reply typed under a note shows its whole sentence and keeps its labels on one line', async ({ page }) => {
+    await noteWithReply(page, 'Typed reply keep me');
+    await page.setViewportSize(SMALL);
+    await page.keyboard.press('Alt+ArrowLeft');
+    const question = unsaved(page, 'Unsaved changes');
+    await expect(question).toContainText('Save or discard your reply');
+    await expectFits(page, question, 8);
+  });
 });
