@@ -41,7 +41,7 @@ const EXEMPT: Record<string, string> = {
   'master/MasterToSpecPanel.tsx': 'a chapter title edited in the mastering job, which the job keeps as typed and sends with the run',
   'master/MasteringApprovalDialog.tsx': MODAL,
   'pickups/list/AddPickup.tsx': POPOVER,
-  'project/NewProjectDialog.tsx': MODAL,
+  'project/NewProjectDialog.tsx': MODAL_ASKS,
   'proof/CompareRun.tsx': AT_ONCE,
   'proof/ProoferSheet.tsx': 'a file chooser, no text',
   'proof/inspector/Inspector.tsx': KEPT,
