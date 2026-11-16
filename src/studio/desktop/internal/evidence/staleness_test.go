@@ -699,8 +699,8 @@ func TestADuplicateItemGUIDTrimmedReadsTrimmedAndNotRecomposable(t *testing.T) {
 	if result.Recomposable {
 		t.Fatal("a trim changes the analysis key and must not be recomposable, whatever the GUID")
 	}
-	if len(result.ChangedItemGUIDs) != 1 {
-		t.Fatalf("ChangedItemGUIDs = %v, want the one trimmed item", result.ChangedItemGUIDs)
+	if len(result.ChangedItemGUIDs) != 1 || result.ChangedItemGUIDs[0] != "dup" {
+		t.Fatalf("ChangedItemGUIDs = %v, want the trimmed first copy named by its own GUID", result.ChangedItemGUIDs)
 	}
 }
 
