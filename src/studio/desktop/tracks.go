@@ -273,11 +273,11 @@ func withCurrentSources(project tracks.Project) tracks.Project {
 		track.Items = slices.Clone(track.Items)
 		for j := range track.Items {
 			item := &track.Items[j]
-			item.SourceAvailable = sourceAvailable(item.SourceKind, item.SourceFile, item.SourceAvailable)
+			item.SourceAvailable = sourceAvailable(item.SourceFile, item.SourceAvailable)
 			item.Takes = slices.Clone(item.Takes)
 			for k := range item.Takes {
 				take := &item.Takes[k]
-				take.SourceAvailable = sourceAvailable(take.SourceKind, take.SourceFile, take.SourceAvailable)
+				take.SourceAvailable = sourceAvailable(take.SourceFile, take.SourceAvailable)
 			}
 		}
 		list[i] = track
@@ -286,9 +286,9 @@ func withCurrentSources(project tracks.Project) tracks.Project {
 	return project
 }
 
-// sourceAvailable is whether file is a readable file now; an Audacity snapshot's sources are never files, so they keep what the reader said.
-func sourceAvailable(kind, file string, parsed bool) bool {
-	if kind == "audacity" || file == "" {
+// sourceAvailable is whether file is a readable file now; a source with no file (an Audacity clip) keeps what the reader said.
+func sourceAvailable(file string, parsed bool) bool {
+	if file == "" {
 		return parsed
 	}
 	info, err := os.Stat(file)
