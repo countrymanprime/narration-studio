@@ -19,9 +19,12 @@ type Inhibitor interface {
 
 // Keeper holds an Inhibitor while a take is recording.
 type Keeper struct {
-	mu     sync.Mutex
-	inhib  Inhibitor
-	held   bool
+	mu sync.Mutex
+	// +checklocks:mu
+	inhib Inhibitor
+	// +checklocks:mu
+	held bool
+	// +checklocks:mu
 	closed bool
 }
 

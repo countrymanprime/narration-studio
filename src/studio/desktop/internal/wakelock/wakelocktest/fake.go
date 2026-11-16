@@ -11,10 +11,13 @@ var _ wakelock.Inhibitor = (*Fake)(nil)
 
 // Fake records every Acquire and Release, and can be made to refuse the next Acquire.
 type Fake struct {
-	mu     sync.Mutex
+	mu sync.Mutex
+	// +checklocks:mu
 	events []string
-	held   bool
-	fail   error
+	// +checklocks:mu
+	held bool
+	// +checklocks:mu
+	fail error
 }
 
 // FailNext makes the next Acquire return err (once).

@@ -423,7 +423,8 @@ type Host struct {
 	wakeOnce      sync.Once
 	wakeMu        sync.Mutex
 	wakeInhibitor wakelock.Inhibitor
-	wakeRefused   atomic.Bool
+	// +checklocks:wakeMu
+	wakeRefused atomic.Bool
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
 	powerState func() coverage.Power
 	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
