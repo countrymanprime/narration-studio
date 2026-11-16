@@ -28,9 +28,9 @@ export const globalDrivers: Record<string, Driver> = {
   'nav-rail-open': onMockDay(async (page) => {
     const width = page.viewportSize()?.width ?? 0;
     if (width >= 1360 || width < 860) return;
-    const rail = page.getByRole('complementary', { name: 'Primary navigation' });
+    const rail = page.getByRole('navigation', { name: 'Primary navigation' });
     await rail.getByRole('button', { name: /^Pickups/ }).hover();
-    await page.waitForFunction(() => (document.querySelector('aside[aria-label="Primary navigation"] > div')?.getBoundingClientRect().width ?? 0) > 200);
+    await page.waitForFunction(() => (document.querySelector('[data-nav-rail] > div')?.getBoundingClientRect().width ?? 0) > 200);
   }),
   // Below 860 CSS px the top bar's Open navigation button opens the navigation drawer; from 860 px there is a rail and no button.
   'nav-drawer-open': onMockDay(async (page) => {

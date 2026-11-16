@@ -75,7 +75,8 @@ describe('AppShell on the Booth', () => {
 describe('AppShell nav gating', () => {
   const GATED = ['Schedule', 'Script', 'Story Bible', 'Booth', 'Editing', 'Proof', 'Pickups', 'Master & QC', 'Delivery'];
   const REASON = 'Import a manuscript to unlock this page.';
-  const railItem = (name: string) => within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name });
+  // The rail's panel: the Primary navigation landmark and, under it, the theme item and Settings.
+  const railItem = (name: string) => within(screen.getByRole('complementary')).getByRole('button', { name });
 
   // The mock's rail draws these off with no manuscript (the mock changed first), and each page still asks for the manuscript itself.
   it('turns the nine pages that need a manuscript off with no manuscript: focusable, named, and saying why', () => {
@@ -619,7 +620,7 @@ describe('AppShell page change', () => {
     const live = () => screen.getByRole('status', { name: 'Page' });
     expect(live().textContent).toBe('');
     expect(document.activeElement).toBe(document.body);
-    const rail = within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Proof' });
+    const rail = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Proof' });
     rail.focus();
     rerender(shell('/editing'));
     expect(live().textContent).toBe('Editing');

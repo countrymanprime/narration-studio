@@ -741,7 +741,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const proof = within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: /^Proof/ });
+    const proof = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: /^Proof/ });
     expect(proof.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(proof);
     expect((await screen.findByRole('dialog', { name: 'Proof is unavailable' })).textContent).toContain('Import a manuscript to unlock this page.');
@@ -2884,7 +2884,7 @@ describe('App shell mounts', () => {
     cleanup();
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const rail = screen.getByRole('complementary', { name: 'Primary navigation' });
+    const rail = screen.getByRole('navigation', { name: 'Primary navigation' });
     // The Wails runtime decides the browser menu itself; the host's part is to open none outside <main>'s page area.
     fireEvent.contextMenu(within(rail).getByRole('button', { name: 'Script' }));
     // The shell's header, the first in the document; the Production title block is a <header> of its own further down.
@@ -3290,7 +3290,7 @@ describe('App page change signal', () => {
   it('ctrl-f-searches-the-page: on Script it opens the menu scoped to the page, and a chapter is listed once, under On this page', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { level: 1, name: 'Script' });
     await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'f', code: 'KeyF', ctrlKey: true });
@@ -3309,7 +3309,7 @@ describe('App page change signal', () => {
   it('ctrl-k-lists-the-page-first: the whole menu opens with On this page before Commands', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
     await screen.findByRole('combobox', { name: 'Jump menu' });
@@ -3321,7 +3321,7 @@ describe('App page change signal', () => {
   it('leaves focus in the page after the jump menu picks one', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const rail = await within(screen.getByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name: 'Production' });
+    const rail = await within(screen.getByRole('navigation', { name: 'Primary navigation' })).findByRole('button', { name: 'Production' });
     rail.focus();
     expect(document.activeElement).toBe(rail);
     fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));

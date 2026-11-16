@@ -15,7 +15,7 @@ beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(cleanup);
 
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code });
-const rail = async (name: RegExp) => within(await screen.findByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name });
+const rail = async (name: RegExp) => within(await screen.findByRole('navigation', { name: 'Primary navigation' })).findByRole('button', { name });
 
 describe('a Proof decision carries to Pickups, the rail and Production', () => {
   it('Needs pickup adds a Proof note line everywhere and taking it back removes it', async () => {
