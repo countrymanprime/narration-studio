@@ -26,6 +26,7 @@ import type {
   DawProjectState,
   DawProjectStateApi,
   DawTransport,
+  DawGoToWhere,
 } from './contracts/daw';
 import { DAW_CAPABILITIES, DAW_LEVEL_MAX, DAW_METER_FLOOR_DB } from './contracts/daw';
 import { wireClone } from './mockFixtures';
@@ -433,7 +434,7 @@ export interface DawMockControl {
   /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
-  moves(): { chapterId: string; where: 'end' | 'at'; seconds: number }[];
+  moves(): { chapterId: string; where: DawGoToWhere; seconds: number }[];
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
   syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
@@ -493,7 +494,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let refuseLevel: string | null = null;
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
-  const moved: { chapterId: string; where: 'end' | 'at'; seconds: number }[] = [];
+  const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
   // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
   const sync: {
     playing: boolean;
@@ -770,8 +771,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       const refusal = followRefusal();
       if (refusal !== null) return refusedMove(refusal);
       if (where === 'at' && (!Number.isFinite(seconds) || seconds < 0)) return refusedMove('The place to go to is not a usable number of seconds.');
-      moved.push({ chapterId, where, seconds: where === 'end' ? 0 : seconds });
-      place = { chapterId, cursor: where === 'end' ? place.cursor : seconds };
+      moved.push({ chapterId, where, seconds: where === 'at' ? seconds : 0 });
+      place = { chapterId, cursor: where === 'at' ? seconds : where === 'start' ? 0 : place.cursor };
       return { ok: true, changed: true, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it

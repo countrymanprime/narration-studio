@@ -105,7 +105,7 @@ itself, once for the chapter: it names the chapter, offers the REAPER tracks the
 **Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
 track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
 so the page can read the new track. If you close it with the X, the
-**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder); for a chapter whose track is no longer in the project the mark reads **Track missing**, as in the audio engine panel). The page also reads the chapter again whenever you come back
+**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder); for a chapter whose track is no longer in the project the mark reads **Track missing**, as in the audio engine panel, and the dialog's footer says it is waiting for the chapter to be linked to a track that is in the project). A **Saved project** mark beside it says the tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why). The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
@@ -120,6 +120,10 @@ chapter, how far it has got, the models and how many chapters wait, with **Pause
 words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
+
+## The DAW follows the chapter
+
+Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
 
 ## The DAW tools menu
 

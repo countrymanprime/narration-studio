@@ -1,0 +1,161 @@
+{
+  "chapters": [
+    {
+      "candidates": [
+        {
+          "region": null,
+          "score": 0.95,
+          "source": "track-name",
+          "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000001}",
+          "trackIndex": 0,
+          "trackName": "Chapter 1"
+        }
+      ],
+      "chapterId": "c-0001",
+      "chapterTitle": "Chapter I: Down the Rabbit-Hole",
+      "links": [
+        {
+          "chapterId": "c-0001",
+          "chapterTitle": "Chapter I: Down the Rabbit-Hole",
+          "confirmedAt": "2026-09-21T10:00:00Z",
+          "match": null,
+          "origin": "manual",
+          "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000001}"
+        }
+      ],
+      "members": [
+        {
+          "guid": "{AAAAAAAA-0000-4000-8000-000000000010}",
+          "isVoice": false,
+          "name": "Music bed",
+          "notAVoice": true
+        },
+        {
+          "guid": "{AAAAAAAA-0000-4000-8000-000000000003}",
+          "isVoice": true,
+          "name": "Queen",
+          "notAVoice": false
+        }
+      ],
+      "recordedEnd": null,
+      "status": "confirmed",
+      "track": {
+        "region": null,
+        "score": 1,
+        "source": "confirmed",
+        "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000001}",
+        "trackIndex": 0,
+        "trackName": "Chapter 1"
+      },
+      "warnings": []
+    },
+    {
+      "candidates": [
+        {
+          "region": null,
+          "score": 0.95,
+          "source": "track-name",
+          "trackGuid": "{22222222-2222-4222-8222-222222222222}",
+          "trackIndex": 3,
+          "trackName": "Chapter II"
+        }
+      ],
+      "chapterId": "c-0002",
+      "chapterTitle": "Chapter II: The Pool of Tears",
+      "links": [],
+      "members": [],
+      "recordedEnd": null,
+      "status": "matched",
+      "track": {
+        "region": null,
+        "score": 0.95,
+        "source": "track-name",
+        "trackGuid": "{22222222-2222-4222-8222-222222222222}",
+        "trackIndex": 3,
+        "trackName": "Chapter II"
+      },
+      "warnings": []
+    },
+    {
+      "candidates": [],
+      "chapterId": "c-0003",
+      "chapterTitle": "Chapter III: A Caucus-Race and a Long Tale",
+      "links": [],
+      "members": [],
+      "recordedEnd": null,
+      "status": "none",
+      "track": null,
+      "warnings": []
+    }
+  ],
+  "message": "",
+  "project": "ready",
+  "projectFile": "C:/Projects/Alice/Alice.rpp",
+  "savedAt": "2026-09-21T10:00:00Z",
+  "tracks": [
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{AAAAAAAA-0000-4000-8000-000000000001}",
+      "index": 0,
+      "isFolder": true,
+      "itemCount": 0,
+      "linkedChapterId": "c-0001",
+      "missingSourceCount": 0,
+      "muted": false,
+      "name": "Chapter 1",
+      "playableCount": 0,
+      "soloed": false,
+      "span": null,
+      "unsupportedCount": 0
+    },
+    {
+      "color": "",
+      "depth": 1,
+      "guid": "{AAAAAAAA-0000-4000-8000-000000000010}",
+      "index": 1,
+      "isFolder": false,
+      "itemCount": 0,
+      "linkedChapterId": "",
+      "missingSourceCount": 0,
+      "muted": false,
+      "name": "Music bed",
+      "playableCount": 0,
+      "soloed": false,
+      "span": null,
+      "unsupportedCount": 0
+    },
+    {
+      "color": "",
+      "depth": 1,
+      "guid": "{AAAAAAAA-0000-4000-8000-000000000003}",
+      "index": 2,
+      "isFolder": false,
+      "itemCount": 0,
+      "linkedChapterId": "",
+      "missingSourceCount": 0,
+      "muted": false,
+      "name": "Queen",
+      "playableCount": 0,
+      "soloed": false,
+      "span": null,
+      "unsupportedCount": 0
+    },
+    {
+      "color": "",
+      "depth": 0,
+      "guid": "{22222222-2222-4222-8222-222222222222}",
+      "index": 3,
+      "isFolder": false,
+      "itemCount": 0,
+      "linkedChapterId": "",
+      "missingSourceCount": 0,
+      "muted": false,
+      "name": "Chapter II",
+      "playableCount": 0,
+      "soloed": false,
+      "span": null,
+      "unsupportedCount": 0
+    }
+  ]
+}

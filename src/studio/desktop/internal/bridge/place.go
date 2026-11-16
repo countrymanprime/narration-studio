@@ -14,9 +14,11 @@ type Place struct {
 	Cursor    float64
 }
 
-// PlaceTarget is where GoTo puts the edit cursor on a track: the end of its last item, or a time in project seconds.
+// PlaceTarget is where GoTo puts the edit cursor on a track: the end of its last item, the start of its first (with a folder, of the
+// tracks inside it too; End and Start are never both set), or a time in project seconds.
 type PlaceTarget struct {
 	End     bool
+	Start   bool
 	Seconds float64
 }
 
@@ -46,7 +48,9 @@ func (a *Actions) ReadPlace(ctx context.Context) (Place, error) {
 // before anything is sent.
 func (a *Actions) GoTo(ctx context.Context, trackGUID string, target PlaceTarget) (float64, error) {
 	where, seconds := "end", ""
-	if !target.End {
+	if target.Start {
+		where = "start"
+	} else if !target.End {
 		if target.Seconds != target.Seconds || target.Seconds < 0 || target.Seconds > maxPlaceSeconds {
 			return 0, fmt.Errorf("the place to go to is not a usable number of seconds")
 		}

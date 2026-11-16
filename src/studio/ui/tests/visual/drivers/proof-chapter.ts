@@ -28,6 +28,17 @@ export const proofChapterDrivers: Record<string, Driver> = {
     // The panel says the failure, so no toast says it again (#2494): the picture is the panel alone.
     await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
+  'saved-project': async (page) => {
+    await page.goto('/?mockLiveTracks=saved');
+    await settlePage(page);
+    await goToPage(page, 'Proof');
+    await page.evaluate((path) => {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, '/proof/chapter-1');
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).waitFor();
+    await page.getByRole('group', { name: 'Saved project' }).waitFor();
+  },
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
     await openLinkedProofChapter(page, 'Chapter 7');

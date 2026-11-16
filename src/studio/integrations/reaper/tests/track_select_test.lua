@@ -115,12 +115,38 @@ H.test('go_to end on a track with no items puts the cursor at zero', function()
   H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '0' } })
 end)
 
+H.test('go_to start puts the cursor at the start of the earliest item', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 40, length = 20 })
+  s.fake:add_item(chapter, { position = 12.5, length = 5 })
+  s:send('go_to', 'g1', chapter.guid, 'start', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '12.5' } })
+  H.eq(s.fake.cursor, 12.5)
+end)
+
+H.test('go_to start on a track with no items puts the cursor at zero', function()
+  local s, chapter = new_session()
+  s:send('go_to', 'g1', chapter.guid, 'start', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '0' } })
+end)
+
 H.test('go_to a time puts the cursor there without playing and without scrolling it away', function()
   local s, chapter = place_session()
   s:send('go_to', 'g1', chapter.guid, 'at', '17.25')
   H.eq(s:events(), { { 'PLACE_SET', 'g1', CH1, '17.25' } })
   H.eq(s.fake.cursor, 17.25)
   H.eq(s.fake.cursor_seekplay, false, 'moving the cursor does not start or seek playback')
+end)
+
+H.test('go_to refuses while REAPER records and moves nothing', function()
+  local s, chapter, pickups = place_session()
+  pickups.selected = true
+  s.fake.play_state = 5
+  s:send('go_to', 'g1', chapter.guid, 'start', '')
+  H.eq(s:events(), { { 'ERROR', 'g1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(pickups.selected, true)
+  H.eq(chapter.selected, false)
+  H.eq(s.fake.cursor or 0, 0)
 end)
 
 H.test('go_to with a time that is not a number refuses and moves nothing', function()
@@ -161,7 +187,7 @@ end)
 -- A chapter folder and its voices (#3427) ---------------------------------------------------------------------------
 
 -- Chapter 1 (a folder) holds Narrator and Queen; a nested folder "Crowd" holds Guard; Chapter 2 is a plain track after it.
-local function folder_session()
+local function folder_session(no_folder_item)
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
   local t = {}
   t.chapter = s.fake:add_track('Chapter 1')
@@ -171,7 +197,9 @@ local function folder_session()
   t.guard = s.fake:add_track('Guard')
   t.next = s.fake:add_track('Chapter 2')
   t.chapter.folder_depth, t.crowd.folder_depth, t.guard.folder_depth = 1, 1, -2
-  s.fake:add_item(t.chapter, { position = 0, length = 30 })
+  if not no_folder_item then
+    s.fake:add_item(t.chapter, { position = 0, length = 30 })
+  end
   return s, t
 end
 
@@ -193,7 +221,6 @@ end)
 
 -- #3560: the host emits daw_project_edited whenever GetProjectStateChangeCount moves, and REAPER 7.82 counts every SetTrackSelected call
 -- as an edit, so a go_to that selected a chapter with it made Editing re-read its word table for nothing.
--- It sends 'end' only: cover 'start' here once #3563 lands it.
 H.test('go_to a folder leaves the project change count alone, however often it runs', function()
   local s, t = folder_session()
   local before = s.fake.change_count
@@ -202,7 +229,21 @@ H.test('go_to a folder leaves the project change count alone, however often it r
   s:send('go_to', 'g3', t.crowd.guid, 'end', '')
   H.eq(s.fake.change_count, before)
   H.eq(selection(t), { 0, 0, 0, 1, 1, 0 })
+  s:send('go_to', 'g4', t.chapter.guid, 'start', '')
+  H.eq(s.fake.change_count, before)
   H.eq(#s.fake.undo, 0)
+end)
+
+H.test('go_to start on a folder takes the earliest item of the folder and the tracks inside it', function()
+  local s, t = folder_session()
+  s.fake:add_item(t.queen, { position = 5, length = 3 })
+  s:send('go_to', 'g1', t.chapter.guid, 'start', '')
+  H.eq(s:events(), { { 'PLACE_SET', 'g1', '{00000001-0000-4000-8000-000000000001}', '0' } })
+  H.eq(selection(t), { 1, 1, 1, 1, 1, 0 })
+  local s2, t2 = folder_session(true)
+  s2.fake:add_item(t2.queen, { position = 5, length = 3 })
+  s2:send('go_to', 'g1', t2.chapter.guid, 'start', '')
+  H.eq(s2:events()[1][4], '5')
 end)
 
 H.test('go_to a track that is not a folder selects only that track', function()

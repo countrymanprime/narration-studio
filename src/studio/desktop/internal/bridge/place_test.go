@@ -62,6 +62,20 @@ func TestGoToSendsTheTrackAndWhereAndAnswersTheCursor(t *testing.T) {
 	}
 }
 
+func TestGoToStartAsksForTheStartOfTheTrack(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"PLACE_SET", run(command), command[3], "12.5"}}
+	})
+	got, err := actions.GoTo(context.Background(), "{G}", PlaceTarget{Start: true})
+	if err != nil || got != 12.5 {
+		t.Fatalf("GoTo = %v, %v", got, err)
+	}
+	if commands := fake.commands(); len(commands) != 1 || commands[0][4] != "start" {
+		t.Fatalf("commands = %v, want go_to with start", commands)
+	}
+}
+
 func TestGoToRefusesATimeThatIsNotUsableBeforeAnythingIsSent(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
