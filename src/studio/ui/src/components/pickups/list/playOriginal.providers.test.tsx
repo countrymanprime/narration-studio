@@ -198,6 +198,17 @@ describe('why-the-original-cannot-be-played', () => {
     await flush();
     expect(refused.join(' ')).toContain('linked track is no longer in the project');
   });
+  // The owner (#3394, 2026-11-16): Hear the original is off when the chapter has no link, with the reason, not a button that plays beside "Not linked".
+  it('is off, with the reason, for a chapter that has no link once the links were read', async () => {
+    const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, null);
+    expect(result.current.unavailable(pickup(15))).toContain('This chapter is not linked to a track');
+  });
+  it('stays on for a linked chapter, and before the links were first read', async () => {
+    const { result } = await mountRead(DAW_SETUPS['reaper-off'], {}, false, 'tr');
+    expect(result.current.unavailable(pickup(15))).toBeUndefined();
+    const unread = mount(DAW_SETUPS['reaper-off'], {}, true, null);
+    expect(unread.result.current.unavailable(pickup(15))).toBeUndefined();
+  });
 });
 
 describe('a-second-press-while-the-first-is-in-flight', () => {

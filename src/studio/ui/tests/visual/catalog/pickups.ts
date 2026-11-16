@@ -99,6 +99,13 @@ export const pickupsStates: StateEntry[] = [
   },
   {
     page: 'pickups',
+    state: 'saved-project',
+    description:
+      'Pickups with REAPER not answering (?mockLiveTracks=saved): the "Saved project" mark stands in the list header beside Check recordings, its hint says the tracks are the saved file\'s and when they were read',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
     state: 'markers-not-linked',
     description:
       'Pickups with no REAPER project file linked (?mockNoDaw=1): Add N as markers is off, its tooltip and screen-reader description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar badge, and the session card does not grow',
