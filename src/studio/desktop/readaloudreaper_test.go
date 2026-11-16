@@ -5,6 +5,7 @@ import (
 	"desktop/internal/creditsid"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -205,15 +206,21 @@ func TestReadAloudReaperStateBindingAnswersJSON(t *testing.T) {
 func TestTheArmedTracksAreNamedOnlyWhenAllOfThemAre(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	a, b := "{AAAAAAAA-0000-4000-8000-0000000000B7}", "{AAAAAAAA-0000-4000-8000-0000000000B8}"
+	// The most the bridge lists (ARMED_LIST_LIMIT in narration_track_state.lua): with 32 armed, all 32 are named and reach the page.
+	full := make([]string, 32)
+	for i := range full {
+		full[i] = fmt.Sprintf("{AAAAAAAA-0000-4000-8000-%012d}", i)
+	}
 	for name, row := range map[string]struct {
 		state bridge.TrackState
 		want  []string
 	}{
-		"another track armed": {bridge.TrackState{ArmedCount: 1, ArmedGUIDs: []string{a}}, []string{a}},
-		"two armed":           {bridge.TrackState{ArmedCount: 2, TrackArmed: true, ArmedGUIDs: []string{a, b}}, []string{a, b}},
-		"a list cut short":    {bridge.TrackState{ArmedCount: 40, ArmedGUIDs: []string{a, b}}, nil},
-		"none armed":          {bridge.TrackState{}, nil},
-		"an older script":     {bridge.TrackState{ArmedCount: 1}, nil},
+		"another track armed":   {bridge.TrackState{ArmedCount: 1, ArmedGUIDs: []string{a}}, []string{a}},
+		"two armed":             {bridge.TrackState{ArmedCount: 2, TrackArmed: true, ArmedGUIDs: []string{a, b}}, []string{a, b}},
+		"a list cut short":      {bridge.TrackState{ArmedCount: 40, ArmedGUIDs: []string{a, b}}, nil},
+		"exactly 32, all named": {bridge.TrackState{ArmedCount: 32, ArmedGUIDs: full}, full},
+		"none armed":            {bridge.TrackState{}, nil},
+		"an older script":       {bridge.TrackState{ArmedCount: 1}, nil},
 	} {
 		if got := readState(t, host, &fakeTrackStates{state: row.state}, ids[0]).ArmedTrackGUIDs; !slices.Equal(got, row.want) {
 			t.Errorf("%s: ArmedTrackGUIDs = %q, want %q", name, got, row.want)
