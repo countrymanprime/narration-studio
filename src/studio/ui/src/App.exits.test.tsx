@@ -12,10 +12,11 @@ import { overlay } from './overlay/overlayService';
 import { ThemeProvider } from './theme/ThemeContext';
 import { useUnsavedDraft } from './studio/drafts/unsavedDrafts';
 
-const probe = vi.hoisted(() => ({ saves: vi.fn(), hang: false, land: undefined as ((saved: boolean) => void) | undefined }));
+const probe = vi.hoisted(() => ({ saves: vi.fn(), hang: false, blurSave: false, inDialog: false, land: undefined as ((saved: boolean) => void) | undefined }));
 vi.mock('./components/script/page/ScriptPage', () => ({
   ScriptPage: function ProbePage() {
-    const [dirty, setDirty] = useState(true);
+    // A blur-saving field holds nothing until the focus leaves it (`blurSave`), the way a Settings row or a due date does.
+    const [dirty, setDirty] = useState(!probe.blurSave);
     useUnsavedDraft('probe-draft', {
       dirty,
       label: 'a probe note',
@@ -30,7 +31,19 @@ vi.mock('./components/script/page/ScriptPage', () => ({
       },
       discard: () => setDirty(false),
     });
-    return <h1>Probe page</h1>;
+    const field = probe.blurSave ? <input aria-label="Blur-save field" onBlur={() => setDirty(true)} /> : null;
+    return (
+      <>
+        <h1>Probe page</h1>
+        {probe.inDialog ? (
+          <div role="dialog" aria-label="Probe panel">
+            {field}
+          </div>
+        ) : (
+          field
+        )}
+      </>
+    );
   },
 }));
 
@@ -38,6 +51,8 @@ configure({ asyncUtilTimeout: 12_000 });
 beforeEach(() => {
   probe.saves.mockClear();
   probe.hang = false;
+  probe.blurSave = false;
+  probe.inDialog = false;
   probe.land = undefined;
   window.history.replaceState(null, '', '/');
   document.title = '';
@@ -122,17 +137,19 @@ describe('closing the window with a registered draft held asks, and the host is 
     const base = createMockApi();
     const windowCloseAnswer = vi.fn(async () => {});
     const windowCloseAsked = vi.fn(async () => {});
+    const windowCloseGuard = vi.fn(async () => {});
     const api = {
       ...base,
       windowCloseAnswer,
       windowCloseAsked,
+      windowCloseGuard,
       subscribeWindowCloseRequested: (listener: () => void) => {
         request = listener;
         return () => {};
       },
     };
     await mount(api);
-    return { request: () => act(() => request!()), windowCloseAnswer, windowCloseAsked };
+    return { request: () => act(() => request!()), windowCloseAnswer, windowCloseAsked, windowCloseGuard };
   };
 
   it('Cancel answers no and keeps the draft; Save & continue saves it, then answers yes', async () => {
@@ -170,6 +187,23 @@ describe('closing the window with a registered draft held asks, and the host is 
     fireEvent.click(within(await question()).getByRole('button', { name: 'Discard & continue' }));
     await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
   });
+
+  for (const inDialog of [false, true]) {
+    it(`a blur-saving field with the caret in it asks on a close and Cancel keeps it${inDialog ? ' (in a dialog-role panel)' : ''} (#3536)`, async () => {
+      probe.blurSave = true;
+      probe.inDialog = inDialog;
+      const host = await mountWithHost();
+      const field = screen.getByLabelText('Blur-save field');
+      act(() => field.focus());
+      await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(true));
+      host.request();
+      // The blur is what reports the edit as held; the close must wait for it, then ask.
+      fireEvent.click(within(await question()).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(false));
+      expect(host.windowCloseAnswer).not.toHaveBeenCalledWith(true);
+      expect(probe.saves).not.toHaveBeenCalled();
+    });
+  }
 
   it('never answers yes before the narrator has answered', async () => {
     const host = await mountWithHost();

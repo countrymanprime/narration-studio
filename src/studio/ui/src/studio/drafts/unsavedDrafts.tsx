@@ -99,6 +99,8 @@ export type DiscardResult = { failed: readonly HeldDraft[] };
 /** `settle: false` keeps the focus where it is: the change is made from the box the narrator is typing in (the Settings search), which an exit would take it from. */
 export type AskOptions = {
   settle?: boolean;
+  /** The window is closing (#3526): settle any editable field, in a dialog too, since the page goes away whatever has the focus. */
+  forClose?: boolean;
   /** Runs when the narrator answers Cancel (or Keep editing): the change did not happen, so whatever showed it should show what it was. */
   onCancel?: () => void;
 };

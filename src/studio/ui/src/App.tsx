@@ -1,3 +1,4 @@
+import { EDITABLE } from './input/targets';
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
@@ -161,10 +162,12 @@ const popGuard = {
  * A field that saves when it loses focus (a Settings row, a due date, a limit) keeps what was typed as a draft until then, and a page that goes away under the
  * caret never sends the blur (#3400). An exit therefore takes the focus off a text field first, which commits it the way Tab would.
  */
-const settleFocusedField = (): boolean => {
+const settleFocusedField = (forClose = false): boolean => {
   const field = document.activeElement;
-  // A box inside a dialog (the jump menu the exit was typed in) holds no page text, and blurring it would lose the focus the dialog gives back.
-  if (!(field instanceof HTMLElement) || !field.matches('input, textarea, select') || field.closest('[role="dialog"], [role="alertdialog"]')) return false;
+  // A box inside a dialog (the jump menu the exit was typed in) holds no page text, and blurring it would lose the focus the dialog gives back. A window close
+  // takes the page away whatever has the focus, so it settles every editable field, a panel's too (a dialog-role slide-over holds text boxes of its own).
+  if (!(field instanceof HTMLElement) || !field.matches(forClose ? EDITABLE : 'input, textarea, select')) return false;
+  if (!forClose && field.closest('[role="dialog"], [role="alertdialog"]')) return false;
   settledField = field;
   field.blur();
   return true;
@@ -965,7 +968,7 @@ function AppRoutes() {
   const askRef = useRef<(run: () => void, options?: AskOptions) => void>(() => {});
   askRef.current = (run, options) => {
     // A change made from the box being typed in (the Settings search) leaves the focus where it is: blurring it would stop the typing.
-    if (options?.settle !== false && settleFocusedField()) {
+    if (options?.settle !== false && settleFocusedField(options?.forClose)) {
       setTimeout(() => askRef.current(run, options), SETTLE_MS);
       return;
     }
