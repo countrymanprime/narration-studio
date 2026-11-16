@@ -1050,6 +1050,22 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '5' });
   });
 
+  it('asks before the window closes or reloads while Settings holds an edit, and not before (#3455)', async () => {
+    renderApp();
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+    const unload = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(unload(), 'nothing is held').toBe(false);
+    const check = await openKeptPanel('ps.coverage', 'Recording check');
+    const box = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
+    fireEvent.change(box, { target: { value: '5' } });
+    expect(within(check).getByText('Unsaved changes')).toBeTruthy();
+    expect(unload(), 'a Settings edit is held').toBe(true);
+  });
+
   it("takes the scan toast's Show them through the unsaved-Settings question and lands on the Story Bible with Needs review on", async () => {
     let jobEnded: ((event: JobEnded) => void) | undefined;
     const base = createMockApi();
