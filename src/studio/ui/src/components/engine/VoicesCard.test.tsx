@@ -204,7 +204,9 @@ describe('the Voices card', () => {
     const marked = rows[1];
     expect(within(marked).getByText('Queen')).toBeTruthy();
     expect(within(marked).getByText('Not a voice')).toBeTruthy();
-    expect(marked.className).toContain('opacity-60');
+    // The name and badge are dimmed; the Voice switch that turns the row back on is not.
+    expect(within(marked).getByText('Queen').closest('td')?.className).toContain('opacity-60');
+    expect(within(marked).getByRole('switch', { name: 'Queen counts as a voice' }).closest('td')?.className).not.toContain('opacity-60');
     expect(within(marked).getByRole('button', { name: 'Choose who the Queen track records' }).getAttribute('aria-disabled')).toBe('true');
     const queen = within(marked).getByRole('switch', { name: 'Queen counts as a voice' });
     expect(queen.getAttribute('aria-checked')).toBe('false');
@@ -217,5 +219,25 @@ describe('the Voices card', () => {
     const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
     expect(within(rows[0]).getByText('Not a voice')).toBeTruthy();
     expect(within(rows[1]).getByText('1')).toBeTruthy();
+  });
+
+  it('two unnamed children get switches with different names', () => {
+    const blank = [track('c8', 'Ch 8', 0, true), track('a', '', 1), track('b', '', 1), track('c9', 'Chapter 9', 0)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={mappings}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    const names = screen.getAllByRole('switch').map((el) => el.parentElement?.textContent);
+    expect(new Set(names).size).toBe(2);
   });
 });

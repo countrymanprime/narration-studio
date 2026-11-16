@@ -26,6 +26,9 @@ const LAYOUTS = [
   { value: 'folders', label: 'Voice folders' },
 ] as const;
 
+/** A marked child's name and badge, dimmed: the row is still there, but the Voice switch that turns it back on is not, so it stays at full strength. */
+const DIMMED = 'opacity-60';
+
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
 /**
@@ -105,7 +108,7 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['Key', 'Track', 'Characters', 'Voice', 'Actions']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '4.5rem', '3.5rem']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>
@@ -116,18 +119,18 @@ export function VoicesCard({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {voices.map((voice) => (
-                    <TableRow key={voice.guid} className={voice.notVoice ? 'opacity-60' : ''}>
+                  {voices.map((voice, at) => (
+                    <TableRow key={voice.guid}>
                       <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
-                      <TableCell className="[overflow-wrap:anywhere]">
+                      <TableCell className={`[overflow-wrap:anywhere] ${voice.notVoice ? DIMMED : ''}`}>
                         <bdi>{trackName(voice.name)}</bdi>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={voice.notVoice ? DIMMED : ''}>
                         <VoiceCharacters voice={voice} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
-                          <span className="sr-only">{`${shortName(trackName(voice.name))} counts as a voice`}</span>
+                          <span className="sr-only">{`${voice.name.trim() === '' ? `Track ${at + 1}` : shortName(trackName(voice.name))} counts as a voice`}</span>
                         </Switch>
                       </TableCell>
                       <TableCell align="right">
@@ -240,11 +243,7 @@ function CharacterPicker({
 }) {
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
-    return (
-      <TooltipTarget text={reason}>
-        <IconButton label={`Choose who the ${shortName(voice.name.trim())} track records`} action="edit" size="sm" disabledReason={reason} />
-      </TooltipTarget>
-    );
+    return <IconButton label={`Choose who the ${shortName(trackName(voice.name))} track records`} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${shortName(voice.name.trim())} track records`;
   if (!voice.narrator && !savable(voice.name)) {

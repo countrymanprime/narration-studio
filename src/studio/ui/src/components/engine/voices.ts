@@ -37,6 +37,12 @@ export const holdsWords = (count: number, voiceFolders: boolean): string => plur
 export const kindInWords = (isFolder: boolean, children: number, voiceFolders: boolean): string =>
   isFolder ? `a folder of ${holdsWords(children, voiceFolders)}` : 'a single track';
 
+/** How many of a folder's children the words count: in a Voice folders project a child marked as not a voice is a track but not one of the folder's
+ * voices, so "3 voices" agrees with the Voices card and the Booth; in any other project every child is a track. */
+export function wordsCount(children: readonly Pick<Track, 'guid'>[], notVoiceGuids: readonly string[], voiceFolders: boolean): number {
+  return voiceFolders ? children.filter((child) => !notVoiceGuids.includes(child.guid.toLowerCase())).length : children.length;
+}
+
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
   const folder = tracks[at];

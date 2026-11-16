@@ -18,8 +18,8 @@ import { LiveTracksLine } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
-import { folderChildren, folderLinkLabel } from './voices';
-import { useVoiceLayout } from './voiceLayout';
+import { folderChildren, folderLinkLabel, wordsCount } from './voices';
+import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
@@ -199,6 +199,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped && !failure;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
+  const { setup } = useVoiceSetup();
   const trackOptions = [
     { value: '', label: LINK_STATE_LABEL.unlinked },
     ...tracks.map((track) => {
@@ -206,7 +207,9 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
       return {
         value: track.guid,
-        label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length, voiceFolders ? 'voice' : 'track') : name,
+        label: track.isFolder
+          ? folderLinkLabel(name, wordsCount(folderChildren(tracks, track.guid), setup.notVoiceGuids, voiceFolders), voiceFolders ? 'voice' : 'track')
+          : name,
       };
     }),
   ];
