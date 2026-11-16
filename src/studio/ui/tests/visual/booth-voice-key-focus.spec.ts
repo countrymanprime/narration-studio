@@ -124,15 +124,33 @@ test.describe('a lane key then Enter', () => {
     await expect(stopButton(page)).toHaveCount(0);
   });
 
-  test('in cold read mode picking a character with no track from the voice list asks nothing and adds no track', async ({ page }) => {
+  test('in cold read mode a click on the voice control opens no list and says why, and the list opens again in Record mode', async ({ page }) => {
     await openBooth(page);
     await page.getByRole('button', { name: 'Record options' }).click();
     await page.getByRole('radio', { name: 'Cold read' }).click();
     await page.keyboard.press('Escape');
     await voiceButton(page).click();
-    await page.getByRole('option').last().click();
     await expect(page.getByText('A cold read needs no voice. Choose Record to pick one.')).toBeVisible();
+    await expect(list(page)).toHaveCount(0);
     await expect(page.getByRole('dialog', { name: /^Who records / })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Record', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await voiceButton(page).click();
+    await expect(list(page)).toBeVisible();
+  });
+
+  test('in a chapter with no voice folders a cold read voice key says only that a cold read needs no voice', async ({ page }) => {
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await boothChapterReady(page);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Numpad1');
+    await expect(page.getByText('A cold read needs no voice.', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Choose Record to pick one/)).toHaveCount(0);
   });
 
   test('a key with no track asks who is in it, and focus is on the dialog, then back on the page when it closes', async ({ page }) => {
