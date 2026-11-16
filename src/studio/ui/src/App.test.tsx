@@ -1888,7 +1888,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
       fireEvent.change(await screen.findByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'anchor take' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText('Your approval note still needs you to press Approve. Discard it before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Your approval note still needs you to press Approve as reference. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
