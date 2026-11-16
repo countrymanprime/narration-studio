@@ -735,18 +735,55 @@ local function track_end(track)
   return last
 end
 
+-- The set of track GUIDs in `text`, a comma-separated list in any spelling (case, braces, spaces): the tracks the host names as not the
+-- chapter's audio, a music bed the narrator marked as not a voice (#3559). Empty for no list, which is every older host.
+local function guid_set(text)
+  local set = {}
+  for token in tostring(text or ''):gmatch('[^,]+') do
+    local guid = normalize_guid(token)
+    if guid ~= '' then
+      set[guid] = true
+    end
+  end
+  return set
+end
+
+-- `folder` and every track inside it less the tracks `skip` names and everything inside a skipped folder: the tracks whose audio is the
+-- chapter's. The folder itself always stays. A skip that names nothing here answers core.with_descendants.
+local function chapter_audio_members(folder, skip)
+  local members = core.with_descendants(folder)
+  if next(skip) == nil then
+    return members
+  end
+  local out = { members[1] }
+  local inside = 0 -- folder levels still open inside a skipped folder
+  for index = 2, #members do
+    local member = members[index]
+    local delta = reaper.GetMediaTrackInfo_Value(member, 'I_FOLDERDEPTH')
+    if inside > 0 then
+      inside = inside + delta
+    elseif skip[track_guid(member)] then
+      inside = math.max(delta, 0)
+    else
+      out[#out + 1] = member
+    end
+  end
+  return out
+end
+
 -- The end of the latest item on the folder or any track inside it (nested folders too), muted tracks included, or 0 when it holds none:
 -- a chapter linked to a folder of voices goes on after the whole chapter, not after one voice. Items count whether or not they are muted,
--- so nothing recorded is overwritten.
-local function folder_end(folder)
+-- so nothing recorded is overwritten. A track `skip` names is not the chapter's audio: a music bed that runs on past the narration does
+-- not move where the next take starts.
+local function folder_end(folder, skip)
   local last = 0
-  for _, track in ipairs(core.with_descendants(folder)) do
+  for _, track in ipairs(chapter_audio_members(folder, skip)) do
     last = math.max(last, track_end(track))
   end
   return last
 end
 
-local function record_start(session_dir, state, run_id, guid_text, start_rule, folder_text)
+local function record_start(session_dir, state, run_id, guid_text, start_rule, folder_text, skip_text)
   if start_rule ~= '' and start_rule ~= 'end' and start_rule ~= 'chapter_end' then
     event(session_dir, 'ERROR', run_id, 'Unknown start rule: ' .. start_rule .. '.')
     return
@@ -822,7 +859,7 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule, f
     end
     local here = stopped_here()
     if not here then
-      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)
+      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)
     end
   end
   state.stop_guard = nil
@@ -919,7 +956,7 @@ return function(registry)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true)
   end)
   registry.register('record_start', function(ctx, args)
-    record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
+    record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '')
   end)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')

@@ -2970,13 +2970,13 @@
   {
     "name": "the end rule ignores where the last take stopped",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)",
     "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
     "name": "the end rule keeps any cursor, so a take records over later audio",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder, guid_set(skip_text)) or track_end(target), true, false)",
     "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
@@ -3728,5 +3728,35 @@
     "file": "narration_track_select.lua",
     "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n",
     "replace": ""
+  },
+  {
+    "name": "chapter_end counts a track the host named as not a voice",
+    "file": "narration_transport.lua",
+    "find": "  for _, track in ipairs(chapter_audio_members(folder, skip)) do",
+    "replace": "  for _, track in ipairs(core.with_descendants(folder)) do"
+  },
+  {
+    "name": "a folder the host named as not a voice keeps its children in the chapter's audio",
+    "file": "narration_transport.lua",
+    "find": "      inside = math.max(delta, 0)",
+    "replace": "      inside = 0"
+  },
+  {
+    "name": "the host's list of tracks that are not a voice is ignored by record_start",
+    "file": "narration_transport.lua",
+    "find": "args[4] or '', args[5] or '')",
+    "replace": "args[4] or '', '')"
+  },
+  {
+    "name": "the chapter folder can be left out of its own audio",
+    "file": "narration_transport.lua",
+    "find": "  local out = { members[1] }",
+    "replace": "  local out = {}"
+  },
+  {
+    "name": "a track named in a spelling other than the exact GUID is not matched",
+    "file": "narration_transport.lua",
+    "find": "    local guid = normalize_guid(token)\n    if guid ~= '' then\n      set[guid] = true",
+    "replace": "    local guid = tostring(token)\n    if guid ~= '' then\n      set[guid] = true"
   }
 ]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Recording in REAPER for the Read Aloud control bar (arm_only, record_start and record_stop in
@@ -58,6 +59,10 @@ type RecordOptions struct {
 	Start StartRule
 	// Folder is the chapter's folder track GUID, sent with ChapterEnd and ignored by every other rule.
 	Folder string
+	// NotVoice is the GUIDs of the tracks inside Folder the narrator marked as not a voice (a music bed), sent after Folder with ChapterEnd as
+	// one comma-separated argument: REAPER leaves their items, and everything inside a marked folder, out of where the chapter's audio ends
+	// (#3559). Empty sends nothing, which is also what an older host sent: an older script ignores the extra argument and counts every track.
+	NotVoice []string
 }
 
 // RecordStarted is the track REAPER records on and the edit cursor where recording began, in seconds.
@@ -117,6 +122,9 @@ func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts Record
 		args = append(args, string(opts.Start))
 		if opts.Start == ChapterEnd {
 			args = append(args, opts.Folder)
+			if len(opts.NotVoice) > 0 {
+				args = append(args, strings.Join(opts.NotVoice, ","))
+			}
 		}
 	}
 	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, args...)
