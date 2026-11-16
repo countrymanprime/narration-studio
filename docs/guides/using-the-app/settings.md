@@ -352,7 +352,7 @@ The reset button next to **Change location…** moves the downloads back to the 
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
   Publisher, and a Narrator that overrides the narrator name set under **Project** (Settings > Project, Narrator and credits) for this project only. A value
-  is saved as you type; until the project's values have been read the fields are dimmed and the section says "Reading this project's values..." (if the read fails or the host does not answer, a notice says so and **Retry** reads them again). The templates work the same way: until the list has been read the editor is dimmed and off, so nothing typed there is lost when it arrives. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
+  is saved as you type; until the project's values have been read the fields are dimmed and the section says "Reading this project's values..." (if the read fails or the host does not answer, a notice says so and **Retry** reads them again). The templates work the same way: until the list has been read the editor is dimmed and off, so nothing typed there is lost when it arrives, and it is off again while a **Duplicate** or **Delete** is out. If the list cannot be read, a notice says so and **Retry** (also beside the hint) reads it again. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.
 

@@ -95,10 +95,12 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // is nothing to show when the project has no manuscript yet.
   const [previewScope, setPreviewScope] = useState<{ chapter: string; count: number }>();
   const [previewProblem, setPreviewProblem] = useState('');
-  const [loadError, setLoadError] = useState('');
+  const [templatesFailed, setTemplatesFailed] = useState(false);
   // Guards a second click while a template action or a value save is in flight: every button below that
   // starts one of these disables until it ends, and the field being saved disables too.
   const [busy, setBusy] = useState(false);
+  // A Duplicate or a Delete is out: the editor is about to move onto another template, so what is typed now would be lost, and it is off until the list lands (#3461 round 15 BR-L).
+  const [switching, setSwitching] = useState(false);
   const [savingKey, setSavingKey] = useState<keyof CreditValues>();
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -151,25 +153,44 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       );
     }
   }, [api]);
-  const load = useCallback(async () => {
-    const mine = ++listSeq.current;
-    const values = readValues();
-    try {
-      const nextTemplates = await api.creditsTemplates();
-      if (mine === listSeq.current) {
-        setTemplates(nextTemplates);
+  // The template list alone, bounded by the save limit: a Retry or a late answer's read only refreshes the list and never moves the editor (`load` would put a New draft onto the first
+  // template and drop what was typed in it) (#3461 round 10 C-3, C-5). The first read, or one that `reselect` asks for (after a Duplicate or a Delete), also puts the editor on a template
+  // that is in the list. A read that fails or never answers says so with a Retry, and the editor stays off until a read lands (#3461 round 15 BR-K1).
+  const templatesLoadedRef = useRef(false);
+  templatesLoadedRef.current = templatesLoaded;
+  const readTemplates = useCallback(
+    async (reselect = false): Promise<boolean> => {
+      const mine = ++listSeq.current;
+      try {
+        const read = await withinSaveLimit(api.creditsTemplates());
+        if (mine !== listSeq.current) return true;
+        setTemplates(read);
+        if (reselect || !templatesLoadedRef.current) {
+          setSelectedId((current) => (read.some((template) => template.id === current) ? current : (read[0]?.id ?? '')));
+        }
         setTemplatesLoaded(true);
-        setLoadError('');
-        setSelectedId((current) => {
-          if (nextTemplates.some((template) => template.id === current)) return current;
-          return nextTemplates[0]?.id ?? '';
-        });
+        setTemplatesFailed(false);
+        return true;
+      } catch (error) {
+        // A read that was overtaken says nothing: the newer one decides what the narrator sees.
+        if (mine !== listSeq.current) return false;
+        setTemplatesFailed(true);
+        const notify = notifyNow.current;
+        notify(
+          `The templates could not be read: ${error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error)}`,
+          'error',
+          retryAction(() => void readTemplates(!templatesLoadedRef.current)),
+        );
+        return false;
       }
-    } catch (error) {
-      if (mine === listSeq.current) setLoadError(apiErrorMessage(error));
-    }
-    await values;
-  }, [api, readValues]);
+    },
+    [api],
+  );
+  // The list and the values are read apart: the list is what a Duplicate or a Delete waits for, and the values read (up to the save limit) must not keep the editor off meanwhile.
+  const load = useCallback(async (): Promise<boolean> => {
+    void readValues();
+    return readTemplates(true);
+  }, [readValues, readTemplates]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -225,25 +246,6 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     };
   }, [api, draftBody, draftKind, values]);
 
-  // The template list alone, bounded by the save limit: a Retry or a late answer's read only refreshes the list and never moves the editor (`load` would put a New draft onto the first
-  // template and drop what was typed in it) (#3461 round 10 C-3, C-5).
-  const readTemplates = async (): Promise<boolean> => {
-    const mine = ++listSeq.current;
-    try {
-      const read = await withinSaveLimit(api.creditsTemplates());
-      if (mine === listSeq.current) setTemplates(read);
-      return true;
-    } catch (error) {
-      // A read that was overtaken says nothing: the newer one decides what the narrator sees.
-      if (mine !== listSeq.current) return false;
-      notify(
-        `The templates could not be read: ${error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error)}`,
-        'error',
-        retryAction(() => void readTemplates()),
-      );
-      return false;
-    }
-  };
   const saveTemplateNow = async (): Promise<boolean> => {
     if (hostTrim(editorNow.current.body) === '') return false;
     const seq = draftSeq.current;
@@ -362,21 +364,24 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const duplicateTemplate = async () => {
     if (!selected) return;
     setBusy(true);
+    setSwitching(true);
     try {
       const duplicate = await api.duplicateCreditsTemplate(selected.id);
       notify(`Duplicated as "${duplicate.name}".`);
       projectDataChanged();
-      await load();
-      setSelectedId(duplicate.id);
+      // The copy is only selected once the list that shows it has landed.
+      if (await load()) setSelectedId(duplicate.id);
     } catch (error) {
       notify(apiErrorMessage(error), 'error');
     } finally {
       setBusy(false);
+      setSwitching(false);
     }
   };
   const deleteTemplate = async () => {
     if (!selected) return;
     setBusy(true);
+    setSwitching(true);
     try {
       await api.deleteCreditsTemplate(selected.id);
       notify('Credit template deleted.');
@@ -388,6 +393,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       notify(apiErrorMessage(error), 'error');
     } finally {
       setBusy(false);
+      setSwitching(false);
     }
   };
 
@@ -441,20 +447,19 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
 
   return (
     <div className="@container flex flex-col gap-4 text-sm">
-      {loadError && (
-        <div className="rounded-md p-3 text-sm" role="alert" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>
-          Credits could not be loaded: {loadError}.
-        </div>
-      )}
-
       <section aria-labelledby="credits-templates-heading" aria-busy={!templatesLoaded} className={`${CREDITS_SECTION} ${templatesLoaded ? '' : 'opacity-60'}`}>
         <h3 id="credits-templates-heading" className={CREDITS_HEADING}>
           Templates
         </h3>
-        {!templatesLoaded && !loadError && (
-          <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Reading the templates&hellip;
-          </p>
+        {!templatesLoaded && (
+          <div role="status" className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            {templatesFailed ? 'The templates could not be read.' : <>Reading the templates&hellip;</>}
+            {templatesFailed && (
+              <Button variant="secondary" size="sm" type="button" onClick={() => void readTemplates(true)}>
+                Retry
+              </Button>
+            )}
+          </div>
         )}
         {/* The template's short fields keep a field's width, not the row's, now the editor spans the row (XSE2-11). */}
         <div className={`${CREDITS_FIELDS} flex flex-col gap-3`} data-credits-fields>
@@ -487,7 +492,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           <Field
             label="Name"
             value={draftName}
-            disabled={!templatesLoaded}
+            disabled={!templatesLoaded || switching}
             onChange={(value) => {
               setDraftName(value);
               setTemplateDirty(true);
@@ -498,7 +503,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             <Select
               label="Kind"
               value={draftKind}
-              disabled={!templatesLoaded}
+              disabled={!templatesLoaded || switching}
               onChange={(value) => {
                 setDraftKind(value);
                 setTemplateDirty(true);
@@ -511,7 +516,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         <Field
           label="Body"
           textarea
-          disabled={!templatesLoaded}
+          disabled={!templatesLoaded || switching}
           value={draftBody}
           onChange={(value) => {
             setDraftBody(value);
@@ -568,10 +573,15 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > Project)'}; a narrator override here
           applies only to this project.
         </p>
-        {!valuesLoaded && !loadError && (
-          <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        {!valuesLoaded && (
+          <div role="status" className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
             {valuesFailed ? 'The values could not be read.' : <>Reading this project&rsquo;s values&hellip;</>}
-          </p>
+            {valuesFailed && (
+              <Button variant="secondary" size="sm" type="button" onClick={() => void readValues()}>
+                Retry
+              </Button>
+            )}
+          </div>
         )}
         {/* Two short fields to a line once the editor has room for them (XSE2-11). */}
         <div aria-busy={!valuesLoaded} className={`grid gap-3 @lg:grid-cols-2 ${valuesLoaded ? '' : 'opacity-60'}`}>

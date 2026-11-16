@@ -46,7 +46,6 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/script/page/rail/threads/ThreadsTab.tsx': 1,
   'components/settings/BackupsSection.tsx': 2,
   'components/settings/CapabilitySection.tsx': 1,
-  'components/settings/CreditsPanel.tsx': 1,
   'components/settings/DeliveryProfileEditor.tsx': 2,
   'components/settings/DeliveryProfilesPanel.tsx': 1,
   'components/settings/KeyboardPanel.tsx': 1,

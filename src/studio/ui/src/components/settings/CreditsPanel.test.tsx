@@ -504,6 +504,59 @@ describe('CreditsPanel', () => {
     expect(reads).toBe(2);
   });
 
+  it('the editor is off while a Duplicate is out, so text typed meanwhile is not lost when it moves to the copy (#3461 round 15 BR-L)', async () => {
+    const { api } = renderPanel();
+    const { select } = await editTemplate();
+    const real = api.creditsTemplates.bind(api);
+    let release: () => void = () => {};
+    vi.spyOn(api, 'creditsTemplates').mockImplementation(() => {
+      const snapshot = real();
+      return new Promise((resolve) => {
+        release = () => void snapshot.then(resolve);
+      });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).disabled).toBe(true));
+    expect((screen.getByLabelText('Name') as HTMLInputElement).disabled).toBe(true);
+    expect(select.disabled).toBe(true);
+    await waitFor(() => expect(release).not.toBe(undefined));
+    release();
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).disabled).toBe(false));
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toMatch(/copy|\(/i);
+  });
+
+  it('a template list that fails to read says so with a Retry, in the notice and beside the hint, and the editor returns when a read lands (#3461 round 15 BR-K1)', async () => {
+    let reads = 0;
+    const real = createMockApi();
+    const { notify } = renderPanel({
+      creditsTemplates: () => {
+        reads += 1;
+        return reads === 1 ? Promise.reject(new Error('The host could not list them.')) : real.creditsTemplates();
+      },
+    });
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The templates could not be read'), 'error', expect.anything()));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).disabled).toBe(true);
+    expect(screen.getByText('The templates could not be read.')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry' })[0]!);
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).disabled).toBe(false));
+    expect(reads).toBe(2);
+    expect((screen.getByRole('combobox', { name: 'Template' }) as HTMLSelectElement).options.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('a failed values read keeps a Retry beside the hint after the notice is gone (#3461 round 15 BR-K2)', async () => {
+    const real = createMockApi();
+    let reads = 0;
+    renderPanel({
+      creditsProjectValues: () => {
+        reads += 1;
+        return reads === 1 ? Promise.reject(new Error('no')) : real.creditsProjectValues();
+      },
+    });
+    expect(await screen.findByText('The values could not be read.')).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Retry' })[0]!);
+    await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false));
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
