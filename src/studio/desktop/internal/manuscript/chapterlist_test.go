@@ -92,3 +92,34 @@ func TestTheChapterListGrowsWithTheBookNotWithItsSquare(t *testing.T) {
 		t.Fatalf("4,000 chapters took %.1fx as long as 1,000 (%v vs %v); linear is about 4x, quadratic about 16x", ratio, large, small)
 	}
 }
+
+func TestChaptersThatShareAnIdDoNotShareTheirParagraphIds(t *testing.T) {
+	service := bookOf(t, 2, 1)
+	list, err := service.ChaptersUnmeasured()
+	if err != nil || len(list) != 2 {
+		t.Fatalf("list = %v, %v", list, err)
+	}
+	// Two chapters with one id: the file below has the first chapter twice.
+	dup := filepath.Join(service.project, brand.ProjectFolder, "manuscript", "manuscript.json")
+	raw, _ := os.ReadFile(dup)
+	var data map[string]any
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatal(err)
+	}
+	chapters := data["chapters"].([]any)
+	data["chapters"] = append(chapters, chapters[0])
+	raw, _ = json.Marshal(data)
+	if err := os.WriteFile(dup, append(raw, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	list, err = service.ChaptersUnmeasured()
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := list[0]["paragraphIds"].([]map[string]any)
+	last := list[len(list)-1]["paragraphIds"].([]map[string]any)
+	first[0]["id"] = "CHANGED"
+	if last[0]["id"] == "CHANGED" {
+		t.Fatal("two chapters with one id share their paragraph-id entries")
+	}
+}

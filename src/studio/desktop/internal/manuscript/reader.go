@@ -316,10 +316,12 @@ func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, 
 		result["recordedFraction"] = fraction
 	}
 	if includeParagraphs {
-		if paragraphIDs == nil {
-			paragraphIDs = []map[string]any{}
+		// Copies, so two chapters that share an id (a malformed file) do not share the list, as when each chapter built its own.
+		ids := make([]map[string]any, len(paragraphIDs))
+		for i, id := range paragraphIDs {
+			ids[i] = map[string]any{"id": id["id"], "index": id["index"]}
 		}
-		result["paragraphIds"] = paragraphIDs
+		result["paragraphIds"] = ids
 	}
 	return result
 }
