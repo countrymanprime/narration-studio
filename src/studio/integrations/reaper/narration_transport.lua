@@ -27,7 +27,7 @@
 -- narrator's, so nothing is remembered and a later stop leaves the lane armed (the app and the DAW stay in agreement, #3429).
 --
 -- record_start records only when REAPER is stopped and exactly one track is armed, the named one. record_stop stops
--- only the recording this bridge started (RECORD_NOT_OURS otherwise, after putting back any arms still remembered). Neither calls Main_OnCommand: recording starts
+-- only the recording this bridge started (RECORD_NOT_OURS otherwise, after putting back any arms still remembered unless REAPER records). Neither calls Main_OnCommand: recording starts
 -- with CSurf_OnRecord, pressed once after REAPER was seen stopped, since it is a toggle; RECORD_STARTED follows once
 -- GetPlayState reports recording, which may be a few defer cycles later. An optional third argument `end` first moves
 -- the edit cursor to the end of the last item on the named track (0 when empty), once every check has passed.
