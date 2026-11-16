@@ -28,9 +28,9 @@ export const IconOnly: Story = {
   args: { active: true, iconOnly: true },
   decorators: [
     (Story) => (
-      <aside className={railFrame} aria-label="Primary navigation">
+      <nav className={railFrame} aria-label="Primary navigation">
         <Story />
-      </aside>
+      </nav>
     ),
   ],
 };
@@ -82,7 +82,7 @@ export const ActiveWithCount: Story = { args: { active: true, icon: faWaveSquare
 // The collapsed rail (medium widths in AppShell): the label becomes the aria-label and the tooltip.
 export const IconRail: Story = {
   render: () => (
-    <aside className={railFrame} aria-label="Primary navigation">
+    <nav className={railFrame} aria-label="Primary navigation">
       <NavButton active icon={faHouse} onClick={fn()} iconOnly>
         Home
       </NavButton>
@@ -95,7 +95,7 @@ export const IconRail: Story = {
       <NavButton active={false} icon={faGear} onClick={fn()} iconOnly>
         Settings
       </NavButton>
-    </aside>
+    </nav>
   ),
 };
 
