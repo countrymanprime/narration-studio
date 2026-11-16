@@ -28,7 +28,9 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
 }
 
-type InFlight = { promise: Promise<unknown>; epoch: number };
+type Joiner = { resolve: (answer: unknown) => void; reject: (reason: unknown) => void };
+/** A read on its way: who joined it, and whether its answer has been handed out (a read asked after that is a fresh host call). */
+type InFlight = { epoch: number; joiners: Joiner[]; closed: boolean };
 
 /** Whether value is plain JSON data whose text says exactly what it is: finite numbers, strings, booleans, null, and arrays and plain objects of those. */
 function isPlainJson(value: unknown): boolean {
@@ -67,19 +69,26 @@ function copyOf(answer: unknown): unknown {
  * next call is a fresh one. Each extra caller gets its own copy of the answer, so one that sorts or edits its list does not change another's.
  * A failed call rejects every caller that joined it. Calls whose arguments are not plain JSON are never shared.
  */
+/** Everything that wants to hear the window coming back (focus, visibility): one pair of listeners for the page, not one per wrapper. */
+const windowWatchers = new Set<() => void>();
+function watchTheWindow(move: () => void): void {
+  if (typeof window === 'undefined') return;
+  if (windowWatchers.size === 0) {
+    const moved = () => windowWatchers.forEach((watcher) => watcher());
+    window.addEventListener('focus', moved);
+    document.addEventListener('visibilitychange', moved);
+  }
+  windowWatchers.add(move);
+}
+
 export function withCoalescedReads(api: NarrationApi): NarrationApi {
   const inFlight = new Map<string, InFlight>();
   let epoch = 0;
   // One wrapper per method, as `withTracing` keeps: a hook that lists a method in an effect's dependencies must see the same function on every read (#3272).
   const wrappers = new Map<string, unknown>();
-  // The window coming back (focus, visibility) is the narrator having been elsewhere, in the DAW or another window: what a read in flight began with may be old.
-  if (typeof window !== 'undefined') {
-    const moved = () => {
-      epoch += 1;
-    };
-    window.addEventListener('focus', moved);
-    document.addEventListener('visibilitychange', moved);
-  }
+  watchTheWindow(() => {
+    epoch += 1;
+  });
   return new Proxy(api, {
     get(target, property, receiver) {
       const value: unknown = Reflect.get(target, property, receiver);
@@ -87,19 +96,23 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
       const cached = wrappers.get(property);
       if (cached) return cached;
       if (property.startsWith('subscribe')) {
-        // The handler hears the event after the epoch moves, so a read it makes is never answered by one that began before the event.
+        // The same handler gets the same wrapper, so a host that de-duplicates its listeners by identity still does.
+        const wrappedHandlers = new WeakMap<object, unknown>();
         const subscribing = (...args: unknown[]) =>
           Reflect.apply(
             value,
             target,
-            args.map((arg) =>
-              typeof arg === 'function'
-                ? (...event: unknown[]) => {
-                    epoch += 1;
-                    return Reflect.apply(arg, undefined, event);
-                  }
-                : arg,
-            ),
+            args.map((arg) => {
+              if (typeof arg !== 'function') return arg;
+              const known = wrappedHandlers.get(arg);
+              if (known) return known;
+              const guarded = (...event: unknown[]) => {
+                epoch += 1;
+                return Reflect.apply(arg, undefined, event);
+              };
+              wrappedHandlers.set(arg, guarded);
+              return guarded;
+            }),
           );
         wrappers.set(property, subscribing);
         return subscribing;
@@ -122,12 +135,27 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
         const key = keyOf(property, args);
         if (key === undefined) return Reflect.apply(value, target, args);
         const joined = inFlight.get(key);
-        if (joined && joined.epoch === epoch) return joined.promise.then(copyOf);
+        if (joined && joined.epoch === epoch && !joined.closed) {
+          return new Promise((resolve, reject) => joined.joiners.push({ resolve, reject }));
+        }
         const result: unknown = Reflect.apply(value, target, args);
         if (!isThenable(result)) return result;
-        const promise = Promise.resolve(result);
-        const entry = { promise, epoch };
+        const entry: InFlight = { epoch, joiners: [], closed: false };
         inFlight.set(key, entry);
+        // The joiners' copies are made here, as the answer arrives and before the first caller's continuation runs: that caller gets the original,
+        // so an edit it makes in place (a sort, a splice) cannot reach a copy made after it.
+        const promise = Promise.resolve(result).then(
+          (answer) => {
+            entry.closed = true;
+            for (const joiner of entry.joiners) joiner.resolve(copyOf(answer));
+            return answer;
+          },
+          (failure: unknown) => {
+            entry.closed = true;
+            for (const joiner of entry.joiners) joiner.reject(failure);
+            throw failure;
+          },
+        );
         const done = () => {
           if (inFlight.get(key) === entry) inFlight.delete(key);
         };

@@ -136,6 +136,34 @@ describe('withCoalescedReads', () => {
     );
   });
 
+  it('lets the first caller edit its answer in place without changing what a joiner receives', async () => {
+    const { api, waiting } = gated();
+    const wrapped = withCoalescedReads(api);
+    const first = (wrapped.manuscriptChapters() as unknown as Promise<{ n: number }[]>).then((list) => {
+      list.splice(0, 1);
+      list.push({ n: 99 });
+      return list;
+    });
+    const second = wrapped.manuscriptChapters() as unknown as Promise<{ n: number }[]>;
+    waiting[0]!.resolve([{ n: 1 }, { n: 2 }]);
+    await first;
+    expect(await second).toEqual([{ n: 1 }, { n: 2 }]);
+  });
+
+  it('gives the host the same wrapper for the same handler, so it can still de-duplicate by identity', () => {
+    const { api } = gated();
+    const seen: unknown[] = [];
+    (api as unknown as { subscribeJobEnded: (handler: unknown) => () => void }).subscribeJobEnded = (handler) => {
+      seen.push(handler);
+      return () => undefined;
+    };
+    const wrapped = withCoalescedReads(api);
+    const handler = () => undefined;
+    wrapped.subscribeJobEnded(handler);
+    wrapped.subscribeJobEnded(handler);
+    expect(seen[0]).toBe(seen[1]);
+  });
+
   it('gives each caller its own copy, so one that edits its list does not change another', async () => {
     const { api, waiting } = gated();
     const wrapped = withCoalescedReads(api);
