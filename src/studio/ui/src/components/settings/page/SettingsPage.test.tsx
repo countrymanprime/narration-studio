@@ -318,6 +318,23 @@ describe('Settings: row layout', () => {
     expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
   });
 
+  it('Saved comes back after a refusal when the row is reset (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    // A Reset settles no number box: it is a write of its own and says Saved, as it does with no refusal before it.
+    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+  });
+
   it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
