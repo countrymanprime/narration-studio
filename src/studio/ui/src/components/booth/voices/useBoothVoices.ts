@@ -17,6 +17,9 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 /** The id of the Booth's voice button. */
 export const VOICE_CONTROL_ID = 'bvoice';
 
+/** Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW. */
+export const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
+
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
   voices: Voice[];
@@ -58,6 +61,7 @@ export type BoothVoices = {
 export function useBoothVoices({
   chapterId,
   recording,
+  coldRead = false,
   notify,
   stopTake,
   startTake,
@@ -66,6 +70,8 @@ export function useBoothVoices({
 }: {
   chapterId: string;
   recording: boolean;
+  /** The main button reads Cold read and no take runs (#3430): no voice is chosen, no lane is set and no arm is read at the DAW. */
+  coldRead?: boolean;
   notify: (text: string, tone?: 'error' | 'info', action?: ToastAction) => void;
   /** Stops the take this app runs, as the Stop press does (the take is kept); resolves true once it has stopped. */
   stopTake?: () => Promise<boolean>;
@@ -184,6 +190,11 @@ export function useBoothVoices({
   // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
   useEffect(() => {
     if (!chapterId) return;
+    // A cold read arms nothing, so the DAW's arm state is not asked about (and the control draws none).
+    if (coldRead) {
+      setReaper(null);
+      return;
+    }
     let live = true;
     teleprompter
       .readAloudReaperState(chapterId)
@@ -192,7 +203,7 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, teleprompter, hostVoice.guid, recording, revision, trackState.readAt]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, coldRead, revision, trackState.readAt]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
@@ -201,10 +212,11 @@ export function useBoothVoices({
     () => {
       if (!link) return [];
       const all = withAddedVoices(tracks, link, added ?? []);
-      // The host's rule (chapterVoicesIn): a track some chapter is linked to is that chapter's own (nested chapters), never a voice of this one.
+      // The host's rule (chapterVoicesIn): a track some chapter is linked to is that chapter's own (nested chapters), never a voice of this one,
+      // and a track the narrator marked as not a voice (a music bed, room tone) is not one either (#3331).
       const owned = new Set(
         folderChildren(all, link)
-          .filter((child) => linkedTracks.includes(child.guid.toLowerCase()))
+          .filter((child) => linkedTracks.includes(child.guid.toLowerCase()) || setup.notVoiceGuids.includes(child.guid.toLowerCase()))
           .map((child) => child.guid),
       );
       return folderVoices(
@@ -230,6 +242,8 @@ export function useBoothVoices({
   // only the last of several such presses is (a narrator who presses Num 1 then Num 2 means Num 2).
   const recordingNow = useRef(recording);
   recordingNow.current = recording;
+  const coldNow = useRef(coldRead);
+  coldNow.current = coldRead;
   // Set by a voice key pressed with no take running; the answer to the choice starts the take (see `send`).
   const recordOnChoice = useRef(false);
   const sending = useRef<Voice | undefined>(undefined);
@@ -277,6 +291,7 @@ export function useBoothVoices({
 
   const choose = useCallback(
     (voice: Voice, fromKey = false) => {
+      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
       // Only a key records at once, and only when no take runs (a take that runs is switched live); a pick from the list leaves Record to the narrator.
       if (fromKey && !recordingNow.current) recordOnChoice.current = true;
       // A voice chosen is the voice recorded: the stand-in for a character with no track ends.
@@ -284,7 +299,7 @@ export function useBoothVoices({
       if (sending.current) queued.current = voice;
       else send(voice);
     },
-    [send],
+    [send, notify],
   );
 
   // The key a stop is being answered for, and the voices as they are now (the stop's answer comes after a render).
@@ -295,6 +310,7 @@ export function useBoothVoices({
   const byKey = useCallback(
     (n: number) => {
       releaseFocusToPage();
+      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -334,6 +350,10 @@ export function useBoothVoices({
 
   const add = useCallback(
     async (name: string, characterIds: string[]) => {
+      if (coldNow.current) {
+        notify(COLD_READ_NO_VOICE, 'info');
+        return false;
+      }
       try {
         // A track named for a character records that character by name until it has an assignment; the add makes one, so the
         // character the name matches goes in it too, unless the name is assigned already (it then keeps what it had).
@@ -380,6 +400,10 @@ export function useBoothVoices({
 
   const use = useCallback(
     async (voice: Voice, characterIds: string[]) => {
+      if (coldNow.current) {
+        notify(COLD_READ_NO_VOICE, 'info');
+        return false;
+      }
       try {
         if (characterIds.length > 0) {
           const name = voice.name.trim();
@@ -400,6 +424,7 @@ export function useBoothVoices({
 
   const standInFor = useCallback(
     (character: WhoCharacter) => {
+      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
         notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');
@@ -415,6 +440,7 @@ export function useBoothVoices({
   const step = useCallback(
     (by: 1 | -1) => {
       releaseFocusToPage();
+      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {

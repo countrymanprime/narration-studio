@@ -64,6 +64,50 @@ describe('EnginePanel', () => {
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();
   });
 
+  // The owner's decision on #3272: a link change reads the chapter it changes, not the book. The chapter list is the measured one (every chapter),
+  // and a link moves no chapter, so neither the write's re-read nor the panel's own refresh key may ask for it again.
+  it('reads no chapter list again after an Unlink or a Link', async () => {
+    const user = userEvent.setup();
+    const api = renderPanel();
+    const chapters = vi.spyOn(api, 'manuscriptChapters');
+    const maps = vi.spyOn(api, 'chapterTrackMapList');
+    const table = await trackTable();
+    const use = await within(table).findByRole('button', { name: 'Use this track for Chapter 1' });
+    const row = use.closest('tr');
+    if (!row) throw new Error('the Use this track button is not in a row');
+    const chaptersBefore = chapters.mock.calls.length;
+    let mapsBefore = maps.mock.calls.length;
+    const settle = async () => {
+      await waitFor(() => expect(maps.mock.calls.length).toBeGreaterThan(mapsBefore));
+      // Let the refresh key's re-read, if one is coming, arrive.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      mapsBefore = maps.mock.calls.length;
+    };
+
+    const picker = within(row).getByRole('combobox') as HTMLSelectElement;
+    await user.selectOptions(picker, picker.options[1]!.value);
+    await user.click(use);
+    await settle();
+    expect(chapters.mock.calls.length).toBe(chaptersBefore);
+
+    await user.click(await within(table).findByRole('button', { name: 'Clear the link for Chapter 1' }));
+    await settle();
+    expect(chapters.mock.calls.length).toBe(chaptersBefore);
+  });
+
+  it('shows a chapter renamed in the manuscript when the window regains focus, without a link press reading the book', async () => {
+    let title = 'Chapter 1';
+    const base = createMockApi();
+    const original = base.manuscriptChapters.bind(base);
+    const api = renderPanel({ manuscriptChapters: async () => (await original()).map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter)) });
+    void api;
+    const table = await trackTable();
+    await within(table).findAllByRole('button', { name: 'Use this track for Chapter 1' });
+    title = 'Renamed One';
+    window.dispatchEvent(new Event('focus'));
+    expect((await within(table).findAllByRole('button', { name: 'Use this track for Renamed One' })).length).toBeGreaterThan(0);
+  });
+
   it('offers Recording settings, where the engine is chosen, since every DAW chip leads here', async () => {
     const open = vi.fn();
     renderPanel({}, {}, {}, open);

@@ -355,14 +355,16 @@ type Place struct {
 	Cursor   float64
 }
 
-// PlaceTarget is where PlaceFollower.GoTo puts the cursor on a track: the end of what is on it, or a time in project seconds.
+// PlaceTarget is where PlaceFollower.GoTo puts the cursor on a track: the end of what is on it, the start of what is on it (End and Start
+// are never both set), or a time in project seconds.
 type PlaceTarget struct {
 	End     bool
+	Start   bool
 	Seconds float64
 }
 
 // PlaceFollower lets the app follow the narrator's place in the project and take them somewhere in it: ReadPlace says which track is
-// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end or at a time. Neither starts playback or adds an
+// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end, at its start or at a time. Neither starts playback or adds an
 // undo step. The caller names a track by the id the engine gave it (the chapter's link), never a path. A track the engine no longer has
 // is the engine's stale error; a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
 type PlaceFollower interface {

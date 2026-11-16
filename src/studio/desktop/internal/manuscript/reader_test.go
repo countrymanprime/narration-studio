@@ -327,3 +327,66 @@ func TestRecordedSecondsComesOnlyFromTheRecordedLengthProvider(t *testing.T) {
 		}
 	}
 }
+
+// ChapterTitle reads one entry of an index built once per parse: no chapter payload for any chapter (#3272), and the index follows the file.
+func TestChapterTitleBuildsNoChapterPayloadAndFollowsTheFile(t *testing.T) {
+	project := t.TempDir()
+	write := func(chapters []map[string]any) {
+		t.Helper()
+		dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		bytes, err := json.Marshal(map[string]any{"schemaVersion": 1, "chapters": chapters, "paragraphs": []any{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "manuscript.json"), bytes, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write([]map[string]any{
+		{"id": "front", "title": "Title Page", "contentKind": "opening"},
+		{"id": "c1", "title": "Chapter One"},
+		{"id": "c2", "title": "Chapter Two", "contentKind": "narration"},
+	})
+	service := New(project)
+
+	before := ChapterPayloadsBuilt()
+	for id, want := range map[string]string{"c1": "Chapter One", "c2": "Chapter Two"} {
+		if title, ok, err := service.ChapterTitle(id); err != nil || !ok || title != want {
+			t.Fatalf("ChapterTitle(%q) = %q, %v, %v; want %q", id, title, ok, err, want)
+		}
+	}
+	// Front matter and a chapter the book does not have are not chapters; the credits are the host's, not the manuscript's.
+	for _, id := range []string{"front", "c3", "", "credits-opening"} {
+		if title, ok, err := service.ChapterTitle(id); err != nil || ok {
+			t.Fatalf("ChapterTitle(%q) = %q, %v, %v; want not a chapter", id, title, ok, err)
+		}
+	}
+	if built := ChapterPayloadsBuilt() - before; built != 0 {
+		t.Fatalf("ChapterTitle built %d chapter payloads, want none", built)
+	}
+
+	// The control: the chapter list builds one per chapter (front matter is not drawn).
+	before = ChapterPayloadsBuilt()
+	if _, err := service.ChaptersUnmeasured(); err != nil {
+		t.Fatal(err)
+	}
+	if built := ChapterPayloadsBuilt() - before; built != 2 {
+		t.Fatalf("ChaptersUnmeasured built %d chapter payloads for 2 chapters", built)
+	}
+
+	// A changed file is read again: the index is the parse's, not a copy that outlives it.
+	write([]map[string]any{{"id": "c1", "title": "Chapter One, Revised"}})
+	if title, ok, err := service.ChapterTitle("c1"); err != nil || !ok || title != "Chapter One, Revised" {
+		t.Fatalf("ChapterTitle after a rewrite = %q, %v, %v", title, ok, err)
+	}
+	if _, ok, _ := service.ChapterTitle("c2"); ok {
+		t.Fatal("a chapter the rewritten file no longer has is still found")
+	}
+	// No manuscript: the refusal is the loader's.
+	if _, _, err := New(t.TempDir()).ChapterTitle("c1"); err == nil {
+		t.Fatal("a project with no manuscript answered a title")
+	}
+}

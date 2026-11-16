@@ -107,6 +107,21 @@ describe('the page asks the host for where its words play', () => {
     expect(Number(text('project'))).toBeCloseTo(300 + (words[0].t0 as number), 6);
   });
 
+  it('does not read the table again for an edit report that carries the count it holds (a chapter move REAPER did not count)', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const asked = vi.spyOn(api, 'workspaceWordTimes');
+    daw.reportProjectCount();
+    daw.reportProjectCount();
+    await wait(10);
+    expect(asked).not.toHaveBeenCalled();
+    daw.editInDaw();
+    await wait(10);
+    expect(asked).toHaveBeenCalledTimes(1);
+  });
+
   it('drops the map when the DAW can no longer make a table', async () => {
     await mount();
     daw.setWordTimes(table('rec@1', linear(100)));

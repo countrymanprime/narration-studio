@@ -68,6 +68,7 @@ import (
 	"desktop/internal/tts"
 	"desktop/internal/ttsport"
 	"desktop/internal/update"
+	"desktop/internal/wakelock"
 	"desktop/internal/whisper"
 	"desktop/internal/wiktextract"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -416,6 +417,14 @@ type Host struct {
 	chapterSyncWatch chapterSyncWatcher
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
+	// wake holds the operating system's "do not sleep" request while a take records (wakelock_host.go). wakeInhibitor is a seam for
+	// tests: nil means the operating system's own request.
+	wake          *wakelock.Keeper
+	wakeOnce      sync.Once
+	wakeMu        sync.Mutex
+	wakeInhibitor wakelock.Inhibitor
+	// +checklocks:wakeMu
+	wakeRefused atomic.Bool
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
 	powerState func() coverage.Power
 	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
@@ -1322,6 +1331,8 @@ func (h *Host) ServiceShutdown() error {
 	// A REAPER recording this app started is stopped before the app quits (threat-model row 5k): otherwise REAPER
 	// keeps recording with nothing left open to stop it.
 	h.stopReadAloudRecordingOnShutdown()
+	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
+	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
 	// and the words files it finished are already on disk.
 	if check := h.services().coverage; check != nil {
@@ -1928,9 +1939,9 @@ var fieldSchemas = map[string][]fieldSchema{
 	// Booth.words_per_page is where the Booth draws a page break: at the end of the paragraph that brings a page to this many words, counted
 	// from a chapter's first word (pageBreakLayout.ts). A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
-	// Booth.follow_chapter_in_daw: going to a chapter in the Booth selects that chapter's track and the tracks inside it in the DAW and
+	// Booth.follow_chapter_in_daw: going to a chapter in the Booth, Editing or (scoped to one chapter) Pickups selects that chapter's track and the tracks inside it in the DAW and
 	// puts the DAW's cursor there (DawGoToChapter); off leaves the DAW where the narrator put it. On by default (#3427).
-	"Booth": {{"words_per_page", "Words per page", "number", nil}, {"follow_chapter_in_daw", "DAW follows the Booth’s chapter", "bool", nil}},
+	"Booth": {{"words_per_page", "Words per page", "number", nil}, {"follow_chapter_in_daw", "DAW follows your chapter", "bool", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates
 	// call. Defaults (5:00, 10%, "sample", ending exclusion off) mirror preview.DefaultSettings.

@@ -86,6 +86,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await goToPage(page, 'Pickups');
     await page.getByRole('group', { name: 'Loading the pickups' }).waitFor();
   },
+  // REAPER is not answering: the tracks are the saved file's, and the list's header says so (#3394).
+  'saved-project': async (page) => {
+    await page.goto('/?mockLiveTracks=saved');
+    await settlePage(page);
+    await openPickups(page);
+    await page.getByRole('group', { name: 'Saved project' }).waitFor();
+  },
   // REAPER with no project file linked: the markers button is off and says why, as the top bar's badge does.
   'markers-not-linked': async (page) => {
     await page.goto('/?mockNoDaw=1');

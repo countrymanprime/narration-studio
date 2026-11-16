@@ -257,7 +257,7 @@ export function createChapterTracksMock(
     // saved project with its reason, and `failing` answers the first read and refuses every later one (a read that has gone quiet).
     tracksLive: async () => {
       s.liveTrackReads += 1;
-      if (initial.liveTracks === 'failing' && s.liveTrackReads > 1) throw new Error('REAPER did not answer in time.');
+      if (initial.liveTracks === 'unreadable' || (initial.liveTracks === 'failing' && s.liveTrackReads > 1)) throw new Error('REAPER did not answer in time.');
       const readAt = new Date().toISOString();
       if (initial.liveTracks === 'saved') {
         return wireClone({

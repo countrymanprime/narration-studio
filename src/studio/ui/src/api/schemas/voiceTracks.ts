@@ -18,6 +18,7 @@ export const voiceTracksStateSchema = z
     narratorCharacter: z.string().max(120),
     tracks: z.array(voiceTrackAssignmentSchema).max(500),
     narratorGuids: z.array(z.string().min(1).max(64)).max(2000),
+    notVoiceGuids: z.array(z.string().min(1).max(64)).max(2000),
   })
   .strict() satisfies z.ZodType<VoiceTracksState>;
 

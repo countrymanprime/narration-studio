@@ -164,7 +164,7 @@ export type ChapterTrackLink = {
 };
 
 /** One direct child of a chapter's linked folder. */
-export type ChapterMember = { guid: string; name: string; isVoice: boolean };
+export type ChapterMember = { guid: string; name: string; isVoice: boolean; notAVoice: boolean };
 
 /** ChapterTrackLinks' answer: every narration chapter and every track from one parse of the project (REAPER's live list over the saved .rpp when the engine has the project open). When `project`
  * is not ready, `message` says why, `tracks` is empty and each chapter's status is `none`, with its links still listed. */

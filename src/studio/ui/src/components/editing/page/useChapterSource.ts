@@ -12,7 +12,7 @@ import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
-import { chapterLink, linkStateOf, type ChapterLinkState } from '../../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 type ChapterSource =
@@ -126,10 +126,12 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     link: ChapterLinkState | 'unknown';
     folder: boolean;
     unsaved: boolean | 'unknown';
+    unreadable: string | null;
   }>();
   // A first read that failed is not waited on either: the text shows and nothing plays, as it did when the page read the tracks itself.
   const waiting = tracks.reading && tracks.readAt === null && !tracks.live.error;
   const { project: tracksProject, mappings: tracksMappings, reread: tracksReread } = tracks;
+  const unreadable = tracksUnreadable(tracks);
   useEffect(() => {
     let live = true;
     if (waiting) {
@@ -152,14 +154,15 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
               link,
               folder: found.track.isFolder,
               unsaved,
+              unreadable: null,
             }
-          : { chapterId, items: [], place: chapterName, link, folder: false, unsaved },
+          : { chapterId, items: [], place: chapterName, link, folder: false, unsaved, unreadable },
       );
     });
     return () => {
       live = false;
     };
-  }, [daw, chapterId, chapterName, waiting, tracksProject, tracksMappings, reads]);
+  }, [daw, chapterId, chapterName, waiting, tracksProject, tracksMappings, unreadable, reads]);
 
   const base = state.chapterId === chapterId ? state.base : null;
   const trackOfChapter = track?.chapterId === chapterId ? track : undefined;
@@ -170,7 +173,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
       ...base,
       items: trackOfChapter.items,
       place: trackOfChapter.place,
-      audio: audioOf(trackOfChapter.link, trackOfChapter.items.length, liveItems, trackOfChapter.folder, trackOfChapter.unsaved),
+      audio: audioOf(trackOfChapter.link, trackOfChapter.items.length, liveItems, trackOfChapter.folder, trackOfChapter.unsaved, trackOfChapter.unreadable),
     };
   }, [base, trackOfChapter]);
 

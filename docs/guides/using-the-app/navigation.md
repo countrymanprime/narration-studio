@@ -320,7 +320,7 @@ point at it for the whole sentence. The panel reads them again when it opens, af
 and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
 once and answers each press with a message ("Read 5 tracks from REAPER.", or "Read the tracks in the saved project."), even when nothing changed. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
 the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
-other pages, such as Editing and Proof, read the saved project and see it only once it is saved.
+Editing, Proof and Pickups read the same tracks, and while they are the saved project's each shows a **Saved project** mark.
 
 ![Chapter links when REAPER is not answering: the header says the tracks are the saved project's](../../images/ui/engine-panel-live-tracks-saved.webp)
 
