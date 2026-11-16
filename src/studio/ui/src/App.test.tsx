@@ -1423,10 +1423,10 @@ describe('App jump-menu Settings categories', () => {
 // time: about 0.4 s alone, five times that on a busy runner, against the 15 s test limit. The table of exits (#3349) therefore mounts each holder once
 // and runs its exits one after another on it, and the block as a whole mounts the app at most MOUNT_BUDGET times: one per standalone case plus one per
 // holder. A new case that mounts the app again must find a mount to share or raise the budget with its cost measured.
-// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 46 of them with it), a test that renders `<App />`
+// What it does not see: the warm-up's own mount (cleared from the count, so the real mounts are 50 of them with it), a test that renders `<App />`
 // directly instead of through `renderApp`, and, with `-t` selecting a few cases, any overshoot (it can only fail on a full run of the block).
 // 13 to 17 for #3400: Save & continue over a slow, a failing and a silent save, and a blur-saved box, each needing its own `saveSettings` (about 1 s each warm); 17 to 20 for the engine panel link, an overlay dialog's link from dirty Settings, and test holders in an overlay dialog; 20 to 21 for a question whose holder went away; 21 to 22 for a question whose held set changes while it is open; 22 to 24 for a save that rejects with nothing useful and a dialog that closes itself on a guarded link; 24 to 30 for a save that rejects after the limit, a wire error, the focus after pointer events, a slow second Enter, and two failure reasons; 30 to 37 for the Story Bible screen of #3400: an entry edit held through the exits table, the in-page moves, a new entry, the unsaveable relationship row, the approval note, and text typed while the entry's own Save is in flight.
-const MOUNT_BUDGET = 45;
+const MOUNT_BUDGET = 49;
 describe('App Back and Forward', () => {
   // The first mount in a process pays for module initialisation and a cold JIT (the first case took 2.2 s alone and over 15 s with a dozen runs sharing four cores, about eight times a warm case),
   // which would otherwise land on whichever case runs first when only this block is run. It is paid here, with a limit of its own.
@@ -1574,6 +1574,18 @@ describe('App Back and Forward', () => {
       await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
       return box;
     };
+    const openCredits = async (overrides: Parameters<typeof renderApp>[0] = {}) => {
+      renderApp(overrides);
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
+      const categories = await screen.findByRole('navigation', { name: 'Settings categories' });
+      fireEvent.click(within(categories).getByRole('button', { name: /^Project/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /^Edit credits/ }));
+      const body = (await screen.findByRole('textbox', { name: 'Body' })) as HTMLTextAreaElement;
+      await waitFor(() => expect(body.value).not.toBe(''));
+      fireEvent.change(body, { target: { value: 'Typed but not saved.' } });
+      await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
+    };
     const pastedKey = () => (screen.getByLabelText('Merriam-Webster key') as HTMLInputElement).value;
 
     it('Switch project from Settings with unsaved changes asks Unsaved changes first, and Keep editing leaves the picker closed', async () => {
@@ -1611,6 +1623,14 @@ describe('App Back and Forward', () => {
         question: async () => screen.findByText('Save or discard changes before leaving Settings?'),
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
         stillHeld: () => expect(keptEdit()).toBeTruthy(),
+        page: '/settings',
+      },
+      // The credits editor holds a draft that Settings' blur-saves do not cover (#3400): typed Body text waits for Save template.
+      'an unsaved credits template': {
+        hold: async () => void (await openCredits()),
+        question: async () => screen.findByText('Save or discard your credit template edit before leaving?'),
+        keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
+        stillHeld: () => expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.'),
         page: '/settings',
       },
       // A reply typed under a Script note waits for Reply (#3400): the exits ask, and Cancel keeps the text.
@@ -1899,6 +1919,76 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
       await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
       expect(pronunciationOnlineKeySet).not.toHaveBeenCalled();
+    });
+
+    it('Switch project over an unsaved credits template: Save & continue saves the template with the typed body (#3400)', async () => {
+      const saveCreditsTemplate = vi.fn(createMockApi().saveCreditsTemplate);
+      await openCredits({ saveCreditsTemplate });
+      headerSwitch();
+      const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
+      expect(within(question).getByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
+      fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
+      await screen.findByRole('heading', { name: 'Choose your project' });
+      expect(saveCreditsTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(String), 'Typed but not saved.');
+    });
+
+    it('a change inside the page asks too: Close, New, another category and the Settings search; Cancel keeps the text; Delete asks nothing and removes the template (#3400)', async () => {
+      const deleteCreditsTemplate = vi.fn(createMockApi().deleteCreditsTemplate);
+      const saveCreditsTemplate = vi.fn(createMockApi().saveCreditsTemplate);
+      await openCredits({ deleteCreditsTemplate, saveCreditsTemplate });
+      const body = () => screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement;
+      const cancelKeepsText = async () => {
+        expect(await screen.findByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        expect(body().value).toBe('Typed but not saved.');
+      };
+      fireEvent.click(screen.getByRole('button', { name: 'Close credits editor' }));
+      await cancelKeepsText();
+      fireEvent.click(screen.getByRole('button', { name: 'New' }));
+      await cancelKeepsText();
+      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+      await cancelKeepsText();
+      fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Appearance & keys/ }));
+      await cancelKeepsText();
+      // Delete is the narrator's answer: the template and the text typed for it go, with no question.
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(deleteCreditsTemplate).toHaveBeenCalled());
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(saveCreditsTemplate).not.toHaveBeenCalled();
+    });
+
+    it('the Settings search over a credits template typed among the results asks when the query would swap the pane, puts the applied text back after Cancel, and a template put back as it was holds nothing (#3400)', async () => {
+      renderApp();
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Settings' })[0]!);
+      const search = (await screen.findByRole('textbox', { name: 'Search settings' })) as HTMLInputElement;
+      fireEvent.change(search, { target: { value: 'credits' } });
+      fireEvent.click(await screen.findByRole('button', { name: /^Edit credits/ }));
+      const body = (await screen.findByRole('textbox', { name: 'Body' })) as HTMLTextAreaElement;
+      await waitFor(() => expect(body.value).not.toBe(''));
+      const saved = body.value;
+      // Typed and put back as it was: nothing is held, so the search changes freely.
+      fireEvent.change(body, { target: { value: 'Something else' } });
+      fireEvent.change(body, { target: { value: saved } });
+      fireEvent.change(search, { target: { value: 'credit' } });
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      fireEvent.change(search, { target: { value: 'credits' } });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Body' }), { target: { value: 'Typed but not saved.' } });
+      for (const next of ['theme', '']) {
+        fireEvent.change(search, { target: { value: next } });
+        expect(await screen.findByText('Save or discard your credit template edit before leaving?')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        // Cancel keeps the template, and the box reads what the results are for again (#3456): the invariant whenever no question is open.
+        expect(search.value).toBe('credits');
+        expect((screen.getByRole('textbox', { name: 'Body' }) as HTMLTextAreaElement).value).toBe('Typed but not saved.');
+      }
+      // Discard & continue is what drops the template, and applies the search.
+      fireEvent.change(search, { target: { value: 'theme' } });
+      fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+      await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Body' })).toBeNull());
+      expect(search.value).toBe('theme');
     });
 
     // A link out of a page asks like the nav does (#3400): the engine panel's chapter links, and a dialog drawn by the overlay host (Check recordings), which

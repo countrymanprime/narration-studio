@@ -327,7 +327,17 @@ The reset button next to **Change location…** moves the downloads back to the 
 
 - **Templates**: pick a template to edit its **Name**, **Kind** (Opening, Closing or Chapter announcement)
   and **Body**, then **Save template**. **New** starts a blank one, **Duplicate** copies the selected one
-  and **Delete** removes it.
+  and **Delete** removes it. Text typed in the template waits for **Save template**, so leaving Settings with it unsaved
+  (the navigation, Back, the jump menu or **Switch project**), or closing the editor, picking another template, **New**,
+  **Duplicate**, another category, or any change of **Search settings** (or of the filter beside it) that shows, changes or clears the
+  results, which swap the pane, asks **Unsaved changes** first: **Save & continue** saves the template, **Discard & continue** drops
+  it, and **Cancel** keeps the editor and the text. **Delete** removes the template and the text typed for it without asking. While **Save template** runs the template picker, **New**, **Duplicate** and **Delete** are off; text typed meanwhile is kept and saved by a second save of its own, and a new template whose save answers late takes its place in the picker instead of being created twice.
+  If a save does not answer within 15 seconds, a message says saving is taking too long and **Cancel** and **Discard &
+  continue** work again; the text is still in the editor, and a second **Save & continue** waits for the same save and
+  does not send it again. When only a draft is held, the question names it ("Save or discard your credit template edit
+  before leaving?"); with edits in Settings' own fields it keeps "Save or discard changes before leaving Settings?". A template with no text cannot be saved: **Save template** is off, and the question then says the edit "still needs some text" and offers only **Keep editing** and **Discard**.
+
+  ![Settings - leaving with a credits template edited and not saved asks Unsaved changes, names the credit template edit, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-credits-leave-confirm.webp)
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
   from the project values. Wrap a part in braces to drop it, punctuation and all, when a token in it has no
   value: `[Title]{: [Subtitle]}` reads just the title for a book with no subtitle.
@@ -342,7 +352,7 @@ The reset button next to **Change location…** moves the downloads back to the 
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
   Publisher, and a Narrator that overrides the narrator name set under **Project** (Settings > Project, Narrator and credits) for this project only. A value
-  is saved as you type. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
+  is saved as you type; until the project's values have been read the fields are dimmed and the section says "Reading this project's values..." (if the read fails or the host does not answer, a notice says so and **Retry** reads them again). The templates work the same way: until the list has been read the editor is dimmed and off, so nothing typed there is lost when it arrives, and it is off again while a **Duplicate** or **Delete** is out. If the list cannot be read, a notice says so and **Retry** (also beside the hint) reads it again. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.
 

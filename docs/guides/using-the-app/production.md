@@ -390,7 +390,7 @@ unresolved tokens. The dialog is prefilled from whatever the manuscript's own ti
 copyright line already say, with the source of each guess shown underneath; a field with nothing
 detected starts empty. Save only writes the fields you confirm — nothing already set in
 [Settings, Credits](settings.md#credits) is changed. **Not now** leaves it for this session;
-**Don't ask for this project** stops it until you replace the manuscript. Either way, a banner
+**Don't ask for this project** stops it until you replace the manuscript. With a field changed and not saved, Escape, the close button, **Not now** and **Don't ask for this project** each ask **Discard what you typed?** first (**Keep editing** or **Discard**); only Save keeps what you typed. Either way, a banner
 stays above the figures — and above the [Script](script.md) page's own Opening credits
 card — with **Fill in** to reopen the same dialog for as long as a token stays unresolved.
 

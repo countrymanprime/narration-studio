@@ -435,7 +435,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/settings/BackupsSection.tsx', text: 'The backups settings could not be read: ….', class: 'error' },
   { file: 'components/settings/BackupsSection.tsx', text: 'The change was not saved: ….', class: 'error' },
   { file: 'components/settings/CapabilitySection.tsx', text: "The DAW's capabilities could not be read: ….", class: 'error' },
-  { file: 'components/settings/CreditsPanel.tsx', text: 'Credits could not be loaded: ….', class: 'error' },
   {
     file: 'components/settings/CreditsPanel.tsx',
     text: 'The global narrator default is …; a narrator override here applies only to this project.',
