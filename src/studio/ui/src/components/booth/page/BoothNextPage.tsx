@@ -517,6 +517,7 @@ function BoothSession({
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
+    coldRead: page.coldRead.mode && !control.recording,
     notify: voiceToast,
     stopTake: page.stopTake,
     // A cold read has no voice to record on: in that mode a voice key only chooses.
