@@ -308,7 +308,7 @@ export const readAloudReaperStateSchema = z.object({
   message: z.string(),
   trackGuid: z.string().optional(),
   armedCount: z.number().int().nonnegative().optional(),
-  armedTrackGuid: z.string().optional(),
+  armedTrackGuids: z.array(z.string()).max(64).optional(),
   playing: z.boolean(),
   recording: z.boolean(),
 }) satisfies z.ZodType<ReadAloudReaperState>;

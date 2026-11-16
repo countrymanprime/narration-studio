@@ -3718,9 +3718,15 @@
     "replace": ""
   },
   {
-    "name": "chapter_track_state names an armed track when several are armed",
+    "name": "chapter_track_state does not cut the armed list",
     "file": "narration_track_state.lua",
-    "find": "(count == 1 and only) and",
-    "replace": "only and"
+    "find": "if #guids < ARMED_LIST_LIMIT then",
+    "replace": "if true then"
+  },
+  {
+    "name": "chapter_track_state lists only the last armed track",
+    "file": "narration_track_state.lua",
+    "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
+    "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
   }
 ]

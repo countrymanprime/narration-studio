@@ -338,8 +338,8 @@ export type ReadAloudReaperState = {
   message: string;
   trackGuid?: string;
   armedCount?: number;
-  /** The one track REAPER has armed when exactly one is; the Booth follows a lane armed by hand with it (#3429). Absent with none or several. */
-  armedTrackGuid?: string;
+  /** The tracks REAPER has armed, when it named all of them; the Booth follows a lane armed by hand with them (#3429). Absent with none, or from an older script. */
+  armedTrackGuids?: string[];
   playing: boolean;
   recording: boolean;
 };

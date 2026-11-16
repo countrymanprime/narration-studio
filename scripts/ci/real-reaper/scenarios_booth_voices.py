@@ -260,28 +260,31 @@ def go_to_a_folder_selects_its_voices(env: Env) -> str:
 @scenario(
     "booth_voices",
     "chapter_track_state",
-    "#3429: chapter_track_state names the one armed track (armedGuid) for the Booth to follow, and names none for no track or several",
+    "#3429: chapter_track_state names the armed tracks (armedGuids) for the Booth to follow, as REAPER arms one, two and none",
 )
-def state_names_the_armed_track(env: Env) -> str:
+def state_names_the_armed_tracks(env: Env) -> str:
     g = folder_book(env)
 
-    def armed_guid() -> str:
+    def armed_guids() -> list[str]:
         row = env.ok("chapter_track_state", g["Chapter 3"], "none", until="TRACK_STATE")
-        return row[-1] if len(row) > 14 and row[-1].startswith("{") else ""
+        assert len(row) > 15, f"a TRACK_STATE row of {len(row)} fields has no armedGuids: {row}"
+        return [guid.upper() for guid in row[15].split()]
 
     arm_only_by_hand(env, "Veyra")
-    one = armed_guid()
-    assert one.upper() == g["Veyra"].upper(), (one, g["Veyra"])
+    one = armed_guids()
+    assert one == [g["Veyra"].upper()], (one, g["Veyra"])
     env.lua(
         """
         for i = 0, reaper.CountTracks(0) - 1 do
-          reaper.SetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM', 1)
+          local t = reaper.GetTrack(0, i)
+          local _, name = reaper.GetTrackName(t)
+          reaper.SetMediaTrackInfo_Value(t, 'I_RECARM', (name == 'Veyra' or name == 'Drone') and 1 or 0)
         end
         return true
         """
     )
-    several = armed_guid()
-    assert several == "", several
+    two = armed_guids()
+    assert sorted(two) == sorted([g["Veyra"].upper(), g["Drone"].upper()]), (two, g)
     env.lua(
         """
         for i = 0, reaper.CountTracks(0) - 1 do
@@ -290,9 +293,9 @@ def state_names_the_armed_track(env: Env) -> str:
         return true
         """
     )
-    none = armed_guid()
-    assert none == "", none
-    return f"one armed {one}; several armed {several!r}; none armed {none!r}"
+    none = armed_guids()
+    assert none == [], none
+    return f"one armed {one}; two armed {two}; none armed {none}"
 
 
 @scenario(

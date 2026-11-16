@@ -12,8 +12,8 @@
 -- and TRACK_STATE_END carries 0 listed and the track's total (a Record press and the polls read only the state). Any other option is refused.
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
--- inputDevice|outputDevice|recInputName|armedGuid (the one armed track, empty with none or several; appended for the Booth following a
--- lane armed in REAPER, #3429, so an older script's row still reads), then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
+-- inputDevice|outputDevice|recInputName|armedGuids (every armed track, separated by spaces and cut at ARMED_LIST_LIMIT; appended for the
+-- Booth following a lane armed in REAPER, #3429, so an older script's row still reads), then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
 -- sourceFile|muted per item (at most ITEM_LIMIT; muted is the last field, and with 'children' the item's track GUID
 -- follows it), then TRACK_STATE_END|run|listed|total.
 
@@ -50,17 +50,20 @@ end
 local function armed(track)
   return reaper.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0
 end
--- How many tracks are armed, and the GUID of the armed one when exactly one is ('' for none or several, so a caller never guesses).
+-- How many tracks are armed, and their GUIDs separated by spaces, at most ARMED_LIST_LIMIT of them (a longer list is cut, and the count says so).
+local ARMED_LIST_LIMIT = 32
 local function armed_summary()
-  local count, only = 0, nil
+  local count, guids = 0, {}
   for index = 0, reaper.CountTracks(0) - 1 do
     local track = reaper.GetTrack(0, index)
     if armed(track) then
       count = count + 1
-      only = track
+      if #guids < ARMED_LIST_LIMIT then
+        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))
+      end
     end
   end
-  return count, (count == 1 and only) and normalize_guid(reaper.GetTrackGUID(only)) or ''
+  return count, table.concat(guids, ' ')
 end
 -- The input (IDENT_IN) or output (IDENT_OUT) device REAPER has open, or empty when it has none open or cannot say.
 local function audio_device(attribute)
@@ -133,7 +136,7 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
   local _, rpp = reaper.EnumProjects(-1, '')
   rpp = rpp or ''
   local rec_input = track and math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_RECINPUT')) or nil
-  local armed_total, armed_guid = armed_summary()
+  local armed_total, armed_guids = armed_summary()
   event(
     session_dir,
     'TRACK_STATE',
@@ -151,7 +154,7 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
     audio_device('IDENT_IN'),
     audio_device('IDENT_OUT'),
     rec_input and input_channel_name(rec_input) or '',
-    armed_guid
+    armed_guids
   )
   if option ~= 'children' or not track then
     local total = track and reaper.CountTrackMediaItems(track) or 0
