@@ -225,9 +225,9 @@ describe('an unlinked chapter in the Booth', () => {
 
   it.each([
     ['flat', 'track', 'Track missing'],
-    ['folders', 'folder', 'Folder missing'],
+    ['folders', 'folder', 'Track missing'],
   ] as const)(
-    'a missing link in a %s project: footer, chip and setup chip say the %s is not in the project, never that there is none',
+    'a missing link in a %s project: footer says the %s is not in the project, never that there is none, and the chips say what the Engine says',
     async (layout, noun, chip) => {
       renderUnlinked({ readAloudReaperState: async () => ({ ...UNLINKED, reason: 'track_missing', message: 'gone' }) } as Partial<NarrationApi>, layout);
       await screen.findByRole('dialog');
