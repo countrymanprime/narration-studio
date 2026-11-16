@@ -577,6 +577,7 @@ describe('a-reading-only-session-keeps-running', () => {
     expect(page.journal.checkLeave('/proof')).toBe('allow');
     await press('Escape');
     expect(page.dialog()?.spec.title).toBe('Stop reading?');
+    expect(page.dialog()?.spec.body).toBe('Reading is still listening. Leaving the Booth for Script stops it; nothing recorded is affected.');
     await act(async () => page.dialog()!.answer(true));
     await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
     expect(page.teleprompterStop).toHaveBeenCalled();

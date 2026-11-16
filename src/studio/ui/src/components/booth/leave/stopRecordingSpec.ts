@@ -14,7 +14,8 @@ export const IGNORE_ENTER_MS = 400;
 export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false, destination?: string): ConfirmSpec {
   const subject = dawName.charAt(0).toUpperCase() + dawName.slice(1);
   // Where the move goes, when a page of the rail owns it: "Leaving the Booth for Script ..." (#3529).
-  const leaving = destination ? `Leaving the Booth for ${destination}` : 'Leaving the Booth';
+  // A destination that is the Booth itself is another chapter of it: the take stops, but the narrator does not leave.
+  const leaving = destination === 'Booth' ? 'Opening another chapter' : destination ? `Leaving the Booth for ${destination}` : 'Leaving the Booth';
   if (!startedByApp) {
     return {
       title: 'Leave the Booth?',

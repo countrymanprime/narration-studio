@@ -46,6 +46,7 @@ import { useTakeClock } from './useTakeClock';
 import { claimListening, joinListening, type ListeningClaim, ownsListening, releaseListening, unclaimListening } from '../listening/listeningClaims';
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
+import { pageNameFor } from '../../layout/railPages';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
@@ -59,11 +60,12 @@ const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 const STAYED_MS = 500;
 /** Why Cold read is off during a take (the toggle and its jump-menu entry). */
 const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
-const STOP_READING = {
+/** The question for a session that only listens: it names the page the move goes to, as the recording question does (#3529). */
+const stopReading = (destination: string | undefined) => ({
   title: 'Stop reading?',
-  body: 'Reading is still listening. Leaving the Booth stops it; nothing recorded is affected.',
+  body: `Reading is still listening. Leaving the Booth${destination ? ` for ${destination}` : ''} stops it; nothing recorded is affected.`,
   confirmLabel: 'Stop and leave',
-};
+});
 /** How long a menu has to appear after it is asked for before its hold is let go. */
 const MENU_GRACE_MS = 1000;
 
@@ -996,7 +998,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // plain Stop, and the toast outlives the page (#3529); a take that marked pickups says it was saved in the pickups' own sentence, so it says nothing more.
     if (result.ok) {
       const { marked, take } = await tellStopped(true);
-      if (marked === 0 && take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
+      if (marked === 0 && take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry, survivesMoves: 1 });
     }
     return result;
   }, [daw, tellStopped, markStopped, keepTake, appStop, overlay]);
@@ -1110,7 +1112,7 @@ export function useBoothPage(options: BoothPageOptions) {
       void leave(exitTo, navigate);
       return;
     }
-    void overlay.confirm(STOP_READING).then((yes) => {
+    void overlay.confirm(stopReading(pageNameFor(exitTo))).then((yes) => {
       if (!yes) return;
       // A take may have begun while the question was open (the start was out, or the narrator pressed Record): it is read again now, and asked about.
       if (latest.current.takeOut) {

@@ -156,6 +156,12 @@ describe('useBoothLeaveGuard', () => {
     expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it.` } });
   });
 
+  // #3529 (ux-reviewer): a chapter link into the Booth during a take is a move within the Booth: the take stops, the narrator does not leave, and the question says so.
+  it('a destination that is the Booth itself reads as opening another chapter, not as leaving', () => {
+    const { store } = setup();
+    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({ ask: { body: 'REAPER is recording. Opening another chapter stops it.' } });
+  });
+
   it('the question the Booth asks for its own exit names the destination too', () => {
     const t = setup();
     act(() => void t.hook.result.current.leave('/proof', t.go));
