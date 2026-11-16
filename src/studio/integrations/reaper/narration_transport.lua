@@ -924,8 +924,18 @@ return function(registry)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '')
   end)
   registry.register('arm_lane', function(ctx, args)
-    -- A third argument `monitor` also turns the lane's input monitoring on when it is off (narration_monitor.lua).
-    arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true, args[3] == 'monitor' and registry.monitor_lane or nil)
+    -- A third argument `monitor` also turns the lane's input monitoring on when it is off (narration_monitor.lua). Any other one is refused, and
+    -- so is `monitor` when this bridge has no monitoring: a five-field answer would say the lane is not monitored as if the narrator had it on.
+    local mode = args[3] or ''
+    if mode ~= '' and mode ~= 'monitor' then
+      event(ctx.session_dir, 'ERROR', args[1] or '', 'Unsupported arm_lane argument.')
+      return
+    end
+    if mode == 'monitor' and not registry.monitor_lane then
+      event(ctx.session_dir, 'ERROR', args[1] or '', 'This bridge cannot monitor a lane.')
+      return
+    end
+    arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true, mode == 'monitor' and registry.monitor_lane or nil)
   end)
   registry.register('record_start', function(ctx, args)
     record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '')

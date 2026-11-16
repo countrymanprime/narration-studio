@@ -34,6 +34,7 @@ local event = core.event
 local LEDGER_FILE = 'narration_monitor_ledger.txt'
 local ON = 1
 local MAX_ROWS = 64
+local MAX_RETRY_WAIT = 256
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -117,7 +118,9 @@ return function(registry)
     end
   end
 
-  local function persist()
+  -- A write that failed is tried again on the ticks that follow, spaced out by a count of ticks that doubles up to MAX_RETRY_WAIT (256), so a ledger
+  -- that stays unwritable (a full disk, a folder of that name) is not opened thirty times a second. A command that changes the rows always tries.
+  local function persist(from_tick)
     local all = {}
     for _, row in ipairs(state.ghosts) do
       all[#all + 1] = row
@@ -126,6 +129,15 @@ return function(registry)
       all[#all + 1] = row
     end
     state.unsaved = not save(all)
+    if not state.unsaved then
+      state.misses, state.wait = nil, nil
+    elseif from_tick then
+      -- The first miss on a tick is tried again on the next one, then after 1, 2, 4 ... ticks.
+      state.misses = (state.misses or 0) + 1
+      state.wait = state.misses <= 1 and 0 or math.min(2 ^ (state.misses - 2), MAX_RETRY_WAIT)
+    else
+      state.misses, state.wait = 0, 0
+    end
     return not state.unsaved
   end
 
@@ -168,6 +180,14 @@ return function(registry)
     recover()
     local guid = normalize_guid(reaper.GetTrackGUID(track))
     local mine, others = nil, {}
+    -- The same lane can be a ghost (its track was not in front when it was tried): it is the live row again, not a second one the tick would put back.
+    for index, row in ipairs(state.ghosts) do
+      if row.guid == guid then
+        mine = row
+        table.remove(state.ghosts, index)
+        break
+      end
+    end
     for _, row in ipairs(state.rows) do
       if row.guid == guid then
         mine = row
@@ -228,8 +248,8 @@ return function(registry)
     event(ctx.session_dir, 'MONITOR_RESTORED', run, restored, kept, 0)
   end)
 
-  -- Called by the tick loop once a tick: recovers the file, rewrites a ledger that could not be written, finishes a restore that waited for a recording to stop, and tries the ghosts again when the
-  -- project in front or its track count has changed since they were last tried.
+  -- Called by the tick loop once a tick: recovers the file, rewrites a ledger that could not be written, finishes a restore that waited for a
+  -- recording to stop, and tries the ghosts again when the project in front or its track count has changed since they were last tried.
   registry.monitor_tick = function()
     if busy() then
       return
@@ -237,14 +257,20 @@ return function(registry)
     recover()
     -- A ledger that could not be written after lanes were put back would still list them: it is written again.
     if state.unsaved then
-      persist()
+      if (state.wait or 0) <= 0 then
+        persist(true)
+      else
+        state.wait = state.wait - 1
+      end
     end
     if state.waiting then
       state.waiting = false
       release()
     end
     if #state.ghosts > 0 then
-      local place = (select(2, reaper.EnumProjects(-1, '')) or '') .. '|' .. reaper.CountTracks(0)
+      -- The project pointer tells apart two tabs that were never saved and hold as many tracks.
+      local front, path = reaper.EnumProjects(-1, '')
+      local place = tostring(front) .. '|' .. (path or '') .. '|' .. reaper.CountTracks(0)
       if place ~= state.tried then
         state.tried = place
         local _, _, left = put_back(state.ghosts)

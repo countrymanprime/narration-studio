@@ -357,7 +357,11 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 			return boothVoiceRefused("starting", "A take is starting. Choose the voice once it has started."), nil
 		}
 		svc.boothVoices.choose(chapterID, target)
-		chosen := armChosenLane(ctx, name, recorder, target, followChapterSetting(svc))
+		monitor := followChapterSetting(svc)
+		if recorder != nil && monitor {
+			h.boothMonitorOwed.Store(true)
+		}
+		chosen := armChosenLane(ctx, name, recorder, target, monitor)
 		if status := reaperStatus(svc); recorder == nil && status.Connection == reaperNotRunning {
 			// A linked DAW that is not answering cannot arm the lane: say so, the choice stands.
 			chosen.Reason = reaperNotRunning
@@ -374,7 +378,11 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		// The take is over (the narrator stopped it in the DAW): the voice is the next take's.
 		h.clearReadAloudRecording()
 		svc.boothVoices.choose(chapterID, target)
-		return armChosenLane(ctx, name, recorder, target, followChapterSetting(svc)), nil
+		monitor := followChapterSetting(svc)
+		if recorder != nil && monitor {
+			h.boothMonitorOwed.Store(true)
+		}
+		return armChosenLane(ctx, name, recorder, target, monitor), nil
 	}
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {

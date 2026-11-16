@@ -36,16 +36,22 @@ func (h *Host) DawArmBoothVoice(chapterID string) (string, error) {
 	svc := h.services()
 	ctx, cancel := context.WithTimeout(context.Background(), boothArmTimeout)
 	defer cancel()
-	recorder := recorderFrom(svc)
+	return encodeBinding(h.dawArmBoothVoiceIn(ctx, svc, recorderFrom(svc), chapterID))
+}
+
+func (h *Host) dawArmBoothVoiceIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (dawport.Result, error) {
+	if recorder != nil && followChapterSetting(svc) {
+		h.boothMonitorOwed.Store(true)
+	}
 	if h.recordStarting() || h.readAloudRecordingFor(chapterID) {
 		// Back in the Booth during a take: arming waits for the stop (the page arms again then), and a release that waits is dropped.
 		keepBoothMonitor(ctx, recorder)
-		return encodeBinding(dawport.Result{OK: true}, nil)
+		return dawport.Result{OK: true}, nil
 	}
-	return encodeBinding(dawArmBoothVoiceIn(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc)))
+	return armBoothVoiceLane(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc))
 }
 
-func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool) (dawport.Result, error) {
+func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool) (dawport.Result, error) {
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return dawport.Result{OK: true}, nil
@@ -90,7 +96,22 @@ func (h *Host) DawReleaseBoothMonitor() (string, error) {
 	svc := h.services()
 	ctx, cancel := context.WithTimeout(context.Background(), boothArmTimeout)
 	defer cancel()
-	return encodeBinding(dawReleaseBoothMonitorIn(ctx, readAloudAdapterName(svc), recorderFrom(svc)), nil)
+	recorder := recorderFrom(svc)
+	result := dawReleaseOnLeaveIn(ctx, readAloudAdapterName(svc), recorder, h.boothMonitorOwed.Load())
+	if result.OK && recorder != nil {
+		h.boothMonitorOwed.Store(false)
+	}
+	return encodeBinding(result, nil)
+}
+
+// dawReleaseOnLeaveIn is the release when the Booth is left. A DAW that cannot be reached while a monitoring may still be on from this session is
+// refused with a sentence, so the page tells the narrator; nothing is owed, and nothing said, when the Booth never turned one on. The DAW's own ledger
+// puts the monitoring back the next time its bridge starts.
+func dawReleaseOnLeaveIn(ctx context.Context, name string, recorder dawport.Recorder, owed bool) dawport.Result {
+	if recorder == nil && owed {
+		return dawport.Refused(fmt.Sprintf("%s could not be reached, so the input monitoring the Booth turned on may still be on. It is put back when %s next starts its bridge.", name, name))
+	}
+	return dawReleaseBoothMonitorIn(ctx, name, recorder)
 }
 
 func dawReleaseBoothMonitorIn(ctx context.Context, name string, recorder dawport.Recorder) dawport.Result {

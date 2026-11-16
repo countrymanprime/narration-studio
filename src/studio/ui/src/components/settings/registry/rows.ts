@@ -666,7 +666,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'computer',
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
-    desc: 'Selects the chapter you are working on in the DAW.',
+    desc: 'Selects the chapter you are working on in the DAW, and arms and monitors its voice.',
     more: 'When you go to a chapter in the Booth, the DAW selects that chapter’s track and the tracks inside it and sets its cursor at the end of what is recorded (or at the line you went to). Editing and Pickups (with one chapter chosen) do the same and set the cursor where the chapter’s audio starts. Master & QC has no chapter in view, so it follows nothing. The Booth also arms the voice the next take records on, and only that one: any other armed track is disarmed, so a second armed track cannot record too. It turns that voice’s input monitoring on if it is off, and puts the monitoring back when you leave (REAPER only). Turn it off to leave the DAW where you put it: entering the Booth then arms nothing and turns no monitoring on. Choosing a voice in the Booth still arms it, as before, and leaving the Booth still puts back any monitoring the app turned on.',
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',

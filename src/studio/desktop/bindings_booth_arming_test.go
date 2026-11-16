@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,7 +15,7 @@ import (
 
 func armBoothVoice(t *testing.T, host *Host, recorder dawport.Recorder, chapterID string) dawport.Result {
 	t.Helper()
-	result, err := dawArmBoothVoiceIn(context.Background(), host.services(), "REAPER", recorder, chapterID, true)
+	result, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", recorder, chapterID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,10 +160,81 @@ func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	}
 	fake := &fakeLaneRecorder{}
 	// The binding reads the switch itself: a voice chosen during a take is armed after it, and the monitoring waits for the switch.
-	if _, err := dawArmBoothVoiceIn(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services())); err != nil {
+	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services())); err != nil {
 		t.Fatal(err)
 	}
 	if len(fake.laneArmed) != 1 || fake.laneMonitor[0] {
 		t.Fatalf("armed %v monitor %v, want the voice armed and not monitored", fake.laneArmed, fake.laneMonitor)
+	}
+}
+
+func TestLeavingTheBoothWhileTheDAWCannotBeReachedSaysSoOnlyWhenAMonitoringMayBeOwed(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	switchFollow(t, host, "true")
+	read := func() dawport.Result {
+		t.Helper()
+		raw, err := host.DawReleaseBoothMonitor()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got dawport.Result
+		if err := json.Unmarshal([]byte(raw), &got); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	if got := read(); !got.OK || got.Refused != "" {
+		t.Fatalf("the Booth never turned a monitoring on: %+v, want done and silent", got)
+	}
+	// A DAW that is not reachable at entry is asked nothing, so nothing is owed.
+	if _, err := host.DawArmBoothVoice(ids[0]); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(); !got.OK {
+		t.Fatalf("no recorder at entry: %+v, want done", got)
+	}
+	// A monitoring asked for by an entry arm, then a DAW that no longer answers when the Booth is left.
+	if got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), &fakeLaneRecorder{}, ids[0]); err != nil || !got.OK {
+		t.Fatalf("entry arm: %+v, %v", got, err)
+	}
+	got := read()
+	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "next starts its bridge") || got.Message != got.Refused {
+		t.Fatalf("left with the DAW unreachable: %+v, want a refusal that says the monitoring may be on and when it is put back", got)
+	}
+	if again := read(); again.OK {
+		t.Fatalf("the monitoring is still owed after a refusal: %+v", again)
+	}
+}
+
+func TestAReleaseOnLeavingAsksAnAnsweringDAWAndStaysSilentWhenNothingIsOwed(t *testing.T) {
+	fake := &fakeLaneRecorder{}
+	if got := dawReleaseOnLeaveIn(context.Background(), "REAPER", fake, true); !got.OK || fake.monitorReleased != 1 {
+		t.Fatalf("a DAW that answers: %+v after %d releases", got, fake.monitorReleased)
+	}
+	if got := dawReleaseOnLeaveIn(context.Background(), "REAPER", nil, false); !got.OK || got.Refused != "" {
+		t.Fatalf("nothing owed and no DAW: %+v", got)
+	}
+}
+
+func TestChoosingAVoiceWithTheSwitchOnOwesTheMonitoringAndWithItOffDoesNot(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	switchFollow(t, host, "true")
+	boothVoiceSet(t, host, &fakeLaneRecorder{}, ids[0], voiceQueenTrack)
+	if !host.boothMonitorOwed.Load() {
+		t.Fatal("a voice chosen with the switch on is monitored, so the release is owed")
+	}
+	host, ids = newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	switchFollow(t, host, "false")
+	boothVoiceSet(t, host, &fakeLaneRecorder{}, ids[0], voiceQueenTrack)
+	if host.boothMonitorOwed.Load() {
+		t.Fatal("with the switch off nothing is monitored, so nothing is owed")
+	}
+}
+
+// switchFollow saves Booth.follow_chapter_in_daw: the settings store outlives a test host, so a test that depends on the switch sets it.
+func switchFollow(t *testing.T, host *Host, value string) {
+	t.Helper()
+	if err := host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &value}); err != nil {
+		t.Fatal(err)
 	}
 }

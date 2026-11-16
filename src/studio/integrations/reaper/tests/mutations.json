@@ -3732,7 +3732,7 @@
   {
     "name": "arm_lane monitors without being asked",
     "file": "narration_transport.lua",
-    "find": "args[3] == 'monitor' and registry.monitor_lane or nil",
+    "find": "mode == 'monitor' and registry.monitor_lane or nil",
     "replace": "registry.monitor_lane"
   },
   {
@@ -3846,8 +3846,8 @@
   {
     "name": "the lane being armed again loses its own row",
     "file": "narration_monitor.lua",
-    "find": "      if row.guid == guid then\n        mine = row",
-    "replace": "      if false then\n        mine = row"
+    "find": "      if row.guid == guid then\n        mine = row\n      else",
+    "replace": "      if false then\n        mine = row\n      else"
   },
   {
     "name": "a failed write of the ledger is reported as written",
@@ -3882,7 +3882,73 @@
   {
     "name": "a ledger that could not be written is never written again",
     "file": "narration_monitor.lua",
-    "find": "    if state.unsaved then\n      persist()",
-    "replace": "    if false then\n      persist()"
+    "find": "    if state.unsaved then\n      if (state.wait or 0) <= 0 then",
+    "replace": "    if false then\n      if (state.wait or 0) <= 0 then"
+  },
+  {
+    "name": "the ledger the running bridge wrote is read back as a leftover",
+    "file": "narration_monitor.lua",
+    "find": "    if state.recovered then\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a record_start still waiting for REAPER is not a take in the way of a restore",
+    "file": "narration_monitor.lua",
+    "find": "    return take ~= nil and not take.started",
+    "replace": "    return false"
+  },
+  {
+    "name": "a leftover row with a lower case GUID names no track",
+    "file": "narration_monitor.lua",
+    "find": ":gsub('[{}%s]', ''):upper()",
+    "replace": ":gsub('[{}%s]', '')"
+  },
+  {
+    "name": "a leftover row with a GUID of another spelling is looked up as written",
+    "file": "narration_monitor.lua",
+    "find": "  local wanted = normalize_guid(guid_text)",
+    "replace": "  local wanted = tostring(guid_text)"
+  },
+  {
+    "name": "a ledger of any size is read",
+    "file": "narration_monitor.lua",
+    "find": "input:read(65536)",
+    "replace": "input:read('a')"
+  },
+  {
+    "name": "a ghost is not tried again in a second unsaved project with as many tracks",
+    "file": "narration_monitor.lua",
+    "find": "tostring(front) .. '|' .. (path or '')",
+    "replace": "(path or '')"
+  },
+  {
+    "name": "a ghost is not made the live row when its lane is armed again",
+    "file": "narration_monitor.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n        table.remove(state.ghosts, index)",
+    "replace": "      if false then\n        mine = row\n        table.remove(state.ghosts, index)"
+  },
+  {
+    "name": "an unwritable ledger is opened on every tick",
+    "file": "narration_monitor.lua",
+    "find": "      if (state.wait or 0) <= 0 then",
+    "replace": "      if true then"
+  },
+  {
+    "name": "an unwritable ledger is never tried again after the first miss on a tick",
+    "file": "narration_monitor.lua",
+    "find": "state.wait = state.misses <= 1 and 0 or math.min(2 ^ (state.misses - 2), MAX_RETRY_WAIT)",
+    "replace": "state.wait = MAX_RETRY_WAIT * 1000"
+  },
+  {
+    "name": "arm_lane accepts a third argument it does not know",
+    "file": "narration_transport.lua",
+    "find": "    if mode ~= '' and mode ~= 'monitor' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "arm_lane with monitor answers armed with no monitoring behind it",
+    "file": "narration_transport.lua",
+    "find": "    if mode == 'monitor' and not registry.monitor_lane then",
+    "replace": "    if false then"
   }
 ]

@@ -497,3 +497,138 @@ H.test('a ledger that could not be written after a lane was put back is written 
   s:tick()
   H.eq(ledger(s), row(s, veyra), 'the file lists the lane that is still monitored, and no other')
 end)
+
+-- guards, tabs, ghosts and retries ------------------------------------------------------------------------------------
+
+H.test('a leftover row beyond the first 64 KB of a ledger is not read', function()
+  local s, narrator, veyra = new_session()
+  local lines = { narrator.guid .. '\t0\n' }
+  local size = #lines[1]
+  while size < 70000 do
+    local filler = 'x' .. string.rep('-', 78) .. '\n'
+    lines[#lines + 1] = filler
+    size = size + #filler
+  end
+  lines[#lines + 1] = veyra.guid .. '\t0\n'
+  H.write_file(s:path('narration_monitor_ledger.txt'), table.concat(lines))
+  narrator.rec_mon, veyra.rec_mon = 1, 1
+  s:tick()
+  H.eq(monitors(s), { 0, 1, 0 }, 'the first row is read, the one past the bound is not')
+end)
+
+H.test('a ghost is tried again in a second project that was never saved and holds as many tracks', function()
+  local s, _, veyra = new_session()
+  s.fake.project_path = ''
+  local front = { pointer = {} }
+  reaper.EnumProjects = function(index)
+    if index == -1 then
+      return front.pointer, ''
+    end
+    return nil, ''
+  end
+  local tab_a, pointer_a = s.fake.tracks, front.pointer
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s.fake.tracks = {}
+  s.fake:add_track('Other 1')
+  s.fake:add_track('Other 2')
+  s.fake:add_track('Other 3')
+  local tab_b = s.fake.tracks
+  front.pointer = {}
+  s:send('monitor_restore', 'm1')
+  s:tick()
+  H.eq(veyra.rec_mon, 1, 'tab B is in front: the lane of tab A waits as a ghost, tried once')
+  H.truthy(ledger(s), 'the row stays on the ledger')
+  s.fake.tracks, front.pointer = tab_a, pointer_a
+  H.eq(#tab_a, #tab_b, 'both tabs hold the same number of tracks')
+  s:tick()
+  H.eq(veyra.rec_mon, 0, 'tab A is in front again and the ghost is tried again')
+  H.eq(ledger(s), nil)
+end)
+
+local function ghost_of(s, veyra)
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:send('monitor_restore', 'm1')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  s:events()
+end
+
+H.test('a lane that is a ghost and is armed with monitor again becomes the live row, and the next tick does not switch it off', function()
+  for _, reads in ipairs({ 1, 0 }) do
+    local s, _, veyra = new_session()
+    ghost_of(s, veyra)
+    veyra.rec_mon = reads
+    s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+    H.eq(monitors(s), { 0, 1, 0 })
+    s:tick()
+    H.eq(monitors(s), { 0, 1, 0 }, 'the tick finds no ghost to put back (the lane read ' .. reads .. ')')
+    H.eq(ledger(s), row(s, veyra), 'one row, not two')
+    s:send('monitor_restore', 'm2')
+    H.eq(monitors(s), { 0, 0, 0 })
+    H.eq(ledger(s), nil)
+  end
+end)
+
+H.test('a ledger that stays unwritable is not opened on every tick, and is written once it can be', function()
+  local s, _, veyra = new_session()
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  os.remove(s:path('narration_monitor_ledger.txt'))
+  host.makedirs(s:path('narration_monitor_ledger.txt'))
+  local opened, real_open = 0, io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find('narration_monitor_ledger', 1, true) and mode == 'w' then
+      opened = opened + 1
+    end
+    return real_open(path, mode, ...)
+  end
+  local ok, err = pcall(function()
+    s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+    H.truthy(opened <= 2, 'the command that changes rows tries, and its own tick once more')
+    for _ = 1, 300 do
+      s:tick()
+    end
+  end)
+  io.open = real_open
+  assert(ok, err)
+  H.truthy(opened >= 2 and opened <= 12, 'tried again a few times, not on every tick: ' .. opened)
+  os.remove(s:path('narration_monitor_ledger.txt'))
+  for _ = 1, 260 do
+    s:tick()
+  end
+  H.eq(ledger(s), row(s, veyra), 'written once the folder let it')
+end)
+
+H.test('arm_lane refuses a third argument it does not know and changes nothing', function()
+  local s, narrator, veyra = new_session()
+  narrator.armed = true
+  s:send('arm_lane', 'a1', veyra.guid, 'loud')
+  H.eq(s:events(), { { 'ERROR', 'a1', 'Unsupported arm_lane argument.' } })
+  H.eq(narrator.armed, true)
+  H.eq(veyra.armed or false, false)
+  H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('arm_lane with monitor answers an error, not the five fields, when the bridge has no monitoring', function()
+  local bare = H.session({
+    project_path = H.join(host.tmpdir(), 'Book.rpp'),
+    setup = function(registry)
+      registry.monitor_lane = nil
+    end,
+  })
+  local lane = bare.fake:add_track('Veyra')
+  bare:send('arm_lane', 'a1', lane.guid, 'monitor')
+  H.eq(bare:events(), { { 'ERROR', 'a1', 'This bridge cannot monitor a lane.' } })
+  H.eq(lane.armed or false, false)
+  bare:send('arm_lane', 'a2', lane.guid)
+  H.eq(bare:events(), { { 'ARMED', 'a2', lane.guid, '0', '1' } })
+end)
+
+H.test('a leftover row with GUID letters in lower case is read as the track it names', function()
+  local s, narrator = new_session()
+  narrator.guid = '{ABCDEF01-ABCD-4BCD-8BCD-ABCDEF012345}'
+  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid:lower() .. '\t0\n')
+  narrator.rec_mon = 1
+  s:tick()
+  H.eq(monitors(s), { 0, 0, 0 })
+end)

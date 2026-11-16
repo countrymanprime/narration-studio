@@ -424,6 +424,15 @@ describe('putting the monitoring back on leaving the Booth (#3428)', () => {
     expect(say).not.toHaveBeenCalled();
   });
 
+  it("says the host's sentence when the DAW cannot be reached on leaving, so the narrator knows the monitoring may be on", async () => {
+    const sentence =
+      'REAPER could not be reached, so the input monitoring the Booth turned on may still be on. It is put back when REAPER next starts its bridge.';
+    const unreachable = vi.fn(async () => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence }));
+    const say = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: unreachable }) }).unmount();
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith(sentence));
+  });
+
   it('says a refusal and a failed call, since the monitoring may still be on', async () => {
     const refused = vi.fn(async () => ({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER did not answer within 3 seconds.' }));
     const say = vi.fn();
