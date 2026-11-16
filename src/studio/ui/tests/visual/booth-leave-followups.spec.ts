@@ -207,9 +207,7 @@ test('a DAW that went quiet before Escape still asks', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(question(page)).toBeVisible();
   expect(await onBooth(page)).toBe(true);
-  await question(page)
-    .getByRole('button', { name: /Keep recording/ })
-    .click();
+  await question(page).getByRole('button', { name: /Stay/ }).click();
   await expect(question(page)).toHaveCount(0);
   expect(await onBooth(page)).toBe(true);
 });
@@ -242,7 +240,7 @@ test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks 
 });
 
 // QA B-D: the read that confirms an end hangs. "Stop and leave" must not wait for it for ever: after its limit the stop is tried, and the refusal question asks.
-test('a hung capabilities read after the take ended: Stop and leave ends in the refusal question, and Keep recording works', async ({ page }) => {
+test('a hung capabilities read after the take ended: Stop and leave ends in the refusal question, and Stay works', async ({ page }) => {
   await page.addInitScript((live) => {
     const w = window as unknown as { __hangReads: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
     w.__hangReads = false;
@@ -262,7 +260,7 @@ test('a hung capabilities read after the take ended: Stop and leave ends in the 
   await question(page).getByRole('button', { name: /^Stop/ }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
   await expect(refused).toBeVisible({ timeout: 25_000 });
-  await refused.getByRole('button', { name: /Keep recording/ }).click();
+  await refused.getByRole('button', { name: /Stay/ }).click();
   await expect(refused).toHaveCount(0);
   expect(await onBooth(page)).toBe(true);
 });
@@ -376,4 +374,38 @@ test('Enter held on the jump menu row from before the question opens: its repeat
   await page.keyboard.press('Enter');
   await expect(question(page)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
+});
+
+// #3528: the question the quiet DAW raises is no longer than the running take's in a 320 px window, so the dialog does not grow into the toast that says the DAW stopped answering:
+// at 320 x 300 nothing covers a button of the question, at its corners or centre.
+test.describe('at 320 x 300', () => {
+  test.use({ viewport: { width: 320, height: 300 } });
+  test('the question after the DAW went quiet is not covered by the toast, and says only what is known', async ({ page }) => {
+    await page.addInitScript(NEVER_STOPS);
+    await recording(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+    await page.waitForTimeout(1500);
+    await page.keyboard.press('Escape');
+    await expect(question(page)).toBeVisible();
+    await expect(question(page)).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
+    for (const name of ['Stay', 'Stop and leave']) {
+      const button = question(page).getByRole('button', { name });
+      await expect(button).toBeVisible();
+      const covered = await button.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        const points = [
+          [box.left + 5, box.top + 5],
+          [box.right - 5, box.top + 5],
+          [box.left + 5, box.bottom - 4],
+          [box.right - 5, box.bottom - 4],
+          [box.left + box.width / 2, box.top + box.height / 2],
+        ] as const;
+        return points.filter(([x, y]) => {
+          const hit = document.elementFromPoint(x, y);
+          return !hit || !(el === hit || el.contains(hit));
+        }).length;
+      });
+      expect(covered, `${name} is covered at ${covered} of 5 points`).toBe(0);
+    }
+  });
 });

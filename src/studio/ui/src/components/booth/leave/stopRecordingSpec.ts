@@ -36,12 +36,13 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     };
   }
   if (endUnconfirmed) {
-    // The take ended in the Booth's eyes, but the DAW stopped answering before it said so: the question says only what is known (#3528).
+    // The take ended in the Booth's eyes, but the DAW stopped answering before it said so: the question says only what is known (#3528). The body is no longer than the running
+    // question's in a 320 px window, so the dialog does not grow into the toast that says the DAW stopped answering; "Stay" does not claim the take is recording.
     return {
       title: 'Stop recording?',
-      body: `${subject} stopped answering, so it may still be recording. Leaving the Booth tries to stop it.`,
+      body: `${subject} may still be recording. Leaving tries to stop the take.`,
       confirmLabel: 'Stop and leave',
-      cancelLabel: KEEP_RECORDING,
+      cancelLabel: 'Stay',
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
     };
