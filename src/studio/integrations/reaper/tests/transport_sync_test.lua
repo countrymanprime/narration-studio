@@ -708,6 +708,26 @@ H.test('a change the narrator makes during the play is kept when it ends', funct
   H.eq(t.c1.solo, 0)
 end)
 
+H.test('a selection the narrator changes during the play is kept when it ends', function()
+  local s, t = isolated_session()
+  t.c1.selected = true -- the played track was selected before the play
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  t.c1.selected = false -- the narrator deselected it meanwhile
+  t.c2.selected = true -- and selected another
+  s:send('stop_play', 'r2')
+  H.eq(t.c1.selected, false, 'not selected again')
+  H.eq(t.c2.selected, true)
+end)
+
+H.test('a mute the narrator sets on the played track during the play is kept when it ends', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(t.c1.muted, false)
+  t.c1.muted = true -- the narrator muted it meanwhile
+  s:send('stop_play', 'r2')
+  H.eq(t.c1.muted, true)
+end)
+
 H.test('play_from with a track isolates it until REAPER stops', function()
   local s, t = isolated_session()
   t.c2.selected = true
@@ -718,6 +738,55 @@ H.test('play_from with a track isolates it until REAPER stops', function()
   s.fake.play_state = 0
   s:tick()
   H.eq(states(s), before)
+end)
+
+-- #3580: REAPER 7.82 raises GetProjectStateChangeCount by one per SetTrackSelected call (the fake counts it) and not for an I_SELECTED, I_SOLO or B_MUTE
+-- write; the host turns a moved count into daw_project_edited and Editing re-reads its word table. A play and its restore must leave it where it was.
+local function counted_session()
+  local s, t = isolated_session()
+  t.c2.selected, t.c2.solo, t.c1.muted = true, 1, true
+  return s, t, s.fake.change_count, states(s)
+end
+
+H.test('play_from with a track, and its restore when the narrator stops REAPER, leave the project change count alone', function()
+  local s, t, count, before = counted_session()
+  s:send('play_from', 'r1', '10', t.c1.guid)
+  H.eq(t.c1.solo, 2)
+  H.eq(s.fake.change_count, count, 'the isolation does not count as an edit')
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(states(s), before)
+  H.eq(s.fake.change_count, count, 'the restore does not count as an edit')
+end)
+
+H.test('play_range with a track, and its restore when the stretch ends, leave the project change count alone', function()
+  local s, t, count, before = counted_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq({ t.c1.solo, t.c1.selected }, { 2, true }, 'the isolation took place')
+  H.eq(s.fake.change_count, count)
+  s.fake.play_position = 10.5
+  s:tick()
+  s.fake.play_position = 12.1
+  s:tick()
+  s:tick()
+  H.eq(states(s), before)
+  H.eq(s.fake.change_count, count)
+end)
+
+H.test('the restore after stop_play leaves the project change count alone', function()
+  local s, t, count, before = counted_session()
+  s:send('play_from', 'r1', '10', t.c1.guid)
+  s:send('stop_play', 'r2')
+  H.eq(states(s), before)
+  H.eq(s.fake.change_count, count)
+end)
+
+H.test('a second isolated play replacing the first leaves the project change count alone', function()
+  local s, t, count = counted_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  s:send('play_range', 'r2', '10', '12', t.c2.guid)
+  H.eq({ t.c2.solo, t.c2.selected, t.c1.solo or 0 }, { 2, true, 0 }, 'the second isolation took place')
+  H.eq(s.fake.change_count, count)
 end)
 
 H.test('a state left by a REAPER that closed mid-play is put right by the next bridge', function()
@@ -732,8 +801,10 @@ H.test('a state left by a REAPER that closed mid-play is put right by the next b
   again.fake.resource_path = s.fake.resource_path
   u.c1.solo, u.c1.selected, u.c2.selected, u.c2.solo = 2, true, false, 0
   H.eq(states(again), after)
+  local count = again.fake.change_count
   again:tick()
   H.eq(states(again), before, "the narrator's selection and solos are back")
+  H.eq(again.fake.change_count, count, 'putting a leftover isolation right does not count as an edit')
   H.eq(file ~= nil and #file > 0, true)
 end)
 

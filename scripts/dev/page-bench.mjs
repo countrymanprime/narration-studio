@@ -122,7 +122,7 @@ try {
           continue;
         }
         const pick = (key) => median(runs.map((x) => x[key]));
-        const row = { hours, page: name, mode, first: pick('first'), usable: pick('usable'), calls: pick('calls'), kb: pick('kb'), heap: pick('heap'), nodes: pick('nodes'), slow: runs[Math.floor(runs.length / 2)].slow, perCall: runs[0].list.map(({ name: n, ms, bytes }) => ({ n, ms: Math.round(ms), kb: Math.round(bytes / 1024) })) };
+        const row = { hours, page: name, mode, first: pick('first'), usable: pick('usable'), calls: pick('calls'), kb: pick('kb'), heap: pick('heap'), nodes: pick('nodes'), slow: runs[Math.floor(runs.length / 2)].slow, perCall: runs[0].list.map(({ name: n, args, start, ms, bytes }) => ({ n, args, start: Math.round(start), ms: Math.round(ms), kb: Math.round(bytes / 1024) })) };
         rows.push(row);
         console.log(`${hours}h ${name} ${mode}: first ${row.first.toFixed(0)} usable ${row.usable.toFixed(0)} calls ${row.calls} ${row.kb.toFixed(0)}KB heap ${row.heap.toFixed(0)}MB nodes ${row.nodes} slowest ${row.slow}`);
       }

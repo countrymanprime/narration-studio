@@ -400,11 +400,19 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 		return EvaluatorResult{State: StateNever}, BuildBasis(req.ProjectFile, recordTime, time.Time{}), nil
 	}
 
-	track, ok := findTrack(req.Project, link.TrackGUID)
+	// The chapter's audio is every member of its track: the track itself, or for a folder of voices the tracks inside it less a track marked
+	// as not a voice (tracks.Project.ChapterMembers). The plan a run was made from fingerprints the same set, in the same order, so the read
+	// and the write agree (#3593).
+	members, ok := req.Project.ChapterMembers(link.TrackGUID)
 	if !ok {
 		result := EvaluatorResult{State: StateNever, Reasons: []EvaluatorReason{ReasonMappedTrackMissing}}
 		return result, BuildBasis(req.ProjectFile, recordTime, time.Time{}), nil
 	}
+	var items []tracks.Item
+	for _, member := range members {
+		items = append(items, member.Items...)
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Position < items[j].Position })
 
 	identify := func(sourceFile string) (SourceIdentity, error) {
 		if sourceFile == "" {
@@ -415,7 +423,7 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 		}
 		return Identify(sourceFile, req.ProjectFolder)
 	}
-	current, newestSource := ComputeChapterFingerprint(track.Items, identify)
+	current, newestSource := ComputeChapterFingerprint(items, identify)
 	basis := BuildBasis(req.ProjectFile, recordTime, newestSource)
 
 	record, found, err := latestCompleteRecord(ledger, req.AnalyzerID, req.ChapterID)
@@ -442,16 +450,6 @@ func singleMappingFor(links []TrackMapping, chapterID string) (TrackMapping, boo
 		}
 	}
 	return match, count == 1
-}
-
-// findTrack returns project's track with the given GUID.
-func findTrack(project tracks.Project, trackGUID string) (tracks.Track, bool) {
-	for _, track := range project.Tracks {
-		if track.GUID == trackGUID {
-			return track, true
-		}
-	}
-	return tracks.Track{}, false
 }
 
 // latestCompleteRecord returns the newest record for (analyzerID, chapterID)

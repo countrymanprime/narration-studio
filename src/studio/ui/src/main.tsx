@@ -12,6 +12,7 @@ import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
 import { withCallLog } from './api/withCallLog';
+import { withCoalescedReads } from './api/withCoalescedReads';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
@@ -734,9 +735,10 @@ if (hostApi === wailsClient) {
   enableUiLog();
   installTracing(wailsClient);
 }
+// Identical reads that are in flight together are one host call (#3560). The call log (mock builds) sits under it, so it counts the calls that reach the host.
+const coalesced = withCoalescedReads(mockCallLog ? withCallLog(hostApi) : hostApi);
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
-const wrapped = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
-const api = mockCallLog ? withCallLog(wrapped) : wrapped;
+const api = hostApi === wailsClient ? withTracing(coalesced) : (appExtension().wrapApi?.(coalesced) ?? coalesced);
 appExtension().start?.(api);
 
 createRoot(document.getElementById('root')!).render(

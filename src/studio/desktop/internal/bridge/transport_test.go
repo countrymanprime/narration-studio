@@ -165,6 +165,42 @@ func TestRecordStartChapterEndSendsTheRuleAndTheFolder(t *testing.T) {
 	}
 }
 
+func TestRecordStartChapterEndSendsTheTracksThatAreNotAVoiceAfterTheFolderAndNothingWithoutThem(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var sent [][]string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = append(sent, command)
+		return [][]string{{"RECORD_STARTED", run(command), testTrack, "9.000000"}}
+	})
+	for _, opts := range []RecordOptions{
+		{Start: ChapterEnd, Folder: "{F}", NotVoice: []string{"{B1}", "{B2}"}},
+		{Start: ChapterEnd, Folder: "{F}"},
+		{Start: AtEnd, Folder: "{F}", NotVoice: []string{"{B1}"}},
+	} {
+		if _, err := actions.RecordStart(context.Background(), testTrack, opts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(sent) != 3 {
+		t.Fatalf("sent %d commands, want 3", len(sent))
+	}
+	last := func(command []string, n int) []string { return command[len(command)-n:] }
+	if got := last(sent[0], 3); got[0] != "chapter_end" || got[1] != "{F}" || got[2] != "{B1},{B2}" {
+		t.Errorf("with tracks that are not a voice: %v, want the rule, the folder, then one comma-separated list", got)
+	}
+	if got := last(sent[1], 2); got[0] != "chapter_end" || got[1] != "{F}" {
+		t.Errorf("without them: %v, want the rule and the folder as the last two arguments, as an older host sent", got)
+	}
+	if last(sent[2], 1)[0] != "end" {
+		t.Errorf("a rule other than chapter_end sends %v, want no folder and no list", last(sent[2], 2))
+	}
+}
+
 func TestRecordStartRefusesAnAnswerForAnotherTrack(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	startFakeReaper(t, client, dir, func(command []string) [][]string {
@@ -308,5 +344,14 @@ func TestSwitchVoiceMovesTheTakeToAnotherVoiceAndTellsTheRefusalsApart(t *testin
 	mu.Unlock()
 	if _, err := actions.SwitchVoice(context.Background(), testTrack); err == nil {
 		t.Fatal("an answer for another track must be an error")
+	}
+}
+
+func TestRecordStartLeavesOutAMarkedGUIDThatHoldsACommaSoItIsNeverReadAsTwo(t *testing.T) {
+	if got := notVoiceList([]string{"{B1}", "z,{B2}", "", "{B3}"}); got != "{B1},{B3}" {
+		t.Fatalf("list %q, want only the two well-formed entries", got)
+	}
+	if got := notVoiceList([]string{"a,b"}); got != "" {
+		t.Fatalf("list %q, want nothing so no argument is sent", got)
 	}
 }

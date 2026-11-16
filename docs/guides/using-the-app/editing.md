@@ -37,7 +37,7 @@ While the chapters and the chapter's lines are being read, the header stays and 
 
 The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
 any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the chapter you were last on in this project, or the first
-chapter with text when none is remembered. A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
+chapter with text when none is remembered (with or without a DAW connected, and whatever **DAW follows your chapter** says). A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
