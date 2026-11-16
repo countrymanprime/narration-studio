@@ -303,6 +303,21 @@ describe('Settings: row layout', () => {
     expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
   });
 
+  it('an invalid draft clears the Saved mark, whatever the motion preference (#2989)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    fireEvent.change(box, { target: { value: '999999' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
+    // jsdom runs no animation, so a Saved mark that only a fade hides is still on screen here, as it is under reduced motion.
+    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+  });
+
   it('says so under Parallel processes when the host cannot work the count out', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'coverageWorkerPlan').mockRejectedValue(new Error('the settings could not be read'));
