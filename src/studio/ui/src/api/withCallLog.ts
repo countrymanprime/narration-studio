@@ -3,7 +3,7 @@ import type { NarrationApi } from '../types';
 declare global {
   interface Window {
     __hostPending?: number;
-    __hostCalls?: { name: string; start: number; ms: number; bytes: number }[];
+    __hostCalls?: { name: string; args: string; start: number; ms: number; bytes: number }[];
   }
 }
 
@@ -28,7 +28,7 @@ export function withCallLog(api: NarrationApi): NarrationApi {
           .then((answer) => {
             // Answers are JSON-shaped wire payloads, so this does not throw; an `undefined` answer has no size.
             const bytes = JSON.stringify(answer)?.length ?? 0;
-            log.push({ name: property, start, ms: performance.now() - start, bytes });
+            log.push({ name: property, args: JSON.stringify(args).slice(0, 120), start, ms: performance.now() - start, bytes });
             return answer;
           });
       };
