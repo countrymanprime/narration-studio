@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
@@ -58,27 +58,6 @@ export function useFollowDawOnOpen({
       if (timer !== undefined) clearTimeout(timer);
     };
   }, [ready, place]);
-}
-
-/**
- * Booth.follow_chapter_in_daw (Settings, on by default): whether going to a chapter in the Booth moves the DAW there too. `undefined` until
- * the setting is read, so nothing moves before it is known; a setting that cannot be read is the default, on. This is the one switch for
- * the Booth moving the DAW; a further DAW-follows-the-Booth behaviour reads it here too.
- */
-export function useFollowChapterInDaw(): boolean | undefined {
-  const system = usePort('system');
-  const [follow, setFollow] = useState<boolean | undefined>(undefined);
-  useEffect(() => {
-    let live = true;
-    system.settingsForScope('global').then(
-      (fields) => live && setFollow(fields.Booth?.find((field) => 'follow_chapter_in_daw' === field.key)?.effectiveValue !== 'false'),
-      () => live && setFollow(true),
-    );
-    return () => {
-      live = false;
-    };
-  }, [system]);
-  return follow;
 }
 
 /**

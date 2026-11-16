@@ -15,15 +15,16 @@ import (
 // placeTimeout bounds one read of the narrator's place or one move to a chapter: both are a single quick request to the DAW.
 const placeTimeout = 3 * time.Second
 
-// The two ways DawGoToChapter puts the cursor on a chapter's track: at the end of what is recorded, or at a time in project seconds.
+// The ways DawGoToChapter puts the cursor on a chapter's track: at the end or the start of what is recorded, or at a time in project seconds.
 const (
-	goToEnd = "end"
-	goToAt  = "at"
+	goToEnd   = "end"
+	goToAt    = "at"
+	goToStart = "start"
 )
 
 const (
 	placeBadTimeSentence  = "The place to go to is not a usable number of seconds."
-	placeUnknownSentence  = "The place to go to must be the end of the chapter's track or a time."
+	placeUnknownSentence  = "The place to go to must be the start or the end of the chapter's track, or a time."
 	placeNotReadSentence  = "%s could not say where you are: %s."
 	placeNotMovedSentence = "%s could not move to the chapter: %s."
 	placeNoAnswerSentence = "%s did not answer within %d seconds."
@@ -117,6 +118,8 @@ func dawGoToChapterIn(ctx context.Context, svc hostServices, name string, suppor
 	switch where {
 	case goToEnd:
 		target.End = true
+	case goToStart:
+		target.Start = true
 	case goToAt:
 		if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0 {
 			return dawport.Refused(placeBadTimeSentence), nil

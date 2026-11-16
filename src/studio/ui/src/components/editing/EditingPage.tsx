@@ -26,6 +26,7 @@ import { DAW_CONNECT_GRACE_MS } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
 import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';
+import { useMirrorChapterInDaw } from '../../hooks/useMirrorChapterInDaw';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -278,6 +279,8 @@ function EditingChapter({
   checkChapter,
   onOpenStoryBible,
 }: ChapterProps) {
+  // The DAW goes to this chapter's tracks too (Booth.follow_chapter_in_daw), once per chapter: the component is keyed by it.
+  useMirrorChapterInDaw(chapterId);
   const { source, setCuts, setEffects, reloadAccepted, reread, retry } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {

@@ -14,7 +14,8 @@
 -- never guesses) and the edit cursor in project seconds. It changes nothing. go_to selects a track and puts the edit cursor at
 -- its end ('end'; for a folder, the latest end of its own items and of every track inside it) or at a time ('at'),
 -- answering PLACE_SET|run|guid|cursor, or TRACK_STALE for a track that is gone. Like select_track it opens no undo block and
--- never seeks or starts playback. A folder track is selected together with every track inside it (a chapter and its voices, #3427),
+-- never seeks or starts playback. 'start' is the project time of the earliest item on the track and on every track inside a folder (0
+-- when none has an item): the place the Editing and Pickups pages show a chapter at. A folder track is selected together with every track inside it (a chapter and its voices, #3427),
 -- and read_place names that folder when exactly it and all of its descendants are selected, so what go_to selected reads back as
 -- the one place it moved to. Any other selection of several tracks is named by none.
 
@@ -89,6 +90,17 @@ local function track_end(track)
   return last
 end
 
+-- The start of the earliest item on the track, or nil when it has none.
+local function track_start(track)
+  local first
+  for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+    local item = reaper.GetTrackMediaItem(track, index)
+    local at = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+    first = first and math.min(first, at) or at
+  end
+  return first
+end
+
 local function read_place(session_dir, run_id)
   local selected = reaper.CountSelectedTracks(0)
   local guid = ''
@@ -122,7 +134,7 @@ local function read_place(session_dir, run_id)
 end
 
 local function go_to(session_dir, run_id, guid_text, where, seconds_text)
-  if where ~= 'end' and where ~= 'at' then
+  if where ~= 'end' and where ~= 'at' and where ~= 'start' then
     event(session_dir, 'ERROR', run_id, 'Unknown place: ' .. where .. '.')
     return
   end
@@ -145,6 +157,14 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
     for _, member in ipairs(members) do
       target = math.max(target, track_end(member))
     end
+  end
+  if where == 'start' then
+    target = track_start(track)
+    for _, member in ipairs(members) do
+      local at = track_start(member)
+      target = at and (target and math.min(target, at) or at) or target
+    end
+    target = target or 0
   end
   reaper.SetOnlyTrackSelected(track)
   for _, member in ipairs(members) do

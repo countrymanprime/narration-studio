@@ -102,6 +102,19 @@ func TestGoToSelectsTheTrackAndPutsTheCursorAtItsEndOrATime(t *testing.T) {
 	}
 }
 
+func TestGoToStartPutsTheCursorWhereTheTracksAudioBegins(t *testing.T) {
+	session, server := placesProject(t)
+	server.With(func(p *abt.Project) { p.AddWaveTrack("Late", 30, 100) })
+	if err := session.GoTo(t.Context(), "audacity:Late", dawport.PlaceTarget{Start: true}); err != nil {
+		t.Fatal(err)
+	}
+	server.With(func(p *abt.Project) {
+		if p.SelStart != 30 || p.SelEnd != 30 {
+			t.Errorf("cursor %v-%v, want 30", p.SelStart, p.SelEnd)
+		}
+	})
+}
+
 func TestChapterTrackStateReadsTheTrackAndWhatTheAppStarted(t *testing.T) {
 	session, server := placesProject(t)
 	ctx := t.Context()

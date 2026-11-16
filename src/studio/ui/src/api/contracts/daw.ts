@@ -581,8 +581,9 @@ export type DawPunchPreroll = { ok: boolean; onRecord: boolean; measures: number
  * tracks or a track no chapter is linked to is selected. `selected` is how many tracks are selected and `cursor` the DAW's cursor in project seconds. */
 export type DawPlace = { ok: boolean; message: string; chapterId: string; selected: number; cursor: number };
 
-/** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored) or `at` (`seconds` into the project). */
-export type DawGoToWhere = 'end' | 'at';
+/** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored), `start` (where the
+ * chapter's audio begins; `seconds` is ignored) or `at` (`seconds` into the project). */
+export type DawGoToWhere = 'end' | 'start' | 'at';
 
 /** DawPlace and DawGoToChapter (src/studio/desktop/bindings_daw_place.go): read which chapter's track the narrator is on in the DAW and where their cursor is, and
  * take the DAW there. The page names a chapter, never a track: the host holds the chapter-track links, and the same calls serve any DAW with the
