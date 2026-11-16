@@ -223,7 +223,7 @@ export function ImportDialog({ onClose, onChanged, exitGuard }: ImportDialogProp
         setFileProblem(read ? 'That file has only blank space in it.' : 'That file is empty.');
         return;
       }
-      if (textNow.current.trim() && textNow.current !== lastRead.current && !(await confirmDiscard('the text you pasted'))) return;
+      if (textNow.current.trim() && textNow.current !== lastRead.current && !(await confirmDiscard('the text you entered'))) return;
       if (mine !== reading.current || !alive.current) return;
       lastRead.current = read;
       setText(read);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { UnsavedDraftsProvider } from '../../../../../studio/drafts/unsavedDrafts';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../../../studio/drafts/unsavedDrafts';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
 import { MessageEditor } from './MessageEditor';
 
@@ -37,5 +37,23 @@ describe('MessageEditor', () => {
     fireEvent.change(screen.getByLabelText('Edit message'), { target: { value: '  Changed  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save the note' }));
     expect(onSave).toHaveBeenCalledWith('Changed');
+  });
+
+  it('an edit held at a leave is named a message, not a note (#3495 F4)', () => {
+    let held: () => readonly { label: string }[] = () => [];
+    const Probe = () => {
+      held = useUnsavedDrafts().heldNow;
+      return null;
+    };
+    render(
+      <TooltipProvider>
+        <UnsavedDraftsProvider>
+          <MessageEditor initial="Original message" onSave={vi.fn()} onCancel={vi.fn()} />
+          <Probe />
+        </UnsavedDraftsProvider>
+      </TooltipProvider>,
+    );
+    fireEvent.change(screen.getByLabelText('Edit message'), { target: { value: 'Changed' } });
+    expect(held().map((draft) => draft.label)).toEqual(['your edit of a message']);
   });
 });

@@ -106,11 +106,6 @@ func (g *closeGate) pageDidNotAnswer(generation int) {
 // asked is the page saying it received the request: from here the host waits for the narrator (until a second close asks again and is not acknowledged).
 func (g *closeGate) asked() {
 	g.mu.Lock()
-	if !g.asking {
-		// A receipt with no question open (it came after its answer, or after the host closed) has nothing to acknowledge.
-		g.mu.Unlock()
-		return
-	}
 	if g.unanswered > 0 {
 		g.unanswered--
 	}

@@ -6,7 +6,7 @@
 # heading (the research mock draws none over it): its name is an `aria-label`.
 # The Production page is the Production group's item at `/`, in place of Home.
 - complementary:
-  - navigation:
+  - navigation "Primary navigation":
     - /children: equal
     - group "Production":
       - /children: equal

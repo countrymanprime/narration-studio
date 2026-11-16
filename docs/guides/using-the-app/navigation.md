@@ -11,6 +11,8 @@ the notes still open (the figure the Proof page draws as Open; pickups have thei
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
+A screen reader lists one navigation landmark, **Primary navigation**, at every window width (the sidebar, the icon layout and the drawer); the theme item and **Settings** sit just below it in the same panel, outside that list.
+
 The page you are on is marked with an accent-coloured bar down the left edge of its item, on a slightly darker background; in the icon layout the bar still shows beside the icon.
 
 In the icon layout the rail shows only the icons, centred, with a thin line where each group's heading would be.

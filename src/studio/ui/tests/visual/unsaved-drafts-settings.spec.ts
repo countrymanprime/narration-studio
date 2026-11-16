@@ -21,7 +21,7 @@ async function pasteKey(page: Page): Promise<void> {
 test('Switch project over a pasted key asks, names the key, and Cancel keeps it', async ({ page }) => {
   await pasteKey(page);
   await switchProject(page);
-  await expect(unsaved(page)).toContainText('Save or discard the key you pasted before leaving?');
+  await expect(unsaved(page)).toContainText('Save or discard the key you entered before leaving?');
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
   await expect(picker(page)).toHaveCount(0);

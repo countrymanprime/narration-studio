@@ -741,7 +741,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const proof = within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: /^Proof/ });
+    const proof = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: /^Proof/ });
     expect(proof.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(proof);
     expect((await screen.findByRole('dialog', { name: 'Proof is unavailable' })).textContent).toContain('Import a manuscript to unlock this page.');
@@ -1746,7 +1746,7 @@ describe('App Back and Forward', () => {
       },
       'a pasted Merriam-Webster key': {
         hold: async () => void (await openKeyBox()),
-        question: async () => screen.findByText('Save or discard the key you pasted before leaving?'),
+        question: async () => screen.findByText('Save or discard the key you entered before leaving?'),
         keep: () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' })),
         stillHeld: () => expect(pastedKey()).toBe('pasted-key-123'),
         page: '/settings',
@@ -1888,7 +1888,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
       fireEvent.change(await screen.findByRole('textbox', { name: 'Note (optional)' }), { target: { value: 'anchor take' } });
       fireEvent.click(screen.getAllByRole('button', { name: 'Production' })[0]!);
-      expect(await screen.findByText('Your approval note still needs you to press Approve. Discard it before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Your approval note still needs you to press Approve as reference. Discard it before leaving?')).toBeTruthy();
       const question = screen.getByRole('alertdialog');
       expect(
         within(question)
@@ -1962,7 +1962,7 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       headerSwitch();
       const question = await screen.findByRole('alertdialog', { name: 'Unsaved changes' });
-      expect(within(question).getByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(within(question).getByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(within(question).getByRole('button', { name: 'Save & continue' }));
       await screen.findByRole('heading', { name: 'Choose your project' });
       expect(pronunciationOnlineKeySet).toHaveBeenCalledWith('pasted-key-123');
@@ -1973,12 +1973,12 @@ describe('App Back and Forward', () => {
       await openKeyBox({ pronunciationOnlineKeySet });
       const categories = screen.getByRole('navigation', { name: 'Settings categories' });
       fireEvent.click(within(categories).getByRole('button', { name: /^Appearance & keys/ }));
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
       fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'k' } });
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(pastedKey()).toBe('pasted-key-123');
@@ -1988,7 +1988,7 @@ describe('App Back and Forward', () => {
       fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
       const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
       fireEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
       await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
       expect(pronunciationOnlineKeySet).not.toHaveBeenCalled();
@@ -2178,7 +2178,7 @@ describe('App Back and Forward', () => {
       expect(screen.queryByRole('alertdialog')).toBeNull();
       expect(search.value).toBe('にほ');
       fireEvent.compositionEnd(search);
-      expect(await screen.findByText('Save or discard the key you pasted before leaving?')).toBeTruthy();
+      expect(await screen.findByText('Save or discard the key you entered before leaving?')).toBeTruthy();
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
       expect(search.value).toBe('');
@@ -2884,7 +2884,7 @@ describe('App shell mounts', () => {
     cleanup();
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const rail = screen.getByRole('complementary', { name: 'Primary navigation' });
+    const rail = screen.getByRole('navigation', { name: 'Primary navigation' });
     // The Wails runtime decides the browser menu itself; the host's part is to open none outside <main>'s page area.
     fireEvent.contextMenu(within(rail).getByRole('button', { name: 'Script' }));
     // The shell's header, the first in the document; the Production title block is a <header> of its own further down.
@@ -3290,7 +3290,7 @@ describe('App page change signal', () => {
   it('ctrl-f-searches-the-page: on Script it opens the menu scoped to the page, and a chapter is listed once, under On this page', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { level: 1, name: 'Script' });
     await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'f', code: 'KeyF', ctrlKey: true });
@@ -3309,7 +3309,7 @@ describe('App page change signal', () => {
   it('ctrl-k-lists-the-page-first: the whole menu opens with On this page before Commands', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }, { timeout: 4000 });
     fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
     await screen.findByRole('combobox', { name: 'Jump menu' });
@@ -3321,7 +3321,7 @@ describe('App page change signal', () => {
   it('leaves focus in the page after the jump menu picks one', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const rail = await within(screen.getByRole('complementary', { name: 'Primary navigation' })).findByRole('button', { name: 'Production' });
+    const rail = await within(screen.getByRole('navigation', { name: 'Primary navigation' })).findByRole('button', { name: 'Production' });
     rail.focus();
     expect(document.activeElement).toBe(rail);
     fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));

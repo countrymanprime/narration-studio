@@ -35,9 +35,9 @@ export function MessageEditor({
   // An edit not yet saved is held text: leaving the page asks first (#3400). An edit put back as it was holds nothing.
   useUnsavedDraft('script-note-edit', {
     dirty: !blank && hostTrim(text) !== hostTrim(initial),
-    label: 'your edit of a note',
+    label: 'your edit of a message',
     kind: 'script-note-edit',
-    many: (n) => `${plural(n, 'edit')} of notes`,
+    many: (n) => `${plural(n, 'edit')} of messages`,
     save,
     // Closed here and not through `onCancel`: the page may be leaving, and cancelling would rewrite the address under the move that is about to run.
     discard: () => {

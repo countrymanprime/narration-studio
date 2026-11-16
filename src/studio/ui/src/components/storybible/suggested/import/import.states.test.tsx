@@ -231,12 +231,12 @@ describe('a huge file', () => {
     // Text typed or pasted over it is the narrator's: a file chosen now asks first.
     paste('PASTED BY HAND');
     await choose(new File([VALID], 'third.json'));
-    const asked = await screen.findByRole('alertdialog', { name: 'Discard the text you pasted?' });
+    const asked = await screen.findByRole('alertdialog', { name: 'Discard the text you entered?' });
     await u.click(within(asked).getByRole('button', { name: 'Keep editing' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(textbox().value).toBe('PASTED BY HAND');
     await choose(new File([VALID], 'third.json'));
-    await u.click(within(await screen.findByRole('alertdialog', { name: 'Discard the text you pasted?' })).getByRole('button', { name: 'Discard' }));
+    await u.click(within(await screen.findByRole('alertdialog', { name: 'Discard the text you entered?' })).getByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(textbox().value).toBe(VALID));
   });
 

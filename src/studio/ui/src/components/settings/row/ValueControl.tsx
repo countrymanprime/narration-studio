@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
@@ -34,6 +34,8 @@ export type ValueControlProps = {
   disabled?: boolean;
   /** The narrator settled on a value. An emptied number is `''`. */
   onChange: (value: string) => void;
+  /** A number the narrator settled on is refused (true) or fine (false); the row uses it to drop a "Saved" mark that belongs to an earlier value (#2989). */
+  onDraftProblem?: (refused: boolean) => void;
 };
 
 /** A text or number box that keeps the draft while typing and settles on Enter or when focus leaves, so a half-typed value is never saved. */
@@ -90,10 +92,18 @@ function SettledBox({
 }
 
 /** The control for one value of a plain setting, by the kind the host reports. */
-export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange }: ValueControlProps) {
+export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange, onDraftProblem }: ValueControlProps) {
   const name = row.label + (which ? ` (${which})` : '');
   const [typed, setTyped] = useState<string | undefined>();
   useEffect(() => setTyped(undefined), [value]);
+  // Whether the number now in the box is refused, told to the row while it is so (and when it stops), so a Saved mark from the value before is not drawn beside it (#2989).
+  const refused = field.kind === 'number' && Boolean(field.number) && Boolean(numberProblem(field.number!, (typed ?? value).trim()));
+  const tell = useRef(onDraftProblem);
+  tell.current = onDraftProblem;
+  useEffect(() => {
+    tell.current?.(refused);
+    return () => tell.current?.(false);
+  }, [refused]);
 
   if (field.kind === 'bool') {
     const on = value === 'true';

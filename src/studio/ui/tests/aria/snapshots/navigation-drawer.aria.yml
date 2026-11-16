@@ -9,7 +9,7 @@
 - dialog "Navigation":
   - heading "Navigation" [level=2]
   - button "Close navigation"
-  - navigation:
+  - navigation "Primary navigation":
     - /children: equal
     - group "Production":
       - /children: equal

@@ -216,7 +216,7 @@ export function AppShell({
       <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] pt-1 pr-4 pb-2.5 pl-[1.125rem] min-[860px]:max-[1360px]:pl-4">
         <Brand />
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2 pt-0.5 pb-2">
+      <nav aria-label="Primary navigation" className="flex flex-1 flex-col gap-0.5 px-2 pt-0.5 pb-2">
         {NAV_GROUPS.map((group, index) => (
           <div
             key={group.label}
@@ -289,7 +289,7 @@ export function AppShell({
             is taken out of the flow, so it opens over the page on hover or keyboard focus without moving anything; the labels stay in the
             markup, hidden by size, so every item keeps its name. The icons keep their centred inset when it opens, so the group names take
             the same inset and start where the icons do (XSL-8). */}
-        <aside className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[860px]:flex min-[1360px]:w-54" aria-label="Primary navigation">
+        <aside data-nav-rail className="relative z-[var(--z-nav)] hidden w-16 flex-none min-[860px]:flex min-[1360px]:w-54">
           <div className="icon-rail flex w-16 flex-col overflow-x-hidden overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] max-[1360px]:hover:w-59 max-[1360px]:hover:shadow-[var(--shadow-lg)] max-[1360px]:has-[:focus-visible]:w-59 max-[1360px]:has-[:focus-visible]:shadow-[var(--shadow-lg)] min-[860px]:max-[1360px]:absolute min-[860px]:max-[1360px]:inset-y-0 min-[860px]:max-[1360px]:left-0 min-[1360px]:static min-[1360px]:w-54 motion-ok:transition-[width,box-shadow] motion-ok:duration-(--motion-fast) max-[1360px]:[&_.brand-name]:invisible max-[1360px]:hover:[&_.brand-name]:visible max-[1360px]:has-[:focus-visible]:[&_.brand-name]:visible max-[1360px]:[&_.section-label]:text-transparent max-[1360px]:hover:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:has-[:focus-visible]:[&_.section-label]:text-[var(--text-muted)] max-[1360px]:[&_button]:pl-[0.78125rem] max-[1360px]:[&_button]:text-[0px] max-[1360px]:hover:[&_button]:text-[0.9375rem] max-[1360px]:has-[:focus-visible]:[&_button]:text-[0.9375rem]">
             {navigation}
           </div>
