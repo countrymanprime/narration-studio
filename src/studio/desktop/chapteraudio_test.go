@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -97,5 +99,62 @@ func TestChapterAudioReadsNoMarksFromAFolderWithNone(t *testing.T) {
 	members, _ := chapterAudio(host.config.projectFolder, project).ChapterMembers(voiceFolderTrack)
 	if len(members) != 3 {
 		t.Fatalf("members = %d, want the folder and both children when nothing is marked", len(members))
+	}
+}
+
+// The class guard (#3557): the rule is applied at each caller, so a host call of a chapter-audio read that does not wrap its project in
+// chapterAudio would count a marked bed again, and no behaviour test names it until someone writes one for that caller.
+func TestEveryHostReadOfAChapterSAudioAppliesTheRule(t *testing.T) {
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen int
+	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for number, line := range strings.Split(string(raw), "\n") {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "func ") {
+				continue
+			}
+			if !strings.Contains(line, "chaptermatch.RecordedEnd(") && !strings.Contains(line, "recordedLengthsFor(") {
+				continue
+			}
+			seen++
+			if !strings.Contains(line, "chapterAudio(") && !strings.Contains(line, "chapterAudioFrom(") {
+				t.Errorf("%s:%d reads a chapter's audio without chapterAudio: a track marked as not a voice would count: %s", file, number+1, trimmed)
+			}
+		}
+	}
+	if seen < 5 {
+		t.Fatalf("found %d chapter-audio reads, want at least 5: the guard no longer finds them, update it", seen)
+	}
+}
+
+// The recording check reads the rule through coverage.Config.ChapterAudio; the service test hands it a rule, so this guards the one line
+// that gives the real service its own (a Config literal cannot be read back).
+func TestTheHostGivesTheCoverageServiceTheChapterAudioRule(t *testing.T) {
+	raw, err := os.ReadFile("app.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(raw)
+	start := strings.Index(text, "coverage.New(coverage.Config{")
+	if start < 0 {
+		t.Fatal("app.go no longer builds the coverage service with coverage.New(coverage.Config{: update this test")
+	}
+	end := strings.Index(text[start:], "}, ")
+	if end < 0 {
+		end = len(text) - start
+	}
+	block := text[start : start+min(end+2500, len(text)-start)]
+	if !strings.Contains(block, "ChapterAudio:") || !strings.Contains(block, "chapterAudio(") {
+		t.Fatal("the coverage service is built without ChapterAudio: the recording check would transcribe a bed marked as not a voice")
 	}
 }

@@ -11,7 +11,15 @@ import (
 // chapter row's members and every voice list still see the track. A setup that cannot be read marks nothing.
 func chapterAudio(folder string, project tracks.Project) tracks.Project {
 	setup, err := voicetracks.New(voicetracks.Config{Project: folder}).Get()
-	if err != nil || len(setup.NotVoiceGUIDs) == 0 {
+	if err != nil {
+		return project
+	}
+	return chapterAudioFrom(setup, project)
+}
+
+// chapterAudioFrom is chapterAudio for a caller that already holds the voice setup.
+func chapterAudioFrom(setup voicetracks.State, project tracks.Project) tracks.Project {
+	if len(setup.NotVoiceGUIDs) == 0 {
 		return project
 	}
 	return project.WithAudioSkip(setup.IsNotVoice)
