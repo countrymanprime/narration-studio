@@ -353,7 +353,9 @@ function ChapterLinkRow({
   const picked = tracks.find((track) => track.guid === pick);
   const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;
   // A track that is gone is not "unnamed": the sentence says it is missing.
-  const replaced = row.state === 'missing' ? 'the missing track' : quoted(shownName);
+  // A chapter with several links loses all of them, not only the one shown: the sentence says how many.
+  const replaced =
+    row.state === 'several' ? `its ${row.linkCount ?? 2} ${destination.noun}s` : row.state === 'missing' ? 'the missing track' : quoted(shownName);
   const preview = picked
     ? [
         `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders)})`,
