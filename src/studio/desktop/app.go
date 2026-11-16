@@ -68,6 +68,7 @@ import (
 	"desktop/internal/tts"
 	"desktop/internal/ttsport"
 	"desktop/internal/update"
+	"desktop/internal/wakelock"
 	"desktop/internal/whisper"
 	"desktop/internal/wiktextract"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -416,6 +417,14 @@ type Host struct {
 	chapterSyncWatch chapterSyncWatcher
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
+	// wake holds the operating system's "do not sleep" request while a take records (wakelock_host.go). wakeInhibitor is a seam for
+	// tests: nil means the operating system's own request.
+	wake          *wakelock.Keeper
+	wakeOnce      sync.Once
+	wakeMu        sync.Mutex
+	wakeInhibitor wakelock.Inhibitor
+	// +checklocks:wakeMu
+	wakeRefused atomic.Bool
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
 	powerState func() coverage.Power
 	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
@@ -1324,6 +1333,8 @@ func (h *Host) ServiceShutdown() error {
 	h.stopReadAloudRecordingOnShutdown()
 	// The input monitoring the Booth turned on is put back, so a closed app leaves the narrator's DAW as it found it (#3428).
 	h.releaseBoothMonitorOnShutdown()
+	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
+	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
 	// and the words files it finished are already on disk.
 	if check := h.services().coverage; check != nil {
