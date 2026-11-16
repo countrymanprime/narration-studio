@@ -446,6 +446,64 @@ describe('CreditsPanel', () => {
     expect(screen.getByLabelText('Title').closest('[aria-busy]')!.getAttribute('aria-busy')).toBe('false');
   });
 
+  it('the template editor is off, dimmed and says so until the first list of templates lands, so text typed before it is not lost (#3461 round 14 BR-I)', async () => {
+    const real = createMockApi();
+    let release: () => void = () => {};
+    renderPanel({
+      creditsTemplates: () =>
+        new Promise((resolve) => {
+          release = () => void real.creditsTemplates().then(resolve);
+        }),
+    });
+    expect(await screen.findByText(/Reading the templates/)).toBeTruthy();
+    for (const label of ['Name', 'Body']) expect((screen.getByLabelText(label) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'New' })).toHaveProperty('disabled', true);
+    release();
+    await waitFor(() => expect((screen.getByLabelText('Body') as HTMLTextAreaElement).disabled).toBe(false));
+    expect(screen.queryByText(/Reading the templates/)).toBeNull();
+  });
+
+  it('a body cleared while a save runs is not sent by the automatic second save (#3461 round 14 BR-H)', async () => {
+    const { api } = renderPanel();
+    const release = deferSave(api);
+    const save = vi.mocked(api.saveCreditsTemplate);
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: 'First part.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    fireEvent.change(body, { target: { value: ' \u00A0\n' } });
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(registry.heldNow()).toEqual([expect.objectContaining({ saveable: false, needs: 'some text' })]);
+  });
+
+  it('a body of only U+0085 is blank to the host, so Save stays off (#3461 round 14 BR-J)', async () => {
+    renderPanel();
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: '\u0085' } });
+    expect(screen.getByRole('button', { name: 'Save template' })).toHaveProperty('disabled', true);
+    expect(registry.heldNow()).toEqual([expect.objectContaining({ saveable: false, needs: 'some text' })]);
+  });
+
+  it('a project values read that fails says so with a Retry that reads them again and turns the fields on (#3461 round 14 BR-F2)', async () => {
+    const real = createMockApi();
+    let reads = 0;
+    const { notify } = renderPanel({
+      creditsProjectValues: () => {
+        reads += 1;
+        return reads === 1 ? Promise.reject(new Error('The host could not read them.')) : real.creditsProjectValues();
+      },
+    });
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The project values could not be read'), 'error', expect.anything()));
+    expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText(/could not be read: use Retry/)).toBeTruthy();
+    const retry = notify.mock.calls.find((call) => String(call[0]).includes('project values could not be read'))![2] as { onAction: () => void };
+    await act(async () => retry.onAction());
+    await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false));
+    expect(reads).toBe(2);
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));

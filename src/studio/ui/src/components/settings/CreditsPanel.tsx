@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
+import { hostTrim } from '../../studio/hostTrim';
 import { useGuardedAction, useSharedSave, useUnsavedDraft, withinSaveLimit, SaveTimeout } from '../../studio/drafts/unsavedDrafts';
 import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
@@ -84,6 +85,9 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [values, setValues] = useState<CreditValues>({});
   // The value fields wait for the first read of the project's values: a value typed before it lands would be saved with every other value empty, and the host replaces all ten (#3461 round 13 BR-F).
   const [valuesLoaded, setValuesLoaded] = useState(false);
+  // The first template list: the editor and the picker wait for it, since a list that lands later resets the editor to the first template and would drop what was typed (#3461 round 14 BR-I).
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [valuesFailed, setValuesFailed] = useState(false);
   const [narratorGlobal, setNarratorGlobal] = useState('');
   const [detected, setDetected] = useState<DetectedCandidate[]>([]);
   const [preview, setPreview] = useState<CreditsRenderResult>();
@@ -122,29 +126,50 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   // round 11 BR-A, BR-B, BR-C). The project values have their own number, since only a load reads them.
   const listSeq = useRef(0);
   const valuesSeq = useRef(0);
+  const notifyNow = useRef(notify);
+  notifyNow.current = notify;
+  // The project values alone, bounded by the save limit: a read that fails or never answers says so with a Retry that reads them again, and the fields stay off until they land, since a
+  // value typed over values that were never read would be saved with every other value empty (#3461 round 14 BR-F2).
+  const readValues = useCallback(async () => {
+    const mine = ++valuesSeq.current;
+    try {
+      const projectValues = await withinSaveLimit(api.creditsProjectValues());
+      if (mine !== valuesSeq.current) return;
+      setValues(projectValues.values);
+      setValuesLoaded(true);
+      setValuesFailed(false);
+      setNarratorGlobal(projectValues.narratorGlobal);
+      setDetected(projectValues.detected);
+    } catch (error) {
+      if (mine !== valuesSeq.current) return;
+      setValuesFailed(true);
+      const notify = notifyNow.current;
+      notify(
+        `The project values could not be read: ${error instanceof SaveTimeout ? 'the host did not answer' : apiErrorMessage(error)}`,
+        'error',
+        retryAction(() => void readValues()),
+      );
+    }
+  }, [api]);
   const load = useCallback(async () => {
     const mine = ++listSeq.current;
-    const mineValues = ++valuesSeq.current;
+    const values = readValues();
     try {
-      const [nextTemplates, projectValues] = await Promise.all([api.creditsTemplates(), api.creditsProjectValues()]);
+      const nextTemplates = await api.creditsTemplates();
       if (mine === listSeq.current) {
         setTemplates(nextTemplates);
+        setTemplatesLoaded(true);
+        setLoadError('');
         setSelectedId((current) => {
           if (nextTemplates.some((template) => template.id === current)) return current;
           return nextTemplates[0]?.id ?? '';
         });
       }
-      if (mineValues === valuesSeq.current) {
-        setValues(projectValues.values);
-        setValuesLoaded(true);
-        setNarratorGlobal(projectValues.narratorGlobal);
-        setDetected(projectValues.detected);
-        setLoadError('');
-      }
     } catch (error) {
       if (mine === listSeq.current) setLoadError(apiErrorMessage(error));
     }
-  }, [api]);
+    await values;
+  }, [api, readValues]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -220,6 +245,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     }
   };
   const saveTemplateNow = async (): Promise<boolean> => {
+    if (hostTrim(editorNow.current.body) === '') return false;
     const seq = draftSeq.current;
     if (!selected && pendingCreates.current.has(seq)) {
       notify('Your first save of this template is still waiting for an answer. The template appears in the list when it lands.');
@@ -296,7 +322,15 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     const saved = await saveOnce();
     const sent = lastSent.current;
     const typed = editorNow.current;
-    if (saved && sent && sent.id !== '' && typed.id === sent.id && (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body))
+    // A body cleared while the first save ran is not sent by the second: the edit stays held as "still needs some text" (#3461 round 14 BR-H).
+    if (
+      saved &&
+      sent &&
+      sent.id !== '' &&
+      typed.id === sent.id &&
+      hostTrim(typed.body) !== '' &&
+      (typed.name !== sent.name || typed.kind !== sent.kind || typed.body !== sent.body)
+    )
       return saveOnce();
     return saved;
   };
@@ -310,7 +344,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       : draftBody !== '' || (draftName !== NEW_TEMPLATE_NAME && draftName !== ''));
   // A template with no text would replace a built-in with an empty one (and blank the credits that use it; a blank name is fine, the host names it by its kind): it cannot be saved, and the question offers only to keep
   // editing or discard (#3461 narrator smoke, finding 1; main saved it silently).
-  const blankTemplate = draftBody.trim() === '';
+  const blankTemplate = hostTrim(draftBody) === '';
   useUnsavedDraft('credits-template', {
     dirty: draftHeld,
     label: 'your credit template edit',
@@ -413,22 +447,27 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         </div>
       )}
 
-      <section aria-labelledby="credits-templates-heading" className={CREDITS_SECTION}>
+      <section aria-labelledby="credits-templates-heading" aria-busy={!templatesLoaded} className={`${CREDITS_SECTION} ${templatesLoaded ? '' : 'opacity-60'}`}>
         <h3 id="credits-templates-heading" className={CREDITS_HEADING}>
           Templates
         </h3>
+        {!templatesLoaded && !loadError && (
+          <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Reading the templates&hellip;
+          </p>
+        )}
         {/* The template's short fields keep a field's width, not the row's, now the editor spans the row (XSE2-11). */}
         <div className={`${CREDITS_FIELDS} flex flex-col gap-3`} data-credits-fields>
           <div className="flex flex-wrap items-end gap-2">
             <Select
               label="Template"
               value={selectedId}
-              disabled={busy}
+              disabled={busy || !templatesLoaded}
               onChange={(id) => id !== selectedId && guarded(() => setSelectedId(id))}
               fullWidth
               options={templates.map((template) => ({ value: template.id, label: templateLabel(template) }))}
             />
-            <Button variant="secondary" size="sm" type="button" disabled={busy} onClick={() => guarded(newTemplate)}>
+            <Button variant="secondary" size="sm" type="button" disabled={busy || !templatesLoaded} onClick={() => guarded(newTemplate)}>
               New
             </Button>
             <Button
@@ -448,6 +487,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           <Field
             label="Name"
             value={draftName}
+            disabled={!templatesLoaded}
             onChange={(value) => {
               setDraftName(value);
               setTemplateDirty(true);
@@ -458,6 +498,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             <Select
               label="Kind"
               value={draftKind}
+              disabled={!templatesLoaded}
               onChange={(value) => {
                 setDraftKind(value);
                 setTemplateDirty(true);
@@ -470,6 +511,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         <Field
           label="Body"
           textarea
+          disabled={!templatesLoaded}
           value={draftBody}
           onChange={(value) => {
             setDraftBody(value);
@@ -528,7 +570,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
         </p>
         {!valuesLoaded && !loadError && (
           <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Reading this project&rsquo;s values&hellip;
+            {valuesFailed ? 'This project’s values could not be read: use Retry in the notice.' : <>Reading this project&rsquo;s values&hellip;</>}
           </p>
         )}
         {/* Two short fields to a line once the editor has room for them (XSE2-11). */}

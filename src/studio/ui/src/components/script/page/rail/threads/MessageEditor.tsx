@@ -3,16 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { IconButton } from '../../../../primitives/IconButton';
 import { NoteTextarea } from './NoteTextarea';
-
-/**
- * Trims what the host trims: Go's `strings.TrimSpace` strips every Unicode space (U+0085, U+00A0, U+1680, U+2000-200A, U+2028/2029, U+202F, U+205F, U+3000 and the ASCII ones), and JavaScript's
- * `trim()` does not strip U+0085. A message of only such characters is blank to the host, which would delete it, so the page must call it blank too (#3458 qa round 6 B-1).
- */
-const hostTrim = (text: string): string =>
-  text.replace(
-    /^[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/g,
-    '',
-  );
+import { hostTrim } from '../../../../../studio/hostTrim';
 
 /** One message of a thread being edited: a labelled box with Discard edit and Save, as icon buttons like Proof's note editor. It keeps its own draft until Save. */
 export function MessageEditor({
