@@ -7,7 +7,7 @@ import type { DawPlace } from '../../../api/contracts/daw';
 import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
-import { useFollowChapterInDaw } from '../../../hooks/useMirrorChapterInDaw';
+import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 
 afterEach(() => {

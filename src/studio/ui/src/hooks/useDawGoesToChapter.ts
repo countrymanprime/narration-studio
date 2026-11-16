@@ -30,7 +30,7 @@ export function useFollowChapterInDaw(): boolean | undefined {
  * DAW that never can is left alone without a word. A refusal (a chapter with no linked track, a track the DAW no longer has) moves nothing and
  * says nothing: the page's own DAW notices say why. `chapterId` is undefined or '' for a page with no chapter in view.
  */
-export function useMirrorChapterInDaw(chapterId: string | undefined): void {
+export function useDawGoesToChapter(chapterId: string | undefined): void {
   const place = usePort('dawPlace');
   const follow = useFollowChapterInDaw();
   const { caps } = useDawCapabilities();

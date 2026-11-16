@@ -25,7 +25,7 @@ import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarker
 import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
-import { useMirrorChapterInDaw } from '../../hooks/useMirrorChapterInDaw';
+import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
@@ -146,7 +146,7 @@ export function PickupsPage({
   const scope = scopeChoice === ALL_SCOPE || chapters.some((chapter) => chapter.id === scopeChoice) ? scopeChoice : ALL_SCOPE;
 
   // Scoped to one chapter, the DAW goes to that chapter's tracks (Booth.follow_chapter_in_daw); "all" follows nothing.
-  useMirrorChapterInDaw(scope === ALL_SCOPE ? undefined : scope);
+  useDawGoesToChapter(scope === ALL_SCOPE ? undefined : scope);
 
   const inView = useMemo(() => inScope(list.pickups, scope), [list.pickups, scope]);
   const sessionIds = useMemo(() => inView.filter((p) => !p.done && p.included).map((p) => p.id), [inView]);

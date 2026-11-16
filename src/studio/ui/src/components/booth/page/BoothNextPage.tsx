@@ -70,7 +70,7 @@ import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
-import { useFollowChapterInDaw } from '../../../hooks/useMirrorChapterInDaw';
+import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';

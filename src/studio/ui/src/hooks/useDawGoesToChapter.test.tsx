@@ -7,7 +7,7 @@ import type { DawCapabilities } from '../api/contracts/daw';
 import type { ScopedSettingField } from '../api/contracts/system';
 import { createMockApi } from '../api/mockApi';
 import type { NarrationApi } from '../types';
-import { useMirrorChapterInDaw } from './useMirrorChapterInDaw';
+import { useDawGoesToChapter } from './useDawGoesToChapter';
 
 afterEach(cleanup);
 
@@ -28,10 +28,10 @@ function wrapperFor(overrides: Partial<NarrationApi>) {
   return ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
 }
 
-async function renderMirror(options: { available?: boolean; setting?: string; chapterId?: string }) {
+async function renderFollow(options: { available?: boolean; setting?: string; chapterId?: string }) {
   const dawGoToChapter = vi.fn(async () => moved);
   const caps = await capsWith(options.available ?? true);
-  const hook = renderHook(({ id }: { id: string | undefined }) => useMirrorChapterInDaw(id), {
+  const hook = renderHook(({ id }: { id: string | undefined }) => useDawGoesToChapter(id), {
     initialProps: { id: options.chapterId ?? 'c-1' },
     wrapper: wrapperFor({
       dawGoToChapter,
@@ -43,9 +43,9 @@ async function renderMirror(options: { available?: boolean; setting?: string; ch
   return { dawGoToChapter, ...hook };
 }
 
-describe('useMirrorChapterInDaw', () => {
+describe('useDawGoesToChapter', () => {
   it('sends the chapter once, to where its audio starts', async () => {
-    const { dawGoToChapter, rerender } = await renderMirror({});
+    const { dawGoToChapter, rerender } = await renderFollow({});
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c-1', 'start', 0));
     rerender({ id: 'c-1' });
     await act(async () => {});
@@ -53,7 +53,7 @@ describe('useMirrorChapterInDaw', () => {
   });
 
   it('moves on with the newest chapter', async () => {
-    const { dawGoToChapter, rerender } = await renderMirror({});
+    const { dawGoToChapter, rerender } = await renderFollow({});
     await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
     rerender({ id: 'c-2' });
     await waitFor(() => expect(dawGoToChapter).toHaveBeenLastCalledWith('c-2', 'start', 0));
@@ -64,7 +64,7 @@ describe('useMirrorChapterInDaw', () => {
     ['the DAW cannot follow', { available: false }],
     ['no chapter is in view', { chapterId: '' }],
   ])('moves nothing when %s', async (_name, options) => {
-    const { dawGoToChapter } = await renderMirror(options);
+    const { dawGoToChapter } = await renderFollow(options);
     await act(async () => {});
     await act(async () => {});
     expect(dawGoToChapter).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('useMirrorChapterInDaw', () => {
       throw new Error('bridge down');
     });
     const caps = await capsWith(true);
-    const { result } = renderHook(() => useMirrorChapterInDaw('c-1'), {
+    const { result } = renderHook(() => useDawGoesToChapter('c-1'), {
       wrapper: wrapperFor({
         dawGoToChapter: failing,
         settingsForScope: async () => setting('true'),
