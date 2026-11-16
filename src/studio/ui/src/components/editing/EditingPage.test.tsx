@@ -178,6 +178,19 @@ describe('EditingPage', () => {
     expect(off).not.toHaveBeenCalled();
   });
 
+  it('stepping to another chapter sends the DAW there once', async () => {
+    const dawGoToChapter = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await screen.findByText('This chapter has no text yet.');
+    await act(async () => {});
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    expect(dawGoToChapter.mock.calls.map((call) => call[0])).toEqual(['c1', 'c2']);
+  });
+
   it('not-transcribed-state', async () => {
     mount({ api: { heard: false } });
     await script();
