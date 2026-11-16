@@ -595,7 +595,7 @@ H.test('a ledger that stays unwritable is not opened on every tick, and is writt
     opened >= 2 and opened <= 12,
     'tried again a few times, not on every tick (the spacing makes about 11 opens in 300 ticks; 12 leaves one of slack): ' .. opened
   )
-  os.remove(s:path('narration_monitor_ledger.txt'))
+  H.truthy(host.removedir(s:path('narration_monitor_ledger.txt')), 'the folder that stood for the ledger is gone')
   for _ = 1, 260 do
     s:tick()
   end
@@ -733,4 +733,13 @@ H.test('a tick that retries the ledger and also runs a waited restore opens the 
   io.open = real_open
   assert(ok, err)
   H.eq(opened, 1, 'one attempt in the tick, whichever path wrote first')
+end)
+
+H.test('the harness frees a folder it made, on every platform', function()
+  local base = host.tmpdir()
+  local dir = H.join(base, 'made_here')
+  host.makedirs(dir)
+  H.eq(host.listsubdirs(base)[1], 'made_here')
+  H.eq(host.removedir(dir), true)
+  H.eq(host.removedir(dir), false, 'a folder that is not there is not removed')
 end)
