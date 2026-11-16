@@ -47,7 +47,10 @@ describe('the chapter-link writers', () => {
     const files = sources(join(root, 'components')).map((path) => ({ path: relative(root, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
     const writers = files.filter((f) => /\bactions\.(set|unlink|create)\(/.test(f.text) && f.path !== OWNER).map((f) => f.path);
     expect(writers.length).toBeGreaterThan(3);
-    for (const path of writers) expect(files.find((f) => f.path === path)?.text, path).toContain('linkFailureSentence');
+    for (const path of writers) {
+      const text = files.find((f) => f.path === path)?.text ?? '';
+      expect(text, path).toContain('linkFailureSentence');
+    }
   });
   it('sees each binding it guards', () => {
     for (const call of ['chapterTrackSet', 'chapterTrackUnlink', 'chapterTrackCreate'])

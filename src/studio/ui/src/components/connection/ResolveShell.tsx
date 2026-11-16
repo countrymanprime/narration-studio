@@ -39,11 +39,8 @@ export function ResolveShell({
     <Button
       variant={variant}
       pending={action.pending}
-      {...(action.disabledReason !== undefined
-        ? { disabledReason: action.disabled ? action.disabledReason : '' }
-        : action.disabled
-          ? { 'aria-disabled': true }
-          : {})}
+      {...(action.disabledReason !== undefined ? { disabledReason: action.disabled ? action.disabledReason : '' } : {})}
+      {...(action.disabled && !action.disabledReason ? { 'aria-disabled': true } : {})}
       onClick={action.disabled ? undefined : action.onPress}
     >
       {action.label}

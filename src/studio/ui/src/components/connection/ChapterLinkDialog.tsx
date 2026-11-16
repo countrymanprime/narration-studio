@@ -249,6 +249,7 @@ export function ChapterLinkDialog({
               size="sm"
               pending={creating}
               disabledReason={createAction.disabled ? createAction.disabledReason : ''}
+              {...(createAction.disabled && !createAction.disabledReason ? { 'aria-disabled': true } : {})}
               onClick={createAction.disabled ? undefined : createTrack}
             >
               {createLabel}
