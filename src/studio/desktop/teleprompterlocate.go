@@ -134,7 +134,7 @@ func (h *Host) locateTail(svc hostServices, live trackStateReader, chapterID, tr
 	}
 	result.Track = &trackOption{GUID: candidate.TrackGUID, Name: candidate.TrackName, Index: candidate.TrackIndex}
 	result.DAWSource, result.DAWAt = dawSourceSaved, liveAtEnd
-	end, ok := chaptermatch.RecordedEnd(chapterAudio(svc.config.projectFolder, project), *candidate)
+	end, ok := chaptermatch.RecordedEnd(chapterAudio(h.persist, svc.config.projectFolder, project), *candidate)
 	if state, reachable := readLiveTrack(context.Background(), live, project.Path, candidate.TrackGUID); reachable {
 		result.DAWSource = dawSourceLive
 		if recordingOn(state) {

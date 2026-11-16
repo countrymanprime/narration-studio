@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"desktop/internal/persist"
 	"desktop/internal/voicetracks"
 )
 
@@ -96,7 +97,7 @@ func TestChapterAudioReadsNoMarksFromAFolderWithNone(t *testing.T) {
 	if !ok {
 		t.Fatal("the project is not readable")
 	}
-	members, _ := chapterAudio(host.config.projectFolder, project).ChapterMembers(voiceFolderTrack)
+	members, _ := chapterAudio(nil, host.config.projectFolder, project).ChapterMembers(voiceFolderTrack)
 	if len(members) != 3 {
 		t.Fatalf("members = %d, want the folder and both children when nothing is marked", len(members))
 	}
@@ -156,5 +157,34 @@ func TestTheHostGivesTheCoverageServiceTheChapterAudioRule(t *testing.T) {
 	block := text[start : start+min(end+2500, len(text)-start)]
 	if !strings.Contains(block, "ChapterAudio:") || !strings.Contains(block, "chapterAudio(") {
 		t.Fatal("the coverage service is built without ChapterAudio: the recording check would transcribe a bed marked as not a voice")
+	}
+}
+
+// A voice-tracks.json that will not parse is the repo's usual bad narrator file (persist.Reporter): kept aside, and the narrator is told,
+// not swallowed (#3557 review). Until it is fixed the children count as unmarked, so the bed counts.
+func TestACorruptVoiceSetupIsKeptAsideAndReportedAndMarksNothing(t *testing.T) {
+	host, ids := newFolderHost(t, narratorAndBed(), voicetracks.LayoutFolders, musicBedTrack)
+	if got := chapterRecorded(t, host)[ids[0]]["recordedSeconds"]; got != 10.0 {
+		t.Fatalf("recorded seconds = %v with the bed marked, want 10", got)
+	}
+	var told []string
+	host.persist = &persist.Reporter{Notify: func(text string) { told = append(told, text) }}
+	file := voicetracks.File(host.config.projectFolder)
+	if err := os.WriteFile(file, []byte("{not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := chapterRecorded(t, host)[ids[0]]["recordedSeconds"]; got != 300.0 {
+		t.Fatalf("recorded seconds = %v with the setup unreadable, want 300: nothing is marked until it is fixed", got)
+	}
+	if len(told) != 1 {
+		t.Fatalf("the narrator was told %d times (%q), want once", len(told), told)
+	}
+	aside, _ := filepath.Glob(file + ".corrupt-*")
+	if len(aside) != 1 {
+		t.Fatalf("kept aside = %v, want the corrupt file kept beside the original", aside)
+	}
+	chapterRecorded(t, host)
+	if len(told) != 1 {
+		t.Fatalf("a second read told the narrator again: %q", told)
 	}
 }

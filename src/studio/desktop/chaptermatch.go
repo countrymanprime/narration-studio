@@ -91,7 +91,7 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 		})
 	}
 	if result.Track != nil {
-		if end, ok := chaptermatch.RecordedEnd(chapterAudio(svc.config.projectFolder, project), *result.Track); ok {
+		if end, ok := chaptermatch.RecordedEnd(chapterAudio(nil, svc.config.projectFolder, project), *result.Track); ok {
 			match.RecordedEnd = &end
 		}
 	}
