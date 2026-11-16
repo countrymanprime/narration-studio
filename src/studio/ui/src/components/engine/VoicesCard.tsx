@@ -130,7 +130,7 @@ export function VoicesCard({
                       </TableCell>
                       <TableCell align="center">
                         <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
-                          <span className="sr-only">{`${voice.name.trim() === '' ? `Track ${at + 1}` : shortName(trackName(voice.name))} counts as a voice`}</span>
+                          <span className="sr-only">{`${shortName(trackName(voice.name, at))} counts as a voice`}</span>
                         </Switch>
                       </TableCell>
                       <TableCell align="right">
