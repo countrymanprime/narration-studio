@@ -348,7 +348,9 @@ export function Dialog({
               if (!popupRef.current?.contains(event.relatedTarget as Node | null)) begunInHold.current.clear();
             }}
             finalFocus={finalFocus}
-            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
+            // Below 400 px of height (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
+            // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
+            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:400px)]:overflow-y-auto ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
             }`}
             style={{
@@ -381,7 +383,7 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:400px)]:min-h-10 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
                   top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
