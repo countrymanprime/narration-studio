@@ -1611,6 +1611,13 @@
   },
   {
     "page": "booth",
+    "state": "chosen-start",
+    "viewport": "desktop",
+    "docName": "booth-chosen-start",
+    "caption": "Booth - Start from here: the first word of the chosen phrase is underlined with the phrase tinted, in the text"
+  },
+  {
+    "page": "booth",
     "state": "search-shown",
     "viewport": "desktop",
     "docName": "booth-search",
