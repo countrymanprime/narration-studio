@@ -30,7 +30,6 @@ func chapterAudioFrom(setup voicetracks.State, project tracks.Project) tracks.Pr
 	return project.WithAudioSkip(setup.IsNotVoice)
 }
 
-<<<<<<< HEAD
 // notVoiceTracksUnder is the GUIDs of the tracks inside the folder link that the narrator marked as not a voice (a music bed). It is what the
 // record start sends REAPER with the chapter_end rule, so the end of the chapter's audio leaves them out (#3559). The folder's shape comes from
 // the live-over-saved list; a setup that cannot be read, or a link that is not a folder, answers none (REAPER then counts every track, as before).
@@ -54,7 +53,8 @@ func notVoiceTracksUnder(svc hostServices, link string) []string {
 		}
 	}
 	return marked
-=======
+}
+
 // chapterAudioSkip is the rule for REAPER's live read of the folder linked to chapter guid (dawport.ChapterAudioState): it names the tracks
 // whose items are not the chapter's audio, a track marked as not a voice and every track inside a marked folder (#3558). The chapter's own
 // track is never named. nil means every item counts. It reads the saved project, which knows the folder's shape; a track marked but not in
@@ -121,5 +121,4 @@ func withoutSkippedTracks(state dawport.TrackState, skip func(trackGUID string) 
 	state.ItemsTotal = max(0, state.ItemsTotal-(len(state.Items)-len(kept)))
 	state.Items = kept
 	return state
->>>>>>> origin/main
 }
