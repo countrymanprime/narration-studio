@@ -599,3 +599,72 @@ describe('the room the toasts take, published for a dialog in a short window', (
     expect(published()).toBe('');
   });
 });
+
+// A window under 300 px tall has no room for a stack of toasts beside a dialog (#3605): the region shows the newest only, and the older ones wait, unmounted, for it to go.
+describe('ToastRegion in a window under 300 px tall', () => {
+  const realMatchMedia = window.matchMedia;
+  let short = true;
+  let listeners: Array<() => void> = [];
+  beforeEach(() => {
+    short = true;
+    listeners = [];
+    window.matchMedia = ((query: string) => ({
+      get matches() {
+        return query === '(max-height: 299px)' && short;
+      },
+      media: query,
+      addEventListener: (_: string, listener: () => void) => listeners.push(listener),
+      removeEventListener: (_: string, listener: () => void) => (listeners = listeners.filter((one) => one !== listener)),
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+  const three = [info(1, 'First.'), failure(2, 'Second.'), info(3, 'Third.')];
+
+  it('shows only the newest of three toasts, and the older ones come back as it goes', () => {
+    const { rerender } = render(<ToastRegion messages={three} dismiss={vi.fn()} />);
+    expect(screen.queryByText('First.')).toBeNull();
+    expect(screen.queryByText('Second.')).toBeNull();
+    expect(screen.getByText('Third.')).toBeTruthy();
+    rerender(<ToastRegion messages={three.slice(0, 2)} dismiss={vi.fn()} />);
+    expect(screen.getByText('Second.')).toBeTruthy();
+    expect(screen.queryByText('First.')).toBeNull();
+    rerender(<ToastRegion messages={three.slice(0, 1)} dismiss={vi.fn()} />);
+    expect(screen.getByText('First.')).toBeTruthy();
+  });
+
+  it('a queued toast does not run its clock until it shows', () => {
+    vi.useFakeTimers();
+    try {
+      const dismiss = vi.fn();
+      render(<ToastRegion messages={[info(1, 'Older.'), info(2, 'Newest.')]} dismiss={dismiss} />);
+      act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
+      expect(dismiss).toHaveBeenCalledTimes(1);
+      expect(dismiss).toHaveBeenCalledWith(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('follows the window: a taller window shows the whole stack, a shorter one the newest again', () => {
+    render(<ToastRegion messages={three} dismiss={vi.fn()} />);
+    expect(screen.queryByText('First.')).toBeNull();
+    short = false;
+    act(() => listeners.forEach((listener) => listener()));
+    expect(screen.getByText('First.')).toBeTruthy();
+    expect(screen.getByText('Second.')).toBeTruthy();
+    short = true;
+    act(() => listeners.forEach((listener) => listener()));
+    expect(screen.queryByText('First.')).toBeNull();
+    expect(screen.getByText('Third.')).toBeTruthy();
+  });
+
+  it('shows the whole stack in a window 300 px tall or more', () => {
+    short = false;
+    render(<ToastRegion messages={three} dismiss={vi.fn()} />);
+    expect(screen.getByText('First.')).toBeTruthy();
+    expect(screen.getByText('Second.')).toBeTruthy();
+    expect(screen.getByText('Third.')).toBeTruthy();
+  });
+});

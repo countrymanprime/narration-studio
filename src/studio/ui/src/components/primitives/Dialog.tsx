@@ -94,7 +94,7 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 // The popup hangs 8vh down (12vh for the palette), so a tall window's cap leaves at least 4.75rem under it for a toast (`ToastRegion`): 80dvh, or 92dvh less 4.75rem when that is less. That
 // holds down to 300 px of height, where tests/visual/toast-region.spec.ts keeps a toast off the action row (320x300). Below 300 px the toast's room is given back gradually: the cap grows
 // by 2.26 px for every px the window loses (up to 6rem), so at 261 px it is the whole window less 0.5rem, which is what a window 260 px tall or less (400% zoom is 275 x 200) gets, so a
-// short question fits whole (#2998). The cap is continuous in the window's height, so there is no height at which the room falls off a cliff (the body was 56 px tall at 260 px and 20 px
+// short question fits whole (#2998). The cap is continuous in the window's height (with no toast showing; a toast over a dialog has its own rule below), so there is no height at which the room falls off a cliff (the body was 56 px tall at 260 px and 20 px
 // at 261, and a sentence was cut mid-line from 262 to 292 px; #3548, #3549). Between 261 and 300 px a shorter window gets a taller popup, up to the window's own height, and the toast room shrinks with it.
 const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)))]';
 

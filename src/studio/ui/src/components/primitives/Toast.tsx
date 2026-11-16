@@ -136,7 +136,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere]"
+        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-h-10"
       >
         {message.text}
       </span>
@@ -169,6 +169,21 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       </button>
     </div>
   );
+}
+
+/** A window this short has no room for a stack of toasts beside a dialog's title, field and buttons: the region shows only the newest toast (#3605, #3629). */
+export const SHORT_WINDOW_QUERY = '(max-height: 299px)';
+function useShortWindow(): boolean {
+  const [short, setShort] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(SHORT_WINDOW_QUERY).matches === true);
+  useEffect(() => {
+    const query = typeof window === 'undefined' ? undefined : window.matchMedia?.(SHORT_WINDOW_QUERY);
+    if (!query) return;
+    const update = () => setShort(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return short;
 }
 
 // The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
@@ -256,8 +271,11 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
-export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
+export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
+  // In a window under 300 px tall only the newest toast shows; the older ones stay queued, unmounted, so their time starts when they appear, after the newest goes.
+  const short = useShortWindow();
+  const messages = short ? queued.slice(-1) : queued;
   const showing = messages.length > 0;
   useToastHeightPublished(region, showing);
   // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
