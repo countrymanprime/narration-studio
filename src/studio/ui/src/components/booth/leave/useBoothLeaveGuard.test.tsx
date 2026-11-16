@@ -342,6 +342,80 @@ describe('useBoothLeaveGuard', () => {
     expect(go).not.toHaveBeenCalled();
   });
 
+  // #3555 item 2: the open question follows the DAW, and a take the DAW records is stopped before the narrator leaves.
+  describe('the question follows the DAW', () => {
+    it('is asked again as the quiet DAW\'s question when the DAW goes quiet while "Stop recording?" is open', async () => {
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Leave for Script?', cancelLabel: 'Stay', confirmLabel: 'Stop and leave' });
+      expect(dialog()?.spec.body).toBe('REAPER may still be recording. Leaving tries to stop the take.');
+      act(() => dialog()!.answer(false));
+    });
+
+    it('is not asked again when the take merely ends with the DAW answering: Stop and leave then leaves (#3342)', async () => {
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      hook.rerender({ ...session, recording: false });
+      await flush();
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+      act(() => dialog()!.answer(false));
+    });
+
+    it('a refusal after the DAW went quiet offers Stay, not Keep recording', async () => {
+      let refuse: (result: DawResult) => void = () => undefined;
+      const { go, hook, dialog, session } = setup({}, () => new Promise<DawResult>((resolve) => (refuse = resolve)));
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
+      refuse({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Could not stop the take', cancelLabel: 'Stay', confirmLabel: 'Leave anyway' });
+      act(() => dialog()!.answer(false));
+    });
+
+    it('a refusal is not asked again when the DAW goes quiet while it is open', async () => {
+      const refusal: DawResult = { ok: false, changed: false, message: 'Disk full.', undoSteps: 0, refused: 'Disk full.' };
+      const { go, hook, dialog, session } = setup({}, async () => refusal);
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(dialog()?.spec.title).toBe('Could not stop the take');
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true });
+      await flush();
+      expect(dialog()?.spec.title).toBe('Could not stop the take');
+      act(() => dialog()!.answer(false));
+    });
+
+    it('stops a take the DAW records although the end was believed over, and leaves once it is stopped', async () => {
+      const { go, hook, dialog, stopRecording } = setup({ recording: false, endUnconfirmed: () => true, dawRecordingNow: async () => true });
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(go).toHaveBeenCalledWith('/script'));
+    });
+
+    it('with the DAW not recording, or the read failing, leaves without a stop as before', async () => {
+      for (const dawRecordingNow of [async () => false, () => Promise.reject(new Error('no answer'))]) {
+        const { go, hook, dialog, stopRecording } = setup({ recording: false, endUnconfirmed: () => true, dawRecordingNow });
+        act(() => void hook.result.current.leave('/script', go));
+        act(() => dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(stopRecording).not.toHaveBeenCalled();
+        await waitFor(() => expect(go).toHaveBeenCalledWith('/script'));
+      }
+    });
+  });
+
   it('a refused stop does not trap the narrator: Leave anyway goes without a second stop', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'REAPER is not answering.', undoSteps: 0, refused: 'REAPER is not answering.' };
     const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);

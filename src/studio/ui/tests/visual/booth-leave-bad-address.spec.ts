@@ -31,22 +31,50 @@ const arrive = (page: Page, address: string) =>
     window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
   }, address);
 
-for (const address of ['/booth?chapter=nope', '/booth?chapter=chapter-2&para=p1&at=3', '/booth?chapter=', '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A']) {
-  test(`${address} during a take keeps the Booth and the take`, async ({ page }) => {
+// A chapter the manuscript lacks (or a line it lacks) is asked about like any other chapter; an address that cannot be read at all is said in a message and ignored.
+const ASKS = ['/booth?chapter=nope', '/booth?chapter=chapter-2&para=p1&at=3', '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A'];
+const MESSAGE = ['/booth?chapter='];
+const question = (page: Page) => page.getByRole('alertdialog', { name: 'Stop recording?' });
+const said = (page: Page) => page.getByText('That link could not be opened, so the Booth stays. The take goes on.');
+
+for (const address of ASKS) {
+  test(`${address} during a take asks like any chapter, and Keep recording leaves the take running`, async ({ page }) => {
     await recording(page);
     await arrive(page, address);
-    await page.waitForTimeout(1000);
+    await expect(question(page)).toBeVisible();
     await expect(page.getByText('This link could not be opened')).toHaveCount(0);
     expect(await dawRecording(page)).toBe(true);
     expect(await stops(page)).toBe(0);
-    // Whatever was asked, staying leaves the take where it was.
-    const stay = page.getByRole('button', { name: /^(Keep recording|Stay)$/ });
-    if (await stay.count()) await stay.click();
+    await question(page).getByRole('button', { name: 'Keep recording' }).click();
+    await expect(question(page)).toHaveCount(0);
     await expect(stop(page)).toBeVisible();
     expect(await dawRecording(page)).toBe(true);
     expect(await stops(page)).toBe(0);
   });
 }
+
+for (const address of MESSAGE) {
+  test(`${address} during a take says so in a message and the take goes on`, async ({ page }) => {
+    await recording(page);
+    await arrive(page, address);
+    await expect(said(page)).toBeVisible();
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await expect(page.getByText('This link could not be opened')).toHaveCount(0);
+    await expect(stop(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(true);
+    expect(await stops(page)).toBe(0);
+  });
+}
+
+test('agreeing to the question for a chapter that is not there saves the take, and then the link says so', async ({ page }) => {
+  await recording(page);
+  await arrive(page, '/booth?chapter=nope');
+  await expect(question(page)).toBeVisible();
+  await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+  await expect.poll(() => stops(page)).toBeGreaterThan(0);
+  await expect(page.getByText(/link points to a chapter that is not in this manuscript/)).toBeVisible();
+  expect(await dawRecording(page)).toBe(false);
+});
 
 test('with no take running a link to a chapter that is not there still says so', async ({ page }) => {
   await page.goto('/?mockCallLog=1');
