@@ -119,7 +119,8 @@ return function(registry)
   end
 
   -- A write that failed is tried again on the ticks that follow, spaced out by a count of ticks that doubles up to MAX_RETRY_WAIT (256), so a ledger
-  -- that stays unwritable (a full disk, a folder of that name) is not opened thirty times a second. A command that changes the rows always tries.
+  -- that stays unwritable (a full disk, a folder of that name) is not opened thirty times a second. A command that changes the rows tries at once; a
+  -- write inside a tick (the recovery, a waited restore, a ghost retry) counts as a tick's, so it does not reset the spacing.
   local function persist(from_tick)
     local all = {}
     for _, row in ipairs(state.ghosts) do
@@ -131,8 +132,8 @@ return function(registry)
     state.unsaved = not save(all)
     if not state.unsaved then
       state.misses, state.wait = nil, nil
-    elseif from_tick then
-      -- The first miss on a tick is tried again on the next one, then after 1, 2, 4 ... ticks.
+    elseif from_tick or state.in_tick then
+      -- The first miss on a tick is tried again on the next tick, then 1, 2, 4 ... ticks are skipped between tries (gaps of 2, 3, 5, 9 ... ticks).
       state.misses = (state.misses or 0) + 1
       state.wait = state.misses <= 1 and 0 or math.min(2 ^ (state.misses - 2), MAX_RETRY_WAIT)
     else
@@ -181,13 +182,16 @@ return function(registry)
     local guid = normalize_guid(reaper.GetTrackGUID(track))
     local mine, others = nil, {}
     -- The same lane can be a ghost (its track was not in front when it was tried): it is the live row again, not a second one the tick would put back.
-    for index, row in ipairs(state.ghosts) do
+    -- Every ghost of the lane goes, not the first: a ledger with two rows for one GUID must not leave a second one to switch the lane off.
+    local kept_ghosts = {}
+    for _, row in ipairs(state.ghosts) do
       if row.guid == guid then
         mine = row
-        table.remove(state.ghosts, index)
-        break
+      else
+        kept_ghosts[#kept_ghosts + 1] = row
       end
     end
+    state.ghosts = kept_ghosts
     for _, row in ipairs(state.rows) do
       if row.guid == guid then
         mine = row
@@ -254,6 +258,7 @@ return function(registry)
     if busy() then
       return
     end
+    state.in_tick = true
     recover()
     -- A ledger that could not be written after lanes were put back would still list them: it is written again.
     if state.unsaved then
@@ -268,7 +273,8 @@ return function(registry)
       release()
     end
     if #state.ghosts > 0 then
-      -- The project pointer tells apart two tabs that were never saved and hold as many tracks.
+      -- The project pointer tells apart two tabs that were never saved and hold as many tracks. That tostring(ReaProject) is the same on every call
+      -- is not verified in a real REAPER (reaper-verification-pass.md); if it is not, the ghosts are tried on every tick, never a wrong track.
       local front, path = reaper.EnumProjects(-1, '')
       local place = tostring(front) .. '|' .. (path or '') .. '|' .. reaper.CountTracks(0)
       if place ~= state.tried then
@@ -281,5 +287,6 @@ return function(registry)
         end
       end
     end
+    state.in_tick = false
   end
 end

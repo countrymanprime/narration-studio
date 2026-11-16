@@ -591,7 +591,10 @@ H.test('a ledger that stays unwritable is not opened on every tick, and is writt
   end)
   io.open = real_open
   assert(ok, err)
-  H.truthy(opened >= 2 and opened <= 12, 'tried again a few times, not on every tick: ' .. opened)
+  H.truthy(
+    opened >= 2 and opened <= 12,
+    'tried again a few times, not on every tick (the spacing makes about 11 opens in 300 ticks; 12 leaves one of slack): ' .. opened
+  )
   os.remove(s:path('narration_monitor_ledger.txt'))
   for _ = 1, 260 do
     s:tick()
@@ -631,4 +634,50 @@ H.test('a leftover row with GUID letters in lower case is read as the track it n
   narrator.rec_mon = 1
   s:tick()
   H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('a ledger with two rows for one lane leaves no second ghost to switch the lane off once it is armed again', function()
+  local s, _, veyra = new_session()
+  veyra.rec_mon = 1
+  H.write_file(s:path('narration_monitor_ledger.txt'), row(s, veyra) .. row(s, veyra))
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:tick()
+  s.fake.tracks, s.fake.project_path = tracks, book
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s:tick()
+  s:tick()
+  H.eq(monitors(s), { 0, 1, 0 }, 'the lane stays monitored')
+  H.eq(ledger(s), row(s, veyra), 'one row is left')
+end)
+
+H.test('a write inside a tick that fails does not reset the spacing of the retries', function()
+  local s, _, veyra = new_session()
+  -- A row for a track that is nowhere keeps the ledger non-empty, so the file is written (and fails) when the lane's ghost resolves.
+  H.write_file(s:path('narration_monitor_ledger.txt'), '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\n')
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  os.remove(s:path('narration_monitor_ledger.txt'))
+  host.makedirs(s:path('narration_monitor_ledger.txt'))
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:send('monitor_restore', 'm1')
+  for _ = 1, 40 do
+    s:tick()
+  end
+  local opened, real_open = 0, io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find('narration_monitor_ledger', 1, true) and mode == 'w' then
+      opened = opened + 1
+    end
+    return real_open(path, mode, ...)
+  end
+  local ok, err = pcall(function()
+    s.fake.tracks, s.fake.project_path = tracks, book
+    for _ = 1, 8 do
+      s:tick()
+    end
+  end)
+  io.open = real_open
+  assert(ok, err)
+  H.truthy(opened <= 2, 'the ghost retry that fails is spaced like the others, not tried on each of the next ticks: ' .. opened)
 end)

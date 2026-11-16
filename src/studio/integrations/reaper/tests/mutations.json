@@ -3774,8 +3774,8 @@
   {
     "name": "the ledger of a closed REAPER is read while another take runs",
     "file": "narration_monitor.lua",
-    "find": "    if busy() then\n      return\n    end\n    recover()",
-    "replace": "    recover()"
+    "find": "    if busy() then\n      return\n    end\n    state.in_tick = true\n    recover()",
+    "replace": "    state.in_tick = true\n    recover()"
   },
   {
     "name": "a leftover ledger is erased by a restore that runs before the file is read",
@@ -3852,8 +3852,8 @@
   {
     "name": "the lane being armed again loses its own row",
     "file": "narration_monitor.lua",
-    "find": "      if row.guid == guid then\n        mine = row\n      else",
-    "replace": "      if false then\n        mine = row\n      else"
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        others[#others + 1] = row",
+    "replace": "      if false then\n        mine = row\n      else\n        others[#others + 1] = row"
   },
   {
     "name": "a failed write of the ledger is reported as written",
@@ -3972,8 +3972,8 @@
   {
     "name": "a ghost is not made the live row when its lane is armed again",
     "file": "narration_monitor.lua",
-    "find": "      if row.guid == guid then\n        mine = row\n        table.remove(state.ghosts, index)",
-    "replace": "      if false then\n        mine = row\n        table.remove(state.ghosts, index)"
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if false then\n        mine = row\n      else\n        kept_ghosts"
   },
   {
     "name": "an unwritable ledger is opened on every tick",
@@ -3998,5 +3998,17 @@
     "file": "narration_transport.lua",
     "find": "    if mode == 'monitor' and not registry.monitor_lane then",
     "replace": "    if false then"
+  },
+  {
+    "name": "a second ghost row of an armed lane is left to switch it off",
+    "file": "narration_monitor.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if row.guid == guid and not mine then\n        mine = row\n      else\n        kept_ghosts"
+  },
+  {
+    "name": "a write inside a tick resets the spacing of the retries",
+    "file": "narration_monitor.lua",
+    "find": "    elseif from_tick or state.in_tick then",
+    "replace": "    elseif from_tick then"
   }
 ]

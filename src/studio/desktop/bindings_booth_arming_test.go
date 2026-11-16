@@ -15,7 +15,7 @@ import (
 
 func armBoothVoice(t *testing.T, host *Host, recorder dawport.Recorder, chapterID string) dawport.Result {
 	t.Helper()
-	result, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", recorder, chapterID, true)
+	result, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", recorder, chapterID, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	}
 	fake := &fakeLaneRecorder{}
 	// The binding reads the switch itself: a voice chosen during a take is armed after it, and the monitoring waits for the switch.
-	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services())); err != nil {
+	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services()), nil); err != nil {
 		t.Fatal(err)
 	}
 	if len(fake.laneArmed) != 1 || fake.laneMonitor[0] {
@@ -168,51 +168,135 @@ func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	}
 }
 
+func releaseJSON(t *testing.T, host *Host) dawport.Result {
+	t.Helper()
+	raw, err := host.DawReleaseBoothMonitor()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got dawport.Result
+	if err := json.Unmarshal([]byte(raw), &got); err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
 func TestLeavingTheBoothWhileTheDAWCannotBeReachedSaysSoOnlyWhenAMonitoringMayBeOwed(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	switchFollow(t, host, "true")
-	read := func() dawport.Result {
-		t.Helper()
-		raw, err := host.DawReleaseBoothMonitor()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var got dawport.Result
-		if err := json.Unmarshal([]byte(raw), &got); err != nil {
-			t.Fatal(err)
-		}
-		return got
-	}
-	if got := read(); !got.OK || got.Refused != "" {
+	if got := releaseJSON(t, host); !got.OK || got.Refused != "" {
 		t.Fatalf("the Booth never turned a monitoring on: %+v, want done and silent", got)
 	}
 	// A DAW that is not reachable at entry is asked nothing, so nothing is owed.
 	if _, err := host.DawArmBoothVoice(ids[0]); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(); !got.OK {
+	if got := releaseJSON(t, host); !got.OK {
 		t.Fatalf("no recorder at entry: %+v, want done", got)
 	}
-	// A monitoring asked for by an entry arm, then a DAW that no longer answers when the Booth is left.
+	// A monitoring turned on by an entry arm, then a DAW that no longer answers when the Booth is left.
 	if got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), &fakeLaneRecorder{}, ids[0]); err != nil || !got.OK {
 		t.Fatalf("entry arm: %+v, %v", got, err)
 	}
-	got := read()
-	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "next starts its bridge") || got.Message != got.Refused {
+	got := releaseJSON(t, host)
+	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "next time the bridge starts") || got.Message != got.Refused {
 		t.Fatalf("left with the DAW unreachable: %+v, want a refusal that says the monitoring may be on and when it is put back", got)
-	}
-	if again := read(); again.OK {
-		t.Fatalf("the monitoring is still owed after a refusal: %+v", again)
 	}
 }
 
-func TestAReleaseOnLeavingAsksAnAnsweringDAWAndStaysSilentWhenNothingIsOwed(t *testing.T) {
-	fake := &fakeLaneRecorder{}
-	if got := dawReleaseOnLeaveIn(context.Background(), "REAPER", fake, true); !got.OK || fake.monitorReleased != 1 {
-		t.Fatalf("a DAW that answers: %+v after %d releases", got, fake.monitorReleased)
+func TestAReleaseWithNoDAWSaysTheOwedMonitoringOnceThenStops(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.boothMonitorOwed.Store(true)
+	if got := releaseJSON(t, host); got.OK || got.Refused == "" {
+		t.Fatalf("first leave: %+v, want the refusal", got)
 	}
-	if got := dawReleaseOnLeaveIn(context.Background(), "REAPER", nil, false); !got.OK || got.Refused != "" {
-		t.Fatalf("nothing owed and no DAW: %+v", got)
+	for leave := 0; leave < 3; leave++ {
+		if got := releaseJSON(t, host); !got.OK || got.Refused != "" {
+			t.Fatalf("a later leave: %+v, want silence", got)
+		}
+	}
+}
+
+func TestTheOwedMonitoringSentenceNamesTheLinkedDAWOrSaysTheDAW(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	got := monitorUnreachableSentence(host.services())
+	if !strings.HasPrefix(got, "The DAW could not be reached") || strings.Contains(got, "REAPER") {
+		t.Fatalf("no DAW linked: %q, want neutral wording", got)
+	}
+}
+
+// blockingReleaser is a recorder whose release waits for the test, so an arm can land while a release is in flight.
+type blockingReleaser struct {
+	fakeLaneRecorder
+	entered chan struct{}
+	proceed chan struct{}
+	err     error
+}
+
+func (b *blockingReleaser) ReleaseMonitor(ctx context.Context) (dawport.MonitorReleased, error) {
+	close(b.entered)
+	<-b.proceed
+	return dawport.MonitorReleased{}, b.err
+}
+
+func TestAReleaseThatLandsAfterANewArmDoesNotClearTheOwedFlag(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.boothMonitorOwed.Store(true)
+	rec := &blockingReleaser{entered: make(chan struct{}), proceed: make(chan struct{})}
+	done := make(chan dawport.Result)
+	go func() { done <- host.releaseBoothMonitor(context.Background(), host.services(), rec) }()
+	<-rec.entered
+	host.boothMonitorOwed.Store(true) // a quick re-entry arms and monitors while the release is in flight
+	close(rec.proceed)
+	if got := <-done; !got.OK {
+		t.Fatalf("release: %+v", got)
+	}
+	if !host.boothMonitorOwed.Load() {
+		t.Fatal("the release wiped the debt a new arm had just made")
+	}
+}
+
+func TestAReleaseThatFailsKeepsTheMonitoringOwed(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.boothMonitorOwed.Store(true)
+	rec := &blockingReleaser{entered: make(chan struct{}), proceed: make(chan struct{}), err: context.DeadlineExceeded}
+	close(rec.proceed)
+	if got := host.releaseBoothMonitor(context.Background(), host.services(), rec); got.OK {
+		t.Fatalf("release: %+v, want a refusal", got)
+	}
+	if !host.boothMonitorOwed.Load() {
+		t.Fatal("a failed release must leave the monitoring owed")
+	}
+}
+
+func TestEnteringTheBoothOnAChapterWithNoTrackOwesNothing(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	switchFollow(t, host, "true")
+	// A chapter with no linked track, a refused arm and a lane that was monitored already turn nothing on.
+	_, _ = host.dawArmBoothVoiceIn(context.Background(), host.services(), &fakeLaneRecorder{}, "no-such-chapter")
+	if host.boothMonitorOwed.Load() {
+		t.Fatal("a chapter with no track owes nothing")
+	}
+	for name, rec := range map[string]*fakeLaneRecorder{
+		"recording":  {laneErr: bridge.ErrRecording},
+		"gone":       {laneErr: &bridge.TrackStaleError{GUID: voiceNarratorTrack}},
+		"on already": {alreadyOn: true},
+	} {
+		host.boothMonitorOwed.Store(false)
+		_, _ = host.dawArmBoothVoiceIn(context.Background(), host.services(), rec, ids[0])
+		if host.boothMonitorOwed.Load() {
+			t.Errorf("%s: nothing was turned on, yet the flag is set", name)
+		}
+	}
+	host.boothMonitorOwed.Store(false)
+	_, _ = host.dawArmBoothVoiceIn(context.Background(), host.services(), &fakeLaneRecorder{laneErr: context.DeadlineExceeded}, ids[0])
+	if !host.boothMonitorOwed.Load() {
+		t.Error("a call that timed out may have turned a monitoring on, so it stays owed")
+	}
+	host.boothMonitorOwed.Store(false)
+	_, _ = host.dawArmBoothVoiceIn(context.Background(), host.services(), &fakeLaneRecorder{}, ids[0])
+	if !host.boothMonitorOwed.Load() {
+		t.Error("a monitoring turned on is owed")
 	}
 }
 

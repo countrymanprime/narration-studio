@@ -106,6 +106,8 @@ type fakeLaneRecorder struct {
 	monitorReleased int
 	monitorWaiting  bool
 	laneErr         error
+	// alreadyOn makes ArmLane answer that the lane's monitoring was on already, so this call turned nothing on.
+	alreadyOn bool
 }
 
 var _ dawport.LaneArmer = (*fakeLaneRecorder)(nil)
@@ -118,7 +120,7 @@ func (f *fakeLaneRecorder) ArmLane(_ context.Context, guid string, monitor bool)
 	if f.laneErr != nil {
 		return dawport.Armed{}, f.laneErr
 	}
-	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: monitor}, nil
+	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: monitor && !f.alreadyOn}, nil
 }
 
 func (f *fakeLaneRecorder) KeepMonitor(context.Context) error {

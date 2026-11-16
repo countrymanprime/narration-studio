@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -359,11 +360,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 			return boothVoiceRefused("starting", "A take is starting. Choose the voice once it has started."), nil
 		}
 		svc.boothVoices.choose(chapterID, target)
-		monitor := followChapterSetting(svc)
-		if recorder != nil && monitor {
-			h.boothMonitorOwed.Store(true)
-		}
-		chosen := armChosenLane(ctx, name, recorder, target, monitor)
+		chosen := armChosenLane(ctx, name, recorder, target, followChapterSetting(svc), &h.boothMonitorOwed)
 		if status := reaperStatus(svc); recorder == nil && status.Connection == reaperNotRunning {
 			// A linked DAW that is not answering cannot arm the lane: say so, the choice stands.
 			chosen.Reason = reaperNotRunning
@@ -380,11 +377,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		// The take is over (the narrator stopped it in the DAW): the voice is the next take's.
 		h.clearReadAloudRecording()
 		svc.boothVoices.choose(chapterID, target)
-		monitor := followChapterSetting(svc)
-		if recorder != nil && monitor {
-			h.boothMonitorOwed.Store(true)
-		}
-		return armChosenLane(ctx, name, recorder, target, monitor), nil
+		return armChosenLane(ctx, name, recorder, target, followChapterSetting(svc), &h.boothMonitorOwed), nil
 	}
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {
@@ -403,13 +396,13 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 // (Booth.follow_chapter_in_daw on) the voice's input monitoring is turned on when it is off, and the voice left goes back (#3428).
 // The choice stands whatever the DAW answers: a refusal is in the answer's Reason and Message, never silent. A recorder that cannot arm
 // a lane (none linked, or an engine without armed tracks) is not asked.
-func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string, monitor bool) BoothVoice {
+func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string, monitor bool, owed *atomic.Bool) BoothVoice {
 	chosen := BoothVoice{Outcome: "selected", TrackGUID: target}
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return chosen
 	}
-	if _, err := armer.ArmLane(ctx, target, monitor); err != nil {
+	if _, err := armLaneOwing(ctx, armer, target, monitor, owed); err != nil {
 		refusal := readAloudRecordRefusal(name, err)
 		chosen.Reason = refusal.Reason
 		switch refusal.Reason {
