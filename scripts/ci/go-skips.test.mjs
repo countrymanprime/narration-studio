@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { markdown, skippedTests } from './go-skips.mjs';
+import { markdown, parse, skippedTests } from './go-skips.mjs';
 
 const event = (fields) => JSON.stringify({ Time: '2026-11-16T00:00:00Z', Package: 'desktop/internal/findings', ...fields });
 
@@ -46,4 +46,50 @@ test('the table escapes a pipe in a reason and names how many skipped; nothing s
   assert.match(table, /1 skipped\./);
   assert.match(table, /\| internal\/x \| TestA \| a \\\| b \|/);
   assert.match(markdown([]), /No test skipped\./);
+});
+
+const outputOf = (test, ...lines) => [...lines.map((line) => event({ Action: 'output', Test: test, Output: line })), event({ Action: 'skip', Test: test })];
+
+test('the reason is the last file_test.go line before the skip, not a log line the test wrote earlier', () => {
+  const text = outputOf(
+    'TestLogs',
+    '=== RUN   TestLogs\n',
+    '    a_test.go:5: setup done\n',
+    '    a_test.go:9: the real reason\n',
+    '--- SKIP: TestLogs (0.00s)\n',
+  ).join('\n');
+  assert.equal(skippedTests(text)[0].reason, 'the real reason');
+});
+
+test('a reason that spans lines is joined, so a command output is not cut to its first line', () => {
+  const text = outputOf(
+    'TestMulti',
+    '    a_test.go:9: icacls deny unavailable: exit status 5: \n',
+    '        Access is denied.\n',
+    '        Successfully processed 0 files\n',
+    '--- SKIP: TestMulti (0.00s)\n',
+  ).join('\n');
+  assert.equal(skippedTests(text)[0].reason, 'icacls deny unavailable: exit status 5: Access is denied. Successfully processed 0 files');
+});
+
+test('an empty t.Skip() reads "(no reason given)"', () => {
+  const text = outputOf('TestEmpty', '    a_test.go:9: \n', '--- SKIP: TestEmpty (0.00s)\n').join('\n');
+  assert.equal(skippedTests(text)[0].reason, '(no reason given)');
+});
+
+test('a package that did not build is reported, and empty input is not "No test skipped"', () => {
+  const build = [
+    event({ Action: 'build-output', ImportPath: 'desktop/internal/x [desktop/internal/x.test]', Output: 'x_test.go:1: undefined\n' }),
+    event({ Action: 'build-fail', ImportPath: 'desktop/internal/x [desktop/internal/x.test]' }),
+    event({ Action: 'fail', Package: 'desktop/internal/x' }),
+  ].join('\n');
+  const parsed = parse(build);
+  assert.deepEqual(parsed.notBuilt, ['desktop/internal/x']);
+  assert.match(markdown(parsed), /desktop\/internal\/x did not build: none of its tests ran/);
+  assert.doesNotMatch(markdown(parse('')), /No test skipped/);
+  assert.match(markdown(parse('')), /No `go test -json` output was read/);
+});
+
+test('a pipe in a test name is escaped too', () => {
+  assert.match(markdown([{ package: 'desktop/internal/x', test: 'TestA/x|y', reason: 'r' }]), /TestA\/x\\\|y/);
 });
