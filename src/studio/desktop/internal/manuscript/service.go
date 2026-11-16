@@ -167,6 +167,9 @@ type manuscriptCache struct {
 	titles map[string]string
 	// refs is the same chapters in manuscript order, with their kind and subtitle.
 	refs []ChapterRef
+	// paragraphs is each chapter's paragraphs in file order, grouped once with the parse, so asking for one chapter's lines walks only those
+	// (a loop over every chapter used to walk every paragraph for each, #3560).
+	paragraphs map[string][]map[string]any
 }
 
 // ChapterRef is what the host needs to name and match a chapter: no status, word count or paragraph ids, so listing them builds no
@@ -509,13 +512,18 @@ func (s *Service) Load() (map[string]any, error) {
 	}
 	titles := map[string]string{}
 	var refs []ChapterRef
+	byChapter := map[string][]map[string]any{}
+	for _, paragraph := range objects(data["paragraphs"]) {
+		id := text(paragraph, "chapterId")
+		byChapter[id] = append(byChapter[id], paragraph)
+	}
 	for _, chapter := range objects(data["chapters"]) {
 		if !isFrontMatter(chapter) {
 			titles[text(chapter, "id")] = text(chapter, "title")
 			refs = append(refs, ChapterRef{ID: text(chapter, "id"), Title: text(chapter, "title"), Subtitle: text(chapter, "subtitle"), ContentKind: text(chapter, "contentKind")})
 		}
 	}
-	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs})
+	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs, paragraphs: byChapter})
 	return data, nil
 }
 

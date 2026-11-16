@@ -123,3 +123,66 @@ func TestChaptersThatShareAnIdDoNotShareTheirParagraphIds(t *testing.T) {
 		t.Fatal("two chapters with one id share their paragraph-id entries")
 	}
 }
+
+func TestAChaptersParagraphsAreThatChaptersOwnInFileOrder(t *testing.T) {
+	service := bookOf(t, 4, 3)
+	list, err := service.ChaptersUnmeasured()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, chapter := range list {
+		id := chapter["id"].(string)
+		paragraphs, err := service.Paragraphs(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i == len(list)-1 {
+			if paragraphs == nil || len(paragraphs) != 0 {
+				t.Fatalf("a chapter with no paragraphs answers %#v, want an empty list", paragraphs)
+			}
+			continue
+		}
+		for p, paragraph := range paragraphs {
+			if want := fmt.Sprintf("%s-p%03d", id, p); paragraph["id"] != want || paragraph["chapterId"] != id {
+				t.Fatalf("chapter %s paragraph %d = %v, want %s", id, p, paragraph["id"], want)
+			}
+		}
+		if len(paragraphs) != 3 {
+			t.Fatalf("chapter %s has %d paragraphs, want 3", id, len(paragraphs))
+		}
+		if got, ok := service.ParagraphID(id, 1); !ok || got != fmt.Sprintf("%s-p001", id) {
+			t.Fatalf("ParagraphID(%s, 1) = %q, %v", id, got, ok)
+		}
+	}
+	if paragraphs, err := service.Paragraphs("no-such-chapter"); err != nil || paragraphs == nil || len(paragraphs) != 0 {
+		t.Fatalf("an unknown chapter answers %#v, %v, want an empty list", paragraphs, err)
+	}
+}
+
+// Asking for every chapter's paragraphs (the pickup list, the preview) walked every paragraph for each chapter, so quadrupling the book took
+// about sixteen times as long (#3560). The median of several runs, against a limit between linear (4) and quadratic (16).
+func TestReadingEveryChaptersParagraphsGrowsWithTheBookNotWithItsSquare(t *testing.T) {
+	median := func(chapters int) time.Duration {
+		service := bookOf(t, chapters, 5)
+		list, err := service.ChaptersUnmeasured()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runs := make([]time.Duration, 7)
+		for i := range runs {
+			start := time.Now()
+			for _, chapter := range list {
+				if _, err := service.Paragraphs(chapter["id"].(string)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			runs[i] = time.Since(start)
+		}
+		slices.Sort(runs)
+		return runs[len(runs)/2]
+	}
+	small, large := median(1000), median(4000)
+	if ratio := float64(large) / float64(small); ratio > 9 {
+		t.Fatalf("4,000 chapters took %.1fx as long as 1,000 (%v vs %v); linear is about 4x, quadratic about 16x", ratio, large, small)
+	}
+}
