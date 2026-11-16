@@ -6,6 +6,7 @@ import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import { projectNameError } from '../../projectName';
+import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import type { ProjectSwitchResult } from '../../types';
 
 // What project.ValidateName (src/studio/desktop/internal/project/validate.go) refuses, said before Create rather than after it.
@@ -61,6 +62,13 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       }
     })();
 
+  // A name is typed: Escape and the close button ask first, and the button that drops it says so (#3531). With nothing typed the button reads Close and closes at once.
+  const typed = name.trim() !== '';
+  const leave = async () => {
+    if (typed && !(await confirmDiscard('the project name'))) return;
+    onClose();
+  };
+
   const create = () =>
     void (async () => {
       if (nameError) return;
@@ -81,13 +89,13 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
     <Dialog
       dismissOnOutsidePress={false}
       title="New Project"
-      onClose={busy ? undefined : onClose}
+      onClose={busy ? undefined : () => void leave()}
       // Cancel beside Create, not at the far side of the footer from it (alignment audit XPJ-5).
       actionsAlign="end"
       actions={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Cancel
+            {typed ? 'Discard' : 'Close'}
           </Button>
           <Button variant="primary" pending={busy} onClick={create} disabled={!name.trim() || Boolean(nameError)}>
             Create

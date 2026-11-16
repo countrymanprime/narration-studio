@@ -5,6 +5,7 @@ import { NewProjectDialog } from './NewProjectDialog';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { brand } from '../../brand.gen';
+import { overlay } from '../../overlay/overlayService';
 
 afterEach(cleanup);
 
@@ -87,9 +88,9 @@ describe('NewProjectDialog', () => {
     expect(screen.getByText(/default projects folder/)).toBeTruthy();
   });
 
-  it('puts Cancel beside Create at the end of the footer (XPJ-5)', () => {
+  it('puts Close beside Create at the end of the footer (XPJ-5)', () => {
     renderDialog();
-    const footer = screen.getByRole('button', { name: 'Cancel' }).parentElement!;
+    const footer = screen.getAllByRole('button', { name: 'Close' }).at(-1)!.parentElement!;
     expect(footer.className).not.toContain('first-child:not(:only-child)]:mr-auto');
     expect(footer.contains(screen.getByRole('button', { name: 'Create' }))).toBe(true);
   });
@@ -198,11 +199,59 @@ describe('NewProjectDialog', () => {
     expect(screen.queryAllByRole('alert')).toHaveLength(0);
   });
 
-  it('calls onClose when Cancel is clicked', () => {
-    const { onClose } = renderDialog();
+  // A typed name is a draft: Escape and the close button ask first, the button that drops it says so, and with nothing typed everything closes at once (#3531).
+  describe('leaving with a name typed', () => {
+    const escape = () => fireEvent.keyDown(screen.getByRole('dialog', { name: 'New Project' }), { key: 'Escape' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    it('with nothing typed, Escape and the Close button close at once and ask nothing', () => {
+      const confirm = vi.spyOn(overlay, 'confirm');
+      const { onClose } = renderDialog();
+      escape();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!);
+      expect(onClose).toHaveBeenCalledTimes(2);
+      expect(confirm).not.toHaveBeenCalled();
+      confirm.mockRestore();
+    });
 
-    expect(onClose).toHaveBeenCalled();
+    it('the footer button reads Close when empty and Discard once a name is typed, and Discard drops the name without asking', () => {
+      const confirm = vi.spyOn(overlay, 'confirm');
+      const { onClose } = renderDialog();
+      expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0);
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
+      expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(confirm).not.toHaveBeenCalled();
+      confirm.mockRestore();
+    });
+
+    it.each([
+      ['Escape', escape],
+      ['the close button', () => fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]!)],
+    ])('%s asks "Discard the project name?" first; Keep editing keeps the dialog and the name, Discard closes', async (_name, leave) => {
+      const confirm = vi.spyOn(overlay, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      const { onClose } = renderDialog();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
+      leave();
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard the project name?', cancelLabel: 'Keep editing', safeDefault: true })),
+      );
+      expect(onClose).not.toHaveBeenCalled();
+      expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Alice');
+      leave();
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      confirm.mockRestore();
+    });
+
+    it('a name of only spaces is not a draft: Escape closes at once', () => {
+      const confirm = vi.spyOn(overlay, 'confirm');
+      const { onClose } = renderDialog();
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: '   ' } });
+      escape();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(confirm).not.toHaveBeenCalled();
+      confirm.mockRestore();
+    });
   });
 });
