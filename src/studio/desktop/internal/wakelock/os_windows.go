@@ -42,7 +42,7 @@ func (w *windowsInhibitor) Acquire() error {
 		}
 		started <- nil
 		<-stop
-		procSetThreadExecutionState.Call(uintptr(esContinuous)) // back to the system's own idle timers
+		_, _, _ = procSetThreadExecutionState.Call(uintptr(esContinuous)) // back to the system's own idle timers; nothing to do if it fails, the thread ends next
 	}()
 	if err := <-started; err != nil {
 		<-done
