@@ -187,6 +187,22 @@ describe("the Booth's voices", () => {
       expect(onNoTrack).not.toHaveBeenCalled();
     });
 
+    it('adding a track and putting a character on a voice make no host call', async () => {
+      const { api, notify, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true });
+      const add = vi.spyOn(api, 'boothVoiceAdd');
+      const setCharacters = vi.spyOn(api, 'voiceTracksSetCharacters');
+      let added: boolean | undefined;
+      let used: boolean | undefined;
+      await act(async () => {
+        added = await hook.current.add('Alice', []);
+        used = await hook.current.use(hook.current.voices[1], ['c1']);
+      });
+      expect([added, used]).toEqual([false, false]);
+      expect(add).not.toHaveBeenCalled();
+      expect(setCharacters).not.toHaveBeenCalled();
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
+    });
+
     it('reads no arm state from the DAW, so the control shows none', async () => {
       const api = createMockApi({}, { voiceFolders: true });
       const read = vi.spyOn(api, 'readAloudReaperState');

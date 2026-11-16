@@ -18,7 +18,7 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 export const VOICE_CONTROL_ID = 'bvoice';
 
 /** Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW. */
-const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
+export const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
@@ -349,6 +349,10 @@ export function useBoothVoices({
 
   const add = useCallback(
     async (name: string, characterIds: string[]) => {
+      if (coldNow.current) {
+        notify(COLD_READ_NO_VOICE, 'info');
+        return false;
+      }
       try {
         // A track named for a character records that character by name until it has an assignment; the add makes one, so the
         // character the name matches goes in it too, unless the name is assigned already (it then keeps what it had).
@@ -395,6 +399,10 @@ export function useBoothVoices({
 
   const use = useCallback(
     async (voice: Voice, characterIds: string[]) => {
+      if (coldNow.current) {
+        notify(COLD_READ_NO_VOICE, 'info');
+        return false;
+      }
       try {
         if (characterIds.length > 0) {
           const name = voice.name.trim();
