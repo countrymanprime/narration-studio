@@ -1,5 +1,5 @@
 // A name typed in the New Project dialog is a draft: Escape and the close button ask "Discard the project name?" first (Keep editing focused), the footer button
-// reads Close when empty and Discard once a name is typed and drops it without asking, a press on the backdrop does nothing, and a held Enter that answered the question
+// reads Close when empty and Discard name once a name is typed and drops it without asking, a press on the backdrop does nothing, and a held Enter that answered the question
 // does not create the project in the box it returns to (#3531, #3400).
 import { expect, test, type Page } from '@playwright/test';
 import { expectFits } from './helpers/questionFits';
@@ -38,12 +38,12 @@ test('Escape over a typed name asks with Keep editing focused; Keep editing keep
   await expect(dialog(page)).toHaveCount(0);
 });
 
-test('the close button asks too, and the footer Discard drops the name without asking', async ({ page }) => {
+test('the close button asks too, and the footer Discard name drops it without asking', async ({ page }) => {
   await openWithName(page);
   await dialog(page).getByRole('button', { name: 'Close' }).first().click();
   await expect(question(page)).toBeVisible();
   await question(page).getByRole('button', { name: 'Keep editing' }).click();
-  await dialog(page).getByRole('button', { name: 'Discard' }).click();
+  await dialog(page).getByRole('button', { name: 'Discard name' }).click();
   await expect(dialog(page)).toHaveCount(0);
   await expect(question(page)).toHaveCount(0);
 });

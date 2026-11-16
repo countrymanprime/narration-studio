@@ -95,7 +95,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       actions={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            {typed ? 'Discard' : 'Close'}
+            {typed ? 'Discard name' : 'Close'}
           </Button>
           <Button variant="primary" pending={busy} onClick={create} disabled={!name.trim() || Boolean(nameError)}>
             Create

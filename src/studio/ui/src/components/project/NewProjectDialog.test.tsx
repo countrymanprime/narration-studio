@@ -214,13 +214,13 @@ describe('NewProjectDialog', () => {
       confirm.mockRestore();
     });
 
-    it('the footer button reads Close when empty and Discard once a name is typed, and Discard drops the name without asking', () => {
+    it('the footer button reads Close when empty and Discard name once a name is typed, and Discard name drops it without asking', () => {
       const confirm = vi.spyOn(overlay, 'confirm');
       const { onClose } = renderDialog();
       expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0);
       fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
       expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
-      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Discard name' }));
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(confirm).not.toHaveBeenCalled();
       confirm.mockRestore();

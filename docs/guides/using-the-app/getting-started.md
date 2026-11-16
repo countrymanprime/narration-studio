@@ -42,7 +42,7 @@ Start **<!-- brand:name -->Narration Studio<!-- /brand -->** from the Start Menu
 Press **New project** and type a name, for example `The Lighthouse Keeper`. **Location** shows where the project's folder
 will go: the default projects folder (<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in
 your user folder) unless you choose another with **Change location…**. Press **Create**.
-With a name typed, Escape and the close button ask **Discard the project name?** (**Keep editing** keeps it), and the footer button reads **Discard** and drops it; with nothing typed it reads **Close** and closes at once.
+Leaving the dialog with a name typed asks first (**Discard the project name?**; **Keep editing** keeps it): the footer button reads **Close** when the name is empty and **Discard name** once one is typed, and drops it.
 
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
 
@@ -151,7 +151,7 @@ picker from **Switch project** with REAPER open on a different project, not when
 ending with a period, or a reserved Windows name such as CON, NUL or COM1. A name that breaks a rule shows the reason
 under the field as you type, and **Create** stays off until it is fixed. **Location** shows the folder the project goes
 in: the default projects folder (<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in your
-user folder) until you pick another with **Change location…**. Leaving the dialog with a name typed asks first (**Discard the project name?**); the footer button reads **Close** when the name is empty and **Discard** once one is typed.
+user folder) until you pick another with **Change location…**.
 
 A new project opens on [Script](script.md), which says it has no manuscript yet. **Import manuscript** there opens the
 import over Script; Production has the same button.
