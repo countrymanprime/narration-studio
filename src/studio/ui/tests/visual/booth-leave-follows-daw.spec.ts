@@ -60,3 +60,18 @@ test('a question that says REAPER is recording is asked again, as the unconfirme
   await expect(unconfirmed.getByRole('button', { name: 'Stay' })).toBeVisible();
   await expect(unconfirmed.getByRole('button', { name: 'Keep recording' })).toHaveCount(0);
 });
+
+// A take that ends in the DAW while the question is open, with the DAW answering, keeps the question true: the take is over and nothing "may still be recording".
+test('a take ended in the DAW keeps "Stop recording?" and does not say the DAW may still be recording; Stop and leave leaves', async ({ page }) => {
+  await recording(page);
+  await page.keyboard.press('Escape');
+  const running = page.getByRole('alertdialog', { name: 'Stop recording?' });
+  await expect(running).toBeVisible();
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.endTakeInDaw());
+  await page.waitForTimeout(2500);
+  await expect(running).toBeVisible();
+  await expect(running).not.toContainText('may still be recording');
+  await enterHoldOver(running);
+  await running.getByRole('button', { name: 'Stop and leave' }).click();
+  await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
+});

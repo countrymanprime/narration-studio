@@ -348,11 +348,27 @@ describe('useBoothLeaveGuard', () => {
       const { go, hook, dialog, session } = setup({});
       act(() => void hook.result.current.leave('/script', go));
       expect(dialog()?.spec.title).toBe('Stop recording?');
-      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true });
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
       await flush();
       await flush();
       expect(dialog()?.spec).toMatchObject({ title: 'Leave for Script?', cancelLabel: 'Stay', confirmLabel: 'Stop and leave' });
       expect(dialog()?.spec.body).toBe('REAPER may still be recording. Leaving tries to stop the take.');
+      act(() => dialog()!.answer(false));
+    });
+
+    // Every end is unconfirmed until the DAW has been read once: a take that ends with the DAW answering keeps "Stop recording?", it is not rewritten to "may still be recording".
+    it('keeps the running question when the take ends and the DAW answers the read that follows', async () => {
+      let unconfirmed = true;
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => unconfirmed, endConfirmed: async () => true });
+      await flush();
+      await flush();
+      unconfirmed = false;
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => unconfirmed, endConfirmed: async () => true });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Stop recording?', cancelLabel: 'Keep recording' });
       act(() => dialog()!.answer(false));
     });
 

@@ -143,10 +143,22 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     const asked = open.current;
     // A refusal already reports the DAW's last answer to a stop: it stays as it is.
     if (!asked || asked.pending || asked.refusal || asked.claim === claim) return;
-    if (claim === 'unconfirmed' || sessionRef.current.recording) {
+    const askAgain = () => {
       reask.current = true;
       asked.close.abort();
+    };
+    if (claim === 'unconfirmed' && !sessionRef.current.recording) {
+      // Every end is unconfirmed until the DAW has been read once: a take that ended with the DAW answering keeps its question. Only an end that read says it cannot vouch for
+      // (the DAW quiet) makes the question say so.
+      let current = true;
+      void confirmedWithin(sessionRef.current.endConfirmed?.()).then((confirmed) => {
+        if (current && !confirmed && open.current === asked && claimOf(sessionRef.current) === 'unconfirmed') askAgain();
+      });
+      return () => {
+        current = false;
+      };
     }
+    if (sessionRef.current.recording) askAgain();
   }, [claim, recording]);
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
