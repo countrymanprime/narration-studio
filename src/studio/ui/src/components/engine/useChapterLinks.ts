@@ -10,6 +10,9 @@ import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useCha
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
+/** A failed read of the chapter list on a job end or window focus keeps the list as it was; the mount read and the Refresh button say why they failed. */
+const recorded = (_failure: unknown): void => undefined;
+
 export type ChapterLinks = {
   /** The tracks in the project the links are read against, with any track `create` added that the track list does not have yet. */
   tracks: Track[];
@@ -98,24 +101,24 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     setError('');
   }, [linksReadAt]);
 
+  const readChapters = useCallback(() => manuscript.manuscriptChapters().then(setChapters), [manuscript]);
+  const reload = useCallback(async () => {
+    await Promise.all([readChapters(), refreshLinks()]);
+  }, [readChapters, refreshLinks]);
+
   // The chapter list is read on mount and not again by a link press (#3272), so a re-import (a job ending) or a return to the window reads it again:
-  // the rows show a renamed, added or removed chapter without waiting for the panel to be reopened.
+  // the rows show a renamed, added or removed chapter without waiting for the panel to be reopened. A failed read keeps the list as it was.
   const system = usePort('system');
   useEffect(() => {
     if (!enabled) return;
-    const readChapters = () => manuscript.manuscriptChapters().then(setChapters, () => undefined);
-    const stop = system.subscribeJobEnded(readChapters);
-    window.addEventListener('focus', readChapters);
+    const again = () => void readChapters().catch(recorded);
+    const stop = system.subscribeJobEnded(again);
+    window.addEventListener('focus', again);
     return () => {
       stop();
-      window.removeEventListener('focus', readChapters);
+      window.removeEventListener('focus', again);
     };
-  }, [enabled, manuscript, system]);
-
-  const reload = useCallback(async () => {
-    const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
-    setChapters(nextChapters);
-  }, [manuscript, refreshLinks]);
+  }, [enabled, readChapters, system]);
 
   useEffect(() => {
     if (!enabled) return;
