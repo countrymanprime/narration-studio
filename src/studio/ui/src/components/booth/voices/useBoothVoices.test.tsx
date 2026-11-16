@@ -928,6 +928,70 @@ describe('a lane armed in the DAW', () => {
     expect(hook.current.current?.name).toBe('Extras');
   });
 
+  it('a read begun before a choice of the voice the Booth already has does not flip it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    // Every read stays out until the test answers it.
+    const held: ((value: ReturnType<typeof state>) => void)[] = [];
+    api.readAloudReaperState = () => new Promise((resolve) => held.push(resolve));
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const { hook } = await mount({}, false, api);
+    await settle();
+    const narrator = hook.current.current?.guid ?? '';
+    const last = held.length - 1;
+    // The latest read was begun under the Narrator; the narrator presses Num 0, the voice the Booth already has, and only then does it answer.
+    await act(async () => hook.current.byKey(0));
+    held[last](state({ trackGuid: narrator, armedTrackGuids: [RABBIT] }));
+    await settle();
+    await settle();
+    expect(set.mock.calls.map((call) => call[1])).toEqual([narrator]);
+    expect(hook.current.current?.guid).toBe(narrator);
+  });
+
+  it('a read held while the who-is-in dialog is open is not replayed after it picked the current voice', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const answer = fakeDaw(api, state({ armedTrackGuids: [RABBIT] }));
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const hook: { current?: BoothVoices } = {};
+    const notify = vi.fn();
+    function Probe({ asking }: { asking: boolean }) {
+      hook.current = useBoothVoices({ chapterId, notify, recording: false, asking });
+      return null;
+    }
+    const tree = (asking: boolean) => (
+      <ApiProvider api={api}>
+        <VoiceSetupProvider projectFolder="C:/Projects/Alice">
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <Probe asking={asking} />
+          </ChapterTrackStateProvider>
+        </VoiceSetupProvider>
+      </ApiProvider>
+    );
+    // The dialog is open before any read lands, so the hand-armed Rabbit is held, not followed.
+    const view = render(tree(true));
+    await settle();
+    expect(set).not.toHaveBeenCalled();
+    const narrator = hook.current?.voices.find((voice) => voice.narrator);
+    expect(narrator).toBeDefined();
+    // The narrator answers the dialog with the voice the Booth has; the DAW then arms it alone and the dialog closes.
+    answer.current = state({ status: 'ready', trackGuid: narrator?.guid ?? '', armedTrackGuids: [narrator?.guid ?? ''] });
+    await act(async () => void hook.current?.use(narrator!, []));
+    view.rerender(tree(false));
+    await settle();
+    await settle();
+    expect(set.mock.calls.map((call) => call[1])).toEqual([narrator?.guid]);
+  });
+
+  it("is followed when the chapter's folder track is armed beside one voice", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const tracks = (await api.tracksLive()).project.tracks;
+    const folder = tracks.find((track) => track.isFolder)?.guid ?? '';
+    fakeDaw(api, state({ status: 'several_armed', armedCount: 2, armedTrackGuids: [folder, RABBIT] }));
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    await mount({}, false, api);
+    await settle();
+    expect(set).toHaveBeenCalledExactlyOnceWith(chapterId, RABBIT);
+  });
+
   it('a read taken while this app recorded is not followed when the take stops', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     api.readAloudReaperState = async () => state({ armedTrackGuids: [RABBIT] });

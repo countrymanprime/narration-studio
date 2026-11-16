@@ -97,13 +97,16 @@ export function useBoothVoices({
   const [stopping, setStopping] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [revision, setRevision] = useState(0);
+  // Counts the changes after which an arm read taken earlier no longer says what the DAW has: a choice starting or ending (even of the voice the Booth
+  // already has, or a refused one) and the "Who is in Num N?" question opening or closing. Each change drops the read in flight and takes a new one.
+  const [epoch, setEpoch] = useState(0);
   const [reaper, setReaper] = useState<{
     chapterId: string;
     status: string;
     trackGuid: string;
     armedCount?: number;
     armedTrackGuids?: string[];
-    stamp: { voice: string; recording: boolean };
+    stamp: { voice: string; recording: boolean; epoch: number };
   } | null>(null);
 
   // The chapter's one link, once the shared state has answered: a chapter with no one link has no folder to read.
@@ -204,7 +207,7 @@ export function useBoothVoices({
     }
     let live = true;
     // What the Booth had when this read began: a read taken during a take, or before the voice changed, is not the DAW's word on the Booth's voice now.
-    const stamp = { voice: hostVoice.guid, recording };
+    const stamp = { voice: hostVoice.guid, recording, epoch };
     teleprompter
       .readAloudReaperState(chapterId)
       .then(
@@ -223,7 +226,14 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, teleprompter, hostVoice.guid, recording, coldRead, revision, trackState.readAt]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, coldRead, epoch, revision, trackState.readAt]);
+
+  const askingBefore = useRef(asking);
+  useEffect(() => {
+    if (askingBefore.current === asking) return;
+    askingBefore.current = asking;
+    setEpoch((n) => n + 1);
+  }, [asking]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
@@ -274,6 +284,7 @@ export function useBoothVoices({
       sending.current = voice;
       let accepted = false;
       setChoosing(true);
+      setEpoch((n) => n + 1);
       voiceTracks
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
@@ -300,6 +311,7 @@ export function useBoothVoices({
           queued.current = undefined;
           if (next && next.guid !== voice.guid) return send(next);
           setChoosing(false);
+          setEpoch((n) => n + 1);
           // A key pressed with no take running: the take starts on the voice the host now records on, unless a take began meanwhile.
           const start = recordOnChoice.current;
           recordOnChoice.current = false;
@@ -489,11 +501,14 @@ export function useBoothVoices({
   const followed = useRef('');
   // null while no read counts (none yet, taken during a take, or begun under another voice): that says nothing, so it neither follows nor forgets.
   const armedByHand = useMemo(() => {
-    if (!read || read.stamp.recording || read.stamp.voice !== hostVoice.guid) return null;
+    if (!read || read.stamp.recording || read.stamp.voice !== hostVoice.guid || read.stamp.epoch !== epoch) return null;
     if (read.status !== 'other_armed' && read.status !== 'several_armed') return '';
-    const others = (read.armedTrackGuids ?? []).filter((guid) => guid.toLowerCase() !== current?.guid.toLowerCase());
+    // Voices of this chapter other than the Booth's own: the folder track or another chapter's track armed beside them is not a lane change.
+    const others = (read.armedTrackGuids ?? []).filter(
+      (guid) => guid.toLowerCase() !== current?.guid.toLowerCase() && voices.some((voice) => voice.guid.toLowerCase() === guid.toLowerCase()),
+    );
     return others.length === 1 ? others[0].toLowerCase() : '';
-  }, [read, hostVoice.guid, current]);
+  }, [read, hostVoice.guid, epoch, current, voices]);
   useEffect(() => {
     if (armedByHand === null) return;
     if (armedByHand === '') {
