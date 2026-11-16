@@ -281,18 +281,25 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     });
   // Another row replaces the entry being edited (or the new one being named), so it asks first when that holds text.
   // `after` runs only once the move goes ahead (a command for the entry it opens): a Cancel must not leave it queued for the next time the entry is opened (#3457).
-  const selectRow = (id?: string, after?: () => void) =>
+  const selectRow = (id?: string, after?: () => void) => {
+    // The entry already open, with no new entry or loose suggestion in front of it, goes nowhere: nothing to ask about (a press on its own row, or its own Hear).
+    if (id !== undefined && id === selectedId && !pendingNewEntity && !looseId) {
+      after?.();
+      return;
+    }
     guarded(() => {
       setPendingNewEntity(undefined);
       setLooseId(null);
       setSelectedId(id);
       after?.();
     });
+  };
   // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({
     requestPreview: (id) => api.guidePreview(id),
-    onAssetRequired: (id) => selectRow(id, () => setCommand({ id, kind: 'hear', nonce: Math.random() })),
+    // The entry already open takes its own Hear with no move to ask about; another one is opened first (`ask` below), and the command follows the answer.
+    onAssetRequired: (id) => live.current.ask(id, 'hear'),
     notify,
   });
   const { hear } = listHear;
@@ -308,8 +315,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     // The entry already open takes its own command with no move to ask about (one question, not two); another one is opened first, and the command follows the answer.
     ask: (id: string, kind: EntryCommand['kind']) => {
       const send = () => setCommand({ id, kind, nonce: Math.random() });
-      if (id === selectedId) send();
-      else selectRow(id, send);
+      // `selectRow` knows when the move goes nowhere (the entry already open) and when it does not (a new entry or a loose suggestion stands in front of it).
+      selectRow(id, send);
     },
   };
   const live = useRef(liveNow);
