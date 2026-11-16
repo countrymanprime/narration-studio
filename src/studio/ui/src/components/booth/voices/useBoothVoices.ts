@@ -201,10 +201,11 @@ export function useBoothVoices({
     () => {
       if (!link) return [];
       const all = withAddedVoices(tracks, link, added ?? []);
-      // The host's rule (chapterVoicesIn): a track some chapter is linked to is that chapter's own (nested chapters), never a voice of this one.
+      // The host's rule (chapterVoicesIn): a track some chapter is linked to is that chapter's own (nested chapters), never a voice of this one,
+      // and a track the narrator marked as not a voice (a music bed, room tone) is not one either (#3331).
       const owned = new Set(
         folderChildren(all, link)
-          .filter((child) => linkedTracks.includes(child.guid.toLowerCase()))
+          .filter((child) => linkedTracks.includes(child.guid.toLowerCase()) || setup.notVoiceGuids.includes(child.guid.toLowerCase()))
           .map((child) => child.guid),
       );
       return folderVoices(
