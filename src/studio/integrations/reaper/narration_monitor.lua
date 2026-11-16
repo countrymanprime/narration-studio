@@ -130,6 +130,9 @@ return function(registry)
       all[#all + 1] = row
     end
     state.unsaved = not save(all)
+    if state.in_tick then
+      state.tick_wrote = true
+    end
     if not state.unsaved then
       state.misses, state.wait = nil, nil
     elseif from_tick or state.in_tick then
@@ -259,9 +262,11 @@ return function(registry)
       return
     end
     state.in_tick = true
+    state.tick_wrote = false
     recover()
-    -- A ledger that could not be written after lanes were put back would still list them: it is written again.
-    if state.unsaved then
+    -- A ledger that could not be written after lanes were put back would still list them: it is written again, unless a write already ran in this tick
+    -- (the recovery's), so one tick counts as one miss.
+    if state.unsaved and not state.tick_wrote then
       if (state.wait or 0) <= 0 then
         persist(true)
       else

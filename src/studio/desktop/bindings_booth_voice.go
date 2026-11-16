@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -396,7 +395,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 // (Booth.follow_chapter_in_daw on) the voice's input monitoring is turned on when it is off, and the voice left goes back (#3428).
 // The choice stands whatever the DAW answers: a refusal is in the answer's Reason and Message, never silent. A recorder that cannot arm
 // a lane (none linked, or an engine without armed tracks) is not asked.
-func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string, monitor bool, owed *atomic.Bool) BoothVoice {
+func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string, monitor bool, owed *monitorDebt) BoothVoice {
 	chosen := BoothVoice{Outcome: "selected", TrackGUID: target}
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {

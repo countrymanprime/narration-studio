@@ -95,15 +95,13 @@ func TestEnteringTheBoothNeverArmsDuringATakeThisAppRunsOrStarts(t *testing.T) {
 
 func TestChoosingAVoiceMonitorsItWhileTheSwitchIsOnAndNotWhenItIsOff(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	switchFollow(t, host, "true")
 	on := &fakeLaneRecorder{}
 	boothVoiceSet(t, host, on, ids[0], voiceQueenTrack)
 	if len(on.laneMonitor) != 1 || !on.laneMonitor[0] {
 		t.Fatalf("with Booth.follow_chapter_in_daw on (the default) the voice is monitored: %v", on.laneMonitor)
 	}
-	off := "false"
-	if err := host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
-		t.Fatal(err)
-	}
+	switchFollow(t, host, "false")
 	quiet := &fakeLaneRecorder{}
 	boothVoiceSet(t, host, quiet, ids[0], voiceNarratorTrack)
 	if len(quiet.laneMonitor) != 1 || quiet.laneMonitor[0] {
@@ -154,10 +152,7 @@ func TestEnteringTheBoothWhileTheDAWRecordsDropsAWaitingRelease(t *testing.T) {
 
 func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
-	off := "false"
-	if err := host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
-		t.Fatal(err)
-	}
+	switchFollow(t, host, "false")
 	fake := &fakeLaneRecorder{}
 	// The binding reads the switch itself: a voice chosen during a take is armed after it, and the monitoring waits for the switch.
 	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services()), nil); err != nil {
@@ -318,7 +313,74 @@ func TestChoosingAVoiceWithTheSwitchOnOwesTheMonitoringAndWithItOffDoesNot(t *te
 // switchFollow saves Booth.follow_chapter_in_daw: the settings store outlives a test host, so a test that depends on the switch sets it.
 func switchFollow(t *testing.T, host *Host, value string) {
 	t.Helper()
-	if err := host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &value}); err != nil {
+	save := func(v string) error {
+		return host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &v})
+	}
+	if err := save(value); err != nil {
 		t.Fatal(err)
+	}
+	// The store outlives the host: leave the switch on, its default, for the next test and the next pass.
+	t.Cleanup(func() { _ = save("true") })
+}
+
+// gatedArmer is a LaneArmer whose answer waits for the test: entered says the call is in flight, proceed lets it answer.
+type gatedArmer struct {
+	entered   chan struct{}
+	proceed   chan struct{}
+	monitored bool
+}
+
+func newGatedArmer(monitored bool) *gatedArmer {
+	return &gatedArmer{entered: make(chan struct{}), proceed: make(chan struct{}), monitored: monitored}
+}
+
+func (g *gatedArmer) ArmLane(_ context.Context, guid string, _ bool) (dawport.Armed, error) {
+	close(g.entered)
+	<-g.proceed
+	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: g.monitored}, nil
+}
+
+func TestAnArmInFlightDuringAReleaseStillOwesWhenItMonitors(t *testing.T) {
+	var owed monitorDebt
+	armer := newGatedArmer(true)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if _, err := armLaneOwing(context.Background(), armer, voiceNarratorTrack, true, &owed); err != nil {
+			t.Error(err)
+		}
+	}()
+	<-armer.entered
+	owed.Swap(false) // a release lands while the arm is in flight and takes the note
+	close(armer.proceed)
+	<-done
+	if !owed.Load() {
+		t.Fatal("the arm monitored after the release took the note, so the monitoring is owed")
+	}
+}
+
+func TestOverlappingArmsKeepTheDebtOfTheOneThatMonitored(t *testing.T) {
+	var owed monitorDebt
+	first, second := newGatedArmer(false), newGatedArmer(true)
+	run := func(armer *gatedArmer) chan struct{} {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if _, err := armLaneOwing(context.Background(), armer, voiceNarratorTrack, true, &owed); err != nil {
+				t.Error(err)
+			}
+		}()
+		return done
+	}
+	firstDone := run(first)
+	<-first.entered
+	secondDone := run(second)
+	<-second.entered
+	close(second.proceed) // the second arm monitors a lane
+	<-secondDone
+	close(first.proceed) // the first answers "on already", a definite answer that must not take the second's debt
+	<-firstDone
+	if !owed.Load() {
+		t.Fatal("the first arm's answer cleared the debt of the arm that monitored")
 	}
 }

@@ -681,3 +681,25 @@ H.test('a write inside a tick that fails does not reset the spacing of the retri
   assert(ok, err)
   H.truthy(opened <= 2, 'the ghost retry that fails is spaced like the others, not tried on each of the next ticks: ' .. opened)
 end)
+
+H.test('a ledger that cannot be written is opened once in the tick that recovers it, not twice', function()
+  local s, narrator = new_session()
+  -- One lane resolves and one track is nowhere, so the ledger is not empty after the recovery and the write is attempted (and refused).
+  H.write_file(s:path('narration_monitor_ledger.txt'), row(s, narrator) .. '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\n')
+  narrator.rec_mon = 1
+  local opened, real_open = 0, io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find('narration_monitor_ledger', 1, true) and mode == 'w' then
+      opened = opened + 1
+      return nil, 'denied'
+    end
+    return real_open(path, mode, ...)
+  end
+  local ok, err = pcall(function()
+    s:tick()
+  end)
+  io.open = real_open
+  assert(ok, err)
+  H.eq(monitors(s), { 0, 0, 0 }, 'the leftover lane went back')
+  H.eq(opened, 1, 'one write attempt in the first tick')
+end)

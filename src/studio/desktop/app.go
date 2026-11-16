@@ -142,7 +142,7 @@ type Host struct {
 
 	// boothMonitorOwed is true once the Booth asked the DAW to turn an input monitoring on in this session (DawArmBoothVoice or BoothVoiceSet with the
 	// switch on) and no release has been answered since: a DAW that cannot be reached when the Booth is left may still hold it on, which the narrator is told.
-	boothMonitorOwed atomic.Bool
+	boothMonitorOwed monitorDebt
 	// voiceSamplesRevision rises with every change to the voice samples this process makes (bindings_voicesamples.go): the
 	// voice_samples_changed event's payload, so a page that missed an event still sees that something changed.
 	voiceSamplesRevision atomic.Int64

@@ -3774,8 +3774,8 @@
   {
     "name": "the ledger of a closed REAPER is read while another take runs",
     "file": "narration_monitor.lua",
-    "find": "    if busy() then\n      return\n    end\n    state.in_tick = true\n    recover()",
-    "replace": "    state.in_tick = true\n    recover()"
+    "find": "    if busy() then\n      return\n    end\n    state.in_tick = true\n    state.tick_wrote = false\n    recover()",
+    "replace": "    state.in_tick = true\n    state.tick_wrote = false\n    recover()"
   },
   {
     "name": "a leftover ledger is erased by a restore that runs before the file is read",
@@ -3930,7 +3930,7 @@
   {
     "name": "a ledger that could not be written is never written again",
     "file": "narration_monitor.lua",
-    "find": "    if state.unsaved then\n      if (state.wait or 0) <= 0 then",
+    "find": "    if state.unsaved and not state.tick_wrote then\n      if (state.wait or 0) <= 0 then",
     "replace": "    if false then\n      if (state.wait or 0) <= 0 then"
   },
   {
@@ -4010,5 +4010,11 @@
     "file": "narration_monitor.lua",
     "find": "    elseif from_tick or state.in_tick then",
     "replace": "    elseif from_tick then"
+  },
+  {
+    "name": "a failing write is tried twice in the tick that recovered the ledger",
+    "file": "narration_monitor.lua",
+    "find": "    if state.unsaved and not state.tick_wrote then",
+    "replace": "    if state.unsaved then"
   }
 ]

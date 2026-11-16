@@ -49,7 +49,7 @@ func (h *Host) dawArmBoothVoiceIn(ctx context.Context, svc hostServices, recorde
 	return armBoothVoiceLane(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc), &h.boothMonitorOwed)
 }
 
-func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool, owed *atomic.Bool) (dawport.Result, error) {
+func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool, owed *monitorDebt) (dawport.Result, error) {
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return dawport.Result{OK: true}, nil
@@ -97,18 +97,30 @@ func (h *Host) DawReleaseBoothMonitor() (string, error) {
 	return encodeBinding(h.releaseBoothMonitor(ctx, svc, recorderFrom(svc)), nil)
 }
 
-// armLaneOwing sends ArmLane and keeps owed, the host's note that the DAW may hold a monitoring the Booth turned on, in step with what the DAW
-// answered: it is set before the call when a monitoring is asked for, so a call that times out (the DAW may have acted) stays owed, and is put back to
-// what it was when the answer says nothing was turned on (a definite refusal, or a lane that was on already).
-func armLaneOwing(ctx context.Context, armer dawport.LaneArmer, target string, monitor bool, owed *atomic.Bool) (dawport.Armed, error) {
+// monitorDebt is the host's note that the DAW may hold an input monitoring the Booth turned on (the embedded Bool), with a count of the arms that have
+// started, so an arm that finishes late cannot clear what a later one set.
+type monitorDebt struct {
+	atomic.Bool
+	arms atomic.Int64
+}
+
+// armLaneOwing sends ArmLane and keeps the debt in step with what the DAW answered. It is set before the call when a monitoring is asked for, so a call that
+// times out (the DAW may have acted) stays owed; an answer that monitored sets it again, whatever a release did meanwhile; a definite answer that turned
+// nothing on (a refusal, or a lane that was on already) puts back what it was only when no other arm has started since.
+func armLaneOwing(ctx context.Context, armer dawport.LaneArmer, target string, monitor bool, owed *monitorDebt) (dawport.Armed, error) {
 	if !monitor || owed == nil {
 		return armer.ArmLane(ctx, target, monitor)
 	}
+	started := owed.arms.Add(1)
 	prior := owed.Swap(true)
 	armed, err := armer.ArmLane(ctx, target, monitor)
+	if err == nil && armed.Monitored {
+		owed.Store(true)
+		return armed, nil
+	}
 	var stale *bridge.TrackStaleError
-	definite := err == nil && !armed.Monitored || errors.Is(err, bridge.ErrRecording) || errors.As(err, &stale)
-	if definite && !prior {
+	definite := err == nil || errors.Is(err, bridge.ErrRecording) || errors.As(err, &stale)
+	if definite && !prior && owed.arms.Load() == started {
 		owed.CompareAndSwap(true, false)
 	}
 	return armed, err
