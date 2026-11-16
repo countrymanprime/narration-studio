@@ -18,7 +18,8 @@
 --
 -- arm_only arms one track and disarms every other, remembering the arms the narrator had before the first arm_only.
 -- They are put back when a recording this bridge started stops, whether record_stop stops it or the narrator stops it
--- in REAPER (a short defer watch notices), and only where an arm is still what arm_only left it: an arm the narrator
+-- in REAPER (a short defer watch notices), and by a record_stop that finds no recording of ours (a press refused after arm_only)
+-- unless REAPER records or a start the watch gave up on may still begin, and only where an arm is still what arm_only left it: an arm the narrator
 -- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block. It is refused,
 -- with no arm moved, while REAPER records, plays or is paused; arm_lane is refused only while recording.
 --
@@ -26,7 +27,7 @@
 -- narrator's, so nothing is remembered and a later stop leaves the lane armed (the app and the DAW stay in agreement, #3429).
 --
 -- record_start records only when REAPER is stopped and exactly one track is armed, the named one. record_stop stops
--- only the recording this bridge started (RECORD_NOT_OURS otherwise). Neither calls Main_OnCommand: recording starts
+-- only the recording this bridge started (RECORD_NOT_OURS otherwise, after putting back any arms still remembered unless REAPER records). Neither calls Main_OnCommand: recording starts
 -- with CSurf_OnRecord, pressed once after REAPER was seen stopped, since it is a toggle; RECORD_STARTED follows once
 -- GetPlayState reports recording, which may be a few defer cycles later. An optional third argument `end` first moves
 -- the edit cursor to the end of the last item on the named track (0 when empty), once every check has passed.
@@ -722,6 +723,8 @@ local function watch(session_dir, state, record)
         record.waited = record.waited + 1
         if record.waited >= START_WAIT_CYCLES then
           state.recording = nil
+          -- REAPER may still start late: until the next start, a stop must not put the narrator's arms back under it.
+          state.start_gave_up = true
           event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')
           return
         end
@@ -888,6 +891,7 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule, f
   }
   reaper.CSurf_OnRecord()
   state.recording = record
+  state.start_gave_up = nil
   if recording() then
     started(session_dir, record)
   end
@@ -946,6 +950,12 @@ end
 
 local function record_stop(session_dir, state, run_id)
   if not state.recording then
+    -- A press that armed and was then refused (record_start found REAPER playing, punch_to failed) leaves no recording of ours to stop,
+    -- but its arms are still the app's to put back: the host's stop after a refusal is how they come back. Not while REAPER records, which
+    -- is the narrator's own take, and not after a start the watch gave up on, which REAPER may still begin on the arms as they are.
+    if not recording() and not state.start_gave_up then
+      restore_arms(state)
+    end
     event(session_dir, 'RECORD_NOT_OURS', run_id)
     return
   end

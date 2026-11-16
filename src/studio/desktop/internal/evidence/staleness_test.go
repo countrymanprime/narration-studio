@@ -814,3 +814,82 @@ func TestAPlainTrackChapterIsFingerprintedByItsOwnItemsAsBefore(t *testing.T) {
 		t.Fatalf("State = %q err %v, want current", got.State, err)
 	}
 }
+
+// #3608: two items of one chapter that share an item GUID (a track copied in from another project) must each be fingerprinted, or the
+// second hides the first and a trim of the first reads as a recomposable move.
+func TestADuplicateItemGUIDTrimmedReadsTrimmedAndNotRecomposable(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	items := func(firstLength float64) []tracks.Item {
+		return []tracks.Item{staleItem("dup", "a.wav", 0, firstLength, false, 0, 1), staleItem("dup", "b.wav", 30, 20, false, 0, 1)}
+	}
+	before := fingerprintOfItems(t, items(60), sources)
+	after := fingerprintOfItems(t, items(55), sources)
+
+	if got := len(before.ItemFingerprints); got != 2 {
+		t.Fatalf("%d item fingerprints for two items that share a GUID, want 2", got)
+	}
+	result := EvaluateFingerprints(completeRecordFor(before), after, "track-1", "v1", "params-1")
+	if result.State != StateStale || !reasonSet(result.Reasons)[ReasonItemTrimmed] || reasonSet(result.Reasons)[ReasonItemMoved] {
+		t.Fatalf("State/Reasons = %q/%v, want stale/item_trimmed", result.State, result.Reasons)
+	}
+	if result.Recomposable {
+		t.Fatal("a trim changes the analysis key and must not be recomposable, whatever the GUID")
+	}
+	if len(result.ChangedItemGUIDs) != 1 || result.ChangedItemGUIDs[0] != "dup" {
+		t.Fatalf("ChangedItemGUIDs = %v, want the trimmed first copy named by its own GUID", result.ChangedItemGUIDs)
+	}
+}
+
+func TestADuplicateItemGUIDChapterReadsCurrentWhenNothingChanged(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	items := []tracks.Item{staleItem("dup", "a.wav", 0, 60, false, 0, 1), staleItem("dup", "b.wav", 30, 20, false, 0, 1)}
+	fingerprint := fingerprintOfItems(t, items, sources)
+	if result := EvaluateFingerprints(completeRecordFor(fingerprint), fingerprintOfItems(t, items, sources), "track-1", "v1", "params-1"); result.State != StateCurrent {
+		t.Fatalf("State/Reasons = %q/%v, want current", result.State, result.Reasons)
+	}
+}
+
+func TestItemsWithUniqueGUIDsKeepTheirGUIDAsTheKey(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	fingerprint := fingerprintOfItems(t, []tracks.Item{staleItem("one", "a.wav", 0, 60, false, 0, 1), staleItem("two", "b.wav", 30, 20, false, 0, 1)}, sources)
+	for _, guid := range []string{"one", "two"} {
+		if _, ok := fingerprint.ItemFingerprints[guid]; !ok {
+			t.Fatalf("keys = %v, want the item GUID %q as its key (older ledger records stay readable)", fingerprint.ItemFingerprints, guid)
+		}
+	}
+}
+
+// A real item GUID that already ends in "#2" keeps its own key, and a repeat of "x" never lands on it.
+func TestAnItemGUIDThatLooksLikeASuffixedKeyNeverCollidesWithADuplicate(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{}), "c.wav": staleIdentity("c.wav", "hash-c", 1000, time.Time{})}
+	items := func(secondLength float64) []tracks.Item {
+		return []tracks.Item{staleItem("x", "a.wav", 0, 10, false, 0, 1), staleItem("x", "b.wav", 20, secondLength, false, 0, 1), staleItem("x#2", "c.wav", 40, 10, false, 0, 1)}
+	}
+	before := fingerprintOfItems(t, items(10), sources)
+	if got := len(before.ItemFingerprints); got != 3 {
+		t.Fatalf("%d keys for three items, want 3", got)
+	}
+	result := EvaluateFingerprints(completeRecordFor(before), fingerprintOfItems(t, items(8), sources), "track-1", "v1", "params-1")
+	if !reasonSet(result.Reasons)[ReasonItemTrimmed] || reasonSet(result.Reasons)[ReasonItemMoved] || result.Recomposable {
+		t.Fatalf("Reasons/Recomposable = %v/%v, want item_trimmed and not recomposable", result.Reasons, result.Recomposable)
+	}
+}
+
+// An item that is skipped (its source is gone) takes no key, so its twin keeps the key it had.
+func TestASkippedDuplicateDoesNotShiftItsTwinsKey(t *testing.T) {
+	sources := map[string]SourceIdentity{"b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	fingerprint := fingerprintOfItems(t, []tracks.Item{staleItem("d", "gone.wav", 0, 10, false, 0, 1), staleItem("d", "b.wav", 20, 10, false, 0, 1)}, sources)
+	if _, ok := fingerprint.ItemFingerprints["d"]; !ok || len(fingerprint.ItemFingerprints) != 1 {
+		t.Fatalf("keys = %v, want the one fingerprinted copy keyed by its plain GUID", fingerprint.ItemFingerprints)
+	}
+}
+
+// A later duplicate that moves past its twin keys by order, not identity: it reads stale and not recomposable, which is the safe side.
+func TestDuplicatesThatChangeOrderReadStaleAndNeverCurrent(t *testing.T) {
+	sources := map[string]SourceIdentity{"a.wav": staleIdentity("a.wav", "hash-a", 1000, time.Time{}), "b.wav": staleIdentity("b.wav", "hash-b", 1000, time.Time{})}
+	before := fingerprintOfItems(t, []tracks.Item{staleItem("d", "a.wav", 0, 10, false, 0, 1), staleItem("d", "b.wav", 20, 10, false, 0, 1)}, sources)
+	after := fingerprintOfItems(t, []tracks.Item{staleItem("d", "a.wav", 30, 10, false, 0, 1), staleItem("d", "b.wav", 20, 10, false, 0, 1)}, sources)
+	if result := EvaluateFingerprints(completeRecordFor(before), after, "track-1", "v1", "params-1"); result.State != StateStale {
+		t.Fatalf("State = %q, want stale", result.State)
+	}
+}

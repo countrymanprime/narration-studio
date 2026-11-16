@@ -464,8 +464,8 @@
   {
     "name": "record_stop stops a recording the app did not start",
     "file": "narration_transport.lua",
-    "find": "  if not state.recording then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
-    "replace": "  if false then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+    "find": "  if not state.recording then\n    -- A press that armed",
+    "replace": "  if false then\n    -- A press that armed"
   },
   {
     "name": "an arm the narrator changed during the take is overwritten",
@@ -530,8 +530,8 @@
   {
     "name": "a start REAPER never reports is still claimed as the app recording",
     "file": "narration_transport.lua",
-    "find": "          state.recording = nil\n          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')",
-    "replace": "          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')"
+    "find": "          state.recording = nil\n          -- REAPER may still start late",
+    "replace": "          -- REAPER may still start late"
   },
   {
     "name": "a start cancelled while REAPER was starting is left running",
@@ -3188,6 +3188,30 @@
     "file": "narration_track_state.lua",
     "find": "if option ~= '' and option ~= 'children' and option ~= 'none' then",
     "replace": "if false then"
+  },
+  {
+    "name": "a refused press leaves the narrator's arms changed: record_stop with no recording of ours restores nothing",
+    "file": "narration_transport.lua",
+    "find": "    if not recording() and not state.start_gave_up then\n      restore_arms(state)\n    end\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
+    "replace": "    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+  },
+  {
+    "name": "one given-up start turns the restore off for the rest of the session",
+    "file": "narration_transport.lua",
+    "find": "  state.recording = record\n  state.start_gave_up = nil\n",
+    "replace": "  state.recording = record\n"
+  },
+  {
+    "name": "record_stop puts the arms back under a start that may still begin late",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not recording() then"
+  },
+  {
+    "name": "record_stop restores the arms under the narrator's own recording",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not state.start_gave_up then"
   },
   {
     "name": "arm_only arms a playing REAPER, so a press the heartbeat let through leaves the narrator's arms changed",
