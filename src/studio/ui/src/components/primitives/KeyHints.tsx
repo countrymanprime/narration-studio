@@ -53,8 +53,8 @@ export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: s
           className="inline-flex items-center gap-1 whitespace-nowrap"
         >
           <KeyChord keys={hint.keys} />
-          {/* Only the words are struck, so the caps stay readable ("Num -" would otherwise lose its glyph under the line). */}
-          <span className={hint.off ? 'line-through decoration-1' : undefined}>{hint.label}</span>
+          {/* Only the words are struck, so the caps stay readable ("Num -" would otherwise lose its glyph under the line); a plain hint keeps its label as bare text, as before. */}
+          {hint.off ? <span className="line-through decoration-1">{hint.label}</span> : hint.label}
           {hint.off && hint.offReason ? <span className="sr-only"> ({hint.offReason})</span> : null}
         </span>
       ))}
