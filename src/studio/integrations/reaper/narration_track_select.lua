@@ -147,8 +147,11 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
     end
   end
   reaper.SetOnlyTrackSelected(track)
+  -- I_SELECTED, not SetTrackSelected: REAPER 7.82 counts every SetTrackSelected call as a project edit (it raises
+  -- GetProjectStateChangeCount, which the host turns into daw_project_edited), and the I_SELECTED write selects the same
+  -- track without moving the count (#3560).
   for _, member in ipairs(members) do
-    reaper.SetTrackSelected(member, true)
+    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)
   end
   reaper.SetEditCurPos(target, true, false)
   core.cursor_moved()

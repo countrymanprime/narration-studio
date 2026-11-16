@@ -330,3 +330,19 @@ H.test('I_FOLDERDEPTH reads 0 on a new track and reads back what was set', funct
   reaper_api.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
   H.eq({ reaper_api.GetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH'), reaper_api.GetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH') }, { 1, -1 })
 end)
+
+-- Seen in REAPER 7.82 on Linux, 2026-11-16 (docs/research/2026-11-16-select-without-edit-real-reaper.md, scripts/ci/real-reaper/scenarios_select_count.py):
+-- SetTrackSelected raises GetProjectStateChangeCount by one per call, even for the state the track already has; SetOnlyTrackSelected and an
+-- I_SELECTED write select without moving it. None adds an undo point or marks the project dirty.
+H.test('7.82/Linux: SetTrackSelected counts as an edit per call, SetOnlyTrackSelected and an I_SELECTED write do not', function()
+  local reaper_api, fake = api()
+  local a, b = fake:add_track('A'), fake:add_track('B')
+  local before = reaper_api.GetProjectStateChangeCount(0)
+  reaper_api.SetOnlyTrackSelected(a)
+  reaper_api.SetMediaTrackInfo_Value(b, 'I_SELECTED', 1)
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before, 'neither call moves the count')
+  H.eq({ reaper_api.GetMediaTrackInfo_Value(a, 'I_SELECTED'), reaper_api.GetMediaTrackInfo_Value(b, 'I_SELECTED') }, { 1, 1 })
+  reaper_api.SetTrackSelected(b, true)
+  reaper_api.SetTrackSelected(b, true)
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before + 2, 'one per call, even for the state it already has')
+end)

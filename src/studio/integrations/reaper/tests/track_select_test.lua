@@ -191,6 +191,19 @@ H.test('go_to a folder selects it and every track inside it, nested folders incl
   H.eq(selection(t), { 1, 1, 1, 1, 1, 0 })
 end)
 
+-- #3560: the host emits daw_project_edited whenever GetProjectStateChangeCount moves, and REAPER 7.82 counts every SetTrackSelected call
+-- as an edit, so a go_to that selected a chapter with it made Editing re-read its word table for nothing.
+H.test('go_to a folder leaves the project change count alone, however often it runs', function()
+  local s, t = folder_session()
+  local before = s.fake.change_count
+  s:send('go_to', 'g1', t.chapter.guid, 'end', '')
+  s:send('go_to', 'g2', t.chapter.guid, 'end', '')
+  s:send('go_to', 'g3', t.crowd.guid, 'end', '')
+  H.eq(s.fake.change_count, before)
+  H.eq(selection(t), { 0, 0, 0, 1, 1, 0 })
+  H.eq(#s.fake.undo, 0)
+end)
+
 H.test('go_to a track that is not a folder selects only that track', function()
   local s, t = folder_session()
   s:send('go_to', 'g1', t.narrator.guid, 'at', '4')
