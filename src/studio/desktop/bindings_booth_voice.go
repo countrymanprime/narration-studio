@@ -144,7 +144,9 @@ func withoutNotVoices(setup voicetracks.State, voices []tracks.Track) []tracks.T
 	return kept
 }
 
-// withoutLinkedElsewhere is voices less the tracks some chapter is linked to.
+// withoutLinkedElsewhere is voices less the tracks some chapter is linked to: a recording-target rule (Record never arms another chapter's own
+// track). It does not make such a track outside the outer chapter's audio: chapterAudio leaves out only a track marked as not a voice, so a
+// nested chapter's track still counts toward the outer chapter's recording check, recorded length and recorded end (#3594).
 func withoutLinkedElsewhere(svc hostServices, voices []tracks.Track) []tracks.Track {
 	linked := linkedTrackGUIDs(svc)
 	if len(linked) == 0 {

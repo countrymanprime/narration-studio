@@ -678,3 +678,139 @@ func TestEvaluateChapterBasisWarnsWhenProjectFilePredatesTheLedgerRecord(t *test
 		t.Fatal("basis label should still be present")
 	}
 }
+
+// #3593: a chapter linked to a folder of voices has its audio on the folder's children, and the plan fingerprints every member
+// (tracks.Project.ChapterMembers), so the read must fingerprint the same set or it reads stale whatever happened after the run.
+type folderChapter struct {
+	project          string
+	ledger           *LedgerStore
+	mapping          *MappingStore
+	narrator, bed    tracks.Item
+	folderWithVoices func(narrator, bed tracks.Item) tracks.Project
+}
+
+func newFolderChapter(t *testing.T) folderChapter {
+	t.Helper()
+	project, ledger, mapping := chapterEvaluationSetup(t)
+	when := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	voice := writeTimedSourceFile(t, project, "voice.wav", []byte("voice"), when)
+	music := writeTimedSourceFile(t, project, "music.wav", []byte("music"), when)
+	if _, err := mapping.Confirm("doc-1", "folder", "c-0001", "Chapter One"); err != nil {
+		t.Fatal(err)
+	}
+	return folderChapter{
+		project: project, ledger: ledger, mapping: mapping,
+		narrator: staleItem("voice-item", voice, 0, 60, false, 0, 1),
+		bed:      staleItem("bed-item", music, 0, 120, false, 0, 1),
+		folderWithVoices: func(narrator, bed tracks.Item) tracks.Project {
+			return tracks.Project{Tracks: []tracks.Track{
+				{GUID: "folder", IsFolder: true, Depth: 0},
+				{GUID: "narrator", Depth: 1, Items: []tracks.Item{narrator}},
+				{GUID: "bed", Depth: 1, Items: []tracks.Item{bed}},
+			}}
+		},
+	}
+}
+
+// record writes a complete run whose fingerprint is of what the plan would fingerprint for p: the audio tracks' items together.
+func (f folderChapter) record(t *testing.T, p tracks.Project) {
+	t.Helper()
+	members, _ := p.ChapterMembers("folder")
+	var items []tracks.Item
+	for _, member := range members {
+		items = append(items, member.Items...)
+	}
+	fingerprint, _ := ComputeChapterFingerprint(items, func(path string) (SourceIdentity, error) { return Identify(path, f.project) })
+	_, err := f.ledger.Write(LedgerRecord{
+		AnalyzerID: "rc", AnalyzerVersion: "v1", ParamHash: "params-1",
+		Scope:       LedgerScope{DocumentID: "doc-1", ChapterID: "c-0001", TrackGUID: "folder"},
+		Fingerprint: fingerprint,
+		StartedAt:   time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC), CompletedAt: time.Date(2026, 1, 2, 0, 0, 1, 0, time.UTC),
+		Outcome: LedgerComplete,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (f folderChapter) read(t *testing.T, p tracks.Project) EvaluatorResult {
+	t.Helper()
+	result, _, err := EvaluateChapter(f.ledger, f.mapping, ChapterEvaluationRequest{
+		Project: p, ProjectFolder: f.project,
+		ProjectFile: LedgerProjectFile{Path: "p.rpp", ModTime: time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)},
+		DocumentID:  "doc-1", ChapterID: "c-0001", AnalyzerID: "rc", AnalyzerVersion: "v1", ParamHash: "params-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+func TestAFolderLinkedChapterChecksCurrentWhenNothingChangedSinceTheRun(t *testing.T) {
+	f := newFolderChapter(t)
+	p := f.folderWithVoices(f.narrator, f.bed)
+	f.record(t, p)
+	if got := f.read(t, p); got.State != StateCurrent {
+		t.Fatalf("State/Reasons = %q/%v, want current: the voices' items are what the run read", got.State, got.Reasons)
+	}
+}
+
+func TestAFolderLinkedChapterReadsStaleWhenAVoiceItemMoved(t *testing.T) {
+	f := newFolderChapter(t)
+	f.record(t, f.folderWithVoices(f.narrator, f.bed))
+	moved := f.narrator
+	moved.Position = 5
+	got := f.read(t, f.folderWithVoices(moved, f.bed))
+	if got.State != StateStale || !reasonSet(got.Reasons)[ReasonItemMoved] {
+		t.Fatalf("State/Reasons = %q/%v, want stale/item_moved", got.State, got.Reasons)
+	}
+}
+
+func TestMarkingTheMusicBedMovesAFolderLinkedChapterBetweenCurrentAndStaleOnlyWhenTheRunReadIt(t *testing.T) {
+	f := newFolderChapter(t)
+	unmarked := f.folderWithVoices(f.narrator, f.bed)
+	marked := unmarked.WithAudioSkip(func(guid string) bool { return guid == "bed" })
+
+	// A run made with the bed marked did not read it: still current when read marked, and stale (the bed's item is new) when read unmarked.
+	f.record(t, marked)
+	if got := f.read(t, marked); got.State != StateCurrent {
+		t.Fatalf("marked run read marked: State/Reasons = %q/%v, want current", got.State, got.Reasons)
+	}
+	if got := f.read(t, unmarked); got.State != StateStale {
+		t.Fatalf("marked run read unmarked: State = %q, want stale (the bed is now part of the chapter's audio)", got.State)
+	}
+
+	// A change to the bed itself never moves a check made without it.
+	longer := f.bed
+	longer.Length = 200
+	if got := f.read(t, f.folderWithVoices(f.narrator, longer).WithAudioSkip(func(guid string) bool { return guid == "bed" })); got.State != StateCurrent {
+		t.Fatalf("a changed bed length with the bed marked: State/Reasons = %q/%v, want current", got.State, got.Reasons)
+	}
+}
+
+func TestAPlainTrackChapterIsFingerprintedByItsOwnItemsAsBefore(t *testing.T) {
+	project, ledger, mapping := chapterEvaluationSetup(t)
+	source := writeTimedSourceFile(t, project, "a.wav", []byte("a"), time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	if _, err := mapping.Confirm("doc-1", "track-1", "c-0001", "Chapter One"); err != nil {
+		t.Fatal(err)
+	}
+	items := []tracks.Item{staleItem("item-1", source, 0, 1, false, 0, 1)}
+	fingerprint, _ := ComputeChapterFingerprint(items, func(path string) (SourceIdentity, error) { return Identify(path, project) })
+	if _, err := ledger.Write(LedgerRecord{
+		AnalyzerID: "rc", AnalyzerVersion: "v1", ParamHash: "params-1",
+		Scope:       LedgerScope{DocumentID: "doc-1", ChapterID: "c-0001", TrackGUID: "track-1"},
+		Fingerprint: fingerprint,
+		StartedAt:   time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC), CompletedAt: time.Date(2026, 1, 2, 0, 0, 1, 0, time.UTC), Outcome: LedgerComplete,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got, _, err := EvaluateChapter(ledger, mapping, ChapterEvaluationRequest{
+		Project:       tracks.Project{Tracks: []tracks.Track{{GUID: "track-1", Items: items}}},
+		ProjectFolder: project,
+		ProjectFile:   LedgerProjectFile{Path: "p.rpp", ModTime: time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)},
+		DocumentID:    "doc-1", ChapterID: "c-0001", AnalyzerID: "rc", AnalyzerVersion: "v1", ParamHash: "params-1",
+	})
+	if err != nil || got.State != StateCurrent {
+		t.Fatalf("State = %q err %v, want current", got.State, err)
+	}
+}

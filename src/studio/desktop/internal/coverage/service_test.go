@@ -776,6 +776,9 @@ func TestThePlanOfAFolderLeavesOutATrackMarkedAsNotAVoice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The plan knows nothing of chapter links: a track another chapter is linked to inside this folder is planned like any child, which is the
+	// owner's rule that a folder and its children are one chapter's voices except a marked one (#3594). A rule that dropped linked tracks here
+	// would fail this count.
 	if got := len(every.manifest().Items); got != 2 {
 		t.Fatalf("with no rule the plan holds %d items, want both", got)
 	}
@@ -795,29 +798,31 @@ func TestThePlanOfAFolderLeavesOutATrackMarkedAsNotAVoice(t *testing.T) {
 	}
 }
 
+// writeFolderProject saves a project whose confirmed track is a folder holding a narrator and a music bed, each with one item.
+func writeFolderProject(p *testProject) {
+	p.t.Helper()
+	item := func(guid string, position, length float64, source string) string {
+		return fmt.Sprintf("    <ITEM\n      POSITION %g\n      LENGTH %g\n      MUTE 0 0\n      IGUID %s\n      NAME take\n      SOFFS 0\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s-take\n      <SOURCE WAVE\n        FILE %q\n      >\n    >\n", position, length, guid, strings.TrimSuffix(guid, "}"), source)
+	}
+	rpp := "<REAPER_PROJECT 0.1 \"7.80/win64\" 1789970042 0\n" +
+		"  <TRACK " + testTrack + "\n    NAME \"Chapter One\"\n    ISBUS 1 1\n    TRACKID " + testTrack + "\n  >\n" +
+		"  <TRACK {NARRATOR-TRACK}\n    NAME \"Narrator\"\n    ISBUS 0 0\n    TRACKID {NARRATOR-TRACK}\n" + item("{NARRATOR}", 0, 10, "media/a.wav") + "  >\n" +
+		"  <TRACK {BED-TRACK}\n    NAME \"Music bed\"\n    ISBUS 2 -1\n    TRACKID {BED-TRACK}\n" + item("{BED}", 0, 400, "media/b.wav") + "  >\n>\n"
+	if err := os.WriteFile(p.rpp, []byte(rpp), 0o600); err != nil {
+		p.t.Fatal(err)
+	}
+	later := time.Now().Add(time.Hour)
+	_ = os.Chtimes(p.rpp, later, later)
+}
+
 // The service hands the project to Config.ChapterAudio before it plans, so the manifest the sidecar reads holds the voices' items only:
 // a music bed inside the chapter's folder is not transcribed (#3557).
 func TestTheManifestTheSidecarReadsLeavesOutTheTracksChapterAudioSkips(t *testing.T) {
-	folderProject := func(p *testProject) {
-		p.t.Helper()
-		item := func(guid string, position, length float64, source string) string {
-			return fmt.Sprintf("    <ITEM\n      POSITION %g\n      LENGTH %g\n      MUTE 0 0\n      IGUID %s\n      NAME take\n      SOFFS 0\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s-take\n      <SOURCE WAVE\n        FILE %q\n      >\n    >\n", position, length, guid, strings.TrimSuffix(guid, "}"), source)
-		}
-		rpp := "<REAPER_PROJECT 0.1 \"7.80/win64\" 1789970042 0\n" +
-			"  <TRACK " + testTrack + "\n    NAME \"Chapter One\"\n    ISBUS 1 1\n    TRACKID " + testTrack + "\n  >\n" +
-			"  <TRACK {NARRATOR-TRACK}\n    NAME \"Narrator\"\n    ISBUS 0 0\n    TRACKID {NARRATOR-TRACK}\n" + item("{NARRATOR}", 0, 10, "media/a.wav") + "  >\n" +
-			"  <TRACK {BED-TRACK}\n    NAME \"Music bed\"\n    ISBUS 2 -1\n    TRACKID {BED-TRACK}\n" + item("{BED}", 0, 400, "media/b.wav") + "  >\n>\n"
-		if err := os.WriteFile(p.rpp, []byte(rpp), 0o600); err != nil {
-			p.t.Fatal(err)
-		}
-		later := time.Now().Add(time.Hour)
-		_ = os.Chtimes(p.rpp, later, later)
-	}
 	itemsOf := func(skip func(guid string) bool) string { // the item GUIDs the sidecar transcribed, sorted
 		p := newTestProject(t)
 		p.items = []testItem{{guid: "{NARRATOR}", source: "media/a.wav", position: 0, length: 10, playrate: 1}, {guid: "{BED}", source: "media/b.wav", position: 0, length: 400, playrate: 1}}
 		p.writeRPP() // writes the media the folder project below names
-		folderProject(p)
+		writeFolderProject(p)
 		sidecar := &fakeSidecar{}
 		config := Config{Project: p.dir, Python: "python-sidecar", Backend: "compare.py", ProjectFile: func() (string, error) { return p.rpp, nil }, LoadManuscript: p.loadManuscript, Align: sidecar.align}
 		if skip != nil {
@@ -836,4 +841,44 @@ func TestTheManifestTheSidecarReadsLeavesOutTheTracksChapterAudioSkips(t *testin
 	if got := itemsOf(func(guid string) bool { return guid == "{BED-TRACK}" }); got != "{NARRATOR}" {
 		t.Fatalf("manifest items = %q, want the narrator's only", got)
 	}
+}
+
+// #3593: a chapter linked to a folder of voices reads current after its own run, because the read fingerprints the same tracks the plan did:
+// the voices' items, and not a music bed the chapter's audio rule leaves out.
+func TestAFolderLinkedChapterReadsCurrentAfterItsRunAndOnlyAMarkedBedIsLeftOut(t *testing.T) {
+	skipBed := func(guid string) bool { return guid == "{BED-TRACK}" }
+	setup := func(skip func(guid string) bool) (*Service, *testProject) {
+		p := newTestProject(t)
+		p.items = []testItem{{guid: "{NARRATOR}", source: "media/a.wav", position: 0, length: 10, playrate: 1}, {guid: "{BED}", source: "media/b.wav", position: 0, length: 400, playrate: 1}}
+		p.writeRPP()
+		writeFolderProject(p)
+		sidecar := &fakeSidecar{}
+		config := Config{Project: p.dir, Python: "python-sidecar", Backend: "compare.py", ProjectFile: func() (string, error) { return p.rpp, nil }, LoadManuscript: p.loadManuscript, Align: sidecar.align}
+		if skip != nil {
+			config.ChapterAudio = func(project tracks.Project) tracks.Project { return project.WithAudioSkip(skip) }
+		}
+		service := New(config, sidecar.launcher(), nil)
+		service.pollInterval = time.Millisecond
+		run(t, service, testRequest())
+		return service, p
+	}
+	for name, skip := range map[string]func(string) bool{"with no bed marked": nil, "with the bed marked": skipBed} {
+		t.Run(name, func(t *testing.T) {
+			service, _ := setup(skip)
+			if got := currentResult(t, service, testRequest().Alignment); got.State != evidence.StateCurrent {
+				t.Fatalf("State/Reasons = %q/%v, want current right after the run", got.State, got.Reasons)
+			}
+		})
+	}
+	t.Run("marking the bed after the run makes the check stale, unmarking it again makes it current", func(t *testing.T) {
+		service, _ := setup(nil)
+		service.config.ChapterAudio = func(project tracks.Project) tracks.Project { return project.WithAudioSkip(skipBed) }
+		if got := currentResult(t, service, testRequest().Alignment); got.State != evidence.StateStale {
+			t.Fatalf("State = %q, want stale: the bed the run read is no longer the chapter's audio", got.State)
+		}
+		service.config.ChapterAudio = nil
+		if got := currentResult(t, service, testRequest().Alignment); got.State != evidence.StateCurrent {
+			t.Fatalf("State = %q, want current once the bed counts again", got.State)
+		}
+	})
 }

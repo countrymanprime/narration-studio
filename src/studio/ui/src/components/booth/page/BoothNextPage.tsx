@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { COLD_READ_NO_VOICE, useBoothVoices } from '../voices/useBoothVoices';
+import { coldReadNoVoice, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { VoiceControl } from '../voices/VoiceControl';
@@ -519,7 +519,6 @@ function BoothSession({
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
   // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
   const coldMode = page.coldRead.mode && !control.recording;
-  const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
     chapterId: recordId,
@@ -542,6 +541,10 @@ function BoothSession({
     voice: voices.current?.guid ?? '',
     say: (sentence) => sayDawArming(overlay, sentence),
   });
+  const askWho = useCallback(
+    (ask: WhoAsk) => (coldMode ? voiceToast(coldReadNoVoice(voices.voices.length > 0)) : setWhoAsk(ask)),
+    [coldMode, voiceToast, voices.voices.length],
+  );
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
   const cast = useMemo(
@@ -586,7 +589,7 @@ function BoothSession({
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
     // A cold read needs no voice: the list would only refuse every pick, so the key says so like the other voice keys.
-    if (coldMode) return voiceToast(COLD_READ_NO_VOICE);
+    if (coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
     if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(voices.linkKind), 'info');
     voices.reload();
     setVoiceListOpen(true);
@@ -945,6 +948,8 @@ function BoothSession({
                 onChoose={voices.choose}
                 open={voiceListOpen}
                 onOpenChange={(next) => {
+                  // A cold read needs no voice: the list would only refuse every pick, so the click says so, as Num . does.
+                  if (next && coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
                   if (next) voices.reload();
                   setVoiceListOpen(next);
                 }}
