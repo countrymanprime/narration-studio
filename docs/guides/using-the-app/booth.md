@@ -147,7 +147,7 @@ Press **Record** (or Space, or Enter, or the numpad's Enter, or a foot pedal map
 track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
 the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
-While any take is recording, whether the Booth started it or you started it in REAPER, Windows is asked not to turn the display off or put the computer to sleep, and is let go the moment the take ends, REAPER goes quiet or you quit the app. A cold read is not a take, so it does not hold the screen awake.
+While any take is recording, whether the Booth started it or you started it in REAPER, Windows is asked not to turn the display off or put the computer to sleep, and is let go the moment the take ends, REAPER goes quiet or you quit the app. A cold read is not a take, so it does not hold the screen awake. Only Windows is asked: on other systems the Booth leaves the computer's own idle timers alone. With Audacity, or with REAPER's connection status turned off, the app cannot see a take recording, so it holds nothing then either.
 
 Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
 read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or

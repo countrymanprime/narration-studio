@@ -8,6 +8,8 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
+	"desktop/internal/recording"
+	"desktop/internal/recording/recordingtest"
 	"desktop/internal/wakelock/wakelocktest"
 )
 
@@ -111,4 +113,92 @@ func TestNoDawAndNoRecordingNeverAskTheSystemForAnything(t *testing.T) {
 	host.pollDawTransport()
 	host.pollDawTransport()
 	wakeEvents(t, fake)
+}
+
+// Two callers poll the transport at once (transcriptLoop and the recorder's state change): the request must end up matching the
+// latest transport, and never be acquired twice or released with nothing held (QA, #3574).
+func TestConcurrentPollsLeaveTheRequestMatchingTheLatestTransport(t *testing.T) {
+	host, fake, beat, _ := wakeHost(t)
+	for round := range 40 {
+		stop := make(chan struct{})
+		done := make(chan struct{})
+		for range 3 {
+			go func() {
+				defer func() { done <- struct{}{} }()
+				for {
+					select {
+					case <-stop:
+						return
+					default:
+						host.pollDawTransport()
+					}
+				}
+			}()
+		}
+		for i := range 30 {
+			if i%2 == 0 {
+				beat("5")
+			} else {
+				beat("0")
+			}
+		}
+		close(stop)
+		for range 3 {
+			<-done
+		}
+		last := "0"
+		if round%2 == 0 {
+			last = "5"
+		}
+		beat(last)
+		host.pollDawTransport()
+		if fake.Held() != (last == "5") {
+			t.Fatalf("round %d: after the last heartbeat %q the request held = %v", round, last, fake.Held())
+		}
+	}
+	held := false
+	for _, event := range fake.Events() {
+		switch event {
+		case "acquire":
+			if held {
+				t.Fatal("acquired twice without a release")
+			}
+			held = true
+		case "release":
+			if !held {
+				t.Fatal("released with nothing held")
+			}
+			held = false
+		}
+	}
+}
+
+// The built-in recorder is the other engine behind dawTransport(): a take it records holds the request, and its stop gives it back.
+func TestTheBuiltInRecordersTakeHoldsTheRequestAndItsStopGivesItBack(t *testing.T) {
+	host := boothRecorderHost(t, &recordingtest.Fake{DeviceList: []recording.Device{{Name: micOne}}}, micOne)
+	inhibitor := &wakelocktest.Fake{}
+	host.wakeInhibitor = inhibitor
+	host.pollDawTransport()
+	wakeEvents(t, inhibitor)
+	if result := boothRecord(t)(host.ReadAloudRecordStart("c-0001")); result.Outcome != "started" {
+		t.Fatalf("start = %+v", result)
+	}
+	host.pollDawTransport()
+	wakeEvents(t, inhibitor, "acquire")
+	boothRecord(t)(host.ReadAloudRecordStop())
+	waitRecorderIdle(t, host)
+	host.pollDawTransport()
+	wakeEvents(t, inhibitor, "acquire", "release")
+}
+
+// A second take that begins while the first is still recording (the DAW's heartbeat goes from one take to the next without an idle
+// beat between) keeps the one request: it is released only when the last take ends.
+func TestASecondTakeStartingBeforeTheFirstStopsKeepsTheRequest(t *testing.T) {
+	_, fake, beat, _ := wakeHost(t)
+	beat("5")
+	beat("6") // the first take paused
+	beat("5") // a second one recording
+	wakeEvents(t, fake, "acquire")
+	beat("0")
+	wakeEvents(t, fake, "acquire", "release")
 }

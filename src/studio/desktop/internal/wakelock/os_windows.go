@@ -28,6 +28,9 @@ type windowsInhibitor struct {
 }
 
 func (w *windowsInhibitor) Acquire() error {
+	if w.stop != nil {
+		return nil // already held: a second request would orphan the first thread's
+	}
 	stop, done := make(chan struct{}), make(chan struct{})
 	started := make(chan error, 1)
 	go func() {

@@ -20,8 +20,12 @@ func (h *Host) wakeKeeper() *wakelock.Keeper {
 
 // keepAwake follows the transport state's `recording`: true from any engine's take (the built-in recorder, or REAPER's heartbeat saying it
 // records, including a take the narrator started in REAPER), false once every one has ended or the DAW went quiet or away. It runs on
-// every tick of transcriptLoop, so a refused request is tried again on the next one; the run log says so once, not every tick.
-func (h *Host) keepAwake(recording bool) {
+// every tick of transcriptLoop and on each recorder state change, so a refused request is tried again on the next one; the run log says so
+// once, not every tick. It reads the transport itself, under wakeMu: two callers at once cannot apply an older answer after a newer one.
+func (h *Host) keepAwake() {
+	h.wakeMu.Lock()
+	defer h.wakeMu.Unlock()
+	recording, _ := h.dawTransport()["recording"].(bool)
 	err := h.wakeKeeper().Set(recording)
 	if err == nil {
 		h.wakeRefused.Store(false)

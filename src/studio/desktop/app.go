@@ -421,6 +421,7 @@ type Host struct {
 	// tests: nil means the operating system's own request.
 	wake          *wakelock.Keeper
 	wakeOnce      sync.Once
+	wakeMu        sync.Mutex
 	wakeInhibitor wakelock.Inhibitor
 	wakeRefused   atomic.Bool
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
