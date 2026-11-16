@@ -117,7 +117,7 @@ export const Range: Story = {
     const c = within(canvasElement);
     await expect(c.getByRole('slider', { name: 'Start of range' })).toBeTruthy();
     await expect(c.getByRole('slider', { name: 'End of range' })).toBeTruthy();
-    await expect(canvasElement.querySelector('[data-range-body]')?.getAttribute('title')).toMatch(/^0:05\.5/);
+    await expect(canvasElement.querySelector('[data-range-body]')?.getAttribute('title')).toMatch(/^00:00:05\.540 to 00:00:06\.300/);
     await expect(canvasElement.textContent).not.toMatch(/Sub-word edge/);
   },
 };

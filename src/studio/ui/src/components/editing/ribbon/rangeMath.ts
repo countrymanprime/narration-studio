@@ -177,7 +177,7 @@ export function spanOfKeys(items: readonly DocItem[], keys: readonly string[]): 
   return { start: Math.min(...heard.map((i) => i.t0)), end: Math.max(...heard.map((i) => i.t1)) };
 }
 
-/** A range in words for a screen reader and the label: "0:05.54 to 0:06.30, 0.8 seconds, 2 words". */
+/** A range in words for a screen reader and the label: "00:00:05.540 to 00:00:06.296, 0.8 seconds, 2 words". */
 export function rangeLabel(span: Span, words: number): string {
   return `${clock(span.start, { full: true })} to ${clock(span.end, { full: true })}, ${(span.end - span.start).toFixed(1)} seconds, ${plural(words, 'word', 'words')}`;
 }

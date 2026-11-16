@@ -1,8 +1,7 @@
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { Panel } from '../../primitives/Panel';
 import { toneColors } from '../../primitives/StatusBadge';
-import { hoursText } from '../productionFormat';
-import { num } from '../../schedule/dates';
+import { hm, num } from '../../schedule/dates';
 import type { StageSegment } from './overviewFigures';
 
 // A bar needs one fill per stage: the registry's tone for the stage's status, lightened for the stage before it (the legend carries the names).
@@ -35,7 +34,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
               .map((s) => (
                 <i
                   key={s.key}
-                  title={`${s.label}: ${hoursText(s.hours)}`}
+                  title={`${s.label}: ${hm(s.hours)}`}
                   className="block h-full min-w-1"
                   style={{ width: `${s.percent.toFixed(2)}%`, background: FILL[s.key] }}
                 />
@@ -49,7 +48,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
             {segments.map((s) => (
               <li key={s.key} className="flex items-center gap-1.5 whitespace-nowrap">
                 <span aria-hidden="true" className="size-2.5 rounded-sm" style={{ background: FILL[s.key] }} />
-                {s.label} <b className="font-mono font-semibold text-[var(--text)]">{hoursText(s.hours)}</b>
+                {s.label} <b className="font-mono font-semibold text-[var(--text)]">{hm(s.hours)}</b>
               </li>
             ))}
           </ul>

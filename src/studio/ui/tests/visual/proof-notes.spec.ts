@@ -112,3 +112,35 @@ for (const width of [1920, 1440, 1280]) {
     expect(Math.abs(notesEnd - inspectorEnd), 'the two columns end on one line').toBeLessThanOrEqual(1);
   });
 }
+
+// #3443: a note's time is 12 characters ("00:00:12.400"). In the narrow block layout the time, the type badge and the resolution pill never overlap, at the small windows
+// (the badge was drawn over the pill's left 28 px at 320, 12 px apart at 360).
+for (const size of [
+  { width: 320, height: 300 },
+  { width: 360, height: 500 },
+  { width: 390, height: 844 },
+] as const) {
+  test(`Proof notes / a note's time, type and resolution do not overlap / ${size.width}x${size.height}`, async ({ page }) => {
+    await openProof(page, size.width, size.height);
+    const overlaps = await notes(page)
+      .locator('tr[data-row]')
+      .evaluateAll((rows) =>
+        rows.flatMap((row) => {
+          const cells = [...row.querySelectorAll<HTMLElement>('td')].slice(0, 5);
+          const boxes = [0, 1, 4].map((i) => {
+            const target = cells[i]?.firstElementChild ?? cells[i];
+            return target?.getBoundingClientRect();
+          });
+          const out: string[] = [];
+          boxes.forEach((a, i) =>
+            boxes.slice(i + 1).forEach((b, j) => {
+              if (a && b && a.width > 0 && b.width > 0 && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5)
+                out.push(`${i} over ${i + 1 + j}`);
+            }),
+          );
+          return out;
+        }),
+      );
+    expect(overlaps).toEqual([]);
+  });
+}

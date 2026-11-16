@@ -130,3 +130,57 @@ for (const theme of ['light', 'dark'] as const) {
     }
   }
 }
+
+// #3443: the Timeline strip's marks are hh:mm:ss.fff (12 characters each). At every size the two end marks are whole and apart: none cut off by the strip, none over another,
+// and the strip draws no sideways scroll. (768 and 1024 are the guide's sizes, 360 x 500 and 320 x 300 the small windows.)
+for (const size of [...SIZES, { width: 768, height: 1024 }, { width: 1024, height: 768 }] as const) {
+  test(`Editing: the Timeline strip's time marks are whole and apart (${size.width}x${size.height})`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
+    await settlePage(page);
+    await page.locator('[data-k="p-1:1"]').click();
+    if (size.width >= 1360) await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+    else {
+      await page.getByRole('button', { name: 'Clean up and effects' }).click();
+      await page.getByRole('tab', { name: 'Timeline' }).click();
+    }
+    const strip = page.getByRole('region', { name: /^Waveform and takes/ });
+    await strip.waitFor();
+    await strip.scrollIntoViewIfNeeded();
+    const result = await strip.evaluate((section) => {
+      const row = [...section.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].find((el) => /\d\d:\d\d:\d\d\.\d{3}/.test(el.textContent ?? ''))!;
+      const marks = [...row.querySelectorAll<HTMLElement>('span')].map((el) => el.getBoundingClientRect()).filter((box) => box.width > 0);
+      const edge = section.getBoundingClientRect();
+      const apart = marks.every((box, i) => i === 0 || box.left >= marks[i - 1].right - 0.5 || box.top >= marks[i - 1].bottom - 0.5);
+      return {
+        count: marks.length,
+        apart,
+        inside: marks.every((box) => box.left >= edge.left - 0.5 && box.right <= edge.right + 0.5),
+        sideways: section.scrollWidth > section.clientWidth + 1,
+      };
+    });
+    expect(result.count, 'the start and end marks are drawn').toBeGreaterThanOrEqual(2);
+    expect(result.apart, 'the marks touch or overlap').toBe(true);
+    expect(result.inside, 'a mark is cut off by the strip').toBe(true);
+    expect(result.sideways, 'the strip scrolls sideways').toBe(false);
+  });
+}
+
+// #3443: a paragraph's time stamp in the margin is 12 characters ("00:00:01.300"); it showed ":00:01.300", cut off at the left, in the 76 px gutter. At every size the whole stamp is inside its gutter.
+for (const size of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 768, height: 1024 }, ...SIZES] as const) {
+  test(`Editing: a paragraph's time stamp is whole in its margin (${size.width}x${size.height})`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
+    await settlePage(page);
+    const stamps = await page.locator('[data-pid] [data-gutter]:not(.invisible)').evaluateAll((gutters) =>
+      gutters.map((gutter) => {
+        const stamp = gutter.firstElementChild as HTMLElement;
+        const box = stamp.getBoundingClientRect();
+        const edge = gutter.getBoundingClientRect();
+        return { text: stamp.textContent, cut: stamp.scrollWidth > stamp.clientWidth + 1 || box.left < edge.left - 0.5 || box.right > edge.right + 0.5 };
+      }),
+    );
+    expect(stamps.some((stamp) => /^\d{2}:\d{2}:\d{2}\.\d{3}$/.test(stamp.text ?? ''))).toBe(true);
+    for (const stamp of stamps.filter((s) => s.text)) expect(stamp.cut, `"${stamp.text}" is cut off`).toBe(false);
+  });
+}

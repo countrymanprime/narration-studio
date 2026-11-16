@@ -8,9 +8,10 @@ export type ClockOptions = {
   hours?: 'always';
   /**
    * `hh:mm:ss.fff`, always: two-digit hours, minutes and seconds and the milliseconds after a dot (a colon there would read as frames), "00:01:05.300".
-   * Rounded to the millisecond (unlike the default form, which floors whole seconds), so no sub-millisecond fraction is hidden and 59.9996 reads
-   * "00:01:00.000", never "00:00:59.1000"; a value exactly half a millisecond up rounds as the double does. Capped at a billion seconds. Overrides the
-   * other options. Owner, 2026-11-13 (#3443); no screen adopts it until the owner names one.
+   * Floored to the millisecond, like every other reading here (a clock never shows a time that has not happened yet), so 59.9996 reads "00:00:59.999",
+   * never "00:01:00.000" beside a floored "0:59". The value is taken to the microsecond first, so a time that is a whole number of milliseconds (65.3) is not
+   * read one short for the double's sake. Capped at a billion seconds. Overrides the other options. Owner, 2026-11-13 and 2026-11-16 (#3443): the form of every
+   * position on Editing and Proof.
    */
   full?: true;
 };
@@ -33,10 +34,10 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
   return `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${pad(whole % 60)}`;
 }
 
-/** `hh:mm:ss.fff` (see `ClockOptions.full`): milliseconds are rounded first and carried, so every field is in range. */
+/** `hh:mm:ss.fff` (see `ClockOptions.full`): floored to the millisecond, so every field is in range and no reading is ahead of the time it stands for. */
 function clockFull(seconds: number): string {
   // Capped at a billion seconds (over thirty years): beyond that the milliseconds are not exact in a double, and `seconds * 1000` can overflow.
-  const millis = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds * 1000)), MAX_FULL_MILLIS) : 0;
+  const millis = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.floor(Math.round(seconds * 1e6) / 1000)), MAX_FULL_MILLIS) : 0;
   const whole = Math.floor(millis / 1000);
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}.${String(millis % 1000).padStart(3, '0')}`;
 }

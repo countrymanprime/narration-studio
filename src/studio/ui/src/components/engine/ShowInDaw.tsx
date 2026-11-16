@@ -7,7 +7,6 @@ import type { DawCapabilities } from '../../api/contracts/daw';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { overlay } from '../../overlay/overlayService';
-import { clock } from '../../clock';
 import { noteTime } from '../proof/findingFormat';
 import { IconButton } from '../primitives/IconButton';
 
@@ -88,7 +87,7 @@ export async function showInDaw(ports: ShowInDawPorts, target: ShowInDawTarget, 
         ? await ports.workspace.workspaceGoTo(target.chapterId, target.token!)
         : await ports.findings.findingsGoTo(target.kind === 'finding' ? target.id : target.findingId!);
     if (went.outcome === 'refused') return { message: went.message, failed: true };
-    const when = target.kind === 'finding' ? noteTime : clock;
+    const when = noteTime;
     if (went.outcome !== 'navigated') return null;
     // A host that sends no usable time still moved the DAW: say so without printing NaN.
     return { message: Number.isFinite(went.projectTime) ? `Moved to ${when(went.projectTime)} in ${dawName}.` : `Moved in ${dawName}.`, failed: false };

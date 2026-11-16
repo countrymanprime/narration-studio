@@ -70,7 +70,7 @@ export function EffectInspector({
       <dl className="m-0 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
         <Fact name="Words">“{fx.text}”</Fact>
         <Fact name="Time">
-          {clock(at.start)}–{clock(at.end)}
+          {clock(at.start, { full: true })}–{clock(at.end, { full: true })}
         </Fact>
         <Fact name="Covers">{fx.stale ? 'nothing: the words changed' : `${fmtPct(shareOf(fx, cuts, total))} of this chapter`}</Fact>
         <Fact name="From">{fx.source}</Fact>

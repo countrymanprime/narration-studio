@@ -373,7 +373,7 @@ describe('the preview', () => {
     expect(document.activeElement).toBe(within(dialog()).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(dialogText('data-fx-snap')).toBe('The start moved 1.2 ms to a zero crossing. The end moved 1.2 ms to a zero crossing.'));
     expect(dialogText('data-fx-words')).toBe('Alice was');
-    expect(dialogText('data-fx-split-at')).toMatch(/^0:0\d and 0:0\d · 0\.\d s in the middle$/);
+    expect(dialogText('data-fx-split-at')).toBe('00:00:00.651 and 00:00:01.251 · 0.6 s in the middle');
     expect(dialogText('data-fx-in')).toBe('Chapter 1 · track “Chapter 1”');
     expect(dialogText('data-fx-chain')).toBe(`${CHAINS[0]} · from “${SOURCE}”`);
     expect(dialogText('data-fx-split')).toBe(`Piece 1 · unchangedPiece 2 · ${CHAINS[0]}Piece 3 · unchanged`);
@@ -435,7 +435,7 @@ describe('applying', () => {
     });
     const rows = await journal.entries();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ label: expect.stringMatching(/^Added Podcast Voice\.RfxChain to 2 words at 0:0\d$/), daw: true });
+    expect(rows[0]).toMatchObject({ label: expect.stringMatching(/^Added Podcast Voice\.RfxChain to 2 words at 00:00:00\.650$/), daw: true });
     expect(doc.items[doc.index.get('p-1:0') ?? 0].fx).toEqual(['fx1']);
     expect(document.querySelector('[data-fx-marker]')).toBeTruthy();
     expect(toastUndo).toHaveBeenCalledWith(expect.stringContaining(CHAINS[0]), expect.any(Function), { entry: expect.any(Number) });

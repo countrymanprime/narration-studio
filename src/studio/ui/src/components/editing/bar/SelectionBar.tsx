@@ -56,7 +56,7 @@ export function SelectionBar({
         />
         <IconButton action="nextWord" onClick={() => playback.skip(1)} />
         <span className="ml-1.5 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium whitespace-nowrap">
-          {clock(at)}
+          {clock(at, { full: true })}
           <span className="text-[var(--text-muted)]"> / {clock(end)}</span>
         </span>
       </div>
@@ -74,9 +74,9 @@ export function SelectionBar({
             {summary.audible.length > 0 ? (
               <span
                 className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
-                title={`${clock(summary.start)} to ${clock(summary.end)} · ${summary.len.toFixed(1)} s`}
+                title={`${clock(summary.start, { full: true })} to ${clock(summary.end, { full: true })} · ${summary.len.toFixed(1)} s`}
               >
-                {clock(summary.start)} to {clock(summary.end)} · {summary.len.toFixed(1)} s
+                {clock(summary.start, { full: true })} to {clock(summary.end, { full: true })} · {summary.len.toFixed(1)} s
               </span>
             ) : null}
             {allCut ? (

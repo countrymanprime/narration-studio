@@ -7,12 +7,9 @@ import { hm } from '../schedule/dates';
 
 const DASH = '—';
 
-/** Hours as hours and minutes ("5h 40m"), to the nearest minute, through the one hours formatter (`hm`), marked so "0h 10m" is not read as ten seconds (#3443). Every hours column of the Production board uses it. */
-export const hoursText = (hours: number): string => hm(hours, { marked: true });
-
-/** Hours or seconds as hours and minutes ("5h 40m"), to the nearest minute: the one hours formatter (`hm`), marked so "0h 10m" is not read as ten seconds (#3443). */
+/** Hours or seconds as hours and minutes ("5h 40m"), to the nearest minute, through the one hours formatter (`hm`). */
 export function formatClock(amount: number, unit: 'hours' | 'seconds'): string {
-  return hoursText(unit === 'hours' ? amount : amount / 3600);
+  return hm(unit === 'hours' ? amount : amount / 3600);
 }
 
 /** Hours worked per finished hour, to one decimal. */
@@ -23,7 +20,7 @@ export const formatRate = (rate: number | null) => (rate === null ? DASH : Math.
 
 const STAGE_WORD: Record<ChapterStatus, string> = { not_started: 'prep', recording: 'record', editing: 'edit', proofing: 'proof', finalized: 'final' };
 
-/** "record 5:40 · edit 3:55": the hours logged per stage, in pipeline order. */
+/** "record 5h 40m · edit 3h 55m": the hours logged per stage, in pipeline order. */
 export function stageHoursHint(hoursByStage: Partial<Record<ChapterStatus, number>>): string {
   return STATUS_ORDER.flatMap((stage) => {
     const hours = hoursByStage[stage];

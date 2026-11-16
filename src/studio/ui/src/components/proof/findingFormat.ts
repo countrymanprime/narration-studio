@@ -53,7 +53,7 @@ export const severityLabel = (severity: FindingSeverity): string => SEVERITY_LAB
 /** "90%", or "No score" when the analyzer has no numeric confidence (its reason says why). */
 export const confidenceLabel = (confidence: number | null): string => (confidence === null ? 'No score' : `${Math.round(confidence * 100)}%`);
 
-/** A note's time on Proof, to the millisecond: hh:mm:ss.fff ("00:02:14.600"), one of the fine surfaces (owner, 2026-11-16, #3443). */
+/** A position in the recording as Editing and Proof write it, to the millisecond: hh:mm:ss.fff ("00:02:14.600"): a note's time, a Show-in-DAW result, a marker's place (owner, 2026-11-16, #3443). */
 export function noteTime(seconds: number): string {
   return clock(seconds, { full: true });
 }

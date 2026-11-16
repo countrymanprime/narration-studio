@@ -53,14 +53,14 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     const t = setup({ kind: 'passage', chapterId: 'c1', token: 42 });
     await userEvent.click(await button('Show in REAPER'));
     expect(t.goTo).toHaveBeenCalledWith('c1', 42);
-    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 1:14 in REAPER.'));
+    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 00:01:14.000 in REAPER.'));
   });
 
   it('a finding and a pickup go through findingsGoTo with the finding', async () => {
     const t = setup({ kind: 'pickup', findingId: 'f9' });
     await userEvent.click(await button('Show in REAPER'));
     expect(t.findingGoTo).toHaveBeenCalledWith('f9');
-    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
+    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 00:03:41.000 in REAPER.'));
   });
 
   it('a chapter selects its linked track', async () => {
@@ -180,7 +180,7 @@ describe('ShowInDawButton hostile cases (qa-breaker #2826)', () => {
     const b = await button('Show in REAPER');
     expect(b.getAttribute('aria-busy')).not.toBe('true');
     await userEvent.click(b);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 0:09 in REAPER.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 00:00:09.000 in REAPER.'));
     toast.mockClear();
     await act(async () => answer({ outcome: 'navigated', projectTime: 5 } as never));
     expect(toast).not.toHaveBeenCalled();

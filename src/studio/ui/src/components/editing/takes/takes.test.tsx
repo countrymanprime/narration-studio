@@ -600,8 +600,8 @@ describe('take-rows-name-where-they-start-and-what-they-are', () => {
     const passage = measuredPassage();
     passage.takes[0] = { ...passage.takes[0]!, start: 72 };
     lines({ sourceLabel: 'REAPER take' }, passage);
-    expect(row('t-7').textContent).toContain('1:12 · 0:08 long · REAPER take');
-    expect(row('t-8').textContent).not.toContain('1:12');
+    expect(row('t-7').textContent).toContain('00:01:12.000 · 0:08 long · REAPER take');
+    expect(row('t-8').textContent).not.toContain('00:01:12.000');
   });
   it('names the first read of a stack and calls a hidden take Hidden, not Muted', () => {
     lines({ firstReadId: 't-7', hiddenIds: ['t-9'] });
@@ -612,7 +612,7 @@ describe('take-rows-name-where-they-start-and-what-they-are', () => {
   });
   it('says in the takes that the take reads the line twice, and where the second read starts', () => {
     lines({ duplicateAt: 65 });
-    expect(document.querySelector('[data-dupnote]')?.textContent).toBe('This take reads the line twice. The second read starts at 1:05.');
+    expect(document.querySelector('[data-dupnote]')?.textContent).toBe('This take reads the line twice. The second read starts at 00:01:05.000.');
   });
   it('has no duplicate note when the line is read once', () => {
     lines();

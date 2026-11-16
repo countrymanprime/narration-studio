@@ -6,7 +6,7 @@ import { plural } from '../../../plural';
 export function announceSel(doc: ChapterDoc, sel: Sel | null): string {
   if (!sel) return '';
   const sum = summarize(doc, selKeys(doc, sel), [], (s) => s);
-  const span = sum.audible.length ? `, ${clock(sum.start)} to ${clock(sum.end)}` : '';
+  const span = sum.audible.length ? `, ${clock(sum.start, { full: true })} to ${clock(sum.end, { full: true })}` : '';
   return `${plural(sum.items.length, 'word', 'words')} selected${span}${sum.allExtra ? ', not in the script' : ''}`;
 }
 

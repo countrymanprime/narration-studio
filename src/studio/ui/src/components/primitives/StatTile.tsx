@@ -61,7 +61,11 @@ export function StatTile({
       <div
         className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : size === 'compact' ? 'text-[length:var(--font-size-base)] leading-[1.4]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}
       >
-        <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
+        <span className="whitespace-nowrap" style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>
+          {value}
+        </span>
+        {/* A break opportunity between the value and its unit that adds no space to the accessible text: the unit, never split, moves under the value whole. */}
+        {unit && <wbr />}
         {unit && (
           <span className={`ml-1 whitespace-nowrap ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
             {unit}

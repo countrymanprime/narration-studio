@@ -57,17 +57,64 @@ describe('one clock for every duration', () => {
   });
 });
 
-// #3443 (owner, 2026-11-16): the full hh:mm:ss.fff form is for the fine surfaces, Editing and Proof, and no other screen. A page outside them asking for `full` fails here.
-describe('the full form is only for Editing and Proof', () => {
-  const FINE = /^components\/(editing|proof)\//;
-  const asking = [...sources(SRC)]
-    .map((path) => relative(SRC, path).split(sep).join('/'))
-    .filter((file) => file !== 'clock.ts' && /\bfull:\s*true\b/.test(readFileSync(join(SRC, file), 'utf8')));
-  it('is asked for by no file outside components/editing and components/proof', () => {
-    expect(asking.filter((file) => !FINE.test(file))).toEqual([]);
+// #3443 (owner, 2026-11-16): every POSITION (a point or range in the recording) on Editing and Proof is written in the full hh:mm:ss.fff form, and no other screen uses
+// it, so the same cursor or selection never reads two ways on one screen. A `clock(` call under components/editing or components/proof is either `full: true` or a duration
+// (a length, an estimate, an elapsed time), and a file that still has a duration call is on the list below with what it measures; a stale entry fails, so the list only shrinks.
+const FINE = /^components\/(editing|proof)\//;
+const DURATIONS: Readonly<Record<string, string>> = {
+  'components/editing/backups/BackupsInspector.tsx': "the chapter's whole length beside a backup's span",
+  'components/editing/bar/SelectionBar.tsx': "the chapter's length after the transport position",
+  'components/editing/takes/TakeLines.tsx': "a take's source length",
+  'components/editing/range/replace/ReplaceDialog.tsx': 'the length of their file',
+  'components/proof/PreviewPanel.tsx': 'an estimated length of a preview',
+  'components/proof/CompareRun.tsx': 'the elapsed time of a comparison',
+  'components/proof/checkcard/cardSelectors.ts': "the recorded length and the script's estimate",
+  'components/proof/deliveryFindingFormat.ts': "a file's duration in a delivery finding",
+};
+/** The `clock(...)` calls of a source text, each with its balanced argument list. */
+function clockCalls(text: string): string[] {
+  const calls: string[] = [];
+  for (let at = text.indexOf('clock('); at >= 0; at = text.indexOf('clock(', at + 1)) {
+    if (/[\w.]/.test(text[at - 1] ?? '')) continue;
+    let depth = 0;
+    let end = at + 'clock'.length;
+    for (; end < text.length; end += 1) {
+      if (text[end] === '(') depth += 1;
+      if (text[end] === ')' && (depth -= 1) === 0) break;
+    }
+    calls.push(text.slice(at, end + 1));
+  }
+  return calls;
+}
+const files = [...sources(SRC)].map((path) => relative(SRC, path).split(sep).join('/'));
+const text = (file: string) => readFileSync(join(SRC, file), 'utf8');
+
+describe('the full form is only for Editing and Proof, and every position there uses it', () => {
+  it('scans clock calls (its own check)', () => {
+    expect(clockCalls('a(clock(x, { full: true }), clock(y))')).toEqual(['clock(x, { full: true })', 'clock(y)']);
+    expect(clockCalls('noclock(x) + this.clock(y)')).toEqual([]);
   });
-  it('is asked for on both of those pages', () => {
+  it('is asked for by no file outside components/editing and components/proof', () => {
+    const asking = files.filter((file) => file !== 'clock.ts' && clockCalls(text(file)).some((call) => /\bfull:\s*true\b/.test(call)));
+    expect(asking.filter((file) => !FINE.test(file))).toEqual([]);
     expect(asking.some((file) => file.startsWith('components/editing/'))).toBe(true);
     expect(asking.some((file) => file.startsWith('components/proof/'))).toBe(true);
+  });
+  const durations = files.filter((file) => FINE.test(file) && clockCalls(text(file)).some((call) => !/\bfull:\s*true\b/.test(call)));
+  it('has no duration call on Editing or Proof outside the list', () => {
+    expect(durations.filter((file) => !(file in DURATIONS))).toEqual([]);
+  });
+  it('lists only files that still have a duration call', () => {
+    expect(Object.keys(DURATIONS).filter((file) => !durations.includes(file))).toEqual([]);
+  });
+  // The full-form helper `noteTime` (a position as Editing and Proof write it) is imported outside those folders only where the position is theirs: the marker's place and the Show-in-DAW result.
+  const IMPORTS: Readonly<Record<string, string>> = {
+    'components/engine/AddMarkers.tsx': 'the place of a marker already on a note: a position, shown on Editing and Proof',
+    'components/engine/ShowInDaw.tsx': 'where Show in REAPER moved to: a position on Editing and Proof',
+  };
+  const importing = files.filter((file) => !FINE.test(file) && /\bnoteTime\b/.test(text(file)) && file !== 'components/proof/findingFormat.ts');
+  it('has no import of the full-form helper from outside Editing and Proof except the listed ones', () => {
+    expect(importing.filter((file) => !(file in IMPORTS))).toEqual([]);
+    expect(Object.keys(IMPORTS).filter((file) => !importing.includes(file))).toEqual([]);
   });
 });

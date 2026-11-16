@@ -5,7 +5,7 @@ import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { DawClient } from '../../ports';
 import { usePort } from '../../ports/usePort';
-import { clock } from '../../clock';
+import { noteTime } from '../proof/findingFormat';
 import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';
@@ -62,7 +62,7 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
     try {
       const added = await daw.addMarker(target.id);
       if (added.refused) return { message: added.refused, failed: true, added: false };
-      const already = target.at === undefined ? 'This note already has a marker here.' : `A marker is already at ${clock(target.at)}.`;
+      const already = target.at === undefined ? 'This note already has a marker here.' : `A marker is already at ${noteTime(target.at)}.`;
       return {
         message: added.message || (added.changed ? `Marker added in ${dawName}. One Undo there removes it.` : already),
         failed: false,

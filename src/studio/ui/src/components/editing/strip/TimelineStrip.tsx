@@ -115,11 +115,15 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
           </button>
         </div>
       ))}
-      <div className={`${mono} ml-[8.5rem] flex justify-between px-3 pb-1.5 text-xs text-[var(--text-muted)]`} aria-hidden="true">
+      {/* The marks are 12 characters each in `full` (#3443): the middle one is left out below 28 rem of the strip, the lane names' margin goes below 22 rem, and where even the
+          two end marks do not fit side by side they wrap onto two lines, the end mark to the right, so they never touch and none is cut off. */}
+      <div
+        className={`${mono} ml-[8.5rem] flex flex-wrap justify-between gap-x-3 px-3 pb-1.5 text-xs text-[var(--text-muted)] @max-[22rem]/tl:ml-0`}
+        aria-hidden="true"
+      >
         <span>{clock(t0, { full: true })}</span>
-        {/* The middle mark is left out where three millisecond readings would touch (the three are 12 characters each, #3443). */}
         <span className="hidden @min-[28rem]/tl:inline">{clock((t0 + t1) / 2, { full: true })}</span>
-        <span>{clock(t1, { full: true })}</span>
+        <span className="ml-auto">{clock(t1, { full: true })}</span>
       </div>
     </section>
   );

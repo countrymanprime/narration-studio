@@ -72,3 +72,41 @@ for (const width of [1440, 1920]) {
 
 // The Rec. and Est. headers' label and info mark inside their cells is layout rule C1 (lib/layoutScan.ts), which every catalogued
 // Production state is scanned with, light and dark, at the desktop and small-desktop widths.
+
+// #3443: a figure of hours is written with its units ("2h 11m", "516h 17m"); its value must never break inside it (it was drawn "2h" over "11m" over "/ 3h 08m" at 1280 and 1440), and at the
+// small sizes no tile is cut off. The unit may move under the value, whole.
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 1280, height: 800 },
+  { width: 768, height: 1024 },
+  { width: 390, height: 844 },
+  { width: 360, height: 500 },
+  { width: 320, height: 300 },
+] as const) {
+  test(`Production / every figure's value is on one line and no tile is cut off / ${size.width}x${size.height}`, async ({ page }) => {
+    await board(page, size.width, size.height);
+    const tiles = await page
+      .getByRole('list', { name: 'Production figures' })
+      .locator('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const value = button.querySelector<HTMLElement>('.font-medium > span');
+          if (!value) return null;
+          const line = parseFloat(getComputedStyle(value).lineHeight) || 20;
+          const box = value.getBoundingClientRect();
+          const edge = button.getBoundingClientRect();
+          return {
+            text: value.textContent,
+            lines: Math.round(box.height / line),
+            cut: value.scrollWidth > button.clientWidth - 2 || box.right > edge.right + 0.5,
+          };
+        }),
+      );
+    const drawn = tiles.filter((tile): tile is NonNullable<typeof tile> => tile !== null);
+    expect(drawn.length).toBeGreaterThanOrEqual(5);
+    for (const tile of drawn) {
+      expect(tile.lines, `"${tile.text}" is on one line`).toBe(1);
+      expect(tile.cut, `"${tile.text}" is cut off by its tile`).toBe(false);
+    }
+  });
+}

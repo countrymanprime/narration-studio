@@ -93,7 +93,7 @@ describe('PipelineTable', () => {
 
   it("shows each row's recorded length beside its estimate, or a word saying why there is none", () => {
     table();
-    const c4 = screen.getByRole('img', { name: 'Chapter 4: 0h 30m recorded of about 1h 00m estimated' });
+    const c4 = screen.getByRole('img', { name: 'Chapter 4: 30 minutes recorded of about 1 hour estimated' });
     expect(c4.textContent).toBe('0h 30m');
     expect(within(c4.closest('tr')!).getByRole('cell', { name: '1h 00m' })).toBeTruthy();
     const c5 = screen.getByRole('img', { name: 'Chapter 5: recorded not read' });

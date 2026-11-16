@@ -14,8 +14,8 @@ export function SplitConfirmBody({ plan, target }: { plan: Cutting; target: Spli
   return (
     <div className="flex flex-col gap-2" data-split-confirm>
       <p className="m-0">
-        {target.label} reads the line twice. Cut it at <b>{clock(target.at)}</b>, where the second read starts, so the line has two takes to choose between.
-        Nothing is deleted.
+        {target.label} reads the line twice. Cut it at <b>{clock(target.at, { full: true })}</b>, where the second read starts, so the line has two takes to
+        choose between. Nothing is deleted.
       </p>
       {plan.kind === 'backup-then-daw' ? (
         <p className="m-0">{plan.dawName} replaces audio when it cuts, so the audio around the cut is backed up first.</p>

@@ -123,7 +123,7 @@ describe('AddMarkersButton (#2830): one label, one gate and one source for a fin
     const t = setup({ kind: 'finding', id: 'f1', at: 221 });
     t.addMarker.mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
     await userEvent.click(await button('Add marker in REAPER'));
-    await waitFor(() => expect(t.toasts()).toContain('info:A marker is already at 3:41.'));
+    await waitFor(() => expect(t.toasts()).toContain('info:A marker is already at 00:03:41.000.'));
   });
 
   it('a host that throws says the DAW was not asked', async () => {
