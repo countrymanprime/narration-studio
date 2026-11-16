@@ -36,7 +36,7 @@ type DialogProps = {
   // false: Escape is ignored even though there is an `onClose`. For a dialog whose close would abort work in flight (a
   // running download): the header button and Cancel are the deliberate ways out, a stray key is not.
   escapeCloses?: boolean;
-  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall (less where that would reach within 4.75rem of the bottom edge; in a window 400 px tall or less the cap grows to the whole window, see `DIALOG_MAX_HEIGHT`): 'confirm' (a question
+  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall (less where that would reach within 4.75rem of the bottom edge; in a window 400 px tall or less the cap ramps up toward the whole window, which it reaches at 261 px; see `DIALOG_MAX_HEIGHT`): 'confirm' (a question
   // and its answers, the default for an alert), 'form' (a few fields, the default otherwise), 'palette' (the jump menu), 'wide' (a table
   // or a list of rows with controls). 'full' fills the viewport with a fixed 1rem margin on every side and scrolls its body, for a surface
   // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
