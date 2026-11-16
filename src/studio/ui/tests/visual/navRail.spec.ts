@@ -4,7 +4,7 @@ import { settlePage } from './helpers/settle';
 
 // The icon rail (below 1360 CSS px): every icon is centred in the rail's 64 px (63 inside its border), where it stays when the rail opens
 // on hover, and the group headings draw as rules. The wide rail and the drawer draw no rule. Geometry, so it needs a real browser.
-const RAIL = 'aside[aria-label="Primary navigation"]';
+const RAIL = '[data-nav-rail]';
 
 async function iconOffsets(page: import('@playwright/test').Page) {
   return page.evaluate((rail) => {

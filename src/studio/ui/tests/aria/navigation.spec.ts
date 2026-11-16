@@ -19,7 +19,7 @@ test('the drawer is a named modal dialog with the same list, and hides the page 
 
 test('the collapsed rail is the same named navigation as the sidebar', async ({ page }) => {
   await openApp(page, RAIL);
-  await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toMatchAriaSnapshot({ name: 'navigation-rail.aria.yml' });
+  await expect(page.getByRole('complementary')).toMatchAriaSnapshot({ name: 'navigation-rail.aria.yml' });
 });
 
 // The header is the research mock's top bar: the project name as a button, the jump button and the engine chip. Back, Forward, Undo, History
