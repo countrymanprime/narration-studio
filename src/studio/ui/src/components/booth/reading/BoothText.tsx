@@ -102,8 +102,10 @@ const GHOST =
   'outline-dashed outline-[0.06em] outline-offset-[0.04em] outline-[var(--text-muted)] bg-[color-mix(in_srgb,var(--text-muted)_14%,transparent)] after:absolute after:top-[-0.34em] after:left-1/2 after:h-[0.22em] after:-translate-x-1/2 after:border-l-[0.07em] after:border-dashed after:border-[var(--text-muted)] after:content-[""]';
 
 // The chosen start's mark: an accent line under the sentence's first word, in a second channel (shape) besides the sentence's tint. It is a border on the
-// word's ::after, not a text decoration: an entity name and a narrator's underline mark set their own inline text-decoration, which would replace it.
-const START = "after:absolute after:inset-x-0 after:bottom-[-0.1em] after:border-b-[0.14em] after:border-solid after:border-[var(--accent)] after:content-['']";
+// word's ::before, not a text decoration: an entity name and a narrator's underline mark set their own inline text-decoration, which would replace it.
+// ::before is the cursor's caret and ::after the cold read's tick, so it is drawn only when the cursor is not on the word (the cursor's fill marks it then).
+const START =
+  "before:absolute before:inset-x-0 before:bottom-[-0.1em] before:border-b-[0.14em] before:border-solid before:border-[var(--accent)] before:content-['']";
 
 // What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
 // the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own
@@ -185,7 +187,7 @@ const UnitView = memo(function UnitView({
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
-                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''} ${start ? START : ''}`}
+                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''} ${start && !now ? START : ''}`}
               >
                 {token.text}
               </span>

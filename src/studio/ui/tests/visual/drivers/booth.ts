@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { rightClickVisibleWord } from '../helpers/visibleWord';
 import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
@@ -536,11 +537,10 @@ export const boothDrivers: Record<string, Driver> = {
     // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
-  // Start from here on a word a few sentences ahead of the reading (#3319): the first word of that sentence wears the start mark, in the text itself.
+  // Start from here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
   'chosen-start': async (page) => {
     await readyToRecord(page);
-    const ahead = page.locator('[data-booth-text] [data-unit][data-state="next"]').nth(1);
-    await ahead.locator('[data-word]').nth(2).click({ button: 'right' });
+    await rightClickVisibleWord(page);
     await page.getByRole('menuitem', { name: 'Start from here' }).click();
     await page.locator('[data-booth-text] [data-start]').first().waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

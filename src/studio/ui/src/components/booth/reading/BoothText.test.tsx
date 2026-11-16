@@ -466,8 +466,8 @@ describe('the chosen start (#3319)', () => {
     setup({ punchAt: 0, position: { paragraphId: 'p2', word: 5 } });
     expect(startWord(0).hasAttribute('data-start')).toBe(true);
     expect(startWord(0).getAttribute('aria-description')).toContain('Next take starts here');
-    // Drawn with the ::after border, which an entity's or a mark's inline text-decoration cannot replace.
-    expect(startWord(0).className).toContain('after:border-[var(--accent)]');
+    // Drawn with the ::before border, which an entity's or a mark's inline text-decoration cannot replace.
+    expect(startWord(0).className).toContain('before:border-[var(--accent)]');
     expect(document.querySelectorAll('[data-start]')).toHaveLength(1);
   });
 
@@ -477,6 +477,8 @@ describe('the chosen start (#3319)', () => {
     expect(word.hasAttribute('data-current')).toBe(true);
     expect(word.hasAttribute('data-start')).toBe(true);
     expect(word.getAttribute('aria-description')).toContain('Current word');
+    // The cursor's caret uses ::before and its fill marks the word, so the start border is not drawn over it.
+    expect(word.className).not.toContain('before:border-[var(--accent)]');
   });
 
   it('marks nothing when no start is chosen', () => {

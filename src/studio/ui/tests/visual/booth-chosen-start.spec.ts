@@ -3,6 +3,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
+import { rightClickVisibleWord } from './helpers/visibleWord';
 
 test.setTimeout(120_000);
 
@@ -20,24 +21,7 @@ async function pickAhead(page: Page): Promise<string> {
   await expect(page.getByRole('button', { name: /^Record$/, includeHidden: true })).toBeEnabled();
   // A sentence the narrator can see: the one after the first not-yet-read sentence that sits with its first word inside the reading box (right-clicking one out of
   // sight would scroll the box natively, which a narrator cannot do).
-  // A word the narrator can see to right-click: one in a not-yet-read sentence when there is one, else the last in view (in a small window the sentence
-  // being read fills the box, and its first word, the start, is then where the view comes back to).
-  const visibleWord = () =>
-    page.evaluate(() => {
-      const box = document.querySelector('[data-booth-text]')!.getBoundingClientRect();
-      const inView = [...document.querySelectorAll<HTMLElement>('[data-booth-text] [data-word]')].filter((el) => {
-        const r = el.getBoundingClientRect();
-        return r.height > 0 && r.top >= box.top + 8 && r.bottom <= box.bottom - 8;
-      });
-      const unitOf = (el: HTMLElement) => el.closest('[data-unit]') as HTMLElement | null;
-      const ahead = inView.filter((el) => unitOf(el)?.getAttribute('data-state') === 'next');
-      const pick = ahead[Math.min(ahead.length - 1, 4)] ?? inView[inView.length - 1];
-      return pick ? `${unitOf(pick)?.getAttribute('data-unit')}:${pick.getAttribute('data-word')}` : '';
-    });
-  // The text glides to the reading place when the Booth opens: wait until a word is in view.
-  await expect.poll(visibleWord, { timeout: 8000 }).not.toBe('');
-  const [unit, word] = (await visibleWord()).split(':');
-  await page.locator(`[data-booth-text] [data-unit="${unit}"] [data-word="${word}"]`).click({ button: 'right' });
+  const unit = await rightClickVisibleWord(page);
   await page.getByRole('menuitem', { name: 'Start from here' }).click();
   return unit;
 }
@@ -49,8 +33,12 @@ for (const size of SIZES) {
     const start = page.locator('[data-booth-text] [data-start]');
     await expect(start).toHaveCount(1);
     await expect(start).toHaveAttribute('data-word', '0');
-    // The mark is really drawn: a border under the word that no text decoration (an entity name's, a narrator mark's) replaces.
-    expect(await start.evaluate((el) => getComputedStyle(el, '::after').borderBottomWidth)).not.toBe('0px');
+    // The mark is really drawn: the cursor's fill when the cursor is still on the start word, else a border under it that no text decoration (an entity
+    // name's, a narrator mark's) replaces.
+    expect(
+      await start.evaluate((el) => el.hasAttribute('data-current') || getComputedStyle(el, '::before').borderBottomWidth !== '0px'),
+      'the start word is drawn as the cursor or with the start border',
+    ).toBe(true);
     expect(await start.evaluate((el, id) => el.closest('[data-unit]')?.getAttribute('data-unit') === id, unit)).toBe(true);
     // In view once the text has glided into place: inside the reading box, and the topmost thing at its centre is the word itself (no toast, bar or panel over it).
     const seen = () =>
