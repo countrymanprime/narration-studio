@@ -91,8 +91,10 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
   wide: 'max-w-[56rem]',
 };
 
-// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
-const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
+// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`). In a window 400 px tall or less the toast's room is
+// given up and the popup may take the window less its margin: a short question then fits whole at 275 x 200 (400% zoom, #2998).
+const DIALOG_MAX_HEIGHT =
+  'max-h-[min(80dvh,calc(92dvh-4.75rem))] [@media(max-height:400px)]:max-h-[calc(100dvh-1rem)] [@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]!';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
 // tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
@@ -321,7 +323,7 @@ export function Dialog({
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) event.preventDefault();
           }}
-          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
+          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:260px)]:p-1! [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
         >
           <Parts.Popup
             ref={popupRef}
@@ -351,12 +353,12 @@ export function Dialog({
             // Below 400 px of height (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
             // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:400px)]:overflow-y-auto ${
-              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
+              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT}`
             }`}
             style={{
               height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
               // At most 80dvh, and ending at least 4.75rem above the window's bottom edge, the room a toast keeps there while a dialog is open.
-              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : DIALOG_MAX_HEIGHT,
+              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
               background: 'var(--surface)',
               borderColor: 'var(--line-strong)',
               boxShadow: 'var(--shadow-lg)',
@@ -367,7 +369,7 @@ export function Dialog({
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
               <div
-                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5`}
+                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:260px)]:py-1! [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5`}
               >
                 <Parts.Title title={title} className={`flex-1 ${OVERLAY_TITLE_CLASS} [@media(max-height:400px)]:line-clamp-3`}>
                   {title}
@@ -383,7 +385,7 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:400px)]:min-h-10 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:400px)]:min-h-14 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
                   top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
@@ -391,7 +393,7 @@ export function Dialog({
                   (`scroll-y-edges`), so a row cut by the action row reads as more to scroll (R3GL-3, R3EN2-13). */}
               <div
                 data-dialog-content
-                className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:400px)]:py-2'}`}
+                className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:260px)]:py-0.5! [@media(max-height:400px)]:py-2'}`}
               >
                 {hasContent(description) && (
                   <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
@@ -412,7 +414,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1 ${ACTIONS_INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t [@media(max-height:400px)]:gap-x-1 ${ACTIONS_INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:260px)]:gap-y-1! [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

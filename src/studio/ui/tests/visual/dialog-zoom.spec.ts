@@ -31,16 +31,35 @@ for (const [width, height] of [
     await openQuestion(page);
     await page.setViewportSize({ width, height });
     const dialog = page.getByRole('alertdialog', { name: 'Unsaved changes' });
-    // At rest, before any key: the question's text is on screen (not squeezed to nothing behind the actions) and a dialog taller than its room scrolls.
+    // At rest, before any key: the whole question text is on screen (its first and last line), every action is inside the popup, and the control that has the focus
+    // is fully shown, so nothing is hidden below an edge with no sign that it is there.
     const rest = await page.evaluate(() => {
       const box = document.querySelector('[role="alertdialog"]')!;
+      const frame = box.getBoundingClientRect();
       const text = box.querySelector('p')!;
       const at = text.getBoundingClientRect();
-      const hit = document.elementFromPoint(at.left + 4, at.top + 4);
-      return { textShown: Boolean(hit && text.contains(hit)), overflowY: getComputedStyle(box).overflowY, overflows: box.scrollHeight > box.clientHeight };
+      const shown = (x: number, y: number) => {
+        const hit = document.elementFromPoint(x, y);
+        return Boolean(hit && text.contains(hit));
+      };
+      const inside = (element: Element) => {
+        const r = element.getBoundingClientRect();
+        return r.top >= frame.top - 1 && r.bottom <= frame.bottom + 1 && r.left >= frame.left - 1 && r.right <= frame.right + 1;
+      };
+      const focused = document.activeElement;
+      return {
+        firstLine: shown(at.left + 4, at.top + 4),
+        lastLine: shown(at.left + 4, at.bottom - 4),
+        actions: [...box.querySelectorAll('button')].filter((b) => b.textContent!.trim()).map((b) => [b.textContent!.trim(), inside(b)] as const),
+        focusedShown: !focused || focused === document.body || !box.contains(focused) || inside(focused),
+      };
     });
-    expect(rest.textShown, 'the question text is on screen').toBe(true);
-    if (rest.overflows) expect(rest.overflowY, 'a dialog taller than its room scrolls').toBe('auto');
+    expect(rest.firstLine && rest.lastLine, 'the whole question text is on screen').toBe(true);
+    expect(
+      rest.actions.filter(([, shown]) => !shown).map(([name]) => name),
+      'every action is inside the popup at rest',
+    ).toEqual([]);
+    expect(rest.focusedShown, 'the control that has the focus is fully shown').toBe(true);
     const reached = new Set<string>();
     for (let press = 0; press < 8; press += 1) {
       await page.keyboard.press('Tab');
