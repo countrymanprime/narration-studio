@@ -147,7 +147,7 @@ A browser Back (or Alt+Left) while a dialog is open does not leave the page: the
 A box that saves when you click or Tab out of it saves what you typed before any of these moves, even when the move comes from a key and the cursor is still in the box.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
-**This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
+**This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it. While a take records in the Booth, such a link does not replace the Booth: a chapter the manuscript lacks asks **Stop recording?** like any other chapter, and an address that cannot be read at all says so in a message and is ignored, so the take goes on.
 A link to a chapter the list does not have yet is checked first: the list is read once more, and meanwhile Proof, Editing and the Booth show their title and grey blocks with **Checking this link…** (the Booth, which has no sidebar, adds **Go to Production**). If the chapter turns up the page opens; if the list cannot be read, the page opens as well.
 The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message: for [Pickups](pickups.md) when the link still names pickups, otherwise for [Script](script.md).
 
