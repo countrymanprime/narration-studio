@@ -86,13 +86,13 @@ type RecordEnded struct {
 }
 
 // ArmOnly arms the track trackGUID names and disarms every other one, after REAPER remembers the arms the narrator had;
-// they come back when the recording the app starts stops. Refused while REAPER records (ErrRecording); a track that is
-// gone is a *TrackStaleError.
+// they come back when the recording the app starts stops. Refused while REAPER records (ErrRecording) and while it plays or is
+// paused (ErrPlaying), with no arm moved; a track that is gone is a *TrackStaleError.
 func (a *Actions) ArmOnly(ctx context.Context, trackGUID string) (Armed, error) {
 	return a.arm(ctx, "arm_only", trackGUID)
 }
 
-// ArmLane is ArmOnly for the Booth's lane choice while no take runs (arm_lane): the same arming and the same refusals, but REAPER
+// ArmLane is ArmOnly for the Booth's lane choice while no take runs (arm_lane): the same arming, refused while REAPER records but not while it plays, and REAPER
 // remembers no arms to put back, so the lane stays armed after a take and the app and the DAW keep agreeing (#3429).
 func (a *Actions) ArmLane(ctx context.Context, trackGUID string) (Armed, error) {
 	return a.arm(ctx, "arm_lane", trackGUID)

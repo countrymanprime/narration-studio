@@ -14,6 +14,9 @@ import (
 // bed would otherwise be transcribed and counted as recorded. Only those chapter-audio reads change (tracks.Project.WithAudioSkip): the
 // chapter row's members and every voice list still see the track. A setup that cannot be read is kept aside and reported through reporter
 // (the repo's rule for a narrator's file that will not parse, persist.Reporter; nil only keeps it) and marks nothing meanwhile.
+//
+// A track another chapter is linked to, inside a chapter's folder, is not left out here: the folder and its children are one chapter's voices
+// except a track marked as not a voice (#3594, pinned by TestANestedChaptersLinkedTrackStillCountsInTheOuterChaptersRecordedLength).
 func chapterAudio(reporter *persist.Reporter, folder string, project tracks.Project) tracks.Project {
 	setup, err := voicetracks.New(voicetracks.Config{Project: folder, Reporter: reporter}).Get()
 	if err != nil {

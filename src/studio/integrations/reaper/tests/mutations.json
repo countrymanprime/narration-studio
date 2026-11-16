@@ -3190,6 +3190,12 @@
     "replace": "if false then"
   },
   {
+    "name": "arm_only arms a playing REAPER, so a press the heartbeat let through leaves the narrator's arms changed",
+    "file": "narration_transport.lua",
+    "find": "if not keep and reaper.GetPlayState() ~= 0 then",
+    "replace": "if false then"
+  },
+  {
     "name": "the none read lists the track's items like the full read",
     "file": "narration_track_state.lua",
     "find": "local listed = option == 'none' and 0 or math.min(total, ITEM_LIMIT)",
