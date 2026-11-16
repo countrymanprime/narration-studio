@@ -47,7 +47,14 @@ type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldR
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
  * ("↑ ↓"), and the short word beside them. A `when` hint shows only while that condition is active; an `offWhen` hint is drawn struck through (`off`) while its condition is active.
  */
-export type FooterSpec = readonly { id: CommandId; with?: readonly CommandId[]; label: string; when?: FooterCondition; offWhen?: FooterCondition }[];
+export type FooterSpec = readonly {
+  id: CommandId;
+  with?: readonly CommandId[];
+  label: string;
+  when?: FooterCondition;
+  offWhen?: FooterCondition;
+  offReason?: string;
+}[];
 
 /** A hint that is not a key ("Right-click"), drawn right after the hint of the command it names. */
 export type FooterExtra = readonly { after: CommandId; keys: string[]; label: string }[];
@@ -60,6 +67,9 @@ export type FooterSurface = 'booth' | 'proof';
  */
 // The Booth footer lists no row for `booth.mode.switch` (Alt+Space): it is one row at the widths it was before, and a hint would wrap it below about 1274 px.
 // The key is in the shortcut sheet (?) and Settings (`hints.test.ts` pins the footer's list).
+/** Why the Booth's voice hints are struck through in a cold read. */
+const COLD_READ_NO_VOICE_HINT = 'A cold read needs no voice';
+
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop' },
@@ -70,9 +80,9 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     { id: 'bookmark.prev', with: ['bookmark.next'], label: 'Bookmarks' },
     { id: 'booth.pickup.next', label: 'Next pickup', when: 'pickupSession' },
     // A chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md): the keys 1 to 9 are on the voice list.
-    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', offWhen: 'coldRead' },
-    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', offWhen: 'coldRead' },
-    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', offWhen: 'coldRead' },
+    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
+    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
+    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_HINT },
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],
@@ -123,11 +133,11 @@ export function footerHints(
   active: ReadonlySet<FooterCondition> = new Set(),
 ): KeyHintItem[] {
   const hints: KeyHintItem[] = [];
-  for (const { id, with: more = [], label, when, offWhen } of spec) {
+  for (const { id, with: more = [], label, when, offWhen, offReason } of spec) {
     if (when && !active.has(when)) continue;
     const gestures = [id, ...more].map((commandId) => keymap[commandId]?.[0]);
     if (gestures.every((gesture) => gesture)) {
-      hints.push({ keys: chordKeys(gestures as Gesture[]), label, id: `hint-${id}`, ...(offWhen && active.has(offWhen) ? { off: true } : {}) });
+      hints.push({ keys: chordKeys(gestures as Gesture[]), label, id: `hint-${id}`, ...(offWhen && active.has(offWhen) ? { off: true, offReason } : {}) });
     }
     for (const hint of extra) if (hint.after === id) hints.push({ keys: hint.keys, label: hint.label });
   }

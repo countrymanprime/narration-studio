@@ -123,7 +123,7 @@ export function BoothFooter({
     new Set([
       ...(pickupSession ? ['pickupSession' as const] : []),
       ...(voiceFolders ? ['voiceFolders' as const] : []),
-      // A cold read needs no voice, so the voice keys do nothing then and their hints are drawn dimmed.
+      // A cold read needs no voice, so the voice keys only explain then and their hints are struck through.
       ...(coldRead?.mode && !recording ? ['coldRead' as const] : []),
     ]),
   );

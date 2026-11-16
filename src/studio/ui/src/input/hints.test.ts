@@ -65,7 +65,7 @@ describe('footerHints', () => {
     expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
   });
 
-  it('the-voice-hints-dim-in-a-cold-read: with voice folders the voice hints are listed, dimmed while the cold read condition holds, and not otherwise', () => {
+  it('the-voice-hints-are-struck-in-a-cold-read: with voice folders the voice hints are listed, off (with a reason) while the cold read condition holds, and not otherwise', () => {
     const folders = new Set(['voiceFolders' as const]);
     const cold = new Set(['voiceFolders' as const, 'coldRead' as const]);
     const voice = (active: ReadonlySet<'voiceFolders' | 'coldRead'>) =>
@@ -73,7 +73,7 @@ describe('footerHints', () => {
     expect(voice(folders).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
     expect(voice(folders).every((hint) => !hint.off)).toBe(true);
     expect(voice(cold).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
-    expect(voice(cold).every((hint) => hint.off === true)).toBe(true);
+    expect(voice(cold).every((hint) => hint.off === true && hint.offReason === 'A cold read needs no voice')).toBe(true);
     // The other hints stay as they were, and a cold read with no voice folders adds nothing.
     expect(footerHints('booth', keymap, undefined, undefined, new Set(['coldRead' as const]))).toEqual(footerHints('booth', keymap));
   });

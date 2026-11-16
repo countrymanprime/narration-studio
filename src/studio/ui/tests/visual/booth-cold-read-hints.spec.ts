@@ -28,7 +28,7 @@ async function setMode(page: Page, mode: 'Record' | 'Cold read'): Promise<void> 
 const box = (page: Page) => hints(page).evaluate((el) => ({ height: el.getBoundingClientRect().height, width: el.getBoundingClientRect().width }));
 
 for (const width of [1440, 1100, 768]) {
-  test(`at ${width}: the voice hints dim in a cold read and the footer keeps its size`, async ({ page }) => {
+  test(`at ${width}: the voice hints are struck in a cold read and the footer keeps its size`, async ({ page }) => {
     await openBooth(page, width);
     await expect(voiceHints(page)).toHaveCount(3);
     const before = await box(page);
@@ -36,7 +36,8 @@ for (const width of [1440, 1100, 768]) {
     await setMode(page, 'Cold read');
     for (const hint of await voiceHints(page).all()) {
       expect(await hint.getAttribute('data-off')).toBe('');
-      expect(await hint.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain('line-through');
+      expect(await hint.locator('span.line-through').evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain('line-through');
+      expect(await hint.getAttribute('title')).toBe('A cold read needs no voice');
     }
     expect(await box(page)).toEqual(before);
     // The other hints are untouched.
@@ -46,7 +47,7 @@ for (const width of [1440, 1100, 768]) {
   });
 }
 
-test('dimmed hints still pass the contrast rule (axe color-contrast on the hint bar), light and dark', async ({ page }) => {
+test('struck hints still pass the contrast rule (axe color-contrast on the hint bar), light and dark', async ({ page }) => {
   await openBooth(page);
   await setMode(page, 'Cold read');
   const source = readFileSync(createRequire(import.meta.url).resolve('axe-core'), 'utf8');
@@ -64,7 +65,7 @@ test('dimmed hints still pass the contrast rule (axe color-contrast on the hint 
   }
 });
 
-test('a Record-mode footer has no dimmed hint', async ({ page }) => {
+test('a Record-mode footer has no struck hint', async ({ page }) => {
   await openBooth(page);
   await expect(hints(page).locator('[data-off]')).toHaveCount(0);
 });
