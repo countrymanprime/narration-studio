@@ -36,6 +36,10 @@ type closeGate struct {
 	confirmed bool
 	// +checklocks:mu
 	timer *time.Timer
+	// unanswered counts the requests sent that the page has not yet said it received, so a late receipt for an earlier request does not stop the wait
+	// for a later one.
+	// +checklocks:mu
+	unanswered int
 	// generation numbers each question, so a timer from an earlier one cannot close the window under a later one.
 	// +checklocks:mu
 	generation int
@@ -48,6 +52,10 @@ func newCloseGate(ask, closeNow func(), wait time.Duration) *closeGate {
 // arm records whether the page holds a draft that a close would drop.
 func (g *closeGate) arm(held bool) {
 	g.mu.Lock()
+	if held && !g.armed {
+		// A new draft after a confirmed close (one that did not end the process) is asked about again.
+		g.confirmed = false
+	}
 	g.armed = held
 	g.mu.Unlock()
 }
@@ -63,6 +71,7 @@ func (g *closeGate) closing() bool {
 	// A question is already open (or its answer was lost, or the page behind it has died): ask again and wait for the page to say it received this one, so a
 	// second press of the close button puts the question back, or closes the window when nothing answers (a page that crashed after the first request).
 	g.asking = true
+	g.unanswered++
 	g.restartTimer()
 	g.mu.Unlock()
 	g.ask()
@@ -88,6 +97,7 @@ func (g *closeGate) pageDidNotAnswer(generation int) {
 		return
 	}
 	g.asking = false
+	g.unanswered = 0
 	g.confirmed = true
 	g.mu.Unlock()
 	g.closeNow()
@@ -96,7 +106,10 @@ func (g *closeGate) pageDidNotAnswer(generation int) {
 // asked is the page saying it received the request: from here the host waits for the narrator (until a second close asks again and is not acknowledged).
 func (g *closeGate) asked() {
 	g.mu.Lock()
-	if g.timer != nil {
+	if g.unanswered > 0 {
+		g.unanswered--
+	}
+	if g.unanswered == 0 && g.timer != nil {
 		g.timer.Stop()
 		g.timer = nil
 	}
@@ -115,6 +128,7 @@ func (g *closeGate) answer(closeWindow bool) {
 	}
 	g.generation++
 	g.asking = false
+	g.unanswered = 0
 	closing := closeWindow && wasAsking
 	if closing {
 		g.confirmed = true

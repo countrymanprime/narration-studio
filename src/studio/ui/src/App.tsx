@@ -393,6 +393,11 @@ function AppRoutes() {
     const replaced = openMoveRef.current;
     // Not by another in-page change (more letters typed into the search while it is open): that one carries the box's text on.
     if (replaced?.kind === 'action' && next.kind !== 'action') replaced.onCancel?.();
+    // A save started for the question being replaced must not resolve it over the new one (a window close asked while Save & continue was saving, #3526).
+    if (replaced) {
+      moveToken.current += 1;
+      setResolving(false);
+    }
     openMoveRef.current = next;
     setPendingMove(next);
   };

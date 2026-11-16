@@ -179,3 +179,34 @@ func TestAYesWhenNothingIsBeingAskedDoesNotCloseTheWindow(t *testing.T) {
 		t.Fatal("a yes with no question confirmed the next close")
 	}
 }
+
+func TestAConfirmedCloseDoesNotLetALaterDraftThrough(t *testing.T) {
+	gate, asked, _ := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.asked()
+	gate.answer(true)
+	if !gate.closing() {
+		t.Fatal("the confirmed close was cancelled")
+	}
+	gate.arm(false)
+	gate.arm(true)
+	if gate.closing() {
+		t.Fatal("a draft held after a confirmed close was let through unasked")
+	}
+	if asked.Load() != 2 {
+		t.Fatalf("the page was asked %d times, want 2", asked.Load())
+	}
+}
+
+func TestALateAcknowledgementOfAnEarlierRequestDoesNotDisarmTheLaterWait(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.closing()
+	gate.asked() // the receipt for the first request arrives after the second press
+	time.Sleep(4 * testWait)
+	if closed.Load() != 1 {
+		t.Fatalf("a page that never received the second request trapped the window (closed %d times)", closed.Load())
+	}
+}

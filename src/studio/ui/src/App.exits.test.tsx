@@ -157,6 +157,20 @@ describe('closing the window with a registered draft held asks, and the host is 
     expect(probe.saves).not.toHaveBeenCalled();
   });
 
+  it('a close request while another question is saving is still answered: the old save cannot clear it', async () => {
+    probe.hang = true;
+    const host = await mountWithHost();
+    await runFromJump('Switch project…');
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Save & continue' }));
+    await waitFor(() => expect(probe.land).toBeTypeOf('function'));
+    host.request();
+    expect(host.windowCloseAsked).toHaveBeenCalledTimes(1);
+    await act(async () => probe.land!(true));
+    // The first question's save landed; the close question must still be open and answerable.
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Discard & continue' }));
+    await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+  });
+
   it('never answers yes before the narrator has answered', async () => {
     const host = await mountWithHost();
     host.request();
