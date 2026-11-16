@@ -192,6 +192,19 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(false);
   });
 
+  // #3595 (qa-breaker, #3586): the host's words are cut in the toast as they are in the pages' sentence, so a huge message cannot fill the window.
+  it('cuts a huge host message in the failure toast', async () => {
+    const api = createMockApi();
+    api.tracksLive = vi.fn(async () => {
+      throw new Error('x'.repeat(10_000));
+    });
+    const { notify } = mount(api);
+    await settle();
+    const [text] = notify.mock.calls[0];
+    expect(text.length).toBeLessThan(260);
+    expect(text.endsWith('…')).toBe(true);
+  });
+
   it('a first read that fails is the error, with no tracks, and a toast whose Retry reads again', async () => {
     const api = createMockApi();
     let fail = true;
