@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const chapterId = WIRE_CHAPTERS[0].id;
 
-type Extra = { stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
+type Extra = { coldRead?: boolean; stopTake?: () => Promise<boolean>; startTake?: () => Promise<unknown>; onNoTrack?: (key: number) => void; asking?: boolean };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
   const api = given ?? createMockApi({}, seed);
@@ -161,6 +161,65 @@ describe("the Booth's voices", () => {
     await act(async () => recording.hook.current.byKey(1));
     await act(async () => new Promise((r) => setTimeout(r, 20)));
     expect(startTake).not.toHaveBeenCalled();
+  });
+
+  // Owner, 2026-11-16 (#3430): a cold read records nothing and needs no lane, so in Cold read mode the voices make no host call (no lane choice, no arm read).
+  describe('in Cold read mode', () => {
+    it('a voice key, a pick from the list and Num + / Num - choose nothing at the host, and say why', async () => {
+      const startTake = vi.fn(() => Promise.resolve());
+      const { api, notify, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true, startTake });
+      const set = vi.spyOn(api, 'boothVoiceSet');
+      await act(async () => hook.current.byKey(1));
+      await act(async () => hook.current.choose(hook.current.voices[2]));
+      await act(async () => hook.current.step(1));
+      await act(async () => hook.current.step(-1));
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      expect(set).not.toHaveBeenCalled();
+      expect(startTake).not.toHaveBeenCalled();
+      expect(hook.current.current?.name).toBe('Narrator');
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
+    });
+
+    it('a key with no track does not ask who is in it', async () => {
+      const onNoTrack = vi.fn();
+      const { hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true, onNoTrack });
+      await act(async () => hook.current.byKey(7));
+      expect(onNoTrack).not.toHaveBeenCalled();
+    });
+
+    it('adding a track and putting a character on a voice make no host call', async () => {
+      const { api, notify, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true });
+      const add = vi.spyOn(api, 'boothVoiceAdd');
+      const setCharacters = vi.spyOn(api, 'voiceTracksSetCharacters');
+      let added: boolean | undefined;
+      let used: boolean | undefined;
+      await act(async () => {
+        added = await hook.current.add('Alice', []);
+        used = await hook.current.use(hook.current.voices[1], ['c1']);
+      });
+      expect([added, used]).toEqual([false, false]);
+      expect(add).not.toHaveBeenCalled();
+      expect(setCharacters).not.toHaveBeenCalled();
+      expect(notify).toHaveBeenCalledWith('A cold read needs no voice. Choose Record to pick one.', 'info');
+    });
+
+    it('reads no arm state from the DAW, so the control shows none', async () => {
+      const api = createMockApi({}, { voiceFolders: true });
+      const read = vi.spyOn(api, 'readAloudReaperState');
+      const { hook } = await mount({ voiceFolders: true }, false, api, { coldRead: true });
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      expect(read).not.toHaveBeenCalled();
+      expect(hook.current.arm.state).toBe('unknown');
+    });
+
+    it('back in Record mode the keys choose and start again', async () => {
+      const startTake = vi.fn(() => Promise.resolve());
+      const { api, hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: false, startTake });
+      const set = vi.spyOn(api, 'boothVoiceSet');
+      await act(async () => hook.current.byKey(1));
+      await waitFor(() => expect(startTake).toHaveBeenCalledTimes(1));
+      expect(set).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('a refused choice is a toast and keeps the voice', async () => {

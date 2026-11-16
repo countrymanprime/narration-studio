@@ -124,22 +124,6 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
   });
 
-  it('dismisses the toast that has focus on Escape, and leaves the key to it', () => {
-    const dismiss = vi.fn();
-    const outer = vi.fn();
-    render(
-      <div onKeyDown={outer}>
-        <ToastRegion messages={[failure(5), failure(6)]} dismiss={dismiss} />
-      </div>,
-    );
-    within(screen.getByText('Failure 6').closest('[data-tone]') as HTMLElement)
-      .getByRole('button', { name: 'Dismiss message' })
-      .focus();
-    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' });
-    expect(dismiss).toHaveBeenCalledExactlyOnceWith(6);
-    expect(outer).not.toHaveBeenCalled();
-  });
-
   it('dismisses the message whose button was pressed', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(1), failure(2)]} dismiss={dismiss} />);
@@ -482,16 +466,39 @@ describe('toast lifetime', () => {
   });
 });
 
-describe('Escape on a focused toast', () => {
-  it('is not taken by a capture-phase Escape listener of the page: the listeners that close a panel skip a key from a toast (#3431)', () => {
+// Owner, 2026-11-16 (#3430): Escape closes the Booth and nothing else; a toast never closes on Escape (a toast that comes up must not make the key close the
+// Booth by accident). A toast closes on its timer, which pauses while the pointer or focus is on it.
+describe('Escape and a toast', () => {
+  it('does not dismiss a toast that has focus, and the key reaches the page untouched', () => {
     const dismiss = vi.fn();
-    render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
-    const button = screen.getByRole('button', { name: 'Dismiss message' });
-    button.focus();
+    const page = vi.fn();
+    render(
+      <div onKeyDown={page}>
+        <ToastRegion messages={[failure(8), info(9)]} dismiss={dismiss} />
+      </div>,
+    );
+    for (const name of ['Dismiss message']) {
+      for (const button of screen.getAllByRole('button', { name })) {
+        act(() => button.focus());
+        const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        button.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    expect(dismiss).not.toHaveBeenCalled();
+    expect(page).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Failure 8')).toBeTruthy();
+  });
+
+  it('a toast with focus on its Retry button also keeps Escape for the page', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[{ ...failure(7), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={dismiss} />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    act(() => retry.focus());
     const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    button.dispatchEvent(event);
-    // The key is the toast's: it is handled (default prevented) so a page-level Escape that checks `defaultPrevented` leaves it alone.
-    expect(event.defaultPrevented).toBe(true);
+    retry.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(dismiss).not.toHaveBeenCalled();
   });
 });
 
