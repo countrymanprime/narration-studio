@@ -138,6 +138,17 @@ H.test('go_to a time puts the cursor there without playing and without scrolling
   H.eq(s.fake.cursor_seekplay, false, 'moving the cursor does not start or seek playback')
 end)
 
+H.test('go_to refuses while REAPER records and moves nothing', function()
+  local s, chapter, pickups = place_session()
+  pickups.selected = true
+  s.fake.play_state = 5
+  s:send('go_to', 'g1', chapter.guid, 'start', '')
+  H.eq(s:events(), { { 'ERROR', 'g1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(pickups.selected, true)
+  H.eq(chapter.selected, false)
+  H.eq(s.fake.cursor or 0, 0)
+end)
+
 H.test('go_to with a time that is not a number refuses and moves nothing', function()
   local s, chapter = place_session()
   s:send('go_to', 'g1', chapter.guid, 'at', 'soon')

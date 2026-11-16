@@ -97,9 +97,9 @@ func sameTrackID(a, b string) bool {
 }
 
 // DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
-// track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
+// track, seconds ignored), "start" (where its audio begins, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
 // chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
-// or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
+// or several links, a time that is not a number of seconds, a track the DAW no longer has, or a DAW that is recording, each with nothing moved. A chapter the
 // manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
 func (h *Host) DawGoToChapter(chapterID, where string, seconds float64) (string, error) {
 	svc := h.services()

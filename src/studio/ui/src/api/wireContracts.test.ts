@@ -3854,6 +3854,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
     expect(await api.dawGoToChapter('c-0001', 'at', 17.25)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 17.25 });
+    expect(await api.dawGoToChapter('c-0001', 'start', 0)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 0 });
     const bad = await api.dawGoToChapter('c-0001', 'at', -1);
     expect(bad.refused).toBe('The place to go to is not a usable number of seconds.');
 
