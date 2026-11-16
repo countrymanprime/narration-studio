@@ -19,7 +19,8 @@
 -- arm_only arms one track and disarms every other, remembering the arms the narrator had before the first arm_only.
 -- They are put back when a recording this bridge started stops, whether record_stop stops it or the narrator stops it
 -- in REAPER (a short defer watch notices), and only where an arm is still what arm_only left it: an arm the narrator
--- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block.
+-- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block. It is refused,
+-- with no arm moved, while REAPER records, plays or is paused; arm_lane is refused only while recording.
 --
 -- arm_lane is arm_only for the Booth's lane choice while no take runs: the same arming, but the arms become the
 -- narrator's, so nothing is remembered and a later stop leaves the lane armed (the app and the DAW stay in agreement, #3429).
@@ -640,6 +641,13 @@ local function arm_only(session_dir, state, run_id, guid_text, keep)
   -- would move the take to another track and drop the arms to put back.
   if recording() or (keep and state.recording and not state.recording.started) then
     event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')
+    return
+  end
+  -- A press that arms to record is refused while REAPER plays or is paused before any arm moves, as record_start would after: the
+  -- host takes the transport from the heartbeat, which can be a beat behind, and the arms put back need a take of ours. The Booth's
+  -- lane choice (keep) may arm while the transport runs.
+  if not keep and reaper.GetPlayState() ~= 0 then
+    event(session_dir, 'ERROR', run_id, 'REAPER is playing. Stop it first.')
     return
   end
   local target = find_track(guid_text)

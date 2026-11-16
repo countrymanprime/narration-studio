@@ -58,6 +58,27 @@ H.test('arm_only is refused while REAPER is recording, and nothing changes', fun
   H.eq(arms(s), { 0, 1, 0 })
 end)
 
+H.test('arm_only is refused while REAPER plays or is paused, with the arms untouched', function()
+  for _, play_state in ipairs({ 1, 2 }) do
+    local s, chapter, other = new_session()
+    other.armed = true
+    s.fake.play_state = play_state
+    s:send('arm_only', 'a1', chapter.guid)
+    H.eq(s:events(), { { 'ERROR', 'a1', 'REAPER is playing. Stop it first.' } })
+    H.eq(arms(s), { 0, 1, 0 })
+    s.fake.play_state = 0
+    s:send('arm_only', 'a2', chapter.guid)
+    H.eq(s:events()[1][1], 'ARMED')
+  end
+end)
+
+H.test('arm_lane may arm while REAPER plays: the Booth chooses a voice during playback', function()
+  local s, chapter = new_session()
+  s.fake.play_state = 1
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events()[1][1], 'ARMED')
+end)
+
 H.test('arm_only reports a track that is gone and arms nothing in its place', function()
   local s, _, other = new_session()
   other.armed = true
