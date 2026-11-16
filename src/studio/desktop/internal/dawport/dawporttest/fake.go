@@ -421,7 +421,7 @@ func (r placeRole) GoTo(_ context.Context, trackID string, target dawport.PlaceT
 	if trackID == "" {
 		return errors.New("choose a track to go to")
 	}
-	if !target.End && (target.Seconds != target.Seconds || target.Seconds < 0) {
+	if !target.End && !target.Start && (target.Seconds != target.Seconds || target.Seconds < 0) {
 		return errors.New("the place to go to is not a usable number of seconds")
 	}
 	return nil

@@ -3716,5 +3716,11 @@
     "file": "narration_track_select.lua",
     "find": "      target = math.max(target, track_end(member))\n",
     "replace": ""
+  },
+  {
+    "name": "go_to moves while REAPER records",
+    "file": "narration_track_select.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n",
+    "replace": ""
   }
 ]

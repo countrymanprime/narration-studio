@@ -121,6 +121,10 @@ words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
+## The DAW follows the chapter
+
+Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
+
 ## The DAW tools menu
 
 When REAPER is not answering, the header shows **REAPER not connected** before the wrench; its dialog has **Link project file…** while no REAPER project file is linked, then **Start REAPER** and **Check again** ([Production](production.md) describes it).

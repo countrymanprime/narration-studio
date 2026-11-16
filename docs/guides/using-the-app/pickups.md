@@ -3,8 +3,10 @@
 # Pickups
 
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
-under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
-move the DAW's cursor. Each line opens in the Booth, where you record it.
+under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch. Each line
+opens in the Booth, where you record it. With one chapter chosen, the DAW selects that chapter's track, and the tracks
+inside it, and puts its cursor where the chapter's audio starts (turn off **DAW follows your chapter** in
+[Settings](settings.md) to leave the DAW alone); with all chapters it moves nothing.
 While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **Length**, not a count; if it cannot be read, the page says so with **Check again**.
 
 ## Record your pickups

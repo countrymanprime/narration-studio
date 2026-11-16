@@ -102,6 +102,32 @@ func TestGoToSelectsTheTrackAndPutsTheCursorAtItsEndOrATime(t *testing.T) {
 	}
 }
 
+func TestGoToStartPutsTheCursorWhereTheTracksAudioBegins(t *testing.T) {
+	session, server := placesProject(t)
+	server.With(func(p *abt.Project) { p.AddWaveTrack("Late", 30, 100) })
+	if err := session.GoTo(t.Context(), "audacity:Late", dawport.PlaceTarget{Start: true}); err != nil {
+		t.Fatal(err)
+	}
+	server.With(func(p *abt.Project) {
+		if p.SelStart != 30 || p.SelEnd != 30 {
+			t.Errorf("cursor %v-%v, want 30", p.SelStart, p.SelEnd)
+		}
+	})
+}
+
+func TestGoToRefusesWhileTheAppRecordsAndMovesNothing(t *testing.T) {
+	session, server := placesProject(t)
+	session.transport.set(true, true)
+	if err := session.GoTo(t.Context(), "audacity:Chapter 2", dawport.PlaceTarget{End: true}); !errors.Is(err, bridge.ErrRecording) {
+		t.Fatalf("GoTo while recording = %v", err)
+	}
+	server.With(func(p *abt.Project) {
+		if p.Tracks[0].Selected || p.Tracks[1].Selected || p.SelStart != 0 {
+			t.Errorf("something moved: %v %v cursor %v", p.Tracks[0].Selected, p.Tracks[1].Selected, p.SelStart)
+		}
+	})
+}
+
 func TestChapterTrackStateReadsTheTrackAndWhatTheAppStarted(t *testing.T) {
 	session, server := placesProject(t)
 	ctx := t.Context()

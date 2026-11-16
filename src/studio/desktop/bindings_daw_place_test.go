@@ -91,6 +91,12 @@ func TestDawGoToChapterMovesToTheChaptersLinkedTrack(t *testing.T) {
 	if len(role.moved) != 2 || role.moved[0] != readAloudTrack || !role.targets[0].End || role.targets[1].End || role.targets[1].Seconds != 17.25 {
 		t.Fatalf("moved %v to %+v", role.moved, role.targets)
 	}
+	if got, err := dawGoToChapterIn(t.Context(), host.services(), "REAPER", available(), role, ids[0], "start", 0); err != nil || !got.OK {
+		t.Fatalf("start = %+v, %v", got, err)
+	}
+	if last := role.targets[len(role.targets)-1]; !last.Start || last.End {
+		t.Fatalf("start moved to %+v, want the start of the chapter's track", last)
+	}
 }
 
 func TestDawGoToChapterRefusesWithNothingMoved(t *testing.T) {
