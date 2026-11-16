@@ -9,6 +9,7 @@ import { readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { Button } from '../primitives/Button';
 import { BoothSkeleton } from '../booth/page/BoothSkeleton';
 import { EditingBodySkeleton } from '../editing/page/EditingSkeleton';
@@ -90,9 +91,15 @@ export function AddressGate({
   chapterParam,
   chapters,
   reloadChapters,
+  held = false,
   children,
 }: {
   page: AddressPage;
+  /**
+   * The page is holding something the narrator has not let go of (the Booth, while a take records or its end is not confirmed): an address it cannot act on does not
+   * replace it. A chapter the list lacks goes to the page, which asks as it does for any chapter; a malformed address is said in a message and ignored (#3555 item 4).
+   */
+  held?: boolean;
   /** The `:chapterId` the route matched, for Editing. */
   chapterParam?: string;
   chapters: readonly ListedChapter[] | null;
@@ -102,6 +109,13 @@ export function AddressGate({
   const { search, hash } = useLocation();
   const read = useMemo(() => readAddress(page, { search, hash, param: chapterParam }), [page, search, hash, chapterParam]);
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
+  const overlay = useOverlay();
+  const keep = held && page === 'booth' && (read.kind === 'bad' || check.state !== 'ok');
+  const ignored = keep && read.kind === 'bad' ? `${search}${hash}` : null;
+  useEffect(() => {
+    if (ignored !== null) overlay.toast('That link could not be opened, so the Booth stays. The take goes on.');
+  }, [ignored, overlay]);
+  if (keep) return <>{children}</>;
   if (read.kind === 'bad') return <BadAddress page={page} message={read.message} />;
   if (check.state === 'checking') return <CheckingLink page={page} />;
   if (check.state === 'missing') {

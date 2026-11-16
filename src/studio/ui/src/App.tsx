@@ -1126,7 +1126,13 @@ function AppRoutes() {
   const gateChapters = hasManuscript ? (slotChapters ?? null) : null;
   const reloadChapters = () => studio.load('chapters');
   const gated = (page: AddressPage, element: ReactElement, chapterParam?: string) => (
-    <AddressGate page={page} chapterParam={chapterParam} chapters={gateChapters} reloadChapters={reloadChapters}>
+    <AddressGate
+      page={page}
+      chapterParam={chapterParam}
+      chapters={gateChapters}
+      reloadChapters={reloadChapters}
+      held={page === 'booth' && journal.checkLeave('/booth') !== 'allow'}
+    >
       {element}
     </AddressGate>
   );
