@@ -58,7 +58,7 @@ H.test('arm_only is refused while REAPER is recording, and nothing changes', fun
   H.eq(arms(s), { 0, 1, 0 })
 end)
 
-H.test('arm_only is refused while REAPER plays or is paused, with the arms and the saved arms untouched', function()
+H.test('arm_only is refused while REAPER plays or is paused, with the arms untouched', function()
   for _, play_state in ipairs({ 1, 2 }) do
     local s, chapter, other = new_session()
     other.armed = true

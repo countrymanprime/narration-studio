@@ -19,7 +19,8 @@
 -- arm_only arms one track and disarms every other, remembering the arms the narrator had before the first arm_only.
 -- They are put back when a recording this bridge started stops, whether record_stop stops it or the narrator stops it
 -- in REAPER (a short defer watch notices), and only where an arm is still what arm_only left it: an arm the narrator
--- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block.
+-- changed meanwhile is theirs and is kept. A track arm is not in REAPER's undo history, so arm_only opens no undo block. It is refused,
+-- with no arm moved, while REAPER records, plays or is paused; arm_lane is refused only while recording.
 --
 -- arm_lane is arm_only for the Booth's lane choice while no take runs: the same arming, but the arms become the
 -- narrator's, so nothing is remembered and a later stop leaves the lane armed (the app and the DAW stay in agreement, #3429).
