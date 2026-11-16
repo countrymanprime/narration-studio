@@ -77,6 +77,25 @@ for (const address of MESSAGE) {
   });
 }
 
+test("an ignored link is put back: the address stays the Booth's, a plain Stop leaves the Booth in place, and a second identical link is answered too", async ({
+  page,
+}) => {
+  await recording(page);
+  const before = await page.evaluate(() => window.location.pathname + window.location.search);
+  await arrive(page, '/booth?chapter=');
+  await expect(said(page)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.location.pathname + window.location.search)).toBe(before);
+  // A second identical link is answered like the first: the first message goes, the second comes.
+  await expect(said(page)).toHaveCount(0, { timeout: 20_000 });
+  await arrive(page, '/booth?chapter=');
+  await expect(said(page)).toBeVisible();
+  // Ending the take does not turn the ignored address into the "could not be opened" card.
+  await stop(page).click();
+  await expect(record(page)).toBeVisible();
+  await expect(page.getByText('This link could not be opened')).toHaveCount(0);
+  expect(await page.evaluate(() => window.location.pathname)).toBe('/booth');
+});
+
 test('agreeing to the question for a chapter that is not there saves the take, and then the link says so', async ({ page }) => {
   await recording(page);
   await arrive(page, '/booth?chapter=nope');

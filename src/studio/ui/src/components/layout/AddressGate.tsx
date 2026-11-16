@@ -3,7 +3,7 @@
 // page's route and reads the address with `navigation/address.ts`; the page inside keeps reading its own address as before.
 
 import { creditsKindOfId } from '../credits/creditsEntries';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
@@ -107,7 +107,8 @@ export function AddressGate({
   reloadChapters: () => Promise<void>;
   children: ReactNode;
 }) {
-  const { search, hash } = useLocation();
+  const { pathname, search, hash } = useLocation();
+  const navigate = useNavigate();
   const read = useMemo(() => readAddress(page, { search, hash, param: chapterParam }), [page, search, hash, chapterParam]);
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
   const overlay = useOverlay();
@@ -115,8 +116,16 @@ export function AddressGate({
   // An address the Booth can still read a chapter from is the Booth's to ask about, as for any chapter; one that names none is said here and ignored.
   const ignored = keep && read.kind === 'bad' && readBoothQuery(new URLSearchParams(search)) === null ? `${search}${hash}` : null;
   const reason = read.kind === 'bad' ? read.message : '';
+  // The last address the page was shown at: an ignored link is put back to it, so the take's end does not turn the ignored address into the "could not be opened" card, and a
+  // second identical link is answered like the first.
+  const shown = useRef<string | null>(null);
+  if (!keep && read.kind === 'address') shown.current = `${pathname}${search}${hash}`;
   useEffect(() => {
-    if (ignored !== null) overlay.toast(`${reason} The Booth stays and the take goes on.`);
+    if (ignored === null) return;
+    overlay.toast(`${reason} The Booth stays and the take goes on.`);
+    navigate(shown.current ?? pathname, { replace: true });
+    // `ignored` is the address being ignored; the rest is read as it is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ignored, overlay, reason]);
   if (keep) return <>{children}</>;
   if (read.kind === 'bad') return <BadAddress page={page} message={read.message} />;
