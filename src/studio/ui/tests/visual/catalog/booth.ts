@@ -383,6 +383,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'chosen-start',
+    description:
+      'Booth (as setup) after right-clicking a word two sentences ahead of the reading and choosing Start from here (#3319): the first word of that sentence is underlined with the sentence tinted, so the place the next take starts from shows in the text itself, with the side panel closed; the toast says "Starting from ¶ n"',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'search-shown',
     description:
       'Booth (as setup) after Ctrl+F, "the" and choosing a match under "In this chapter": every match in the text tinted, the chosen one ringed and the reading position on it',
