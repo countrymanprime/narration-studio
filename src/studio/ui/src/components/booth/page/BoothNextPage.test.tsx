@@ -3710,6 +3710,18 @@ describe('a refusal is said once (#3322)', () => {
     });
   }
 
+  it('leaving the Booth takes away a refusal that is about a press here: it does not stay on the next page beside a Check again that does nothing', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+    );
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(true));
+    page.view.unmount();
+    expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(false);
+  });
+
   it('a second refused press with another sentence replaces the first message: it never stacks', async () => {
     const page = renderPage({ search: START });
     await ready();

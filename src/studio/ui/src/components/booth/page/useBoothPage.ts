@@ -158,6 +158,14 @@ export function useBoothPage(options: BoothPageOptions) {
     overlay.dismissTopic(CHECK_OFFER_TOPIC);
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
+  // A message about a press here (a refusal, the note on a start) is no longer true on the next page, where its Check again would do nothing.
+  useEffect(
+    () => () => {
+      overlay.dismissTopic(PRESS_TOPIC);
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+    },
+    [overlay],
+  );
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed (`PRESS_TOPIC`: a newer one replaces it),
   // and the press's notes ("Starting from ¶ 3") go with it (`PRESS_NOTE_TOPIC`).
