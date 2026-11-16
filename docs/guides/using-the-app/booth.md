@@ -147,6 +147,8 @@ Press **Record** (or Space, or Enter, or the numpad's Enter, or a foot pedal map
 track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
 the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
+While any take is recording, whether the Booth started it or you started it in REAPER, Windows is asked not to turn the display off or put the computer to sleep, and is let go the moment the take ends, REAPER goes quiet or you quit the app. A cold read is not a take, so it does not hold the screen awake. Only Windows is asked: on other systems the Booth leaves the computer's own idle timers alone. With Audacity, or with REAPER's connection status turned off, the app cannot see a take recording, so it holds nothing then either.
+
 Stop leaves you where you stopped. The highlight stays on the last word the Booth heard, and the next take, **Resume** and a cold
 read start from there. In REAPER the edit cursor stays at the end of what you just recorded, whether you press Stop in the Booth or
 in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
@@ -309,8 +311,10 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 **F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space**, **Enter**, the numpad's Enter and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
-**Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
+**Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts: the first word of that phrase is underlined and the phrase is tinted, in the text itself, and the text moves there (during a take the voice keeps the cursor, so the underline shows where the start is);
 during a take it rolls again from that phrase, as **R** does. The mark is for that one take: when the take ends, "Next roll starts from" goes and the next Record starts where the recording ends. A take is held while the menu is open.
+
+![Booth - Start from here: the first word of the chosen phrase is underlined with the phrase tinted, in the text; the take has started there and the cursor has moved on](../../images/ui/booth-chosen-start.webp)
 
 Any move of your place replaces the start you chose: **Resume at**, a click on a word, the arrow keys, **Next phrase** and **Back one phrase**, a find jump, a bookmark jump in the chapter, and a jump to a pickup. "Next roll starts from" goes with it, and **Record** (Space) starts from where the text now shows you, never from the earlier mark. This holds for a start kept after a refused take and for one chosen with **Record from here** on the Script. A move that lands on the phrase you chose, or that does not move the text (an arrow at the end of the chapter, or a step inside the phrase), keeps the start. Once you have moved off the phrase, the start is gone: moving back does not bring it back. A bookmark in another chapter opens that chapter at the bookmark and chooses no start. **Record from here** and **Start from here** set the start again.
 
@@ -366,7 +370,7 @@ Press the voice control, or **Num .**, for the folder's voices in REAPER's order
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
 previous voice. With no take running, a voice key (**Num 0** to **Num 9**, **Num +**, **Num −**) also starts the take on that voice once REAPER has accepted it; choosing from the list only selects. Either way the next **Enter** or **Space** is Record's: a voice key or a pick from the list leaves focus on the page, not on the voice control, so it does not reopen the list. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
 and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
-lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
+lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. While the main button reads **Cold read** the words of the voice hints in the footer are struck through, and hovering one says why: a cold read needs no voice, so Num 0, Num + / Num − and Num . only say so, and the list does not open (a click on the voice control says so too). In a chapter with no voice folders the sentence is just that a cold read needs no voice. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
 control shows the voice the app will record on, also after you leave the Booth and come back. In a
 chapter that records on one track, or that is not linked to a folder of voices yet in a Voice folders project, the voice keys say which it is and why they do nothing, and **=** and **-** still change the text size. If the chapter is linked to a track REAPER no longer has (deleted there), the keys say so in either layout, and the Engine panel shows it as **Track missing**. The Booth reads the tracks from REAPER as they are now, as the Engine panel does, not from the last save, so a voice you rename, add or delete in REAPER shows within a few seconds. The characters you chose for a voice follow the track when you rename it in REAPER to a name no other voice has, and the Narrator stays number key 0 under its new name. A voice's characters are kept by the voice's name, so they are the same in every chapter that has a voice of that name: rename a track to a name another voice already has and it takes that voice's characters.
@@ -407,7 +411,7 @@ When your DAW is connected and following is on, the Booth and the DAW stay toget
 - **Opened at a chapter** (from the Script, Pickups or a bookmark), or **going to another chapter** inside the Booth (the chapter arrows, the jump menu, a bookmark): the DAW goes to that chapter as well. It selects the chapter's track and, when the chapter is a folder of voices, the tracks inside it, so you see the chapter and its voices together. The chapter the Booth opened on by itself (the one you last left, or the one the DAW was on) is not moved to, since the DAW is already there. With only a chapter, its cursor goes to the end of the track; with a line, to where that line was recorded before (found in the last recording check, on whichever voice read it; a line nobody recorded goes to the end of the chapter's audio, and when there is no current check the Booth estimates the place from the text's length), so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
-The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message. To keep the DAW where you put it, turn off **DAW follows the Booth’s chapter** in [Settings](settings.md) (Recording & DAW); the Booth then never moves the DAW.
+The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW); the Booth then never moves the DAW.
 
 ## Where you stopped
 
@@ -427,6 +431,8 @@ Each chapter opens where you left off in it, in this order:
 
 A chapter edited since it was recorded loses the places that named its old words: the Booth then uses the track's length, or the
 word you last read to, or the top. If the browser's storage is blocked, step 3 is skipped.
+
+On a chapter linked to a folder of voices, a track in it that you marked as not a voice (a music bed) is left out of all of this, whether REAPER is open or not: where the Booth reads the chapter's recording to end, where it places you from the recording, which recording a passage mark is stamped with, and the recording the word-times view and a pickup's lookup read. Starting a take at the end of the chapter's audio inside REAPER itself still counts the bed.
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
 the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the

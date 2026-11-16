@@ -14,6 +14,10 @@ export interface KeyHintItem {
   keys: string[];
   label: string;
   id?: string;
+  /** The keys do nothing in the page's present state (the Booth's voice keys in a cold read): its words are struck through (a lowered opacity fails the contrast rule), still listed. */
+  off?: boolean;
+  /** Why it does nothing now: the hint's tooltip and what a screen reader adds after it. */
+  offReason?: string;
 }
 
 // The standard footer of key reminders (rule 3): a row of small hints along the bottom of the page, in the shell's page
@@ -41,9 +45,17 @@ export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: s
       className={`${footer ? SHELL_FOOTER : ''} flex flex-wrap items-center justify-start gap-x-4 gap-y-1 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--text)_5%,var(--bg))] px-4 py-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif] text-xs leading-snug text-[var(--text-muted)]`}
     >
       {hints.map((hint) => (
-        <span key={hint.label} id={hint.id} className="inline-flex items-center gap-1 whitespace-nowrap">
+        <span
+          key={hint.label}
+          id={hint.id}
+          data-off={hint.off ? '' : undefined}
+          title={hint.off ? hint.offReason : undefined}
+          className="inline-flex items-center gap-1 whitespace-nowrap"
+        >
           <KeyChord keys={hint.keys} />
-          {hint.label}
+          {/* Only the words are struck, so the caps stay readable ("Num -" would otherwise lose its glyph under the line); a plain hint keeps its label as bare text, as before. */}
+          {hint.off ? <span className="line-through decoration-1">{hint.label}</span> : hint.label}
+          {hint.off && hint.offReason ? <span className="sr-only"> ({hint.offReason})</span> : null}
         </span>
       ))}
       {children}

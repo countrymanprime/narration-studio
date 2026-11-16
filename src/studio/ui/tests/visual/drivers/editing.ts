@@ -433,6 +433,19 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByText(/never been saved/).waitFor();
     await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
   },
+  'saved-project': async (page) => {
+    await page.goto('/?mockLiveTracks=saved');
+    await settlePage(page);
+    await goToPage(page, 'Editing');
+    await page.getByRole('group', { name: 'Saved project' }).waitFor();
+  },
+  // The linked track is not in the project: the dialog's footer is the missing case's, not the unlinked one's (#3394).
+  'missing-dialog': async (page) => {
+    await openEditingNoAudio(page, '?mockChapterLink=missing');
+    const dialog = page.getByRole('dialog', { name: /track is not in the project/ });
+    await dialog.waitFor();
+    await dialog.getByText('to be linked to a track that is in the project.').waitFor();
+  },
   // The X closes it; the quiet mark stands where the banner stood and reopens it.
   'unlinked-closed': async (page) => {
     await openUnlinked(page);

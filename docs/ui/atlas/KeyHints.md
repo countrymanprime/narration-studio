@@ -8,6 +8,7 @@ Storybook title: `Primitives/KeyHints`. Source: `src/components/primitives/KeyHi
 
 - Default
 - Few Hints
+- Off Hint
 - Is A Note Region
 
 ## Used by

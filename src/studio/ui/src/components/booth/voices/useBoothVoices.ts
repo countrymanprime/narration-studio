@@ -1,3 +1,4 @@
+import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
 import { releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,8 +18,12 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 /** The id of the Booth's voice button. */
 export const VOICE_CONTROL_ID = 'bvoice';
 
-/** Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW. */
-export const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
+/**
+ * Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW.
+ * It points to Record only when there are voices to pick there; a chapter with none gets the reason alone.
+ */
+export const coldReadNoVoice = (hasVoices: boolean): string =>
+  hasVoices ? `${COLD_READ_NO_VOICE_REASON}. Choose Record to pick one.` : `${COLD_READ_NO_VOICE_REASON}.`;
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
@@ -244,6 +249,8 @@ export function useBoothVoices({
   recordingNow.current = recording;
   const coldNow = useRef(coldRead);
   coldNow.current = coldRead;
+  const haveVoices = useRef(false);
+  haveVoices.current = voices.length > 0;
   // Set by a voice key pressed with no take running; the answer to the choice starts the take (see `send`).
   const recordOnChoice = useRef(false);
   const sending = useRef<Voice | undefined>(undefined);
@@ -291,7 +298,7 @@ export function useBoothVoices({
 
   const choose = useCallback(
     (voice: Voice, fromKey = false) => {
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       // Only a key records at once, and only when no take runs (a take that runs is switched live); a pick from the list leaves Record to the narrator.
       if (fromKey && !recordingNow.current) recordOnChoice.current = true;
       // A voice chosen is the voice recorded: the stand-in for a character with no track ends.
@@ -310,7 +317,7 @@ export function useBoothVoices({
   const byKey = useCallback(
     (n: number) => {
       releaseFocusToPage();
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -351,7 +358,7 @@ export function useBoothVoices({
   const add = useCallback(
     async (name: string, characterIds: string[]) => {
       if (coldNow.current) {
-        notify(COLD_READ_NO_VOICE, 'info');
+        notify(coldReadNoVoice(haveVoices.current), 'info');
         return false;
       }
       try {
@@ -401,7 +408,7 @@ export function useBoothVoices({
   const use = useCallback(
     async (voice: Voice, characterIds: string[]) => {
       if (coldNow.current) {
-        notify(COLD_READ_NO_VOICE, 'info');
+        notify(coldReadNoVoice(haveVoices.current), 'info');
         return false;
       }
       try {
@@ -424,7 +431,7 @@ export function useBoothVoices({
 
   const standInFor = useCallback(
     (character: WhoCharacter) => {
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
         notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');
@@ -440,7 +447,7 @@ export function useBoothVoices({
   const step = useCallback(
     (by: 1 | -1) => {
       releaseFocusToPage();
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {

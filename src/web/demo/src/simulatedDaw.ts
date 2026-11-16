@@ -88,7 +88,7 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
   const after: Record<string, (args: unknown[], result: unknown) => Promise<void> | void> = {
     dawGoToChapter: async ([chapterId, where, seconds]) => {
       const name = await chapterName(String(chapterId));
-      const at = where === 'end' ? null : Number(seconds);
+      const at = where === 'end' ? null : where === 'start' ? 0 : Number(seconds);
       cursor = { label: name, seconds: at ?? 0 };
       note('cursor', at === null ? `Cursor moved to the end of ${name}` : `Cursor moved to ${name} at ${clock(at)}`);
     },

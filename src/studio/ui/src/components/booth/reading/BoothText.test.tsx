@@ -458,3 +458,31 @@ describe('room for a page break', () => {
     expect(gap('p3')).toBe(false);
   });
 });
+
+describe('the chosen start (#3319)', () => {
+  const startWord = (unit: number) => document.querySelector<HTMLElement>(`[data-unit="${unit}"] [data-word="0"]`)!;
+
+  it('marks the first word of the chosen sentence while the reading is elsewhere, so a take under way still shows where the next one starts', () => {
+    setup({ punchAt: 0, position: { paragraphId: 'p2', word: 5 } });
+    expect(startWord(0).hasAttribute('data-start')).toBe(true);
+    expect(startWord(0).getAttribute('aria-description')).toContain('Next take starts here');
+    // Drawn with the ::before border, which an entity's or a mark's inline text-decoration cannot replace.
+    expect(startWord(0).className).toContain('before:border-[var(--accent)]');
+    expect(document.querySelectorAll('[data-start]')).toHaveLength(1);
+  });
+
+  it('keeps the mark on the cursor word when the cursor is on the chosen start', () => {
+    setup({ punchAt: 0, position: { paragraphId: 'p1', word: 0 } });
+    const word = startWord(0);
+    expect(word.hasAttribute('data-current')).toBe(true);
+    expect(word.hasAttribute('data-start')).toBe(true);
+    expect(word.getAttribute('aria-description')).toContain('Current word');
+    // The cursor's caret uses ::before and its fill marks the word, so the start border is not drawn over it.
+    expect(word.className).not.toContain('before:border-[var(--accent)]');
+  });
+
+  it('marks nothing when no start is chosen', () => {
+    setup({ punchAt: null });
+    expect(document.querySelectorAll('[data-start]')).toHaveLength(0);
+  });
+});

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG, findCommand } from './commands.catalog';
 import { gesture } from './gestures';
-import { codeLabel, FOOTER_SPECS, footerHints, gestureKeys, nonKeyHints } from './hints';
+import { COLD_READ_NO_VOICE_REASON, codeLabel, FOOTER_SPECS, footerHints, gestureKeys, nonKeyHints } from './hints';
 import { defaultKeymap } from './keymap';
 
 describe('codeLabel', () => {
@@ -63,6 +63,19 @@ describe('footerHints', () => {
 
   it('the-footer-does-not-grow: the Booth footer lists no Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
     expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
+  });
+
+  it('the-voice-hints-are-struck-in-a-cold-read: with voice folders the voice hints are listed, off (with a reason) while the cold read condition holds, and not otherwise', () => {
+    const folders = new Set(['voiceFolders' as const]);
+    const cold = new Set(['voiceFolders' as const, 'coldRead' as const]);
+    const voice = (active: ReadonlySet<'voiceFolders' | 'coldRead'>) =>
+      footerHints('booth', keymap, undefined, undefined, active).filter((hint) => hint.id?.startsWith('hint-booth.voice'));
+    expect(voice(folders).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
+    expect(voice(folders).every((hint) => !hint.off)).toBe(true);
+    expect(voice(cold).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
+    expect(voice(cold).every((hint) => hint.off === true && hint.offReason === COLD_READ_NO_VOICE_REASON)).toBe(true);
+    // The other hints stay as they were, and a cold read with no voice folders adds nothing.
+    expect(footerHints('booth', keymap, undefined, undefined, new Set(['coldRead' as const]))).toEqual(footerHints('booth', keymap));
   });
 
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {
