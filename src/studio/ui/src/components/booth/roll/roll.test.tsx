@@ -295,6 +295,24 @@ describe('useRoll', () => {
     expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('The recording has changed.');
   });
 
+  it("a refused roll with no refusal and an empty message says nothing: it is the Booth's mark for 'already said'", async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: true, phrase: 1 });
+    actions.roll.mockResolvedValue({ ok: false, changed: false, undoSteps: 0, message: '' } as never);
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.refuse).not.toHaveBeenCalled();
+    expect(actions.notify).not.toHaveBeenCalled();
+  });
+
+  it.each(['\u007F', '\u2800', '\u200B', '\u0301'])(
+    'a refused roll whose refusal (%j) and message draw nothing says the default sentence, not nothing',
+    async (invisible) => {
+      const { hook, actions } = setup(SETUPS.reaper, { recording: true, phrase: 1 });
+      actions.roll.mockResolvedValue({ ok: false, changed: false, undoSteps: 0, refused: invisible, message: '' } as never);
+      await act(() => hook.result.current.punchAndRoll());
+      expect(actions.refuse).toHaveBeenCalledExactlyOnceWith('The DAW refused to roll again.');
+    },
+  );
+
   it('a lookup that fails is a sentence and no take, never a guess', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => Promise.reject(new Error('down')) });
     await act(() => hook.result.current.startTake());

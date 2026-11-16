@@ -59,6 +59,9 @@ const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no 
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
+/** Said when the DAW refuses a roll and gives no words (or only characters that draw nothing). */
+const ROLL_REFUSED = 'The DAW refused to roll again.';
+
 /** Said when a press (Start from here, R, Punch and roll, Space) is not the one already under way before a take; nothing is changed. */
 export const START_BUSY = 'A take is already starting, so that press was ignored.';
 
@@ -116,9 +119,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       // The take ended while the roll was out (Stop): nothing is said, logged or moved for a take that is over, whatever the roll answered.
       if (!sessionRef.current.recording) return;
       if (!result.ok) {
-        // An empty message is a failure the Booth already said (the roll's limit).
-        const said = sentenceOr(result.refused, sentenceOr(result.message, ''));
-        if (said) actionsRef.current.refuse(said);
+        // No refusal and an empty message is a failure the Booth already said (the roll's limit). Any other answer says a sentence: a refusal or message that
+        // draws nothing (an invisible character) is not that mark, so it says the default and never nothing.
+        if (result.refused === undefined && result.message === '') return;
+        actionsRef.current.refuse(sentenceOr(result.refused, sentenceOr(result.message, ROLL_REFUSED)));
         return;
       }
       lastRollAt.current = Date.now();

@@ -98,7 +98,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(
-    'Ends a press that started no take (a refusal, a lookup that failed or ran out): repeating asks the same question, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+    'Ends a press that started no take (a refusal, a lookup that failed or ran out) or a roll the DAW refused during a take: repeating asks the same question, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
   'src/components/booth/page/useBoothPage.ts#3': no(RC),
