@@ -992,6 +992,49 @@ describe('a lane armed in the DAW', () => {
     expect(set).toHaveBeenCalledExactlyOnceWith(chapterId, RABBIT);
   });
 
+  it('does not swap between two lanes when the DAW keeps both armed', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
+    api.readAloudReaperState = async () => state({ status: 'several_armed', armedCount: 2, trackGuid: narrator, armedTrackGuids: [narrator, RABBIT] });
+    // The host takes the voice but the DAW still reports both lanes armed (it could not disarm the old one).
+    const chosen = api.boothVoiceSet.bind(api);
+    const set = vi.fn(async (chapter: string, guid: string) => ({ ...(await chosen(chapter, guid)), message: 'Could not arm.' }));
+    api.boothVoiceSet = set;
+    await mount({}, false, api);
+    await settle();
+    await settle();
+    await settle();
+    expect(set.mock.calls.length).toBeLessThanOrEqual(2);
+  });
+
+  it('a read that landed while the who-is-in dialog was open is not followed when it is cancelled', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const answer = fakeDaw(api, state({ armedTrackGuids: [RABBIT] }));
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const notify = vi.fn();
+    function Probe({ asking }: { asking: boolean }) {
+      useBoothVoices({ chapterId, notify, recording: false, asking });
+      return null;
+    }
+    const tree = (asking: boolean) => (
+      <ApiProvider api={api}>
+        <VoiceSetupProvider projectFolder="C:/Projects/Alice">
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <Probe asking={asking} />
+          </ChapterTrackStateProvider>
+        </VoiceSetupProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(true));
+    await settle();
+    // The DAW goes back to the Narrator alone while the dialog is open, but the next read is still out when the dialog is cancelled.
+    answer.current = state({ status: 'ready', armedTrackGuids: [] });
+    api.readAloudReaperState = () => new Promise(() => undefined);
+    view.rerender(tree(false));
+    await settle();
+    expect(set).not.toHaveBeenCalled();
+  });
+
   it('a read taken while this app recorded is not followed when the take stops', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     api.readAloudReaperState = async () => state({ armedTrackGuids: [RABBIT] });
