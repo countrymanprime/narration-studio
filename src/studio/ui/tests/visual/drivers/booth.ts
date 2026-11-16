@@ -197,7 +197,8 @@ export const boothDrivers: Record<string, Driver> = {
     const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
     const create = dialog.getByRole('button', { name: 'Create a new track' });
     await create.waitFor();
-    await create.hover();
+    // Focus, not hover: the keyboard reaches the reason too, and the pointer is not where the capture leaves it.
+    await create.focus();
     await page
       .getByRole('tooltip')
       .getByText(/cannot add a track from this app/)
