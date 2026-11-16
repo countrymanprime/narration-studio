@@ -101,9 +101,9 @@ type Token = UnitWords['words'][number];
 const GHOST =
   'outline-dashed outline-[0.06em] outline-offset-[0.04em] outline-[var(--text-muted)] bg-[color-mix(in_srgb,var(--text-muted)_14%,transparent)] after:absolute after:top-[-0.34em] after:left-1/2 after:h-[0.22em] after:-translate-x-1/2 after:border-l-[0.07em] after:border-dashed after:border-[var(--text-muted)] after:content-[""]';
 
-// The chosen start's mark: an accent underline under the sentence's first word, in a second channel (shape) besides the sentence's tint, and
-// clear of the cursor's fill and the ghost's dashed outline.
-const START = 'underline decoration-[var(--accent)] decoration-[0.14em] underline-offset-[0.22em]';
+// The chosen start's mark: an accent line under the sentence's first word, in a second channel (shape) besides the sentence's tint. It is a border on the
+// word's ::after, not a text decoration: an entity name and a narrator's underline mark set their own inline text-decoration, which would replace it.
+const START = "after:absolute after:inset-x-0 after:bottom-[-0.1em] after:border-b-[0.14em] after:border-solid after:border-[var(--accent)] after:content-['']";
 
 // What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
 // the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own

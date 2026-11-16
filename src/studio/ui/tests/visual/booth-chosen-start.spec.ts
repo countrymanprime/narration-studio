@@ -49,6 +49,8 @@ for (const size of SIZES) {
     const start = page.locator('[data-booth-text] [data-start]');
     await expect(start).toHaveCount(1);
     await expect(start).toHaveAttribute('data-word', '0');
+    // The mark is really drawn: a border under the word that no text decoration (an entity name's, a narrator mark's) replaces.
+    expect(await start.evaluate((el) => getComputedStyle(el, '::after').borderBottomWidth)).not.toBe('0px');
     expect(await start.evaluate((el, id) => el.closest('[data-unit]')?.getAttribute('data-unit') === id, unit)).toBe(true);
     // In view once the text has glided into place: inside the reading box, and the topmost thing at its centre is the word itself (no toast, bar or panel over it).
     const seen = () =>

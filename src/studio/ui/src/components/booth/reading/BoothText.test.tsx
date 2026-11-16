@@ -466,6 +466,8 @@ describe('the chosen start (#3319)', () => {
     setup({ punchAt: 0, position: { paragraphId: 'p2', word: 5 } });
     expect(startWord(0).hasAttribute('data-start')).toBe(true);
     expect(startWord(0).getAttribute('aria-description')).toContain('Next take starts here');
+    // Drawn with the ::after border, which an entity's or a mark's inline text-decoration cannot replace.
+    expect(startWord(0).className).toContain('after:border-[var(--accent)]');
     expect(document.querySelectorAll('[data-start]')).toHaveLength(1);
   });
 
