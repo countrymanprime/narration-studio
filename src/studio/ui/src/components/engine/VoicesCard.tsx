@@ -17,7 +17,7 @@ import { SpeakerTag } from '../primitives/SpeakerTag';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { assignmentOf, folderVoices, type Voice } from './voices';
+import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
 
@@ -71,34 +71,42 @@ export function VoicesCard({
       return link ? [{ chapter, folder: link.trackGuid }] : [];
     });
   }, [tracks, chapters, mappings]);
+  // In a Voice folders project every linked folder is a chapter's folder of voices. In a Flat one the host still records a chapter linked to a
+  // folder on one of its own tracks (a folder none of whose children is another chapter's link), so those are the voices a narrator can mark.
+  const links = useMemo(
+    () =>
+      setup.layout === 'folders'
+        ? folderLinks
+        : folderLinks.filter((link) => {
+            const children = folderChildren(tracks, link.folder);
+            return children.length > 0 && !children.some((child) => mappings.some((mapping) => mapping.trackGuid === child.guid));
+          }),
+    [setup.layout, folderLinks, tracks, mappings],
+  );
   const [picked, setPicked] = useState('');
-  const current = folderLinks.find((link) => link.chapter.id === picked) ?? folderLinks[0];
+  const current = links.find((link) => link.chapter.id === picked) ?? links[0];
   const voices = current ? folderVoices(tracks, current.folder, characters, setup) : [];
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
-  const chapterPicker = setup.layout === 'folders' && folderLinks.length > 0 && (
+  const chapterPicker = links.length > 0 && (
     <div className={bare ? 'w-full max-w-[18.75rem] min-w-0' : 'max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]'}>
       <Select
         label="Chapter"
         value={current?.chapter.id ?? ''}
         onChange={setPicked}
-        options={folderLinks.map((link) => ({ value: link.chapter.id, label: link.chapter.title }))}
+        options={links.map((link) => ({ value: link.chapter.id, label: link.chapter.title }))}
         fullWidth
       />
     </div>
   );
   // The layout switch is Chapter sync's Layout row (the mock); while that card is not drawn, this card carries it so it is never lost.
-  if (!layoutInCard && setup.layout === 'flat') return null;
+  if (!layoutInCard && setup.layout === 'flat' && links.length === 0) return null;
 
   const content = (
     <>
-      {setup.layout === 'flat' ? (
+      {links.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Each chapter records on one track.
-        </p>
-      ) : folderLinks.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No chapter is linked to a folder yet.
+          {setup.layout === 'flat' ? 'Each chapter records on one track.' : 'No chapter is linked to a folder yet.'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -108,13 +116,13 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '4.5rem', '3.5rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '6rem', '3.5rem']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>
                     <TableHeader>Track</TableHeader>
                     <TableHeader>Characters</TableHeader>
-                    <TableHeader>Voice</TableHeader>
+                    <TableHeader>Counts as voice</TableHeader>
                     <TableHeader hiddenLabel="Actions" />
                   </TableRow>
                 </TableHead>

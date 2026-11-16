@@ -12,6 +12,8 @@ const NO_AUDIO = 'A folder with no audio of its own can’t be linked';
 
 /** The tracks above a node, outermost first: "Narration / Chapters". */
 // A voice track's tooltip in a Voice folders project.
+// A track in such a folder the narrator marked as not a voice (a music bed): still part of its folder's chapter.
+const NOT_A_VOICE = 'Not a voice: it stays in its chapter’s folder, so link the chapter to that folder.';
 const VOICE = 'A voice track: link its chapter to the folder it sits in.';
 
 /** What a folder holds, in words ("3 voices", "2 tracks"): a single track needs none, the mark already says it is not a folder. */
@@ -107,6 +109,7 @@ export function TrackTreePicker({
     // ...and a track directly inside such a folder is one of its voices, recorded as part of that folder's chapter, not a chapter's link.
     const parent = node.parent >= 0 ? nodes[node.parent].track : undefined;
     const voice = folders && !node.track.isFolder && parent?.isFolder === true && parent.choice.hasAudio === false;
+    const marked = notVoiceGuids.includes(node.track.guid.toLowerCase());
     const path = place.key.startsWith('t-') ? '' : pathOf(nodes, at);
     return {
       id: node.id,
@@ -114,8 +117,14 @@ export function TrackTreePicker({
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
       // What a folder holds, then where it sits and who holds it: "3 voices · Narration · linked to Chapter 2".
       note: [holds(nodes, at, folders, notVoiceGuids), path, entry.heldBy ? heldNote(entry.heldBy) : ''].filter(Boolean).join(' · ') || undefined,
-      disabledReason: blocked ? NO_AUDIO : voice ? VOICE : undefined,
-      disabledNote: blocked ? `${holds(nodes, at, folders, notVoiceGuids)} · no audio` : voice ? 'A voice of its folder' : undefined,
+      disabledReason: blocked ? NO_AUDIO : voice ? (marked ? NOT_A_VOICE : VOICE) : undefined,
+      disabledNote: blocked
+        ? `${holds(nodes, at, folders, notVoiceGuids)} · no audio`
+        : voice
+          ? marked
+            ? 'In its folder, not a voice'
+            : 'A voice of its folder'
+          : undefined,
       ...place,
     };
   };

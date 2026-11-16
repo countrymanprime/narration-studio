@@ -29,15 +29,25 @@ const cast = [
   { id: 'e-queen', canonical_name: 'Queen of Hearts', aliases: [{ text: 'Queen' }], category: 'Character' },
 ] as unknown as GuideEntity[];
 
-function draw(setup: VoiceTracksState, layoutInCard = true) {
+function draw(setup: VoiceTracksState, layoutInCard = true, linked = true) {
   const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
-  render(<VoicesCard tracks={tracks} chapters={chapters} mappings={mappings} setup={setup} characters={cast} layoutInCard={layoutInCard} {...handlers} />);
+  render(
+    <VoicesCard
+      tracks={tracks}
+      chapters={chapters}
+      mappings={linked ? mappings : ([] as never)}
+      setup={setup}
+      characters={cast}
+      layoutInCard={layoutInCard}
+      {...handlers}
+    />,
+  );
   return handlers;
 }
 
 describe('the Voices card', () => {
   it('a flat project shows its layout and no voices, and switching saves the layout', () => {
-    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
+    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, true, false);
     expect(screen.queryByRole('table')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Voice folders' }));
     expect(handlers.onLayout).toHaveBeenCalledWith('folders');
@@ -77,7 +87,7 @@ describe('the Voices card', () => {
   });
 
   it('a flat project draws no Voices card while Chapter sync carries the layout switch', () => {
-    draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+    draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false, false);
     expect(screen.queryByRole('heading', { name: 'Voices' })).toBeNull();
     cleanup();
     draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
@@ -239,5 +249,36 @@ describe('the Voices card', () => {
     );
     const names = screen.getAllByRole('switch').map((el) => el.parentElement?.textContent);
     expect(new Set(names).size).toBe(2);
+  });
+
+  it('a Flat project whose chapter is linked to a folder of its own tracks lists them, so a music bed can be marked', async () => {
+    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+    expect(screen.getByRole('table', { name: /^Voices of / })).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('a Flat project whose linked folder holds another chapter’s track lists no voices', () => {
+    const nested = [track('c8', 'Ch 8', 0, true), track('c9', 'Chapter 9', 1)];
+    render(
+      <VoicesCard
+        tracks={nested}
+        chapters={chapters}
+        mappings={
+          [
+            { chapterId: 'ch8', trackGuid: 'c8' },
+            { chapterId: 'ch9', trackGuid: 'c9' },
+          ] as never
+        }
+        setup={{ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('table')).toBeNull();
   });
 });

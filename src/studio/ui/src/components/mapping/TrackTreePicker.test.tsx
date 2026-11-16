@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { TrackChoice } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
-import { VoiceLayoutContext } from '../engine/voiceLayout';
+import { ApiProvider } from '../../api/ApiContext';
+import { createMockApi } from '../../api/mockApi';
+import { VoiceLayoutContext, VoiceSetupProvider } from '../engine/voiceLayout';
 
 afterEach(cleanup);
 
@@ -142,6 +144,23 @@ describe('the track picker in a Voice folders project', () => {
     expect(within(queen).getByText('A voice of its folder')).toBeTruthy();
     await userEvent.click(screen.getByRole('treeitem', { name: /^Ch 8/ }));
     expect(onChange).toHaveBeenCalledWith('g-Ch 8');
+  });
+
+  it('says a voice track marked as not a voice is not one, and counts only the others', async () => {
+    const api = createMockApi();
+    api.voiceTracksGet = async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['g-queen'], tracks: [] });
+    render(
+      <ApiProvider api={api}>
+        <VoiceSetupProvider projectFolder="C:/Projects/Alice">
+          <TrackSelect label="Folder for Chapter 8" choices={VOICES} value="g-Ch 8" onChange={vi.fn()} />
+        </VoiceSetupProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Folder for Chapter 8/ }).textContent).toContain('Ch 8 · 1 voice'));
+    await userEvent.click(screen.getByRole('button', { name: /^Folder for Chapter 8/ }));
+    const queen = screen.getByRole('treeitem', { name: /Queen/ });
+    expect(within(queen).getByText('In its folder, not a voice')).toBeTruthy();
+    expect(within(screen.getByRole('treeitem', { name: /Narrator/ })).getByText('A voice of its folder')).toBeTruthy();
   });
 
   it('names a chosen folder with how many voices it holds', async () => {
