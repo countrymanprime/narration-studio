@@ -164,6 +164,11 @@ export function createSystemMock(
     // The mock has no disk to persist to: it only proves the UI
     // calls it, the same way companionModeEnter/Exit do nothing for a mock with no real window.
     windowSaveZoom: async () => {},
+    // The mock has no window to close: the guard, the receipt and the answer do nothing, and nothing asks (App.test.tsx drives the event through an override).
+    windowCloseGuard: async () => {},
+    windowCloseAsked: async () => {},
+    windowCloseAnswer: async () => {},
+    subscribeWindowCloseRequested: () => () => {},
     subscribeNotices: (onNotice) => {
       const text = initial.notice;
       if (!text) return () => {};

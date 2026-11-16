@@ -854,7 +854,7 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 }
 
 /**
- * DawGoToChapter selects chapterID's linked track in the DAW and puts its cursor at where: "end" (the end of what is recorded on the
+ * DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
  * track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
  * chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
  * or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
@@ -3268,6 +3268,30 @@ export function WhisperInstallCancel(jobID: string): $CancellablePromise<string>
 
 export function WhisperInstallState(jobID: string): $CancellablePromise<string> {
     return $Call.ByID(288841540, jobID);
+}
+
+/**
+ * WindowCloseAnswer is the narrator's answer to the close question: true closes the window now (they saved, or chose Discard & continue), false
+ * keeps it open.
+ */
+export function WindowCloseAnswer(closeWindow: boolean): $CancellablePromise<string> {
+    return $Call.ByID(3842273488, closeWindow);
+}
+
+/**
+ * WindowCloseAsked is the page saying it received `window:close-requested` and is asking the narrator: the host then waits for the narrator's
+ * answer instead of closing the window on its own after a few seconds.
+ */
+export function WindowCloseAsked(): $CancellablePromise<string> {
+    return $Call.ByID(1766475930);
+}
+
+/**
+ * WindowCloseGuard tells the host whether the page holds a draft that closing the window would drop (the page's `pageHolds`): while it does, a
+ * close of the window is cancelled and put to the page as `window:close-requested` instead of going through (windowclose.go, #3526).
+ */
+export function WindowCloseGuard(held: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1426908239, held);
 }
 
 /**
