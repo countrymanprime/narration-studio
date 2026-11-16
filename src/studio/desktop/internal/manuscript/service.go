@@ -485,6 +485,16 @@ func (s *Service) Cancel(id string) error {
 }
 
 func (s *Service) Load() (map[string]any, error) {
+	cached, err := s.loadCache()
+	if err != nil {
+		return nil, err
+	}
+	return cached.data, nil
+}
+
+// loadCache is Load's parse with its indexes: the entry it returns is the one it checked or built, so a caller that reads an index never
+// sees another entry stored in between (a kind change drops the cache).
+func (s *Service) loadCache() (*manuscriptCache, error) {
 	s.mu.Lock()
 	project := s.project
 	s.mu.Unlock()
@@ -497,7 +507,7 @@ func (s *Service) Load() (map[string]any, error) {
 		return nil, fmt.Errorf("import a manuscript first")
 	}
 	if cached := s.manCache.Load(); cached != nil && cached.path == path && cached.modTime.Equal(info.ModTime()) && cached.size == info.Size() {
-		return cached.data, nil
+		return cached, nil
 	}
 	bytes, err := os.ReadFile(path)
 	if err != nil {
@@ -523,20 +533,18 @@ func (s *Service) Load() (map[string]any, error) {
 			refs = append(refs, ChapterRef{ID: text(chapter, "id"), Title: text(chapter, "title"), Subtitle: text(chapter, "subtitle"), ContentKind: text(chapter, "contentKind")})
 		}
 	}
-	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs, paragraphs: byChapter})
-	return data, nil
+	entry := &manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs, paragraphs: byChapter}
+	s.manCache.Store(entry)
+	return entry, nil
 }
 
 // ChapterTitle is the title of the manuscript's chapter id, and false when the manuscript has no such chapter (front matter and
 // the credits are not manuscript chapters). It reads one entry of an index built once per parse of manuscript.json: no chapter
 // payload is built, where Chapters and ChaptersUnmeasured build one for every chapter of the book (#3272).
 func (s *Service) ChapterTitle(id string) (string, bool, error) {
-	if _, err := s.Load(); err != nil {
+	cached, err := s.loadCache()
+	if err != nil {
 		return "", false, err
-	}
-	cached := s.manCache.Load()
-	if cached == nil {
-		return "", false, fmt.Errorf("the canonical manuscript data could not be read")
 	}
 	title, ok := cached.titles[id]
 	return title, ok, nil
@@ -764,12 +772,9 @@ func (s *Service) Clear() error {
 // ChapterRefs is the manuscript's own chapters (front matter and the credits are not among them) in order, from the parse the
 // service already keeps: no chapter payload is built.
 func (s *Service) ChapterRefs() ([]ChapterRef, error) {
-	if _, err := s.Load(); err != nil {
+	cached, err := s.loadCache()
+	if err != nil {
 		return nil, err
-	}
-	cached := s.manCache.Load()
-	if cached == nil {
-		return nil, fmt.Errorf("the canonical manuscript data could not be read")
 	}
 	return slices.Clone(cached.refs), nil
 }

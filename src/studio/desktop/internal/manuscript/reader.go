@@ -40,11 +40,8 @@ func (s *Service) ChapterIDByTitle(title string) (id string, ambiguous, ok bool)
 // reader contract's global "index" field, shared with Transcript Compare's
 // resolve_global_paragraph) to its stable paragraph id.
 func (s *Service) ParagraphID(chapterID string, globalIndex int) (id string, ok bool) {
-	if _, err := s.Load(); err != nil {
-		return "", false
-	}
-	cached := s.manCache.Load()
-	if cached == nil {
+	cached, err := s.loadCache()
+	if err != nil {
 		return "", false
 	}
 	for _, paragraph := range cached.paragraphs[chapterID] {
@@ -125,12 +122,9 @@ func frontMatterChapterIDs(data map[string]any) map[string]bool {
 }
 
 func (s *Service) Paragraphs(chapterID string) ([]map[string]any, error) {
-	if _, err := s.Load(); err != nil {
+	cached, err := s.loadCache()
+	if err != nil {
 		return nil, err
-	}
-	cached := s.manCache.Load()
-	if cached == nil {
-		return nil, fmt.Errorf("the canonical manuscript data could not be read")
 	}
 	result := []map[string]any{}
 	for _, paragraph := range cached.paragraphs[chapterID] {

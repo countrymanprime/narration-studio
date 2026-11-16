@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -184,5 +185,59 @@ func TestReadingEveryChaptersParagraphsGrowsWithTheBookNotWithItsSquare(t *testi
 	small, large := median(1000), median(4000)
 	if ratio := float64(large) / float64(small); ratio > 9 {
 		t.Fatalf("4,000 chapters took %.1fx as long as 1,000 (%v vs %v); linear is about 4x, quadratic about 16x", ratio, large, small)
+	}
+}
+
+// A kind change drops the parse's cache while readers are asking for paragraphs: they must still be answered from the entry they checked, never
+// fail with a cache that was cleared between the check and the read. Run under -race in CI.
+func TestParagraphsAreAnsweredWhileAKindChangeDropsTheCache(t *testing.T) {
+	service, chapterID, _ := importReaderFixture(t)
+	stop := make(chan struct{})
+	failures := make(chan string, 64)
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				if _, err := service.Paragraphs(chapterID); err != nil {
+					select {
+					case failures <- err.Error():
+					default:
+					}
+					return
+				}
+				if _, ok := service.ParagraphID(chapterID, 0); !ok {
+					select {
+					case failures <- "ParagraphID found no paragraph":
+					default:
+					}
+					return
+				}
+			}
+		}()
+	}
+	when := time.Now()
+	for i := 0; i < 40; i++ {
+		kind := "reference"
+		if i%2 == 1 {
+			kind = "narration"
+		}
+		when = when.Add(time.Second)
+		if _, err := service.SetChapterKind("c-0002", kind, when); err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(stop)
+	readers.Wait()
+	select {
+	case failure := <-failures:
+		t.Fatalf("a reader failed during a kind change: %s", failure)
+	default:
 	}
 }
