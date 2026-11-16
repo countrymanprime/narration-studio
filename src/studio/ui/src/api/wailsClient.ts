@@ -145,6 +145,7 @@ import {
   noticeSchema,
   projectAttachStateSchema,
   readySchema,
+  windowCloseRequestedSchema,
   windowZoomSchema,
 } from './schemas/system';
 import {
@@ -462,6 +463,10 @@ export const wailsClient: NarrationApi = {
   windowZoom: () => decode(windowZoomSchema, 'WindowZoom', host.WindowZoom()),
   windowSetZoom: (factor) => decode(windowZoomSchema, 'WindowSetZoom', host.WindowSetZoom(factor)),
   windowSaveZoom: (level) => decode(voidResult, 'WindowSaveZoom', host.WindowSaveZoom(level)),
+  windowCloseGuard: (held) => decode(voidResult, 'WindowCloseGuard', host.WindowCloseGuard(held)),
+  windowCloseAsked: () => decode(voidResult, 'WindowCloseAsked', host.WindowCloseAsked()),
+  windowCloseAnswer: (closeWindow) => decode(voidResult, 'WindowCloseAnswer', host.WindowCloseAnswer(closeWindow)),
+  subscribeWindowCloseRequested: (onRequested) => subscribeChecked('window:close-requested', windowCloseRequestedSchema, () => onRequested()),
   subscribeProjectAttach: (onUpdate) => subscribeChecked('system:attached', projectAttachStateSchema, onUpdate),
   subscribeLiveUpdateHealth: (onDegraded) => liveHealth.subscribe(onDegraded),
   subscribeNotices: (onNotice) => subscribeChecked('system:notice', noticeSchema, (event) => onNotice(event.text)),

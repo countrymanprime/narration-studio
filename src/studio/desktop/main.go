@@ -48,6 +48,8 @@ func main() {
 	})
 	window := app.Window.NewWithOptions(mainWindowOptions(host.startupZoom()))
 	watchFileDrop(window, host.onFilesDropped)
+	host.windowClose = newCloseGate(func() { emitEvent(windowCloseRequestedEvent, map[string]any{}) }, window.Close)
+	watchWindowClosing(window, host.windowClose.closing)
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}

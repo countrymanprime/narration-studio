@@ -1,6 +1,7 @@
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useWindowClose } from './hooks/useWindowClose';
 import { focusPageMain } from './components/primitives/focusReturn';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
@@ -954,6 +955,8 @@ function AppRoutes() {
     if (pageHolds()) openMove({ kind: 'action', run, onCancel: options?.onCancel });
     else run();
   };
+  // Closing the window while a draft is held (#3526): the host cancels the close and asks the page to put the question; see useWindowClose.
+  useWindowClose(api, pageHolds(), (run, options) => askRef.current(run, options));
   // A navigation drawer that was open closes a moment later and hands the focus back to its opener, outside the question, so the focus is put back inside it a
   // few times over the first moments, on Keep editing when that is the way to stay and on Cancel otherwise (#3404, and #3446 B2 for every variant).
   const questionOpen = pendingMove !== undefined;

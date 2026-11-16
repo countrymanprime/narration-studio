@@ -4936,6 +4936,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'companionModeEnter',
       'companionModeExit',
       'windowSaveZoom',
+      'windowCloseGuard',
+      'windowCloseAsked',
+      'windowCloseAnswer',
     ];
     const NOT_A_REQUEST = [
       'mediaUrl',
@@ -4945,6 +4948,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeNotices',
       'subscribeJobEnded',
       'subscribeManuscriptDropped',
+      'subscribeWindowCloseRequested',
       'subscribeVoiceSamples',
       'subscribeTranscript',
       'subscribeCoverage',

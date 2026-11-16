@@ -744,6 +744,7 @@ func TestContractRetiredTakeFindings(t *testing.T) {
 
 // The manuscript:dropped event: an import begun on a dropped file (it names the file and the job, never the path), and a drop the host refused.
 func TestContractManuscriptDropped(t *testing.T) {
+	contractfile.Check(t, "window-close-requested", map[string]any{})
 	contractfile.Check(t, "manuscript-dropped-begun", map[string]any{"jobId": "import-1", "name": "Alice in Wonderland.docx"})
 	contractfile.Check(t, "manuscript-dropped-refused", NewHost().beginDropped([]string{"/a.txt", "/b.txt"}))
 }

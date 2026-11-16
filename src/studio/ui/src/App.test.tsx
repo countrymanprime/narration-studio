@@ -1050,6 +1050,62 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { max_missing_run: '5' });
   });
 
+  describe('closing the window (#3526)', () => {
+    const mountWithHost = () => {
+      let request: (() => void) | undefined;
+      const base = createMockApi();
+      const windowCloseGuard = vi.fn(async () => {});
+      const windowCloseAsked = vi.fn(async () => {});
+      const windowCloseAnswer = vi.fn(async () => {});
+      renderApp({
+        windowCloseGuard,
+        windowCloseAsked,
+        windowCloseAnswer,
+        subscribeWindowCloseRequested: (listener) => {
+          request = listener;
+          return base.subscribeWindowCloseRequested(listener);
+        },
+      });
+      return { request: () => act(() => request!()), windowCloseGuard, windowCloseAsked, windowCloseAnswer };
+    };
+    const editSettings = async () => {
+      const check = await openKeptPanel('ps.coverage', 'Recording check');
+      fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
+      expect(within(check).getByText('Unsaved changes')).toBeTruthy();
+    };
+
+    it('tells the host whether a draft is held, and a request with nothing held closes the window without a question', async () => {
+      const host = mountWithHost();
+      await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+      await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(false));
+      host.request();
+      expect(host.windowCloseAsked).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+    });
+
+    it('with a Settings edit held asks the question: Cancel keeps the window and the text, Discard & continue closes it', async () => {
+      const host = mountWithHost();
+      await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+      await editSettings();
+      await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(true));
+      host.request();
+      expect(host.windowCloseAsked).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText('Save or discard changes before leaving?')).toBeTruthy();
+      expect(host.windowCloseAnswer).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(false));
+      expect(host.windowCloseAnswer).not.toHaveBeenCalledWith(true);
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.getByText('Unsaved changes')).toBeTruthy();
+
+      host.request();
+      await screen.findByText('Save or discard changes before leaving?');
+      fireEvent.click(screen.getByRole('button', { name: 'Discard & continue' }));
+      await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+    });
+  });
+
   it("takes the scan toast's Show them through the unsaved-Settings question and lands on the Story Bible with Needs review on", async () => {
     let jobEnded: ((event: JobEnded) => void) | undefined;
     const base = createMockApi();
