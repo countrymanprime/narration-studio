@@ -1,4 +1,6 @@
 import { retryAction } from '../primitives/Toast';
+import { tracksUnreadable } from '../chapterTracks/chapterLink';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
@@ -373,6 +375,7 @@ export function ProofPage({
 
   const chapterNotes = useMemo(() => (chapter ? findings.filter((f) => chapterOf(f) === chapter.id) : []), [findings, chapter]);
   const timeline = useChapterTimeline(chapter?.id);
+  const unreadable = tracksUnreadable(useChapterTrackState());
   const total = timeline?.total ?? 0;
   const spots = useSpotTakes(chapter?.id ?? '', chapterNotes);
   const spot = selected ? spots.spotFor(selected.id) : null;
@@ -533,6 +536,9 @@ export function ProofPage({
                   </>
                 ) : !timeline ? (
                   <p className="text-sm text-[var(--text-muted)]">Reading the recording…</p>
+                ) : unreadable ? (
+                  // The tracks could not be read, so nothing says whether the chapter was recorded: the one sentence every page says (#3394).
+                  <p className="text-sm text-[var(--text-muted)]">{unreadable}</p>
                 ) : hasRecording(chapter.recordedSeconds) ? (
                   <p className="text-sm text-[var(--text-muted)]">No recording for this chapter yet.</p>
                 ) : // The check card above already says there is no recording to check (alignment audit XPF-16).

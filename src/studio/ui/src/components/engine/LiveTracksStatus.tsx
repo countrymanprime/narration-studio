@@ -1,4 +1,5 @@
 import { useToasts } from '../../hooks/useToasts';
+import { tracksUnreadable } from '../chapterTracks/chapterLink';
 import { plural } from '../../plural';
 import { useSecondsSince } from '../layout/CheckLine';
 import { IconButton } from '../primitives/IconButton';
@@ -19,7 +20,7 @@ function liveTracksLine(live: LiveTracks, seconds: number | null): Line {
   const ago = seconds === null ? '' : ` ${live.stale ? 'Last read' : 'Read'} ${seconds} s ago.`;
   const line = (announce: string, short: string): Line => ({ announce, short, full: `${announce}${ago}` });
   if (live.readAt === null) {
-    if (live.error) return line(`The tracks could not be read: ${live.error}`, 'Tracks not read yet');
+    if (live.error) return line(tracksUnreadable({ live }) ?? '', 'Tracks not read yet');
     return live.busy ? line('Reading the tracks from REAPER…', 'Reading tracks…') : line('The tracks have not been read yet.', 'Tracks not read yet');
   }
   if (live.stale) return line(`Can’t tell whether these are REAPER’s tracks now: ${live.error}`, `REAPER did not answer · last read ${seconds} s ago`);

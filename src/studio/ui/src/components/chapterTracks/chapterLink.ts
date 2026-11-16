@@ -45,3 +45,12 @@ export function linkStateOf(link: ChapterLink, trackExists: boolean): ChapterLin
 export function linkStateLabel(state: ChapterLinkState, folders: boolean): string {
   return state === 'several' && folders ? 'Several folders' : LINK_STATE_LABEL[state];
 }
+
+/**
+ * Why the shared track state has no tracks to show, when it has none because the read failed: the one sentence every page that needs the tracks
+ * says (Pickups' refusal, Editing's note, Proof's timeline slot, the Engine panel's status line), or null when the tracks were read, are still
+ * being read, or an earlier read is still shown (that case is the Saved project mark and "Last read"). #3394.
+ */
+export function tracksUnreadable(state: { project?: unknown; live: { error: string } }): string | null {
+  return state.project === undefined && state.live.error ? `The tracks could not be read: ${state.live.error}` : null;
+}
