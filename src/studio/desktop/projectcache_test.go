@@ -135,3 +135,55 @@ func TestACachedProjectSeesAnAudioFileThatWentMissing(t *testing.T) {
 		t.Fatal("the audio file is gone, but the cached project still says it is there")
 	}
 }
+
+func TestACallerThatWritesIntoItsProjectDoesNotChangeTheCachedOne(t *testing.T) {
+	savedProjects.reset()
+	withProjectReaderRole(t, &countingProjectReader{})
+	path := filepath.Join(t.TempDir(), "Book.rpp")
+	if err := os.WriteFile(path, []byte(chapterTracksRpp), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	first, err := readProject(path) // the miss
+	if err != nil || len(first.Tracks) == 0 {
+		t.Fatalf("first = %v, %v", first, err)
+	}
+	want := first.Tracks[0].Name
+	first.Tracks[0].Name = "HACKED"
+	second, _ := readProject(path) // the hit
+	second.Tracks[0].Name = "HACKED TOO"
+	if third, _ := readProject(path); third.Tracks[0].Name != want {
+		t.Fatalf("a later read saw %q, want %q", third.Tracks[0].Name, want)
+	}
+}
+
+func TestAParseInFlightDoesNotBlockCachedReadsOfOtherProjects(t *testing.T) {
+	cache := &projectCache{}
+	dir := t.TempDir()
+	a, b := filepath.Join(dir, "A.rpp"), filepath.Join(dir, "B.rpp")
+	for _, p := range []string{a, b} {
+		if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fast := func(string) (tracks.Project, error) { return tracks.Project{}, nil }
+	if _, err := cache.read(b, fast); err != nil {
+		t.Fatal(err)
+	}
+	release, started := make(chan struct{}), make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	go func() {
+		_, _ = cache.read(a, func(string) (tracks.Project, error) {
+			close(started)
+			<-release
+			return tracks.Project{}, nil
+		})
+	}()
+	<-started
+	done := make(chan struct{})
+	go func() { _, _ = cache.read(b, fast); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("a cached read of B waited for the parse of A")
+	}
+}

@@ -245,23 +245,41 @@ func (c *projectCache) read(path string, parse func(string) (tracks.Project, err
 	if err != nil {
 		return parse(path)
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for _, entry := range c.entries {
-		if entry.path == path && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
-			return withCurrentSources(entry.project), nil
-		}
+	if project, ok := c.lookup(path, info); ok {
+		return withCurrentSources(project), nil
 	}
+	// Parsed outside the lock: a slow parse of one project must not hold up cached reads of another. Two callers that miss together parse twice.
 	project, err := parse(path)
-	c.entries = slices.DeleteFunc(c.entries, func(entry projectCacheEntry) bool { return entry.path == path })
 	if err != nil {
+		c.forget(path)
 		return tracks.Project{}, err
 	}
+	c.mu.Lock()
+	c.entries = slices.DeleteFunc(c.entries, func(entry projectCacheEntry) bool { return entry.path == path })
 	if len(c.entries) >= projectCacheSize {
 		c.entries = c.entries[1:]
 	}
 	c.entries = append(c.entries, projectCacheEntry{path: path, modTime: info.ModTime(), size: info.Size(), project: project})
-	return project, nil
+	c.mu.Unlock()
+	// The caller gets a copy, as on a hit: what it writes into never reaches the cached parse.
+	return withCurrentSources(project), nil
+}
+
+func (c *projectCache) lookup(path string, info os.FileInfo) (tracks.Project, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, entry := range c.entries {
+		if entry.path == path && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+			return entry.project, true
+		}
+	}
+	return tracks.Project{}, false
+}
+
+func (c *projectCache) forget(path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = slices.DeleteFunc(c.entries, func(entry projectCacheEntry) bool { return entry.path == path })
 }
 
 // withCurrentSources is project with each item's and take's SourceAvailable asked of the disk again: the parse records whether the
