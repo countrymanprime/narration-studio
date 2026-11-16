@@ -42,6 +42,7 @@ Start **<!-- brand:name -->Narration Studio<!-- /brand -->** from the Start Menu
 Press **New project** and type a name, for example `The Lighthouse Keeper`. **Location** shows where the project's folder
 will go: the default projects folder (<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in
 your user folder) unless you choose another with **Change location…**. Press **Create**.
+Leaving the dialog with a name typed asks first (**Discard the project name?**; **Keep editing** keeps it): the footer button reads **Close** when the name is empty and **Discard name** once one is typed, and drops it.
 
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
 

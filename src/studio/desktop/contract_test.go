@@ -788,3 +788,8 @@ func TestContractCreditsChangedIsABooleanForTheLibraryAndTheProjectValues(t *tes
 	asked("true")
 	contractfile.Check(t, "credits-changed", true)
 }
+
+// The payload of the window:close-requested event (windowclose.go): no fields, the request is the event itself.
+func TestContractWindowCloseRequested(t *testing.T) {
+	contractfile.Check(t, "window-close-requested", map[string]any{})
+}
