@@ -113,7 +113,7 @@ describe("the Booth's voices", () => {
     ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
   ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
     const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [] }),
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }),
       chapterTrackMapList: async () => ({
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
@@ -380,6 +380,26 @@ describe("the Booth's voices", () => {
       const { hook } = await mount({}, false, api);
       await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
       expect(hook.current.voices.map((voice) => voice.guid)).not.toContain('{V01CE-RABB1T}');
+      cleanup();
+    }
+  });
+
+  // #3331: a child the narrator marked as not a voice (a music bed) is not listed, in either layout, and listed again once unmarked.
+  it('leaves out a child marked as not a voice, and lists it again when unmarked', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const target = first.hook.current.voices.find((voice) => !voice.narrator)!;
+    cleanup();
+    const marking = (guids: string[]) => ({ ...api, voiceTracksGet: async () => ({ ...(await api.voiceTracksGet()), notVoiceGuids: guids }) });
+    for (const layout of ['flat', 'folders'] as const) {
+      await api.voiceTracksSetLayout(layout);
+      const { hook } = await mount({}, false, marking([target.guid.toLowerCase()]));
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(hook.current.voices.map((voice) => voice.guid)).not.toContain(target.guid);
+      cleanup();
+      const again = await mount({}, false, marking([]));
+      await waitFor(() => expect(again.hook.current.voices.map((voice) => voice.guid)).toContain(target.guid));
       cleanup();
     }
   });

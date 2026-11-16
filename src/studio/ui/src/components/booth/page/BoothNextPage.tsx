@@ -589,6 +589,7 @@ function BoothSession({
     chapterId,
     recording: control.recording,
     starting: control.starting,
+    endUnconfirmed: control.endUnconfirmed,
     leave: page.leave,
     adopt,
     choose,

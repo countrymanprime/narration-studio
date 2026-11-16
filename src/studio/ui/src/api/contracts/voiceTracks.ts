@@ -22,6 +22,9 @@ export type VoiceTracksState = {
   tracks: VoiceTrackAssignment[];
   /** The tracks (GUIDs, lower case) that were named Narrator: renaming the Narrator track keeps it key 0. */
   narratorGuids: string[];
+  /** The tracks (GUIDs, lower case) the narrator marked as not a voice (a music bed, room tone): never the recording target and not listed
+   * as a voice (#3331). A GUID survives a rename of the track in the DAW. */
+  notVoiceGuids: string[];
 };
 
 /**

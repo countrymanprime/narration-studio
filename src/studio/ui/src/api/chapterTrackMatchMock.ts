@@ -216,7 +216,7 @@ export function mockChapterTrackLinks(
   };
 }
 
-/** The host's `members` for a chapter: the direct children of its matched folder; a child some chapter is linked to is not a voice. */
+/** The host's `members` for a chapter: the direct children of its matched folder; a child some chapter is linked to is not a voice (the mock marks none as not a voice). */
 function mockMembers(project: TracksProject, folderGuid: string, mappings: TrackMapping[]): ChapterMember[] {
   const at = project.tracks.findIndex((track) => track.guid.toLowerCase() === folderGuid.toLowerCase());
   const folder = project.tracks[at];
@@ -226,7 +226,7 @@ function mockMembers(project: TracksProject, folderGuid: string, mappings: Track
     if (track.depth <= folder.depth) break;
     if (track.depth !== folder.depth + 1) continue;
     const linked = mappings.some((mapping) => mapping.trackGuid.toLowerCase() === track.guid.toLowerCase());
-    members.push({ guid: track.guid, name: track.name, isVoice: !linked });
+    members.push({ guid: track.guid, name: track.name, isVoice: !linked, notAVoice: false });
   }
   return members;
 }
