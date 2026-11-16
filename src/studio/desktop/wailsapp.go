@@ -18,8 +18,15 @@ const mainWindowName = "main"
 // errHostNotReady is what a binding that needs the window answers before the application exists.
 var errHostNotReady = errors.New("the desktop host is not ready")
 
+// emitEventSink, when a test sets it, receives every live event instead of the window (there is no application in a test).
+var emitEventSink func(name string, data any)
+
 // emitEvent sends one live event to the window. The payload arrives in the UI as the event's `data` (src/studio/ui/src/api/wailsClient.ts).
 func emitEvent(name string, data any) {
+	if emitEventSink != nil {
+		emitEventSink(name, data)
+		return
+	}
 	if app := application.Get(); app != nil {
 		app.Event.Emit(name, data)
 	}

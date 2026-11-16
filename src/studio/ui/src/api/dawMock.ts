@@ -446,6 +446,8 @@ export interface DawMockControl {
   setWordTimes(table: WordTimes | null): void;
   /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
   editInDaw(): void;
+  /** `daw_project_edited` is sent with the counter as it is, not raised: it models the host's first poll after a start or a relink, a count the page already holds repeated. */
+  reportProjectCount(): void;
   /** The narrator stopped, in the DAW itself, a take this app started: the transport stops and `daw_record_ended` is sent with the undo points it left. */
   endTakeInDaw(undoSteps?: number): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
@@ -650,6 +652,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     editInDaw: () => {
       sync.changeCount += 1;
+      for (const on of editSubs) on({ changeCount: sync.changeCount });
+    },
+    reportProjectCount: () => {
       for (const on of editSubs) on({ changeCount: sync.changeCount });
     },
     startInDaw: () => {

@@ -178,8 +178,12 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
     target = target or 0
   end
   reaper.SetOnlyTrackSelected(track)
+  -- I_SELECTED, not SetTrackSelected: REAPER 7.82 counts every SetTrackSelected call as a project edit (it raises
+  -- GetProjectStateChangeCount, which the host turns into daw_project_edited), and the I_SELECTED write leaves the count
+  -- alone (#3560). The selection state was confirmed in REAPER 7.82; whether the arrange view and track panel redraw a
+  -- selection made this way is pending with the owner (docs/research/2026-11-16-select-without-edit-real-reaper.md).
   for _, member in ipairs(members) do
-    reaper.SetTrackSelected(member, true)
+    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)
   end
   reaper.SetEditCurPos(target, true, false)
   core.cursor_moved()

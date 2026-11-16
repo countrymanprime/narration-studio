@@ -72,6 +72,7 @@ Every row was observed by the real-REAPER CI run (`scripts/ci/real-reaper`, [the
 | --- | --- |
 | FX chains | `TrackFX_AddByName` and `TakeFX_AddByName` load a `.RfxChain` by its name relative to `FXChains` with forward slashes and the extension (`Voice/Test EQ.RfxChain`), and answer -1 for its full path, a backslash name, a different case or the name without its extension. The bridge loads by the listed name first and falls back to the full path. |
 | Change count | `GetProjectStateChangeCount` rises with an undo point; an API edit made outside an undo block leaves it as it was. |
+| Track selection and the change count | `SetTrackSelected(track, v)` raises `GetProjectStateChangeCount` by 1 per call, also for the state the track already has. `SetOnlyTrackSelected` and `SetMediaTrackInfo_Value(track, 'I_SELECTED', 1)` select without moving it. None of the three adds an undo point or marks the project dirty. No Main-section action selects the children of a folder (4379 actions listed). The bridge's `go_to` uses `SetOnlyTrackSelected` plus `I_SELECTED`, so a chapter move is not an edit ([the research note](../../research/2026-11-16-select-without-edit-real-reaper.md)). `play_from`'s isolation and restore still call `SetTrackSelected`. |
 | Reopening | `Main_openProject('noprompt:' .. rpp)` clears the undo history, so nothing can be undone after a save-and-reload. |
 | Regions | `AddProjectMarker2` keeps the colour it is given; `SetProjectMarker4(.., 0, 0)` on an existing region moves it and keeps its number and colour. |
 
