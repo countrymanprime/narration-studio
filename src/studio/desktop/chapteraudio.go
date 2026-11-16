@@ -32,7 +32,9 @@ func chapterAudioFrom(setup voicetracks.State, project tracks.Project) tracks.Pr
 
 // notVoiceTracksUnder is the GUIDs of the tracks inside the folder link that the narrator marked as not a voice (a music bed). It is what the
 // record start sends REAPER with the chapter_end rule, so the end of the chapter's audio leaves them out (#3559). The folder's shape comes from
-// the live-over-saved list; a setup that cannot be read, or a link that is not a folder, answers none (REAPER then counts every track, as before).
+// the live-over-saved list. Two owner rulings sit side by side here: a marked track stays on the timeline (it moves with its chapter on ripple and
+// edits, and plays_at counts it), but it does not decide where the next take starts, as it does not count toward the recorded length (#3557).
+// A setup that cannot be read, or a link that is not a folder, answers none (REAPER then counts every track, as before).
 func notVoiceTracksUnder(svc hostServices, link string) []string {
 	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if err != nil || len(setup.NotVoiceGUIDs) == 0 {
