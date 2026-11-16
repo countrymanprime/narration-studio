@@ -297,7 +297,7 @@ describe('CreditsPanel', () => {
   };
 
   // Round 11 (BR-A, BR-B, BR-C): a late answer's list read that is overtaken by a newer read is dropped, so it never puts a stale list back over what the narrator did since.
-  const staleListRead = async (api: ReturnType<typeof createMockApi>) => {
+  const staleListRead = async (api: ReturnType<typeof createMockApi>, dropId?: { current: string }) => {
     const { answers, save } = await newTemplateSaveGivenUp(api, 'Brand new.');
     const real = api.creditsTemplates.bind(api);
     let release: () => void = () => {};
@@ -307,7 +307,7 @@ describe('CreditsPanel', () => {
       if (held) return snapshot;
       held = true;
       return new Promise((resolve) => {
-        release = () => void snapshot.then(resolve);
+        release = () => void snapshot.then((list) => resolve(dropId ? list.filter((template) => template.id !== dropId.current) : list));
       });
     });
     answers[0]!();
@@ -337,6 +337,19 @@ describe('CreditsPanel', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(select.options.length).toBe(optionsBefore);
     expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed on the copy.');
+  });
+
+  it('a list that lands without the selected template while text is typed keeps the text as a New draft (#3461 round 16 BR-M)', async () => {
+    const { api } = renderPanel();
+    const gone = { current: '' };
+    const { select, release } = await staleListRead(api, gone);
+    gone.current = await pickOther(select);
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Typed on a template that vanished.' } });
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect([...select.options].some((option) => option.value === gone.current)).toBe(false);
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed on a template that vanished.');
+    expect(registry.heldNow()).toHaveLength(1);
   });
 
   it("a late answer's list read that lands after a Save does not put the old body back (#3461 round 11 BR-B)", async () => {
