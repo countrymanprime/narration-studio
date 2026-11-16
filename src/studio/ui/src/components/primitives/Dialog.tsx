@@ -349,14 +349,14 @@ export function Dialog({
               if (!popupRef.current?.contains(event.relatedTarget as Node | null)) begunInHold.current.clear();
             }}
             finalFocus={finalFocus}
-            // Below 400 px of height (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
+            // At 260 px of height or less (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
             // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:260px)]:overflow-y-auto ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT}`
             }`}
             style={{
               height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
-              // At most 80dvh, and ending at least 4.75rem above the window's bottom edge, the room a toast keeps there while a dialog is open.
+              // A full-size dialog fills the window less its margin; every other size's cap is the `DIALOG_MAX_HEIGHT` class above.
               maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
               background: 'var(--surface)',
               borderColor: 'var(--line-strong)',
