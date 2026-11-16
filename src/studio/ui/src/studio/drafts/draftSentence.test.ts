@@ -78,7 +78,7 @@ describe('the question put to the narrator (#3404)', () => {
       held(`your reply on “${shortName(name, 18)}”`, { brief: 'your reply', kind: 'reply', many: (n) => `${n} replies you are writing` }),
       held(`your “${shortName(name, 13)}” pronunciation`, { brief: 'your pronunciation', kind: 'say' }),
       held('your credit template edit'),
-      held('the key you pasted'),
+      held('the key you entered'),
     ];
     for (const name of names) {
       for (let count = 1; count <= 6; count += 1) {
