@@ -194,8 +194,8 @@ export function useToastsClearOfModal(active: boolean): void {
 export const TOAST_HEIGHT_PROPERTY = '--toast-h';
 
 /**
- * While a toast shows over an open modal dialog, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top. A dialog in a short window
- * (`Dialog`, under 300 px tall) takes what is left above it, so a toast never sits on its content or its focused control (#3605, #3601). With no toast, or no dialog open, the
+ * While a toast shows over an open modal dialog, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top. `Dialog` will read it in a window
+ * under 300 px tall and take what is left above the toasts, so a toast does not sit on its content or its focused control (#3605, #3601; nothing reads it yet). With no toast, or no dialog open, the
  * property is not set, so nothing in a normal window changes. It follows the region's height, a resize of the window and a dialog opening or closing.
  */
 function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
