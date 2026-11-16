@@ -238,6 +238,42 @@ test('a DAW that went quiet before the jump menu goes to Proof asks "Leave for P
   expect(await onBooth(page)).toBe(true);
 });
 
+// #3528 (qa-breaker B1): a chapter change is a way out of the take like any other. With the DAW quiet and the end unconfirmed, Next chapter and a link to another chapter of the Booth
+// ask "Open another chapter?" (they used to move silently, leaving a take that may still run with no stop and no question); Stay keeps the chapter.
+test('a DAW that went quiet, then Next chapter, asks "Open another chapter?" and Stay keeps the chapter', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1500);
+  const here = new URL(page.url()).search;
+  await page.getByRole('button', { name: 'Next chapter' }).click();
+  await expect(quietQuestion(page, 'Booth')).toHaveCount(0);
+  const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
+  await expect(chapterQuestion).toBeVisible();
+  await expect(chapterQuestion).toContainText('REAPER may still be recording. Opening another chapter tries to stop the take.');
+  await chapterQuestion.getByRole('button', { name: 'Stay' }).click();
+  await expect(chapterQuestion).toHaveCount(0);
+  expect(new URL(page.url()).search).toBe(here);
+  expect(await onBooth(page)).toBe(true);
+});
+
+test('a DAW that went quiet, then a link to another chapter of the Booth, asks "Open another chapter?"', async ({ page }) => {
+  await page.addInitScript(NEVER_STOPS);
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/booth?chapter=chapter-2');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
+  await expect(chapterQuestion).toBeVisible();
+  await expect(chapterQuestion).toContainText('Opening another chapter tries to stop the take.');
+  await chapterQuestion.getByRole('button', { name: 'Stay' }).click();
+  await expect(chapterQuestion).toHaveCount(0);
+  expect(await onBooth(page)).toBe(true);
+});
+
 test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks again', async ({ page }) => {
   await recording(page);
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
@@ -250,7 +286,9 @@ test('a refusal open, the DAW goes quiet, Keep recording, Escape again: it asks 
   await refused.getByRole('button', { name: /Keep recording/ }).click();
   await expect(refused).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await expect(question(page).or(quietQuestion(page))).toBeVisible();
+  // The DAW went quiet while the refusal was open, so the take's end is unconfirmed: the question is the quiet DAW's, titled for the page, with Stay.
+  await expect(quietQuestion(page)).toBeVisible();
+  await expect(quietQuestion(page)).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
   expect(await onBooth(page)).toBe(true);
 });
 
@@ -396,22 +434,25 @@ test('Enter held on the jump menu row from before the question opens: its repeat
 test.describe('at 320 x 300', () => {
   test.use({ viewport: { width: 320, height: 300 } });
   // The title names the page, so the longest rail name ("Master & QC") must not push the dialog into the toast either.
-  for (const destination of ['Script', 'Master & QC']) {
+  for (const destination of ['Script', 'Master & QC', 'chapter']) {
     test(`the question after the DAW went quiet, leaving for ${destination}, is not covered by the toast, and says only what is known`, async ({ page }) => {
       await page.addInitScript(NEVER_STOPS);
       await recording(page);
       await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
       await page.waitForTimeout(1500);
+      // The chapter change is the longest body ("Opening another chapter tries ..."): it must not reach the toast either.
+      const asked = destination === 'chapter' ? page.getByRole('alertdialog', { name: 'Open another chapter?' }) : quietQuestion(page, destination);
       if (destination === 'Script') await page.keyboard.press('Escape');
+      else if (destination === 'chapter') await page.getByRole('button', { name: 'Next chapter' }).click();
       else {
         await page.keyboard.press('Control+KeyK');
         await page.getByRole('combobox', { name: 'Jump menu' }).fill(`Go to ${destination}`);
         await page.keyboard.press('Enter');
       }
-      await expect(quietQuestion(page, destination)).toBeVisible();
-      await expect(quietQuestion(page, destination)).toContainText('REAPER may still be recording. Leaving tries to stop the take.');
+      await expect(asked).toBeVisible();
+      await expect(asked).toContainText(destination === 'chapter' ? 'Opening another chapter tries to stop the take.' : 'Leaving tries to stop the take.');
       for (const name of ['Stay', 'Stop and leave']) {
-        const button = quietQuestion(page, destination).getByRole('button', { name });
+        const button = asked.getByRole('button', { name });
         await expect(button).toBeVisible();
         const covered = await button.evaluate((el) => {
           const box = el.getBoundingClientRect();

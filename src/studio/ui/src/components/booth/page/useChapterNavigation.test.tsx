@@ -7,7 +7,14 @@ import { useChapterNavigation } from './useChapterNavigation';
 const CHAPTERS = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
 function setup(
-  over: { requested?: BoothChapterTarget | null; chapterId?: string; recording?: boolean; starting?: boolean; leave?: () => Promise<unknown> } = {},
+  over: {
+    requested?: BoothChapterTarget | null;
+    chapterId?: string;
+    recording?: boolean;
+    starting?: boolean;
+    endUnconfirmed?: () => boolean;
+    leave?: () => Promise<unknown>;
+  } = {},
 ) {
   const args = {
     requested: null as BoothChapterTarget | null,
@@ -108,4 +115,42 @@ describe('every route to another chapter respects a take that records or is star
       expect(args.adopt).not.toHaveBeenCalled();
     });
   }
+});
+
+// #3528 (qa-breaker): a DAW that went quiet may still be recording. Its end is not confirmed, so every route to another chapter asks the same question a running take's does
+// (the picker, Next and Previous through `leave` with the Booth's own address, an address likewise) instead of moving silently, and staying keeps the chapter.
+describe('every route to another chapter asks when the DAW went quiet and the end is unconfirmed', () => {
+  const quiet = { endUnconfirmed: () => true };
+  it('the picker asks the leave question with the chapter address, and moves only when the narrator agrees', async () => {
+    const leave = vi.fn(() => Promise.resolve());
+    const { args, view } = setup({ ...quiet, leave });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(leave).toHaveBeenCalledWith('/booth?chapter=b', expect.any(Function));
+    expect(args.choose).not.toHaveBeenCalled();
+    expect(args.toast).not.toHaveBeenCalled();
+  });
+  it('Next and Previous ask too, and a yes moves one chapter', () => {
+    const next = setup({ ...quiet, chapterId: 'b' });
+    act(() => next.view.result.current.step(1));
+    expect(next.args.leave).toHaveBeenCalledWith('/booth?chapter=c', expect.any(Function));
+    expect(next.args.choose).toHaveBeenCalledWith({ chapter: 'c' });
+    const previous = setup({ ...quiet, chapterId: 'b' });
+    act(() => previous.view.result.current.step(-1));
+    expect(previous.args.leave).toHaveBeenCalledWith('/booth?chapter=a', expect.any(Function));
+    expect(previous.args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+  it('an address asks the leave question first, and staying keeps the chapter', async () => {
+    const leave = vi.fn(() => Promise.resolve());
+    const { args } = setup({ ...quiet, requested: { chapter: 'b' }, leave });
+    await act(async () => {});
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(args.adopt).not.toHaveBeenCalled();
+    expect(args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+  it('a take whose end is confirmed changes chapter with no question', () => {
+    const { args, view } = setup({ endUnconfirmed: () => false });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(args.leave).not.toHaveBeenCalled();
+    expect(args.choose).toHaveBeenCalledWith({ chapter: 'b' });
+  });
 });

@@ -44,7 +44,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     // running question's in a 320 px window, so the dialog does not grow into the toast that says the DAW stopped answering. "Stay" does not claim the take is recording.
     return {
       title: destination === 'Booth' ? 'Open another chapter?' : destination ? `Leave for ${destination}?` : 'Leave the Booth?',
-      body: `${subject} may still be recording. Leaving tries to stop the take.`,
+      body: `${subject} may still be recording. ${destination === 'Booth' ? 'Opening another chapter' : 'Leaving'} tries to stop the take.`,
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
       safeDefault: true,

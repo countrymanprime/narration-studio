@@ -83,9 +83,12 @@ describe('useBoothLeaveGuard', () => {
       ['/not-a-rail-page', 'Leave the Booth?'],
     ])('with the end unconfirmed, leaving for %s asks "%s"', (next, title) => {
       const { store } = setup({ recording: false, endUnconfirmed: () => true });
-      expect(store.checkLeave(next)).toMatchObject({
-        ask: { title, body: 'REAPER may still be recording. Leaving tries to stop the take.', cancelLabel: 'Stay' },
-      });
+      // The narrator stays in the Booth for a chapter change, so its sentence says opening, not leaving.
+      const body =
+        title === 'Open another chapter?'
+          ? 'REAPER may still be recording. Opening another chapter tries to stop the take.'
+          : 'REAPER may still be recording. Leaving tries to stop the take.';
+      expect(store.checkLeave(next)).toMatchObject({ ask: { title, body, cancelLabel: 'Stay' } });
     });
 
     it('asks, tries the stop, and asks "Could not stop the take" when the stop is refused', async () => {
