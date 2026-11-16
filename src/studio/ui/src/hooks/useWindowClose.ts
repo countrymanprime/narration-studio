@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SystemApi } from '../api/contracts/system';
+import { EDITABLE } from '../input/targets';
 
 /**
  * Closing the app window with a draft held asks the same question as every other exit (#3526). The host cancels the close and sends
@@ -10,7 +11,7 @@ import type { SystemApi } from '../api/contracts/system';
 export function useWindowClose(
   api: Pick<SystemApi, 'windowCloseGuard' | 'windowCloseAsked' | 'windowCloseAnswer' | 'subscribeWindowCloseRequested'>,
   held: boolean,
-  ask: (run: () => void, options?: { onCancel?: () => void }) => void,
+  ask: (run: () => void, options?: { onCancel?: () => void; forClose?: boolean }) => void,
 ): void {
   const latestAsk = useRef(ask);
   latestAsk.current = ask;
@@ -20,7 +21,7 @@ export function useWindowClose(
   useEffect(() => {
     const look = () => {
       const field = document.activeElement;
-      setTyping(field instanceof HTMLElement && field.matches('input, textarea') && !field.closest('[role="dialog"], [role="alertdialog"]'));
+      setTyping(field instanceof HTMLElement && field.matches(EDITABLE));
     };
     look();
     document.addEventListener('focusin', look);
@@ -39,6 +40,7 @@ export function useWindowClose(
       api.subscribeWindowCloseRequested(() => {
         void api.windowCloseAsked().catch(() => undefined);
         latestAsk.current(() => void api.windowCloseAnswer(true).catch(() => undefined), {
+          forClose: true,
           onCancel: () => void api.windowCloseAnswer(false).catch(() => undefined),
         });
       }),

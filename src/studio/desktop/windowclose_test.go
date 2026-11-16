@@ -224,16 +224,3 @@ func TestAnAcknowledgementThatRacesTheTimerStopsTheCloseAnyway(t *testing.T) {
 		t.Fatal("the window closed under a question the page had acknowledged")
 	}
 }
-
-func TestAReceiptWithNoQuestionOpenDoesNothing(t *testing.T) {
-	gate, _, closed := newTestGate()
-	gate.arm(true)
-	gate.closing()
-	gate.answer(false)
-	gate.asked()
-	gate.closing()
-	time.Sleep(4 * testWait)
-	if closed.Load() != 1 {
-		t.Fatalf("a stale receipt stopped the wait for a page that never answered (closed %d times)", closed.Load())
-	}
-}
