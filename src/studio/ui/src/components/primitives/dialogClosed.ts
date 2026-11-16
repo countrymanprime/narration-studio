@@ -45,3 +45,16 @@ export function recentDialogTarget(): (() => HTMLElement | null) | null {
 export function justClosedDialog(): boolean {
   return Date.now() - closedAt < GRACE_MS;
 }
+
+// One press of Escape closes one layer, the top one (#3549 B3). A held Escape repeats: its first keydown closes the top layer (the Remove voice data
+// confirm), and the repeats that follow reach the layer under it (the Voice data slide-over), which closes too. No layer closes on a repeat, so every
+// Escape listener sees a repeat as nothing: the window's capture phase runs before any of them. A new press (`repeat` false) always goes through.
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape' && event.repeat) event.stopImmediatePropagation();
+    },
+    true,
+  );
+}
