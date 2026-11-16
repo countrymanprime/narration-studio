@@ -11,6 +11,7 @@
 package editing
 
 import (
+	"strconv"
 	"time"
 
 	"desktop/internal/evidence"
@@ -27,6 +28,18 @@ type ItemScopeInput struct {
 	TrackGUID  string
 	Item       tracks.Item
 	Key        evidence.AnalysisKey
+	// Occurrence is which of the items of this chapter that share Item's GUID this one is, counting from 0 in the order the chapter lists them.
+	Occurrence int
+}
+
+// scopeKey is the name a record's scope and fingerprint maps give this item: its GUID, so every record written before twins were told apart
+// stays readable, and "GUID#2", "GUID#3" for the later items of a chapter that share it (a track copied in from another project). Keyed by the
+// GUID alone, two twins read each other's record, and re-scanning one made the other stale (#3617).
+func (in ItemScopeInput) scopeKey() string {
+	if in.Occurrence <= 0 {
+		return in.Item.GUID
+	}
+	return in.Item.GUID + "#" + strconv.Itoa(in.Occurrence+1)
 }
 
 // itemFingerprint computes in.Item's own single-item LedgerFingerprint,
@@ -39,8 +52,8 @@ func itemFingerprint(in ItemScopeInput) evidence.LedgerFingerprint {
 	entry := evidence.TrackFingerprintEntry{Item: in.Item, Fingerprint: itemFP}
 	return evidence.LedgerFingerprint{
 		TrackFingerprint: evidence.ComputeTrackFingerprint([]evidence.TrackFingerprintEntry{entry}),
-		ItemFingerprints: map[string]evidence.ItemFingerprint{in.Item.GUID: itemFP},
-		AnalysisKeys:     map[string]evidence.AnalysisKey{in.Item.GUID: in.Key},
+		ItemFingerprints: map[string]evidence.ItemFingerprint{in.scopeKey(): itemFP},
+		AnalysisKeys:     map[string]evidence.AnalysisKey{in.scopeKey(): in.Key},
 	}
 }
 
@@ -51,7 +64,7 @@ func WriteLedgerRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 	return ledger.Write(evidence.LedgerRecord{
 		AnalyzerID: analyzerID, AnalyzerVersion: analyzerVersion, ParamHash: paramHash,
 		Scope: evidence.LedgerScope{
-			DocumentID: in.DocumentID, ChapterID: in.ChapterID, TrackGUID: in.TrackGUID, ItemGUIDs: []string{in.Item.GUID},
+			DocumentID: in.DocumentID, ChapterID: in.ChapterID, TrackGUID: in.TrackGUID, ItemGUIDs: []string{in.scopeKey()},
 		},
 		Fingerprint: itemFingerprint(in),
 		ProjectFile: projectFile,
@@ -84,7 +97,7 @@ func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 		return ItemStaleness{}, err
 	}
 	for _, record := range records {
-		if record.Outcome != evidence.LedgerComplete || !scopesOneItem(record.Scope, in.Item.GUID) {
+		if record.Outcome != evidence.LedgerComplete || !scopesOneItem(record.Scope, in.scopeKey()) {
 			continue
 		}
 		result := evidence.EvaluateFingerprints(record, itemFingerprint(in), in.TrackGUID, analyzerVersion, paramHash)
@@ -93,7 +106,20 @@ func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 	return ItemStaleness{State: evidence.StateNever}, nil
 }
 
-// scopesOneItem reports whether scope names exactly one item, itemGUID.
-func scopesOneItem(scope evidence.LedgerScope, itemGUID string) bool {
-	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == itemGUID
+// scopesOneItem reports whether scope names exactly one item, key (ItemScopeInput.scopeKey).
+func scopesOneItem(scope evidence.LedgerScope, key string) bool {
+	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == key
+}
+
+// occurrences counts, per item GUID, the items of one chapter seen so far, so the scan and the freshness read give the same item the same
+// ItemScopeInput.Occurrence: both walk the chapter's items in the order the track lists them.
+type occurrences map[string]int
+
+func newOccurrences() occurrences { return occurrences{} }
+
+// next is how many items with this GUID came before this one, and counts this one.
+func (o occurrences) next(guid string) int {
+	n := o[guid]
+	o[guid] = n + 1
+	return n
 }

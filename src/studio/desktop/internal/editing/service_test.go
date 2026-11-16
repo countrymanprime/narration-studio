@@ -324,3 +324,30 @@ func TestServiceStartRefusesUnmapped(t *testing.T) {
 		t.Fatalf("Start() reason = %v, ok=%v, want %q", reason, ok, ReasonUnmapped)
 	}
 }
+
+// #3617: a chapter whose track holds two items that share a GUID (a track copied in from another project) scans both, and an unchanged
+// second scan answers both from cache: each twin has its own ledger record, so neither makes the other read stale.
+func TestServiceScansTwoItemsThatShareAGUIDAndTheSecondScanDecodesNothing(t *testing.T) {
+	svc := newTestService(t)
+	itemA, itemB := svc.track.Items[0], svc.track.Items[1]
+	itemA.GUID, itemB.GUID = "dup", "dup"
+	if err := os.WriteFile(svc.rppPath, []byte(minimalRPP(itemA, itemB)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	request := Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}
+
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if first := svc.State(); first.Phase != PhaseComplete || first.Decoded != 2 {
+		t.Fatalf("first scan phase=%q decoded=%d (%s), want a complete scan of both twins", first.Phase, first.Decoded, first.Message)
+	}
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if second := svc.State(); second.CacheHits != 2 || second.Decoded != 0 {
+		t.Fatalf("second scan decoded=%d cacheHits=%d, want decoded=0 cacheHits=2: the twins must not make each other stale", second.Decoded, second.CacheHits)
+	}
+}
