@@ -106,7 +106,9 @@ type monitorDebt struct {
 
 // armLaneOwing sends ArmLane and keeps the debt in step with what the DAW answered. It is set before the call when a monitoring is asked for, so a call that
 // times out (the DAW may have acted) stays owed; an answer that monitored sets it again, whatever a release did meanwhile; a definite answer that turned
-// nothing on (a refusal, or a lane that was on already) puts back what it was only when no other arm has started since.
+// nothing on (a refusal, or a lane that was on already) puts back what it was only when no other arm has started since. Two overlapping arms that both
+// turned nothing on leave it set until a release succeeds: a false "may still be on" is said only when the DAW is also unreachable at leave, and any answered
+// release clears it.
 func armLaneOwing(ctx context.Context, armer dawport.LaneArmer, target string, monitor bool, owed *monitorDebt) (dawport.Armed, error) {
 	if !monitor || owed == nil {
 		return armer.ArmLane(ctx, target, monitor)
@@ -120,7 +122,10 @@ func armLaneOwing(ctx context.Context, armer dawport.LaneArmer, target string, m
 	}
 	var stale *bridge.TrackStaleError
 	definite := err == nil || errors.Is(err, bridge.ErrRecording) || errors.As(err, &stale)
-	if definite && !prior && owed.arms.Load() == started {
+	if !definite {
+		// The DAW may have acted (a timeout, a lost answer): owed, whatever a release took meanwhile.
+		owed.Store(true)
+	} else if !prior && owed.arms.Load() == started {
 		owed.CompareAndSwap(true, false)
 	}
 	return armed, err

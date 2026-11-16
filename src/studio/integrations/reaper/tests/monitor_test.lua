@@ -703,3 +703,34 @@ H.test('a ledger that cannot be written is opened once in the tick that recovers
   H.eq(monitors(s), { 0, 0, 0 }, 'the leftover lane went back')
   H.eq(opened, 1, 'one write attempt in the first tick')
 end)
+
+H.test('a tick that retries the ledger and also runs a waited restore opens the ledger once', function()
+  local s, _, veyra = new_session()
+  local foreign = '{FFFFFFFF-0000-4000-8000-00000000FFFF}'
+  -- A row for a track that is nowhere becomes a ghost, so the ledger is not empty after the lane is put back.
+  H.write_file(s:path('narration_monitor_ledger.txt'), foreign .. '\t0\n')
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  local opened, refuse, real_open = 0, true, io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find('narration_monitor_ledger', 1, true) and mode == 'w' then
+      opened = opened + 1
+      if refuse then
+        return nil, 'denied'
+      end
+    end
+    return real_open(path, mode, ...)
+  end
+  local ok, err = pcall(function()
+    s:send('arm_lane', 'a2', veyra.guid, 'monitor') -- the lane is on the ledger already: the write is refused and stays pending
+    s.fake.play_state = 5
+    s:send('monitor_restore', 'm1') -- a take: the restore waits
+    s.fake.play_state = 0
+    local later = s.fake:add_track('Later')
+    later.guid, later.rec_mon = foreign, 1 -- the ghost's track appears, so the ghost is put back in the same tick
+    opened = 0
+    s:tick()
+  end)
+  io.open = real_open
+  assert(ok, err)
+  H.eq(opened, 1, 'one attempt in the tick, whichever path wrote first')
+end)

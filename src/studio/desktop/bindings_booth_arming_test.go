@@ -328,6 +328,7 @@ type gatedArmer struct {
 	entered   chan struct{}
 	proceed   chan struct{}
 	monitored bool
+	err       error
 }
 
 func newGatedArmer(monitored bool) *gatedArmer {
@@ -337,6 +338,9 @@ func newGatedArmer(monitored bool) *gatedArmer {
 func (g *gatedArmer) ArmLane(_ context.Context, guid string, _ bool) (dawport.Armed, error) {
 	close(g.entered)
 	<-g.proceed
+	if g.err != nil {
+		return dawport.Armed{}, g.err
+	}
 	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: g.monitored}, nil
 }
 
@@ -382,5 +386,54 @@ func TestOverlappingArmsKeepTheDebtOfTheOneThatMonitored(t *testing.T) {
 	<-firstDone
 	if !owed.Load() {
 		t.Fatal("the first arm's answer cleared the debt of the arm that monitored")
+	}
+}
+
+func TestAnArmThatTimesOutAfterAReleaseTookTheNoteStaysOwed(t *testing.T) {
+	var owed monitorDebt
+	armer := newGatedArmer(false)
+	armer.err = context.DeadlineExceeded
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = armLaneOwing(context.Background(), armer, voiceNarratorTrack, true, &owed)
+	}()
+	<-armer.entered
+	owed.Swap(false) // the narrator left and the release succeeded: the lane was not on yet
+	close(armer.proceed)
+	<-done
+	if !owed.Load() {
+		t.Fatal("the arm timed out after the DAW may have acted, so the monitoring is owed")
+	}
+}
+
+// Conservative by design: when two overlapping arms both turn nothing on, the note stays set until a release succeeds. A false "may still be on" reaches
+// the narrator only when the DAW is also unreachable at leave, and any answered release clears it.
+func TestTwoOverlappingArmsThatBothTurnedNothingOnStayOwedUntilARelease(t *testing.T) {
+	var owed monitorDebt
+	first, second := newGatedArmer(false), newGatedArmer(false)
+	run := func(armer *gatedArmer) chan struct{} {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_, _ = armLaneOwing(context.Background(), armer, voiceNarratorTrack, true, &owed)
+		}()
+		return done
+	}
+	firstDone := run(first)
+	<-first.entered
+	secondDone := run(second)
+	<-second.entered
+	close(first.proceed)
+	close(second.proceed)
+	<-firstDone
+	<-secondDone
+	if !owed.Load() {
+		t.Fatal("two overlapping arms that turned nothing on leave the note set (conservative)")
+	}
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.boothMonitorOwed.Store(true)
+	if got := host.releaseBoothMonitor(context.Background(), host.services(), &fakeLaneRecorder{}); !got.OK || host.boothMonitorOwed.Load() {
+		t.Fatalf("an answered release clears it: %+v", got)
 	}
 }

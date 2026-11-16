@@ -122,6 +122,10 @@ return function(registry)
   -- that stays unwritable (a full disk, a folder of that name) is not opened thirty times a second. A command that changes the rows tries at once; a
   -- write inside a tick (the recovery, a waited restore, a ghost retry) counts as a tick's, so it does not reset the spacing.
   local function persist(from_tick)
+    -- A tick that already tried the ledger and failed does not open it again for a later write in the same tick: it stays pending for the next tick.
+    if state.in_tick and state.tick_wrote and state.unsaved then
+      return false
+    end
     local all = {}
     for _, row in ipairs(state.ghosts) do
       all[#all + 1] = row
@@ -264,9 +268,8 @@ return function(registry)
     state.in_tick = true
     state.tick_wrote = false
     recover()
-    -- A ledger that could not be written after lanes were put back would still list them: it is written again, unless a write already ran in this tick
-    -- (the recovery's), so one tick counts as one miss.
-    if state.unsaved and not state.tick_wrote then
+    -- A ledger that could not be written after lanes were put back would still list them: it is written again.
+    if state.unsaved then
       if (state.wait or 0) <= 0 then
         persist(true)
       else
