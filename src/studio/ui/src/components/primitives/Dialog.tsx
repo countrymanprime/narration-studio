@@ -91,10 +91,9 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
   wide: 'max-w-[56rem]',
 };
 
-// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`). In a window 400 px tall or less the toast's room is
-// given up and the popup may take the window less its margin: a short question then fits whole at 275 x 200 (400% zoom, #2998).
-const DIALOG_MAX_HEIGHT =
-  'max-h-[min(80dvh,calc(92dvh-4.75rem))] [@media(max-height:400px)]:max-h-[calc(100dvh-1rem)] [@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]!';
+// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`). In a window 260 px tall or less (400% zoom is 275 x 200)
+// the toast's room is given up and the popup may take the window less its margin: a short question then fits whole (#2998). Between 261 and 400 px the cap is unchanged.
+const DIALOG_MAX_HEIGHT = 'max-h-[min(80dvh,calc(92dvh-4.75rem))] [@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
 // tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)
@@ -352,7 +351,7 @@ export function Dialog({
             finalFocus={finalFocus}
             // Below 400 px of height (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
             // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
-            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:400px)]:overflow-y-auto ${
+            className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:260px)]:overflow-y-auto ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT}`
             }`}
             style={{
@@ -385,7 +384,7 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:400px)]:min-h-14 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden [@media(max-height:260px)]:min-h-14 ${bodyScroll ? 'scroll-y-edges overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
                   top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
