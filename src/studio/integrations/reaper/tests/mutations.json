@@ -3910,10 +3910,10 @@
     "replace": "  local wanted = tostring(guid_text)"
   },
   {
-    "name": "a ledger of any size is read",
+    "name": "a ledger of four times the bound is read",
     "file": "narration_monitor.lua",
     "find": "input:read(65536)",
-    "replace": "input:read('a')"
+    "replace": "input:read(262144)"
   },
   {
     "name": "a ghost is not tried again in a second unsaved project with as many tracks",
