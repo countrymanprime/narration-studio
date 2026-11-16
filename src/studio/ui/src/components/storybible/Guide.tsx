@@ -292,7 +292,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // is not installed opens the entry, whose own play asks again and shows the install prompt.
   const listHear = useHearEntry({
     requestPreview: (id) => api.guidePreview(id),
-    onAssetRequired: (id) => selectRow(id, () => setCommand({ id, kind: 'hear', nonce: Math.random() })),
+    // The entry already open takes its own Hear with no move to ask about; another one is opened first (`ask` below), and the command follows the answer.
+    onAssetRequired: (id) => live.current.ask(id, 'hear'),
     notify,
   });
   const { hear } = listHear;

@@ -2,6 +2,7 @@
 // The entry list's Hear button and Space play an entry's pronunciation with the host's preview, the same one the entry's own play button
 // plays (SNB-D3). A voice that is not installed yet opens the entry, whose install prompt says what is needed.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -9,6 +10,7 @@ import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { entryRows } from './entryTableTestKit';
 import { Guide } from './Guide';
 
@@ -41,7 +43,25 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** Stands in for the app shell: every guarded move asks here first, and goes ahead (as Discard & continue would). */
+let asked = 0;
+function Shell() {
+  const { setShell } = useUnsavedDrafts();
+  useEffect(() => {
+    setShell({
+      ask: (run) => {
+        asked += 1;
+        run();
+      },
+      go: () => {},
+    });
+    return () => setShell(null);
+  }, [setShell]);
+  return null;
+}
+
 async function renderGuide(ready = true) {
+  asked = 0;
   window.localStorage.clear();
   const api = createMockApi();
   const preview = ready
@@ -52,9 +72,12 @@ async function renderGuide(ready = true) {
       <ApiProvider api={api}>
         <StudioProvider>
           <OverlayProvider>
-            <CommandRouter>
-              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
-            </CommandRouter>
+            <UnsavedDraftsProvider>
+              <Shell />
+              <CommandRouter>
+                <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
+              </CommandRouter>
+            </UnsavedDraftsProvider>
           </OverlayProvider>
         </StudioProvider>
       </ApiProvider>
@@ -102,5 +125,27 @@ describe('the-entry-list-plays-a-pronunciation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hear Hatter' }));
     await waitFor(() => expect(row('Hatter').getAttribute('aria-selected')).toBe('true'));
     expect(await screen.findByText(/This local voice is needed to play “Hatter”/)).toBeTruthy();
+  });
+
+  // #3495 F1: Hear on the entry that is already open opens nothing, so it asks nothing; on another row it opens that entry, which replaces the one being edited, so it asks.
+  it('does not ask to leave when Hear is pressed on the entry already open and its voice is missing', async () => {
+    await renderGuide(false);
+    fireEvent.click(row('Alice'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Alice B' } });
+    asked = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Hear Alice' }));
+    expect(await screen.findByText(/This local voice is needed to play “Alice”/)).toBeTruthy();
+    expect(asked, 'nothing leaves, so nothing is asked').toBe(0);
+    expect((screen.getByRole('textbox', { name: 'Name', hidden: true }) as HTMLInputElement).value).toBe('Alice B');
+  });
+
+  it('asks once when Hear is pressed on another row whose voice is missing, because that row opens', async () => {
+    await renderGuide(false);
+    fireEvent.click(row('Alice'));
+    asked = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Hear Hatter' }));
+    expect(await screen.findByText(/This local voice is needed to play “Hatter”/)).toBeTruthy();
+    expect(asked).toBe(1);
   });
 });
