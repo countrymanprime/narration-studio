@@ -45,7 +45,7 @@ export function SelectionBar({
       aria-label="Playback and selection"
       className="@container/bar flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex max-w-full min-w-0 items-center gap-1.5">
         <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
         <IconButton
           action={playback.playing ? 'pause' : 'play'}
@@ -55,9 +55,10 @@ export function SelectionBar({
           onClick={playback.toggle}
         />
         <IconButton action="nextWord" onClick={() => playback.skip(1)} />
-        <span className="ml-1.5 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium whitespace-nowrap">
-          {clock(at, { full: true })}
-          <span className="text-[var(--text-muted)]"> / {clock(end)}</span>
+        {/* The position (12 characters in `full`) and the chapter's length: where the row is too narrow (a small window) the length drops under the position, never cut off. */}
+        <span className="ml-1.5 min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium">
+          <span className="whitespace-nowrap">{clock(at, { full: true })}</span>{' '}
+          <span className="whitespace-nowrap text-[var(--text-muted)]">/ {clock(end)}</span>
         </span>
       </div>
       {output}
@@ -73,10 +74,11 @@ export function SelectionBar({
             <b>{plural(count, 'word')}</b>
             {summary.audible.length > 0 ? (
               <span
-                className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
+                className="min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
                 title={`${clock(summary.start, { full: true })} to ${clock(summary.end, { full: true })} · ${summary.len.toFixed(1)} s`}
               >
-                {clock(summary.start, { full: true })} to {clock(summary.end, { full: true })} · {summary.len.toFixed(1)} s
+                {clock(summary.start, { full: true })} to {clock(summary.end, { full: true })}{' '}
+                <span className="whitespace-nowrap">· {summary.len.toFixed(1)} s</span>
               </span>
             ) : null}
             {allCut ? (

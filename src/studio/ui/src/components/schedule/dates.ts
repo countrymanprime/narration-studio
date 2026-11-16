@@ -1,4 +1,4 @@
-import { plural } from '../../plural';
+import { clock } from '../../clock';
 
 /** Calendar dates as the plan writes them, "YYYY-MM-DD", worked on as local dates so a day is a day in every time zone. */
 const DAY = 86_400_000;
@@ -23,27 +23,8 @@ export const fmtD = (d: Date): string => d.toLocaleDateString('en-US', { month: 
 /** Whether `s` is a real calendar date written "YYYY-MM-DD", in the years 1000 to 9999 (JavaScript reads years under 100 as 19xx, so the day counts would be wrong). */
 export const isIsoDate = (s: string): boolean => /^[1-9]\d{3}-\d{2}-\d{2}$/.test(s) && iso(parseIso(s)) === s;
 
-/**
- * Hours as hours and minutes with their units, "5h 40m" ("0h 10m"), to the nearest minute: the one hours formatter (Production and Schedule), so a figure of hours beside lengths in
- * minutes and seconds ("10:12") cannot be read as minutes and seconds (#3443). Rounds, as the Production figures always did (61 s and 89 s read 0h 01m, 90 s 0h 02m);
- * negative and non-finite input read 0h 00m, as `clock` reads 0:00.
- */
-export const hm = (h: number): string => {
-  const m = Number.isFinite(h) ? Math.max(0, Math.round(h * 60)) : 0;
-  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
-};
-
-/**
- * A figure written by `hm` spelled out for a screen reader: "5 hours 40 minutes", "10 minutes", "less than a minute" ("<0h 01m"). "0h 10m" is read letter by letter and "<" is dropped by
- * the usual punctuation settings, so an accessible name uses this and the visible text stays as `hm` wrote it. Text that is not an `hm` figure comes back unchanged.
- */
-export const spokenHm = (text: string): string => {
-  const match = /^(<)?(\d+)h (\d{2})m$/.exec(text);
-  if (!match) return text;
-  const [hours, minutes] = [Number(match[2]), Number(match[3])];
-  if (match[1]) return 'less than a minute';
-  return [hours > 0 ? plural(hours, 'hour') : '', minutes > 0 || hours === 0 ? plural(minutes, 'minute') : ''].filter(Boolean).join(' ');
-};
+/** Hours as hours and minutes with their units, "5h 40m" (the one marked form, `clock`'s `marked` option, which rounds to the minute): every Production and Schedule hours figure (#3443). */
+export const hm = (h: number): string => clock(h * 3600, { marked: true });
 
 export const num = (n: number): string => n.toLocaleString('en-US');
 

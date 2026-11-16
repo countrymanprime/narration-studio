@@ -334,7 +334,7 @@ describe('PickupsTable', () => {
     const { user, goTo } = setup();
     await user.click(await within(rowOf('00:12.0')).findByRole('button', { name: 'Show in REAPER' }));
     expect(goTo).toHaveBeenCalledWith('f9');
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 00:03:41.000 in REAPER.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
     toast.mockRestore();
   });
 

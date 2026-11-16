@@ -173,11 +173,11 @@ describe('StageBar', () => {
     expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Edited', 'Recorded', 'Not recorded yet']);
     expect(screen.getByText('Proofed')).toBeTruthy();
     // Chapter 1 is mastered, chapter 2 is in proof (edited), chapter 3 in edit (recorded), chapter 4 half recorded, chapter 5 untouched; a chapter is an hour.
-    expect(bar.querySelector('i[title="Delivered: 1h 00m"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Proofed: 0h 00m"]')).toBeNull();
-    expect(bar.querySelector('i[title="Edited: 1h 00m"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Recorded: 1h 30m"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Not recorded yet: 1h 30m"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Delivered: 1 hour"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Proofed: 0 minutes"]')).toBeNull();
+    expect(bar.querySelector('i[title="Edited: 1 hour"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Recorded: 1 hour 30 minutes"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Not recorded yet: 1 hour 30 minutes"]')).toBeTruthy();
   });
 
   it('says Recorded for the share recorded and has no footnote under the legend', () => {

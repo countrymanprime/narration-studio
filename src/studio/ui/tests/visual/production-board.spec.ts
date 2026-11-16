@@ -108,5 +108,22 @@ for (const size of [
       expect(tile.lines, `"${tile.text}" is on one line`).toBe(1);
       expect(tile.cut, `"${tile.text}" is cut off by its tile`).toBe(false);
     }
+    // A button centres its content: when one tile's figure wraps and is taller, the eyebrows of the tiles in a row must still stand at one height.
+    const eyebrows = await page
+      .getByRole('list', { name: 'Production figures' })
+      .locator('li')
+      .evaluateAll((items) =>
+        items.map((item) => {
+          const label = item.querySelector<HTMLElement>('button > div > div');
+          return {
+            row: Math.round(item.getBoundingClientRect().top),
+            top: Math.round((label?.getBoundingClientRect().top ?? 0) - item.getBoundingClientRect().top),
+          };
+        }),
+      );
+    for (const row of new Set(eyebrows.map((e) => e.row))) {
+      const heights = new Set(eyebrows.filter((e) => e.row === row).map((e) => e.top));
+      expect([...heights], 'the eyebrows of a row stand at one height').toHaveLength(1);
+    }
   });
 }

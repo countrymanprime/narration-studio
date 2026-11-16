@@ -2,7 +2,7 @@ import { clock } from '../../../clock';
 import { selKeys, summarize, type ChapterDoc, type Sel } from '../model';
 import { plural } from '../../../plural';
 
-/** What the narrator hears of a selection said aloud: "3 words selected, 0:12 to 0:14", and "not in the script" when every word is extra. */
+/** What the narrator hears of a selection said aloud: "3 words selected, 00:00:12.000 to 00:00:14.000", and "not in the script" when every word is extra. */
 export function announceSel(doc: ChapterDoc, sel: Sel | null): string {
   if (!sel) return '';
   const sum = summarize(doc, selKeys(doc, sel), [], (s) => s);

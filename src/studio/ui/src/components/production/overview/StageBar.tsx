@@ -1,6 +1,7 @@
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { Panel } from '../../primitives/Panel';
 import { toneColors } from '../../primitives/StatusBadge';
+import { spokenMarked } from '../../../clock';
 import { hm, num } from '../../schedule/dates';
 import type { StageSegment } from './overviewFigures';
 
@@ -34,7 +35,7 @@ export function StageBar({ segments, wph }: { segments: readonly StageSegment[];
               .map((s) => (
                 <i
                   key={s.key}
-                  title={`${s.label}: ${hm(s.hours)}`}
+                  title={`${s.label}: ${spokenMarked(hm(s.hours))}`}
                   className="block h-full min-w-1"
                   style={{ width: `${s.percent.toFixed(2)}%`, background: FILL[s.key] }}
                 />

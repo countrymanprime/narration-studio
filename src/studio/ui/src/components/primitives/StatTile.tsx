@@ -1,4 +1,6 @@
+import type { CSSProperties } from 'react';
 import type { IconName } from '../../icons.catalog';
+import { spokenMarked } from '../../clock';
 import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
 import { SectionLabel } from './SectionLabel';
@@ -61,15 +63,16 @@ export function StatTile({
       <div
         className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : size === 'compact' ? 'text-[length:var(--font-size-base)] leading-[1.4]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}
       >
-        <span className="whitespace-nowrap" style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>
-          {value}
-        </span>
-        {/* A break opportunity between the value and its unit that adds no space to the accessible text: the unit, never split, moves under the value whole. */}
+        <Spoken text={value} className="whitespace-nowrap" style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }} />
+        {/* A break opportunity between the value and its unit: the unit, never split, moves under the value whole. The space is for a screen reader ("4h 35m left"); the margin is the sighted gap. */}
         {unit && <wbr />}
+        {unit && <span className="sr-only"> </span>}
         {unit && (
-          <span className={`ml-1 whitespace-nowrap ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
-            {unit}
-          </span>
+          <Spoken
+            text={unit}
+            className={`ml-1 whitespace-nowrap ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`}
+            style={{ color: 'var(--text-muted)' }}
+          />
         )}
       </div>
       {hint && (
@@ -83,5 +86,22 @@ export function StatTile({
         </div>
       )}
     </div>
+  );
+}
+
+/** A figure as it is drawn, and for a screen reader with an hours-and-minutes figure spelled out ("4 hours 35 minutes": "4h 35m" is read letter by letter). */
+function Spoken({ text, className, style }: { text: string; className: string; style?: CSSProperties }) {
+  const spoken = spokenMarked(text);
+  if (spoken === text)
+    return (
+      <span className={className} style={style}>
+        {text}
+      </span>
+    );
+  return (
+    <span className={className} style={style}>
+      <span aria-hidden="true">{text}</span>
+      <span className="sr-only">{spoken}</span>
+    </span>
   );
 }

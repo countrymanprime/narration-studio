@@ -132,8 +132,8 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 // #3443: the Timeline strip's marks are hh:mm:ss.fff (12 characters each). At every size the two end marks are whole and apart: none cut off by the strip, none over another,
-// and the strip draws no sideways scroll. (768 and 1024 are the guide's sizes, 360 x 500 and 320 x 300 the small windows.)
-for (const size of [...SIZES, { width: 768, height: 1024 }, { width: 1024, height: 768 }] as const) {
+// the middle mark (when drawn) is at the midpoint, and the strip draws no sideways scroll. (768 and 1024 are the guide's sizes, 360 x 500 and 320 x 300 the small windows.)
+for (const size of [...SIZES, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }] as const) {
   test(`Editing: the Timeline strip's time marks are whole and apart (${size.width}x${size.height})`, async ({ page }) => {
     await page.setViewportSize(size);
     await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
@@ -149,17 +149,27 @@ for (const size of [...SIZES, { width: 768, height: 1024 }, { width: 1024, heigh
     await strip.scrollIntoViewIfNeeded();
     const result = await strip.evaluate((section) => {
       const row = [...section.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].find((el) => /\d\d:\d\d:\d\d\.\d{3}/.test(el.textContent ?? ''))!;
-      const marks = [...row.querySelectorAll<HTMLElement>('span')].map((el) => el.getBoundingClientRect()).filter((box) => box.width > 0);
+      const all = [...row.querySelectorAll<HTMLElement>('span')].map((el) => el.getBoundingClientRect());
+      const marks = all.filter((box) => box.width > 0);
       const edge = section.getBoundingClientRect();
+      // A mark is dropped only below 28 rem (448 px) of the strip's width, and every mark is drawn from there up.
+      const hiddenWide = edge.width >= 448 && marks.length < all.length;
+      // The middle mark, when drawn, stands at the midpoint of the row (the strip's middle time), not beside the start mark.
+      const rowBox = row.getBoundingClientRect();
+      const centred = marks.length < 3 || Math.abs((marks[1].left + marks[1].right) / 2 - (rowBox.left + rowBox.right) / 2) <= 2;
       const apart = marks.every((box, i) => i === 0 || box.left >= marks[i - 1].right - 0.5 || box.top >= marks[i - 1].bottom - 0.5);
       return {
         count: marks.length,
+        hiddenWide,
+        centred,
         apart,
         inside: marks.every((box) => box.left >= edge.left - 0.5 && box.right <= edge.right + 0.5),
         sideways: section.scrollWidth > section.clientWidth + 1,
       };
     });
     expect(result.count, 'the start and end marks are drawn').toBeGreaterThanOrEqual(2);
+    expect(result.hiddenWide, 'a mark is hidden on a strip wide enough for it').toBe(false);
+    expect(result.centred, 'the middle mark is not at the midpoint').toBe(true);
     expect(result.apart, 'the marks touch or overlap').toBe(true);
     expect(result.inside, 'a mark is cut off by the strip').toBe(true);
     expect(result.sideways, 'the strip scrolls sideways').toBe(false);
@@ -183,4 +193,45 @@ for (const size of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, 
     expect(stamps.some((stamp) => /^\d{2}:\d{2}:\d{2}\.\d{3}$/.test(stamp.text ?? ''))).toBe(true);
     for (const stamp of stamps.filter((s) => s.text)) expect(stamp.cut, `"${stamp.text}" is cut off`).toBe(false);
   });
+}
+
+// #3443: the transport reads "00:00:01.687 / 14:09" and a selection "00:00:01.687 to 00:00:03.235 · 1.5 s" (the position is 12 characters). At every size, with and without
+// a selection, the position, the chapter's length and the selection's length are whole inside the bar: none cut off, none outside it (the length may drop under the position).
+for (const size of [...SIZES, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1100, height: 800 }] as const) {
+  for (const selected of [false, true]) {
+    test(`Editing: the transport and the selection's length are whole (${size.width}x${size.height}, ${selected ? 'with' : 'without'} a selection)`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
+      await settlePage(page);
+      await page.locator('[data-k="p-1:1"]').click();
+      if (selected) await page.locator('[data-k="p-1:4"]').click({ modifiers: ['Shift'] });
+      const bar = page.getByRole('toolbar', { name: 'Playback and selection' });
+      await bar.waitFor();
+      if (selected) await bar.getByText('4 words').waitFor();
+      const result = await bar.evaluate((el) => {
+        const edge = el.getBoundingClientRect();
+        const found: string[] = [];
+        const leaves = [...el.querySelectorAll<HTMLElement>('[data-bar-summary] span, span')].filter(
+          (span) => span.children.length === 0 && /\d\d:\d\d:\d\d\.\d{3}|\d+:\d\d$|^· [\d.]+ s$|^\/ /.test((span.textContent ?? '').trim()),
+        );
+        for (const span of leaves) {
+          const box = span.getBoundingClientRect();
+          const text = (span.textContent ?? '').trim();
+          if (box.left < edge.left - 0.5 || box.right > edge.right + 0.5) found.push(`"${text}" is outside the bar`);
+          if (span.scrollWidth > span.clientWidth + 1) found.push(`"${text}" is cut off`);
+          for (let up: HTMLElement | null = span.parentElement; up && up !== el; up = up.parentElement) {
+            if (up.scrollWidth > up.clientWidth + 1 && getComputedStyle(up).overflow !== 'visible') found.push(`"${text}" is clipped by its row`);
+          }
+        }
+        return { found, text: el.textContent ?? '', sideways: el.scrollWidth > el.clientWidth + 1 };
+      });
+      expect(result.text, 'the position is drawn').toMatch(/\d\d:\d\d:\d\d\.\d{3}/);
+      expect(result.text, "the chapter's length is drawn").toMatch(/\/\s*\d+:\d\d/);
+      if (selected) expect(result.text, "the selection's length is drawn").toMatch(/· [\d.]+ s/);
+      expect(result.found).toEqual([]);
+      expect(result.sideways, 'the bar scrolls sideways').toBe(false);
+    });
+  }
 }

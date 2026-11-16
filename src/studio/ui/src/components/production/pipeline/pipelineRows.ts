@@ -2,7 +2,8 @@ import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
 import { reached } from '../../../chapterStatus';
-import { hm, spokenHm } from '../../schedule/dates';
+import { spokenMarked } from '../../../clock';
+import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
 import { plural } from '../../../plural';
@@ -150,7 +151,7 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
     return {
       kind: 'measured',
       text,
-      label: `${name}: ${spokenHm(text)} recorded${estimate === DASH ? ', no estimate' : ` of about ${spokenHm(estimate)} estimated`}`,
+      label: `${name}: ${spokenMarked(text)} recorded${estimate === DASH ? ', no estimate' : ` of about ${spokenMarked(estimate)} estimated`}`,
       tip: `${text} recorded${of} · on the linked track in the saved project, before editing`,
     };
   }

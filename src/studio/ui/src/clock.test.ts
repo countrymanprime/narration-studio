@@ -72,6 +72,24 @@ describe('clock, full', () => {
   });
 });
 
+describe('clock, marked', () => {
+  it('writes hours and minutes with their units, always', () => {
+    expect(clock(0, { marked: true })).toBe('0h 00m');
+    expect(clock(612, { marked: true })).toBe('0h 10m');
+    expect(clock(5 * 3600 + 40 * 60, { marked: true })).toBe('5h 40m');
+    expect(clock(100.5 * 3600, { marked: true })).toBe('100h 30m');
+  });
+  it('rounds to the nearest minute, where the default floors', () => {
+    expect(clock(59.6, { marked: true })).toBe('0h 01m');
+    expect(clock(59.6)).toBe('0:59');
+    expect(clock(89, { marked: true })).toBe('0h 01m');
+    expect(clock(90, { marked: true })).toBe('0h 02m');
+  });
+  it('reads zero for a value that is not a time', () => {
+    for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) expect(clock(bad, { marked: true })).toBe('0h 00m');
+  });
+});
+
 describe('clockTenths', () => {
   it('writes m:ss.s', () => {
     expect(clockTenths(0)).toBe('0:00.0');

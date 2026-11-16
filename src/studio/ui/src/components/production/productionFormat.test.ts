@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatClock, formatPfh, formatRate, stageHoursHint } from './productionFormat';
-import { hm, spokenHm } from '../schedule/dates';
-import { clock } from '../../clock';
+import { hm } from '../schedule/dates';
+import { clock, spokenMarked } from '../../clock';
 
 describe('production figures', () => {
   it('writes hours and seconds as h:mm, rounding to the minute', () => {
@@ -65,7 +65,7 @@ describe('hm, the one hours formatter', () => {
   });
 });
 
-describe('spokenHm, for an accessible name', () => {
+describe('spokenMarked, for an accessible name', () => {
   it.each([
     ['0h 10m', '10 minutes'],
     ['1h 00m', '1 hour'],
@@ -74,5 +74,5 @@ describe('spokenHm, for an accessible name', () => {
     ['0h 00m', '0 minutes'],
     ['<0h 01m', 'less than a minute'],
     ['None yet', 'None yet'],
-  ])('%s is spoken "%s"', (text, spoken) => expect(spokenHm(text)).toBe(spoken));
+  ])('%s is spoken "%s"', (text, spoken) => expect(spokenMarked(text)).toBe(spoken));
 });

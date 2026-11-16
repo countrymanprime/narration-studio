@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
 // clock; it fails here unless it is listed below with what it formats instead. An entry whose file no longer matches fails too, so the list only shrinks.
 const ALLOWED: Readonly<Record<string, string>> = {
   'clock.ts': 'the one clock',
-  'components/schedule/dates.ts': 'calendar dates and hours as h:mm (the schedule), not seconds',
+  'components/schedule/dates.ts':
+    'calendar dates ("2026-11-16", zero-padded) and agoText\'s count of minutes and hours since a reading, "3 min ago": words about the age of a reading, not a clock; its hours figure `hm` only delegates to `clock`',
   'state.ts':
     'a retail sample length written "2m 05s" (Settings, Manuscript retail range), the same text and rounding as the host\'s refusal message; move it to clock.ts with that message',
 };
@@ -59,17 +60,27 @@ describe('one clock for every duration', () => {
 
 // #3443 (owner, 2026-11-16): every POSITION (a point or range in the recording) on Editing and Proof is written in the full hh:mm:ss.fff form, and no other screen uses
 // it, so the same cursor or selection never reads two ways on one screen. A `clock(` call under components/editing or components/proof is either `full: true` or a duration
-// (a length, an estimate, an elapsed time), and a file that still has a duration call is on the list below with what it measures; a stale entry fails, so the list only shrinks.
+// (a length, an estimate, an elapsed time), and each such CALL is on the list below, by its text, with what it measures: a new floored clock(position) in a file that
+// already has a duration is a new call and fails here. A stale entry fails, so the list only shrinks. `clockTenths` (a fine reading with tenths) is not used there at all.
 const FINE = /^components\/(editing|proof)\//;
-const DURATIONS: Readonly<Record<string, string>> = {
-  'components/editing/backups/BackupsInspector.tsx': "the chapter's whole length beside a backup's span",
-  'components/editing/bar/SelectionBar.tsx': "the chapter's length after the transport position",
-  'components/editing/takes/TakeLines.tsx': "a take's source length",
-  'components/editing/range/replace/ReplaceDialog.tsx': 'the length of their file',
-  'components/proof/PreviewPanel.tsx': 'an estimated length of a preview',
-  'components/proof/CompareRun.tsx': 'the elapsed time of a comparison',
-  'components/proof/checkcard/cardSelectors.ts': "the recorded length and the script's estimate",
-  'components/proof/deliveryFindingFormat.ts': "a file's duration in a delivery finding",
+const DURATIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'components/editing/backups/BackupsInspector.tsx': { 'clock(total)': "the chapter's whole length beside a backup's span" },
+  'components/editing/bar/SelectionBar.tsx': { 'clock(end)': "the chapter's length after the transport position" },
+  'components/editing/takes/TakeLines.tsx': { 'clock(take.sourceLength)': "a take's source length" },
+  'components/editing/range/replace/ReplaceDialog.tsx': {
+    'clock(f.length)': 'the length of their file',
+    'clock(length)': "the length of their file, in the waveform's name",
+  },
+  'components/proof/PreviewPanel.tsx': {
+    'clock(candidate.estimatedSeconds) x2': 'an estimated length of a preview',
+    'clock(pinned.candidate.estimatedSeconds)': 'the same estimate, pinned',
+  },
+  'components/proof/CompareRun.tsx': { 'clock(state.elapsed) x2': 'the elapsed time of a comparison' },
+  'components/proof/checkcard/cardSelectors.ts': {
+    'clock(seconds)': 'the recorded length',
+    'clock(Math.round((wordCount / WPH) * 3600))': "the script's estimate",
+  },
+  'components/proof/deliveryFindingFormat.ts': { 'clock(value)': "a file's duration in a delivery finding" },
 };
 /** The `clock(...)` calls of a source text, each with its balanced argument list. */
 function clockCalls(text: string): string[] {
@@ -100,21 +111,38 @@ describe('the full form is only for Editing and Proof, and every position there 
     expect(asking.some((file) => file.startsWith('components/editing/'))).toBe(true);
     expect(asking.some((file) => file.startsWith('components/proof/'))).toBe(true);
   });
-  const durations = files.filter((file) => FINE.test(file) && clockCalls(text(file)).some((call) => !/\bfull:\s*true\b/.test(call)));
-  it('has no duration call on Editing or Proof outside the list', () => {
-    expect(durations.filter((file) => !(file in DURATIONS))).toEqual([]);
-  });
-  it('lists only files that still have a duration call', () => {
-    expect(Object.keys(DURATIONS).filter((file) => !durations.includes(file))).toEqual([]);
-  });
-  // The full-form helper `noteTime` (a position as Editing and Proof write it) is imported outside those folders only where the position is theirs: the marker's place and the Show-in-DAW result.
-  const IMPORTS: Readonly<Record<string, string>> = {
-    'components/engine/AddMarkers.tsx': 'the place of a marker already on a note: a position, shown on Editing and Proof',
-    'components/engine/ShowInDaw.tsx': 'where Show in REAPER moved to: a position on Editing and Proof',
+  // The duration calls of a file: each call's text (whitespace collapsed), "x2" when it appears twice.
+  const durationCalls = (source: string): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    for (const call of clockCalls(source)) if (!/\bfull:\s*true\b/.test(call)) counts[call.replace(/\s+/g, ' ')] = (counts[call.replace(/\s+/g, ' ')] ?? 0) + 1;
+    return counts;
   };
+  const named = (counts: Record<string, number>): string[] =>
+    Object.entries(counts)
+      .map(([call, n]) => (n > 1 ? `${call} x${n}` : call))
+      .sort();
+  const actual: Record<string, string[]> = {};
+  for (const file of files)
+    if (FINE.test(file)) {
+      const calls = named(durationCalls(text(file)));
+      if (calls.length > 0) actual[file] = calls;
+    }
+  it('counts duration calls by their text (its own check)', () => {
+    expect(named(durationCalls('a(clock(x), clock(x), clock(y, { full: true }), clock(\n  z,\n))'))).toEqual(
+      ['clock( z, ) x1'.replace(' x1', ''), 'clock(x) x2'].sort(),
+    );
+  });
+  it('has no duration call on Editing or Proof outside the list, in a listed file or any other', () => {
+    const listed = Object.fromEntries(Object.entries(DURATIONS).map(([file, calls]) => [file, Object.keys(calls).sort()]));
+    expect(actual).toEqual(listed);
+  });
+  it('uses no clockTenths on Editing or Proof: a position there is `full`', () => {
+    expect(files.filter((file) => FINE.test(file) && /\bclockTenths\(/.test(text(file)))).toEqual([]);
+  });
+  // The full-form helper `noteTime` (a position as Editing and Proof write it) is imported by no file outside those folders: a shared component takes its
+  // position formatter from the caller (`ShowInDawButton`'s `when`, `AddMarkersTarget.at`), so Pickups and Production keep their own text.
   const importing = files.filter((file) => !FINE.test(file) && /\bnoteTime\b/.test(text(file)) && file !== 'components/proof/findingFormat.ts');
-  it('has no import of the full-form helper from outside Editing and Proof except the listed ones', () => {
-    expect(importing.filter((file) => !(file in IMPORTS))).toEqual([]);
-    expect(Object.keys(IMPORTS).filter((file) => !importing.includes(file))).toEqual([]);
+  it('has no import of the full-form helper from outside Editing and Proof', () => {
+    expect(importing).toEqual([]);
   });
 });
