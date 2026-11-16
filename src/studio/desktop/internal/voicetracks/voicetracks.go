@@ -81,6 +81,9 @@ type State struct {
 	Tracks            []TrackAssignment `json:"tracks"`
 	// NarratorGUIDs are the tracks (lower case) seen named Narrator, so renaming the Narrator track keeps it key 0.
 	NarratorGUIDs []string `json:"narratorGuids"`
+	// NotVoiceGUIDs are the tracks (lower case) the narrator marked as not a voice (a music bed, room tone): never a chapter's recording
+	// target, and not listed as a voice. A GUID survives a rename of the track in the DAW (#3331).
+	NotVoiceGUIDs []string `json:"notVoiceGuids"`
 }
 
 // Config is what a Service needs.
@@ -102,6 +105,8 @@ type voiceFile struct {
 	NarratorCharacter string                `json:"narratorCharacter"`
 	Tracks            map[string]trackEntry `json:"tracks"`
 	Narrators         []string              `json:"narrators,omitempty"`
+	// NotVoices are the tracks (lower case GUIDs) the narrator marked as not a voice; absent in a file written before the mark existed.
+	NotVoices []string `json:"notVoices,omitempty"`
 }
 
 // Service reads and writes a project's voice setup. It holds no state, so the host builds one per call; a read-modify-write of
@@ -223,6 +228,34 @@ func (f *voiceFile) assign(name string, ids []string) error {
 	return nil
 }
 
+// SetNotVoice marks the track with guid as not a voice (notVoice true) or a voice again (false). A mark on a track the project no longer
+// has stays with the project, so the track comes back marked; unmarking removes it. A GUID is kept lower case and once.
+func (s *Service) SetNotVoice(guid string, notVoice bool) (State, error) {
+	id := strings.ToLower(strings.TrimSpace(guid))
+	if !validText(id, MaxGUID) {
+		return State{}, fmt.Errorf("%w: the track GUID", ErrInvalid)
+	}
+	return s.change(func(file *voiceFile) error {
+		index := slices.Index(file.NotVoices, id)
+		switch {
+		case notVoice && index < 0:
+			if len(file.NotVoices) >= MaxGUIDs {
+				return fmt.Errorf("%w: more than %d tracks marked as not a voice", ErrInvalid, MaxGUIDs)
+			}
+			file.NotVoices = append(file.NotVoices, id)
+			sort.Strings(file.NotVoices)
+		case !notVoice && index >= 0:
+			file.NotVoices = slices.Delete(file.NotVoices, index, index+1)
+		}
+		return nil
+	})
+}
+
+// IsNotVoice reports whether the track with guid is marked as not a voice (GUIDs compared without case).
+func (s State) IsNotVoice(guid string) bool {
+	return slices.Contains(s.NotVoiceGUIDs, strings.ToLower(strings.TrimSpace(guid)))
+}
+
 // SetNarratorCharacter sets the character the Narrator track also voices, or clears it with "".
 func (s *Service) SetNarratorCharacter(id string) (State, error) {
 	if id != "" && !validText(id, MaxCharacterID) {
@@ -314,7 +347,7 @@ func (f voiceFile) valid() bool {
 			return false
 		}
 	}
-	return validGUIDs(f.Narrators)
+	return validGUIDs(f.Narrators) && validGUIDs(f.NotVoices)
 }
 
 func (s *Service) write(file voiceFile) error {
@@ -346,7 +379,7 @@ func (f voiceFile) state() State {
 	for _, name := range names {
 		tracks = append(tracks, TrackAssignment{Track: name, Characters: append([]string(nil), f.Tracks[name].Characters...), GUIDs: append([]string{}, f.Tracks[name].GUIDs...)})
 	}
-	return State{Layout: f.Layout, NarratorCharacter: f.NarratorCharacter, Tracks: tracks, NarratorGUIDs: append([]string{}, f.Narrators...)}
+	return State{Layout: f.Layout, NarratorCharacter: f.NarratorCharacter, Tracks: tracks, NarratorGUIDs: append([]string{}, f.Narrators...), NotVoiceGUIDs: append([]string{}, f.NotVoices...)}
 }
 
 func validGUIDs(guids []string) bool {

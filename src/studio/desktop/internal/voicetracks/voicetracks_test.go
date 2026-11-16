@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestAProjectWithNoFileIsFlatWithNoAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got, State{Layout: LayoutFlat, NarratorCharacter: "", Tracks: []TrackAssignment{}, NarratorGUIDs: []string{}}) {
+	if !reflect.DeepEqual(got, State{Layout: LayoutFlat, NarratorCharacter: "", Tracks: []TrackAssignment{}, NarratorGUIDs: []string{}, NotVoiceGUIDs: []string{}}) {
 		t.Fatalf("got %+v", got)
 	}
 }
@@ -373,5 +374,84 @@ func TestANamedNarratorIsPreferredToARememberedOne(t *testing.T) {
 	}
 	if NamedNarrator("Bob") || !NamedNarrator(" Narrator ") {
 		t.Fatal("NamedNarrator wrong")
+	}
+}
+
+// #3331: a track marked as not a voice is kept by GUID, lower case, once; it needs no characters and does not disturb them.
+func TestATrackIsMarkedAsNotAVoiceByGUIDAndUnmarked(t *testing.T) {
+	service, project := newService(t)
+	state, err := service.SetNotVoice("  {AB-1}  ", true)
+	if err != nil || !reflect.DeepEqual(state.NotVoiceGUIDs, []string{"{ab-1}"}) {
+		t.Fatalf("marked: %+v, %v", state.NotVoiceGUIDs, err)
+	}
+	if state, _ = service.SetNotVoice("{ab-1}", true); len(state.NotVoiceGUIDs) != 1 {
+		t.Fatalf("marking twice: %v", state.NotVoiceGUIDs)
+	}
+	if state, _ = service.SetNotVoice("{CD-2}", true); !reflect.DeepEqual(state.NotVoiceGUIDs, []string{"{ab-1}", "{cd-2}"}) {
+		t.Fatalf("two marks, in order: %v", state.NotVoiceGUIDs)
+	}
+	if !state.IsNotVoice("{AB-1}") || state.IsNotVoice("{EF-3}") {
+		t.Fatalf("IsNotVoice disagrees with %v", state.NotVoiceGUIDs)
+	}
+	if state, _ = service.SetNotVoice("{ab-1}", false); !reflect.DeepEqual(state.NotVoiceGUIDs, []string{"{cd-2}"}) {
+		t.Fatalf("unmarked: %v", state.NotVoiceGUIDs)
+	}
+	if state, _ = service.SetNotVoice("{not-marked}", false); len(state.NotVoiceGUIDs) != 1 {
+		t.Fatalf("unmarking a track that was not marked changed %v", state.NotVoiceGUIDs)
+	}
+	raw, _ := os.ReadFile(File(project))
+	if !strings.Contains(string(raw), `"notVoices"`) {
+		t.Fatalf("the mark is not in the file: %s", raw)
+	}
+}
+
+func TestAMarkNeedsAValidGUIDAndIsBounded(t *testing.T) {
+	service, _ := newService(t)
+	for _, bad := range []string{"", "   ", "a\nb", strings.Repeat("x", MaxGUID+1)} {
+		if _, err := service.SetNotVoice(bad, true); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%q: err = %v, want ErrInvalid", bad, err)
+		}
+	}
+	for i := 0; i < MaxGUIDs; i++ {
+		if _, err := service.SetNotVoice("{g-"+strings.Repeat("0", 4)+"-"+itoa(i)+"}", true); err != nil {
+			t.Fatalf("mark %d: %v", i, err)
+		}
+	}
+	if _, err := service.SetNotVoice("{one-too-many}", true); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("past the limit: err = %v, want ErrInvalid", err)
+	}
+}
+
+func itoa(n int) string { return strconv.Itoa(n) }
+
+func TestAFileWithABadNotVoiceGUIDIsCorruptAndAnOlderFileHasNone(t *testing.T) {
+	service, project := newService(t)
+	_ = os.MkdirAll(filepath.Dir(File(project)), 0o755)
+	_ = os.WriteFile(File(project), []byte(`{"schemaVersion":1,"layout":"flat","narratorCharacter":"","tracks":{},"notVoices":["UPPER"]}`), 0o600)
+	if got, err := service.Get(); err != nil || len(got.NotVoiceGUIDs) != 0 {
+		t.Fatalf("a mark that is not lower case: %+v, %v", got, err)
+	}
+	older, olderProject := newService(t)
+	_ = os.MkdirAll(filepath.Dir(File(olderProject)), 0o755)
+	_ = os.WriteFile(File(olderProject), []byte(`{"schemaVersion":1,"layout":"folders","narratorCharacter":"","tracks":{}}`), 0o600)
+	if got, err := older.Get(); err != nil || got.NotVoiceGUIDs == nil || len(got.NotVoiceGUIDs) != 0 {
+		t.Fatalf("a file written before the mark: %+v, %v (want an empty list, never null)", got.NotVoiceGUIDs, err)
+	}
+}
+
+// Learn reads the project's tracks and rewrites the file; a mark must come through it untouched, even for a track the project lacks now.
+func TestLearnKeepsTheMarks(t *testing.T) {
+	service, _ := newService(t)
+	if _, err := service.SetTrackCharacters("Lead", []string{"lead-id"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SetNotVoice("{gone}", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := service.Get(); !reflect.DeepEqual(got.NotVoiceGUIDs, []string{"{gone}"}) {
+		t.Fatalf("Learn changed the marks: %v", got.NotVoiceGUIDs)
 	}
 }

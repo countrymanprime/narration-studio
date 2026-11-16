@@ -1,0 +1,209 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"desktop/internal/contractfile"
+	"desktop/internal/voicetracks"
+)
+
+// #3331: a child of a linked folder the narrator marked as not a voice (a music bed, room tone) is never a recording target and not a
+// voice in the Booth; every other child stays a voice.
+
+const (
+	musicBedTrack   = "{AAAAAAAA-0000-4000-8000-000000000010}"
+	roomToneTrack   = "{AAAAAAAA-0000-4000-8000-000000000011}"
+	musicBedRenamed = "Score"
+)
+
+// folderRpp is a project of one chapter folder, "Chapter 1", holding the given children as (guid, name) pairs, then the flat chapter
+// track the other fixtures use.
+func folderRpp(children ...[2]string) string {
+	var b strings.Builder
+	b.WriteString("<REAPER_PROJECT 0.1 \"7.82/x64\" 1789000000\n")
+	b.WriteString("  <TRACK " + voiceFolderTrack + "\n    NAME \"Chapter 1\"\n    ISBUS 1 1\n    TRACKID " + voiceFolderTrack + "\n  >\n")
+	for index, child := range children {
+		flag := "ISBUS 0 0"
+		if index == len(children)-1 {
+			flag = "ISBUS 2 -1"
+		}
+		b.WriteString("  <TRACK " + child[0] + "\n    NAME \"" + child[1] + "\"\n    " + flag + "\n    TRACKID " + child[0] + "\n  >\n")
+	}
+	b.WriteString("  <TRACK {22222222-2222-4222-8222-222222222222}\n    NAME \"Chapter II\"\n    ISBUS 0 0\n    TRACKID {22222222-2222-4222-8222-222222222222}\n  >\n>\n")
+	return b.String()
+}
+
+// newFolderHost is a project whose first chapter is linked to the folder of rpp, in layout, with the tracks in notVoices marked.
+func newFolderHost(t *testing.T, rpp, layout string, notVoices ...string) (*Host, []string) {
+	t.Helper()
+	host, ids := newTestHostForChapterMatch(t)
+	folder := host.config.projectFolder
+	if err := os.WriteFile(filepath.Join(folder, "Alice.rpp"), []byte(rpp), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	linkChapter(t, host, ids[0], voiceFolderTrack)
+	service := voicetracks.New(voicetracks.Config{Project: folder})
+	if _, err := service.SetLayout(layout); err != nil {
+		t.Fatal(err)
+	}
+	for _, guid := range notVoices {
+		if _, err := service.SetNotVoice(guid, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	host.reachability = liveReachability()
+	host.navigation = &findingNavigation{navigator: &fakeNavigator{}}
+	host.boothVoices = newBoothVoiceChoices()
+	return host, ids
+}
+
+func armedOn(t *testing.T, host *Host, chapterID string) string {
+	t.Helper()
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, chapterID)
+	return fake.armGUID
+}
+
+// The reproduction: a folder that holds only a music bed recorded on the music bed under Flat, because voiceFor falls back to voices[0].
+func TestAFolderHoldingOnlyAMarkedMusicBedRecordsOnTheFolder(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
+	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
+		t.Fatalf("armed %q, want the folder %q: the marked music bed is not a voice", got, voiceFolderTrack)
+	}
+}
+
+func TestAMusicBedNobodyMarkedStaysAVoice(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat)
+	if got := armedOn(t, host, ids[0]); got != musicBedTrack {
+		t.Fatalf("armed %q, want the unmarked child %q: every child is a voice by default", got, musicBedTrack)
+	}
+}
+
+func TestAMarkedMusicBedNextToTheNarratorRecordsOnTheNarrator(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceNarratorTrack, "Narrator"}), voicetracks.LayoutFolders, musicBedTrack)
+	if got := armedOn(t, host, ids[0]); got != voiceNarratorTrack {
+		t.Fatalf("armed %q, want the Narrator", got)
+	}
+}
+
+// A marked first child must not be the fallback when there is no Narrator: the next voice is.
+func TestAMarkedFirstChildIsNotTheFallbackVoice(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceQueenTrack, "Queen"}), voicetracks.LayoutFlat, musicBedTrack)
+	if got := armedOn(t, host, ids[0]); got != voiceQueenTrack {
+		t.Fatalf("armed %q, want Queen, the only voice", got)
+	}
+}
+
+func TestAMarkedChildCannotBeChosenAsTheVoice(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceQueenTrack, "Queen"}, [2]string{voiceNarratorTrack, "Narrator"}), voicetracks.LayoutFolders, musicBedTrack)
+	got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], musicBedTrack)
+	if got.Outcome != "refused" || got.Reason != boothVoiceNotAVoice {
+		t.Fatalf("got %+v, want the marked child refused as not a voice", got)
+	}
+	if got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack); got.Outcome != "selected" {
+		t.Fatalf("got %+v, want Queen still choosable", got)
+	}
+}
+
+func TestAFolderWithOnlyMarkedChildrenIsRefusedUnderVoiceFolders(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{roomToneTrack, "Room tone"}), voicetracks.LayoutFolders, musicBedTrack, roomToneTrack)
+	result := recordStartWithVoice(t, host, &fakeRecorder{}, ids[0])
+	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices {
+		t.Fatalf("got %+v, want refused with no voices, as an empty folder is", result)
+	}
+}
+
+func TestUnmarkingMakesTheChildAVoiceAgain(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
+	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
+		t.Fatalf("marked: armed %q, want the folder", got)
+	}
+	if _, err := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder}).SetNotVoice(musicBedTrack, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := armedOn(t, host, ids[0]); got != musicBedTrack {
+		t.Fatalf("unmarked: armed %q, want the child again", got)
+	}
+}
+
+// The mark follows the track's GUID, so a rename in the DAW keeps it.
+func TestARenamedMarkedTrackStaysMarked(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceQueenTrack, "Queen"}), voicetracks.LayoutFlat, musicBedTrack)
+	renamed := folderRpp([2]string{musicBedTrack, musicBedRenamed}, [2]string{voiceQueenTrack, "Queen"})
+	if err := os.WriteFile(filepath.Join(host.config.projectFolder, "Alice.rpp"), []byte(renamed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := armedOn(t, host, ids[0]); got != voiceQueenTrack {
+		t.Fatalf("armed %q after the rename, want Queen: the renamed track is still marked", got)
+	}
+}
+
+func TestTheServiceMarksAndUnmarksAndRefusesABadGUID(t *testing.T) {
+	service := voicetracks.New(voicetracks.Config{Project: t.TempDir()})
+	state, err := service.SetNotVoice(strings.ToUpper(musicBedTrack), true)
+	if err != nil || len(state.NotVoiceGUIDs) != 1 || state.NotVoiceGUIDs[0] != strings.ToLower(musicBedTrack) {
+		t.Fatalf("marked state = %+v (%v), want the one GUID, lower case", state.NotVoiceGUIDs, err)
+	}
+	if state, _ = service.SetNotVoice(musicBedTrack, true); len(state.NotVoiceGUIDs) != 1 {
+		t.Fatalf("marking twice kept %d GUIDs, want 1", len(state.NotVoiceGUIDs))
+	}
+	if _, err := service.SetNotVoice("bad\nguid", true); err == nil {
+		t.Fatal("a GUID with a line break was saved")
+	}
+	if _, err := service.SetNotVoice("   ", true); err == nil {
+		t.Fatal("a blank GUID was saved")
+	}
+	if state, err = service.SetNotVoice(musicBedTrack, false); err != nil || len(state.NotVoiceGUIDs) != 0 {
+		t.Fatalf("unmarked state = %+v (%v), want none", state.NotVoiceGUIDs, err)
+	}
+	// What was marked is read back from the file by a service built afterwards (the host builds one per call).
+	if _, err := service.SetNotVoice(roomToneTrack, true); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := service.Get(); !again.IsNotVoice(roomToneTrack) || again.IsNotVoice(musicBedTrack) {
+		t.Fatalf("read back %+v", again.NotVoiceGUIDs)
+	}
+}
+
+// The chapter row's members say which child is not a voice, and agree with the Booth's voices.
+func TestTheChapterRowsMembersSayWhichChildIsNotAVoice(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceQueenTrack, "Queen"}), voicetracks.LayoutFlat, musicBedTrack)
+	payload, err := host.ChapterTrackLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The golden the UI's chapterTrackLinks schema is checked against, with a member marked as not a voice.
+	var decoded any
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		t.Fatal(err)
+	}
+	stable, err := contractfile.PortablePaths(decoded, host.config.projectFolder, "C:/Projects/Alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "chapter-track-links-not-a-voice", stable)
+	links, err := host.chapterTrackLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID != ids[0] {
+			continue
+		}
+		if len(row.Members) != 2 {
+			t.Fatalf("members = %+v, want two", row.Members)
+		}
+		for _, member := range row.Members {
+			wantBed := strings.EqualFold(member.GUID, musicBedTrack)
+			if member.NotAVoice != wantBed || member.IsVoice == wantBed {
+				t.Fatalf("member %+v: notAVoice and isVoice must follow the mark on %s", member, musicBedTrack)
+			}
+		}
+		return
+	}
+	t.Fatal("the chapter row is missing")
+}
