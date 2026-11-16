@@ -1084,6 +1084,23 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       expect(screen.queryByRole('alertdialog')).toBeNull();
     });
 
+    it('with the caret in a text box the host is told to ask, and a close with nothing held after the blur still closes without a question', async () => {
+      const host = mountWithHost();
+      await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+      const box = document.createElement('input');
+      document.body.appendChild(box);
+      try {
+        act(() => box.focus());
+        await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(true));
+        host.request();
+        await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+        await waitFor(() => expect(host.windowCloseGuard).toHaveBeenLastCalledWith(false));
+      } finally {
+        box.remove();
+      }
+    });
+
     it('with a Settings edit held asks the question: Cancel keeps the window and the text, Discard & continue closes it', async () => {
       const host = mountWithHost();
       await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));

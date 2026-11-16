@@ -210,3 +210,30 @@ func TestALateAcknowledgementOfAnEarlierRequestDoesNotDisarmTheLaterWait(t *test
 		t.Fatalf("a page that never received the second request trapped the window (closed %d times)", closed.Load())
 	}
 }
+
+func TestAnAcknowledgementThatRacesTheTimerStopsTheCloseAnyway(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.mu.Lock()
+	generation := gate.generation
+	gate.mu.Unlock()
+	gate.asked()
+	gate.pageDidNotAnswer(generation) // the timer had fired and was waiting on the lock
+	if closed.Load() != 0 {
+		t.Fatal("the window closed under a question the page had acknowledged")
+	}
+}
+
+func TestAReceiptWithNoQuestionOpenDoesNothing(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.answer(false)
+	gate.asked()
+	gate.closing()
+	time.Sleep(4 * testWait)
+	if closed.Load() != 1 {
+		t.Fatalf("a stale receipt stopped the wait for a page that never answered (closed %d times)", closed.Load())
+	}
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SystemApi } from '../api/contracts/system';
 
 /**
@@ -14,9 +14,26 @@ export function useWindowClose(
 ): void {
   const latestAsk = useRef(ask);
   latestAsk.current = ask;
+  // A field that saves when it loses focus holds its text as a draft only after the blur, and a window that goes away under the caret never sends it. While the
+  // caret is in a text box the host is told to ask; the question's own settle step then blurs the box and runs the close at once if nothing turns out to be held.
+  const [typing, setTyping] = useState(false);
   useEffect(() => {
-    void api.windowCloseGuard(held).catch(() => undefined);
-  }, [api, held]);
+    const look = () => {
+      const field = document.activeElement;
+      setTyping(field instanceof HTMLElement && field.matches('input, textarea') && !field.closest('[role="dialog"], [role="alertdialog"]'));
+    };
+    look();
+    document.addEventListener('focusin', look);
+    document.addEventListener('focusout', look);
+    return () => {
+      document.removeEventListener('focusin', look);
+      document.removeEventListener('focusout', look);
+    };
+  }, []);
+  const guard = held || typing;
+  useEffect(() => {
+    void api.windowCloseGuard(guard).catch(() => undefined);
+  }, [api, guard]);
   useEffect(
     () =>
       api.subscribeWindowCloseRequested(() => {
