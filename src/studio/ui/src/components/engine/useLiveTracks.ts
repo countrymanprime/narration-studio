@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cutHostWords } from '../chapterTracks/chapterLink';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import type { TracksLive, TracksProject, TracksSavedReason, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
@@ -129,7 +130,7 @@ export function useLiveTracks({
         .catch((reason: unknown) => {
           if (!mounted.current) return { failed: false };
           if (id !== latest.current) return newest.current ?? { failed: false };
-          const text = describeApiError(reason);
+          const text = cutHostWords(describeApiError(reason));
           if (pressed || !failing.current)
             notifyRef.current(
               text,

@@ -15,15 +15,16 @@ import (
 // placeTimeout bounds one read of the narrator's place or one move to a chapter: both are a single quick request to the DAW.
 const placeTimeout = 3 * time.Second
 
-// The two ways DawGoToChapter puts the cursor on a chapter's track: at the end of what is recorded, or at a time in project seconds.
+// The ways DawGoToChapter puts the cursor on a chapter's track: at the end or the start of what is recorded, or at a time in project seconds.
 const (
-	goToEnd = "end"
-	goToAt  = "at"
+	goToEnd   = "end"
+	goToAt    = "at"
+	goToStart = "start"
 )
 
 const (
 	placeBadTimeSentence  = "The place to go to is not a usable number of seconds."
-	placeUnknownSentence  = "The place to go to must be the end of the chapter's track or a time."
+	placeUnknownSentence  = "The place to go to must be the start or the end of the chapter's track, or a time."
 	placeNotReadSentence  = "%s could not say where you are: %s."
 	placeNotMovedSentence = "%s could not move to the chapter: %s."
 	placeNoAnswerSentence = "%s did not answer within %d seconds."
@@ -96,9 +97,9 @@ func sameTrackID(a, b string) bool {
 }
 
 // DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
-// track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
+// track, seconds ignored), "start" (where its audio begins, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
 // chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
-// or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
+// or several links, a time that is not a number of seconds, a track the DAW no longer has, or a DAW that is recording, each with nothing moved. A chapter the
 // manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
 func (h *Host) DawGoToChapter(chapterID, where string, seconds float64) (string, error) {
 	svc := h.services()
@@ -117,6 +118,8 @@ func dawGoToChapterIn(ctx context.Context, svc hostServices, name string, suppor
 	switch where {
 	case goToEnd:
 		target.End = true
+	case goToStart:
+		target.Start = true
 	case goToAt:
 		if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0 {
 			return dawport.Refused(placeBadTimeSentence), nil

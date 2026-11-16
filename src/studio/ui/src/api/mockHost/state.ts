@@ -59,8 +59,8 @@ export type MockApiSeed = {
   /** The project's tracks sit in REAPER folders (`?mockTrackFolders=1`). */
   trackFolders?: boolean;
   /** What TracksLive answers: the saved project because REAPER is not answering (`?mockLiveTracks=saved`), or the first read and then a
-   * refusal on every later one (`failing`). Left out, REAPER answers with its tracks. */
-  liveTracks?: 'saved' | 'failing';
+   * refusal on every later one (`failing`), or a refusal on every read, the first included (`unreadable`). Left out, REAPER answers with its tracks. */
+  liveTracks?: 'saved' | 'failing' | 'unreadable';
   /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
   voiceFolders?: boolean;
   /** Every track of the saved project holds no item, as when the chapter was never recorded (`?mockEmptyTracks=1`): Editing's note says the track is empty. */

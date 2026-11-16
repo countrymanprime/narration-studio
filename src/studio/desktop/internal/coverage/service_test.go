@@ -4,8 +4,10 @@ import (
 	"desktop/internal/brand"
 	"desktop/internal/tracks"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -745,5 +747,93 @@ func TestThePlanOfAFolderOfVoicesCoversEveryTrackInsideIt(t *testing.T) {
 	}
 	if planned.trackGUID != "{FOLDER}" {
 		t.Fatalf("plan track = %q, want the folder the chapter is linked to", planned.trackGUID)
+	}
+}
+
+// A track the narrator marked as not a voice (a music bed) is not the chapter's audio: the recording check plans the voices only, so the
+// bed is neither transcribed nor counted in the chapter's fingerprint (#3557).
+func TestThePlanOfAFolderLeavesOutATrackMarkedAsNotAVoice(t *testing.T) {
+	p := newTestProject(t)
+	p.items = []testItem{
+		{guid: "{NARRATOR}", source: "media/a.wav", position: 0, length: 10, playrate: 1},
+		{guid: "{BED}", source: "media/b.wav", position: 0, length: 400, playrate: 1},
+	}
+	p.writeRPP()
+	service := p.service(&fakeSidecar{})
+	saved, _, err := service.savedProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	only := saved.Tracks[0]
+	narrator, bed := only, only
+	narrator.GUID, narrator.Depth, narrator.Items = "{N}", 1, only.Items[:1]
+	bed.GUID, bed.Depth, bed.Items = "{BEDTRACK}", 1, only.Items[1:]
+	project := saved
+	project.Tracks = []tracks.Track{{GUID: "{FOLDER}", Name: "Chapter 3", IsFolder: true}, narrator, bed}
+	identify := memoIdentify(p.dir, evidence.Identify)
+
+	every, err := buildPlan(project, "{FOLDER}", identify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(every.manifest().Items); got != 2 {
+		t.Fatalf("with no rule the plan holds %d items, want both", got)
+	}
+	planned, err := buildPlan(project.WithAudioSkip(func(guid string) bool { return guid == "{BEDTRACK}" }), "{FOLDER}", identify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, item := range planned.manifest().Items {
+		got = append(got, item.ItemGUID)
+	}
+	if strings.Join(got, ",") != "{NARRATOR}" {
+		t.Fatalf("items = %v, want the narrator's only", got)
+	}
+	if reflect.DeepEqual(planned.fingerprint, every.fingerprint) {
+		t.Fatal("the bed is part of the chapter fingerprint: marking it must change what the check is of")
+	}
+}
+
+// The service hands the project to Config.ChapterAudio before it plans, so the manifest the sidecar reads holds the voices' items only:
+// a music bed inside the chapter's folder is not transcribed (#3557).
+func TestTheManifestTheSidecarReadsLeavesOutTheTracksChapterAudioSkips(t *testing.T) {
+	folderProject := func(p *testProject) {
+		p.t.Helper()
+		item := func(guid string, position, length float64, source string) string {
+			return fmt.Sprintf("    <ITEM\n      POSITION %g\n      LENGTH %g\n      MUTE 0 0\n      IGUID %s\n      NAME take\n      SOFFS 0\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s-take\n      <SOURCE WAVE\n        FILE %q\n      >\n    >\n", position, length, guid, strings.TrimSuffix(guid, "}"), source)
+		}
+		rpp := "<REAPER_PROJECT 0.1 \"7.80/win64\" 1789970042 0\n" +
+			"  <TRACK " + testTrack + "\n    NAME \"Chapter One\"\n    ISBUS 1 1\n    TRACKID " + testTrack + "\n  >\n" +
+			"  <TRACK {NARRATOR-TRACK}\n    NAME \"Narrator\"\n    ISBUS 0 0\n    TRACKID {NARRATOR-TRACK}\n" + item("{NARRATOR}", 0, 10, "media/a.wav") + "  >\n" +
+			"  <TRACK {BED-TRACK}\n    NAME \"Music bed\"\n    ISBUS 2 -1\n    TRACKID {BED-TRACK}\n" + item("{BED}", 0, 400, "media/b.wav") + "  >\n>\n"
+		if err := os.WriteFile(p.rpp, []byte(rpp), 0o600); err != nil {
+			p.t.Fatal(err)
+		}
+		later := time.Now().Add(time.Hour)
+		_ = os.Chtimes(p.rpp, later, later)
+	}
+	itemsOf := func(skip func(guid string) bool) string { // the item GUIDs the sidecar transcribed, sorted
+		p := newTestProject(t)
+		p.items = []testItem{{guid: "{NARRATOR}", source: "media/a.wav", position: 0, length: 10, playrate: 1}, {guid: "{BED}", source: "media/b.wav", position: 0, length: 400, playrate: 1}}
+		p.writeRPP() // writes the media the folder project below names
+		folderProject(p)
+		sidecar := &fakeSidecar{}
+		config := Config{Project: p.dir, Python: "python-sidecar", Backend: "compare.py", ProjectFile: func() (string, error) { return p.rpp, nil }, LoadManuscript: p.loadManuscript, Align: sidecar.align}
+		if skip != nil {
+			config.ChapterAudio = func(project tracks.Project) tracks.Project { return project.WithAudioSkip(skip) }
+		}
+		service := New(config, sidecar.launcher(), nil)
+		service.pollInterval = time.Millisecond
+		run(t, service, testRequest())
+		got := append([]string(nil), sidecar.transcriptions()...)
+		slices.Sort(got)
+		return strings.Join(got, ",")
+	}
+	if got := itemsOf(nil); got != "{BED},{NARRATOR}" {
+		t.Fatalf("with no rule the manifest holds %q, want both tracks' items", got)
+	}
+	if got := itemsOf(func(guid string) bool { return guid == "{BED-TRACK}" }); got != "{NARRATOR}" {
+		t.Fatalf("manifest items = %q, want the narrator's only", got)
 	}
 }

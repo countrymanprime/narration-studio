@@ -224,7 +224,10 @@ local RECORDING = 'REAPER is recording. Stop recording first.'
 -- tracks it routes to, its folder parents and the master audible, and silences the rest, so the sound is the linked track and nothing else) and puts
 -- everything back when the play ends. The narrator's selection and solos, and the track's mute, are remembered first; a value is put back only where it
 -- is still what the isolation left, so a change the narrator made meanwhile is kept. The remembered state is also written to a file in REAPER's
--- resource folder, so a REAPER that was closed or crashed mid-play is put right by the next bridge tick instead of staying soloed.
+-- resource folder, so a REAPER that was closed or crashed mid-play is put right by the next bridge tick instead of staying soloed. The selection is written
+-- through I_SELECTED, never SetTrackSelected: REAPER 7.82 raises GetProjectStateChangeCount by one per SetTrackSelected call (the host turns that into
+-- daw_project_edited and Editing re-reads its word table), and an I_SELECTED, I_SOLO or B_MUTE write leaves the count, undo history and dirty flag alone
+-- (docs/research/2026-11-16-select-without-edit-real-reaper.md).
 local ISOLATION_FILE = 'narration_play_isolation.txt'
 local SOLO_IN_PLACE = 2
 local function isolation_path()
@@ -248,7 +251,7 @@ local function put_back(rows)
         reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.solo)
       end
       if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then
-        reaper.SetTrackSelected(track, row.selected)
+        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)
       end
       if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then
         reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', row.mute)
@@ -405,7 +408,7 @@ local function isolate(state, track)
       reaper.SetMediaTrackInfo_Value(other, 'I_SOLO', row.set_solo)
     end
     if flag(reaper.GetMediaTrackInfo_Value(other, 'I_SELECTED')) ~= row.set_selected then
-      reaper.SetTrackSelected(other, row.set_selected)
+      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)
     end
     if row.set_mute ~= nil and row.mute ~= row.set_mute then
       reaper.SetMediaTrackInfo_Value(other, 'B_MUTE', row.set_mute)

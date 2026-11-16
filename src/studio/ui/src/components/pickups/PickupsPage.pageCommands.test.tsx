@@ -163,3 +163,20 @@ describe('pickups-page-commands', () => {
     await userEvent.setup().keyboard('{Escape}');
   });
 });
+
+describe('the DAW follows the chapter (Booth.follow_chapter_in_daw)', () => {
+  const moved = { ok: true, changed: true, message: '', undoSteps: 0 };
+
+  it('goes to the chapter once it is the only one showing, and to nothing for every chapter', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve(listOf(MIXED)), dawGoToChapter }));
+    await listed();
+    await act(async () => {});
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+    act(() => byId('scope.c2').run());
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c2', 'start', 0));
+    act(() => byId('scope.all').run());
+    await act(async () => {});
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
+  });
+});

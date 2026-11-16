@@ -151,6 +151,46 @@ describe('EditingPage', () => {
     expect(screen.queryByRole('textbox')).toBeNull();
   });
 
+  it('the DAW goes to the chapter that opens, once, and nowhere when the setting is off', async () => {
+    const dawGoToChapter = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ chapterId: 'c1', api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledExactlyOnceWith('c1', 'start', 0));
+    cleanup();
+    const off = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const settingOff = {
+      Booth: [
+        {
+          key: 'follow_chapter_in_daw',
+          label: 'x',
+          kind: 'bool',
+          choices: [],
+          value: 'false',
+          isSet: true,
+          effectiveValue: 'false',
+          effectiveSource: 'repo default',
+        },
+      ],
+    };
+    mount({ chapterId: 'c1', api: { dawGoToChapter: off, settingsForScope: async () => settingOff as never } });
+    await script();
+    await act(async () => {});
+    expect(off).not.toHaveBeenCalled();
+  });
+
+  it('stepping to another chapter sends the DAW there once', async () => {
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    mount({ api: { dawGoToChapter } });
+    await script();
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await screen.findByText('This chapter has no text yet.');
+    await act(async () => {});
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    expect(dawGoToChapter.mock.calls.map((call) => call[0])).toEqual(['c1', 'c2']);
+  });
+
   it('not-transcribed-state', async () => {
     mount({ api: { heard: false } });
     await script();
