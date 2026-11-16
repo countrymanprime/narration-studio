@@ -111,7 +111,8 @@ function EditingLoaded({
   const [errorDetails, setErrorDetails] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<string | undefined>(asked);
-  useEffect(() => setChosen(asked), [asked]);
+  // A chapter the narrator chose in one project is not the choice in another: the project changing under the page starts from the address again.
+  useEffect(() => setChosen(asked), [asked, projectFolder]);
   // Once the narrator moves to another chapter the link has been used: coming back does not open it again. A new link applies afresh.
   const [moved, setMoved] = useState(false);
   useEffect(() => setMoved(false), [passageId, findingId, t]);

@@ -299,6 +299,29 @@ describe('EditingPage', () => {
     window.localStorage.clear();
   });
 
+  it("a project switch after choosing a chapter opens the other project's remembered chapter and does not overwrite it", async () => {
+    window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
+    const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const api = { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) };
+    const tree = (projectFolder: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+    const view = render(tree('/a'));
+    await screen.findByRole('button', { name: /Change chapter/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('s2'));
+    view.rerender(tree('/b'));
+    await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s4'));
+    await act(async () => {});
+    expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('s4');
+    expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('s2');
+    window.localStorage.clear();
+  });
+
   it('remembers the chapter it is on for the project', async () => {
     mount({ projectFolder: '/proj' });
     await script();
