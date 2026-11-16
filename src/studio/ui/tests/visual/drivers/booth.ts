@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { rightClickVisibleWord } from '../helpers/visibleWord';
 import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
@@ -534,6 +535,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-bmk-margin] [data-bm-kind="stop"]').waitFor();
     await page.getByText('Stopping place marked.').waitFor();
     // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
+  // Start from here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
+  'chosen-start': async (page) => {
+    await readyToRecord(page);
+    await rightClickVisibleWord(page);
+    await page.getByRole('menuitem', { name: 'Start from here' }).click();
+    await page.locator('[data-booth-text] [data-start]').first().waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.

@@ -58,16 +58,6 @@ func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
 	if kind, ok := creditsid.Kind(chapterID); ok {
 		return creditsid.Title(kind), true, nil
 	}
-	// Unmeasured: a title needs no recorded length, and the measured list tokenizes the whole book and reads the project and the coverage results (#3272).
-	chapters, err := svc.manuscript.ChaptersUnmeasured()
-	if err != nil {
-		return "", false, err
-	}
-	for _, chapter := range chapters {
-		if id, _ := chapter["id"].(string); id == chapterID {
-			title, _ := chapter["title"].(string)
-			return title, true, nil
-		}
-	}
-	return "", false, nil
+	// One entry of the manuscript's id index: no chapter payload is built, where the chapter lists build one for every chapter of the book (#3272).
+	return svc.manuscript.ChapterTitle(chapterID)
 }

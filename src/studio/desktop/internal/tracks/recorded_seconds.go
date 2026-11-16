@@ -12,9 +12,9 @@ func (track Track) RecordedSeconds() float64 {
 }
 
 // ChapterRecordedSeconds is RecordedSeconds for the chapter linked to guid: for a folder of voices the union over the folder and every
-// track inside it, so voices recorded over each other count once. A plain track answers its own; a guid the project lacks answers 0.
+// track inside it, so voices recorded over each other count once. A track WithAudioSkip names is not counted. A plain track answers its own; a guid the project lacks answers 0.
 func (p Project) ChapterRecordedSeconds(guid string) float64 {
-	members, _ := p.WithDescendants(guid)
+	members, _ := p.ChapterMembers(guid)
 	var spans []Span
 	for _, member := range members {
 		spans = audibleSpans(spans, member)

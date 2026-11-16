@@ -231,8 +231,9 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	}
 	opts, message := dawport.RecordOptions{Start: bridge.AtEnd}, ""
 	if !sameTrackID(guid, link) {
-		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025).
-		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link}
+		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025), and not after a
+		// track the narrator marked as not a voice (a music bed that runs on past the narration, #3559).
+		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link, NotVoice: notVoiceTracksUnder(svc, link)}
 	}
 	if at != nil {
 		_, err := puncher.PunchTo(ctx, *at, 0)

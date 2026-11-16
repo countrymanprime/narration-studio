@@ -45,6 +45,6 @@ func (p placeFollower) GoTo(ctx context.Context, trackID string, target dawport.
 	if err := p.check(); err != nil {
 		return err
 	}
-	_, err := p.actions.GoTo(ctx, trackID, bridge.PlaceTarget{End: target.End, Seconds: target.Seconds})
+	_, err := p.actions.GoTo(ctx, trackID, bridge.PlaceTarget{End: target.End, Start: target.Start, Seconds: target.Seconds})
 	return err
 }

@@ -25,6 +25,8 @@ export function noAudioText(
     };
   }
   switch (audio.kind) {
+    case 'unreadable':
+      return { headline: audio.reason, next: 'The script is shown without what was heard.' };
     case 'unlinked':
       return {
         headline: destinationFor(layout).editingUnlinked(chapter, daw),

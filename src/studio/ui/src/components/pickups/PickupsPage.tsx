@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
 import { headingName } from '../../chapterHeading';
@@ -25,6 +26,7 @@ import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarker
 import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
+import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
@@ -143,6 +145,9 @@ export function PickupsPage({
 
   /* A chapter that has gone from the manuscript is not a scope: the page shows every chapter instead of an empty one that cannot be left. */
   const scope = scopeChoice === ALL_SCOPE || chapters.some((chapter) => chapter.id === scopeChoice) ? scopeChoice : ALL_SCOPE;
+
+  // Scoped to one chapter, the DAW goes to that chapter's tracks (Booth.follow_chapter_in_daw); "all" follows nothing.
+  useDawGoesToChapter(scope === ALL_SCOPE ? undefined : scope);
 
   const inView = useMemo(() => inScope(list.pickups, scope), [list.pickups, scope]);
   const sessionIds = useMemo(() => inView.filter((p) => !p.done && p.included).map((p) => p.id), [inView]);
@@ -352,7 +357,12 @@ export function PickupsPage({
             onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
             onFine={fine}
             where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
-            dawChip={<DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />}
+            dawChip={
+              <>
+                <DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />
+                <SavedProjectChip />
+              </>
+            }
           />
           <SessionPanel
             pickups={inView}

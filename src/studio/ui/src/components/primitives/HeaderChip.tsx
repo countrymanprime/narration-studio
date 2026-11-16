@@ -41,6 +41,7 @@ export function HeaderChip({
   'aria-label': ariaLabel,
   title,
   'aria-busy': ariaBusy,
+  focusable = false,
   className = '',
 }: {
   tone?: HeaderChipTone;
@@ -55,6 +56,8 @@ export function HeaderChip({
   /** The native hint on a chip that is a button (what pressing it does). */
   title?: string;
   'aria-busy'?: boolean;
+  /** A chip that is not a button but has a hint the keyboard must reach (a `TooltipTarget` shows it on focus): it takes one Tab stop. */
+  focusable?: boolean;
   /** Placement only (`flex-none`, or `min-w-0` for a chip that truncates): the look is the chip's. */
   className?: string;
 }) {
@@ -80,7 +83,7 @@ export function HeaderChip({
       </button>
     );
   return (
-    <span role={role} aria-label={ariaLabel} aria-busy={ariaBusy || undefined} className={classes} style={TONE[tone]}>
+    <span role={role} aria-label={ariaLabel} aria-busy={ariaBusy || undefined} tabIndex={focusable ? 0 : undefined} className={classes} style={TONE[tone]}>
       {content}
     </span>
   );

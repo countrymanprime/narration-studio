@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/hooks/useDawGoesToChapter.ts#1':
+    "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
   'src/components/chapterTracks/useChapterNameOf.ts#1':
     'Reads the manuscript\'s chapter headings only to name the chapter that holds a track in a picker\'s "(linked to X)": a failed read leaves the title the host kept with the link, which is a name too, and nothing the narrator pressed depends on it.',
   'src/components/chapterTracks/ChapterTrackState.tsx#1':

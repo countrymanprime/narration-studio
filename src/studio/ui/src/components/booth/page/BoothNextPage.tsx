@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useBoothVoices } from '../voices/useBoothVoices';
+import { coldReadNoVoice, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { VoiceControl } from '../voices/VoiceControl';
@@ -70,7 +70,8 @@ import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
-import { useFollowChapterInDaw, useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
+import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -513,17 +514,24 @@ function BoothSession({
   );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
+  const coldMode = page.coldRead.mode && !control.recording;
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
+    coldRead: coldMode,
     notify: voiceToast,
     stopTake: page.stopTake,
-    // A cold read has no voice to record on: in that mode a voice key only chooses.
-    startTake: () => (page.coldRead.mode ? Promise.resolve() : page.pressMain()),
+    // In Cold read mode the hook chooses nothing (`coldRead` above), so a voice choice never starts a take there; the guard keeps it from starting a cold read.
+    startTake: () => (coldMode ? Promise.resolve() : page.pressMain()),
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });
+  const askWho = useCallback(
+    (ask: WhoAsk) => (coldMode ? voiceToast(coldReadNoVoice(voices.voices.length > 0)) : setWhoAsk(ask)),
+    [coldMode, voiceToast, voices.voices.length],
+  );
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
   const cast = useMemo(
@@ -541,9 +549,9 @@ function BoothSession({
   const askFor = useCallback(
     (characterId: string, choice?: 'new' | 'existing') => {
       const character = [...cast.inChapter, ...cast.elsewhere].find((each) => each.id === characterId);
-      if (character) setWhoAsk({ kind: 'character', character, choice });
+      if (character) askWho({ kind: 'character', character, choice });
     },
-    [cast],
+    [cast, askWho],
   );
   const voiceKeys =
     voices.voices.length > 0
@@ -567,6 +575,8 @@ function BoothSession({
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
+    // A cold read needs no voice: the list would only refuse every pick, so the key says so like the other voice keys.
+    if (coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
     if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(voices.linkKind), 'info');
     voices.reload();
     setVoiceListOpen(true);
@@ -583,6 +593,7 @@ function BoothSession({
     chapterId,
     recording: control.recording,
     starting: control.starting,
+    endUnconfirmed: control.endUnconfirmed,
     leave: page.leave,
     adopt,
     choose,
@@ -667,7 +678,6 @@ function BoothSession({
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
   // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
-  const coldMode = page.coldRead.mode && !control.recording;
   const recordWhy = linkProblem ? dest.footerNoLink(recordName) : control.reason;
   const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
@@ -925,16 +935,18 @@ function BoothSession({
                 onChoose={voices.choose}
                 open={voiceListOpen}
                 onOpenChange={(next) => {
+                  // A cold read needs no voice: the list would only refuse every pick, so the click says so, as Num . does.
+                  if (next && coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
                   if (next) voices.reload();
                   setVoiceListOpen(next);
                 }}
                 noTrack={cast.noTrack}
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
-                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : setWhoAsk({ kind: 'character', character }))}
+                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}
                 recording={control.recording}
-                onAddFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'new' })}
-                onUseFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'existing' })}
+                onAddFor={(character) => askWho({ kind: 'character', character, choice: 'new' })}
+                onUseFor={(character) => askWho({ kind: 'character', character, choice: 'existing' })}
               />
             }
           />
