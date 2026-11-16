@@ -326,7 +326,7 @@ The view runs the full width of the page, like Proof, with its breadcrumb and ti
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
 If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings** beside it opens
-[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. A chapter with no linked REAPER track says so in a line
+[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. When the tracks are the saved project's, not REAPER's now, a **Saved project** mark in the title row says so (hold the pointer on it for why). A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)

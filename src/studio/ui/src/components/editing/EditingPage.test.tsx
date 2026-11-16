@@ -321,6 +321,8 @@ describe('EditingPage', () => {
       const open = await dialog();
       expect(within(open).getByText('Chapter One’s track is not in the project')).toBeTruthy();
       expect(open.textContent).toMatch(/Linking a track replaces the old link/);
+      // The footer is the missing case's, not the unlinked one's "to be linked" (#3394).
+      expect(within(open).getByRole('status').textContent).toBe('Waiting for Chapter One to be linked to a track that is in the project.');
       // The chip says the same word as the Engine list (#3394), not the plain unlinked state's.
       expect(document.body.textContent).toContain('Track missing');
       expect(document.querySelector('#noaudio')?.textContent).not.toContain('Not linked');

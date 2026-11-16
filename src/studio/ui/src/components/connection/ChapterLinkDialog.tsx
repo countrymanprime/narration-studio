@@ -272,7 +272,13 @@ export function ChapterLinkDialog({
       )}
       {/* Only the sentence is announced; the seconds tick every second. */}
       <p className="text-[var(--text-muted)]">
-        <span role="status">{read.status === 'failed' ? `Can't tell which tracks ${dawName} has.` : `Waiting for ${chapterName} to be linked.`}</span>{' '}
+        <span role="status">
+          {read.status === 'failed'
+            ? `Can't tell which tracks ${dawName} has.`
+            : missing
+              ? `Waiting for ${chapterName} to be linked to a ${dest.noun} that is in the project.`
+              : `Waiting for ${chapterName} to be linked.`}
+        </span>{' '}
         {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago, from the project as last saved.`}
       </p>
     </ResolveShell>

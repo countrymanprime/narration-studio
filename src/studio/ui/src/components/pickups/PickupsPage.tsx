@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
 import { headingName } from '../../chapterHeading';
@@ -352,7 +353,12 @@ export function PickupsPage({
             onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
             onFine={fine}
             where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
-            dawChip={<DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />}
+            dawChip={
+              <>
+                <DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />
+                <SavedProjectChip />
+              </>
+            }
           />
           <SessionPanel
             pickups={inView}

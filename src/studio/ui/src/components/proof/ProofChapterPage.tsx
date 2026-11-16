@@ -25,6 +25,7 @@ import { useChapterCompare } from './useChapterCompare';
 import { chapterTrackOf } from '../../api/chapterTrackItems';
 import { chapterLink, LINK_STATE_LABEL, linkStateOf } from '../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -229,6 +230,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         />
       </>,
       <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <SavedProjectChip />
         {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
         {alignment?.basis && <span>as of last save {formatWhen(alignment.basis.modifiedAt)}</span>}
         <CheckRecordingsButton chapterIds={[chapterId]} onClosed={() => setReload((n) => n + 1)} />

@@ -67,7 +67,20 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   shared.current = trackState;
   live.current = { onRefused, onNotice, playingId, inDaw };
 
-  const unavailable = useCallback((pickup: PickupItem): string | undefined => (pickup.at === null && pickup.time === null ? NO_PLACE : undefined), []);
+  // Off, with its reason, for a line with no place and for a chapter with no link (#3394). The DAW can play a stretch by its own project second with
+  // no link, but the Engine list says "Not linked" and the button must not look usable beside it. Before the links are first read "no link" means
+  // "not read yet", so the button stays as it was.
+  const { mappings, linksReadAt } = trackState;
+  const unavailable = useCallback(
+    (pickup: PickupItem): string | undefined => {
+      if (pickup.at === null && pickup.time === null) return NO_PLACE;
+      // The line that is playing keeps its Stop: a chapter unlinked meanwhile must not leave a play that cannot be stopped (qa B2).
+      if (pickup.id === playingId) return undefined;
+      if (linksReadAt !== null && chapterLink(mappings, pickup.chapterId).state === 'unlinked') return noSpotReason('unlinked');
+      return undefined;
+    },
+    [mappings, linksReadAt, playingId],
+  );
 
   const clearTimer = (): void => {
     if (timer.current !== undefined) window.clearTimeout(timer.current);
