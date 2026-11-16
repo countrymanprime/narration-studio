@@ -118,6 +118,9 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 	// a record start of this chapter must not arm another chapter's track (qa-breaker N3 on #3290). The chapter row's members
 	// (chapterMember.IsVoice) apply the same rule through linkedTrackSet.
 	voices = withoutLinkedElsewhere(svc, voices)
+	// A track the narrator marked as not a voice (a music bed, room tone) is never a voice either, so voiceFor cannot fall back to it and the
+	// Booth does not list it (#3331). The same State answers the chapter row's members (chapterMember.NotAVoice).
+	voices = withoutNotVoices(setup, voices)
 	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
 	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
 	// voice folder only when the narrator switched Voice folders on, so a flat project's empty folder still records on itself.
@@ -125,6 +128,20 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 		return nil, false, nil
 	}
 	return voices, true, nil
+}
+
+// withoutNotVoices is voices less the tracks the narrator marked as not a voice.
+func withoutNotVoices(setup voicetracks.State, voices []tracks.Track) []tracks.Track {
+	if len(setup.NotVoiceGUIDs) == 0 {
+		return voices
+	}
+	kept := make([]tracks.Track, 0, len(voices))
+	for _, voice := range voices {
+		if !setup.IsNotVoice(voice.GUID) {
+			kept = append(kept, voice)
+		}
+	}
+	return kept
 }
 
 // withoutLinkedElsewhere is voices less the tracks some chapter is linked to.

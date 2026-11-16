@@ -2,7 +2,6 @@ package main
 
 import (
 	"desktop/internal/creditsid"
-	"desktop/internal/manuscript"
 	"fmt"
 	"os"
 	"time"
@@ -130,19 +129,14 @@ func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[
 // matcher's shape (every chapter, reference ones included, so a track named
 // after a reference section is not mistaken for a narration chapter).
 func manuscriptChapters(svc hostServices) ([]chaptermatch.Chapter, error) {
-	raw, err := svc.manuscript.ChaptersUnmeasured() // ids and titles only: the measured list reads the project again
+	// The credits are linked by hand: a track is never matched to one by its name, and they are not in the refs.
+	refs, err := svc.manuscript.ChapterRefs()
 	if err != nil {
 		return nil, err
 	}
-	chapters := make([]chaptermatch.Chapter, 0, len(raw))
-	for _, chapter := range raw {
-		// The credits are linked by hand: a track is never matched to one by its name.
-		if manuscript.IsCredits(chapter) {
-			continue
-		}
-		id, _ := chapter["id"].(string)
-		title, _ := chapter["title"].(string)
-		chapters = append(chapters, chaptermatch.Chapter{ID: id, Title: title})
+	chapters := make([]chaptermatch.Chapter, 0, len(refs))
+	for _, ref := range refs {
+		chapters = append(chapters, chaptermatch.Chapter{ID: ref.ID, Title: ref.Title})
 	}
 	return chapters, nil
 }

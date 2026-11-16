@@ -6507,7 +6507,7 @@ describe('the voice tracks bindings', () => {
     await expect(api.voiceTracksSetLayout('nested' as 'flat')).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('a\nb', ['two'])).rejects.toThrow();
     await expect(api.voiceTracksSetCharacters('Queen', [''])).rejects.toThrow();
-    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [] });
+    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [] });
   });
 
   it("the Booth's voice choice: an unlinked chapter refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {

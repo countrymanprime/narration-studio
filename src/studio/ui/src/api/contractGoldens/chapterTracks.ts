@@ -28,6 +28,7 @@ export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'chapter-track-match-ambiguous.json': chapterTrackMatchSchema,
   'chapter-track-match-none.json': chapterTrackMatchSchema,
   'chapter-track-links-ready.json': chapterTrackLinksSchema,
+  'chapter-track-links-not-a-voice.json': chapterTrackLinksSchema,
   'chapter-sync-state-ask.json': chapterSyncStateSchema,
   'chapter-sync-state-synced.json': chapterSyncStateSchema,
   'chapter-sync-state-stale.json': chapterSyncStateSchema,

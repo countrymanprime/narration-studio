@@ -53,9 +53,7 @@ func creditsRecordedLengthPayload(length manuscript.RecordedLength) map[string]a
 	return map[string]any{"recordedSeconds": length.Seconds}
 }
 
-// readSelectedProject parses the project's currently selected .rpp, uncached: CreditsRecordedLengths is read on
-// demand (opening a credits row's slide-over), not on every chapter-list read, so it does not need
-// projectParseCache's warm-reuse the way recordedLengths' per-poll provider does.
+// readSelectedProject reads the project's currently selected .rpp through readProject, so an unchanged file is parsed once.
 func readSelectedProject(folder string, store *settings.Store) (tracks.Project, bool) {
 	path, err := selectedProjectFile(folder, store)
 	if err != nil {

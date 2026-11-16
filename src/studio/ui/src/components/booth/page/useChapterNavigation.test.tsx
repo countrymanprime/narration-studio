@@ -1,13 +1,29 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoothChapterTarget } from './boothQuery';
 import { useChapterNavigation } from './useChapterNavigation';
+
+type Base = Omit<Parameters<typeof useChapterNavigation>[0], 'requested' | 'choose'>;
+// The hook with a real address: `choose` puts the target in `requested`, as writing it to the URL does.
+const withAddress = (base: Base) =>
+  renderHook(() => {
+    const [requested, setRequested] = useState<BoothChapterTarget | null>(null);
+    return useChapterNavigation({ ...base, requested, choose: setRequested });
+  });
 
 const CHAPTERS = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
 function setup(
-  over: { requested?: BoothChapterTarget | null; chapterId?: string; recording?: boolean; starting?: boolean; leave?: () => Promise<unknown> } = {},
+  over: {
+    requested?: BoothChapterTarget | null;
+    chapterId?: string;
+    recording?: boolean;
+    starting?: boolean;
+    endUnconfirmed?: () => boolean;
+    leave?: () => Promise<unknown>;
+  } = {},
 ) {
   const args = {
     requested: null as BoothChapterTarget | null,
@@ -108,4 +124,210 @@ describe('every route to another chapter respects a take that records or is star
       expect(args.adopt).not.toHaveBeenCalled();
     });
   }
+});
+
+// #3528 (qa-breaker): a DAW that went quiet may still be recording. Its end is not confirmed, so every route to another chapter asks the same question a running take's does
+// (the picker, Next and Previous through `leave` with the Booth's own address, an address likewise) instead of moving silently, and staying keeps the chapter.
+describe('every route to another chapter asks when the DAW went quiet and the end is unconfirmed', () => {
+  const quiet = { endUnconfirmed: () => true };
+  it('the picker asks the leave question with the chapter address, and moves only when the narrator agrees', async () => {
+    const leave = vi.fn(() => Promise.resolve());
+    const { args, view } = setup({ ...quiet, leave });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(leave).toHaveBeenCalledWith('/booth?chapter=b', expect.any(Function));
+    expect(args.choose).not.toHaveBeenCalled();
+    expect(args.toast).not.toHaveBeenCalled();
+  });
+  it('Next and Previous ask too, and a yes moves one chapter', () => {
+    const next = setup({ ...quiet, chapterId: 'b' });
+    act(() => next.view.result.current.step(1));
+    expect(next.args.leave).toHaveBeenCalledWith('/booth?chapter=c', expect.any(Function));
+    expect(next.args.choose).toHaveBeenCalledWith({ chapter: 'c' });
+    const previous = setup({ ...quiet, chapterId: 'b' });
+    act(() => previous.view.result.current.step(-1));
+    expect(previous.args.leave).toHaveBeenCalledWith('/booth?chapter=a', expect.any(Function));
+    expect(previous.args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+  it('an address asks the leave question first, and staying keeps the chapter', async () => {
+    const leave = vi.fn(() => Promise.resolve());
+    const { args } = setup({ ...quiet, requested: { chapter: 'b' }, leave });
+    await act(async () => {});
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(args.adopt).not.toHaveBeenCalled();
+    expect(args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+  it('a take whose end is confirmed changes chapter with no question', () => {
+    const { args, view } = setup({ endUnconfirmed: () => false });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(args.leave).not.toHaveBeenCalled();
+    expect(args.choose).toHaveBeenCalledWith({ chapter: 'b' });
+  });
+});
+
+// ux-reviewer on the chapter question: writing the confirmed chapter to the address brings it back as a request, and with the end still unconfirmed it asked a second time (Leave anyway
+// landed nowhere). The hook is run here with a real `choose` that puts the target in `requested`, as the address does, and the leave question answered yes: it must ask once and open the chapter.
+describe('a chapter the narrator said yes to opens without a second question', () => {
+  const run = (change: (api: ReturnType<typeof useChapterNavigation>) => void, chapterId = 'a') => {
+    const leave = vi.fn((_path: string, proceed: () => void) => {
+      proceed();
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const base = { chapterId, recording: false, endUnconfirmed: () => true, leave, adopt, chapters: CHAPTERS, toast: vi.fn() };
+    const view = withAddress(base);
+    act(() => change(view.result.current));
+    return { leave, adopt };
+  };
+  it('the picker asks once and the chapter opens', () => {
+    const { leave, adopt } = run((api) => api.changeChapter({ chapter: 'b' }));
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+  });
+  it('Next and Previous ask once and the chapter opens', () => {
+    const next = run((api) => api.step(1));
+    expect(next.leave).toHaveBeenCalledTimes(1);
+    expect(next.adopt).toHaveBeenCalledWith({ chapter: 'b' });
+    const previous = run((api) => api.step(-1), 'b');
+    expect(previous.leave).toHaveBeenCalledTimes(1);
+    expect(previous.adopt).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+});
+
+// Class guard (qa-breaker N1): every route to another chapter, with the DAW quiet, asks exactly once whichever way it is answered, and a yes opens the chapter; a stay does not.
+describe('every chapter route x every answer, with the end unconfirmed', () => {
+  const routes: [string, (api: ReturnType<typeof useChapterNavigation>) => void, string, string][] = [
+    ['the picker', (api) => api.changeChapter({ chapter: 'c' }), 'a', 'c'],
+    ['Next', (api) => api.step(1), 'a', 'b'],
+    ['Previous', (api) => api.step(-1), 'b', 'a'],
+  ];
+  for (const [route, change, from, to] of routes) {
+    for (const answer of ['yes', 'stay'] as const) {
+      it(`${route}, ${answer}: asks once and ${answer === 'yes' ? 'opens' : 'does not open'} the chapter`, async () => {
+        const leave = vi.fn((_path: string, proceed: () => void) => {
+          if (answer === 'yes') proceed();
+          return Promise.resolve();
+        });
+        const adopt = vi.fn();
+        const base = { chapterId: from, recording: false, endUnconfirmed: () => true, leave, adopt, chapters: CHAPTERS, toast: vi.fn() };
+        const view = withAddress(base);
+        await act(async () => change(view.result.current));
+        expect(leave).toHaveBeenCalledTimes(1);
+        if (answer === 'yes') expect(adopt).toHaveBeenCalledWith({ chapter: to });
+        else expect(adopt).not.toHaveBeenCalled();
+      });
+    }
+  }
+  for (const answer of ['yes', 'stay'] as const) {
+    it(`an address, ${answer}: asks once and ${answer === 'yes' ? 'opens' : 'keeps'} the chapter`, async () => {
+      const leave = vi.fn((_path: string, proceed: () => void) => {
+        if (answer === 'yes') proceed();
+        return Promise.resolve();
+      });
+      const adopt = vi.fn();
+      const choose = vi.fn();
+      renderHook(() =>
+        useChapterNavigation({
+          requested: { chapter: 'b' },
+          chapterId: 'a',
+          recording: false,
+          endUnconfirmed: () => true,
+          leave,
+          adopt,
+          choose,
+          chapters: CHAPTERS,
+          toast: vi.fn(),
+        }),
+      );
+      await act(async () => {});
+      expect(leave).toHaveBeenCalledTimes(1);
+      if (answer === 'yes') expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+      else expect(choose).toHaveBeenCalledWith({ chapter: 'a' });
+    });
+  }
+});
+
+// qa-breaker M1: the narrator's yes belongs to the request it was given for. If the address ends up somewhere else (a link that came while the question was open), no marker may
+// stay behind to let a later request for that chapter open without asking, least of all during a running take.
+describe('a yes the address then overrides leaves no marker behind', () => {
+  beforeEach(() => void vi.useFakeTimers({ toFake: ['Date'] }));
+  afterEach(() => void vi.useRealTimers());
+  type Props = { requested: BoothChapterTarget | null; recording: boolean };
+  const mount = () => {
+    const answer = { yes: true };
+    const leave = vi.fn((_path: string, proceed: () => void) => {
+      if (answer.yes) proceed();
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const choose = vi.fn();
+    const view = renderHook(
+      ({ requested, recording }: Props) =>
+        useChapterNavigation({ requested, chapterId: 'a', recording, endUnconfirmed: () => true, leave, adopt, choose, chapters: CHAPTERS, toast: vi.fn() }),
+      { initialProps: { requested: null, recording: false } as Props },
+    );
+    return { leave, adopt, choose, view, answer };
+  };
+  for (const later of [{ chapter: 'c' }, null] as const) {
+    for (const recording of [true, false]) {
+      it(`a yes for b, the address then ${later ? 'asks for c' : 'is cleared'}: a later request for b asks (recording ${recording})`, async () => {
+        const { leave, adopt, view, answer } = mount();
+        // The question for b is answered, but the address was already moved off b by something else: `choose` writes nothing the hook sees.
+        act(() => view.result.current.changeChapter({ chapter: 'b' }));
+        expect(leave).toHaveBeenCalledTimes(1);
+        view.rerender({ requested: later, recording: false });
+        // From here a question is only asked, not answered: a request that opens without asking is the break.
+        answer.yes = false;
+        adopt.mockClear();
+        leave.mockClear();
+        // Later than the answer's own request: the yes has expired, and a running take never opens on a yes at all.
+        vi.setSystemTime(Date.now() + 2500);
+        view.rerender({ requested: { chapter: 'b' }, recording });
+        await act(async () => {});
+        expect(leave).toHaveBeenCalledTimes(1);
+        expect(adopt).not.toHaveBeenCalled();
+      });
+    }
+  }
+  // The yes is stamped when it is given (Stop and leave, Leave anyway), not when the question opened: a slow stop or a late press does not expire it.
+  it('a Leave anyway pressed long after the question opened still opens the chapter', async () => {
+    let proceed: () => void = () => {};
+    const leave = vi.fn((_path: string, p: () => void) => {
+      proceed = p;
+      return Promise.resolve();
+    });
+    const adopt = vi.fn();
+    const view = renderHook(() => {
+      const [requested, setRequested] = useState<BoothChapterTarget | null>(null);
+      return useChapterNavigation({
+        requested,
+        chapterId: 'a',
+        recording: false,
+        endUnconfirmed: () => true,
+        leave,
+        adopt,
+        choose: setRequested,
+        chapters: CHAPTERS,
+        toast: vi.fn(),
+      });
+    });
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    vi.setSystemTime(Date.now() + 30_000);
+    await act(async () => proceed());
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+  });
+  it('a yes while the address already asks for that chapter opens it at once, with no marker left', async () => {
+    const { leave, adopt, view, answer } = mount();
+    view.rerender({ requested: { chapter: 'b' }, recording: false });
+    await act(async () => {});
+    leave.mockClear();
+    adopt.mockClear();
+    act(() => view.result.current.changeChapter({ chapter: 'b' }));
+    expect(adopt).toHaveBeenCalledWith({ chapter: 'b' });
+    answer.yes = false;
+    view.rerender({ requested: { chapter: 'c' }, recording: false });
+    await act(async () => {});
+    view.rerender({ requested: { chapter: 'b' }, recording: true });
+    await act(async () => {});
+    expect(leave).toHaveBeenLastCalledWith('/booth?chapter=b', expect.any(Function));
+  });
 });

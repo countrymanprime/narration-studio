@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/voicetracks"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -145,6 +146,9 @@ type chapterMember struct {
 	GUID    string `json:"guid"`
 	Name    string `json:"name"`
 	IsVoice bool   `json:"isVoice"`
+	// NotAVoice is true for a track the narrator marked as not a voice (a music bed, room tone), so a page can say so where the child is
+	// listed; IsVoice is false for it too (#3331).
+	NotAVoice bool `json:"notAVoice"`
 }
 
 // linkedTrackSet is the lower-cased GUIDs of the tracks mappings link: the one rule for "is another chapter's track", used by the voices
@@ -158,8 +162,9 @@ func linkedTrackSet(mappings []evidence.TrackMapping) map[string]bool {
 }
 
 // chapterMembersOf is the direct children of the folder track guid in project, with whether each is a voice of the chapter: not a track
-// some chapter is linked to (linked, from linkedTrackSet: the same rule chapterVoicesIn applies, GUIDs compared without case).
-func chapterMembersOf(project tracks.Project, guid string, linked map[string]bool) []chapterMember {
+// some chapter is linked to (linked, from linkedTrackSet: the same rule chapterVoicesIn applies, GUIDs compared without case) and not
+// marked as not a voice (setup.NotVoiceGUIDs).
+func chapterMembersOf(project tracks.Project, guid string, linked map[string]bool, setup voicetracks.State) []chapterMember {
 	members := []chapterMember{}
 	all, ok := project.WithDescendants(guid)
 	if !ok || !all[0].IsFolder {
@@ -169,7 +174,8 @@ func chapterMembersOf(project tracks.Project, guid string, linked map[string]boo
 		if member.Depth != all[0].Depth+1 {
 			continue
 		}
-		members = append(members, chapterMember{GUID: member.GUID, Name: member.Name, IsVoice: !linked[strings.ToLower(member.GUID)]})
+		notVoice := setup.IsNotVoice(member.GUID)
+		members = append(members, chapterMember{GUID: member.GUID, Name: member.Name, IsVoice: !linked[strings.ToLower(member.GUID)] && !notVoice, NotAVoice: notVoice})
 	}
 	return members
 }
@@ -254,6 +260,8 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 	}
 
 	linkedTracks := linkedTrackSet(mappings)
+	// A setup that cannot be read marks nothing here; chapterVoicesIn reports it as an error where a voice is needed.
+	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	links := chapterTrackLinks{Tracks: []trackSummary{}, Chapters: make([]chapterTrackLink, 0, len(narration))}
 	links.Project, links.Message = state, message
 	if state == linksProjectReady {
@@ -283,7 +291,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 		row.Result = result
 		// Members follow the chapter's one confirmed link, never a name-matched guess: an unlinked chapter has no folder of its own.
 		if len(row.Links) == 1 {
-			row.Members = chapterMembersOf(project, row.Links[0].TrackGUID, linkedTracks)
+			row.Members = chapterMembersOf(project, row.Links[0].TrackGUID, linkedTracks, setup)
 		}
 		if result.Track != nil {
 			if end, ok := chaptermatch.RecordedEnd(project, *result.Track); ok {

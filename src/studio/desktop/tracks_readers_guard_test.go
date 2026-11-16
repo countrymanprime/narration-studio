@@ -24,7 +24,6 @@ var savedTrackReaders = map[string]string{
 	"bindings_daw_stack.go":           "the stack's saved fallback when REAPER does not answer",
 	"bindings_booth_punch.go":         "the saved project joined with the live track state (liveTrackState) to place a pickup",
 	"bindings_workspace_wordtimes.go": "the saved project joined with the live track state (liveTrackState) for word times",
-	"recordedlengths.go":              "measures recorded lengths from the saved file's items, cached by its modification time",
 	"creditsrecordedlengths.go":       "measures credit lengths from the saved file's items",
 	"app.go":                          "hands projectFileReader (the saved reader) to the editing, coverage and character services, which read the saved file's items",
 	"bindings.go":                     "the TracksList binding: the saved project's tracks, which the host's own pages merge the live list over",

@@ -10,6 +10,9 @@ import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useCha
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
+/** A failed read of the chapter list on a job end or window focus keeps the list as it was; the mount read and the Refresh button say why they failed. */
+const recorded = (_failure: unknown): void => undefined;
+
 export type ChapterLinks = {
   /** The tracks in the project the links are read against, with any track `create` added that the track list does not have yet. */
   tracks: Track[];
@@ -88,7 +91,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
-  // A change was written and the list could not be read again since: the next failed read says so too (the change callback re-runs the read).
+  // A change was written and the list could not be read again since: the next failed read says so too.
   const staleAfterChange = useRef(false);
   // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes the "change was made but not read" line away: the list
   // under it is current again.
@@ -98,10 +101,24 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     setError('');
   }, [linksReadAt]);
 
+  const readChapters = useCallback(() => manuscript.manuscriptChapters().then(setChapters), [manuscript]);
   const reload = useCallback(async () => {
-    const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
-    setChapters(nextChapters);
-  }, [manuscript, refreshLinks]);
+    await Promise.all([readChapters(), refreshLinks()]);
+  }, [readChapters, refreshLinks]);
+
+  // The chapter list is read on mount and not again by a link press (#3272), so a re-import (a job ending) or a return to the window reads it again:
+  // the rows show a renamed, added or removed chapter without waiting for the panel to be reopened. A failed read keeps the list as it was.
+  const system = usePort('system');
+  useEffect(() => {
+    if (!enabled) return;
+    const again = () => void readChapters().catch(recorded);
+    const stop = system.subscribeJobEnded(again);
+    window.addEventListener('focus', again);
+    return () => {
+      stop();
+      window.removeEventListener('focus', again);
+    };
+  }, [enabled, readChapters, system]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -139,7 +156,9 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       })
       // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
       .then(() =>
-        reload().then(
+        // The links only: a link change moves no chapter (its title, kind or order), and the chapter list is the measured one, every chapter of the
+        // book (#3272). The write answered with the links that remain; this is the reconcile.
+        refreshLinks().then(
           () => {
             staleAfterChange.current = false;
           },
