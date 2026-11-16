@@ -762,6 +762,7 @@ end)
 H.test('play_range with a track, and its restore when the stretch ends, leave the project change count alone', function()
   local s, t, count, before = counted_session()
   s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq({ t.c1.solo, t.c1.selected }, { 2, true }, 'the isolation took place')
   H.eq(s.fake.change_count, count)
   s.fake.play_position = 10.5
   s:tick()
@@ -784,6 +785,7 @@ H.test('a second isolated play replacing the first leaves the project change cou
   local s, t, count = counted_session()
   s:send('play_range', 'r1', '10', '12', t.c1.guid)
   s:send('play_range', 'r2', '10', '12', t.c2.guid)
+  H.eq({ t.c2.solo, t.c2.selected, t.c1.solo or 0 }, { 2, true, 0 }, 'the second isolation took place')
   H.eq(s.fake.change_count, count)
 end)
 
