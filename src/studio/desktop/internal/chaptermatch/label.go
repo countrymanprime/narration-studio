@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"unicode"
 
 	"golang.org/x/text/runes"
@@ -84,9 +85,13 @@ func isASCII(text string) bool {
 	return true
 }
 
+// foldersBuilt counts the accent transforms built in this process: the work a plain-ASCII label must not cause, which a test counts.
+var foldersBuilt atomic.Int64
+
 // accentFolder removes accents. It is built per call: a transform.Chain keeps state between calls and is not safe for
 // concurrent use, and chapter sync reads labels from several goroutines at once.
 func accentFolder() transform.Transformer {
+	foldersBuilt.Add(1)
 	return transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 }
 

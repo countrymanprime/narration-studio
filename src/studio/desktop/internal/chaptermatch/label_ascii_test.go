@@ -2,7 +2,6 @@ package chaptermatch
 
 import (
 	"reflect"
-	"runtime"
 	"testing"
 
 	"golang.org/x/text/transform"
@@ -31,18 +30,18 @@ func TestLabelTokensOfAnASCIILabelAreWhatFoldingFirstGives(t *testing.T) {
 	}
 }
 
-// The transform chain allocated about 9 KB per call (#3560): chapter sync tokenizes every title and track name once per pair, so that was most of
-// its cost. Bytes allocated per call is the work done, which a slow runner does not change.
+// The accent transform chain allocated about 9 KB per call (#3560): chapter sync tokenizes every title and track name once per pair, so that was most of
+// its cost. The number of transforms built is the work done: it does not move with a slow runner or the race detector's extra allocations.
 func TestLabelTokensOfAnASCIILabelDoNotBuildTheAccentTransform(t *testing.T) {
-	const calls = 500
-	var before, after runtime.MemStats
-	runtime.GC()
-	runtime.ReadMemStats(&before)
-	for range calls {
+	before := foldersBuilt.Load()
+	for range 50 {
 		LabelTokens("Chapter 12: The Mad Tea-Party")
 	}
-	runtime.ReadMemStats(&after)
-	if perCall := (after.TotalAlloc - before.TotalAlloc) / calls; perCall > 4096 {
-		t.Fatalf("an ASCII label allocated %d bytes per call, want under 4096", perCall)
+	if built := foldersBuilt.Load() - before; built != 0 {
+		t.Fatalf("50 ASCII labels built %d accent transforms, want none", built)
+	}
+	LabelTokens("Épilogue")
+	if built := foldersBuilt.Load() - before; built != 1 {
+		t.Fatalf("an accented label built %d accent transforms, want 1", built)
 	}
 }
