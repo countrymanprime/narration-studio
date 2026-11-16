@@ -557,6 +557,37 @@ describe('CreditsPanel', () => {
     await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false));
   });
 
+  it('a Retry after a Delete whose list read failed does not blank text typed since, and the editor leaves the deleted template at once (#3461 round 16 BR-M)', async () => {
+    const real = createMockApi();
+    let failNext = false;
+    const { api, notify } = renderPanel({
+      creditsTemplates: () => {
+        if (failNext) {
+          failNext = false;
+          return Promise.reject(new Error('The host could not list them.'));
+        }
+        return real.creditsTemplates();
+      },
+      deleteCreditsTemplate: real.deleteCreditsTemplate,
+    });
+    const { select } = await editTemplate();
+    const deleted = select.value;
+    failNext = true;
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The templates could not be read'), 'error', expect.anything()));
+    // The editor and the picker are already on another template, and the deleted one is gone from the picker.
+    expect(select.value).not.toBe(deleted);
+    expect([...select.options].some((option) => option.value === deleted)).toBe(false);
+    const body = screen.getByLabelText('Body') as HTMLTextAreaElement;
+    fireEvent.change(body, { target: { value: 'Typed after the delete.' } });
+    const retry = notify.mock.calls.find((call) => String(call[0]).includes('templates could not be read'))![2] as { onAction: () => void };
+    await act(async () => retry.onAction());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByLabelText('Body') as HTMLTextAreaElement).value).toBe('Typed after the delete.');
+    expect([...select.options].some((option) => option.value === deleted)).toBe(false);
+    expect((await api.creditsTemplates()).some((template) => template.id === deleted)).toBe(false);
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));

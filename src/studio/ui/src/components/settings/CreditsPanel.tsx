@@ -109,6 +109,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const selected = templates.find((template) => template.id === selectedId);
   // What the editor holds and which template it is on, as of the last render, for a save that resolves long after it started.
   const editorNow = useRef({ id: selectedId, name: draftName, kind: draftKind, body: draftBody });
+  const templateDirtyNow = useRef(false);
+  templateDirtyNow.current = templateDirty;
   editorNow.current = { id: selectedId, name: draftName, kind: draftKind, body: draftBody };
   // The template the editor was last reset from. A list read again for the same template (after a save, a duplicate) resets the editor only when nothing was typed since:
   // text typed on it while a save was in flight stays, as an edit still to save, and text typed on another template is never put back on this one (#3461).
@@ -198,6 +200,14 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   useEffect(() => {
     if (!selected) {
       baseline.current = null;
+      // The template the editor was on is no longer in the list (a list that landed without it) while text is typed in the editor: the text stays, as a New draft, and is never blanked
+      // with no question (#3461 round 16 BR-M).
+      const typed = editorNow.current;
+      if (typed.id !== '' && hostTrim(typed.body) !== '' && templateDirtyNow.current) {
+        draftSeq.current += 1;
+        setSelectedId('');
+        return;
+      }
       setDraftName('');
       setDraftKind('opening');
       setDraftBody('');
@@ -383,10 +393,16 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setBusy(true);
     setSwitching(true);
     try {
-      await api.deleteCreditsTemplate(selected.id);
+      const gone = selected.id;
+      await api.deleteCreditsTemplate(gone);
       notify('Credit template deleted.');
       // Deleting the template takes the text typed for it along: the button is the narrator's answer, so it does not ask to save a template about to go (#3404).
       setTemplateDirty(false);
+      // The editor leaves the deleted template at once, onto the next one that is left, and not only when the list read after it lands: that read can fail or time out, and until then a Save
+      // would send the id of a template that is gone and the text typed on it would be blanked by the list that finally lands (#3461 round 16 BR-M).
+      const rest = templates.filter((template) => template.id !== gone);
+      setTemplates(rest);
+      setSelectedId(rest[0]?.id ?? '');
       projectDataChanged();
       await load();
     } catch (error) {
