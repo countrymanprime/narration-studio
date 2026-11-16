@@ -335,7 +335,7 @@ The reset button next to **Change location…** moves the downloads back to the 
   If a save does not answer within 15 seconds, a message says saving is taking too long and **Cancel** and **Discard &
   continue** work again; the text is still in the editor, and a second **Save & continue** waits for the same save and
   does not send it again. When only a draft is held, the question names it ("Save or discard your credit template edit
-  before leaving?"); with edits in Settings' own fields it keeps "Save or discard changes before leaving Settings?".
+  before leaving?"); with edits in Settings' own fields it keeps "Save or discard changes before leaving Settings?". A template with no text cannot be saved: **Save template** is off, and the question then says the edit "still needs some text" and offers only **Keep editing** and **Discard**.
 
   ![Settings - leaving with a credits template edited and not saved asks Unsaved changes, names the credit template edit, and offers Save & continue, Discard & continue and Cancel](../../images/ui/settings-credits-leave-confirm.webp)
 - **Tokens**: bracketed tokens in the body, such as `[Title]`, `[Author]` and `[Narrator]`, are filled
@@ -352,7 +352,7 @@ The reset button next to **Change location…** moves the downloads back to the 
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
   Publisher, and a Narrator that overrides the narrator name set under **Project** (Settings > Project, Narrator and credits) for this project only. A value
-  is saved as you type. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
+  is saved as you type; until the project's values have been read the fields are dimmed and the section says "Reading this project's values...". Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.
 

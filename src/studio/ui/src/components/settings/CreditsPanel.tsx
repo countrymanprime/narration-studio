@@ -308,10 +308,13 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     (savedText
       ? draftName !== savedText.name || draftKind !== savedText.kind || draftBody !== savedText.body
       : draftBody !== '' || (draftName !== NEW_TEMPLATE_NAME && draftName !== ''));
+  // A template with no text would replace a built-in with an empty one (and blank the credits that use it; a blank name is fine, the host names it by its kind): it cannot be saved, and the question offers only to keep
+  // editing or discard (#3461 narrator smoke, finding 1; main saved it silently).
+  const blankTemplate = draftBody.trim() === '';
   useUnsavedDraft('credits-template', {
     dirty: draftHeld,
     label: 'your credit template edit',
-    save: saveTemplate,
+    ...(blankTemplate ? { needs: 'some text' } : { save: saveTemplate }),
     discard: () => setTemplateDirty(false),
   });
   const newTemplate = () => {
@@ -474,7 +477,14 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           }}
           hint={BODY_HINT[draftKind] ?? DEFAULT_BODY_HINT}
         />
-        <Button variant="primary" type="button" className="self-start" disabled={!templateDirty || busy} pending={busy} onClick={() => void saveTemplate()}>
+        <Button
+          variant="primary"
+          type="button"
+          className="self-start"
+          disabled={!templateDirty || busy || blankTemplate}
+          pending={busy}
+          onClick={() => void saveTemplate()}
+        >
           Save template
         </Button>
       </section>
@@ -516,8 +526,13 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
           The global narrator default is {narratorGlobal ? <strong>{narratorGlobal}</strong> : 'not set (see Settings > Project)'}; a narrator override here
           applies only to this project.
         </p>
+        {!valuesLoaded && !loadError && (
+          <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Reading this project&rsquo;s values&hellip;
+          </p>
+        )}
         {/* Two short fields to a line once the editor has room for them (XSE2-11). */}
-        <div className="grid gap-3 @lg:grid-cols-2">
+        <div aria-busy={!valuesLoaded} className={`grid gap-3 @lg:grid-cols-2 ${valuesLoaded ? '' : 'opacity-60'}`}>
           {VALUE_FIELDS.map(({ key, label }) => {
             const candidate = detected.find((item) => item.token === detectedToken(key));
             const currentValue = values[key] ?? '';

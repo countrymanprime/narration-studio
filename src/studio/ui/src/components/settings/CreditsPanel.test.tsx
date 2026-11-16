@@ -419,6 +419,33 @@ describe('CreditsPanel', () => {
     expect((await real.creditsProjectValues()).values.author).toBe('Held Author');
   });
 
+  it('a template with no text cannot be saved, and the question offers only Keep editing and Discard (#3461 narrator smoke, finding 1)', async () => {
+    renderPanel();
+    const { body } = await editTemplate();
+    fireEvent.change(body, { target: { value: '   ' } });
+    expect(screen.getByRole('button', { name: 'Save template' })).toHaveProperty('disabled', true);
+    expect(registry.heldNow()).toEqual([expect.objectContaining({ saveable: false, needs: 'some text' })]);
+    fireEvent.change(body, { target: { value: 'Some text again.' } });
+    expect(screen.getByRole('button', { name: 'Save template' })).toHaveProperty('disabled', false);
+    expect(registry.heldNow()[0]).toEqual(expect.objectContaining({ saveable: true }));
+  });
+
+  it('the project values show that they are being read until the first read lands (#3461 narrator smoke, finding 3)', async () => {
+    const real = createMockApi();
+    let release: () => void = () => {};
+    renderPanel({
+      creditsProjectValues: () =>
+        new Promise((resolve) => {
+          release = () => void real.creditsProjectValues().then(resolve);
+        }),
+    });
+    expect(await screen.findByText(/Reading this project.s values/)).toBeTruthy();
+    expect(screen.getByLabelText('Title').closest('[aria-busy]')!.getAttribute('aria-busy')).toBe('true');
+    release();
+    await waitFor(() => expect(screen.queryByText(/Reading this project.s values/)).toBeNull());
+    expect(screen.getByLabelText('Title').closest('[aria-busy]')!.getAttribute('aria-busy')).toBe('false');
+  });
+
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
     const { api } = renderPanel();
     act(() => registry.setShell({ ask: (run) => run(), go: () => {} }));
