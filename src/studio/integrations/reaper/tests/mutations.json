@@ -3196,6 +3196,12 @@
     "replace": "    event(session_dir, 'RECORD_NOT_OURS', run_id)"
   },
   {
+    "name": "one given-up start turns the restore off for the rest of the session",
+    "file": "narration_transport.lua",
+    "find": "  state.recording = record\n  state.start_gave_up = nil\n",
+    "replace": "  state.recording = record\n"
+  },
+  {
     "name": "record_stop puts the arms back under a start that may still begin late",
     "file": "narration_transport.lua",
     "find": "if not recording() and not state.start_gave_up then",

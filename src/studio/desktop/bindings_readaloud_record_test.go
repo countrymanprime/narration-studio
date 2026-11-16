@@ -207,8 +207,9 @@ func TestReadAloudRecordStartRefusals(t *testing.T) {
 	}
 }
 
-// A start the DAW refuses after the arms changed asks for them back before answering. The Lua record_stop then
-// restores them even with no recording of ours running (#3610); this pins the call, the harness pins the restore.
+// A start the DAW refuses after the arms changed asks for them back before answering. For this error (the script's
+// "REAPER did not start recording") the Lua record_stop leaves the arms as arm_only left them, since REAPER may still start late (#3610);
+// for a refused press the harness pins the restore. This test pins the call.
 func TestReadAloudRecordStartThatFailsPutsTheArmsBack(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}, startErr: bridge.ErrRecordingDidNotStart}

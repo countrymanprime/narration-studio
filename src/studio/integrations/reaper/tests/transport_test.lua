@@ -126,6 +126,31 @@ H.test('record_stop keeps the arms moved for a start the watch gave up on, so a 
   H.eq(arms(s), { 1, 0, 0 })
 end)
 
+H.test('a successful start ends the give-up guard: a later refused press gets its arms back', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_fails = true
+  s:send('record_start', 'r1', chapter.guid)
+  for _ = 1, 40 do
+    s:tick()
+  end
+  s.fake.record_fails = false
+  s:send('record_stop', 's1')
+  s:send('record_start', 'r2', chapter.guid)
+  for _ = 1, 3 do
+    s:tick()
+  end
+  s:send('record_stop', 's2')
+  s:send('arm_only', 'a2', chapter.guid)
+  s.fake.play_state = 1
+  s:send('record_start', 'r3', chapter.guid)
+  s:events()
+  s:send('record_stop', 's3')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's3' } })
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
 H.test('the arms a guarded record_stop kept come back at the next stop once REAPER no longer records', function()
   local s, chapter, other = new_session()
   other.armed = true
