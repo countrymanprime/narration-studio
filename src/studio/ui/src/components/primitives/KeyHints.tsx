@@ -14,6 +14,8 @@ export interface KeyHintItem {
   keys: string[];
   label: string;
   id?: string;
+  /** The keys do nothing in the page's present state (the Booth's voice keys in a cold read): drawn struck through (a lowered opacity fails the contrast rule), still listed. */
+  off?: boolean;
 }
 
 // The standard footer of key reminders (rule 3): a row of small hints along the bottom of the page, in the shell's page
@@ -41,7 +43,12 @@ export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: s
       className={`${footer ? SHELL_FOOTER : ''} flex flex-wrap items-center justify-start gap-x-4 gap-y-1 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--text)_5%,var(--bg))] px-4 py-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif] text-xs leading-snug text-[var(--text-muted)]`}
     >
       {hints.map((hint) => (
-        <span key={hint.label} id={hint.id} className="inline-flex items-center gap-1 whitespace-nowrap">
+        <span
+          key={hint.label}
+          id={hint.id}
+          data-off={hint.off ? '' : undefined}
+          className={`inline-flex items-center gap-1 whitespace-nowrap ${hint.off ? 'line-through decoration-1' : ''}`}
+        >
           <KeyChord keys={hint.keys} />
           {hint.label}
         </span>

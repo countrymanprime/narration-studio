@@ -65,6 +65,19 @@ describe('footerHints', () => {
     expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
   });
 
+  it('the-voice-hints-dim-in-a-cold-read: with voice folders the voice hints are listed, dimmed while the cold read condition holds, and not otherwise', () => {
+    const folders = new Set(['voiceFolders' as const]);
+    const cold = new Set(['voiceFolders' as const, 'coldRead' as const]);
+    const voice = (active: ReadonlySet<'voiceFolders' | 'coldRead'>) =>
+      footerHints('booth', keymap, undefined, undefined, active).filter((hint) => hint.id?.startsWith('hint-booth.voice'));
+    expect(voice(folders).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
+    expect(voice(folders).every((hint) => !hint.off)).toBe(true);
+    expect(voice(cold).map((hint) => hint.label)).toEqual(['Narrator', 'Voice', 'Voices']);
+    expect(voice(cold).every((hint) => hint.off === true)).toBe(true);
+    // The other hints stay as they were, and a cold read with no voice folders adds nothing.
+    expect(footerHints('booth', keymap, undefined, undefined, new Set(['coldRead' as const]))).toEqual(footerHints('booth', keymap));
+  });
+
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {
     const hints = footerHints('booth', keymap);
     expect(hints.find((hint) => hint.label === 'Bookmark')?.keys).toEqual(['B']);
