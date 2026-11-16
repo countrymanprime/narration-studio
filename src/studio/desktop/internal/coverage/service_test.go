@@ -776,6 +776,9 @@ func TestThePlanOfAFolderLeavesOutATrackMarkedAsNotAVoice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The plan knows nothing of chapter links: a track another chapter is linked to inside this folder is planned like any child, which is the
+	// owner's rule that a folder and its children are one chapter's voices except a marked one (#3594). A rule that dropped linked tracks here
+	// would fail this count.
 	if got := len(every.manifest().Items); got != 2 {
 		t.Fatalf("with no rule the plan holds %d items, want both", got)
 	}
