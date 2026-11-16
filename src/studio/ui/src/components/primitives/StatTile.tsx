@@ -63,7 +63,7 @@ export function StatTile({
       >
         <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
         {unit && (
-          <span className={`ml-1 ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
+          <span className={`ml-1 whitespace-nowrap ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
             {unit}
           </span>
         )}

@@ -1,6 +1,7 @@
 import type { ProductionRateBasis } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
-import { hm, num } from '../../schedule/dates';
+import { num } from '../../schedule/dates';
+import { hoursText } from '../productionFormat';
 import { WPH } from '../../schedule/estimates';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { OwnRate } from './pace.selectors';
@@ -48,8 +49,8 @@ export function TargetPopover({
     <div className="flex w-80 max-w-full flex-col gap-2.5">
       <div className="text-xs font-semibold text-[var(--text-muted)] uppercase">Finished-hour target</div>
       <div className="grid grid-cols-2 gap-2">
-        <Cell name="Standard" rate={num(WPH)} target={hm(hours.standard)} on={basis === 'standard'} />
-        <Cell name="Yours" rate={own.ok ? num(own.value.wph) : DASH} target={hours.own === null ? DASH : hm(hours.own)} on={basis === 'own'} />
+        <Cell name="Standard" rate={num(WPH)} target={hoursText(hours.standard)} on={basis === 'standard'} />
+        <Cell name="Yours" rate={own.ok ? num(own.value.wph) : DASH} target={hours.own === null ? DASH : hoursText(hours.own)} on={basis === 'own'} />
       </div>
       <p className="text-xs text-[var(--text-muted)]">
         {own.ok

@@ -16,7 +16,7 @@ import { ProgressChart } from './ProgressChart';
 import { StageBar } from './StageBar';
 import { WeekCard } from './WeekCard';
 import { COUNTS, FINISHED, MID_BOOK, MID_BOOK_WITH_CREDITS, NO_TAKE_LOG, NOTHING_RECORDED, STORY_TODAY, nameOf, overviewFor } from './overviewFixtures';
-import { hm } from '../../schedule/dates';
+import { hoursText } from '../productionFormat';
 import { RATIO, WPH } from '../../schedule/estimates';
 import { deliveryCounts, NOT_MEASURED, stageSegments } from './overviewFigures';
 
@@ -40,9 +40,9 @@ describe('KpiRow', () => {
     row();
     const strip = screen.getByRole('list', { name: 'Production figures' });
     expect(strip).toBeTruthy();
-    // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3:30 of 5:00, the fourth chapter half recorded).
-    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
-    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
+    // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3h 30m of 5h 00m, the fourth chapter half recorded).
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3h 30m');
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5h 00m');
     expect(screen.getByRole('button', { name: /Recording/ }).textContent).toContain('est. 3.0× the book');
     expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toContain('est. 3.04× the book');
   });
@@ -60,13 +60,13 @@ describe('KpiRow', () => {
     const tile = (key: string) => o.tiles.find((t) => t.key === key)!;
     expect(book).toBeCloseTo(o.book.finishedHours, 9);
     expect(o.book.recordedHours).toBeCloseTo(book - sum(['unrecorded']), 9);
-    expect(tile('recorded').value).toBe(hm(o.book.recordedHours));
-    expect(tile('recorded').unit).toBe(`/ ${hm(book)}`);
+    expect(tile('recorded').value).toBe(hoursText(o.book.recordedHours));
+    expect(tile('recorded').unit).toBe(`/ ${hoursText(book)}`);
     expect(tile('recording').hint).toBe(`est. ${RATIO.rec.toFixed(1)}× the book`);
     expect(tile('editing').hint).toBe(`est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`);
     // One book length on the strip: no tile hint prints a total of its own (the 3× and 3.33× work totals were two more "lengths" beside the book's).
-    for (const t of o.tiles) for (const m of (t.hint ?? '').match(/\d+:\d{2}/g) ?? []) expect(m).toBe(hm(book));
-    expect(tile('recording').tip).toContain(hm(book));
+    for (const t of o.tiles) for (const m of (t.hint ?? '').match(/\d+:\d{2}/g) ?? []) expect(m).toBe(hoursText(book));
+    expect(tile('recording').tip).toContain(hoursText(book));
     // The chart's and the week's targets read the same book.
     expect(o.k.words / WPH).toBeCloseTo(book, 9);
   });
@@ -84,7 +84,7 @@ describe('KpiRow', () => {
   it('names the ratio behind an estimate in the tooltip', async () => {
     row();
     await userEvent.hover(screen.getByRole('button', { name: /Recording/ }));
-    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s 5:00 of finished audio')).toBeTruthy();
+    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s 5h 00m of finished audio')).toBeTruthy();
   });
 
   it('due-tile-uses-the-deadline-tone', () => {
@@ -173,11 +173,11 @@ describe('StageBar', () => {
     expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Edited', 'Recorded', 'Not recorded yet']);
     expect(screen.getByText('Proofed')).toBeTruthy();
     // Chapter 1 is mastered, chapter 2 is in proof (edited), chapter 3 in edit (recorded), chapter 4 half recorded, chapter 5 untouched; a chapter is an hour.
-    expect(bar.querySelector('i[title="Delivered: 1:00"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Proofed: 0:00"]')).toBeNull();
-    expect(bar.querySelector('i[title="Edited: 1:00"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Recorded: 1:30"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Not recorded yet: 1:30"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Delivered: 1h 00m"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Proofed: 0h 00m"]')).toBeNull();
+    expect(bar.querySelector('i[title="Edited: 1h 00m"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Recorded: 1h 30m"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Not recorded yet: 1h 30m"]')).toBeTruthy();
   });
 
   it('says Recorded for the share recorded and has no footnote under the legend', () => {

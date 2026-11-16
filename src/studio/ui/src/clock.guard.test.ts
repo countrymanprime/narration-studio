@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 // clock; it fails here unless it is listed below with what it formats instead. An entry whose file no longer matches fails too, so the list only shrinks.
 const ALLOWED: Readonly<Record<string, string>> = {
   'clock.ts': 'the one clock',
-  'components/production/productionFormat.ts': 'hours as h:mm (the stage timer figures), not seconds',
   'components/schedule/dates.ts': 'calendar dates and hours as h:mm (the schedule), not seconds',
   'state.ts':
     'a retail sample length written "2m 05s" (Settings, Manuscript retail range), the same text and rounding as the host\'s refusal message; move it to clock.ts with that message',
@@ -55,5 +54,20 @@ describe('one clock for every duration', () => {
 
   it('lists only files that still need their entry', () => {
     expect(Object.keys(ALLOWED).filter((file) => !found.includes(file))).toEqual([]);
+  });
+});
+
+// #3443 (owner, 2026-11-16): the full hh:mm:ss.fff form is for the fine surfaces, Editing and Proof, and no other screen. A page outside them asking for `full` fails here.
+describe('the full form is only for Editing and Proof', () => {
+  const FINE = /^components\/(editing|proof)\//;
+  const asking = [...sources(SRC)]
+    .map((path) => relative(SRC, path).split(sep).join('/'))
+    .filter((file) => file !== 'clock.ts' && /\bfull:\s*true\b/.test(readFileSync(join(SRC, file), 'utf8')));
+  it('is asked for by no file outside components/editing and components/proof', () => {
+    expect(asking.filter((file) => !FINE.test(file))).toEqual([]);
+  });
+  it('is asked for on both of those pages', () => {
+    expect(asking.some((file) => file.startsWith('components/editing/'))).toBe(true);
+    expect(asking.some((file) => file.startsWith('components/proof/'))).toBe(true);
   });
 });

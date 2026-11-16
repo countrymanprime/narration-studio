@@ -21,10 +21,14 @@ export const fmtD = (d: Date): string => d.toLocaleDateString('en-US', { month: 
 /** Whether `s` is a real calendar date written "YYYY-MM-DD", in the years 1000 to 9999 (JavaScript reads years under 100 as 19xx, so the day counts would be wrong). */
 export const isIsoDate = (s: string): boolean => /^[1-9]\d{3}-\d{2}-\d{2}$/.test(s) && iso(parseIso(s)) === s;
 
-/** Hours as "h:mm". */
-export const hm = (h: number): string => {
+/**
+ * Hours as "h:mm", to the nearest minute. `marked` writes the units ("5h 40m", "0h 10m") for a column of hours that sits beside lengths in minutes and seconds, where a bare "0:10" reads as
+ * ten seconds (the Production board, #3443); the Schedule's own figures keep "h:mm".
+ */
+export const hm = (h: number, options: { marked?: true } = {}): string => {
   const m = Math.max(0, Math.round(h * 60));
-  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+  const minutes = String(m % 60).padStart(2, '0');
+  return options.marked ? `${Math.floor(m / 60)}h ${minutes}m` : `${Math.floor(m / 60)}:${minutes}`;
 };
 
 export const num = (n: number): string => n.toLocaleString('en-US');

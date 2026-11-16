@@ -1,15 +1,18 @@
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import { STATUS_ORDER } from '../../chapterStatus';
+import { hm } from '../schedule/dates';
 
 // The stage timer's figures and a measured length (SN0-Q4: the timer, PFH and the effective rate stay as built). Every figure is measured or logged: an
 // undefined one is a dash, never 0 and never an estimate, and nothing here projects a pace from the time logged so far.
 
 const DASH = '—';
 
-/** Hours or seconds as h:mm, to the nearest minute. */
+/** Hours as hours and minutes ("5h 40m"), to the nearest minute, through the one hours formatter (`hm`), marked so "0h 10m" is not read as ten seconds (#3443). Every hours column of the Production board uses it. */
+export const hoursText = (hours: number): string => hm(hours, { marked: true });
+
+/** Hours or seconds as hours and minutes ("5h 40m"), to the nearest minute: the one hours formatter (`hm`), marked so "0h 10m" is not read as ten seconds (#3443). */
 export function formatClock(amount: number, unit: 'hours' | 'seconds'): string {
-  const minutes = Math.round(unit === 'hours' ? amount * 60 : amount / 60);
-  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+  return hoursText(unit === 'hours' ? amount : amount / 3600);
 }
 
 /** Hours worked per finished hour, to one decimal. */

@@ -95,7 +95,12 @@ const click = () => act(() => screen.getByText('go').click());
 describe('one waveform, docked', () => {
   const pidShown = () => document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid');
   const viewLabel = () => document.querySelector('[data-view-label]')?.textContent;
-  const fine = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(2).padStart(5, '0')}`;
+  // hh:mm:ss.fff, as the ribbon writes a position (#3443), written out here and not through `clock`.
+  const fine = (t: number) => {
+    const ms = Math.round(t * 1000);
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${two(Math.floor(ms / 3_600_000))}:${two(Math.floor(ms / 60_000) % 60)}:${two(Math.floor(ms / 1000) % 60)}.${String(ms % 1000).padStart(3, '0')}`;
+  };
 
   it('waveform-is-docked-once: one waveform for the page, on the first line before anything is chosen, and none under the lines', async () => {
     const doc = marksDoc();

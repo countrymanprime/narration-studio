@@ -5,7 +5,8 @@ import type { ProductionChapter } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
 import { isNarrationChapter } from '../../../chapterKinds';
 import { recordedShare } from '../../../recordedThrough';
-import { fmtD, hm } from '../../schedule/dates';
+import { fmtD } from '../../schedule/dates';
+import { hoursText } from '../productionFormat';
 import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
 import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
@@ -104,8 +105,8 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       target: 'script',
       // The stage bar's own count: finished hours recorded or further on, out of the book's finished length.
       label: 'Recorded audio',
-      value: hm(book.recordedHours),
-      unit: `/ ${hm(finished)}`,
+      value: hoursText(book.recordedHours),
+      unit: `/ ${hoursText(finished)}`,
       hint: 'recorded or further on',
       tip: 'The finished hours of the chapters recorded, edited, proofed or delivered, as Where the book stands counts them, out of the book’s finished length estimated from its words',
       tone: 'neutral',
@@ -114,20 +115,20 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       key: 'recording',
       target: 'booth',
       label: 'Recording',
-      value: hm(k.recLeft),
+      value: hoursText(k.recLeft),
       unit: 'left',
       hint: `est. ${RATIO.rec.toFixed(1)}× the book`,
-      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s ${hm(finished)} of finished audio`,
+      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s ${hoursText(finished)} of finished audio`,
       tone: 'neutral',
     },
     {
       key: 'editing',
       target: 'editing',
       label: 'Editing + proof',
-      value: hm(k.editLeft + k.proofLeft),
+      value: hoursText(k.editLeft + k.proofLeft),
       unit: 'left',
       hint: `est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`,
-      tip: `Hours of work, estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book’s ${hm(finished)} of finished audio`,
+      tip: `Hours of work, estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book’s ${hoursText(finished)} of finished audio`,
       tone: 'neutral',
     },
     {

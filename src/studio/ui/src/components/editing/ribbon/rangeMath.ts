@@ -3,7 +3,7 @@
  * words it covers. Seconds are on the document's clock (`DocItem.t0`), so a range and a word compare directly.
  */
 import type { DocItem } from '../model';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 import { plural } from '../../../plural';
 
 export interface Span {
@@ -179,5 +179,5 @@ export function spanOfKeys(items: readonly DocItem[], keys: readonly string[]): 
 
 /** A range in words for a screen reader and the label: "0:05.54 to 0:06.30, 0.8 seconds, 2 words". */
 export function rangeLabel(span: Span, words: number): string {
-  return `${clockTenths(span.start, { decimals: 2 })} to ${clockTenths(span.end, { decimals: 2 })}, ${(span.end - span.start).toFixed(1)} seconds, ${plural(words, 'word', 'words')}`;
+  return `${clock(span.start, { full: true })} to ${clock(span.end, { full: true })}, ${(span.end - span.start).toFixed(1)} seconds, ${plural(words, 'word', 'words')}`;
 }

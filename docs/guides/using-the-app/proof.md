@@ -45,7 +45,7 @@ hurried".
 
    Add an optional note in the box first if the reason helps later ("tense changed; author wants past").
    The decision buttons stay at the bottom of the Inspector while you scroll. In a short window, or with large text, where they would fill more than 40% of the window, they scroll with the panel instead, so they never hide a control you tabbed to.
-4. **The next note is selected** and a message says what was saved ("00:12.4 · Needs pickup") with **Undo**. Ctrl+Z,
+4. **The next note is selected** and a message says what was saved ("00:00:12.400 · Needs pickup") with **Undo**. Ctrl+Z,
    or **Undo the last change** in the jump menu, takes the decision back too.
 
 If the check runs again while you look and the evidence changes, the decision is not saved: Proof shows **Before** and
@@ -146,7 +146,7 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   DAW.
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
-the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
+the list. The table lists Time (hours, minutes, seconds and milliseconds, `00:02:14.600`), Type, Script vs heard, From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
 spot has more than one take also has a takes badge at the right of that column. A note still to review shows its Resolution
@@ -199,7 +199,7 @@ The Inspector shows:
 
 A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
 note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. On a narrower window, where the panel sits under the notes, the messages rise above the decision buttons instead. The four decision buttons stay at the bottom of the panel while you scroll the evidence and the takes above them, so a decision is always one click or key away. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
-[undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
+[undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:00:12.400"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
 to review.
 
 Leaving Proof for Booth, Script or Editing and coming Back opens the note you had selected, with the note you had typed for

@@ -59,8 +59,8 @@ function FromCell({ row }: { row: NoteRow }) {
 }
 
 /** The columns' widths: Script vs heard takes what the others leave, so a sentence wraps only when that column is full, and the columns
- * stand in the same place in every chapter and filter (alignment audit XPF-4). */
-const NOTE_COLUMNS = ['5.25rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
+ * stand in the same place in every chapter and filter (alignment audit XPF-4). Time is wide enough for "00:00:12.400" (hh:mm:ss.fff, #3443). */
+const NOTE_COLUMNS = ['7.75rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
 
 /**
  * Under the table's 40 rem floor (the tablet width and the 390 reflow) a note is a block instead of a row that scrolls Resolution out of

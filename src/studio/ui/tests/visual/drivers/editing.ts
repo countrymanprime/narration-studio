@@ -490,7 +490,9 @@ async function expectTimelineLaidOut(page: Page): Promise<void> {
       if (name.getBoundingClientRect().height > line * 1.5) out.push(`"${name.textContent}" wraps`);
       if (name.scrollWidth > name.clientWidth + 1) out.push(`"${name.textContent}" is clipped`);
     }
-    const ticks = [...document.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')].map((t) => t.getBoundingClientRect());
+    const ticks = [...document.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')]
+      .map((t) => t.getBoundingClientRect())
+      .filter((box) => box.width > 0);
     ticks.slice(1).forEach((box, i) => box.left < ticks[i].right + 4 && out.push('the time marks run together'));
     return out;
   });

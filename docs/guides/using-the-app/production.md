@@ -53,7 +53,7 @@ This page is a reference to everything Production shows. To do one thing, start 
 
 ## The figures
 
-The six figures are one card; each opens the page it counts.
+The six figures are one card; each opens the page it counts. Every amount of time on this page that counts hours is written with its units, hours and minutes ("3h 30m", "0h 10m"), so it cannot be read as minutes and seconds; a length of audio in minutes and seconds, as in the chapter's track panel, is written "10:12".
 
 - **Recorded audio**: the finished hours of the chapters that are recorded or further on, out of
   the book's finished length estimated from its words. It is the same count as the stage bar's
@@ -105,7 +105,7 @@ narration chapters only: a chapter removed from recording, and reference materia
 ## Chapter pipeline
 
 The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
-on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
+on the chapter's confirmed track in the saved project (`1h 12m`, or `<0h 01m` for under a minute), and **Est.** beside it (`1h 20m`) is the
 chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked** (no track is linked to the chapter: link one in the chapter's track panel), **Several tracks** (keep one in the track
 panel), **Track missing** (the linked track is no longer in the project), **No project** (no saved project could be read) or **Not

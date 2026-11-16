@@ -214,7 +214,7 @@ its audio while the view moves; there is no scrollbar. With the waveform focused
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
-the waveform where you scrolled it.
+the waveform where you scrolled it. Positions on the waveform and the timeline strip (the window's span, a range's edges, **Play from**) are written to the millisecond, `hh:mm:ss.fff` ("00:00:05.540"), with a dot before the milliseconds so they are not read as frames.
 
 **The waveform's menu.** A right click without a drag (a long press on a touch screen, or the menu key or **Shift+F10** with the waveform
 focused) opens its own menu: **Play from** that moment, **Play the range** and **Clear the range** when there is one, **Put the cursor on**

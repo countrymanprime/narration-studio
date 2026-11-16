@@ -6,7 +6,7 @@ import { useEditingPage } from '../script/EditingPageState';
 import { activePid } from '../ribbon/ribbonLayout';
 import type { LinePassage, LineTake } from '../takes/types';
 import { stripLayout } from './stripLayout';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 
 const mono = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 const pct = (t: number, t0: number, t1: number): string => `${(((t - t0) / (t1 - t0)) * 100).toFixed(2)}%`;
@@ -60,7 +60,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
       </span>
       {layout ? (
         <span className={`${mono} text-xs text-[var(--text-muted)]`}>
-          {clockTenths(layout.t0)} to {clockTenths(layout.t1)}
+          {clock(layout.t0, { full: true })} to {clock(layout.t1, { full: true })}
         </span>
       ) : null}
       {layout?.band ? <StatusBadge tone="info" label={`${layout.band.length.toFixed(1)} s`} shape="tag" /> : null}
@@ -68,7 +68,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
   );
   // A take's name sits over its badge, in a column as wide as the longest name ("Retake on lane 2") on one line, in the strip as in the
   // drawer: side by side in 96 px, a long name ran under the lane and painted over its badge (alignment audit XED-8).
-  const region = `border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
+  const region = `@container/tl border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
   if (!layout) {
     return (
       <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>
@@ -116,9 +116,10 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
         </div>
       ))}
       <div className={`${mono} ml-[8.5rem] flex justify-between px-3 pb-1.5 text-xs text-[var(--text-muted)]`} aria-hidden="true">
-        <span>{clockTenths(t0)}</span>
-        <span>{clockTenths((t0 + t1) / 2)}</span>
-        <span>{clockTenths(t1)}</span>
+        <span>{clock(t0, { full: true })}</span>
+        {/* The middle mark is left out where three millisecond readings would touch (the three are 12 characters each, #3443). */}
+        <span className="hidden @min-[28rem]/tl:inline">{clock((t0 + t1) / 2, { full: true })}</span>
+        <span>{clock(t1, { full: true })}</span>
       </div>
     </section>
   );

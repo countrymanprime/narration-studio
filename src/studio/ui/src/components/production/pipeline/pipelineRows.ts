@@ -2,7 +2,7 @@ import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
 import { reached } from '../../../chapterStatus';
-import { hm } from '../../schedule/dates';
+import { hoursText } from '../productionFormat';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
 import { plural } from '../../../plural';
@@ -32,7 +32,7 @@ export type PipelineCell = {
 export type RecordedFigure = {
   /** `measured` for a length the host read, `none` for a state word. */
   kind: 'measured' | 'none';
-  /** A clock ("1:12"), "<0:01" for under a minute, or a short state ("None yet", "No track"). */
+  /** Hours and minutes ("1h 12m"), "<0h 01m" for under a minute, or a short state ("None yet", "No track"). */
   text: string;
   /** The accessible name: "<chapter>: 1:12 recorded of about 1:20 estimated", or the state in words. */
   label: string;
@@ -102,7 +102,7 @@ const done = (column: PipelineColumn, target: GoTarget, tip: string): PipelineCe
 const underWay = (column: PipelineColumn, target: GoTarget, tip: string): PipelineCell => cell(column, target, 'progress', UNDER_WAY, 'in progress', tip);
 const unknown = (column: PipelineColumn, target: GoTarget, go = true): PipelineCell => cell(column, target, 'none', DASH, 'not measured yet', NOT_MEASURED, go);
 
-const clockOf = (seconds: number): string => hm(seconds / 3600);
+const clockOf = (seconds: number): string => hoursText(seconds / 3600);
 
 /** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons). */
 const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = {
@@ -113,8 +113,8 @@ const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = 
 };
 const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
 
-/** A recorded length as h:mm; under a minute is "<0:01", so a few seconds of audio never reads as nothing. */
-const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0:01' : clockOf(seconds));
+/** A recorded length as hours and minutes; under a minute is "<0h 01m", so a few seconds of audio never reads as nothing. */
+const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0h 01m' : clockOf(seconds));
 
 type ThroughWords = { label: string; tip: string };
 
@@ -276,7 +276,7 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
       qc: qcCell(review),
     };
     const name = chapterName(chapter);
-    const estimate = chapter.wordCount > 0 ? hm(chapter.wordCount / wph) : DASH;
+    const estimate = chapter.wordCount > 0 ? hoursText(chapter.wordCount / wph) : DASH;
     return {
       id: chapter.id,
       name,
