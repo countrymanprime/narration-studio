@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -164,7 +165,13 @@ type manuscriptCache struct {
 	// titles is each narration chapter's title by id, built once with the parse (front matter is not a chapter), so a title
 	// lookup builds no chapter payload.
 	titles map[string]string
+	// refs is the same chapters in manuscript order, with their kind and subtitle.
+	refs []ChapterRef
 }
+
+// ChapterRef is what the host needs to name and match a chapter: no status, word count or paragraph ids, so listing them builds no
+// chapter payload.
+type ChapterRef struct{ ID, Title, Subtitle, ContentKind string }
 
 func New(project string) *Service            { return &Service{project: project, jobs: map[string]*ImportJob{}} }
 func (s *Service) SetProject(project string) { s.mu.Lock(); defer s.mu.Unlock(); s.project = project }
@@ -501,12 +508,14 @@ func (s *Service) Load() (map[string]any, error) {
 		return nil, fmt.Errorf("this manuscript data uses an unsupported schema version")
 	}
 	titles := map[string]string{}
+	var refs []ChapterRef
 	for _, chapter := range objects(data["chapters"]) {
 		if !isFrontMatter(chapter) {
 			titles[text(chapter, "id")] = text(chapter, "title")
+			refs = append(refs, ChapterRef{ID: text(chapter, "id"), Title: text(chapter, "title"), Subtitle: text(chapter, "subtitle"), ContentKind: text(chapter, "contentKind")})
 		}
 	}
-	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles})
+	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs})
 	return data, nil
 }
 
@@ -742,4 +751,17 @@ func (s *Service) Clear() error {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	return os.RemoveAll(filepath.Join(project, brand.ProjectFolder, "manuscript"))
+}
+
+// ChapterRefs is the manuscript's own chapters (front matter and the credits are not among them) in order, from the parse the
+// service already keeps: no chapter payload is built.
+func (s *Service) ChapterRefs() ([]ChapterRef, error) {
+	if _, err := s.Load(); err != nil {
+		return nil, err
+	}
+	cached := s.manCache.Load()
+	if cached == nil {
+		return nil, fmt.Errorf("the canonical manuscript data could not be read")
+	}
+	return slices.Clone(cached.refs), nil
 }
