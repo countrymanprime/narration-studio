@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { createMockApi } from './mockApi';
 import { COALESCED_READS, withCoalescedReads } from './withCoalescedReads';
@@ -63,6 +64,29 @@ describe('withCoalescedReads', () => {
     await Promise.all([before, write, after]);
   });
 
+  it('sends a read asked after a write answered to the host, even with an identical read that began while the write ran still in flight', async () => {
+    const { api, calls, waiting } = gated();
+    const wrapped = withCoalescedReads(api);
+    const write = wrapped.manuscriptSetChapterStatus('c1', 'finalized'); // waiting[0]
+    const poll = wrapped.manuscriptChapters(); // began while the write ran: waiting[1]
+    waiting[0]!.resolve(undefined);
+    await write;
+    const after = wrapped.manuscriptChapters();
+    expect(calls).toEqual(['manuscriptSetChapterStatus', 'manuscriptChapters', 'manuscriptChapters']);
+    waiting[1]!.resolve([]);
+    waiting[2]!.resolve([]);
+    await Promise.all([poll, after]);
+  });
+
+  it('sends a read asked after the window is focused again to the host', () => {
+    const { api, calls } = gated();
+    const wrapped = withCoalescedReads(api);
+    void wrapped.manuscriptChapters();
+    window.dispatchEvent(new Event('focus'));
+    void wrapped.manuscriptChapters();
+    expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
+  });
+
   it('gives each caller its own copy, so one that edits its list does not change another', async () => {
     const { api, waiting } = gated();
     const wrapped = withCoalescedReads(api);
@@ -86,11 +110,64 @@ describe('withCoalescedReads', () => {
     expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
   });
 
-  it('hands out the same function for a method every time, and leaves subscriptions alone', () => {
+  it('hands out the same function for a method every time', () => {
     const { api } = gated();
     const wrapped = withCoalescedReads(api);
     expect(wrapped.manuscriptChapters).toBe(wrapped.manuscriptChapters);
-    expect(wrapped.subscribeJobEnded).toBe(api.subscribeJobEnded);
+    expect(wrapped.subscribeJobEnded).toBe(wrapped.subscribeJobEnded);
+  });
+
+  it('sends a read asked from an event handler to the host, even with an identical read that began before the event still in flight', () => {
+    const { api, calls } = gated();
+    let fire: () => void = () => undefined;
+    (api as unknown as { subscribeJobEnded: (handler: () => void) => () => void }).subscribeJobEnded = (handler) => {
+      fire = handler;
+      return () => undefined;
+    };
+    const wrapped = withCoalescedReads(api);
+    let rereads = 0;
+    wrapped.subscribeJobEnded(() => {
+      rereads += 1;
+      void wrapped.manuscriptChapters();
+    });
+    void wrapped.manuscriptChapters(); // a poll, begun before the event
+    fire(); // the host says something changed
+    expect(rereads).toBe(1);
+    expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
+  });
+
+  it('answers a joiner of an answer that cannot be copied with the answer, not an error', async () => {
+    const { api, waiting } = gated();
+    const wrapped = withCoalescedReads(api);
+    const first = wrapped.manuscriptChapters();
+    const second = wrapped.manuscriptChapters();
+    const answer = { f() {} };
+    waiting[0]!.resolve(answer);
+    expect(await Promise.all([first, second])).toEqual([answer, answer]);
+  });
+
+  it.each([
+    ['undefined', undefined],
+    ['NaN', Number.NaN],
+    ['a BigInt', 1n],
+    ['a Map', new Map([[1, 2]])],
+    [
+      'a cycle',
+      (() => {
+        const loop: Record<string, unknown> = {};
+        loop.self = loop;
+        return loop;
+      })(),
+    ],
+  ])('never shares a read whose argument is %s', (_name, argument) => {
+    const { api, calls } = gated();
+    const wrapped = withCoalescedReads(api);
+    const read = wrapped.settingsForScope as (...args: unknown[]) => unknown;
+    expect(() => {
+      void read(argument);
+      void read(argument);
+    }).not.toThrow();
+    expect(calls).toEqual(['settingsForScope', 'settingsForScope']);
   });
 
   it('lists only methods the api has, and none that changes anything', () => {
