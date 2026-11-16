@@ -26,13 +26,14 @@ describe('useRereadFeedback', () => {
   });
 
   // #3586 (qa, intent): a read again that fails again is the shared sentence in the note, not a second wording that claims the saved project was read.
-  it('does not claim the saved project was read when the tracks could not be read again', () => {
+  it('answers with the shared sentence, not a claim that the saved project was read, when the tracks could not be read again', () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const { result, rerender } = renderHook(({ r }) => useRereadFeedback(r, 'Chapter One', vi.fn()), { initialProps: { r: read('unreadable') } });
     act(() => result.current.reread());
     rerender({ r: read('unreadable') });
     expect(result.current.rereading).toBe(false);
-    expect(toast).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith('The tracks could not be read: REAPER did not answer.');
     toast.mockRestore();
   });
 
