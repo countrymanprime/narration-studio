@@ -662,7 +662,7 @@ export const ROWS: readonly SettingMeta[] = [
     id: 'booth.followChapterInDaw',
     cat: 'recording',
     section: 'What the recording tool can do',
-    label: 'DAW follows the chapter you work on',
+    label: 'DAW follows your chapter',
     scope: 'computer',
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
