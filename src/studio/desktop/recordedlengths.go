@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/creditsid"
+	"desktop/internal/persist"
 
 	"desktop/internal/evidence"
 	"desktop/internal/manuscript"
@@ -13,7 +14,7 @@ import (
 // for every chapter, the recorded seconds of its one confirmed track in the saved .rpp (tracks.Track.RecordedSeconds),
 // or why there are none. Confirmed links are the only source: a name match, however confident, is never read here.
 // It is bound to one project's folder, settings and manuscript in configureLocked.
-func recordedLengths(folder string, store *settings.Store, service *manuscript.Service) manuscript.RecordedLengths {
+func recordedLengths(folder string, store *settings.Store, service *manuscript.Service, reporter *persist.Reporter) manuscript.RecordedLengths {
 	return func() map[string]manuscript.RecordedLength {
 		data, err := service.Load()
 		if err != nil {
@@ -28,7 +29,7 @@ func recordedLengths(folder string, store *settings.Store, service *manuscript.S
 			return nil
 		}
 		project, readable := readSelectedProject(folder, store)
-		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, project, readable)
+		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, chapterAudio(reporter, folder, project), readable)
 	}
 }
 

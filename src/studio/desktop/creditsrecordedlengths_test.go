@@ -45,7 +45,7 @@ func TestCreditsRecordedLengthsNeverLeaksIntoAManuscriptChaptersOwn(t *testing.T
 	if _, err := host.seedLink(chapterLinksTrack, "credits-opening"); err != nil {
 		t.Fatal(err)
 	}
-	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript))
+	host.manuscript.SetRecordedLengths(recordedLengths(host.config.projectFolder, host.settings, host.manuscript, host.persist))
 	chapters, err := host.manuscript.Chapters()
 	if err != nil {
 		t.Fatal(err)

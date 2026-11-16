@@ -202,6 +202,9 @@ type Project struct {
 	// `PICKUP:`/`PICKUP_DONE:` project markers; not on the TracksList wire
 	// contract (json:"-"): no UI shows them yet.
 	Markers []Marker `json:"-"`
+
+	// audioSkip is the rule WithAudioSkip sets for the chapter-audio reads; nil skips nothing. It never changes Tracks.
+	audioSkip func(guid string) bool
 }
 
 // Marker is one plain REAPER project marker. Index is REAPER's own marker
@@ -269,6 +272,39 @@ func Discover(folder string) ([]string, error) {
 	}
 	sort.Strings(found)
 	return found, nil
+}
+
+// WithAudioSkip is p with a rule for the chapter-audio reads (ChapterMembers, ChapterRecordedSeconds, ChapterRecordedEnd): a track skip
+// names is not the chapter's audio, nor is anything inside it when it is a folder (a music bed the narrator marked as not a voice, #3557).
+// Tracks is unchanged, so every other read of the project, the chapter row's members included, still sees every track. It sets the rule on
+// a copy: a parsed project another reader holds is never touched. A nil skip is no rule.
+func (p Project) WithAudioSkip(skip func(guid string) bool) Project {
+	p.audioSkip = skip
+	return p
+}
+
+// ChapterMembers is WithDescendants less the tracks WithAudioSkip names and what is inside a skipped folder: the tracks whose audio
+// is the chapter's. The track guid names is always kept, so a mark on a chapter's own track cannot make it missing. With no rule it is
+// WithDescendants.
+func (p Project) ChapterMembers(guid string) ([]Track, bool) {
+	members, ok := p.WithDescendants(guid)
+	if !ok || p.audioSkip == nil {
+		return members, ok
+	}
+	kept := members[:1:1]
+	skipDepth := -1
+	for _, member := range members[1:] {
+		if skipDepth >= 0 && member.Depth > skipDepth {
+			continue
+		}
+		skipDepth = -1
+		if p.audioSkip(member.GUID) {
+			skipDepth = member.Depth
+			continue
+		}
+		kept = append(kept, member)
+	}
+	return kept, true
 }
 
 // WithDescendants answers the track guid names followed by every track inside it when it is a folder: the tracks after it whose
