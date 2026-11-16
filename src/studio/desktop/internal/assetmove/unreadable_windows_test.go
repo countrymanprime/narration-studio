@@ -9,6 +9,14 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"unsafe"
+)
+
+var procLockFileEx = syscall.NewLazyDLL("kernel32.dll").NewProc("LockFileEx")
+
+const (
+	lockfileFailImmediately = 0x1
+	lockfileExclusiveLock   = 0x2
 )
 
 // hold opens path (a file or a folder) with no sharing, so Windows answers every other open of it, and a delete of it, with a sharing
@@ -31,14 +39,41 @@ func hold(t *testing.T, path string) func() {
 	return release
 }
 
-// makeUnreadable makes path fail every open until the answer is called (or the test ends). It fails the test, not skips, if the open still
-// works: a guard that cannot be made to bite proves nothing.
+// makeUnreadable makes path fail to be read until the answer is called (or the test ends). A folder is held open with no sharing, which
+// answers every other open of it with a sharing violation. A file is locked over its whole length with an exclusive byte-range lock, which
+// fails every read of it through another handle: a share mode alone did not stop a file being opened and read on the CI runner. It fails the
+// test, not skips, if the failure cannot be made: a guard that cannot be made to bite proves nothing.
 func makeUnreadable(t *testing.T, path string) func() {
 	t.Helper()
-	release := hold(t, path)
-	if file, err := os.Open(path); err == nil {
-		_ = file.Close()
-		t.Fatalf("%s is still readable while another handle holds it with no sharing", path)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.IsDir() {
+		release := hold(t, path)
+		if dir, err := os.Open(path); err == nil {
+			_ = dir.Close()
+			t.Fatalf("%s is still open-able while another handle holds it with no sharing", path)
+		}
+		return release
+	}
+	name, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := syscall.CreateFile(name, syscall.GENERIC_READ, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE, nil, syscall.OPEN_EXISTING, syscall.FILE_ATTRIBUTE_NORMAL, 0)
+	if err != nil {
+		t.Fatalf("could not open %s to lock it: %v", path, err)
+	}
+	var once sync.Once
+	release := func() { once.Do(func() { _ = syscall.CloseHandle(handle) }) } // closing the handle drops the lock
+	t.Cleanup(release)
+	var overlapped syscall.Overlapped
+	if r, _, callErr := procLockFileEx.Call(uintptr(handle), lockfileExclusiveLock|lockfileFailImmediately, 0, 0xFFFFFFFF, 0xFFFFFFFF, uintptr(unsafe.Pointer(&overlapped))); r == 0 {
+		t.Fatalf("could not lock %s: %v", path, callErr)
+	}
+	if _, err := os.ReadFile(path); err == nil {
+		t.Fatalf("%s is still readable while another handle holds an exclusive lock over it", path)
 	}
 	return release
 }
