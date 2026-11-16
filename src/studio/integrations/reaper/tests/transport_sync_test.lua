@@ -708,6 +708,26 @@ H.test('a change the narrator makes during the play is kept when it ends', funct
   H.eq(t.c1.solo, 0)
 end)
 
+H.test('a selection the narrator changes during the play is kept when it ends', function()
+  local s, t = isolated_session()
+  t.c1.selected = true -- the played track was selected before the play
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  t.c1.selected = false -- the narrator deselected it meanwhile
+  t.c2.selected = true -- and selected another
+  s:send('stop_play', 'r2')
+  H.eq(t.c1.selected, false, 'not selected again')
+  H.eq(t.c2.selected, true)
+end)
+
+H.test('a mute the narrator sets on the played track during the play is kept when it ends', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '10', '12', t.c1.guid)
+  H.eq(t.c1.muted, false)
+  t.c1.muted = true -- the narrator muted it meanwhile
+  s:send('stop_play', 'r2')
+  H.eq(t.c1.muted, true)
+end)
+
 H.test('play_from with a track isolates it until REAPER stops', function()
   local s, t = isolated_session()
   t.c2.selected = true

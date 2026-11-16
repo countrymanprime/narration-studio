@@ -261,6 +261,7 @@ def play_leaves_count(env: Env) -> str:
         hand_state(env, "Chapter 2", soloed=("Pickups",), muted=("Chapter 1",))
         before = narrator_state(env)
         flags = project_flags(env)
+        assert not flags["dirty"], f"{label}: the project is dirty before the play: {flags}"
         if label.startswith("play_range"):
             play_range(env, 0.0, 2.0 if ends == "end" else 6.0, fx["ch1"])
         else:

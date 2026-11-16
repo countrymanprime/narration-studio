@@ -224,7 +224,10 @@ local RECORDING = 'REAPER is recording. Stop recording first.'
 -- tracks it routes to, its folder parents and the master audible, and silences the rest, so the sound is the linked track and nothing else) and puts
 -- everything back when the play ends. The narrator's selection and solos, and the track's mute, are remembered first; a value is put back only where it
 -- is still what the isolation left, so a change the narrator made meanwhile is kept. The remembered state is also written to a file in REAPER's
--- resource folder, so a REAPER that was closed or crashed mid-play is put right by the next bridge tick instead of staying soloed.
+-- resource folder, so a REAPER that was closed or crashed mid-play is put right by the next bridge tick instead of staying soloed. The selection is written
+-- through I_SELECTED, never SetTrackSelected: REAPER 7.82 raises GetProjectStateChangeCount by one per SetTrackSelected call (the host turns that into
+-- daw_project_edited and Editing re-reads its word table), and an I_SELECTED, I_SOLO or B_MUTE write leaves the count, undo history and dirty flag alone
+-- (docs/research/2026-11-16-select-without-edit-real-reaper.md).
 local ISOLATION_FILE = 'narration_play_isolation.txt'
 local SOLO_IN_PLACE = 2
 local function isolation_path()
@@ -234,10 +237,6 @@ end
 local function flag(value)
   return value ~= 0
 end
-
--- The selection is written through I_SELECTED: REAPER 7.82 raises GetProjectStateChangeCount by one per SetTrackSelected call (the host turns that into
--- daw_project_edited and Editing re-reads its word table), and an I_SELECTED, I_SOLO or B_MUTE write leaves the count, the undo history and the dirty flag
--- alone (docs/research/2026-11-16-select-without-edit-real-reaper.md).
 
 -- Puts back what the isolation changed. Answers the rows whose track REAPER could not find (the narrator switched to another project tab), which are kept
 -- on disk and tried again.
