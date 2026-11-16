@@ -237,4 +237,17 @@ func TestAMarkedNestedChaptersTrackIsStillLeftOutOfTheOuterChaptersAudio(t *test
 	if seconds := chapterRecorded(t, host)[ids[0]]["recordedSeconds"]; seconds != 10.0 {
 		t.Fatalf("outer recorded seconds = %v, want 10: a mark leaves the track out even when a chapter is linked to it", seconds)
 	}
+	links, err := host.chapterTrackLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID == ids[0] {
+			if row.RecordedEnd == nil || row.RecordedEnd.ProjectTime != 10 {
+				t.Fatalf("outer recorded end = %+v, want 10: a mark leaves the track out of the end too", row.RecordedEnd)
+			}
+			return
+		}
+	}
+	t.Fatal("the outer chapter's row is missing")
 }
