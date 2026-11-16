@@ -50,6 +50,26 @@ describe('useBoothLeaveGuard', () => {
       }
     });
 
+    // #3528: the question says only what is known. A DAW that went quiet may still be recording, and a take that really runs keeps the plain sentence.
+    it('says the DAW may still be recording when the end is unconfirmed, and keeps the plain sentence for a take that runs', () => {
+      const quiet = setup({ recording: false, endUnconfirmed: () => true });
+      act(() => void quiet.hook.result.current.leave('/script', quiet.go));
+      expect(quiet.dialog()?.spec.body).toBe('REAPER stopped answering, so it may still be recording. Leaving the Booth tries to stop it.');
+      expect(quiet.dialog()?.spec.title).toBe('Stop recording?');
+      expect(quiet.dialog()?.spec.confirmLabel).toBe('Stop and leave');
+      act(() => quiet.dialog()!.answer(false));
+      // The shell's leave verdict (the nav, Back, Forward) carries the same sentence.
+      const verdict = setup({ recording: false, endUnconfirmed: () => true }).store.checkLeave('/proof');
+      expect(verdict).toEqual({
+        decide: expect.any(Function),
+        ask: expect.objectContaining({ body: 'REAPER stopped answering, so it may still be recording. Leaving the Booth tries to stop it.' }),
+      });
+      const running = setup({ recording: true, endUnconfirmed: () => true });
+      act(() => void running.hook.result.current.leave('/script', running.go));
+      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth stops it.');
+      act(() => running.dialog()!.answer(false));
+    });
+
     it('asks, tries the stop, and asks "Could not stop the take" when the stop is refused', async () => {
       const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => false }, refusal);
       act(() => void t.hook.result.current.leave('/script', t.go));

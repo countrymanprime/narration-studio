@@ -9,9 +9,10 @@ export const IGNORE_ENTER_MS = 400;
 /**
  * The question asked when the narrator leaves the Booth while a take records. `dawName` comes from the capability report
  * ("REAPER", "Audacity", "the built-in recorder"), never hard-coded. A recording the app did not start is never stopped
- * so that question says the DAW keeps recording and offers no stop.
+ * so that question says the DAW keeps recording and offers no stop. `endUnconfirmed`: the take is over as far as the Booth can tell, but the DAW went quiet before it
+ * said so, so the question says it may still be recording.
  */
-export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false): ConfirmSpec {
+export function stopRecordingSpec(dawName: string, startedByApp: boolean, startPending = false, endUnconfirmed = false): ConfirmSpec {
   const subject = dawName.charAt(0).toUpperCase() + dawName.slice(1);
   if (!startedByApp) {
     return {
@@ -30,6 +31,17 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
       body: `${subject} is starting a take. Leaving the Booth stops it once it has started.`,
       confirmLabel: 'Stop and leave',
       cancelLabel: 'Stay',
+      safeDefault: true,
+      ignoreEnterAfterMs: IGNORE_ENTER_MS,
+    };
+  }
+  if (endUnconfirmed) {
+    // The take ended in the Booth's eyes, but the DAW stopped answering before it said so: the question says only what is known (#3528).
+    return {
+      title: 'Stop recording?',
+      body: `${subject} stopped answering, so it may still be recording. Leaving the Booth tries to stop it.`,
+      confirmLabel: 'Stop and leave',
+      cancelLabel: KEEP_RECORDING,
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
     };
