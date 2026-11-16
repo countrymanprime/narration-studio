@@ -82,6 +82,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   const [draftBody, setDraftBody] = useState('');
   const [templateDirty, setTemplateDirty] = useState(false);
   const [values, setValues] = useState<CreditValues>({});
+  // The value fields wait for the first read of the project's values: a value typed before it lands would be saved with every other value empty, and the host replaces all ten (#3461 round 13 BR-F).
+  const [valuesLoaded, setValuesLoaded] = useState(false);
   const [narratorGlobal, setNarratorGlobal] = useState('');
   const [detected, setDetected] = useState<DetectedCandidate[]>([]);
   const [preview, setPreview] = useState<CreditsRenderResult>();
@@ -134,6 +136,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       }
       if (mineValues === valuesSeq.current) {
         setValues(projectValues.values);
+        setValuesLoaded(true);
         setNarratorGlobal(projectValues.narratorGlobal);
         setDetected(projectValues.detected);
         setLoadError('');
@@ -352,6 +355,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   };
 
   const saveValue = async (key: keyof CreditValues, value: string) => {
+    if (!valuesLoaded) return;
     // A read of the values that was started before this edit would put the old value back when it lands: it is out of date from here (#3461 round 12 BR-E2).
     valuesSeq.current += 1;
     const next = { ...values, [key]: value };
@@ -519,7 +523,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
             const currentValue = values[key] ?? '';
             return (
               <div key={key}>
-                <Field label={label} value={currentValue} disabled={savingKey === key} onChange={(value) => void saveValue(key, value)} />
+                <Field label={label} value={currentValue} disabled={savingKey === key || !valuesLoaded} onChange={(value) => void saveValue(key, value)} />
                 {candidate && !currentValue && (
                   <p className="mt-1 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span>

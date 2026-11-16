@@ -367,20 +367,56 @@ describe('CreditsPanel', () => {
 
   it('a project values read that lands after a value was typed does not put the old value back (#3461 round 12 BR-E2)', async () => {
     const real = createMockApi();
+    let calls = 0;
     let release: () => void = () => {};
     renderPanel({
+      creditsProjectValues: () => {
+        calls += 1;
+        const snapshot = real.creditsProjectValues();
+        if (calls === 1) return snapshot;
+        // The read a Duplicate starts is the one that is slow.
+        return new Promise((resolve) => {
+          release = () => void snapshot.then(resolve);
+        });
+      },
+      saveCreditsProjectValues: real.saveCreditsProjectValues,
+    });
+    await screen.findByRole('combobox', { name: 'Template' });
+    await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    await waitFor(() => expect(calls).toBe(2));
+    const title = screen.getByLabelText('Title') as HTMLInputElement;
+    fireEvent.change(title, { target: { value: 'Typed before the read landed' } });
+    fireEvent.blur(title);
+    await waitFor(async () => expect((await real.creditsProjectValues()).values.title).toBe('Typed before the read landed'));
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Typed before the read landed');
+  });
+
+  it("a value typed before the project values arrive does not replace the host's other values (#3461 round 13 BR-F)", async () => {
+    const real = createMockApi();
+    await real.saveCreditsProjectValues({ title: 'Held Title', author: 'Held Author' });
+    let release: () => void = () => {};
+    const { api } = renderPanel({
       creditsProjectValues: () =>
         new Promise((resolve) => {
           release = () => void real.creditsProjectValues().then(resolve);
         }),
+      saveCreditsProjectValues: real.saveCreditsProjectValues,
     });
+    const save = vi.spyOn(api, 'saveCreditsProjectValues');
     const title = (await screen.findByLabelText('Title')) as HTMLInputElement;
-    fireEvent.change(title, { target: { value: 'Typed before the read landed' } });
+    // The field waits for the read; a change that reaches it anyway sends nothing.
+    expect(title.disabled).toBe(true);
+    fireEvent.change(title, { target: { value: 'Typed too early' } });
     fireEvent.blur(title);
     await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(save).not.toHaveBeenCalled();
     release();
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Typed before the read landed');
+    await waitFor(() => expect((screen.getByLabelText('Author') as HTMLInputElement).value).toBe('Held Author'));
+    expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(false);
+    expect((await real.creditsProjectValues()).values.author).toBe('Held Author');
   });
 
   it('a late answer for a New template that was discarded does not take over the next New editor (#3461 B1)', async () => {
