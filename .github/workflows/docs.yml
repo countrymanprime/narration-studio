@@ -82,6 +82,12 @@ jobs:
         # ci.yml ignores Markdown-only changes, so without this step a guide-only pull request would never run it.
         if: ${{ !cancelled() }}
         run: pnpm --dir src/studio/ui run test:guide
+      - name: Layout (no retired path in a tracked file)
+        # scripts/ci/layout.test.mjs reads every tracked file. ci.yml skips a documentation-only pull request, so without this step a doc
+        # that names a retired path merged green and turned main (and every open pull request) red (#3619). docs-workflow.test.mjs
+        # pins that this step exists and runs on every pull request.
+        if: ${{ !cancelled() }}
+        run: node --test scripts/ci/layout.test.mjs
       - name: Issue link (advisory)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
