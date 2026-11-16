@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
@@ -96,6 +96,14 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
   const name = row.label + (which ? ` (${which})` : '');
   const [typed, setTyped] = useState<string | undefined>();
   useEffect(() => setTyped(undefined), [value]);
+  // Whether the number now in the box is refused, told to the row while it is so (and when it stops), so a Saved mark from the value before is not drawn beside it (#2989).
+  const refused = field.kind === 'number' && Boolean(field.number) && Boolean(numberProblem(field.number!, (typed ?? value).trim()));
+  const tell = useRef(onDraftProblem);
+  tell.current = onDraftProblem;
+  useEffect(() => {
+    tell.current?.(refused);
+    return () => tell.current?.(false);
+  }, [refused]);
 
   if (field.kind === 'bool') {
     const on = value === 'true';
@@ -142,9 +150,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
             className={NUMBER_WIDTH}
             onSettle={(next) => {
               setTyped(next);
-              const refused = Boolean(numberProblem(field.number!, next.trim()));
-              onDraftProblem?.(refused);
-              if (!refused) onChange(next.trim());
+              if (!numberProblem(field.number!, next.trim())) onChange(next.trim());
             }}
           />
           {(row.unit ?? field.number.unit) && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.unit ?? field.number.unit}</span>}

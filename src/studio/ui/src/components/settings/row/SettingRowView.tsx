@@ -91,10 +91,11 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const waiting = !hasProject && needsProject(row);
   const uid = useId();
   const [asking, setAsking] = useState<string>();
-  // The number box refused what was just settled on: its reason is shown, so a Saved mark from the value before is not (#2989).
-  // It lasts until the next write of any kind for this row (a Reset or Use computer setting settles no box): `n` moves on with every write.
-  const [refusedAfter, setRefusedAfter] = useState<number | null>(null);
-  const setDraftRefused = (refused: boolean) => setRefusedAfter(refused ? (store.saved?.n ?? 0) : null);
+  // A number refused in a box shows its reason, so a Saved mark from the value before is not drawn beside it (#2989).
+  // A row can draw two number boxes (the computer's and the project's); each tells whether the number in it is refused right now.
+  const [refused, setRefused] = useState({ global: false, project: false });
+  const draftRefused = (which: 'global' | 'project') => (now: boolean) =>
+    setRefused((before) => (before[which] === now ? before : { ...before, [which]: now }));
   // An Override on a number that is not set yet has no value to copy, so it opens an empty project box and saves nothing until one is typed.
   const [opening, setOpening] = useState(false);
   // A Reset while its save is slow would send another save per press and leave the row Changed with no mark (#3231).
@@ -112,7 +113,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   useBrowserSettingsVersion();
   const changed = hasCustom ? isBrowserChanged(row) || store.customChanged.has(row.id) : isAnyChanged(row, global, project, store.customChanged);
   // A rejected value shows its reason, not a Saved mark left over from the last good one: the fade that hides the mark is a motion animation, so under reduced motion nothing else would.
-  const saved = store.saved?.row === row.id && !store.rowErrors[row.id] && !(refusedAfter !== null && refusedAfter === (store.saved?.n ?? 0));
+  const saved = store.saved?.row === row.id && !store.rowErrors[row.id] && !refused.global && !refused.project;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
   const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${error ? ` ${uid}e` : ''}`;
 
@@ -218,7 +219,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                   describedBy={describedBy}
                   invalid={Boolean(error)}
                   onChange={(value) => apply(value, 'global')}
-                  onDraftProblem={setDraftRefused}
+                  onDraftProblem={draftRefused('global')}
                 />
               )}
               {/* Before Reset, so it does not move when Reset comes and goes. */}
@@ -268,7 +269,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                       which="this project"
                       describedBy={describedBy}
                       onChange={(value) => apply(value, 'project')}
-                      onDraftProblem={setDraftRefused}
+                      onDraftProblem={draftRefused('project')}
                     />
                     <Button
                       variant="link"
