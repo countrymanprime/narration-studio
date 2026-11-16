@@ -53,11 +53,17 @@ func TestAChangedSavedProjectIsParsedAgain(t *testing.T) {
 	}
 	base := time.Now().Add(-time.Hour)
 	write(chapterTracksRpp, base)
-	readProject(path)
+	read := func() {
+		t.Helper()
+		if _, err := readProject(path); err != nil {
+			t.Fatal(err)
+		}
+	}
+	read()
 	write(chapterTracksRpp, base.Add(time.Minute)) // same size, newer time
-	readProject(path)
+	read()
 	write(chapterTracksRpp+"\n", base.Add(time.Minute)) // same time, new size
-	readProject(path)
+	read()
 	if got := counter.parses.Load(); got != 3 {
 		t.Fatalf("a new mtime and a new size each parsed again: parses = %d, want 3", got)
 	}
