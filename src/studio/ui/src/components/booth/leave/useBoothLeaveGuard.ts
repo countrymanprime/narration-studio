@@ -13,7 +13,8 @@ export type BoothLeaveSession = {
   /** False when the DAW was already recording and the app did not start the take. Default true. */
   startedByApp?: boolean;
   daw: { name: string };
-  stopRecording: () => Promise<DawResult>;
+  /** `deferTell`: the narrator's Stop and leave: what says the take is saved waits for `arrived`, so it is up when the next page is, not while the run is still being written. */
+  stopRecording: (options?: { deferTell?: boolean }) => Promise<DawResult>;
   /** Whether the take that just ended ended with the DAW answering (true) or because the DAW went quiet (false). Absent: confirmed. A take of a DAW that went quiet may still record, so it is not taken for over. */
   endConfirmed?: () => Promise<boolean>;
   /** True while a take that has ended is not yet known to have ended with the DAW answering. Leaving is not allowed silently then: the stop is tried and its refusal asked. */
@@ -22,6 +23,8 @@ export type BoothLeaveSession = {
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
   flush?: () => Promise<void>;
+  /** Called when the stop is confirmed and the run is written, immediately before `go`: raises what `stopRecording({ deferTell })` held back. */
+  arrived?: () => void;
 };
 
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
@@ -193,7 +196,9 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
                   }, END_GRACE_MS);
                 };
               });
-              const stopped = takeEnded ? null : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording(), endWait]), LEAVE_WAIT_MS);
+              const stopped = takeEnded
+                ? null
+                : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording({ deferTell: true }), endWait]), LEAVE_WAIT_MS);
               wakeOnEnd.current = null;
               if (takeEnded || stopped?.value === 'ended' || (endSeen && stopped && !stopped.value.ok)) {
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
@@ -203,7 +208,9 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               else if (stopped.value.ok) {
                 // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
-                return !gone.current;
+                if (gone.current) return false;
+                sessionRef.current.arrived?.();
+                return true;
               } else sentence = stopped.value.refused ?? (stopped.value.message || '');
               // Not stopped: the take still runs, so it is not this decision's to call handled.
               answeredFor.current = -1;

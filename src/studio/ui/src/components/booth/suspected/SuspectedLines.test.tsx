@@ -328,6 +328,20 @@ describe('suspected lines feed Pickups', () => {
     expect(saved()).toHaveLength(1);
   });
 
+  it('a take that leaves by Stop and leave raises its sentence when the move calls for it (#3529, qa-breaker B1)', async () => {
+    const { save, wrapper } = host();
+    await save('c8', [{ ...skipped, dismissed: true } as unknown as TeleprompterFlagSave]);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper });
+    const held: (() => void)[] = [];
+    await act(async () => {
+      expect(await result.current.takeStopped({ ...read('p9', 'p12'), quiet: true, survivesMoves: 1, later: (raise) => void held.push(raise) })).toBe(1);
+    });
+    const saved = () => overlay.getSnapshot().toasts.filter((item) => item.text === 'Take saved · 1 suspected line added to Pickups');
+    expect(saved()).toHaveLength(0);
+    act(() => held[0]());
+    expect(saved()).toHaveLength(1);
+  });
+
   it('a refused save says the host sentence and adds nothing', async () => {
     const { save, review, wrapper } = host();
     save.mockRejectedValueOnce(new Error('no project is open'));

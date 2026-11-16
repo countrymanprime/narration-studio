@@ -228,6 +228,33 @@ describe('useBoothLeaveGuard', () => {
     expect(order).toEqual(['stop', 'flush', 'go']);
   });
 
+  // #3529 (qa-breaker B1): what says the take is saved is held by the stop and raised by `arrived`, after the run is written and just before the move.
+  it('a-leave-mid-take: the stop is asked to hold its telling, and `arrived` comes after the flush and before the navigation', async () => {
+    const order: string[] = [];
+    const stop = vi.fn(async (_options?: { deferTell?: boolean }) => {
+      order.push('stop');
+      return ok;
+    });
+    const { go, hook, dialog } = setup(
+      {
+        flush: vi.fn(async () => {
+          order.push('flush');
+        }),
+        arrived: () => order.push('arrived'),
+      },
+      stop,
+    );
+    go.mockImplementation(() => order.push('go'));
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    act(() => dialog()!.answer(true));
+    await act(() => done);
+    expect(stop).toHaveBeenCalledWith({ deferTell: true });
+    expect(order).toEqual(['stop', 'flush', 'arrived', 'go']);
+  });
+
   it('a-leave-mid-take-flushes-the-run: nothing is flushed when the stop is refused, the question is declined, or the app did not start the take', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' };
     const refused = setup({ flush: vi.fn(async () => {}) }, async () => refusal);

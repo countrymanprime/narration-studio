@@ -18,6 +18,8 @@ export type SuspectedTake = {
   paragraphIds: ReadonlySet<string>;
   quiet?: boolean;
   survivesMoves?: number;
+  /** As on a pickup session's take: the sentence is raised when the move happens. */
+  later?: (raise: () => void) => void;
   saidSaved?: boolean;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
@@ -41,7 +43,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   latest.current = { chapterId, flags };
 
   const takeStopped = useCallback(
-    async ({ paragraphIds, quiet = false, survivesMoves, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
+    async ({ paragraphIds, quiet = false, survivesMoves, later, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
       const { chapterId: chapter, flags: all } = latest.current;
       const read = keptLines(suspectedLines(all, paragraphIds));
       if (read.length === 0) return 0;
@@ -91,7 +93,9 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
       // Stop and leave: the sentence is shown on the page landed on, with no Undo (see #3545 for the Undo path).
       if (quiet) {
-        overlay.toast(text);
+        const say = () => overlay.toast(text);
+        if (later) later(say);
+        else say();
         return changed.length;
       }
       const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {

@@ -104,3 +104,25 @@ test('Stop and leave in a pickup session says the take is saved and the pickup m
   await expect(toast).toBeVisible();
   await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
 });
+
+// qa-breaker B1 (#3529): the passage map's run is written between the stop and the move. With it taking 6 s (longer than a toast lives), "Take saved" with Undo must still be
+// on the page landed on: it is raised at the move, so its clock starts there. Class guard: what is promised for the next page is raised at the move, not before an awaited step.
+test('Take saved is on the page landed on when the passage map write takes 6 seconds', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = Object.assign(w.__NARRATION_MOCK_OVERRIDES__ ?? {}, {
+      passageMapRecordRun: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 6000));
+      },
+    });
+  });
+  await recording(page);
+  await page.waitForTimeout(1200);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 20_000 }).toBe('/script');
+  await expect(saved(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await page.waitForTimeout(2500);
+  await expect(saved(page)).toBeVisible();
+});

@@ -289,6 +289,22 @@ describe('a pickup session in the Booth', () => {
     expect(saved()).toHaveLength(1);
   });
 
+  // #3529 (qa-breaker B1): with `later`, the sentence is raised when the page calls it (at the move), not while the marks are written.
+  it('a-take-that-leaves-by-stop-and-leave-raises-its-sentence-when-the-move-calls-for-it', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a'] });
+    await screen.findByText('Pickups · 1 open');
+    const held: (() => void)[] = [];
+    await act(async () => {
+      await stop({ began: 0, stopped: 1, quiet: true, survivesMoves: 1, later: (raise) => void held.push(raise) });
+    });
+    expect(h.items()[0].done).toBe(true);
+    expect(toasts()).toEqual([]);
+    expect(held).toHaveLength(1);
+    act(() => held[0]());
+    expect(toasts()).toEqual(['Take saved · 1 pickup marked recorded']);
+  });
+
   it('done-writes-through-to-the-marker: both ways, and a refusal leaves the line open and says why', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a'] });

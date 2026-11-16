@@ -2245,6 +2245,26 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(await page.journal.entries()).toEqual([]);
   });
 
+  // #3529 (qa-breaker B1): the passage map's run is written between the stop and the move and can take seconds, longer than a toast lives. A toast raised before it
+  // expired on the Booth and the narrator landed with no "Take saved"; it is raised at the move, so its clock starts there.
+  it('Stop and leave with a passage-map write that takes a long while raises Take saved with Undo at the move, not before the write', async () => {
+    let finishRun: () => void = () => {};
+    const slowRun = vi.fn(() => new Promise<never[]>((resolve) => (finishRun = () => resolve([]))));
+    const page = renderPage({ journal: dawJournal, api: { passageMapRecordRun: slowRun } as Partial<NarrationApi> });
+    await record(page);
+    await press('Escape');
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()?.answer(true));
+    await waitFor(() => expect(slowRun).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(toastNamed(page, 'Take saved')).toBeUndefined();
+    await act(async () => finishRun());
+    await waitFor(() => expect(page.navigate).toHaveBeenCalled());
+    const saved = toastNamed(page, 'Take saved');
+    expect(saved?.action?.label).toBe('Undo');
+  });
+
   it('a take with the built-in recorder is not a DAW entry', async () => {
     const page = renderPage({ setup: 'builtin', journal: dawJournal });
     await record(page);

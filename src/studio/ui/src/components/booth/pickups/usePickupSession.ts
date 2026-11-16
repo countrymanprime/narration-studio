@@ -36,6 +36,8 @@ export type StoppedTake = {
   stopped: number;
   quiet?: boolean;
   survivesMoves?: number;
+  /** Stop and leave: the sentence is raised when the move happens (the page calls `raise` then), not here, so the passage map's run being written first does not use up its few seconds. */
+  later?: (raise: () => void) => void;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
 };
@@ -129,7 +131,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   );
 
   const takeStopped = useCallback(
-    async ({ began, stopped, quiet = false, survivesMoves, undoTake, entry }: StoppedTake): Promise<number> => {
+    async ({ began, stopped, quiet = false, survivesMoves, later, undoTake, entry }: StoppedTake): Promise<number> => {
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
@@ -154,7 +156,9 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
         // Stop and leave: the sentence is shown on the page landed on, with no Undo (an Undo toast goes at the next move, and this one's Undo is #3545's to get right).
         if (quiet) {
-          overlay.toast(text);
+          const say = () => overlay.toast(text);
+          if (later) later(say);
+          else say();
           return targets.length;
         }
         const marks = marked.value.id;

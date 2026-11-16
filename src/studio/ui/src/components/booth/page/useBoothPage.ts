@@ -243,17 +243,32 @@ export function useBoothPage(options: BoothPageOptions) {
   const [opened, setOpened] = useState<OpenedResume | null>(null);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
-  const tellStopped = useCallback(async (quiet: boolean, survivesMoves?: number): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
-    const began = takeBegan.current;
-    const entry = takeEntry.current;
-    takeEntry.current = null;
-    const journal = latestJournal.current;
-    const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
-    if (began === null) return { marked: 0, take: undo };
-    takeBegan.current = null;
-    const take = { quiet, survivesMoves, ...undo };
-    return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
+  // What a Stop and leave says about the take, held until the move (`arrived`): the passage map's run is written between the stop and the move and can take seconds, longer than a toast lives.
+  const arrival = useRef<(() => void)[]>([]);
+  const later = useCallback((raise: () => void) => void arrival.current.push(raise), []);
+  const arrived = useCallback(() => {
+    const raise = arrival.current;
+    arrival.current = [];
+    for (const say of raise) say();
   }, []);
+  const tellStopped = useCallback(
+    async (
+      quiet: boolean,
+      survivesMoves?: number,
+      hold?: (raise: () => void) => void,
+    ): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
+      const began = takeBegan.current;
+      const entry = takeEntry.current;
+      takeEntry.current = null;
+      const journal = latestJournal.current;
+      const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
+      if (began === null) return { marked: 0, take: undo };
+      takeBegan.current = null;
+      const take = { quiet, survivesMoves, later: hold, ...undo };
+      return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
+    },
+    [],
+  );
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
@@ -982,26 +997,36 @@ export function useBoothPage(options: BoothPageOptions) {
   const markStopped = control.stopped;
   const latestDaw = useRef(control.capabilities?.daw);
   latestDaw.current = control.capabilities?.daw;
-  const stopRecording = useCallback(async (): Promise<DawResult> => {
-    // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
-    const stopAsked = await limited(
-      'recordStop',
-      appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
-    );
-    const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
-    // Undoable from the next page: a DAW's take is in the history before the page goes.
-    if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
-    // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
-    if (result.ok) markStopped();
-    if (result.ok && latest.current.session.active) latest.current.session.stop();
-    // Stopped on the way out: the take is told as saved, with its Undo, as after a plain Stop, and the toast outlives the move (#3529). A take that marked pickups, or added suspected
-    // lines, says it was saved in their toast ("Take saved · N pickups marked recorded", raised by the same stop with the same `survivesMoves`), so this page adds nothing then.
-    if (result.ok) {
-      const { marked, take } = await tellStopped(true, 1);
-      if (marked === 0 && take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry, survivesMoves: 1 });
-    }
-    return result;
-  }, [daw, tellStopped, markStopped, keepTake, appStop, overlay]);
+  const stopRecording = useCallback(
+    async (options?: { deferTell?: boolean }): Promise<DawResult> => {
+      const hold = options?.deferTell ? later : undefined;
+      if (hold) arrival.current = [];
+      // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
+      const stopAsked = await limited(
+        'recordStop',
+        appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
+      );
+      const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
+      // Undoable from the next page: a DAW's take is in the history before the page goes.
+      if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
+      // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
+      if (result.ok) markStopped();
+      if (result.ok && latest.current.session.active) latest.current.session.stop();
+      // Stopped on the way out: the take is told as saved, with its Undo, as after a plain Stop, and the toast outlives the move (#3529). A take that marked pickups, or added suspected
+      // lines, says it was saved in their toast ("Take saved · N pickups marked recorded", raised by the same stop with the same `survivesMoves`), so this page adds nothing then.
+      if (result.ok) {
+        const { marked, take } = await tellStopped(true, 1, hold);
+        if (marked === 0 && take.undoTake && take.entry !== undefined) {
+          const { undoTake, entry } = take;
+          const say = () => overlay.toastUndo(TAKE_SAVED, undoTake, { entry, survivesMoves: 1 });
+          if (hold) hold(say);
+          else say();
+        }
+      }
+      return result;
+    },
+    [daw, tellStopped, later, markStopped, keepTake, appStop, overlay],
+  );
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({
@@ -1061,6 +1086,7 @@ export function useBoothPage(options: BoothPageOptions) {
       endConfirmed: control.endConfirmed,
       endUnconfirmed: control.endUnconfirmed,
       flush: writer.flush,
+      arrived,
     },
     { guard: shellGuard, overlay: heldConfirm },
   );
