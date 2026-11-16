@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -322,5 +323,138 @@ func TestServiceStartRefusesUnmapped(t *testing.T) {
 	}
 	if reason, ok := ReasonOf(err); !ok || reason != ReasonUnmapped {
 		t.Fatalf("Start() reason = %v, ok=%v, want %q", reason, ok, ReasonUnmapped)
+	}
+}
+
+// #3617: a chapter whose track holds two items that share a GUID (a track copied in from another project) scans both, and an unchanged
+// second scan answers both from cache: each twin has its own ledger record, so neither makes the other read stale.
+func TestServiceScansTwoItemsThatShareAGUIDAndTheSecondScanDecodesNothing(t *testing.T) {
+	svc := newTestService(t)
+	itemA, itemB := svc.track.Items[0], svc.track.Items[1]
+	itemA.GUID, itemB.GUID = "dup", "dup"
+	if err := os.WriteFile(svc.rppPath, []byte(minimalRPP(itemA, itemB)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	request := Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}
+
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if first := svc.State(); first.Phase != PhaseComplete || first.Decoded != 2 {
+		t.Fatalf("first scan phase=%q decoded=%d (%s), want a complete scan of both twins", first.Phase, first.Decoded, first.Message)
+	}
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if second := svc.State(); second.CacheHits != 2 || second.Decoded != 0 {
+		t.Fatalf("second scan decoded=%d cacheHits=%d, want decoded=0 cacheHits=2: the twins must not make each other stale", second.Decoded, second.CacheHits)
+	}
+}
+
+// itemsRPP is minimalRPP for any number of items on the one track, an item muted when its Muted field is set.
+func itemsRPP(items ...tracks.Item) string {
+	var b strings.Builder
+	b.WriteString("<REAPER_PROJECT 0.1 \"7.0\" 0\n  <TRACK track-1\n    NAME \"Chapter One\"\n    TRACKID track-1\n")
+	for _, it := range items {
+		mute := ""
+		if it.Muted {
+			mute = "      MUTE 1 0\n"
+		}
+		b.WriteString("    <ITEM\n      POSITION " + ftoa(it.Position) + "\n      LENGTH " + ftoa(it.Length) + "\n" + mute + "      NAME take\n      GUID " + it.GUID + "\n      PLAYRATE 1\n      <SOURCE WAVE\n        FILE \"" + it.SourceFile + "\"\n      >\n    >\n")
+	}
+	b.WriteString("  >\n>\n")
+	return b.String()
+}
+
+// scanTwice runs a scan, rewrites the project to rewritten (nil: unchanged) and scans again, answering the second scan's state.
+func scanTwice(t *testing.T, svc *testService, first, rewritten []tracks.Item) State {
+	t.Helper()
+	request := Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}
+	if err := os.WriteFile(svc.rppPath, []byte(itemsRPP(first...)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if state := svc.State(); state.Phase != PhaseComplete {
+		t.Fatalf("first scan phase = %q (%s)", state.Phase, state.Message)
+	}
+	if rewritten != nil {
+		if err := os.WriteFile(svc.rppPath, []byte(itemsRPP(rewritten...)), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.Start(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	return svc.State()
+}
+
+// threeItems is a track of three items on the two fixture files at 0, 5 and 10 s, with the GUIDs given.
+func threeItems(svc *testService, a, b, c string) []tracks.Item {
+	one, two := svc.track.Items[0], svc.track.Items[1]
+	one.GUID, two.GUID = a, b
+	third := one
+	third.GUID, third.Position = c, 10
+	return []tracks.Item{one, two, third}
+}
+
+// A real GUID that already ends in "#2" beside a twin of its base keeps its own record: the twin must not take the name, or the two
+// alternate in the ledger and each scan re-decodes one forever.
+func TestARealGUIDEndingInHash2BesideATwinOfItsBaseNeverCollides(t *testing.T) {
+	svc := newTestService(t)
+	items := threeItems(svc, "dup", "dup", "dup#2")
+	if second := scanTwice(t, svc, items, nil); second.Decoded != 0 || second.CacheHits != 3 {
+		t.Fatalf("second scan decoded=%d cacheHits=%d, want decoded=0 cacheHits=3", second.Decoded, second.CacheHits)
+	}
+}
+
+// Muting a twin after a scan leaves the others as they were: the key of an item does not depend on whether the items before it are analysed.
+func TestMutingAFirstTwinAfterAScanKeepsTheOtherTwinsCurrent(t *testing.T) {
+	svc := newTestService(t)
+	items := threeItems(svc, "dup", "dup", "dup")
+	muted := append([]tracks.Item(nil), items...)
+	muted[0].Muted = true
+	if second := scanTwice(t, svc, items, muted); second.Decoded != 0 || second.CacheHits != 2 {
+		t.Fatalf("second scan decoded=%d cacheHits=%d, want decoded=0 cacheHits=2: the two analysed twins are unchanged", second.Decoded, second.CacheHits)
+	}
+}
+
+func TestMutingAMiddleTwinAfterAScanKeepsTheOtherTwinsCurrent(t *testing.T) {
+	svc := newTestService(t)
+	items := threeItems(svc, "dup", "dup", "dup")
+	muted := append([]tracks.Item(nil), items...)
+	muted[1].Muted = true
+	if second := scanTwice(t, svc, items, muted); second.Decoded != 0 || second.CacheHits != 2 {
+		t.Fatalf("second scan decoded=%d cacheHits=%d, want decoded=0 cacheHits=2", second.Decoded, second.CacheHits)
+	}
+}
+
+func TestScopeKeysAreDistinctForEveryItemOfAChapter(t *testing.T) {
+	for _, guids := range [][]string{
+		{"dup", "dup", "dup#2"},
+		{"dup#2", "dup", "dup"},
+		{"a#2", "a", "a", "a#3"},
+		{"x", "y", "x", "y", "x"},
+	} {
+		keys := newScopeKeys()
+		seen := map[string]bool{}
+		for _, guid := range guids {
+			name := keys.key(guid)
+			if name == "" {
+				name = guid
+			}
+			if seen[name] {
+				t.Fatalf("GUIDs %v: two items share the name %q", guids, name)
+			}
+			seen[name] = true
+		}
+	}
+	if got := newScopeKeys().key("only"); got != "" {
+		t.Fatalf("the first item's key = %q, want empty (its GUID: records written before this stay readable)", got)
 	}
 }
