@@ -161,6 +161,9 @@ type manuscriptCache struct {
 	modTime time.Time
 	size    int64
 	data    map[string]any
+	// titles is each narration chapter's title by id, built once with the parse (front matter is not a chapter), so a title
+	// lookup builds no chapter payload.
+	titles map[string]string
 }
 
 func New(project string) *Service            { return &Service{project: project, jobs: map[string]*ImportJob{}} }
@@ -497,8 +500,29 @@ func (s *Service) Load() (map[string]any, error) {
 	if data["schemaVersion"] != float64(1) {
 		return nil, fmt.Errorf("this manuscript data uses an unsupported schema version")
 	}
-	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data})
+	titles := map[string]string{}
+	for _, chapter := range objects(data["chapters"]) {
+		if !isFrontMatter(chapter) {
+			titles[text(chapter, "id")] = text(chapter, "title")
+		}
+	}
+	s.manCache.Store(&manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles})
 	return data, nil
+}
+
+// ChapterTitle is the title of the manuscript's chapter id, and false when the manuscript has no such chapter (front matter and
+// the credits are not manuscript chapters). It reads one entry of an index built once per parse of manuscript.json: no chapter
+// payload is built, where Chapters and ChaptersUnmeasured build one for every chapter of the book (#3272).
+func (s *Service) ChapterTitle(id string) (string, bool, error) {
+	if _, err := s.Load(); err != nil {
+		return "", false, err
+	}
+	cached := s.manCache.Load()
+	if cached == nil {
+		return "", false, fmt.Errorf("the canonical manuscript data could not be read")
+	}
+	title, ok := cached.titles[id]
+	return title, ok, nil
 }
 
 // commit writes the draft as the narrator corrected it (runCommit has applied the subtitle choices), each section as the kind chosen.

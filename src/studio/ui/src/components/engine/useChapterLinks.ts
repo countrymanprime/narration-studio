@@ -139,7 +139,9 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       })
       // The change was made: screens fed by `onChanged` are told even when the list cannot be read again, and the narrator is told why it is stale.
       .then(() =>
-        reload().then(
+        // The links only: a link change moves no chapter (its title, kind or order), and the chapter list is the measured one, every chapter of the
+        // book (#3272). The write answered with the links that remain; this is the reconcile.
+        refreshLinks().then(
           () => {
             staleAfterChange.current = false;
           },

@@ -96,6 +96,8 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
+  // Asks the chapter links to read again after a change made elsewhere (chapter sync). A change the links make themselves is not one: they have the answer.
+  const [linksRefresh, setLinksRefresh] = useState(0);
   // A REAPER project's tracks as REAPER has them now, saved or not (#2840): read when the panel opens, when the linked file or the link
   // facts change (Check again, a relink), on focus and on a timer, and by the Refresh in Chapter links and the Link chapters dialog.
   // The shared state reads them (one reader for every screen, #3269); this panel wants the reading as soon as a project file is selected,
@@ -115,7 +117,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, and the Chapter links table both use it.
-  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
+  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, linksRefresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
@@ -202,7 +204,10 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
         )}
         <ChapterSyncPanel
           notify={notify}
-          onChanged={() => setRefresh((count) => count + 1)}
+          onChanged={() => {
+            setRefresh((count) => count + 1);
+            setLinksRefresh((count) => count + 1);
+          }}
           daw={forAudacity ? { daw: 'Audacity', linkedFile: audacity.link?.linkedFile ?? null } : { daw: 'REAPER' }}
           layout={hasTracks && !forAudacity ? <LayoutToggle layout={voices.setup.layout} onLayout={voices.setLayout} /> : undefined}
           onLayoutShown={setLayoutInSync}

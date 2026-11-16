@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"desktop/internal/persist"
 	"desktop/internal/recordedthrough"
@@ -295,7 +296,14 @@ func paragraphPayload(paragraph map[string]any) map[string]any {
 
 // chapterPayload is one chapter as the reader contract sends it. recordedFraction is present only for a chapter the
 // recording coverage measured (recorded, from RecordedFractions): never a guess from the status.
+// payloadsBuilt counts the chapter payloads built in this process: the work a caller that needs one chapter must not do for all of them.
+var payloadsBuilt atomic.Int64
+
+// ChapterPayloadsBuilt is how many chapter payloads this process has built, a test's way to count the chapters a call read.
+func ChapterPayloadsBuilt() int64 { return payloadsBuilt.Load() }
+
 func chapterPayload(chapter, notes map[string]any, recorded map[string]float64, paragraphs []map[string]any, includeParagraphs bool) map[string]any {
+	payloadsBuilt.Add(1)
 	status := "not_started"
 	if stored, ok := object(notes["chapterStatus"])[text(chapter, "id")].(string); ok {
 		status = stored
