@@ -735,4 +735,29 @@ describe('the unsaved-drafts registry', () => {
       expect(go).not.toHaveBeenCalled();
     });
   });
+
+  // #3455: a window close or a reload leaves the page, not just a route, so the browser's own question is the only one that can ask; it asks only while a draft is held.
+  it('asks before the window closes or reloads while a draft is held, and not otherwise', () => {
+    const view = render(
+      <UnsavedDraftsProvider>
+        <Holder id="note" draft={draft({ dirty: true })} />
+        <Holder id="clean" draft={draft({ dirty: false })} />
+      </UnsavedDraftsProvider>,
+    );
+    const held = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(held);
+    expect(held.defaultPrevented, 'the question is asked').toBe(true);
+    view.rerender(
+      <UnsavedDraftsProvider>
+        <Holder id="clean" draft={draft({ dirty: false })} />
+      </UnsavedDraftsProvider>,
+    );
+    const nothing = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(nothing);
+    expect(nothing.defaultPrevented, 'nothing is held, so nothing is asked').toBe(false);
+    view.unmount();
+    const gone = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(gone);
+    expect(gone.defaultPrevented, 'the handler is removed with the provider').toBe(false);
+  });
 });

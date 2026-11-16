@@ -134,6 +134,17 @@ export function UnsavedDraftsProvider({ children }: { children: ReactNode }) {
     [],
   );
   const dirtyNow = useCallback(() => [...drafts.current.values()].map((read) => read()).filter((draft) => draft.dirty), []);
+  // A window close or a reload leaves the page, not just the route, so no in-app question can ask: the browser's own is the only one, and it asks only while a draft is held (#3455).
+  useEffect(() => {
+    const ask = (event: BeforeUnloadEvent) => {
+      if (dirtyNow().length === 0) return;
+      event.preventDefault();
+      // Older engines show the prompt only when a string is assigned; the text is the engine's own, never this one.
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', ask);
+    return () => window.removeEventListener('beforeunload', ask);
+  }, [dirtyNow]);
   const join = useCallback((id: string, draft: () => UnsavedDraft) => {
     drafts.current.set(id, draft);
     setVersion((current) => current + 1);
