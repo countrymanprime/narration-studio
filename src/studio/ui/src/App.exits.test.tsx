@@ -45,10 +45,10 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const mount = async () => {
+const mount = async (api = createMockApi()) => {
   render(
     <ThemeProvider>
-      <ApiProvider api={createMockApi()}>
+      <ApiProvider api={api}>
         <CommandRouter>
           <App />
         </CommandRouter>
@@ -114,6 +114,55 @@ describe('every exit of a page that holds a draft asks (#3400)', () => {
       expect(probe.saves).not.toHaveBeenCalled();
     });
   }
+});
+
+describe('closing the window with a registered draft held asks, and the host is answered (#3526)', () => {
+  const mountWithHost = async () => {
+    let request: (() => void) | undefined;
+    const base = createMockApi();
+    const windowCloseAnswer = vi.fn(async () => {});
+    const windowCloseAsked = vi.fn(async () => {});
+    const api = {
+      ...base,
+      windowCloseAnswer,
+      windowCloseAsked,
+      subscribeWindowCloseRequested: (listener: () => void) => {
+        request = listener;
+        return () => {};
+      },
+    };
+    await mount(api);
+    return { request: () => act(() => request!()), windowCloseAnswer, windowCloseAsked };
+  };
+
+  it('Cancel answers no and keeps the draft; Save & continue saves it, then answers yes', async () => {
+    const host = await mountWithHost();
+    host.request();
+    expect(host.windowCloseAsked).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(false));
+    expect(host.windowCloseAnswer).not.toHaveBeenCalledWith(true);
+    expect(probe.saves).not.toHaveBeenCalled();
+    host.request();
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Save & continue' }));
+    await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+    expect(probe.saves).toHaveBeenCalledTimes(1);
+  });
+
+  it('Discard & continue answers yes and saves nothing', async () => {
+    const host = await mountWithHost();
+    host.request();
+    fireEvent.click(within(await question()).getByRole('button', { name: 'Discard & continue' }));
+    await waitFor(() => expect(host.windowCloseAnswer).toHaveBeenCalledWith(true));
+    expect(probe.saves).not.toHaveBeenCalled();
+  });
+
+  it('never answers yes before the narrator has answered', async () => {
+    const host = await mountWithHost();
+    host.request();
+    await question();
+    expect(host.windowCloseAnswer).not.toHaveBeenCalled();
+  });
 });
 
 describe('a stop after an entry the router never numbered restores to where the page was (#3446 PB-1)', () => {

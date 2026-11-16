@@ -38,6 +38,7 @@ func TestACloseWithADraftHeldIsCancelledAndAskedAgainByASecondClose(t *testing.T
 	if gate.closing() {
 		t.Fatal("a second close while the question is open went ahead")
 	}
+	gate.asked()
 	if asked.Load() != 2 {
 		t.Fatalf("the page was asked %d times, want once for each close", asked.Load())
 	}
@@ -111,5 +112,66 @@ func TestTheWindowCloseBindingsDoNothingBeforeTheWindowExists(t *testing.T) {
 		if _, err := call(); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestAPageThatDiedAfterAcknowledgingStopsTrappingTheWindowOnTheNextClose(t *testing.T) {
+	gate, asked, closed := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.asked()
+	// The page is gone: nothing answers. The narrator presses the close button again.
+	if gate.closing() {
+		t.Fatal("the second close went ahead before the page was asked again")
+	}
+	if asked.Load() != 2 {
+		t.Fatalf("asked %d times, want a second request", asked.Load())
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for closed.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if closed.Load() != 1 {
+		t.Fatal("a page that did not acknowledge the second request still trapped the window")
+	}
+}
+
+func TestAnAcknowledgedSecondRequestIsWaitedFor(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.arm(true)
+	gate.closing()
+	gate.asked()
+	gate.closing()
+	gate.asked()
+	time.Sleep(4 * gate.wait)
+	if closed.Load() != 0 {
+		t.Fatal("the window closed although the page acknowledged the second request")
+	}
+}
+
+func TestATimerFromAnEarlierQuestionCannotCloseTheWindowUnderALaterOne(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.wait = 60 * time.Millisecond
+	gate.arm(true)
+	gate.closing()
+	gate.answer(false)
+	// A new close starts a new question, acknowledged at once; the first question's timer fires inside its wait.
+	gate.closing()
+	gate.asked()
+	time.Sleep(150 * time.Millisecond)
+	if closed.Load() != 0 {
+		t.Fatal("an old timer closed the window under a later question")
+	}
+}
+
+func TestAYesWhenNothingIsBeingAskedDoesNotCloseTheWindow(t *testing.T) {
+	gate, _, closed := newTestGate()
+	gate.arm(true)
+	gate.answer(true)
+	if closed.Load() != 0 {
+		t.Fatal("the page closed the window with no question open")
+	}
+	if gate.closing() {
+		t.Fatal("a yes with no question confirmed the next close")
 	}
 }

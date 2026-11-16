@@ -30,6 +30,8 @@ type closeGate struct {
 	// confirmed lets the next close through: the narrator said yes, or the page could not be asked.
 	confirmed bool
 	timer     *time.Timer
+	// generation numbers each question, so a timer from an earlier one cannot close the window under a later one.
+	generation int
 }
 
 func newCloseGate(ask, closeNow func()) *closeGate {
@@ -51,24 +53,29 @@ func (g *closeGate) closing() bool {
 		g.mu.Unlock()
 		return true
 	}
-	if g.asking {
-		// A question is already open (or its answer was lost to another change in the page): ask again, so a second press of the close button
-		// puts it back instead of leaving a window that neither closes nor asks.
-		g.mu.Unlock()
-		g.ask()
-		return false
-	}
+	// A question is already open (or its answer was lost, or the page behind it has died): ask again and wait for the page to say it received this one, so a
+	// second press of the close button puts the question back, or closes the window when nothing answers (a page that crashed after the first request).
 	g.asking = true
-	g.timer = time.AfterFunc(g.wait, g.pageDidNotAnswer)
+	g.restartTimer()
 	g.mu.Unlock()
 	g.ask()
 	return false
 }
 
+// restartTimer starts the wait for the page to say it received the current request; the caller holds g.mu.
+func (g *closeGate) restartTimer() {
+	if g.timer != nil {
+		g.timer.Stop()
+	}
+	g.generation++
+	generation := g.generation
+	g.timer = time.AfterFunc(g.wait, func() { g.pageDidNotAnswer(generation) })
+}
+
 // pageDidNotAnswer closes the window when the page never said it received the request.
-func (g *closeGate) pageDidNotAnswer() {
+func (g *closeGate) pageDidNotAnswer(generation int) {
 	g.mu.Lock()
-	if !g.asking {
+	if !g.asking || generation != g.generation {
 		g.mu.Unlock()
 		return
 	}
@@ -78,7 +85,7 @@ func (g *closeGate) pageDidNotAnswer() {
 	g.closeNow()
 }
 
-// asked is the page saying it received the request: from here the host waits for the narrator.
+// asked is the page saying it received the request: from here the host waits for the narrator (until a second close asks again and is not acknowledged).
 func (g *closeGate) asked() {
 	g.mu.Lock()
 	if g.timer != nil {
@@ -89,18 +96,23 @@ func (g *closeGate) asked() {
 }
 
 // answer is the narrator's reply: true closes the window now (they saved, or chose Discard & continue), false keeps it open.
+// A yes closes the window only while a question is open: the page cannot close the window at will, and an answer that arrives after the host closed
+// it for an unresponsive page does nothing.
 func (g *closeGate) answer(closeWindow bool) {
 	g.mu.Lock()
+	wasAsking := g.asking
 	if g.timer != nil {
 		g.timer.Stop()
 		g.timer = nil
 	}
+	g.generation++
 	g.asking = false
-	if closeWindow {
+	closing := closeWindow && wasAsking
+	if closing {
 		g.confirmed = true
 	}
 	g.mu.Unlock()
-	if closeWindow {
+	if closing {
 		g.closeNow()
 	}
 }
