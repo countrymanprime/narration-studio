@@ -39,7 +39,9 @@ func (s *Service) run(ctx context.Context, request Request, track tracks.Track, 
 		}
 	}
 
+	scopeKeys := newScopeKeys()
 	for _, res := range resolutions {
+		scopeKey := scopeKeys.key(res.Item.GUID) // for every item, skipped or not, so a twin keeps its name
 		if ctx.Err() != nil {
 			s.finish(request, projectFile, PhaseCancelled, done, total, cacheHits, decoded, failed, "Cancelled.")
 			return
@@ -56,7 +58,7 @@ func (s *Service) run(ctx context.Context, request Request, track tracks.Track, 
 			continue
 		}
 		key := evidence.ComputeAnalysisKey(identity, evidence.PlayedRange{Start: source.PlayedRange.Start, End: source.PlayedRange.End}, 1)
-		scopeIn := ItemScopeInput{DocumentID: request.DocumentID, ChapterID: request.ChapterID, TrackGUID: track.GUID, Item: item, Key: key}
+		scopeIn := ItemScopeInput{DocumentID: request.DocumentID, ChapterID: request.ChapterID, TrackGUID: track.GUID, Item: item, Key: key, ScopeKey: scopeKey}
 
 		scan, hit, err := s.scanItem(ctx, scopeIn, source, scanOpts, paramHash)
 		if err != nil {
