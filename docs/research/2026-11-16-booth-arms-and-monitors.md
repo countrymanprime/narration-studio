@@ -13,7 +13,7 @@
 - `monitor_restore` answered `restored` 0 and `kept` 1 for a lane the narrator switched to 2 after the bridge turned it on, and left it at 2. After an ordinary put-back the ledger file in REAPER's resource folder was gone.
 - With a take running on the monitored lane, `arm_lane` with `monitor` was refused (`ERROR`, nothing changed), and `monitor_restore` answered `waiting` 1 and touched nothing; the monitoring went back to 0 on the first tick after the stop.
 
-**Not run in a real REAPER (shown by the fake only):** `monitor_restore` with `cancel`; the wait while a `record_start` is pending; recovering a leftover ledger file at the first tick or command; a row of another project; an unwritable ledger; a lower case or brace-less GUID in the file. Rows A4c to A4e of the [verification pass](../operations/reaper-verification-pass.md) list what the owner runs.
+**Not run in a real REAPER (shown by the fake only):** `monitor_restore` with `cancel`; the wait while a `record_start` is pending; recovering a leftover ledger file at the first tick or command; a ghost row applied on a tick; the 64-row cap; an unwritable ledger; a lower case or brace-less GUID in the file. Rows A4c to A4e of the [verification pass](../operations/reaper-verification-pass.md) list what the owner runs.
 
 **Pending (owner):** a live microphone and an audio device, to hear that the narrator is monitored when they enter the Booth and that the monitored voice stops sounding after leaving; monitoring while a voice switches during a take (`switch_voice` does not turn monitoring on for the voice it moves to); Windows; the ledger after a real REAPER crash (the harness reads a leftover file, not a killed process).
 
@@ -21,4 +21,4 @@
 
 - A narrator who switches a monitored track off and on again by hand leaves it reading 1, the value the bridge set, so it cannot tell that track from its own and puts it back to off when the Booth is left.
 - The ledger file and the rows in memory live in REAPER. If the app crashes (not REAPER), the monitoring stays on until the next Booth entry and leave, or until REAPER restarts and the bridge's first tick reads the file.
-- A row belongs to the project file it was written in. A row of another project stays on the ledger until that project is in front, so a project that is never reopened leaves its row and the file behind. A row of the project in front whose track is gone is dropped. An unsaved project has no file name, so its rows match any other unsaved project.
+- A row is keyed by the track's GUID alone. Save as keeps a GUID and a saved-later project keeps its tracks, which a project-file key would have lost; the residual risk is a copy of a project with the same GUIDs open in another tab. A row whose track is not in the project in front is tried again on the bridge's tick when the project in front or its track count changes, is dropped once its track resolves, and at most 64 rows are kept.

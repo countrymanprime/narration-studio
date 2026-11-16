@@ -3,8 +3,6 @@
 
 local H = require('harness')
 
-local OTHER = '/elsewhere/Other.rpp'
-
 local function new_session()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
   local narrator = s.fake:add_track('Narrator')
@@ -21,9 +19,9 @@ local function monitors(s)
   return out
 end
 
--- One ledger line as the bridge writes it: the track, the value it had and the project file it was written in.
-local function row(s, track, project)
-  return track.guid .. '\t0\t' .. (project or s.fake.project_path) .. '\n'
+-- One ledger line as the bridge writes it: the track and the value it had.
+local function row(_, track)
+  return track.guid .. '\t0\n'
 end
 
 local function ledger(s)
@@ -181,37 +179,74 @@ H.test('a restore that waited does nothing when there was nothing to put back', 
   H.eq(s:events(), { { 'MONITOR_RESTORED', 'm1', '0', '0', '0' } })
 end)
 
-H.test("a lane of another project's tab is left alone, and put back when that project is in front again", function()
-  local s, _, veyra = new_session()
-  local book = s.fake.project_path
-  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
-  s.fake.project_path = OTHER
-  s:send('monitor_restore', 'm1')
-  H.eq(s:events()[2], { 'MONITOR_RESTORED', 'm1', '0', '0', '0' })
-  H.eq(monitors(s), { 0, 1, 0 })
-  H.truthy(ledger(s), 'the row stays on the ledger')
-  s.fake.project_path = book
-  s:send('monitor_restore', 'm2')
-  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm2', '1', '0', '0' } })
-  H.eq(monitors(s), { 0, 0, 0 })
-end)
-
-H.test('a row of this project whose track is gone is dropped, and the file goes with it', function()
+H.test('a lane whose track is not in the project in front is kept as a ghost and put back once that project is in front again', function()
   local s, _, veyra = new_session()
   s:send('arm_lane', 'a1', veyra.guid, 'monitor')
-  table.remove(s.fake.tracks, 2)
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
   s:send('monitor_restore', 'm1')
   H.eq(s:events()[2], { 'MONITOR_RESTORED', 'm1', '0', '0', '0' })
+  H.eq(ledger(s), row(s, veyra), 'the row stays on the ledger')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  s:tick()
+  H.eq(monitors(s), { 0, 0, 0 }, 'the next tick with the project in front puts it back')
   H.eq(ledger(s), nil)
 end)
 
-H.test('a ghost row of another project is not applied to a track of the same GUID the narrator set by hand', function()
+H.test('a Save as during the take keeps the lane findable: the row is the track, not the file', function()
+  local s, _, veyra = new_session()
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s.fake.project_path = H.join(host.tmpdir(), 'Book2.rpp')
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events()[2], { 'MONITOR_RESTORED', 'm1', '1', '0', '0' })
+  H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('a project that was never saved and is saved before the Booth is left still gets its monitoring put back', function()
+  local s, _, veyra = new_session()
+  s.fake.project_path = ''
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s.fake.project_path = H.join(host.tmpdir(), 'Saved.rpp')
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events()[2], { 'MONITOR_RESTORED', 'm1', '1', '0', '0' })
+  H.eq(monitors(s), { 0, 0, 0 })
+end)
+
+H.test('a ghost whose track resolves but no longer reads what the app left is dropped and the track kept', function()
   local s, narrator, veyra = new_session()
-  H.write_file(s:path('narration_monitor_ledger.txt'), row(s, veyra, OTHER))
-  veyra.rec_mon = 1
+  H.write_file(s:path('narration_monitor_ledger.txt'), row(s, veyra))
+  veyra.rec_mon = 2
   s:send('arm_lane', 'a1', narrator.guid, 'monitor')
-  H.eq(monitors(s), { 1, 1, 0 }, "the other project's row did not turn the narrator's own monitoring off")
-  H.truthy(ledger(s):find('Other.rpp', 1, true), 'the other project keeps its row')
+  H.eq(monitors(s), { 1, 2, 0 }, "the narrator's own value is not touched")
+  H.eq(ledger(s), row(s, narrator), 'the row is gone')
+end)
+
+H.test('the ledger holds at most 64 rows and drops the oldest', function()
+  local s = new_session()
+  local lines = {}
+  for index = 1, 70 do
+    lines[#lines + 1] = string.format('{FFFFFFFF-0000-4000-8000-%012X}\t0\n', index)
+  end
+  H.write_file(s:path('narration_monitor_ledger.txt'), table.concat(lines))
+  s:tick()
+  local kept = H.lines(ledger(s))
+  H.eq(#kept, 64)
+  H.eq(kept[1], string.format('{FFFFFFFF-0000-4000-8000-%012X}\t0', 7), 'the six oldest are gone')
+end)
+
+H.test('a leftover of a project opened after the bridge started is put back on a tick once that project is in front', function()
+  local s, narrator = new_session()
+  local wanted = narrator.guid
+  table.remove(s.fake.tracks, 1)
+  H.write_file(s:path('narration_monitor_ledger.txt'), wanted .. '\t0\n')
+  s:tick()
+  H.eq(ledger(s), wanted .. '\t0\n', 'its project is not in front: the row waits')
+  local opened = s.fake:add_track('Opened')
+  opened.guid = wanted
+  opened.rec_mon = 1
+  s:tick()
+  H.eq(opened.rec_mon, 0)
+  H.eq(ledger(s), nil)
 end)
 
 -- the ledger on disk ---------------------------------------------------------------------------------------------
@@ -233,11 +268,11 @@ H.test("a REAPER that closed with a lane monitored is put right by the next brid
   H.eq(ledger(s), nil)
 end)
 
-H.test('a leftover of another project stays on the ledger, and one of a track that is gone is dropped', function()
-  local s, _, veyra = new_session()
-  H.write_file(s:path('narration_monitor_ledger.txt'), row(s, veyra, OTHER) .. '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\t' .. s.fake.project_path .. '\n')
+H.test('a leftover whose track is not there stays on the ledger', function()
+  local s = new_session()
+  H.write_file(s:path('narration_monitor_ledger.txt'), '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\n')
   s:tick()
-  H.eq(ledger(s), row(s, veyra, OTHER))
+  H.eq(ledger(s), '{FFFFFFFF-0000-4000-8000-00000000FFFF}\t0\n')
   H.eq(monitors(s), { 0, 0, 0 })
 end)
 
@@ -309,24 +344,7 @@ end)
 
 H.test('a damaged ledger row cannot write any value but the off a lane had', function()
   local s, narrator, veyra, drone = new_session()
-  H.write_file(
-    s:path('narration_monitor_ledger.txt'),
-    narrator.guid
-      .. '\t99'
-      .. '\t'
-      .. s.fake.project_path
-      .. '\n'
-      .. veyra.guid
-      .. '\t1'
-      .. '\t'
-      .. s.fake.project_path
-      .. '\n'
-      .. drone.guid
-      .. '\t-3'
-      .. '\t'
-      .. s.fake.project_path
-      .. '\n'
-  )
+  H.write_file(s:path('narration_monitor_ledger.txt'), narrator.guid .. '\t99\n' .. veyra.guid .. '\t1\n' .. drone.guid .. '\t-3\n')
   narrator.rec_mon, veyra.rec_mon, drone.rec_mon = 1, 1, 1
   s:tick()
   H.eq(monitors(s), { 1, 1, 1 })
@@ -428,7 +446,7 @@ end)
 H.test('a leftover row with a lower case or brace-less GUID is read as the track it names', function()
   local s, narrator = new_session()
   local bare = narrator.guid:gsub('[{}]', ''):lower()
-  H.write_file(s:path('narration_monitor_ledger.txt'), bare .. '\t0\t' .. s.fake.project_path .. '\n')
+  H.write_file(s:path('narration_monitor_ledger.txt'), bare .. '\t0\n')
   narrator.rec_mon = 1
   s:tick()
   H.eq(monitors(s), { 0, 0, 0 })

@@ -14,7 +14,7 @@ import (
 
 func armBoothVoice(t *testing.T, host *Host, recorder dawport.Recorder, chapterID string) dawport.Result {
 	t.Helper()
-	result, err := dawArmBoothVoiceIn(context.Background(), host.services(), "REAPER", recorder, chapterID)
+	result, err := dawArmBoothVoiceIn(context.Background(), host.services(), "REAPER", recorder, chapterID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,5 +148,21 @@ func TestEnteringTheBoothWhileTheDAWRecordsDropsAWaitingRelease(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fake.calls, []string{"ArmLane", "KeepMonitor"}) {
 		t.Fatalf("calls %v, want the refused arm and then the dropped release", fake.calls)
+	}
+}
+
+func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	off := "false"
+	if err := host.settings.Save("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
+		t.Fatal(err)
+	}
+	fake := &fakeLaneRecorder{}
+	// The binding reads the switch itself: a voice chosen during a take is armed after it, and the monitoring waits for the switch.
+	if _, err := dawArmBoothVoiceIn(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services())); err != nil {
+		t.Fatal(err)
+	}
+	if len(fake.laneArmed) != 1 || fake.laneMonitor[0] {
+		t.Fatalf("armed %v monitor %v, want the voice armed and not monitored", fake.laneArmed, fake.laneMonitor)
 	}
 }

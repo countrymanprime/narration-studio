@@ -26,7 +26,8 @@ func followChapterSetting(svc hostServices) bool {
 // DawArmBoothVoice arms the track the Booth's next take on chapterID records on (the chapter's one track, or the voice it chose, else its
 // Narrator voice, as a record start picks it) and turns that track's input monitoring on when it is off, so the narrator hears themselves as
 // soon as the Booth opens on the chapter (#3428, the owner's answer 8). The page sends it once per chapter it enters, when Booth.follow_chapter_in_daw
-// is on and the DAW can follow; the voice a later choice makes is armed and monitored by BoothVoiceSet.
+// is on and the DAW can follow, and again after a take that a voice was chosen during (with the switch off too, when it arms without monitoring: a voice
+// choice still arms); the voice a later choice makes is armed and monitored by BoothVoiceSet.
 //
 // It does nothing, and says nothing, for a DAW with no armed tracks, a chapter with no one track or no voice to arm, a take this app runs or
 // starts, and a DAW that is recording (the DAW refuses and the answer carries its sentence): a hot track is never moved under a take. A DAW that
@@ -41,10 +42,10 @@ func (h *Host) DawArmBoothVoice(chapterID string) (string, error) {
 		keepBoothMonitor(ctx, recorder)
 		return encodeBinding(dawport.Result{OK: true}, nil)
 	}
-	return encodeBinding(dawArmBoothVoiceIn(ctx, svc, readAloudAdapterName(svc), recorder, chapterID))
+	return encodeBinding(dawArmBoothVoiceIn(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc)))
 }
 
-func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string) (dawport.Result, error) {
+func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool) (dawport.Result, error) {
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return dawport.Result{OK: true}, nil
@@ -64,7 +65,7 @@ func dawArmBoothVoiceIn(ctx context.Context, svc hostServices, name string, reco
 	if noVoices != nil {
 		return dawport.Result{OK: true}, nil
 	}
-	armed, err := armer.ArmLane(ctx, target, true)
+	armed, err := armer.ArmLane(ctx, target, monitor)
 	if err != nil {
 		if errors.Is(err, bridge.ErrRecording) {
 			keepBoothMonitor(ctx, recorder)

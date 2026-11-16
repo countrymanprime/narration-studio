@@ -290,65 +290,111 @@ describe('arming the Booth voice on entry (#3428)', () => {
     await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
   });
 
-  it('arms the voice chosen during a take once the take stops, and sends nothing for a take with no voice change', async () => {
-    const dawArmBoothVoice = vi.fn(async () => moved);
-    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
-      initialProps: { ...base, recording: false, voice: 'v1' },
-      wrapper: wrapperFor({ dawArmBoothVoice }),
-    });
-    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(1));
-    // A take with no voice change: no second call.
-    rerender({ ...base, recording: true, voice: 'v1' });
-    rerender({ ...base, recording: false, voice: 'v1' });
-    await act(async () => {});
-    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
-    // A voice chosen during the take: armed and monitored once it stops.
-    rerender({ ...base, recording: true, voice: 'v1' });
-    rerender({ ...base, recording: true, voice: 'v2' });
-    await act(async () => {});
-    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
-    rerender({ ...base, recording: false, voice: 'v2' });
-    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(2));
-  });
+  it.each([true, false])(
+    'arms the voice chosen during a take once the take stops, with the switch %s, and nothing for a take with no voice change',
+    async (follow) => {
+      const dawArmBoothVoice = vi.fn(async () => moved);
+      const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+        initialProps: { ...base, follow: follow as boolean | undefined, recording: false, voice: 'v1' },
+        wrapper: wrapperFor({ dawArmBoothVoice }),
+      });
+      await act(async () => {});
+      const entry = follow ? 1 : 0;
+      expect(dawArmBoothVoice).toHaveBeenCalledTimes(entry);
+      // A take with no voice change owes nothing.
+      rerender({ ...base, follow, recording: true, voice: 'v1' });
+      rerender({ ...base, follow, recording: false, voice: 'v1' });
+      await act(async () => {});
+      expect(dawArmBoothVoice).toHaveBeenCalledTimes(entry);
+      // A voice chosen during the take: armed once it stops, exactly once.
+      rerender({ ...base, follow, recording: true, voice: 'v1' });
+      rerender({ ...base, follow, recording: true, voice: 'v2' });
+      await act(async () => {});
+      expect(dawArmBoothVoice).toHaveBeenCalledTimes(entry);
+      rerender({ ...base, follow, recording: false, voice: 'v2' });
+      await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(entry + 1));
+      rerender({ ...base, follow, recording: false, voice: 'v2' });
+      await act(async () => {});
+      expect(dawArmBoothVoice).toHaveBeenCalledTimes(entry + 1);
+    },
+  );
 
-  it('re-entering during a take cancels the waiting release, and arms once the take stops', async () => {
+  it('a voice chosen during a take is armed after the stop even with the setting off', async () => {
     const dawArmBoothVoice = vi.fn(async () => moved);
     const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
-      initialProps: { ...base, recording: true, voice: 'v1' },
+      initialProps: { ...base, follow: false as boolean | undefined, recording: false, voice: 'v1' },
       wrapper: wrapperFor({ dawArmBoothVoice }),
     });
+    rerender({ ...base, follow: false, recording: true, voice: 'v1' });
+    rerender({ ...base, follow: false, recording: true, voice: 'v2' });
+    rerender({ ...base, follow: false, recording: false, voice: 'v2' });
     await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c-1'));
-    rerender({ ...base, recording: false, voice: 'v1' });
+  });
+
+  it.each([true, false])(
+    're-entering during a take sends the call that cancels a waiting release, with the switch %s, and arms once the take stops',
+    async (follow) => {
+      const dawArmBoothVoice = vi.fn(async () => moved);
+      const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+        initialProps: { ...base, follow, recording: true, voice: 'v1' },
+        wrapper: wrapperFor({ dawArmBoothVoice }),
+      });
+      await act(async () => {});
+      expect(dawArmBoothVoice).toHaveBeenCalledTimes(follow ? 1 : 0);
+      rerender({ ...base, follow, recording: false, voice: 'v1' });
+      await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(follow ? 2 : 0));
+    },
+  );
+
+  it('a refused arm is sent again when the take stops, with no timer, and each refusal is said once', async () => {
+    vi.useFakeTimers();
+    const refused = { ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER is already recording.' };
+    const dawArmBoothVoice = vi.fn().mockResolvedValueOnce(refused).mockResolvedValueOnce(refused).mockResolvedValue(moved);
+    const say = vi.fn();
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say }), {
+      initialProps: { ...base, recording: true },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+    expect(say).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+    rerender({ ...base, recording: false });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(2);
+    expect(say).toHaveBeenCalledTimes(2);
+    rerender({ ...base, recording: true });
+    rerender({ ...base, recording: false });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(3);
+  });
+
+  it('a refused arm is sent again when the DAW reconnects', async () => {
+    const refused = { ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER is not answering.' };
+    const dawArmBoothVoice = vi.fn().mockResolvedValueOnce(refused).mockResolvedValue(moved);
+    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
+      initialProps: base,
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
+    rerender({ ...base, canArm: false });
+    rerender({ ...base, canArm: true });
     await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(2));
   });
 
-  it('a refused re-arm after a stop is tried once more, and said once', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    const dawArmBoothVoice = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER is already recording.' })
-      .mockResolvedValue(moved);
+  it('says nothing and sets nothing when the answer arrives after the Booth was left', async () => {
+    let answer: (value: typeof moved) => void = () => undefined;
+    const dawArmBoothVoice = vi.fn(() => new Promise<typeof moved>((resolve) => (answer = resolve)));
     const say = vi.fn();
-    renderHook(() => useArmBoothOnOpen({ ...base, say }), { wrapper: wrapperFor({ dawArmBoothVoice }) });
+    const { unmount } = renderHook(() => useArmBoothOnOpen({ ...base, say }), { wrapper: wrapperFor({ dawArmBoothVoice }) });
     await act(async () => {});
-    expect(dawArmBoothVoice).toHaveBeenCalledTimes(1);
-    expect(say).toHaveBeenCalledExactlyOnceWith('REAPER is already recording.');
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
-    expect(dawArmBoothVoice).toHaveBeenCalledTimes(2);
-    expect(say).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not arm again after a take when the switch is off', async () => {
-    const dawArmBoothVoice = vi.fn(async () => moved);
-    const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
-      initialProps: { ...base, follow: false as boolean | undefined, recording: true },
-      wrapper: wrapperFor({ dawArmBoothVoice }),
-    });
-    rerender({ ...base, follow: false, recording: false });
-    await act(async () => {});
-    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+    unmount();
+    await act(async () => answer({ ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'late' } as unknown as typeof moved));
+    expect(say).not.toHaveBeenCalled();
   });
 
   it('says a refusal and a failed call, and changes nothing else', async () => {

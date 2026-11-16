@@ -6,16 +6,20 @@
 -- already monitors, in either way, is left exactly as it is, and is not ours to put back. Setting it adds no undo point, does not mark
 -- the project unsaved and does not move the project's change count (REAPER 7.82 on Linux, docs/research/2026-11-16-booth-arms-and-monitors.md).
 --
--- What was turned on is remembered (a row per track: its GUID, the value it had and the project file it was written in), and monitor_restore puts
--- it back where the value is still the one this file set: a track the narrator switched off or to auto meanwhile is theirs and is kept. The lane the
--- Booth moved to makes the earlier lane's row go back at once, so one voice at a time is monitored.
+-- What was turned on is remembered (a row per track: its GUID and the value it had, always 0), and monitor_restore puts it back where the value
+-- is still the one this file set (1): a track the narrator switched off or to auto meanwhile is theirs and is kept. The lane the Booth moved to
+-- makes the earlier lane's row go back at once, so one voice at a time is monitored. A row is keyed by the track's GUID alone, which Save as
+-- keeps and a new project never reuses; the one risk is a copy of a project with the same GUIDs open in another tab.
+--
+-- A row whose track is not in the project in front (another tab is in front, or the project is not open yet) becomes a ghost: it stays on the
+-- ledger and is tried again whenever the project in front or its track count changes, on the bridge's tick, and is dropped once its track
+-- resolves, whatever the track reads. At most MAX_ROWS rows are kept, the oldest dropped first, so a row for a deleted track cannot live forever.
 --
 -- The rows are also written to a file in REAPER's resource folder, so a REAPER closed while a lane was monitored is put right the first time this
 -- bridge can: its first tick, or its first arm_lane with monitor or monitor_restore if one comes before it, as narration_transport.lua does for a
--- play, and never while REAPER records. A row is applied only while the project file it was written in is in front; a row of another project stays
--- on the ledger until then, and a row of the project in front whose track is gone is dropped. Only a row of value 0 is accepted from the file, so a
--- damaged file cannot write another value into a track. A real REAPER crash with a lane monitored is pending (the harness reads a leftover file,
--- not a killed process); see docs/architecture/reaper-bridge.md.
+-- play, and never while REAPER records. Only a row of value 0 is accepted from the file, so a damaged file cannot write another value into a
+-- track. A real REAPER crash with a lane monitored is pending (the harness reads a leftover file, not a killed process); see
+-- docs/architecture/reaper-bridge.md.
 --
 -- monitor_restore answers MONITOR_RESTORED|run|restored|kept|waiting. While REAPER records, or a record_start is waiting for REAPER to report
 -- recording, it touches nothing and answers waiting 1: the rows are put back on the first tick after the recording has stopped, so leaving the
@@ -28,6 +32,7 @@ local event = core.event
 
 local LEDGER_FILE = 'narration_monitor_ledger.txt'
 local ON = 1
+local MAX_ROWS = 64
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -49,11 +54,6 @@ end
 local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
 end
--- The file of the project in front (the active tab), '' for one never saved: a row belongs to the project it was written in.
-local function project_path()
-  local _, path = reaper.EnumProjects(-1, '')
-  return path or ''
-end
 local function ledger_path()
   return core.join(reaper.GetResourcePath(), LEDGER_FILE)
 end
@@ -70,34 +70,32 @@ local function save(rows)
   end
   local written = true
   for _, row in ipairs(rows) do
-    written = out:write(row.guid, '\t', row.was, '\t', row.project, '\n') and written
+    written = out:write(row.guid, '\t', row.was, '\n') and written
   end
   return out:close() and written and true or false
 end
 
--- Puts back the rows of the project in front whose track still holds the value this file set. Answers how many were put back, how many were kept,
--- and the rows of another project, which stay on the ledger until that project is in front. A row of this project whose track is gone is dropped.
+-- Puts back the rows whose track is in the project in front and still holds the value this file set. Answers how many were put back, how many were
+-- kept (the track reads something else now), and the rows whose track is not there. A row whose track resolves is done either way.
 local function put_back(rows)
   local restored, kept, left = 0, 0, {}
-  local here = project_path()
   for _, row in ipairs(rows) do
-    if row.project ~= here then
+    local track = find_track(row.guid)
+    if not track then
       left[#left + 1] = row
+    elseif reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then
+      reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', row.was)
+      restored = restored + 1
     else
-      local track = find_track(row.guid)
-      if track and reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then
-        reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', row.was)
-        restored = restored + 1
-      elseif track then
-        kept = kept + 1
-      end
+      kept = kept + 1
     end
   end
   return restored, kept, left
 end
 
 return function(registry)
-  local state = { rows = {} }
+  -- rows are the lanes this bridge monitored, ghosts the rows whose track was not in the project in front when they were tried.
+  local state = { rows = {}, ghosts = {} }
 
   -- REAPER records, or a record_start has pressed record and waits for REAPER to say so: the take is not to be touched.
   local function busy()
@@ -108,9 +106,29 @@ return function(registry)
     return take ~= nil and not take.started
   end
 
+  -- Adds rows to the ghosts, the oldest dropped past MAX_ROWS (together with the lanes this bridge holds).
+  local function add_ghosts(rows)
+    for _, row in ipairs(rows) do
+      state.ghosts[#state.ghosts + 1] = row
+    end
+    while #state.ghosts > 0 and #state.rows + #state.ghosts > MAX_ROWS do
+      table.remove(state.ghosts, 1)
+    end
+  end
+
+  local function persist()
+    local all = {}
+    for _, row in ipairs(state.ghosts) do
+      all[#all + 1] = row
+    end
+    for _, row in ipairs(state.rows) do
+      all[#all + 1] = row
+    end
+    return save(all)
+  end
+
   -- Once per bridge start: puts back the rows a closed or crashed REAPER left in the file. Every path that writes the file runs it first, since a
-  -- write would replace the file; this bridge has written nothing yet when it runs, so every row in the file is a leftover. Rows of another project
-  -- are kept.
+  -- write would replace the file; this bridge has written nothing yet when it runs, so every row in the file is a leftover.
   local function recover()
     if state.recovered then
       return
@@ -125,20 +143,17 @@ return function(registry)
     pcall(function()
       for line in input:lines() do
         -- Only a 0 is something this file turns on from, so no other value is ever written back.
-        local guid, project = line:match('^([^\t]+)\t0\t([^\t]*)$')
+        local guid = line:match('^([^\t]+)\t0$')
         if guid then
-          rows[#rows + 1] = { guid = normalize_guid(guid), was = 0, project = project }
+          rows[#rows + 1] = { guid = normalize_guid(guid), was = 0 }
         end
       end
     end)
     input:close()
-    -- A row whose track is not in the open project stays on the ledger, and is put back by the next restore.
-    local _, _, left = put_back(rows)
-    for _, row in ipairs(left) do
-      state.rows[#state.rows + 1] = row
-    end
     if #rows > 0 then
-      save(state.rows)
+      local _, _, left = put_back(rows)
+      add_ghosts(left)
+      persist()
     end
   end
 
@@ -150,30 +165,27 @@ return function(registry)
     state.waiting = false
     recover()
     local guid = normalize_guid(reaper.GetTrackGUID(track))
-    local here = project_path()
-    local mine, others, away = nil, {}, {}
+    local mine, others = nil, {}
     for _, row in ipairs(state.rows) do
-      if row.project ~= here then
-        away[#away + 1] = row
-      elseif row.guid == guid then
+      if row.guid == guid then
         mine = row
       else
         others[#others + 1] = row
       end
     end
     local needs = reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0
-    local after = away
-    if mine then
-      after[#after + 1] = mine
-    elseif needs then
-      after[#after + 1] = { guid = guid, was = 0, project = here }
-    end
-    local written = save(after)
+    local before = state.rows
+    state.rows = { mine or (needs and { guid = guid, was = 0 }) or nil }
+    local written = persist()
     if needs and not mine and not written then
+      state.rows = before
       return 0
     end
-    put_back(others)
-    state.rows = after
+    local _, _, left = put_back(others)
+    if #left > 0 then
+      add_ghosts(left)
+      persist()
+    end
     if needs then
       reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', ON)
       return 1
@@ -185,8 +197,9 @@ return function(registry)
   local function release()
     recover()
     local restored, kept, left = put_back(state.rows)
-    state.rows = left
-    save(state.rows)
+    state.rows = {}
+    add_ghosts(left)
+    persist()
     return restored, kept
   end
 
@@ -213,7 +226,8 @@ return function(registry)
     event(ctx.session_dir, 'MONITOR_RESTORED', run, restored, kept, 0)
   end)
 
-  -- Called by the tick loop once a tick: recovers the file, then finishes a restore that waited for a recording to stop.
+  -- Called by the tick loop once a tick: recovers the file, finishes a restore that waited for a recording to stop, and tries the ghosts again when the
+  -- project in front or its track count has changed since they were last tried.
   registry.monitor_tick = function()
     if busy() then
       return
@@ -222,6 +236,18 @@ return function(registry)
     if state.waiting then
       state.waiting = false
       release()
+    end
+    if #state.ghosts > 0 then
+      local place = (select(2, reaper.EnumProjects(-1, '')) or '') .. '|' .. reaper.CountTracks(0)
+      if place ~= state.tried then
+        state.tried = place
+        local _, _, left = put_back(state.ghosts)
+        if #left ~= #state.ghosts then
+          state.ghosts = {}
+          add_ghosts(left)
+          persist()
+        end
+      end
     end
   end
 end
