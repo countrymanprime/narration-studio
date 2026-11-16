@@ -448,7 +448,10 @@ describe('Dialog size="full"', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Add note' });
     expect(dialog.className).toContain(DIALOG_WIDTHS.form);
     expect(dialog.className).not.toContain('70vw');
-    expect(dialog.style.maxHeight).toMatch(/^min\(80dvh, (calc\()?92dvh - 4.75rem\)?\)$/);
+    // A class and not an inline style, so a window 260 px tall or less can give the toast's 4.75rem back (#2998); the cap above that is the same.
+    expect(dialog.className).toContain('max-h-[min(80dvh,calc(92dvh-4.75rem))]');
+    expect(dialog.className).toContain('[@media(max-height:260px)]:max-h-[calc(100dvh-0.5rem)]');
+    expect(dialog.style.maxHeight).toBe('');
     expect(dialog.style.height).toBe('');
   });
 
