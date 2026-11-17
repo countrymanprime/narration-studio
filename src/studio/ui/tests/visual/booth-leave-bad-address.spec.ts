@@ -34,16 +34,18 @@ const arrive = (page: Page, address: string) =>
   }, address);
 
 // A chapter the manuscript lacks (or a line it lacks) is asked about like any other chapter; an address that cannot be read at all is said in a message and ignored.
-const ASKS = [
-  '/booth?chapter=nope',
-  '/booth?chapter=chapter-2&para=p1&at=3',
+const ASKS = ['/booth?chapter=nope', '/booth?chapter=chapter-2&para=p1&at=3', '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A'];
+// Malformed whatever they half name, the chapter on screen included: said, put back, never asked about.
+const MESSAGE = [
+  '/booth?chapter=',
   '/booth?chapter=chapter-2&para=p1&at=-5',
   '/booth?chapter=chapter-2&chapter=chapter-3',
   '/booth?chapter=chapter-2%01',
   `/booth?chapter=${'x'.repeat(600)}`,
-  '/booth?chapter=%D8%B9%D8%B1%D8%A8%D9%8A',
+  '/booth?chapter=chapter-1&chapter=chapter-2',
+  '/booth?chapter=chapter-1&para=p1&at=-5',
+  '/booth?chapter=chapter-1&para=p1&at=abc',
 ];
-const MESSAGE = ['/booth?chapter='];
 const question = (page: Page) => page.getByRole('alertdialog', { name: 'Stop recording?' });
 const said = (page: Page) => page.getByText('The Booth stays and the take goes on.');
 
@@ -69,6 +71,7 @@ for (const address of ASKS) {
 for (const address of MESSAGE) {
   test(`${address} during a take says so in a message and the take goes on`, async ({ page }) => {
     await recording(page);
+    const before = await page.evaluate(() => window.location.pathname + window.location.search);
     await arrive(page, address);
     await expect(said(page)).toBeVisible();
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -76,6 +79,11 @@ for (const address of MESSAGE) {
     await expect(stop(page)).toBeVisible();
     expect(await dawRecording(page)).toBe(true);
     expect(await stops(page)).toBe(0);
+    // The bar is the Booth's again, so ending the take does not turn the ignored address into the "could not be opened" card.
+    await expect.poll(() => page.evaluate(() => window.location.pathname + window.location.search)).toBe(before);
+    await stop(page).click();
+    await expect(record(page)).toBeVisible();
+    await expect(page.getByText('This link could not be opened')).toHaveCount(0);
   });
 }
 

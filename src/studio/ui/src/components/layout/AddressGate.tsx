@@ -5,7 +5,7 @@
 import { creditsKindOfId } from '../credits/creditsEntries';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
+import { readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
@@ -97,8 +97,7 @@ export function AddressGate({
   page: AddressPage;
   /**
    * The page is holding something the narrator has not let go of (the Booth, while a take records or its end is not confirmed): an address it cannot act on does not
-   * replace it. A chapter the list lacks, or an address the page can still read a chapter from, goes to the page, which asks as it does for any chapter; an address that names
-   * none is said in a message and ignored (#3555 item 4).
+   * replace it. A chapter the list lacks goes to the page, which asks as it does for any chapter; a malformed address is said in a message, put back and ignored (#3555 item 4).
    */
   held?: boolean;
   /** The `:chapterId` the route matched, for Editing. */
@@ -113,13 +112,14 @@ export function AddressGate({
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
   const overlay = useOverlay();
   const keep = held && page === 'booth' && (read.kind === 'bad' || check.state !== 'ok');
-  // An address the Booth can still read a chapter from is the Booth's to ask about, as for any chapter; one that names none is said here and ignored.
-  const ignored = keep && read.kind === 'bad' && readBoothQuery(new URLSearchParams(search)) === null ? `${search}${hash}` : null;
   const reason = read.kind === 'bad' ? read.message : '';
   // The last address the page was shown at: an ignored link is put back to it, so the take's end does not turn the ignored address into the "could not be opened" card, and a
   // second identical link is answered like the first.
   const shown = useRef<string | null>(null);
   if (!keep && read.kind === 'address') shown.current = `${pathname}${search}${hash}`;
+  // A malformed address is said here and put back, whatever it half names: the Booth does not act on it either. A well-formed one that names a chapter the manuscript lacks is
+  // the Booth's to ask about, as for any chapter.
+  const ignored = keep && read.kind === 'bad' ? `${search}${hash}` : null;
   useEffect(() => {
     if (ignored === null) return;
     overlay.toast(`${reason} The Booth stays and the take goes on.`);
