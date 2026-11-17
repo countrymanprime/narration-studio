@@ -34,7 +34,8 @@ type liveTracksCache struct {
 	flight *liveTracksFlight
 	// +checklocks:mu
 	generation uint64
-	now        func() time.Time
+	// +checklocks:mu
+	now func() time.Time
 }
 
 // liveTracksFlight is one read that callers arriving meanwhile wait on instead of sending their own.
@@ -77,9 +78,6 @@ func withTracksCache(svc hostServices, lister dawport.TrackLister) dawport.Track
 	return cachedTrackLister{inner: lister, cache: svc.tracksCache, heartbeat: svc.reachability}
 }
 
-// errReadPanicked is what the callers waiting on a read are told when the read panicked instead of answering.
-var errReadPanicked = errors.New("the track list read ended without an answer")
-
 func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
 	c := l.cache
 	for {
@@ -117,7 +115,7 @@ func (l cachedTrackLister) lead(ctx context.Context, c *liveTracksCache, flight 
 	defer func() {
 		c.mu.Lock()
 		if !finished {
-			flight.err = errReadPanicked
+			flight.err = errors.New("the track list read ended without an answer") // the read panicked: the waiters read for themselves
 		}
 		if c.flight == flight {
 			c.flight = nil
@@ -144,7 +142,9 @@ func cloneTracks(answer dawport.LiveTracks) dawport.LiveTracks {
 
 // fresh reports whether the held answer is still REAPER's list: the heartbeat is fresh and carries a counter equal to the answer's, it names the
 // project the answer is of, and the answer is not older than liveTracksMaxAge. A REAPER restarted or a project reopened (the counter starts again)
-// with no read in between and an equal counter is served stale for at most that long. Called with c.mu held.
+// with no read in between and an equal counter is served stale for at most that long.
+//
+// +checklocks:c.mu
 func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
 	count, known := l.heartbeat.ChangeCount()
 	if !known {
