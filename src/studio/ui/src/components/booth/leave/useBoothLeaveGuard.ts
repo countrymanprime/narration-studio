@@ -19,6 +19,8 @@ export type BoothLeaveSession = {
   endConfirmed?: () => Promise<boolean>;
   /** True while a take that has ended is not yet known to have ended with the DAW answering. Leaving is not allowed silently then: the stop is tried and its refusal asked. */
   endUnconfirmed?: () => boolean;
+  /** Whether the DAW itself says it records now (its play state): a take that ended in the Booth's eyes may be recording again, started in the DAW (#3555 item 2). Absent: not asked. */
+  dawRecordingNow?: () => Promise<boolean>;
   /** Resolves when a start that is still out lands or fails, with whether a take is running then. The narrator's yes waits for it, so what it stops is a take. */
   settle?: () => Promise<boolean>;
   /** Writes what the take left behind (the passage map's run); called once the stop is confirmed and before `go`. Must not reject. */
@@ -29,6 +31,13 @@ export type BoothLeaveSession = {
 
 /** True when nothing records now but the end of the take is not known to have come with the DAW answering: it may still be recording. */
 const unconfirmedEnd = (session: BoothLeaveSession): boolean => !session.recording && !!session.endUnconfirmed?.();
+
+/**
+ * What the open question claims about the take: it is running and the app stops it, it may still be running (the DAW went quiet before saying it ended), or the DAW
+ * records a take the app did not start. A question whose claim stopped being true is asked again with the true one (#3555 item 2).
+ */
+type Claim = 'running' | 'unconfirmed' | 'foreign';
+const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?? true) ? 'foreign' : unconfirmedEnd(session) ? 'unconfirmed' : 'running');
 
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
@@ -115,7 +124,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   }, [recording]);
   // The question asked while a start was still pending ("is starting a take"): closed by itself when the start ends with no take, because nothing is left
   // to stop. A question about a take that really ran stays when that take ends by itself, as before (#3342): its "Stop and leave" then leaves.
-  const open = useRef<{ close: AbortController; pending: boolean } | null>(null);
+  const open = useRef<{ close: AbortController; pending: boolean; refusal: boolean; claim: Claim } | null>(null);
   const reask = useRef(false);
   useEffect(() => {
     if (!open.current?.pending) return;
@@ -127,6 +136,30 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       open.current.close.abort();
     } else if (!recording) open.current.close.abort();
   }, [recording, session.recording, session.startPending]);
+  // The DAW went quiet while the question about a running take was open, or answered again with a take of its own: what the question says is no longer true, so it is
+  // asked again with what is (`decide` loops on `reask`). A take that merely ended with the DAW answering keeps the question: its Stop and leave then leaves (#3342).
+  const claim = claimOf(session);
+  useEffect(() => {
+    const asked = open.current;
+    // A refusal already reports the DAW's last answer to a stop: it stays as it is.
+    if (!asked || asked.pending || asked.refusal || asked.claim === claim) return;
+    const askAgain = () => {
+      reask.current = true;
+      asked.close.abort();
+    };
+    if (claim === 'unconfirmed' && !sessionRef.current.recording) {
+      // Every end is unconfirmed until the DAW has been read once: a take that ended with the DAW answering keeps its question. Only an end that read says it cannot vouch for
+      // (the DAW quiet) makes the question say so.
+      let current = true;
+      void confirmedWithin(sessionRef.current.endConfirmed?.()).then((confirmed) => {
+        if (current && !confirmed && open.current === asked && claimOf(sessionRef.current) === 'unconfirmed') askAgain();
+      });
+      return () => {
+        current = false;
+      };
+    }
+    if (sessionRef.current.recording) askAgain();
+  }, [claim, recording]);
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
   // One at a time: a second caller while it is open is the same question, and does not move.
@@ -134,6 +167,13 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     (next?: string): Promise<boolean> => {
       const destination = next === undefined ? undefined : pageNameFor(next);
       const endIsConfirmed = () => confirmedWithin(sessionRef.current.endConfirmed?.());
+      const recordingInDaw = async (): Promise<boolean> => {
+        try {
+          return (await within(Promise.resolve(sessionRef.current.dawRecordingNow?.() ?? false), LEAVE_WAIT_MS))?.value ?? false;
+        } catch {
+          return false;
+        }
+      };
       const now = sessionRef.current;
       if (asking.current) {
         if (waiting.current) sayStopping();
@@ -141,18 +181,19 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       }
       const run = async (): Promise<boolean> => {
         const mine = take.current;
-        const startedByApp = now.startedByApp ?? true;
+        let startedByApp = now.startedByApp ?? true;
         let spec = stopRecordingSpec(now.daw.name, startedByApp, now.startPending, destination, unconfirmedEnd(now));
         let refusedOnce = false;
         // Whether the question asked is the one about a start still pending; the re-ask after the start landed is an ordinary recording question.
         let startAsked = !!now.startPending;
         for (;;) {
           const closing = new AbortController();
-          open.current = { close: closing, pending: startAsked && !refusedOnce };
+          open.current = { close: closing, pending: startAsked && !refusedOnce, refusal: refusedOnce, claim: claimOf(sessionRef.current) };
           const yes = gone.current ? false : await overlay.confirm(spec, closing.signal).finally(() => (open.current = null));
           // The start landed as a take while the question was open: it is asked again as the recording question, with its own Enter hold.
           if (reask.current && !gone.current) {
             reask.current = false;
+            startedByApp = sessionRef.current.startedByApp ?? true;
             spec = stopRecordingSpec(now.daw.name, startedByApp, false, destination, unconfirmedEnd(sessionRef.current));
             startAsked = false;
             continue;
@@ -186,7 +227,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               answered.current = true;
               answeredFor.current = mine;
               // A take the DAW has already ended (during the question or while this waits) has nothing to stop: what it wrote is flushed and they leave.
-              let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await endIsConfirmed());
+              // The DAW answering is not the take being over: asked once more whether it records, a take started in the DAW since is stopped like any other, not left running unsaid.
+              let takeEnded = !sessionRef.current.recording && !sessionRef.current.startPending && (await endIsConfirmed()) && !(await recordingInDaw());
               // Set the moment the DAW confirms the end, before the grace is over: a refusal that arrives then is about a take that is already over.
               let endSeen = takeEnded;
               const endWait = new Promise<'ended'>((resolve) => {
@@ -231,7 +273,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           // The stop was refused or never answered: nothing changed that this app knows of, so the take may still run. The question stays, now with a way out.
           refusedOnce = true;
           spec = {
-            ...spec,
+            // The labels of the question as the DAW is now: a take that went quiet after "Keep recording" was offered offers "Stay", as the unconfirmed question does.
+            ...stopRecordingSpec(now.daw.name, startedByApp, false, destination, unconfirmedEnd(sessionRef.current)),
             title: 'Could not stop the take',
             body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can leave anyway, but it may keep recording.`.trim(),
             confirmLabel: 'Leave anyway',
@@ -268,18 +311,22 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   }, [guard, decide]);
 
   const leave = useCallback(
-    async (next: string, go: (next: string) => void): Promise<void> => {
+    // True when the narrator let go and a move is on its way (this one, or the one already decided that this exit joins); false when they stayed.
+    async (next: string, go: (next: string) => void): Promise<boolean> => {
       // A move already decided is on its way (the question is open, or the stop and the run are being written): this exit is the same one, and does not go twice.
       if (asking.current) {
         if (waiting.current) sayStopping();
-        await asking.current;
-        return;
+        return await asking.current;
       }
       if (!sessionRef.current.recording && !sessionRef.current.endUnconfirmed?.()) {
         go(next);
-        return;
+        return true;
       }
-      if (await decide(next)) go(next);
+      if (await decide(next)) {
+        go(next);
+        return true;
+      }
+      return false;
     },
     [decide, sayStopping],
   );

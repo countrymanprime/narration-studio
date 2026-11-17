@@ -28,12 +28,15 @@ type LeaveVerdict =
       decide?: () => Promise<boolean>;
     };
 
-type LeaveGuard = (next: string) => LeaveVerdict;
+/** `peek`: only asking whether the guard would ask (the page's own render does): it must change nothing, as `checkLeave` may on the way to a move. */
+type LeaveGuard = (next: string, options?: { peek?: boolean }) => LeaveVerdict;
 
 export type LeaveGuardStore = {
   /** Replaces the guard; `null` removes it. */
   setLeaveGuard(guard: LeaveGuard | null): void;
   checkLeave(next: string): LeaveVerdict;
+  /** The verdict `checkLeave` would give, with nothing marked as asked: for a render to read. */
+  peekLeave(next: string): LeaveVerdict;
 };
 
 export function createLeaveGuard(): LeaveGuardStore {
@@ -43,5 +46,6 @@ export function createLeaveGuard(): LeaveGuardStore {
       guard = next;
     },
     checkLeave: (next) => guard?.(next) ?? 'allow',
+    peekLeave: (next) => guard?.(next, { peek: true }) ?? 'allow',
   };
 }

@@ -1039,9 +1039,10 @@ export function useBoothPage(options: BoothPageOptions) {
       setLeaveGuard: (next) =>
         guard.setLeaveGuard(
           next &&
-            ((path) => {
-              askedByShell.current = true;
-              const verdict = next(path);
+            ((path, options) => {
+              // A peek is a render reading whether a question would be asked: nothing is under way, so nothing is marked.
+              if (!options?.peek) askedByShell.current = true;
+              const verdict = next(path, options);
               // The narrator stayed (Keep recording, Cancel): no leave is under way, so a take that ends soon is not a leave's.
               if (verdict !== 'allow' && verdict.decide) {
                 const decide = verdict.decide;
@@ -1091,6 +1092,7 @@ export function useBoothPage(options: BoothPageOptions) {
       settle: control.settle,
       endConfirmed: control.endConfirmed,
       endUnconfirmed: control.endUnconfirmed,
+      dawRecordingNow: () => daw.projectState().then((state) => state.playState === 'recording'),
       flush: writer.flush,
       arrived,
     },

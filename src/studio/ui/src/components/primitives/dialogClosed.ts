@@ -58,3 +58,30 @@ if (typeof window !== 'undefined') {
     true,
   );
 }
+
+// A held Enter or Space that answered a dialog is over when the dialog closes, but the key goes on repeating into whatever focus went back to: the Stop
+// button of a take that "Keep recording" just kept (#3555 item 1). The press that began inside a dialog is remembered until its key comes up, and a repeat of
+// it that lands outside every dialog is stopped before it can press that control. A repeat inside a dialog is that dialog's own business (`Dialog` holds
+// the repeats of a press that began in its hold), and a new press (`repeat` false) is always a press.
+const ANSWER_KEYS = new Set(['Enter', ' ']);
+const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
+const heldAnswers = new Set<string>();
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (!ANSWER_KEYS.has(event.key)) return;
+      const inDialog = event.target instanceof Element && event.target.closest(DIALOG_SELECTOR) !== null;
+      if (!event.repeat) {
+        if (inDialog) heldAnswers.add(event.key);
+        else heldAnswers.delete(event.key);
+      } else if (heldAnswers.has(event.key) && !inDialog) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+  window.addEventListener('keyup', (event) => heldAnswers.delete(event.key), true);
+  window.addEventListener('blur', () => heldAnswers.clear());
+}

@@ -192,7 +192,8 @@ for (const gap of [100, 1500]) {
     await expect(question(page)).toBeVisible();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
     await page.waitForTimeout(gap);
-    await question(page).getByRole('button', { name: /^Stop/ }).click();
+    // The question follows the DAW (#3555): a quiet DAW may still be recording, so it is asked again as the unconfirmed question, with the same Stop and leave.
+    await quietQuestion(page).getByRole('button', { name: /^Stop/ }).click();
     const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
     await expect(refused).toBeVisible({ timeout: 14_000 });
     await expect(refused).toContainText('may keep recording');
@@ -221,7 +222,8 @@ test('quiet() and Escape in the same tick still ask', async ({ page }) => {
     window.__NARRATION_MOCK_DAW__?.quiet();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
   });
-  await expect(question(page)).toBeVisible();
+  // Asked, as the quiet DAW's question once the DAW is heard quiet (#3555), and never as nothing.
+  await expect(question(page).or(quietQuestion(page))).toBeVisible();
   expect(await onBooth(page)).toBe(true);
 });
 
