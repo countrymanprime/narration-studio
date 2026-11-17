@@ -478,7 +478,8 @@ describe('the row menu keeps the features the mock has none for', () => {
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    // The mock's chapter has a suggested track, not a confirmed link: the reason says so (#3363).
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/only a suggestion/);
   });
 
   // #3415: the board's links are read from the saved project; REAPER's tracks now say whether a linked track is still there.
@@ -535,7 +536,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: suggestedLinks } });
     const suggestedRow = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/only a suggestion/);
   });
 
   // #3228's review: the ambiguous case (two candidate tracks) was covered by the shared function only, not by the menu (#3231).
@@ -548,7 +549,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: ambiguousLinks } });
     const row = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/More than one track could be this chapter/);
   });
 
   // #3398: the link is written and "Track linked." said; the read after it fails. The narrator is told the change was made, once, never that the link failed.

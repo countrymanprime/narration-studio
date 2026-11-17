@@ -58,6 +58,26 @@ export function showableTrackGuid(link: ChapterTrackLink | undefined): string | 
   return state?.kind === 'linked' || state?.kind === 'renamed' ? state.trackGuid : undefined;
 }
 
+/**
+ * Why REAPER cannot be asked to show a track for this chapter, by what the link is: gone from the project, several links, several candidates,
+ * only suggested, or nothing. One sentence for the row menu and the chapter track panel, each of which has a Show in REAPER that is off (#3363).
+ */
+export function noShowableTrackReason(link: ChapterTrackLink | undefined): string {
+  const state = link && chapterTrackButtonState(link);
+  switch (state?.kind) {
+    case 'missing':
+      return 'The track linked to this chapter is missing from the project: choose another from the audio engine panel';
+    case 'ambiguous':
+      return link && (link.links.length > 1 || link.warnings.includes('confirmed-links-conflict'))
+        ? 'This chapter is linked to more than one track: choose one from the audio engine panel'
+        : 'More than one track could be this chapter’s: choose one from the audio engine panel';
+    case 'suggested':
+      return 'The track found for this chapter is only a suggestion: confirm it from the audio engine panel';
+    default:
+      return 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
+  }
+}
+
 /** The button's accessible name (Solution Detail's examples: "Track for Chapter 6: CHAPTER SIX, linked"). */
 export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrackButtonState): string {
   switch (state.kind) {

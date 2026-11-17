@@ -14,7 +14,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -254,11 +254,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
         const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
         const trackGuid = showableTrackGuid(entry);
-        // A linked track REAPER no longer has is said to be missing, not "not linked" (the panel and the Engine row say so).
-        const noTrack =
-          entry && chapterTrackButtonState(entry).kind === 'missing'
-            ? 'The track linked to this chapter is missing from the project: choose another from the audio engine panel'
-            : 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
+        // Why Show in REAPER is off says what the link is (missing, several, only suggested, none), as the panel and the Engine row say.
+        const noTrack = noShowableTrackReason(entry);
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },

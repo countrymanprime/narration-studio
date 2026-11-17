@@ -144,6 +144,20 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
   });
 
+  // #3363: a chapter with several confirmed links is "Several tracks", as the Engine row says, and Show in REAPER says why it is off.
+  it('says a chapter linked to several tracks is that, and why Show in REAPER is off', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const several: ChapterTrackLink = { ...link, warnings: [...link.warnings, 'confirmed-links-conflict'] };
+    renderPanel(api, several, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.queryByText('Ambiguous')).toBeNull();
+    const show = await screen.findByRole('button', { name: /^Show in / });
+    expect(show.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.hover(show);
+    expect(await screen.findByText(/linked to more than one track/)).toBeTruthy();
+  });
+
   it('shows a linked track under the name it has now', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

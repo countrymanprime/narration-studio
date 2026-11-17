@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterTrackLink, ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { chapterTrackRows } from '../engine/chapterTrackRows';
-import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 
 const base: ChapterTrackLink = {
   chapterId: 'c-1',
@@ -146,5 +146,28 @@ describe('every surface says the same about a track renamed or deleted in REAPER
     if (followed.kind === 'linked' || followed.kind === 'renamed') expect(followed.trackName).toBe(row.trackName);
     // Show in REAPER is on exactly when the Engine row says Linked.
     expect(showableTrackGuid(followLiveTracks(link, tracks)) !== undefined).toBe(row.state === 'linked');
+  });
+});
+
+describe('noShowableTrackReason (#3363)', () => {
+  const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
+  it('says what the link is, not just that none is linked', () => {
+    expect(noShowableTrackReason(base)).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason(undefined)).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] })).toMatch(
+      /missing from the project/,
+    );
+    expect(noShowableTrackReason({ ...base, status: 'matched', track })).toMatch(/only a suggestion/);
+    expect(noShowableTrackReason({ ...base, status: 'ambiguous', candidates: [track, track] })).toMatch(/More than one track could be/);
+    // Several confirmed links are several links, not candidates.
+    expect(
+      noShowableTrackReason({
+        ...base,
+        status: 'confirmed',
+        track,
+        links: [mapping, { ...mapping, trackGuid: '{U}' }],
+        warnings: ['confirmed-links-conflict'],
+      }),
+    ).toMatch(/linked to more than one track/);
   });
 });

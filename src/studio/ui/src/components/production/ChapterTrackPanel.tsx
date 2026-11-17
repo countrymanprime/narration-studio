@@ -20,7 +20,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -221,7 +221,7 @@ export function ChapterTrackPanel({
                 )}
               </div>
               <ShowInDawButton
-                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link) }}
+                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link) }}
                 onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
               />
             </section>
@@ -338,7 +338,8 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
     linked: LINK_STATE_LABEL.linked,
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
-    ambiguous: 'Ambiguous',
+    // Several links to a chapter are "Several tracks", as the Engine says; only unconfirmed candidates are "Ambiguous".
+    ambiguous: link.links.length > 1 || link.warnings.includes('confirmed-links-conflict') ? LINK_STATE_LABEL.several : 'Ambiguous',
     missing: LINK_STATE_LABEL.missing,
     unlinked: LINK_STATE_LABEL.unlinked,
   };
