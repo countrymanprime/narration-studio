@@ -18,7 +18,7 @@ export function ChapterLinkNotice({
   chapterId,
   chapterName,
   dawName,
-  several,
+  state,
   create,
   asked,
   hold = false,
@@ -28,8 +28,8 @@ export function ChapterLinkNotice({
   chapterId: string;
   chapterName: string;
   dawName: string;
-  /** The chapter has more than one track (`several_tracks`), not none. */
-  several: boolean;
+  /** What is wrong with the chapter's link: none, more than one track (`several_tracks`), or a track the project no longer has (`track_missing`). */
+  state: 'unlinked' | 'several' | 'missing';
   /** The DAW's `track_create` capability, when it reports one. */
   create?: DawCapabilitySupport;
   /** How many times Record was pressed while this stops it: each press opens the dialog. */
@@ -41,20 +41,28 @@ export function ChapterLinkNotice({
   onCheckAgain: () => void;
 }) {
   const dest = destinationFor(useVoiceLayout());
-  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${several ? 'several' : 'none'}`, hold, { forgetOnUnmount: true });
+  const several = state === 'several';
+  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${state === 'unlinked' ? 'none' : state}`, hold, { forgetOnUnmount: true });
   const { reopen } = dialog;
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <NoticeChip id="brec-link" label={several ? dest.severalChip : dest.notLinkedChip} onOpen={reopen} />
+      <NoticeChip id="brec-link" label={several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip} onOpen={reopen} />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}
           chapterName={chapterName}
           dawName={dawName}
           several={several}
+          missing={state === 'missing'}
           // The host's own sentence points at the audio engine panel; this dialog is that fix, so it says what Record waits for instead.
-          sentence={several ? dest.recordWaitsSeveral(dialogChapterName(chapterName)) : dest.recordWaits(dialogChapterName(chapterName))}
+          sentence={
+            several
+              ? dest.recordWaitsSeveral(dialogChapterName(chapterName))
+              : state === 'missing'
+                ? dest.recordWaitsMissing(dialogChapterName(chapterName))
+                : dest.recordWaits(dialogChapterName(chapterName))
+          }
           create={create ? { available: create.available, message: create.message } : undefined}
           onLinked={(_result, created) => {
             dialog.close();

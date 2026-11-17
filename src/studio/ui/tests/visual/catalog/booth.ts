@@ -84,6 +84,20 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-track-missing',
+    description:
+      'Booth on a chapter whose linked track is no longer in the project (the host answers track_missing; the page injects it): the "Chapter 1’s track is not in the project" dialog opens by itself, saying Record cannot start until the chapter is linked to a track that is in the project, with Link track, Create a new track and Check again',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-track-missing-closed',
+    description:
+      'The same Booth after the dialog was closed: the "Track missing" chip under the text reopens it, the top-bar setup chip reads "REAPER · track missing", and Record looks off',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-created',
     description:
       'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',

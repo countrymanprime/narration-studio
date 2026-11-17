@@ -398,8 +398,8 @@
   {
     "name": "every track counts as armed",
     "file": "narration_track_state.lua",
-    "find": "if armed(reaper.GetTrack(0, index)) then",
-    "replace": "if true then"
+    "find": "    if armed(track) then\n      count = count + 1",
+    "replace": "    if true then\n      count = count + 1"
   },
   {
     "name": "a muted item is reported as playing",
@@ -3824,5 +3824,17 @@
     "file": "narration_transport.lua",
     "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
     "replace": "      if row.set_mute ~= nil then\n"
+  },
+  {
+    "name": "chapter_track_state does not cut the armed list",
+    "file": "narration_track_state.lua",
+    "find": "if #guids < ARMED_LIST_LIMIT then",
+    "replace": "if true then"
+  },
+  {
+    "name": "chapter_track_state lists only the last armed track",
+    "file": "narration_track_state.lua",
+    "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
+    "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
   }
 ]

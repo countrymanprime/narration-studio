@@ -122,6 +122,8 @@
     "app.spec.ts|booth / record-turned-away": 39.3,
     "app.spec.ts|booth / record-unlinked": 20.1,
     "app.spec.ts|booth / record-unlinked-closed": 15.4,
+    "app.spec.ts|booth / record-track-missing": 15,
+    "app.spec.ts|booth / record-track-missing-closed": 15,
     "app.spec.ts|booth / record-unlinked-created": 14.4,
     "app.spec.ts|booth / recorded-partly": 17.5,
     "app.spec.ts|booth / recording": 7.1,

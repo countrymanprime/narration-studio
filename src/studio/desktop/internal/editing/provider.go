@@ -139,7 +139,9 @@ func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.Evid
 	coverage := ChapterCoverage{Mapping: MappingOK}
 	paramHash := scanParamHash(s.scanOptions())
 	var recordIDs []string
+	scopeKeys := newScopeKeys()
 	for _, res := range ResolveTrack(track) {
+		scopeKey := scopeKeys.key(res.Item.GUID) // for every item, skipped or not, so a twin keeps its name
 		if !res.Analyzable() {
 			if !res.Excluded {
 				coverage.UnsupportedReasons = append(coverage.UnsupportedReasons, res.Reason)
@@ -153,7 +155,7 @@ func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.Evid
 			continue
 		}
 		key := evidence.ComputeAnalysisKey(identity, evidence.PlayedRange{Start: res.Source.PlayedRange.Start, End: res.Source.PlayedRange.End}, 1)
-		scopeIn := ItemScopeInput{DocumentID: chapter.DocumentID, ChapterID: chapter.ChapterID, TrackGUID: track.GUID, Item: res.Item, Key: key}
+		scopeIn := ItemScopeInput{DocumentID: chapter.DocumentID, ChapterID: chapter.ChapterID, TrackGUID: track.GUID, Item: res.Item, Key: key, ScopeKey: scopeKey}
 		staleness, err := CurrentItemRecord(s.ledger, analyzerID, analyzerVersion, paramHash, scopeIn)
 		if err != nil {
 			return ChapterCoverage{}, trackGUID, nil, err
