@@ -12,8 +12,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital } from '../../../studio/dawNames';
-import { dawShortName } from '../../../studio/StudioProvider';
+import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital, unreachedSentence } from '../../../studio/dawNames';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
 import { useFullscreenKey } from '../useFullscreenKey';
@@ -428,7 +427,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // that could not be stopped.
     const stopAsked = await limited(
       'recordStop',
-      appStop(() => daw.recordStop()).catch(() => failed('the stop did not go through.')),
+      appStop(() => daw.recordStop()).catch(() => failed(unreachedSentence(recorderLabel))),
       // A stop that lands after the limit changes nothing more: the narrator was told to stop it in the DAW, and a short recording is not undone behind that
       // message (the project is theirs to look at). It is written to the run log.
       (late) =>
@@ -447,7 +446,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (stopped.undoSteps < 1) return true;
     const undoAsked = await limited(
       'undoLast',
-      daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.')),
+      daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed(unreachedSentence(recorderLabel))),
     );
     const undone = undoAsked.timedOut ? failed(noAnswerSentence(recorderLabel)) : undoAsked.value;
     if (!undone.ok)
@@ -1010,7 +1009,12 @@ export function useBoothPage(options: BoothPageOptions) {
       // A stop that throws (the bridge is down) is a stop that did not go through, not an unhandled error.
       const stopAsked = await limited(
         'recordStop',
-        appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
+        appStop(() => daw.recordStop()).catch((): DawResult => ({
+          ok: false,
+          changed: false,
+          undoSteps: 0,
+          message: unreachedSentence(recorderName(latestDaw.current)),
+        })),
       );
       const result: DawResult = stopAsked.timedOut
         ? { ok: false, changed: false, undoSteps: 0, message: noAnswerSentence(recorderName(latestDaw.current)) }
@@ -1078,12 +1082,8 @@ export function useBoothPage(options: BoothPageOptions) {
     }),
     [overlay, hold],
   );
-  // The question names what records from the capability report; the shell's short name for no DAW ("Built-in") names the app's recorder.
-  const dawName = !control.capabilities
-    ? 'the DAW'
-    : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
-      ? `the ${dawShortName('none').toLowerCase()} recorder`
-      : control.capabilities.daw;
+  // The question names what records from the capability report, the way every other Booth sentence does.
+  const dawName = recorderName(control.capabilities?.daw);
   const { leave, handled, leaving } = useBoothLeaveGuard(
     {
       recording: recording || control.starting,
