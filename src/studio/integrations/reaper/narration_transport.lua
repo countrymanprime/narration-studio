@@ -1011,6 +1011,14 @@ return function(registry)
     isolation_tick(state)
     watch_tick(ctx.session_dir, state)
   end
+  -- Whether a play has isolated a track, and the recovery of the isolation a closed REAPER left: narration_solo_chapter.lua waits for the first and runs
+  -- the second before its own, so the two layers never restore each other's solos.
+  registry.transport_isolated = function()
+    return state.isolated ~= nil
+  end
+  registry.transport_recover = function()
+    recover_isolation(state)
+  end
   -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).
   registry.transport_recording = function()
     return state.recording

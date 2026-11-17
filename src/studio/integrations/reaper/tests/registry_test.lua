@@ -100,6 +100,8 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'select_track',
     'set_active_take',
     'set_cursor',
+    'solo_chapter',
+    'solo_restore',
     'split_take',
     'stack_takes',
     'stamp_item_lines',
