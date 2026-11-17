@@ -12,7 +12,7 @@ import type { TrackMapping } from '../../types';
 export type ChapterLinkState = 'unlinked' | 'linked' | 'missing' | 'several';
 
 /** What each state is called wherever it is named, so a page does not write its own ("Missing", "Track missing", "not linked"). */
-export const LINK_STATE_LABEL: Record<ChapterLinkState, string> = {
+const LINK_STATE_LABEL: Record<ChapterLinkState, string> = {
   unlinked: 'Not linked',
   linked: 'Linked',
   missing: 'Track missing',
