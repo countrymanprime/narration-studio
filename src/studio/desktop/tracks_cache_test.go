@@ -326,3 +326,59 @@ func servicesWithLister(host *Host, lister dawport.TrackLister) hostServices {
 	})
 	return svc
 }
+
+// A track this app makes must show in the next read, not after the next heartbeat: the host's own creates drop the cached list, also when the
+// create timed out (REAPER may still have made the track).
+func warmedServices(t *testing.T, host *Host) (hostServices, *countedLister) {
+	t.Helper()
+	inner := &countedLister{answer: twoTracks(9)}
+	svc := servicesWithLister(host, inner)
+	svc.reachability = newBeat(9).reach
+	svc.tracksCache = newLiveTracksCache()
+	lister, _ := trackListerFrom(svc)
+	read(t, lister)
+	read(t, lister)
+	if calls := inner.calls.Load(); calls != 1 {
+		t.Fatalf("warming took %d requests, want 1", calls)
+	}
+	return svc, inner
+}
+
+func TestAddingAVoiceDropsTheCachedTrackList(t *testing.T) {
+	for name, creator := range map[string]dawport.TrackCreator{
+		"answered":     &fakeChildCreator{},
+		"timed out":    &fakeChildCreator{childErr: bridge.ErrNoAnswer},
+		"other refuse": &fakeChildCreator{childErr: context.DeadlineExceeded},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newVoiceFolderHost(t, "folders")
+			svc, inner := warmedServices(t, host)
+			_, _ = host.boothVoiceAddIn(context.Background(), svc, creator, createAvailable(), ids[0], "Crowd", nil)
+			lister, _ := trackListerFrom(svc)
+			before := inner.calls.Load()
+			read(t, lister)
+			if inner.calls.Load() != before+1 {
+				t.Fatalf("the list was served from the cache after the app added a voice (%d requests before, %d after)", before, inner.calls.Load())
+			}
+		})
+	}
+}
+
+func TestCreatingAChapterTrackDropsTheCachedTrackList(t *testing.T) {
+	for name, creator := range map[string]dawport.TrackCreator{
+		"answered":  &fakeCreator{},
+		"timed out": &fakeCreator{err: bridge.ErrNoAnswer},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host, ids := newTestHostForChapterMatch(t)
+			svc, inner := warmedServices(t, host)
+			_, _ = chapterTrackCreateIn(context.Background(), svc, creator, createAvailable(), ids[0])
+			lister, _ := trackListerFrom(svc)
+			before := inner.calls.Load()
+			read(t, lister)
+			if inner.calls.Load() != before+1 {
+				t.Fatalf("the list was served from the cache after the app created a track (%d requests before, %d after)", before, inner.calls.Load())
+			}
+		})
+	}
+}

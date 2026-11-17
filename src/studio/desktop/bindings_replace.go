@@ -120,6 +120,8 @@ type replaceDeps struct {
 	measure func(ctx context.Context, path string, rng measure.Range) (measure.Report, error)
 	target  float64
 	newID   func() string
+	// tracksChanged is told after the DAW was asked to add a track (the other narrator's file gets its own): the live track list is read again. Nil is none.
+	tracksChanged func()
 }
 
 // chapterFolder is the chapter's folder GUID, or "" with no folder or no way to read one.
@@ -154,8 +156,9 @@ func (h *Host) replaceDeps(svc hostServices) replaceDeps {
 		measure: func(ctx context.Context, path string, rng measure.Range) (measure.Report, error) {
 			return measure.MeasureStretch(ctx, path, rng, mp3LevelDecoder())
 		},
-		target: replaceTargetLUFS(svc.settings),
-		newID:  newReplacementID,
+		target:        replaceTargetLUFS(svc.settings),
+		tracksChanged: svc.tracksCache.Invalidate,
+		newID:         newReplacementID,
 	}
 	return deps
 }
@@ -264,6 +267,9 @@ func replaceAddFileIn(ctx context.Context, deps replaceDeps, narratorID, path st
 		}
 	}
 	got, err := deps.replacer.ImportTheirAudio(ctx, name, facts.Path)
+	if deps.tracksChanged != nil {
+		deps.tracksChanged() // also after a failure: an import that timed out may still have made the track
+	}
 	if err != nil {
 		return refuse(replaceRefusal(deps.daw, err).Message)
 	}

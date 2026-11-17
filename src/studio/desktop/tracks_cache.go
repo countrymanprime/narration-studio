@@ -123,5 +123,5 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 // answer is not older than liveTracksMaxAge. Without a counter nothing is reused. Called with c.mu held.
 func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
 	count, known := l.heartbeat.ChangeCount()
-	return known && count == c.answer.ChangeCount && c.now().Sub(c.at) < liveTracksMaxAge
+	return known && count == c.answer.ChangeCount
 }
