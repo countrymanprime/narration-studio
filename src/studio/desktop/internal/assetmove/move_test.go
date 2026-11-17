@@ -851,15 +851,19 @@ func TestMoveStopsWhenAFileTheCopyJustWroteCannotBeReadBack(t *testing.T) {
 		return nil
 	}
 	t.Cleanup(func() { afterCopy = func(string) error { return nil } })
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	// The read-back's own open is refused by the disk: a mismatch or another error would be a different failure.
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk's refusal, got %v", err)
 	}
 	if _, err := os.Stat(target); err == nil {
 		t.Fatal("target left behind")
 	}
 }
 
-func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
+// The target stops taking new entries after the first file is copied, so the move fails at its first write into the target (the marker, or the
+// folders if that is reached first). It covers the move stopping on the disk's refusal and the retry clearing what was left; a rename that
+// fails after a written marker is not reached here.
+func TestMoveStopsWhenTheTargetStopsTakingNewEntriesMidMove(t *testing.T) {
 	source, target := filepath.Join(t.TempDir(), "old"), t.TempDir()
 	files := seed(t, source)
 	var release func()
@@ -870,8 +874,8 @@ func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
 		return nil
 	}
 	t.Cleanup(func() { afterCopy = func(string) error { return nil } })
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk's refusal, got %v", err)
 	}
 	if release == nil {
 		t.Fatal("the target was never made unwritable: the guard proved nothing")
@@ -879,9 +883,9 @@ func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
 	release()
 	assertIntact(t, source, files)
 	// The folder could not be written, so the staging folder could not be removed either: it is ours (marker and generated name), nothing
-	// else is there, and the next try clears it.
+	// else is there (nothing at all is fine too), and the next try clears it.
 	for _, name := range listing(t, target) {
-		if !strings.HasPrefix(name, movingPrefix) || strings.Contains(name, "/") && !strings.HasPrefix(name, movingPrefix) {
+		if !strings.HasPrefix(name, movingPrefix) {
 			t.Fatalf("something that is not the move's own was left: %s", name)
 		}
 	}
