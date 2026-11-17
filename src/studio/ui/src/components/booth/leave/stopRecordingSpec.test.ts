@@ -32,6 +32,11 @@ describe('stopRecordingSpec', () => {
     }
   });
 
+  it('a chapter question asked while a take is only starting says it opens, in its title too', () => {
+    expect(stopRecordingSpec('REAPER', true, true, 'Booth').title).toBe('Open while a take is starting?');
+    expect(stopRecordingSpec('REAPER', true, true, 'Script').title).toBe('Leave while a take is starting?');
+  });
+
   it('every other exit keeps Stop and leave and has no focus to hand back', () => {
     for (const unconfirmed of [false, true]) {
       const spec = stopRecordingSpec('REAPER', true, false, 'Script', unconfirmed);

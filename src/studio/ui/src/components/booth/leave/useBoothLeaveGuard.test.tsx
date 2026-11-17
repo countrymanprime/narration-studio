@@ -434,6 +434,19 @@ describe('useBoothLeaveGuard', () => {
     });
   });
 
+  it('a refused stop on a chapter question says it opens: Open anyway, and "open it anyway" in the sentence', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'Disk full.', undoSteps: 0, refused: 'Disk full.' };
+    const { go, hook, dialog } = setup({}, async () => refusal);
+    act(() => void hook.result.current.leave('/booth?chapter=chapter-2', go));
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    expect(dialog()?.spec.confirmLabel).toBe('Open anyway');
+    expect(dialog()?.spec.body).toContain('You can open it anyway, but it may keep recording.');
+    expect(dialog()?.spec.body).not.toContain('leave');
+    act(() => dialog()!.answer(false));
+  });
+
   it('a refused stop does not trap the narrator: Leave anyway goes without a second stop', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'REAPER is not answering.', undoSteps: 0, refused: 'REAPER is not answering.' };
     const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);

@@ -62,6 +62,8 @@ test('a link to another chapter during a take says it opens a chapter: Stop and 
   const refused = page.getByRole('alertdialog', { name: 'Could not stop the take' });
   await expect(refused).toBeVisible();
   await expect(refused.getByRole('button', { name: 'Open anyway' })).toBeVisible();
+  await expect(refused).toContainText('You can open it anyway');
+  await expect(refused).not.toContainText('leave anyway');
   await expect(refused.getByRole('button', { name: 'Leave anyway' })).toHaveCount(0);
 });
 

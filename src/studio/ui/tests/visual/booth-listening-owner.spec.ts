@@ -504,7 +504,7 @@ for (const meanwhile of ['the take ends', 'the Booth is left'] as const) {
       await page.keyboard.press('Escape');
       await page
         .getByRole('alertdialog')
-        .getByRole('button', { name: /^Stop and (leave|open)/ })
+        .getByRole('button', { name: /^Stop and leave/ })
         .click();
       await expect(page.getByRole('heading', { level: 1, name: 'Script' })).toBeVisible({ timeout: 8000 });
     }
@@ -617,7 +617,7 @@ const leaveDuringAdoptedStartAndReturn = async (page: Page, chapter: string) => 
   // The page's own listening for the adopted take is asked for and held. The narrator leaves again (REAPER does not answer the stop) and comes back.
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 10_000 }).toBe(2);
   await page.keyboard.press('Escape');
-  await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
   await expect(anyway).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
   await anyway.click();
@@ -653,7 +653,7 @@ test('a listening handed to a Booth that is then left with Leave anyway is let g
   await page.waitForTimeout(500);
   expect(await phaseOf(page)).toBe('running');
   await page.keyboard.press('Escape');
-  await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+  await question.getByRole('button', { name: /^Stop and leave/ }).click();
   await expect(anyway).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
   await anyway.click();
