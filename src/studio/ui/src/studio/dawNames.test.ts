@@ -25,11 +25,13 @@ describe('the Booth writes no "did not answer in time" sentence by hand', () => 
     readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
       e.isDirectory() ? files(join(dir, e.name)) : /\.(ts|tsx)$/.test(e.name) && !/\.(test|stories)\./.test(e.name) ? [join(dir, e.name)] : [],
     );
-  // A subject, a "did not answer in time" in any spelling, a template string in front of it, "the stop did not go through", and a hand-written "could not be reached".
+  // "did not answer in time" in any spelling with or without a subject (a name in JSX, concatenated or in a template string is a subject too), "the stop did not go through", and any way of saying a recorder could not be reached.
+  // A `logUi(...)` call is the run log's, not the narrator's, so it is not scanned.
   const hand =
-    /(?:\b(?:the (?:stop|undo|start)|the daw|reaper|audacity|ableton|the built-in recorder)|\$\{[^}]*\})\s+did(?:n't|n\u2019t|\s+not)\s+(?:answer|respond)\s+in\s+time|\bthe\s+(?:stop|undo)\s+did(?:n't|n\u2019t|\s+not)\s+go\s+through|could\s+not\s+be\s+reached/i;
+    /did(?:n't|n\u2019t|\s+not)\s+(?:answer|respond)\s+in\s+time|\bthe\s+(?:stop|undo)\s+did(?:n't|n\u2019t|\s+not)\s+go\s+through|(?:could(?:n't|n\u2019t|\s+not)|cannot|can't|can\u2019t)\s+(?:be\s+reached|reach\b)|\bunreachable\b/i;
+  const sayings = (file: string) => readFileSync(file, 'utf8').replace(/\blogUi\([^)]*\)/g, '');
   it('finds none outside the helper', () => {
-    const hits = files(root).filter((f) => hand.test(readFileSync(f, 'utf8')));
+    const hits = files(root).filter((f) => hand.test(sayings(f)));
     expect(hits).toEqual([]);
   });
   it('flags each way to write one by hand', () => {
@@ -43,6 +45,14 @@ describe('the Booth writes no "did not answer in time" sentence by hand', () => 
       'Ableton did not answer in time',
       'The stop did not go through.',
       'REAPER could not be reached.',
+      '<p>{name} did not answer in time.</p>',
+      "name + ' did not answer in time.'",
+      'The recorder did not answer in time',
+      'the  stop did not answer in time',
+      "REAPER couldn't be reached.",
+      'REAPER cannot be reached.',
+      'Could not reach REAPER.',
+      'REAPER is unreachable.',
     ])
       expect(hand.test(text), text).toBe(true);
     // The roll's and the meter's own sentences are different sentences.
