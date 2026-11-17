@@ -44,6 +44,7 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
   // brings it back here as a request, and it must open, not ask a second time. The answer belongs to that one request: it is read once, by the next request whatever it asks for,
   // and never beats a take that records or starts (a running take always asks).
   const confirmed = useRef<{ chapter: string; at: number } | null>(null);
+  const pendingLeave = useRef<{ target: BoothChapterTarget } | null>(null);
   useEffect(() => {
     const now = followed.current;
     // It also expires: the address is written in the same breath as the answer, so a request that comes much later is not the one it was given for.
@@ -64,14 +65,25 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
       now.adopt(target);
       return;
     }
+    // A question this hook asked is still open (a stop that is waited on, a refusal on screen): a later chapter in the address replaces what that question opens, so
+    // Stop and leave or Leave anyway opens the chapter asked for last. The later request asks nothing and puts nothing back: the first question's answer does both.
+    if (pendingLeave.current) {
+      pendingLeave.current.target = target;
+      return;
+    }
+    const pending = { target };
+    pendingLeave.current = pending;
     let moved = false;
     void now
       .leave(`/booth${requestedQuery}`, () => {
         moved = true;
-        now.adopt(target);
+        pendingLeave.current = null;
+        now.adopt(pending.target);
       })
-      .then(() => {
-        if (!moved) now.choose(now.current);
+      .then((went) => {
+        pendingLeave.current = null;
+        // Nothing to put back when the narrator let go: the exit this joined (Escape, the nav) is moving them, and writing the chapter on screen into the address now would overwrite it.
+        if (!moved && went !== true) now.choose(followed.current.current);
       });
   }, [requestedQuery]);
 

@@ -22,7 +22,7 @@ function setup(
     recording?: boolean;
     starting?: boolean;
     endUnconfirmed?: () => boolean;
-    leave?: () => Promise<unknown>;
+    leave?: (path: string, proceed: () => void) => Promise<unknown>;
   } = {},
 ) {
   const args = {
@@ -96,6 +96,51 @@ describe('a chapter asked for in the address', () => {
     await act(async () => undefined);
     expect(args.adopt).not.toHaveBeenCalled();
     expect(args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+  });
+
+  // #3555 (second chapter change while Stop and leave waits): a later address replaces what the open question opens, and asks nothing itself.
+  describe('another chapter asked for while the first question is open', () => {
+    const openQuestion = () => {
+      let answer: (yes: boolean) => void = () => undefined;
+      const leave = vi.fn(
+        (_path: string, proceed: () => void) =>
+          new Promise<void>((resolve) => {
+            answer = (yes) => {
+              if (yes) proceed();
+              resolve();
+            };
+          }),
+      );
+      const { args, view } = setup({ requested: { chapter: 'b' }, recording: true, leave });
+      return { args, view, leave, answer: (yes: boolean) => answer(yes) };
+    };
+
+    it('opens the chapter asked for last when the narrator agrees, and asks only once', async () => {
+      const { args, view, leave, answer } = openQuestion();
+      view.rerender({ ...args, requested: { chapter: 'c' } });
+      expect(leave).toHaveBeenCalledTimes(1);
+      await act(async () => answer(true));
+      expect(args.adopt).toHaveBeenCalledTimes(1);
+      expect(args.adopt).toHaveBeenCalledWith({ chapter: 'c' });
+      expect(args.choose).not.toHaveBeenCalled();
+    });
+
+    // BREAK A of the qa pass: a chapter link arriving while another exit's question is open (Escape, the nav) joins that exit; if the narrator lets go, nothing is put back.
+    it('puts nothing back when the exit it joined lets the narrator go', async () => {
+      const { args } = setup({ requested: { chapter: 'b' }, recording: true, leave: () => Promise.resolve(true) });
+      await act(async () => undefined);
+      expect(args.choose).not.toHaveBeenCalled();
+      expect(args.adopt).not.toHaveBeenCalled();
+    });
+
+    it('puts the address back on the chapter on screen once, not on a chapter nobody asked for, when the narrator stays', async () => {
+      const { args, view, answer } = openQuestion();
+      view.rerender({ ...args, requested: { chapter: 'c' } });
+      await act(async () => answer(false));
+      expect(args.adopt).not.toHaveBeenCalled();
+      expect(args.choose).toHaveBeenCalledTimes(1);
+      expect(args.choose).toHaveBeenCalledWith({ chapter: 'a' });
+    });
   });
 });
 

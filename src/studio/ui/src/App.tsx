@@ -210,7 +210,7 @@ if (typeof window !== 'undefined') {
       }
       // The Enter that answered a question (Keep editing) hands the focus back to the box it came from. If the key is still held, its repeats arrive in that box, where Enter
       // adds the name or accepts the suggestion: those repeats are not the narrator's decision and are dropped until the key is released. A fresh press is always the field's
-      // own, however soon it comes (a newline in a textarea included), and Space and every other key are never touched (#3457 B10b, B13). A textarea is covered too, so a held Enter does not type
+      // own, however soon it comes (a newline in a textarea included), and Space and every other key are never touched here (#3457 B10b, B13); the repeats of an Enter or Space that answered a question or dialog and land on a button are dropped in `dialogClosed.ts` (#3555). A textarea is covered too, so a held Enter does not type
       // a column of newlines into the box it returns to (#3457 qa round 5 B2).
       if (event.key === 'Enter' && target?.closest('[role="alertdialog"]') && !event.repeat) popGuard.answerEnterHeld = true;
       else if (event.key === 'Enter' && event.repeat && popGuard.answerEnterHeld && target?.matches('input, textarea')) {
@@ -1126,7 +1126,13 @@ function AppRoutes() {
   const gateChapters = hasManuscript ? (slotChapters ?? null) : null;
   const reloadChapters = () => studio.load('chapters');
   const gated = (page: AddressPage, element: ReactElement, chapterParam?: string) => (
-    <AddressGate page={page} chapterParam={chapterParam} chapters={gateChapters} reloadChapters={reloadChapters}>
+    <AddressGate
+      page={page}
+      chapterParam={chapterParam}
+      chapters={gateChapters}
+      reloadChapters={reloadChapters}
+      held={page === 'booth' && journal.peekLeave('/booth') !== 'allow'}
+    >
       {element}
     </AddressGate>
   );
