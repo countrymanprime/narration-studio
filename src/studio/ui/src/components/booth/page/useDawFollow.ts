@@ -258,7 +258,7 @@ export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
         .then((result) => {
           if (!result.ok) sayRef.current(result.refused ?? result.message);
         })
-        .catch(() => sayRef.current('The DAW could not put its input monitoring back. Turn input monitoring off in the DAW.'));
+        .catch(() => sayRef.current('The DAW could not put your input monitoring back, so it may still be on. Turn it off in the DAW.'));
     },
     [place],
   );

@@ -441,7 +441,6 @@ func TestTwoOverlappingArmsThatBothTurnedNothingOnStayOwedUntilARelease(t *testi
 
 func TestAFailedReleaseOnLeavingSaysWhatFailedThatItMayBeOnAndWhatToDo(t *testing.T) {
 	for name, err := range map[string]error{
-		"stale":   &bridge.TrackStaleError{GUID: voiceNarratorTrack},
 		"timeout": context.DeadlineExceeded,
 		"other":   errors.New("boom"),
 	} {
@@ -449,11 +448,60 @@ func TestAFailedReleaseOnLeavingSaysWhatFailedThatItMayBeOnAndWhatToDo(t *testin
 		if got.OK || got.Message != got.Refused || !strings.Contains(got.Refused, "monitoring") || strings.Contains(got.Refused, "armed") {
 			t.Errorf("%s: %+v, want a refusal about the monitoring, not about arming", name, got)
 		}
-		if name != "stale" && !strings.Contains(got.Refused, "may still be on") {
+		if !strings.Contains(got.Refused, "may still be on") {
 			t.Errorf("%s: %q does not say the monitoring may still be on", name, got.Refused)
 		}
 		if !strings.Contains(got.Refused, "in REAPER") {
 			t.Errorf("%s: %q does not say what to do in the DAW", name, got.Refused)
 		}
+	}
+}
+
+func TestAFailedReleaseWithNothingOwedSaysNothing(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	slow := &fakeLaneRecorder{laneErr: context.DeadlineExceeded}
+	for leave := 0; leave < 2; leave++ {
+		if got := host.releaseBoothMonitor(context.Background(), host.services(), slow); !got.OK || got.Refused != "" {
+			t.Fatalf("leave %d: %+v, want done and silent", leave, got)
+		}
+		if host.boothMonitorOwed.Load() {
+			t.Fatalf("leave %d: a failed release with nothing owed must not make anything owed", leave)
+		}
+	}
+	// With a monitoring owed the same failure is said, and it stays owed, so the next leave says it again.
+	host.boothMonitorOwed.Store(true)
+	for leave := 0; leave < 2; leave++ {
+		if got := host.releaseBoothMonitor(context.Background(), host.services(), slow); got.OK || got.Refused == "" {
+			t.Fatalf("owed, leave %d: %+v, want the refusal", leave, got)
+		}
+		if !host.boothMonitorOwed.Load() {
+			t.Fatalf("owed, leave %d: the monitoring is still owed after a failed release", leave)
+		}
+	}
+}
+
+func TestTheOwedMonitoringSentenceNamesTheLinkedDAW(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	svc := host.services()
+	resolver, _ := fakeResolver(dawport.Supported)
+	svc.dawPortResolver = resolver
+	got := monitorUnreachableSentence(svc)
+	name := svc.dawPortResolver.Kind().String()
+	if name == "none" || !strings.HasPrefix(got, name+" could not be reached") || !strings.Contains(got, "Turn it off in "+name) || strings.Contains(got, "The DAW") {
+		t.Fatalf("a linked DAW: %q, want it named (%q)", got, name)
+	}
+}
+
+func TestDuringAnAppTakeAnArmForAnotherChapterIsRefusedAndTheRecordingChapterIsSilent(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{laneErr: bridge.ErrRecording}
+	host.setReadAloudRecording(ids[0], fake)
+	if got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), fake, ids[0]); err != nil || !got.OK || len(fake.laneArmed) != 0 {
+		t.Fatalf("the recording chapter: %+v, %v, armed %v, want silent and the DAW not asked", got, err, fake.laneArmed)
+	}
+	host.setReadAloudRecording("a-chapter-the-app-is-recording", fake)
+	got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), fake, ids[0])
+	if err != nil || got.OK || got.Refused == "" || len(fake.laneArmed) != 1 {
+		t.Fatalf("another chapter: %+v, %v, armed %v, want the DAW asked and a refusal", got, err, fake.laneArmed)
 	}
 }

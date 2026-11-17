@@ -471,8 +471,8 @@ export interface DawMockControl {
   };
   /** The project's recording engine changed (`dawChoose`). */
   engineChosen(engine: 'daw' | 'builtin'): void;
-  /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
-  record(kind: 'start' | 'stop'): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
+  /** A record start or stop as the host answers it (a start names the chapter being recorded, when the caller knows it): a refusal sentence and its reason, or null once the transport changed. */
+  record(kind: 'start' | 'stop', chapterId?: string): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
   /** The facts the host puts in bootstrap. */
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
@@ -489,8 +489,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const home: DawKind = seed.daw ?? 'REAPER';
   let open: 'linked' | 'other' = script === 'different' ? 'other' : 'linked';
   const isRecording = () => !!live.transport?.recording;
-  // Whether the take that runs is one this app started (`record('start')`): the host answers OK and arms nothing then, and refuses for a take started by hand.
-  let appTake = false;
+  // The chapter of the take this app started (`record('start')`; '' when the caller did not say), or null: the host answers OK and arms nothing for that chapter,
+  // and refuses another chapter's arm, as it does a take started by hand.
+  let appTake: string | null = null;
   let dropped = false;
   let refuseRecord: { sentence: string; kind: 'start' | 'stop' } | null = null;
   // The monitor level the DAW holds, on the page's 0 to 100 scale (the mock's own starting value for its slider).
@@ -665,7 +666,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       for (const on of editSubs) on({ changeCount: sync.changeCount });
     },
     startInDaw: () => {
-      appTake = false;
+      appTake = null;
       live.transport = { playing: true, recording: true, position: 0 };
       publish();
     },
@@ -712,7 +713,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
-    record: (kind) => {
+    record: (kind, chapterId = '') => {
       const caps = currentCapabilities(live);
       const record = caps.capabilities.record;
       if (refuseRecord?.kind === kind) {
@@ -730,7 +731,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         const reason = record?.reason === 'standalone' ? 'standalone' : 'unavailable';
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
-      appTake = true;
+      appTake = chapterId;
       live.transport = { playing: true, recording: true, position: 0 };
       // The transport is pushed on the change, not at the next heartbeat: a screen that subscribes once the take has begun still hears it.
       publish();
@@ -791,7 +792,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       if (!support?.available) return { ok: true, changed: false, message: '', undoSteps: 0 };
       if (currentTransport(live, currentCapabilities(live)).recording) {
         // The app's own take: the host asks nothing and answers done. A take started in the DAW by hand is refused.
-        return appTake ? { ok: true, changed: false, message: '', undoSteps: 0 } : refusedMove('REAPER is recording. Stop recording first.');
+        return appTake !== null && (appTake === '' || appTake === chapterId)
+          ? { ok: true, changed: false, message: '', undoSteps: 0 }
+          : refusedMove('REAPER is recording. Stop recording first.');
       }
       armedChapters.push(chapterId);
       return { ok: true, changed: true, message: '', undoSteps: 0 };
