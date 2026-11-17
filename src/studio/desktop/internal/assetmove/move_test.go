@@ -270,7 +270,10 @@ func TestMoveRefusesATargetThatCannotBeWritten(t *testing.T) {
 }
 
 func TestMoveRefusesAReadOnlyTarget(t *testing.T) {
-	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix only: a Windows folder cannot be made to refuse a new folder inside it for an elevated user (#3630)")
+	}
+	if os.Geteuid() == 0 {
 		t.Skip("permissions are not enforced for this user")
 	}
 	source, parent := filepath.Join(t.TempDir(), "old"), t.TempDir()
