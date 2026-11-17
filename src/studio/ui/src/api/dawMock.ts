@@ -435,6 +435,8 @@ export interface DawMockControl {
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: DawGoToWhere; seconds: number }[];
+  /** The chapter the DAW holds soloed in place for the Booth (`dawSoloChapter`), or '' for none, and how many times it was put back (`dawSoloRestore`). */
+  soloed(): { chapterId: string; restores: number };
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
   syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
@@ -495,6 +497,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
+  // The chapter soloed in place for the Booth, and the restores the app sent.
+  const solo = { chapterId: '', restores: 0 };
   // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
   const sync: {
     playing: boolean;
@@ -690,6 +694,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       place = { chapterId, cursor };
     },
     moves: () => moved.map((move) => ({ ...move })),
+    soloed: () => ({ ...solo }),
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
@@ -774,6 +779,20 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       moved.push({ chapterId, where, seconds: where === 'at' ? seconds : 0 });
       place = { chapterId, cursor: where === 'at' ? seconds : where === 'start' ? 0 : place.cursor };
       return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    // The host's answers (bindings_daw_solo.go): the capability's own sentence when it refuses it, else the chapter is the one soloed; a restore needs no capability.
+    dawSoloChapter: async (chapterId) => {
+      const refusal = followRefusal();
+      if (refusal !== null) return refusedMove(refusal);
+      const changed = solo.chapterId !== chapterId;
+      solo.chapterId = chapterId;
+      return { ok: true, changed, message: '', undoSteps: 0 };
+    },
+    dawSoloRestore: async () => {
+      const changed = solo.chapterId !== '';
+      solo.chapterId = '';
+      solo.restores += 1;
+      return { ok: true, changed, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.

@@ -855,9 +855,9 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 
 /**
  * DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
- * track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
+ * track, seconds ignored), "start" (where its audio begins, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
  * chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
- * or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
+ * or several links, a time that is not a number of seconds, a track the DAW no longer has, or a DAW that is recording, each with nothing moved. A chapter the
  * manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
  */
 export function DawGoToChapter(chapterID: string, where: string, seconds: number): $CancellablePromise<string> {
@@ -1056,6 +1056,27 @@ export function DawSetFxRangeParam(chapterID: string, firstToken: number, lastTo
  */
 export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
     return $Call.ByID(1071723846, level);
+}
+
+/**
+ * DawSoloChapter soloes chapterID's linked track in the DAW while the narrator records that chapter, so every other chapter is quiet and not touched
+ * (#3428, the owner's choice of "solo in place on the chapter"). It is one change on one track: the chapter's own voices stay audible and are never
+ * muted, a track the narrator already soloed or muted stays as it is, and the chapter put in place before is put back first. It adds no undo step and
+ * changes nothing while the DAW records or plays an isolated track (the DAW does it right after). The page sends it when it enters a chapter with
+ * Booth.follow_chapter_in_daw on; DawSoloRestore puts it back. An engine that cannot do this (Audacity) answers as done with nothing changed. A DAW that
+ * does not answer, a chapter with no or several links and a track the DAW no longer has are refused with the sentence and nothing changed.
+ */
+export function DawSoloChapter(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2009338758, chapterID);
+}
+
+/**
+ * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the chapter's recording or turns the switch off: only the tracks it
+ * soloed, and only where the narrator has not changed the solo since. It does not look at the switch, so it works after the switch was turned off. While
+ * the DAW records it touches nothing and the DAW puts it back itself once the recording stops. A DAW with nothing to put back answers as done.
+ */
+export function DawSoloRestore(): $CancellablePromise<string> {
+    return $Call.ByID(3241237989);
 }
 
 /**

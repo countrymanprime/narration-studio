@@ -594,6 +594,12 @@ export interface DawPlaceApi {
   /** Select the chapter's linked track in the DAW and put its cursor at `where`. A time that is not a finite, non-negative number of seconds, a
    * chapter with no or several linked tracks, a track the DAW no longer has and a refused capability are refused with nothing moved. */
   dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
+  /** Solo the chapter's linked track in place while the narrator records it, so the other chapters go quiet and are not touched (`DawSoloChapter`,
+   * src/studio/desktop/bindings_daw_solo.go). One change on one track; a solo or mute the narrator set stays. `changed` is false when nothing was
+   * changed (the track was soloed already, or the DAW is recording and does it right after). A DAW that cannot do it answers done with nothing changed. */
+  dawSoloChapter(chapterId: string): Promise<DawResult>;
+  /** Put back the solo `dawSoloChapter` set: only that track, and only where the narrator has not changed the solo since. Works with the switch off. */
+  dawSoloRestore(): Promise<DawResult>;
 }
 
 /** What `daw_position_changed` carries (src/studio/desktop/bindings_daw_transportsync.go): the DAW's play state, play head and edit cursor in project seconds

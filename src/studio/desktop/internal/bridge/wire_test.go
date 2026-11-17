@@ -86,6 +86,9 @@ var realEvents = map[string][]string{
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// src/studio/integrations/reaper/tests/solo_chapter_test.lua (solo_chapter, solo_restore).
+	"CHAPTER_SOLOED": {"CHAPTER_SOLOED", "c1", "{00000001-0000-4000-8000-000000000001}", "1", "0"},
+	"SOLO_RESTORED":  {"SOLO_RESTORED", "r1", "1", "0", "0"},
 	// transport_test.lua's switch_voice rows.
 	"VOICE_SWITCHED": {"VOICE_SWITCHED", "v1", "{00000002-0000-4000-8000-000000000002}", "3.600000"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).

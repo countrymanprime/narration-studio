@@ -78,7 +78,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 165
+const hostAPIVersion = 166
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1335,6 +1335,8 @@ func (h *Host) ServiceShutdown() error {
 	// A REAPER recording this app started is stopped before the app quits (threat-model row 5k): otherwise REAPER
 	// keeps recording with nothing left open to stop it.
 	h.stopReadAloudRecordingOnShutdown()
+	// The chapter soloed in the DAW for the Booth is put back (bindings_daw_solo.go); a DAW that cannot be reached has the ledger.
+	h.restoreSoloOnShutdown()
 	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
 	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,

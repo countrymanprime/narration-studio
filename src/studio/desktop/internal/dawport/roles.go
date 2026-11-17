@@ -34,6 +34,8 @@ type (
 	LiveTracks    = bridge.LiveTracks
 	LiveTrack     = bridge.LiveTrack
 	Armed         = bridge.Armed
+	ChapterSoloed = bridge.ChapterSoloed
+	SoloReleased  = bridge.SoloReleased
 	RecordStarted = bridge.RecordStarted
 	RecordOptions = bridge.RecordOptions
 	StartRule     = bridge.StartRule
@@ -431,6 +433,16 @@ type VoiceSwitcher interface {
 // (the take is switched with VoiceSwitcher); a track that is gone is a stale error. Only an engine with record-armed tracks (REAPER) has it.
 type LaneArmer interface {
 	ArmLane(ctx context.Context, trackGUID string) (Armed, error)
+}
+
+// ChapterSoloer is an optional role of follow_position: while the narrator records a chapter, the engine soloes that chapter's track in place so the other
+// chapters go quiet, and puts the solo back when they leave (#3428). One write on one track: nothing inside the chapter and no other chapter is touched,
+// a solo the narrator already set is left as it is and is not put back, and a solo the narrator changed since is kept. It changes nothing while the
+// engine records or plays an isolated track (the answers say Waiting; the engine does it right after). A track that is gone is a stale error. Only an
+// engine that can solo a track in place without an undo step has it (REAPER); the others are not asked.
+type ChapterSoloer interface {
+	SoloChapter(ctx context.Context, trackID string) (ChapterSoloed, error)
+	SoloRestore(ctx context.Context) (SoloReleased, error)
 }
 
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),
