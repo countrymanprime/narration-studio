@@ -84,6 +84,23 @@ async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<
   await clickNav(page, 'Booth');
 }
 
+/** The Booth on a chapter whose linked track is gone: the mock cannot seed it, so the page's own read is overridden before it loads (#3368). */
+async function openBoothTrackMissing(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudReaperState: async () => ({
+        status: 'no_link',
+        reason: 'track_missing',
+        message: 'The track linked to "Chapter 1" is no longer in the REAPER project.',
+        playing: false,
+        recording: false,
+      }),
+    };
+  });
+  await openBooth(page, UNLINKED);
+}
+
 /** Moves the Booth's Text settings › Column width slider to one end and closes the popover. */
 async function setBoothColumnWidth(page: Page, key: 'Home' | 'End'): Promise<void> {
   await page.getByRole('button', { name: 'Text settings' }).click();
@@ -190,6 +207,19 @@ export const boothDrivers: Record<string, Driver> = {
       .locator('#brec-why')
       .getByText(/has no track to record on/)
       .waitFor();
+  },
+  // The chapter's linked track was deleted in the DAW: the host answers track_missing and the dialog says the track is not in the project.
+  'record-track-missing': async (page) => {
+    await openBoothTrackMissing(page);
+    const dialog = page.getByRole('dialog', { name: /track is not in the project$/ });
+    await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
+  },
+  'record-track-missing-closed': async (page) => {
+    await openBoothTrackMissing(page);
+    const dialog = page.getByRole('dialog', { name: /track is not in the project$/ });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.locator('#brec-link').getByRole('button', { name: 'Track missing. Show details' }).waitFor();
   },
   // Create a new track: REAPER adds one named after the chapter and it is linked; the message says so and Record is ready.
   'record-unlinked-created': async (page) => {

@@ -40,8 +40,8 @@ function stateDetail(choice: DawChoice): string {
  * `not_connected`, `not_armed` and `recording_elsewhere` what the DAW answered about the chapter. A state in which Record still works
  * (another track armed, say) is not one of them.
  */
-export type SetupProblem = 'no_track' | 'several_tracks' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
-const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks'>, { words: string; sentence: (name: string) => string }> = {
+export type SetupProblem = 'no_track' | 'several_tracks' | 'track_missing' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
+const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks' | 'track_missing'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
   recording_elsewhere: { words: 'recording elsewhere', sentence: (name) => `${name} is already recording a take this app did not start` },
   not_armed: { words: 'not armed', sentence: () => 'no track is armed to record on' },
@@ -50,6 +50,7 @@ const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks'>, { w
 const problemOf = (issue: SetupProblem, dest: ReturnType<typeof destinationFor>) => {
   if (issue === 'no_track') return { words: dest.chipNoTrack.words, sentence: () => dest.chipNoTrack.sentence };
   if (issue === 'several_tracks') return { words: dest.chipSeveral.words, sentence: () => dest.chipSeveral.sentence };
+  if (issue === 'track_missing') return { words: dest.chipMissing.words, sentence: () => dest.chipMissing.sentence };
   return PROBLEMS[issue];
 };
 
