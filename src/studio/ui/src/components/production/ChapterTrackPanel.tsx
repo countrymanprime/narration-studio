@@ -20,7 +20,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState, followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, hasSeveralLinks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -142,7 +142,7 @@ export function ChapterTrackPanel({
 
   const state = link ? chapterTrackButtonState(link) : undefined;
   const missing = state?.kind === 'missing';
-  const conflict = link?.status === 'ambiguous' && link.links.length > 1;
+  const conflict = link?.status === 'ambiguous' && hasSeveralLinks(link);
   return (
     <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
@@ -339,7 +339,7 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
     // Several links to a chapter are "Several tracks", as the Engine says; only unconfirmed candidates are "Ambiguous".
-    ambiguous: link.links.length > 1 || link.warnings.includes('confirmed-links-conflict') ? LINK_STATE_LABEL.several : 'Ambiguous',
+    ambiguous: hasSeveralLinks(link) ? LINK_STATE_LABEL.several : 'Ambiguous',
     missing: LINK_STATE_LABEL.missing,
     unlinked: LINK_STATE_LABEL.unlinked,
   };

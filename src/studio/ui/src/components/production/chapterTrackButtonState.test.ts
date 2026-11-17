@@ -157,7 +157,7 @@ describe('noShowableTrackReason (#3363)', () => {
     expect(noShowableTrackReason({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] })).toMatch(
       /missing from the project/,
     );
-    expect(noShowableTrackReason({ ...base, status: 'matched', track })).toMatch(/only a suggestion/);
+    expect(noShowableTrackReason({ ...base, status: 'matched', track })).toMatch(/only a suggestion: link it first/);
     expect(noShowableTrackReason({ ...base, status: 'ambiguous', candidates: [track, track] })).toMatch(/More than one track could be/);
     // Several confirmed links are several links, not candidates.
     expect(

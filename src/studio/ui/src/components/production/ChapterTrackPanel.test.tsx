@@ -148,14 +148,22 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
   it('says a chapter linked to several tracks is that, and why Show in REAPER is off', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
-    const several: ChapterTrackLink = { ...link, warnings: [...link.warnings, 'confirmed-links-conflict'] };
+    const second = { ...link.links[0], trackGuid: '{SECOND}' };
+    const several: ChapterTrackLink = {
+      ...link,
+      status: 'ambiguous',
+      links: [...link.links, second],
+      warnings: [...link.warnings, 'confirmed-links-conflict'],
+    };
     renderPanel(api, several, track);
     expect(await screen.findByText('Several tracks')).toBeTruthy();
     expect(screen.queryByText('Ambiguous')).toBeNull();
     const show = await screen.findByRole('button', { name: /^Show in / });
     expect(show.getAttribute('aria-disabled')).toBe('true');
     await userEvent.hover(show);
-    expect(await screen.findByText(/linked to more than one track/)).toBeTruthy();
+    expect(await screen.findByText(/linked to more than one track: keep one first/)).toBeTruthy();
+    // The body shows what the header says: the Keep-this-one list of its links.
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBeGreaterThan(0);
   });
 
   it('shows a linked track under the name it has now', async () => {
