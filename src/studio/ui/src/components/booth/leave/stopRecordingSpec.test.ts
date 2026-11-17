@@ -37,6 +37,12 @@ describe('stopRecordingSpec', () => {
     expect(stopRecordingSpec('REAPER', true, true, 'Script').title).toBe('Leave while a take is starting?');
   });
 
+  it('with no picker on the page the focus to hand back is null, not an error: the dialog then falls to <main>', () => {
+    document.querySelectorAll('[data-chapter-picker]').forEach((el) => el.remove());
+    expect(() => stopRecordingSpec('REAPER', true, false, 'Booth').returnFocus?.()).not.toThrow();
+    expect(stopRecordingSpec('REAPER', true, false, 'Booth').returnFocus?.()).toBeNull();
+  });
+
   it('every other exit keeps Stop and leave and has no focus to hand back', () => {
     for (const unconfirmed of [false, true]) {
       const spec = stopRecordingSpec('REAPER', true, false, 'Script', unconfirmed);
