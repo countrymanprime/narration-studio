@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useEffect, useRef, useState } from 'react';
 import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { chapterName } from '../../chapterName';
@@ -18,7 +19,6 @@ import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
 import { CREATE_QUIET_MS, type ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
-import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { useVoiceLayout } from './voiceLayout';
@@ -94,7 +94,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
         live?.refresh();
         notify(createdSentence(result, chapterName(chapter, 'short')), 'info');
       },
-      (reason: unknown) => notify(`The track could not be added: ${apiErrorMessage(reason)}`, 'error'),
+      (reason: unknown) => notify(linkFailureSentence('create', reason), 'error'),
     );
   };
 

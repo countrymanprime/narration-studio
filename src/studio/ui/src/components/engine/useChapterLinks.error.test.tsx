@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { ChapterTrackStateProvider, useChapterTrackState, type ChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { overlay } from '../../overlay/overlayService';
 import { useChapterLinks, type ChapterLinks } from './useChapterLinks';
 
 afterEach(cleanup);
@@ -39,8 +40,35 @@ describe('the chapter links reader', () => {
     expect(seen.current?.mappings.length).toBeGreaterThan(0);
   });
 
+  // #3365: a rejected set or unlink is one error toast with the shared sentence, and no line in the page.
+  it.each([
+    ['set', 'The link could not be made: nope'],
+    ['unlink', 'The link could not be removed: nope'],
+  ] as const)('says a rejected %s as a toast and keeps the page free of a line', async (kind, sentence) => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.chapterTrackSet = async () => Promise.reject(new Error('nope'));
+    api.chapterTrackUnlink = async () => Promise.reject(new Error('nope'));
+    const seen: { current?: ChapterLinks } = {};
+    function Probe() {
+      seen.current = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Probe />
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(seen.current?.mappings.length).toBeGreaterThan(0));
+    const chapterId = seen.current!.mappings[0].chapterId;
+    await act(async () => (kind === 'set' ? seen.current!.set(chapterId, WIRE_TRACKS_PROJECT.tracks[2].guid) : seen.current!.unlink(chapterId)));
+    await waitFor(() => expect(overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+    expect(seen.current?.error).toBe('');
+  });
+
   // #3398 (intent review): a change that was written but whose list could not be read again still tells the screens fed by onChanged, and says so.
-  it('tells onChanged and says the change was made when only the re-read after a good write fails', async () => {
+  it('tells onChanged and says the change was made, as a toast, when only the re-read after a good write fails', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const real = api.chapterTrackMapList.bind(api);
     let failing = false;
@@ -71,11 +99,15 @@ describe('the chapter links reader', () => {
     const chapterId = seen.current!.mappings[0].chapterId;
     failing = true;
     await act(async () => seen.current!.unlink(chapterId));
-    await waitFor(() => expect(seen.current?.error).toContain('The change was made, but the list could not be read again'));
+    // The change was made and the re-read failed: said once, as a toast (#3365), never as a line in the page.
+    await waitFor(() =>
+      expect(overlay.getSnapshot().toasts.some((t) => t.text.includes('The change was made, but the list could not be read again'))).toBe(true),
+    );
     expect(changed.length).toBeGreaterThan(0);
-    // The read the callback re-ran also fails; the narrator still reads that the change was made, not just the host's error.
+    // The read the callback re-ran also fails; that read wrote nothing, so the page keeps the host's own words.
     await act(async () => undefined);
-    expect(seen.current?.error).toContain('The change was made, but the list could not be read again');
+    expect(seen.current?.error).not.toContain('The change was made');
+    expect(seen.current?.error).not.toBe('');
     // The host recovers and the shared state reads the links again (its timer, a focus, the Refresh button): the line above the fresh list goes.
     failing = false;
     await act(async () => {
