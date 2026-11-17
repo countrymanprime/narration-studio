@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -478,8 +479,8 @@ func TestScopeFilesFailsWhenAnAnalyzerSubdirectoryCannotBeListed(t *testing.T) {
 	analyzerDir := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare")
 	makeUnreadable(t, analyzerDir)
 
-	if _, err := store.List(Query{}); err == nil {
-		t.Fatal("List must fail when an analyzer subdirectory exists but cannot be listed")
+	if _, err := store.List(Query{}); err == nil || !strings.Contains(err.Error(), "transcript_compare") {
+		t.Fatalf("List must fail, naming the analyzer, when its subdirectory exists but cannot be listed: %v", err)
 	}
 }
 
@@ -632,8 +633,8 @@ func TestListFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	makeUnreadable(t, scopePath)
 
-	if _, err := store.List(Query{}); err == nil {
-		t.Fatal("List must surface a real read failure on a scope file scopeFiles already found, not swallow it")
+	if _, err := store.List(Query{}); err == nil || !strings.Contains(err.Error(), "c-0001.json") {
+		t.Fatalf("List must surface a real read failure on the scope file scopeFiles already found, naming it, not swallow it: %v", err)
 	}
 }
 
@@ -647,8 +648,8 @@ func TestGetFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	makeUnreadable(t, scopePath)
 
-	if _, _, err := store.Get("f1"); err == nil {
-		t.Fatal("Get must surface locate's read failure on a scope file, not swallow it")
+	if _, _, err := store.Get("f1"); err == nil || !strings.Contains(err.Error(), "c-0001.json") {
+		t.Fatalf("Get must surface locate's read failure on the scope file, naming it, not swallow it: %v", err)
 	}
 }
 

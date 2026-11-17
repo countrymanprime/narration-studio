@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"testing"
 	"unsafe"
+
+	"desktop/internal/persist"
 )
 
 var procLockFileEx = syscall.NewLazyDLL("kernel32.dll").NewProc("LockFileEx")
@@ -20,7 +22,7 @@ const (
 // an elevated process, and the CI runner is one: these guards used to skip there, #3630). A folder is held open with no sharing, which
 // answers every other open of it with a sharing violation. A file is locked over its whole length with an exclusive byte-range lock, which
 // fails every read of it through another handle (a share mode alone did not stop it being opened and read on the runner). The hold ends with
-// the test, before the temp folder is removed.
+// the test, before the temp folder is removed: call t.TempDir() before makeUnreadable, so the cleanups run in that order.
 func makeUnreadable(t *testing.T, path string) {
 	t.Helper()
 	info, err := os.Stat(path)
@@ -38,9 +40,8 @@ func makeUnreadable(t *testing.T, path string) {
 			t.Fatalf("could not hold %s open exclusively: %v", path, err)
 		}
 		t.Cleanup(func() { _ = syscall.CloseHandle(handle) })
-		if dir, err := os.Open(path); err == nil {
-			_ = dir.Close()
-			t.Fatalf("%s is still open-able while another handle holds it with no sharing: the guard would prove nothing", path)
+		if _, err := os.ReadDir(path); err == nil {
+			t.Fatalf("%s can still be listed while another handle holds it with no sharing: the guard would prove nothing", path)
 		}
 		return
 	}
@@ -53,7 +54,8 @@ func makeUnreadable(t *testing.T, path string) {
 	if r, _, callErr := procLockFileEx.Call(uintptr(handle), lockfileExclusiveLock|lockfileFailImmediately, 0, 0xFFFFFFFF, 0xFFFFFFFF, uintptr(unsafe.Pointer(&overlapped))); r == 0 {
 		t.Fatalf("could not lock %s: %v", path, callErr)
 	}
-	if _, err := os.ReadFile(path); err == nil {
+	// persist.ReadFile is the read the store makes (it opens with its own share modes), so it is the one to prove fails.
+	if _, err := persist.ReadFile(path); err == nil {
 		t.Fatalf("%s is still readable while another handle holds an exclusive lock over it: the guard would prove nothing", path)
 	}
 }

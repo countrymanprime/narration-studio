@@ -5,6 +5,8 @@ package findings
 import (
 	"os"
 	"testing"
+
+	"desktop/internal/persist"
 )
 
 // makeUnreadable makes path (a file or a folder) fail every open for the rest of the test by removing its mode bits, and puts them back at
@@ -20,8 +22,21 @@ func makeUnreadable(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(path, info.Mode().Perm()) })
-	if file, err := os.Open(path); err == nil {
-		_ = file.Close()
-		t.Skip("the file mode does not bind this user (root), so the failure cannot be made")
+	if info.IsDir() {
+		if _, err := os.ReadDir(path); err == nil {
+			unbound(t)
+		}
+	} else if _, err := persist.ReadFile(path); err == nil {
+		unbound(t)
 	}
+}
+
+// unbound ends the test when the file mode does not bind this user (root): a skip on a developer's machine, a failure in CI, where a guard that
+// quietly does not run is the thing these helpers exist to prevent (#3630).
+func unbound(t *testing.T) {
+	t.Helper()
+	if os.Getenv("CI") != "" {
+		t.Fatal("the file mode does not bind this user (root), so the guard cannot be made to bite: run CI as an ordinary user")
+	}
+	t.Skip("the file mode does not bind this user (root), so the failure cannot be made")
 }
