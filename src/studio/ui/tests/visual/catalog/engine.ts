@@ -205,6 +205,12 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'link-chapters-several',
+    description:
+      'The engine panel, "Link chapters" dialog when chapters are linked to more than one track (?mockChapterLink=ambiguous): their pickers read "Several tracks" instead of the first track alone',
+  },
+  {
+    page: 'engine',
     state: 'link-chapters-preview',
     description:
       'The engine panel, "Link chapters" dialog open with one chapter mapped to a track - preview of the items that will be stamped, nothing written yet',
