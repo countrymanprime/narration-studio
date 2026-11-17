@@ -743,3 +743,44 @@ H.test('the harness frees a folder it made, on every platform', function()
   H.eq(host.removedir(dir), true)
   H.eq(host.removedir(dir), false, 'a folder that is not there is not removed')
 end)
+
+H.test('the narrator arming the other voice by hand while ours is monitored: the next arm with monitor moves the monitoring to the new voice', function()
+  local s, narrator, veyra = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  veyra.armed = true
+  s:events()
+  s:send('chapter_track_state', 't1', narrator.guid)
+  local state = s:events()[1]
+  H.eq(state[1], 'TRACK_STATE')
+  H.eq(state[#state], narrator.guid .. ' ' .. veyra.guid, 'both armed tracks are reported')
+  s:send('arm_lane', 'a2', veyra.guid, 'monitor')
+  H.eq(s:events()[1], { 'ARMED', 'a2', veyra.guid, '1', '1', '1' })
+  H.eq(monitors(s), { 0, 1, 0 }, 'the old lane is back at 0 and the new one is monitored')
+  H.eq(ledger(s), row(s, veyra))
+end)
+
+H.test('chapter_track_state while a ledger row exists changes neither the ledger nor any monitoring', function()
+  local s, _, veyra = new_session()
+  s:send('arm_lane', 'a1', veyra.guid, 'monitor')
+  s:events()
+  s:send('chapter_track_state', 't1', veyra.guid)
+  s:tick()
+  H.eq(monitors(s), { 0, 1, 0 })
+  H.eq(ledger(s), row(s, veyra))
+end)
+
+-- A start the watch gave up on may still begin, and #3610 keeps the arms for it. The monitoring is not held back the same way: that window has no end, so
+-- a restore that waited for it could leave the monitoring on for good after the Booth was left.
+H.test('a restore after a start the watch gave up on puts the monitoring back and does not wait', function()
+  local s, narrator = new_session()
+  s:send('arm_lane', 'a1', narrator.guid, 'monitor')
+  s.fake.record_delay_ticks = 100
+  s:send('record_start', 'r1', narrator.guid)
+  for _ = 1, 40 do
+    s:tick()
+  end
+  H.eq(s:events()[2], { 'ERROR', 'r1', 'REAPER did not start recording.' })
+  s:send('monitor_restore', 'm1')
+  H.eq(s:events(), { { 'MONITOR_RESTORED', 'm1', '1', '0', '0' } })
+  H.eq(monitors(s), { 0, 0, 0 })
+end)

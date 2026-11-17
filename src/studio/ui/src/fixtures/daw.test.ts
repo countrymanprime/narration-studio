@@ -87,6 +87,18 @@ describe('the mock DAW setups', () => {
 
   // goldens-and-mock-agree (SN-D83): the Audacity setup is the host's resolver over the adapter, as the mock host mirrors it: a
   // connected Audacity, every built capability on with no setting.
+  // The host (bindings_booth_arming.go) answers done and asks the DAW nothing during the app's own take, and refuses only a take started by hand.
+  it('the mock arms nothing, in silence, during the app\u2019s own take, and refuses a take started in the DAW by hand', async () => {
+    const own = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    expect(own.control.record('start')).toBeNull();
+    expect(await own.dawArmBoothVoice('c1')).toMatchObject({ ok: true, changed: false, message: '' });
+    expect(own.control.armed().chapterIds).toEqual([]);
+    const byHand = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    byHand.control.startInDaw();
+    expect(await byHand.dawArmBoothVoice('c1')).toMatchObject({ ok: false });
+    expect(byHand.control.armed().chapterIds).toEqual([]);
+  });
+
   it('goldens-and-mock-agree: the audacity setup is what the host answers', async () => {
     const host = await createDawMock({ daw: 'Audacity', connected: true }).dawCapabilities();
     expect(DAW_SETUPS.audacity.capabilities).toEqual(host.capabilities);

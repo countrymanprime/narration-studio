@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -124,7 +125,7 @@ func TestLeavingTheBoothPutsTheMonitoringBack(t *testing.T) {
 		t.Fatalf("a script from before the command: %+v", got)
 	}
 	refused := dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeLaneRecorder{laneErr: context.DeadlineExceeded})
-	if refused.OK || !strings.Contains(refused.Refused, "did not") {
+	if refused.OK || !strings.Contains(refused.Refused, "may still be on") || !strings.Contains(refused.Refused, "Turn it off in REAPER") {
 		t.Fatalf("a DAW that did not answer: %+v", refused)
 	}
 }
@@ -194,7 +195,7 @@ func TestLeavingTheBoothWhileTheDAWCannotBeReachedSaysSoOnlyWhenAMonitoringMayBe
 		t.Fatalf("entry arm: %+v, %v", got, err)
 	}
 	got := releaseJSON(t, host)
-	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "next time the bridge starts") || got.Message != got.Refused {
+	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "goes off the next time") || got.Message != got.Refused {
 		t.Fatalf("left with the DAW unreachable: %+v, want a refusal that says the monitoring may be on and when it is put back", got)
 	}
 }
@@ -435,5 +436,24 @@ func TestTwoOverlappingArmsThatBothTurnedNothingOnStayOwedUntilARelease(t *testi
 	host.boothMonitorOwed.Store(true)
 	if got := host.releaseBoothMonitor(context.Background(), host.services(), &fakeLaneRecorder{}); !got.OK || host.boothMonitorOwed.Load() {
 		t.Fatalf("an answered release clears it: %+v", got)
+	}
+}
+
+func TestAFailedReleaseOnLeavingSaysWhatFailedThatItMayBeOnAndWhatToDo(t *testing.T) {
+	for name, err := range map[string]error{
+		"stale":   &bridge.TrackStaleError{GUID: voiceNarratorTrack},
+		"timeout": context.DeadlineExceeded,
+		"other":   errors.New("boom"),
+	} {
+		got := dawReleaseBoothMonitorIn(context.Background(), "REAPER", &fakeLaneRecorder{laneErr: err})
+		if got.OK || got.Message != got.Refused || !strings.Contains(got.Refused, "monitoring") || strings.Contains(got.Refused, "armed") {
+			t.Errorf("%s: %+v, want a refusal about the monitoring, not about arming", name, got)
+		}
+		if name != "stale" && !strings.Contains(got.Refused, "may still be on") {
+			t.Errorf("%s: %q does not say the monitoring may still be on", name, got.Refused)
+		}
+		if !strings.Contains(got.Refused, "in REAPER") {
+			t.Errorf("%s: %q does not say what to do in the DAW", name, got.Refused)
+		}
 	}
 }

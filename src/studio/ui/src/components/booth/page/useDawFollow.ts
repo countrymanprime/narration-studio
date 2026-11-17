@@ -194,7 +194,7 @@ export function useArmBoothOnOpen({
         }
       })
       .catch(() => {
-        if (!unmounted.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it by hand, or press Check again.");
+        if (!unmounted.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it in the DAW yourself.");
       });
   }, [enabled, follow, chapterId, canArm, recording, place]);
 }
@@ -215,7 +215,7 @@ export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
         .then((result) => {
           if (!result.ok) sayRef.current(result.refused ?? result.message);
         })
-        .catch(() => sayRef.current('The DAW could not put its input monitoring back. Check it by hand.'));
+        .catch(() => sayRef.current('The DAW could not put its input monitoring back. Turn input monitoring off in the DAW.'));
     },
     [place],
   );

@@ -149,13 +149,27 @@ func (h *Host) releaseBoothMonitor(ctx context.Context, svc hostServices, record
 	return result
 }
 
-// monitorUnreachableSentence names the linked DAW, or says "The DAW" when none is linked.
+// monitorUnreachableSentence names the linked DAW, or says "The DAW" when none is linked. The monitoring is put back by the DAW's own ledger the next time
+// its bridge starts, which the narrator knows as the DAW opening.
 func monitorUnreachableSentence(svc hostServices) string {
-	name := "The DAW"
+	name, again := "The DAW", "the DAW"
 	if svc.dawPortResolver != nil && svc.dawPortResolver.Kind().String() != "none" {
 		name = readAloudAdapterName(svc)
+		again = name
 	}
-	return fmt.Sprintf("%s could not be reached, so the input monitoring the Booth turned on may still be on. It is put back the next time the bridge starts.", name)
+	return fmt.Sprintf("%s could not be reached, so your input monitoring may still be on. Turn it off in %s, or it goes off the next time %s opens.", name, again, again)
+}
+
+// boothReleaseRefusal words a failed release on leaving the Booth: what failed (putting the input monitoring back), that it may still be on and what to do.
+func boothReleaseRefusal(name string, err error) string {
+	var stale *bridge.TrackStaleError
+	if errors.As(err, &stale) {
+		return fmt.Sprintf("The track the Booth monitored is no longer in the %s project, so its input monitoring was not put back. Check the track's input monitoring in %s.", name, name)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Sprintf("%s did not answer in time, so your input monitoring may still be on. Turn it off in %s.", name, name)
+	}
+	return fmt.Sprintf("%s could not put your input monitoring back, so it may still be on. Turn it off in %s.", name, name)
 }
 
 func dawReleaseBoothMonitorIn(ctx context.Context, name string, recorder dawport.Recorder) dawport.Result {
@@ -169,7 +183,7 @@ func dawReleaseBoothMonitorIn(ctx context.Context, name string, recorder dawport
 		if errors.Is(err, bridge.ErrScriptOutdated) {
 			return dawport.Result{OK: true}
 		}
-		return dawport.Refused(boothArmRefusal(name, err))
+		return dawport.Refused(boothReleaseRefusal(name, err))
 	}
 	return dawport.Result{OK: true, Changed: released.Restored > 0}
 }

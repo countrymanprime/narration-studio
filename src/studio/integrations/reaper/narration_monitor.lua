@@ -99,7 +99,8 @@ return function(registry)
   -- rows are the lanes this bridge monitored, ghosts the rows whose track was not in the project in front when they were tried.
   local state = { rows = {}, ghosts = {} }
 
-  -- REAPER records, or a record_start has pressed record and waits for REAPER to say so: the take is not to be touched.
+  -- REAPER records, or a record_start has pressed record and waits for REAPER to say so: the take is not to be touched. A start the watch gave up on (#3610)
+  -- is not waited for: its window has no end, so a restore held back by it could leave the monitoring on for good.
   local function busy()
     if recording() then
       return true
