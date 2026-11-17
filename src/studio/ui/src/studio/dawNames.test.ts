@@ -28,7 +28,7 @@ describe('the Booth writes no "did not answer in time" sentence by hand', () => 
   // "did not answer in time" in any spelling with or without a subject (a name in JSX, concatenated or in a template string is a subject too), "the stop did not go through", and any way of saying a recorder could not be reached.
   // A `logUi(...)` call is the run log's, not the narrator's, so it is not scanned.
   const hand =
-    /did(?:n't|n\u2019t|\s+not)\s+(?:answer|respond)\s+in\s+time|\bthe\s+(?:stop|undo)\s+did(?:n't|n\u2019t|\s+not)\s+go\s+through|(?:could(?:n't|n\u2019t|\s+not)|cannot|can't|can\u2019t)\s+(?:be\s+reached|reach\b)|\bunreachable\b/i;
+    /did(?:n't|n\u2019t|\s+not)\s+(?:answer|respond)\s+in\s+time|\bthe\s+(?:stop|undo)\s+did(?:n't|n\u2019t|\s+not)\s+go\s+through|(?:could(?:n't|n\u2019t|\s+not)|cannot|can\s+not|can't|can\u2019t)\s+(?:be\s+reached|reach\b)|\bunreachable\b|\bnot\s+reachable\b/i;
   const sayings = (file: string) => readFileSync(file, 'utf8').replace(/\blogUi\([^)]*\)/g, '');
   it('finds none outside the helper', () => {
     const hits = files(root).filter((f) => hand.test(sayings(f)));
@@ -53,6 +53,8 @@ describe('the Booth writes no "did not answer in time" sentence by hand', () => 
       'REAPER cannot be reached.',
       'Could not reach REAPER.',
       'REAPER is unreachable.',
+      'REAPER can not be reached.',
+      'REAPER is not reachable.',
     ])
       expect(hand.test(text), text).toBe(true);
     // The roll's and the meter's own sentences are different sentences.
