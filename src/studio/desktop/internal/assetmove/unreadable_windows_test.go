@@ -88,6 +88,10 @@ func makeUndeletable(t *testing.T, dir string) func() {
 		}
 		if !entry.IsDir() {
 			releases = append(releases, hold(t, path))
+			// Prove the hold binds: a delete of a held file must fail (it would remove the file if it did not, and the test then fails below).
+			if err := os.Remove(path); err == nil {
+				t.Fatalf("%s could be deleted while another handle holds it with no sharing: the guard would prove nothing", path)
+			}
 		}
 		return nil
 	})
