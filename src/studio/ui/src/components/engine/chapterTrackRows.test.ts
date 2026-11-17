@@ -18,19 +18,19 @@ describe('chapterTrackRows', () => {
   it('reports a chapter with no confirmed mapping as unlinked', () => {
     const rows = chapterTrackRows([chapter()], [track()], []);
 
-    expect(rows).toEqual([{ chapter: chapter(), state: 'unlinked' }]);
+    expect(rows).toEqual([{ chapter: chapter(), state: 'unlinked', linkCount: 0 }]);
   });
 
   it('reports a chapter whose confirmed track still exists as linked, with the track name', () => {
     const rows = chapterTrackRows([chapter()], [track()], [mapping()]);
 
-    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: 'Chapter 1', state: 'linked' }]);
+    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: 'Chapter 1', state: 'linked', linkCount: 1 }]);
   });
 
   it('reports a chapter whose confirmed track no longer exists as missing, with no track name', () => {
     const rows = chapterTrackRows([chapter()], [track({ guid: 'a-different-guid' })], [mapping()]);
 
-    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: undefined, state: 'missing' }]);
+    expect(rows).toEqual([{ chapter: chapter(), mapping: mapping(), trackName: undefined, state: 'missing', linkCount: 1 }]);
   });
 
   it('hides reference chapters, which have no audio to link', () => {
@@ -45,6 +45,16 @@ describe('chapterTrackRows', () => {
     const second = mapping({ trackGuid: 'guid-2' });
     const rows = chapterTrackRows([chapter()], [track({ guid: 'guid-1' }), track({ guid: 'guid-2', name: 'Other' })], [first, second]);
 
-    expect(rows).toEqual([{ chapter: chapter(), mapping: first, trackName: 'Chapter 1', state: 'several' }]);
+    expect(rows).toEqual([{ chapter: chapter(), mapping: first, trackName: 'Chapter 1', state: 'several', linkCount: 2 }]);
+  });
+
+  it('counts every link of a chapter with more than two', () => {
+    const rows = chapterTrackRows(
+      [chapter()],
+      [track({ guid: 'guid-1' })],
+      [mapping({ trackGuid: 'guid-1' }), mapping({ trackGuid: 'guid-2' }), mapping({ trackGuid: 'guid-3' })],
+    );
+
+    expect(rows[0]?.linkCount).toBe(3);
   });
 });
