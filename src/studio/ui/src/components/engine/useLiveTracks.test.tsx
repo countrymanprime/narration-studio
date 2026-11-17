@@ -11,6 +11,7 @@
 //   failed, first read                         'a first read that fails is the error, with no tracks, and a toast whose Retry reads again'
 //   failed after a good read (gone quiet)      'a read that fails after a good one keeps the tracks, marks them stale and toasts once'
 //   a run of automatic failures                'a run of automatic failures toasts once, whatever starts them; a press toasts again'
+//   REAPER down for a long time               'while REAPER does not answer the timer reads less and less often, up to the cap; coming back, a press and a good answer end it'
 //   stale, then answering again                'a good read after a failed one clears the stale mark'
 //   rapid double-fire                          'two Refresh presses send two reads and only the newer answer is kept'
 //   answers out of order                       'an older read answering after a newer one never replaces it'
@@ -27,7 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
-import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, TRACKS_READ_TOPIC, useLiveTracks, type LiveTracks } from './useLiveTracks';
+import { LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, TRACKS_READ_TOPIC, useLiveTracks, type LiveTracks } from './useLiveTracks';
 
 afterEach(() => {
   cleanup();
@@ -246,6 +247,53 @@ describe('reading the live track list', () => {
     expect(notify).toHaveBeenCalledTimes(2);
   });
 
+  it('while REAPER does not answer the timer reads less and less often, up to the cap; coming back, a press and a good answer end it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = createMockApi();
+    let answering = false;
+    api.tracksLive = vi.fn(async () => {
+      if (!answering) throw new Error('REAPER did not answer in time.');
+      return answer([track(1, 'Narrator')]);
+    });
+    const reads = () => vi.mocked(api.tracksLive).mock.calls.length;
+    const { hook } = mount(api);
+    await settle();
+    expect(reads()).toBe(1);
+    // After the first failure the timer waits 5 s, then 10 s, 20 s, 40 s, then the cap.
+    const waits = [5_000, 10_000, 20_000, 40_000, LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_BACKOFF_MAX_MS];
+    let expected = 1;
+    for (const wait of waits) {
+      await act(async () => vi.advanceTimersByTime(wait - LIVE_TRACKS_POLL_MS)); // the timer ticks inside the wait: no read
+      expect(reads()).toBe(expected);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+      expected += 1;
+      expect(reads()).toBe(expected);
+    }
+    // Coming back to the window reads at once, whatever the wait; a good answer then returns the timer to its pace.
+    answering = true;
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(reads()).toBe(expected + 1);
+    expect(hook.current.error).toBe('');
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    expect(reads()).toBe(expected + 2);
+  });
+
+  it('a press and a new read key read at once during the backoff', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = createMockApi();
+    api.tracksLive = vi.fn(async () => {
+      throw new Error('REAPER did not answer in time.');
+    });
+    const { hook, rerender } = mount(api);
+    await settle();
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS)); // a second failure: the wait is now 10 s
+    const before = vi.mocked(api.tracksLive).mock.calls.length;
+    await act(async () => hook.current.refresh());
+    rerender({ readKey: 'checked again' });
+    await settle();
+    expect(vi.mocked(api.tracksLive).mock.calls.length).toBe(before + 2);
+  });
+
   it('a read that fails after a good one keeps the tracks, marks them stale and toasts once', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const api = createMockApi();
@@ -359,8 +407,8 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(true);
     expect(hook.current.busy).toBe(false);
     expect(notify).toHaveBeenCalledTimes(1);
-    // The poll resumes.
-    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    // The poll resumes: after the failure the timer waits one more poll (the backoff's first step), so the next tick after that reads.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 2));
     expect(pending).toHaveLength(3);
     await act(async () => pending[2].resolve(answer([track(0, 'Chapter 1'), track(1, 'Added')])));
     expect(hook.current.stale).toBe(false);
