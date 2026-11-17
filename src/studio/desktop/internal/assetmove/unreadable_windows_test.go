@@ -107,3 +107,20 @@ func makeUndeletable(t *testing.T, dir string) func() {
 		}
 	}
 }
+
+// makeUnwritable makes dir refuse new entries until the answer is called (or the test ends) by holding it open with no sharing. A hold is not
+// a mode, so if this Windows does not refuse a file made in a held folder the test skips and says so, which the CI skip report shows, rather
+// than passing a guard that never bit.
+func makeUnwritable(t *testing.T, dir string) func() {
+	t.Helper()
+	release := hold(t, dir)
+	probe, err := os.CreateTemp(dir, ".probe")
+	if err == nil {
+		name := probe.Name()
+		_ = probe.Close()
+		_ = os.Remove(name)
+		release()
+		t.Skip("a folder held open with no sharing still took a new file on this Windows, so a target that refuses entries cannot be made (#3630)")
+	}
+	return release
+}
