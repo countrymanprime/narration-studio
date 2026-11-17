@@ -109,6 +109,14 @@ const bareClock = (text: string): string[] =>
       .replace(/^import[^;]*;$/gm, '')
       .matchAll(/[([{=,:?]\s*clock\s*(?=[)\]},;])/g),
   ].map((m) => m[0]);
+/** The import clauses of `clock.ts` in a source text: `{ clock }`, `{ clock as c }`, `* as ck`, with or without the `.ts` suffix. */
+const clockImports = (source: string): string[] =>
+  [...source.matchAll(/import\s+(?:type\s+)?([^;]*?)\s*from\s*['"][./]*\/clock(?:\.[jt]sx?)?['"]/g)].map((m) => m[1]);
+const importsClock = (source: string): boolean => clockImports(source).some((clause) => /\bclock\b/.test(clause) || /\*\s*as\b/.test(clause));
+/** An import that renames `clock` or takes the whole module, so a call or a reference to it is no longer written `clock(`. */
+const aliasesClock = (source: string): boolean => clockImports(source).some((clause) => /\bclock\s+as\b/.test(clause) || /\*\s*as\b/.test(clause));
+/** A `<ShowInDawButton ... />` that passes no `when`, or passes `when={undefined}`. */
+const lacksWhen = (markup: string): boolean => !/\bwhen=/.test(markup) || /\bwhen=\{\s*undefined\s*\}/.test(markup);
 const files = [...sources(SRC)].map((path) => relative(SRC, path).split(sep).join('/'));
 const text = (file: string) => readFileSync(join(SRC, file), 'utf8');
 
@@ -122,16 +130,31 @@ describe('the full form is only for Editing and Proof, and every position there 
   });
   it('is used as a bare value by no file on Editing or Proof: every use there is a call the lists above can see', () => {
     // (A file that does not import the formatter and has a variable of its own called `clock` is not about it.)
-    const importsFormatter = (file: string) => /import\s*\{[^}]*\bclock\b[^}]*\}\s*from\s*'[./]*\/clock'/.test(text(file));
-    expect(files.filter((file) => FINE.test(file) && importsFormatter(file) && bareClock(text(file)).length > 0)).toEqual([]);
+    expect(files.filter((file) => FINE.test(file) && importsClock(text(file)) && bareClock(text(file)).length > 0)).toEqual([]);
+  });
+  it('sees an import that hides the formatter behind another name (its own check)', () => {
+    for (const code of ["import { clock as c } from '../clock';", "import * as ck from '../../clock';", "import { clock as c } from '../clock.ts';"])
+      expect(aliasesClock(code), code).toBe(true);
+    for (const code of ["import { clock } from '../clock';", "import { clock, clockTenths } from '../../clock.ts';", "import { x as y } from '../other';"])
+      expect(aliasesClock(code), code).toBe(false);
+    expect(importsClock("import { clock } from '../clock.ts';")).toBe(true);
+    expect(importsClock("import { plural } from '../plural';")).toBe(false);
+  });
+  it('imports the formatter by its own name on Editing and Proof, never under another name or as a namespace', () => {
+    expect(files.filter((file) => FINE.test(file) && aliasesClock(text(file)))).toEqual([]);
   });
   it('gives every Show in {DAW} button on Editing and Proof its position formatter (`when`), so the shared component never falls back to the plain clock there', () => {
     const missing: string[] = [];
     for (const file of files.filter((f) => FINE.test(f))) {
-      for (const match of text(file).matchAll(/<ShowInDawButton\b[\s\S]*?\/>/g)) if (!/\bwhen=/.test(match[0])) missing.push(file);
+      for (const match of text(file).matchAll(/<ShowInDawButton\b[\s\S]*?\/>/g)) if (lacksWhen(match[0])) missing.push(file);
     }
     expect(missing).toEqual([]);
     expect(files.some((f) => FINE.test(f) && /<ShowInDawButton\b/.test(text(f)))).toBe(true);
+  });
+  it('sees a Show in {DAW} button without a formatter (its own check)', () => {
+    expect(lacksWhen('<ShowInDawButton target={t} />')).toBe(true);
+    expect(lacksWhen('<ShowInDawButton target={t} when={undefined} />')).toBe(true);
+    expect(lacksWhen('<ShowInDawButton target={t} when={noteTime} />')).toBe(false);
   });
   it('scans clock calls (its own check)', () => {
     expect(clockCalls('a(clock(x, { full: true }), clock(y))')).toEqual(['clock(x, { full: true })', 'clock(y)']);

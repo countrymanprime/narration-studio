@@ -127,3 +127,23 @@ for (const size of [
     }
   });
 }
+
+// #3443: a marked figure is read as "4 hours 35 minutes" by a screen reader through a hidden copy; copying a tile must give only what is drawn ("4h 35m left"),
+// not "4h 35m4 hours 35 minutesleft".
+test('Production / copying a tile gives the drawn figure, not its spoken copy / 1440x900', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await board(page, 1440, 900);
+  const tile = page.getByRole('list', { name: 'Production figures' }).locator('li', { hasText: 'Recording' }).first();
+  await tile.waitFor();
+  await tile.evaluate((li) => {
+    const range = document.createRange();
+    range.selectNodeContents(li);
+    const selection = getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.keyboard.press('ControlOrMeta+C');
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toMatch(/\d+h \d{2}m/);
+  expect(copied, 'the spoken copy is not copied').not.toMatch(/hours?|minutes?/);
+});

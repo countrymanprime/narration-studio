@@ -180,6 +180,15 @@ describe('StageBar', () => {
     expect(bar.querySelector('i[title="Not recorded yet: 1 hour 30 minutes"]')).toBeTruthy();
   });
 
+  // #3443: the legend's figures are drawn as "1h 30m" and spelled out for a screen reader ("1 hour 30 minutes").
+  it('spells the legend figures out for a screen reader, and draws them as hours and minutes', () => {
+    const { segments } = overviewFor(MID_BOOK);
+    view(<StageBar segments={segments} wph={9300} />);
+    const recorded = screen.getByText('Recorded').closest('li')!;
+    expect(recorded.querySelector('b [aria-hidden="true"]')!.textContent).toBe('1h 30m');
+    expect(recorded.querySelector('.sr-only')!.textContent).toBe('1 hour 30 minutes');
+  });
+
   it('says Recorded for the share recorded and has no footnote under the legend', () => {
     const { segments } = overviewFor(MID_BOOK);
     view(<StageBar segments={segments} wph={9300} />);

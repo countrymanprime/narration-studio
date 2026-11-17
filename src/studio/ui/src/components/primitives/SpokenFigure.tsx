@@ -16,9 +16,10 @@ export function SpokenFigure({ text, className, style }: { text: string; classNa
     );
   }
   return (
-    <span className={className} style={style}>
+    // `relative`: the hidden copy is `position: absolute`, and with no positioned ancestor it sits where the page's own box is and can widen the page's scroll width.
+    <span className={`relative ${className ?? ''}`.trim()} style={style}>
       <span aria-hidden="true">{text}</span>
-      <span className="sr-only">{spoken}</span>
+      <span className="sr-only select-none">{spoken}</span>
     </span>
   );
 }
