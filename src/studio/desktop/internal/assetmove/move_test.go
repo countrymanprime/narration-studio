@@ -270,7 +270,10 @@ func TestMoveRefusesATargetThatCannotBeWritten(t *testing.T) {
 }
 
 func TestMoveRefusesAReadOnlyTarget(t *testing.T) {
-	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix only: a Windows folder cannot be made to refuse a new folder inside it for an elevated user (#3630)")
+	}
+	if os.Geteuid() == 0 {
 		t.Skip("permissions are not enforced for this user")
 	}
 	source, parent := filepath.Join(t.TempDir(), "old"), t.TempDir()
@@ -292,14 +295,10 @@ func TestMoveOfASourceWithNothingDownloadedMovesNothing(t *testing.T) {
 }
 
 func TestMoveRefusesALinkInTheSource(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("links need privileges on Windows")
-	}
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	seed(t, source)
-	if err := os.Symlink("/etc/hostname", filepath.Join(source, "tts", "link")); err != nil {
-		t.Fatal(err)
-	}
+	// A link to a folder outside the source: a move copies files and never follows a link out of the folder.
+	makeLink(t, filepath.Join(source, "tts", "link"), t.TempDir())
 	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !errors.Is(err, ErrLink) {
 		t.Fatalf("want ErrLink, got %v", err)
 	}
@@ -437,15 +436,10 @@ func TestCoveredIgnoresKindsTheOldFolderNeverHad(t *testing.T) {
 }
 
 func TestMoveSeesALinkedParentAsInsideTheSource(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("links need privileges on Windows")
-	}
 	source := filepath.Join(t.TempDir(), "old")
 	files := seed(t, source)
 	alias := filepath.Join(t.TempDir(), "alias")
-	if err := os.Symlink(source, alias); err != nil {
-		t.Fatal(err)
-	}
+	makeLink(t, alias, source)
 	if err := Move(context.Background(), Plan{Source: source, Target: filepath.Join(alias, "new"), Dirs: kinds}, nil); !errors.Is(err, ErrTargetInsideSource) {
 		t.Fatalf("want ErrTargetInsideSource, got %v", err)
 	}
@@ -851,44 +845,50 @@ func TestMoveStopsOnASourceFolderItCannotList(t *testing.T) {
 }
 
 func TestMoveStopsWhenAFileTheCopyJustWroteCannotBeReadBack(t *testing.T) {
-	notRoot(t) // Unix only: on Windows a file held open cannot be cleaned up after the failed move, so the leftover check below cannot hold (#3630)
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	seed(t, source)
 	afterCopy = func(dst string) error {
 		if filepath.Base(dst) == "voice.json" {
-			return os.Chmod(dst, 0o000)
+			makeUnreadable(t, dst) // Move runs on this goroutine, so the helper may fail the test
 		}
 		return nil
 	}
 	t.Cleanup(func() { afterCopy = func(string) error { return nil } })
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	// The read-back's own open is refused by the disk: a mismatch or another error would be a different failure.
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk's refusal, got %v", err)
 	}
 	if _, err := os.Stat(target); err == nil {
 		t.Fatal("target left behind")
 	}
 }
 
-func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
-	notRoot(t)
+// The target stops taking new entries after the first file is copied, so the move fails at its first write into the target (the marker, or the
+// folders if that is reached first). It covers the move stopping on the disk's refusal and the retry clearing what was left; a rename that
+// fails after a written marker is not reached here.
+func TestMoveStopsWhenTheTargetStopsTakingNewEntriesMidMove(t *testing.T) {
 	source, target := filepath.Join(t.TempDir(), "old"), t.TempDir()
 	files := seed(t, source)
+	var release func()
 	afterCopy = func(dst string) error {
-		if filepath.Base(dst) == "voice.json" {
-			return os.Chmod(target, 0o555)
+		if filepath.Base(dst) == "voice.json" && release == nil {
+			release = makeUnwritable(t, target) // Move runs on this goroutine, so the helper may fail or skip the test
 		}
 		return nil
 	}
-	t.Cleanup(func() { afterCopy = func(string) error { return nil }; _ = os.Chmod(target, 0o755) })
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	t.Cleanup(func() { afterCopy = func(string) error { return nil } })
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk's refusal, got %v", err)
 	}
-	lock(t, target, 0o755)
+	if release == nil {
+		t.Fatal("the target was never made unwritable: the guard proved nothing")
+	}
+	release()
 	assertIntact(t, source, files)
 	// The folder could not be written, so the staging folder could not be removed either: it is ours (marker and generated name), nothing
-	// else is there, and the next try clears it.
+	// else is there (nothing at all is fine too), and the next try clears it.
 	for _, name := range listing(t, target) {
-		if !strings.HasPrefix(name, movingPrefix) || strings.Contains(name, "/") && !strings.HasPrefix(name, movingPrefix) {
+		if !strings.HasPrefix(name, movingPrefix) {
 			t.Fatalf("something that is not the move's own was left: %s", name)
 		}
 	}

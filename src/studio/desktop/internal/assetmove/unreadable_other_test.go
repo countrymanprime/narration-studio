@@ -66,3 +66,7 @@ func unbound(t *testing.T) {
 	}
 	t.Skip("the file mode does not bind this user (root), so the failure cannot be made")
 }
+
+// makeUnwritable makes dir refuse new entries (no write permission) until the answer is called or the test ends. It skips for a user the
+// mode does not bind.
+func makeUnwritable(t *testing.T, dir string) func() { return makeUndeletable(t, dir) }
