@@ -410,6 +410,7 @@ export function useBoothVoices({
           ? undefined
           : characters.find((entity) => same(entity.canonical_name) || entity.aliases.some((alias) => same(alias.text)));
         const ids = named && characterIds.length > 0 && !characterIds.includes(named.id) ? [named.id, ...characterIds] : characterIds;
+        const changesBefore = localChanges.current;
         const answer = await voiceTracks.boothVoiceAdd(chapterId, name, ids);
         if (answer.outcome === 'refused') {
           notify(answer.message ?? 'The track was not added.', 'error');
@@ -417,10 +418,12 @@ export function useBoothVoices({
         }
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
+        // A voice chosen while the add waited keeps its place: the late lane is listed, not selected (the host does the same).
+        const keepChoice = localChanges.current !== changesBefore;
         localChanges.current += 1;
         setHostVoice((last) => ({
           chapterId,
-          guid,
+          guid: keepChoice && last.chapterId === chapterId ? last.guid : guid,
           added: [...(last.chapterId === chapterId ? last.added : []), { guid, name: answer.name ?? name }],
         }));
         // The characters are on the new track's name: the Voices card and the keys read them from the setup.

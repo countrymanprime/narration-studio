@@ -227,7 +227,7 @@ const LateAnswerWait = 20 * time.Second
 // does harm (#3645): track_create and the two arms report a failure for a change that still lands (a lane made and then "not found", a
 // retry that makes a second one), and tracks_read answers the saved project, without the lane just made, in place of the live list.
 // Other commands keep the short wait.
-var mayRunLong = map[string]bool{"track_create": true, "arm_only": true, "arm_lane": true, "tracks_read": true}
+var mayRunLong = map[string]bool{"track_create": true, "arm_only": true, "arm_lane": true, "tracks_read": true, "switch_voice": true}
 
 // ErrAnswerLate is ErrNoAnswer for a command REAPER had read: it may still have done what it was asked, so the caller reads back
 // before saying it failed or sending it again. errors.Is(err, ErrNoAnswer) holds.

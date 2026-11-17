@@ -12,16 +12,16 @@ import (
 
 const lateVoiceTrack = "{AAAAAAAA-0000-4000-8000-0000000000B7}"
 
-// lateChildCreator is a REAPER that makes the track and confirms too late: the track is in the project (written as REAPER's list now
+// lateConfirmCreator is a REAPER that makes the track and confirms too late: the track is in the project (written as REAPER's list now
 // holds it) and the answer is bridge.ErrAnswerLate.
-type lateChildCreator struct {
+type lateConfirmCreator struct {
 	fakeChildCreator
 	host  *Host
 	t     *testing.T
 	calls int
 }
 
-func (f *lateChildCreator) CreateChildTrack(ctx context.Context, name, parent string) (dawport.CreatedTrack, error) {
+func (f *lateConfirmCreator) CreateChildTrack(ctx context.Context, name, parent string) (dawport.CreatedTrack, error) {
 	f.calls++
 	f.children = append(f.children, [2]string{name, parent})
 	extra := fmt.Sprintf("  <TRACK %s\n    NAME %q\n    ISBUS 0 0\n    TRACKID %s\n  >\n", lateVoiceTrack, name, lateVoiceTrack)
@@ -33,7 +33,7 @@ func (f *lateChildCreator) CreateChildTrack(ctx context.Context, name, parent st
 // is new, chooses it, and a second press of the same name is the name-taken refusal, not a second track.
 func TestAVoiceREAPERConfirmsLateIsAdoptedByReadingBack(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, "folders")
-	creator := &lateChildCreator{host: host, t: t}
+	creator := &lateConfirmCreator{host: host, t: t}
 	got := boothVoiceAdd(t, host, creator, ids[0], "King", []string{"king"})
 	if got.Outcome != "added" || got.TrackGUID != lateVoiceTrack || got.Name != "King" {
 		t.Fatalf("got %+v, want the track REAPER made adopted", got)
@@ -64,5 +64,57 @@ func TestALateCreateWordsItSelfAsMaybeThereNotAsNotAnswering(t *testing.T) {
 	refusal := trackCreateError("REAPER", "Chapter 3", bridge.ErrAnswerLate, "track")
 	if refusal.Reason != refusedFailed || !strings.Contains(refusal.Message, "may already be there") || strings.Contains(refusal.Message, "not answering") {
 		t.Fatalf("refusal = %+v", refusal)
+	}
+}
+
+// An unconfirmed create whose read-back finds nothing (the list is as saved) must not be sent again by a second press of the same name.
+func TestARetryAfterAnUnconfirmedCreateIsNotSentAgain(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	creator := &fakeChildCreator{childErr: bridge.ErrAnswerLate}
+	if first := boothVoiceAdd(t, host, creator, ids[0], "King", nil); first.Outcome != "refused" {
+		t.Fatalf("first = %+v", first)
+	}
+	second := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if second.Outcome != "refused" || !strings.Contains(second.Message, "may already be there") || len(creator.children) != 1 {
+		t.Fatalf("second = %+v after %d creates, want a refusal and no second create", second, len(creator.children))
+	}
+}
+
+// Select-then-late-arrival: the narrator chose another voice while the add waited; the late voice is listed but the choice stands.
+type choosingCreator struct {
+	fakeChildCreator
+	during func()
+}
+
+func (f *choosingCreator) CreateChildTrack(ctx context.Context, name, parent string) (dawport.CreatedTrack, error) {
+	f.during()
+	return f.fakeChildCreator.CreateChildTrack(ctx, name, parent)
+}
+
+func TestAnAddLandingLateDoesNotStealAChoiceMadeMeanwhile(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	creator := &choosingCreator{during: func() { host.boothVoices.choose(ids[0], voiceNarratorTrack) }}
+	got := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if got.Outcome != "added" || got.TrackGUID != addedVoiceTrack {
+		t.Fatalf("got %+v", got)
+	}
+	if chosen := host.boothVoices.For(ids[0]); chosen != voiceNarratorTrack {
+		t.Fatalf("chosen = %q, want the voice chosen while the add waited", chosen)
+	}
+	if listed := host.boothVoices.addedTo(voiceFolderTrack); len(listed) != 1 {
+		t.Fatalf("the late voice is not listed: %v", listed)
+	}
+}
+
+func TestAnAddLandingAfterATakeStartedDoesNotChooseItsLane(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	creator := &choosingCreator{during: func() {
+		host.mu.Lock()
+		host.readAloudRecordingChapter = ids[0]
+		host.mu.Unlock()
+	}}
+	got := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if got.Outcome != "added" || host.boothVoices.For(ids[0]) == addedVoiceTrack {
+		t.Fatalf("got %+v, chosen %q: a take started, the add must not move its voice", got, host.boothVoices.For(ids[0]))
 	}
 }

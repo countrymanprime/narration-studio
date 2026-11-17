@@ -1153,7 +1153,7 @@ describe('a late read of the host after a change made here (#3645)', () => {
     await act(async () => new Promise((r) => setTimeout(r, 20)));
     let added: Promise<boolean> = Promise.resolve(false);
     await act(async () => {
-      added = hook.current.add('Queen of Hearts', []);
+      added = hook.current.add('Queen of Hearts', ['c1']);
       await new Promise((r) => setTimeout(r, 20));
     });
     await waitFor(() => expect(hook.current.current?.name).toBe('Queen of Hearts'));
@@ -1165,5 +1165,34 @@ describe('a late read of the host after a change made here (#3645)', () => {
       await added;
     });
     expect(hook.current.voices.map((voice) => voice.name)).toContain('Queen of Hearts');
+  });
+});
+
+describe('a lane that arrives late (#3645)', () => {
+  it('is listed but does not take the selection from a voice chosen while the add waited', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    // The host's add is under way (its characters are being saved) while the narrator chooses another voice.
+    const realSet = api.voiceTracksSetCharacters.bind(api);
+    let release: () => void = () => {};
+    api.voiceTracksSetCharacters = async (...args: Parameters<typeof realSet>) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return realSet(...args);
+    };
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    let added: Promise<boolean> = Promise.resolve(false);
+    await act(async () => {
+      added = hook.current.add('Queen of Hearts', ['c1']);
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    await act(async () => hook.current.byKey(2));
+    await waitFor(() => expect(hook.current.current?.name).toBe('Extras'));
+    release();
+    await act(async () => {
+      await added;
+    });
+    await waitFor(() => expect(hook.current.voices.map((voice) => voice.name)).toContain('Queen of Hearts'));
+    expect(hook.current.current?.name).toBe('Extras');
   });
 });

@@ -102,12 +102,28 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	if !ok {
 		return boothVoiceAddRefused(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track inside a folder from this app. Add a track named “%s” inside the chapter's folder in %s.", engine, name, engine)), nil
 	}
-	created, err := child.CreateChildTrack(ctx, name, link)
-	if errors.Is(err, bridge.ErrAnswerLate) {
-		// REAPER took the command and has not confirmed it (#3645): the track may well exist. Read the folder back and adopt the voice
-		// that was not there before, so a slow answer is not an error and a second press does not make a second track.
+	before := svc.boothVoices.For(chapterID)
+	var created bridge.CreatedTrack
+	adopted := false
+	if svc.boothVoices.isPending(link, name) {
+		// An earlier create of this name was not confirmed: look before sending another (#3645).
+		if found, ok := h.adoptCreatedVoice(svc, link, name, voices); ok {
+			created, adopted = found, true
+			svc.boothVoices.clearPending(link, name)
+		} else {
+			return boothVoiceAddRefused(refusedFailed, fmt.Sprintf("%s took an earlier request for a track named “%s” and has not confirmed it. Look in %s: it may already be there. If it is not, try again in a minute.", engine, name, engine)), nil
+		}
+	}
+	if !adopted {
+		created, err = child.CreateChildTrack(ctx, name, link)
+	}
+	if errors.Is(err, bridge.ErrNoAnswer) || errors.Is(err, context.DeadlineExceeded) {
+		// REAPER did not confirm in time (#3645; ErrAnswerLate: it had read the command): the track may well exist. Read the folder back and
+		// adopt the voice that was not there before, so a slow answer is not an error and a second press does not make a second track.
 		if found, ok := h.adoptCreatedVoice(svc, link, name, voices); ok {
 			created, err = found, nil
+		} else if errors.Is(err, bridge.ErrAnswerLate) {
+			svc.boothVoices.markPending(link, name)
 		}
 	}
 	var stale *bridge.TrackStaleError
@@ -125,11 +141,20 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	svc.boothVoices.add(link, BoothVoiceTrack{GUID: created.GUID, Name: added})
 	if _, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder, Reporter: h.persist}).AddTrackCharacters(added, characterIDs); err != nil {
 		// The track is in the DAW: the narrator is told the assignment did not save, and the voice is still chosen.
-		svc.boothVoices.choose(chapterID, created.GUID)
+		h.chooseAddedVoice(svc, chapterID, before, created.GUID)
 		return BoothVoiceAdded{}, fmt.Errorf("the track “%s” was added, but its characters were not saved: %w", added, err)
 	}
-	svc.boothVoices.choose(chapterID, created.GUID)
+	h.chooseAddedVoice(svc, chapterID, before, created.GUID)
 	return BoothVoiceAdded{Outcome: "added", TrackGUID: created.GUID, Name: added}, nil
+}
+
+// chooseAddedVoice chooses the voice just added unless something else moved while the create waited: a voice the narrator chose meanwhile
+// or a take that started keeps its place, and the new voice is only listed (#3645: a late add must not steal the selection).
+func (h *Host) chooseAddedVoice(svc hostServices, chapterID, before, guid string) {
+	if svc.boothVoices.For(chapterID) != before || h.readAloudRecordingActive() || h.recordStarting() {
+		return
+	}
+	svc.boothVoices.choose(chapterID, guid)
 }
 
 // adoptCreatedVoice reads chapter folder link back from REAPER and returns the voice named name that was not among before, the

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -247,10 +248,49 @@ type boothVoiceChoices struct {
 	// The voices BoothVoiceAdd added, by the folder's GUID (upper case), in the order added.
 	// +checklocks:mu
 	added map[string][]BoothVoiceTrack
+	// Voice names whose create REAPER read and did not confirm, by folder and lower-case name: until REAPER's list shows the track, an add of
+	// the same name is not sent again (#3645, a retry would make a second track).
+	// +checklocks:mu
+	pending map[string]time.Time
+}
+
+// pendingVoiceFor is how long an unconfirmed create blocks a second add of its name.
+const pendingVoiceFor = 2 * time.Minute
+
+func pendingKey(folderGUID, name string) string {
+	return strings.ToUpper(folderGUID) + "|" + strings.ToLower(name)
+}
+
+func (c *boothVoiceChoices) markPending(folderGUID, name string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pending[pendingKey(folderGUID, name)] = time.Now()
+}
+
+func (c *boothVoiceChoices) clearPending(folderGUID, name string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.pending, pendingKey(folderGUID, name))
+}
+
+func (c *boothVoiceChoices) isPending(folderGUID, name string) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	at, ok := c.pending[pendingKey(folderGUID, name)]
+	return ok && time.Since(at) < pendingVoiceFor
 }
 
 func newBoothVoiceChoices() *boothVoiceChoices {
-	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}}
+	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}, pending: map[string]time.Time{}}
 }
 
 // whileAdding runs one add's checks, its track_create and its answer while no other add runs. A nil one runs it unguarded.
