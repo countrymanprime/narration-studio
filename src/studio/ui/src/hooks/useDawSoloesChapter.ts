@@ -48,7 +48,7 @@ export function useDawSoloesChapter(chapterId: string | undefined): void {
         }
         message = answer.refused || message;
       } catch {
-        // the DAW did not answer: the sentence above
+        message = LEFT_SOLOED;
       }
       owed = true;
       if (!told) {

@@ -40,6 +40,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/App.tsx#3': no(BT),
   'src/App.tsx#4': no(BT),
   'src/App.tsx#5': no(BT),
+  'src/hooks/useDawSoloesChapter.ts#1': no(
+    'The restore is sent again by itself when the DAW can follow again, and the sentence says what to do by hand in the DAW; the narrator has left the Booth, so a button here has nothing to retry from.',
+  ),
   'src/components/production/report/ReportDialog.tsx#1': yes(
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
