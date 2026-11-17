@@ -11,7 +11,7 @@ import { headingName } from '../../chapterHeading';
 import { trackName } from '../tracks/trackName';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { LineIdentityState, NarrationApi, Track } from '../../types';
@@ -168,6 +168,17 @@ describe('LinkChaptersDialog', () => {
   });
 
   // #3398: picking a track another chapter holds moves it, so the option says who holds it before the pick, as the Chapter links list does.
+  // #3363: a chapter with several links showed the first of its tracks as if it were the only link.
+  it('shows a chapter with several links as Several tracks, not as one of them', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [one, two] = WIRE_TRACKS_PROJECT.tracks;
+    renderDialog({}, { chapterTrackMappings: [wireLink(one.guid, chapter.id), wireLink(two.guid, chapter.id)] });
+    const select = (await screen.findByRole('combobox', { name: `Track for ${chapter.title}` })) as HTMLSelectElement;
+    await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Several tracks'));
+    // The other chapters' rows are unchanged.
+    expect(within(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` })).queryByRole('option', { name: 'Several tracks' })).toBeNull();
+  });
+
   it('labels a track another chapter holds in the other chapters’ pickers', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();

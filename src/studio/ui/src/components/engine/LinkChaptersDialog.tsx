@@ -302,6 +302,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
             const known = chapterNameLookup(links.chapters);
             const options = own.map((option) => {
+              // A chapter with several links shows as that, not as the first of its tracks alone; a pick replaces all of them.
+              if (state === 'several' && mapping && option.value === mapping.trackGuid) return { ...option, label: LINK_STATE_LABEL.several };
               const holder = option.value ? holderOf(links.mappings, option.value, chapter.id) : undefined;
               return holder ? { ...option, label: heldLabel(option.label, holderName(known(holder.chapterId), holder.chapterTitle)) } : option;
             });
