@@ -68,6 +68,11 @@ func (b *beat) set(count int) {
 	b.reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: fields})
 }
 
+// project makes the heartbeat say another project is open, with the counter kept.
+func (b *beat) project(rpp string, count int) {
+	b.reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", rpp, "0", itoa(count)}})
+}
+
 func (b *beat) advance(d time.Duration) { *b.clock = b.clock.Add(d) }
 
 func itoa(n int) string {
@@ -380,5 +385,149 @@ func TestCreatingAChapterTrackDropsTheCachedTrackList(t *testing.T) {
 				t.Fatalf("the list was served from the cache after the app created a track (%d requests before, %d after)", before, inner.calls.Load())
 			}
 		})
+	}
+}
+
+// A read that began before the host made a track may not have it: a caller arriving after the create must not be handed that read.
+func TestACallerAfterAnInvalidationDoesNotJoinAReadThatStartedBefore(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9), gate: make(chan struct{})}, newBeat(9)
+	cached, cache := cachedFor(inner, b)
+	first := make(chan struct{})
+	go func() {
+		defer close(first)
+		_, _ = cached.ReadTracks(context.Background())
+	}()
+	for inner.calls.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	cache.Invalidate() // the app made a track while the first read was out
+	second := make(chan struct{})
+	go func() {
+		defer close(second)
+		_, _ = cached.ReadTracks(context.Background())
+	}()
+	deadline := time.After(2 * time.Second)
+	for inner.calls.Load() < 2 {
+		select {
+		case <-second:
+			t.Fatalf("the caller after the invalidation was answered by the read that began before it (%d requests)", inner.calls.Load())
+		case <-deadline:
+			close(inner.gate)
+			t.Fatalf("the caller after the invalidation sent no request of its own (%d requests): it is waiting on the read that began before it", inner.calls.Load())
+		case <-time.After(time.Millisecond):
+		}
+	}
+	close(inner.gate)
+	<-first
+	<-second
+}
+
+// panicFirst panics on its first request, once released, and answers the rest.
+type panicFirst struct {
+	calls atomic.Int32
+	gate  chan struct{}
+}
+
+func (l *panicFirst) ReadTracks(context.Context) (dawport.LiveTracks, error) {
+	if l.calls.Add(1) == 1 {
+		<-l.gate
+		panic("the bridge broke")
+	}
+	return twoTracks(9), nil
+}
+
+// A read that panics must still wake the callers waiting on it, and leave the cache usable.
+func TestALeaderThatPanicsDoesNotWedgeTheCallersWaitingOnIt(t *testing.T) {
+	inner, b := &panicFirst{gate: make(chan struct{})}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	go func() {
+		defer func() { _ = recover() }()
+		_, _ = cached.ReadTracks(context.Background())
+	}()
+	for inner.calls.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	waiter := make(chan error, 1)
+	go func() {
+		_, err := cached.ReadTracks(context.Background())
+		waiter <- err
+	}()
+	time.Sleep(20 * time.Millisecond) // the waiter is on the leader's read
+	close(inner.gate)                 // the leader panics
+	select {
+	case err := <-waiter:
+		if err != nil {
+			t.Fatalf("the waiter's own read failed: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("a caller waiting on a read that panicked never returned")
+	}
+	if got := read(t, cached); len(got.Tracks) != 2 {
+		t.Fatalf("got %+v after the panic", got)
+	}
+}
+
+func TestAListOfAnotherOpenProjectIsNotReusedWhenTheCountersMatch(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	b.project("C:/Projects/Bob/Bob.rpp", 9) // the narrator opened another project in REAPER: its counter happens to match
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests, want 2: another project's list was served", calls)
+	}
+}
+
+func TestAMutatedAnswerDoesNotChangeTheNextRead(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	for round := 0; round < 3; round++ { // the read that asked REAPER, then two served from the cache
+		got := read(t, cached)
+		if got.Tracks[0].Name != "Chapter I" || got.Tracks[1].Name != "Chapter II" {
+			t.Fatalf("round %d: the read was %+v: callers share one list", round, got.Tracks)
+		}
+		got.Tracks[0].Name = "changed by a caller"
+		got.Tracks[0], got.Tracks[1] = got.Tracks[1], got.Tracks[0]
+	}
+}
+
+// A waiter's own deadline ends its wait while the one request is still out (the request is not released until the end).
+func TestAWaiterReturnsItsOwnDeadlineWhileTheReadIsStillOut(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9), gate: make(chan struct{})}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	go func() { _, _ = cached.ReadTracks(context.Background()) }()
+	for inner.calls.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	started := time.Now()
+	_, err := cached.ReadTracks(ctx)
+	if !errors.Is(err, context.DeadlineExceeded) || time.Since(started) > time.Second {
+		t.Fatalf("got %v after %s, want the caller's own deadline while the read is still out", err, time.Since(started))
+	}
+	close(inner.gate)
+}
+
+// failOnce fails its first request at once and answers the rest.
+type failOnce struct{ calls atomic.Int32 }
+
+func (l *failOnce) ReadTracks(context.Context) (dawport.LiveTracks, error) {
+	if l.calls.Add(1) == 1 {
+		return dawport.LiveTracks{}, bridge.ErrNoAnswer
+	}
+	return twoTracks(0), nil
+}
+
+// An error answer is the zero list with a zero counter, which a heartbeat at 0 equals: it must not be kept.
+func TestAFailedReadIsNotServedToTheNextCaller(t *testing.T) {
+	inner, b := &failOnce{}, newBeat(0)
+	cached, _ := cachedFor(inner, b)
+	if _, err := cached.ReadTracks(context.Background()); !errors.Is(err, bridge.ErrNoAnswer) {
+		t.Fatalf("got %v, want the failure", err)
+	}
+	got, err := cached.ReadTracks(context.Background())
+	if err != nil || len(got.Tracks) != 2 {
+		t.Fatalf("got %+v, %v: the failure was kept and served", got, err)
 	}
 }

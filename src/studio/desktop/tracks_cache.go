@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +47,8 @@ type liveTracksFlight struct {
 func newLiveTracksCache() *liveTracksCache { return &liveTracksCache{now: time.Now} }
 
 // Invalidate forgets the answer, for a change this app made itself (a track it created): the counter will say so within a heartbeat, but the
-// next read must not wait for it. A read in flight when this is called is not kept.
+// next read must not wait for it. A read in flight when this is called is neither kept nor shared with a caller that arrives afterwards: its
+// answer may predate the change, so the next caller sends a request of its own (the callers already waiting on it still get it).
 func (c *liveTracksCache) Invalidate() {
 	if c == nil {
 		return
@@ -52,6 +57,7 @@ func (c *liveTracksCache) Invalidate() {
 	defer c.mu.Unlock()
 	c.have = false
 	c.generation++
+	c.flight = nil
 }
 
 // cachedTrackLister is lister, asked at most once for as long as heartbeat's change count equals the count its last answer carried.
@@ -71,12 +77,15 @@ func withTracksCache(svc hostServices, lister dawport.TrackLister) dawport.Track
 	return cachedTrackLister{inner: lister, cache: svc.tracksCache, heartbeat: svc.reachability}
 }
 
+// errReadPanicked is what the callers waiting on a read are told when the read panicked instead of answering.
+var errReadPanicked = errors.New("the track list read ended without an answer")
+
 func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
 	c := l.cache
 	for {
 		c.mu.Lock()
 		if c.have && l.fresh(c) {
-			answer := c.answer
+			answer := cloneTracks(c.answer)
 			c.mu.Unlock()
 			return answer, nil
 		}
@@ -85,43 +94,67 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 			select {
 			case <-flight.done:
 				if flight.err == nil {
-					return flight.answer, nil
+					return cloneTracks(flight.answer), nil
 				}
 				// The read this call waited on failed (its caller's deadline may have been the shorter one): this call reads for itself.
 			case <-ctx.Done():
 				return dawport.LiveTracks{}, ctx.Err()
 			}
-			c.mu.Lock()
-			if c.flight == flight {
-				c.flight = nil
-			}
-			c.mu.Unlock()
 			continue
 		}
 		flight := &liveTracksFlight{done: make(chan struct{})}
 		c.flight = flight
 		generation := c.generation
 		c.mu.Unlock()
-
-		answer, err := l.inner.ReadTracks(ctx)
-
-		c.mu.Lock()
-		flight.answer, flight.err = answer, err
-		if c.flight == flight {
-			c.flight = nil
-		}
-		if err == nil && generation == c.generation {
-			c.have, c.answer, c.at = true, answer, c.now()
-		}
-		c.mu.Unlock()
-		close(flight.done)
-		return answer, err
+		return l.lead(ctx, c, flight, generation)
 	}
 }
 
-// fresh reports whether the held answer is still REAPER's list: the heartbeat is fresh and carries a counter equal to the answer's, and the
-// answer is not older than liveTracksMaxAge. Without a counter nothing is reused. Called with c.mu held.
+// lead sends the one request of flight, stores its answer when nothing invalidated the list meanwhile, and wakes the callers waiting on it. It
+// does so also when the read panics, so no caller waits for a read that will never end.
+func (l cachedTrackLister) lead(ctx context.Context, c *liveTracksCache, flight *liveTracksFlight, generation uint64) (answer dawport.LiveTracks, err error) {
+	finished := false
+	defer func() {
+		c.mu.Lock()
+		if !finished {
+			flight.err = errReadPanicked
+		}
+		if c.flight == flight {
+			c.flight = nil
+		}
+		c.mu.Unlock()
+		close(flight.done)
+	}()
+	answer, err = l.inner.ReadTracks(ctx)
+	c.mu.Lock()
+	flight.answer, flight.err = answer, err
+	if err == nil && generation == c.generation {
+		c.have, c.answer, c.at = true, cloneTracks(answer), c.now()
+	}
+	finished = true
+	c.mu.Unlock()
+	return answer, err
+}
+
+// cloneTracks is answer with a copy of its rows of its own, so no caller can change what the next one is given.
+func cloneTracks(answer dawport.LiveTracks) dawport.LiveTracks {
+	answer.Tracks = slices.Clone(answer.Tracks)
+	return answer
+}
+
+// fresh reports whether the held answer is still REAPER's list: the heartbeat is fresh and carries a counter equal to the answer's, it names the
+// project the answer is of, and the answer is not older than liveTracksMaxAge. A REAPER restarted or a project reopened (the counter starts again)
+// with no read in between and an equal counter is served stale for at most that long. Called with c.mu held.
 func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
 	count, known := l.heartbeat.ChangeCount()
-	return known && count == c.answer.ChangeCount
+	if !known {
+		return false
+	}
+	open, unsaved := l.heartbeat.CurrentProject()
+	return count == c.answer.ChangeCount && !unsaved && sameLiveProject(open, c.answer.ProjectPath) && c.now().Sub(c.at) < liveTracksMaxAge
+}
+
+// sameLiveProject reports whether two project paths name one file (Windows paths compare without case).
+func sameLiveProject(a, b string) bool {
+	return a != "" && strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }
