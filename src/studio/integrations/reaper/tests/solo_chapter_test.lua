@@ -496,40 +496,44 @@ H.test('a chapter already on the ledger is soloed again when the ledger cannot b
   H.eq(solos(s), { 2, 0, 0, 0, 0, 0 })
 end)
 
--- A row for a track of another project stays on the ledger; when its file cannot be written the bridge tries again on the ticks that follow.
+-- A row for a track of another project stays on the ledger; when its file cannot be written the bridge tries again on the ticks that follow. The
+-- write is refused by io.open itself (a directory cannot be removed the same way on every system): `blocked.on` says whether it is, `blocked.tries` counts.
 local function unwritable_with_a_ghost()
   local s, t = new_session()
   s:send('solo_chapter', 'c1', t.ch1.guid)
+  local blocked = { on = true, tries = 0 }
+  local real_open = io.open
+  io.open = function(path, mode, ...)
+    if blocked.on and tostring(path):find(LEDGER, 1, true) and (mode or 'r'):find('w', 1, true) then
+      blocked.tries = blocked.tries + 1
+      return nil, 'blocked'
+    end
+    return real_open(path, mode, ...)
+  end
   s.fake.tracks = {}
-  os.remove(s:path(LEDGER))
-  host.makedirs(s:path(LEDGER))
   s:send('solo_restore', 'r1')
-  return s, t
+  return s, t, blocked, function()
+    io.open = real_open
+  end
 end
 
 H.test('a ledger that could not be written is written again on a later tick', function()
-  local s, t = unwritable_with_a_ghost()
-  os.remove(s:path(LEDGER))
+  local s, t, blocked, undo = unwritable_with_a_ghost()
+  blocked.on = false
   for _ = 1, 8 do
     s:tick()
   end
+  undo()
   H.eq(ledger(s), row(t.ch1))
 end)
 
 H.test('a ledger that stays unwritable is not opened on every tick', function()
-  local s = unwritable_with_a_ghost()
-  local opens = 0
-  local real_open = io.open
-  io.open = function(path, ...)
-    if tostring(path):find(LEDGER, 1, true) then
-      opens = opens + 1
-    end
-    return real_open(path, ...)
-  end
+  local s, _, blocked, undo = unwritable_with_a_ghost()
+  local before = blocked.tries
   for _ = 1, 40 do
     s:tick()
   end
-  io.open = real_open
-  H.truthy(opens < 12, 'the retries are spaced out by a count of ticks, got ' .. opens)
-  H.truthy(opens > 0, 'it is still tried')
+  undo()
+  H.truthy(blocked.tries - before < 12, 'the retries are spaced out by a count of ticks, got ' .. (blocked.tries - before))
+  H.truthy(blocked.tries - before > 0, 'it is still tried')
 end)
