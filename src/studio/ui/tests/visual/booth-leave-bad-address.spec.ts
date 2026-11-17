@@ -47,7 +47,7 @@ const MESSAGE = [
   '/booth?chapter=chapter-1&para=p1&at=abc',
 ];
 const question = (page: Page) => page.getByRole('alertdialog', { name: 'Stop recording?' });
-const said = (page: Page) => page.getByText('The Booth stays and the take goes on.');
+const said = (page: Page) => page.getByText('The Booth stays as it is.');
 
 for (const address of ASKS) {
   test(`${address} during a take asks like any chapter, and Keep recording leaves the take running`, async ({ page }) => {

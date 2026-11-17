@@ -122,7 +122,7 @@ export function AddressGate({
   const ignored = keep && read.kind === 'bad' ? `${search}${hash}` : null;
   useEffect(() => {
     if (ignored === null) return;
-    overlay.toast(`${reason} The Booth stays and the take goes on.`);
+    overlay.toast(`${reason} The Booth stays as it is.`);
     navigate(shown.current ?? pathname, { replace: true });
     // `ignored` is the address being ignored; the rest is read as it is then.
     // eslint-disable-next-line react-hooks/exhaustive-deps
