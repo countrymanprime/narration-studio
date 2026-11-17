@@ -72,6 +72,7 @@ import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs,
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -152,23 +153,28 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
   // it is not moved. A chapter the narrator goes to is moved to (BoothSession is keyed by the chapter), and one left stops being exempt, so going
   // back to it moves the DAW.
+  // The chapter the narrator left the Booth on (browser storage, so it survives an app restart). Read once, when the Booth opens.
+  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const selfOpened = useRef(new Set<string>());
   const firstChapter = useRef(false);
   const shownChapter = data.source?.chapter.id ?? '';
   if (shownChapter !== '' && !firstChapter.current) {
     firstChapter.current = true;
-    if (!openedByAddress.current) selfOpened.current.add(shownChapter);
+    // The chapter the Booth opens on because the narrator left it there is not exempt: the DAW has been somewhere else since (a restart), so it is
+    // moved to it once it can follow (#3428, A12). Only a chapter that nothing remembered is one the DAW is assumed to be on.
+    if (!openedByAddress.current && kept?.chapterId !== shownChapter) selfOpened.current.add(shownChapter);
   }
   const lastChapter = useRef('');
   useEffect(() => {
     if (lastChapter.current !== '' && lastChapter.current !== shownChapter) selfOpened.current.delete(lastChapter.current);
     lastChapter.current = shownChapter;
   }, [shownChapter]);
+  // The chapter the narrator left the Booth on is read first: the DAW may already be on it (a return from another page), and then it is not moved.
+  const readDawFirst = !openedByAddress.current && kept !== null && kept.chapterId === shownChapter;
   const moveDaw = openedByAddress.current || (shownChapter !== '' && !selfOpened.current.has(shownChapter));
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
-  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const [returning, setReturning] = useState<LastPlace | null>(null);
   // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
   const [reloaded, setReloaded] = useState<LastPlace | null>(() => (asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null));
@@ -182,7 +188,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   useFollowDawOnOpen({
-    enabled: asked === null,
+    // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
+    enabled: asked === null && planned === null,
     chapterIds,
     onChapter: (chapterId) => {
       selfOpened.current.add(chapterId);
@@ -245,6 +252,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         from={shown?.from}
         requested={asked}
         moveDaw={moveDaw}
+        readDawFirst={readDawFirst}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
         onReturned={() => {
@@ -272,6 +280,7 @@ type SessionProps = {
   requested: BoothChapterTarget | null;
   /** The Booth was opened at a chapter: the DAW is moved to it too. */
   moveDaw: boolean;
+  readDawFirst: boolean;
   /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
   projectFolder: string;
   returnTo?: LastPlace;
@@ -296,6 +305,7 @@ function BoothSession({
   from,
   requested,
   moveDaw,
+  readDawFirst,
   projectFolder,
   returnTo,
   onReturned,
@@ -466,14 +476,16 @@ function BoothSession({
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
-  useMoveDawOnOpen({
+  const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
     chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
+    onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
+  useDawPullBack(chapterId, moving);
 
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,

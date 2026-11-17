@@ -8,6 +8,7 @@ import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
+import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 
 afterEach(() => {
@@ -217,5 +218,48 @@ describe('Booth.follow_chapter_in_daw (#3427)', () => {
       }),
     });
     await waitFor(() => expect(failing.result.current).toBe(true));
+  });
+});
+
+describe('useMoveDawOnOpen with the DAW read first (the kept chapter)', () => {
+  const props = { enabled: true, follow: true, chapterId: 'c-1', canFollow: true, target: { where: 'end' } as const, onlyIfElsewhere: true, say: vi.fn() };
+  const elsewhere = answer({ chapterId: 'c-2', selected: 1, cursor: 9 });
+
+  it('does not move a DAW whose read answers after the Booth has been open longer than it waits', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    let release: (place: DawPlace) => void = () => undefined;
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const now = vi.spyOn(Date, 'now');
+    try {
+      renderHook(() => useMoveDawOnOpen(props), { wrapper: wrapperFor({ dawGoToChapter, dawPlace }) });
+      await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1));
+      now.mockReturnValue(Date.now() + 30_000);
+      await act(async () => release(elsewhere));
+      await act(async () => {});
+      expect(dawGoToChapter).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it('sends one move when the window gets focus while the read is out: the pull-back leaves it to the open', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    const releases: Array<(place: DawPlace) => void> = [];
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => releases.push(resolve)));
+    renderHook(
+      () => {
+        const moving = useMoveDawOnOpen(props);
+        useDawPullBack('c-1', moving);
+      },
+      { wrapper: wrapperFor({ dawGoToChapter, dawPlace }) },
+    );
+    await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1));
+    await act(async () => void window.dispatchEvent(new Event('focus')));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    await act(async () => releases[0]?.(elsewhere));
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    expect(dawGoToChapter).toHaveBeenCalledWith('c-1', 'end', 0);
+    await act(async () => {});
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
   });
 });
