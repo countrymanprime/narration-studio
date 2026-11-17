@@ -59,6 +59,18 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'chapter-track-panel-several-folders',
+    description:
+      'The same panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=ambiguous): the header word reads "Several folders" and the list is the chapter linked to 2 folders to keep one of (#3363)',
+  },
+  {
+    page: 'production',
+    state: 'chapter-track-panel-missing-folders',
+    description:
+      'The chapter track panel on a chapter whose linked folder is gone, in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=missing): the header word reads "Folder missing" (#3363)',
+  },
+  {
+    page: 'production',
     state: 'chapter-track-panel-missing',
     description: 'Production, chapter track panel open on a confirmed link whose track is no longer in the project (?mockChapterLink=missing)',
   },

@@ -310,6 +310,22 @@ export const engineDrivers: Record<string, Driver> = {
       .scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
   },
+  'voice-folders-link-several': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked to several folders').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
+  'voice-folders-link-missing': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=missing');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked folder is missing from this project').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
   'link-chapters-preview': async (page) => {
     await page.goto('/?mockChapterLink=none');
     await settlePage(page);

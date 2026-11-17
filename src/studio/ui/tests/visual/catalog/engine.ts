@@ -205,6 +205,18 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'voice-folders-link-several',
+    description:
+      'The engine panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=ambiguous): Chapter 1, linked to more than one folder, reads "Linked to several folders" (#3363)',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-missing',
+    description:
+      'The engine panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=missing): Chapter 1, whose linked folder is gone, reads "Linked folder is missing from this project" (#3363)',
+  },
+  {
+    page: 'engine',
     state: 'link-chapters-preview',
     description:
       'The engine panel, "Link chapters" dialog open with one chapter mapped to a track - preview of the items that will be stamped, nothing written yet',

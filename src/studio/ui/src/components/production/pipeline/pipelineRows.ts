@@ -188,7 +188,13 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
     return done(
       'record',
       'booth',
-      withCheck(length ? `Recorded · ${length}` : noTrack ? `Recorded · the chapter’s stage; no ${destinationFor(layout).noun} is linked, so no length is measured` : 'Recorded'),
+      withCheck(
+        length
+          ? `Recorded · ${length}`
+          : noTrack
+            ? `Recorded · the chapter’s stage; no ${destinationFor(layout).noun} is linked, so no length is measured`
+            : 'Recorded',
+      ),
     );
   }
   const through = chapter.recordedThrough;
