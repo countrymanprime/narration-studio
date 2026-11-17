@@ -601,13 +601,14 @@ describe('the room the toasts take, published for a dialog in a short window', (
 });
 
 // A window under 300 px tall has no room for a stack of toasts beside a dialog (#3605): the region shows the newest only, and the older ones wait, unmounted, for it to go.
-describe('ToastRegion in a window under 300 px tall', () => {
+describe('ToastRegion in a window under 300 px tall with a dialog open', () => {
   const realMatchMedia = window.matchMedia;
   let short = true;
   let listeners: Array<() => void> = [];
   beforeEach(() => {
     short = true;
     listeners = [];
+    document.documentElement.setAttribute('data-modal-open', '');
     window.matchMedia = ((query: string) => ({
       get matches() {
         return query === '(max-height: 299px)' && short;
@@ -619,6 +620,7 @@ describe('ToastRegion in a window under 300 px tall', () => {
   });
   afterEach(() => {
     window.matchMedia = realMatchMedia;
+    document.documentElement.removeAttribute('data-modal-open');
   });
   const three = [info(1, 'First.'), failure(2, 'Second.'), info(3, 'Third.')];
 
@@ -658,6 +660,19 @@ describe('ToastRegion in a window under 300 px tall', () => {
     act(() => listeners.forEach((listener) => listener()));
     expect(screen.queryByText('First.')).toBeNull();
     expect(screen.getByText('Third.')).toBeTruthy();
+  });
+
+  it('shows the whole stack when no dialog is open, so a newer message never hides an older error and its Retry', () => {
+    document.documentElement.removeAttribute('data-modal-open');
+    render(
+      <ToastRegion
+        messages={[{ ...failure(1, 'Could not save.'), action: { label: 'Retry', onAction: vi.fn() } }, info(2, 'Saved elsewhere.')]}
+        dismiss={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Could not save.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByText('Saved elsewhere.')).toBeTruthy();
   });
 
   it('shows the whole stack in a window 300 px tall or more', () => {

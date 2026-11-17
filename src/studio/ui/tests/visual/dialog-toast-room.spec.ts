@@ -1,7 +1,7 @@
 // A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window under 300 px tall (#3605 item 2, #3601, #3549).
 // In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
 // a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
-// wide and 262 to 299 px at 275 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
+// wide and 262, 280 and 299 px at 275 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
 // not under the toast. A window 300 px tall or more keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
@@ -23,10 +23,12 @@ async function problemsOf(page: Page): Promise<string[]> {
     const problems: string[] = [];
     if (frame.bottom > window.innerHeight + 0.5 || frame.top < -0.5)
       problems.push(`popup ${Math.round(frame.top)}..${Math.round(frame.bottom)} leaves the window`);
-    const targets = new Set<Element>([...popup.querySelectorAll('h1, h2, h3, [data-dialog-title], button'), ...(focused ? [focused] : [])]);
+    // The focused field first: scrolling the body to reach a button below it would move the field out of view before it is measured.
+    const targets = new Set<Element>([...(focused ? [focused] : []), ...popup.querySelectorAll('h1, h2, h3, [data-dialog-title], button')]);
     for (const el of targets) {
-      // Every scrolling ancestor inside the popup (the body, and an area inside it) brings the control into view, innermost first; the popup itself is not scrolled.
-      for (let scroller: HTMLElement | null = el.parentElement; scroller && scroller !== popup; scroller = scroller.parentElement) {
+      // Every scrolling ancestor inside the popup (the body, and an area in it) brings a title or button into view, innermost first; the popup itself is not scrolled. The focused field is
+      // not helped: the dialog has to have kept it in view itself when the toast arrived.
+      for (let scroller: HTMLElement | null = el === focused ? null : el.parentElement; scroller && scroller !== popup; scroller = scroller.parentElement) {
         if (!/auto|scroll/.test(getComputedStyle(scroller).overflowY)) continue;
         const inner = scroller.getBoundingClientRect();
         const at = el.getBoundingClientRect();
@@ -62,7 +64,7 @@ async function problemsOf(page: Page): Promise<string[]> {
 
 const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]');
 
-type Case = { name: string; toasts: number; focusField?: boolean; open: (page: Page) => Promise<void> };
+type Case = { name: string; toasts: number; focusField?: boolean; longText?: boolean; open: (page: Page) => Promise<void> };
 /** New project over `count` Undo toasts (each recent project removed raises one), its Name field focused. */
 const undoToasts = (count: number): Case => ({
   name: count === 1 ? 'New project with its Name field focused, one Undo toast' : `New project under ${count} stacked Undo toasts`,
@@ -85,6 +87,7 @@ const CASES: Case[] = [
   {
     name: 'the status report under a long error toast',
     toasts: 1,
+    longText: true,
     open: async (page) => {
       await page.goto('/?mockProduction=on-pace&mockOpenFolder=fail');
       await settlePage(page);
@@ -133,11 +136,26 @@ for (const c of CASES) {
   });
 }
 
-// The older toasts are queued, not dropped: they come back as the newest goes, and a taller window shows them all again (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('under 300 px of height the older toast waits for the newest to go, and a taller window shows both', async ({ page }) => {
+// The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
+test('under 300 px of height the older toast waits for the newest to go', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   expect(await shown(page).count(), 'a tall window shows the stack').toBe(2);
+  await page.setViewportSize({ width: 275, height: 280 });
+  await expect(shown(page)).toHaveCount(1);
+  const first = await shown(page).first().innerText();
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
+  await expect(shown(page)).toHaveCount(1);
+  expect(await shown(page).first().innerText(), 'the older toast takes its place').not.toBe(first);
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
+  await expect(shown(page)).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
+});
+
+// The rule is for a window with a dialog open, where the dialog needs its chrome: a taller window shows the whole stack again, and with no dialog open an older error and its Retry are not hidden by a newer message.
+test('the whole stack shows in a taller window and when no dialog is open', async ({ page }) => {
+  page.setDefaultTimeout(20_000);
+  await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
@@ -146,10 +164,7 @@ test('under 300 px of height the older toast waits for the newest to go, and a t
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   expect(await shown(page).first().innerText(), 'the same newest toast again').toBe(first);
-  await page.getByRole('button', { name: 'Dismiss message' }).click();
-  await expect(shown(page)).toHaveCount(1);
-  expect(await shown(page).first().innerText(), 'the older toast takes its place').not.toBe(first);
-  await page.getByRole('button', { name: 'Dismiss message' }).click();
-  await expect(shown(page)).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(shown(page)).toHaveCount(2);
 });
