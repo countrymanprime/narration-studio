@@ -1,6 +1,6 @@
 # Should the DAW follow the page the narrator is on?
 
-**Status: research, 2026-11-13. Nothing is built.** Issue: [#3428](https://github.com/countrymanprime/narration-studio/issues/3428). The owner decides from the questions at the end before anything is built.
+**Status: research, 2026-11-13; the cheap tier and the solo tier were built later (PR A, PR D, see [what was built](#what-was-built-for-the-mute-tier-3428-pr-d)).** Issue: [#3428](https://github.com/countrymanprime/narration-studio/issues/3428). The owner decides from the questions at the end before anything is built.
 
 ## The question
 
@@ -142,6 +142,17 @@ Not scheduled; this is the work implied if the owner picks B.
 - Nothing was run in REAPER or Audacity; every "pending" above has no owner-side check yet.
 - The zoom and scroll calls were not looked up: the ReaScript reference is not reachable from a cloud session ([reaper-api-for-planned-commands](reaper-api-for-planned-commands.md)).
 - Each page's code was not traced for where it would call the DAW; the per-page table comes from the pages' guides and the existing callers listed above.
+
+## What was built for the mute tier (#3428, PR D)
+
+The owner chose solo in place on the chapter over muting the other chapters, and one switch (`Booth.follow_chapter_in_daw`). The measurements in [the real-REAPER note](2026-11-16-daw-follows-chapter-real-reaper.md) decided it: a solo on the chapter takes 19 ms at 2000 tracks, muting every other track 42.8 s. What exists:
+
+- `solo_chapter` and `solo_restore` ([the bridge](../architecture/reaper-bridge.md#quieting-the-other-chapters-while-one-is-recorded-narration_solo_chapterlua)): one `I_SOLO` write on the chapter's folder while the narrator is in the Booth (a pickup session is recorded there too; Pickups records nothing), never a mute, never a track inside the chapter, only what the app set and only where it still reads what it set, no undo point, nothing while REAPER records.
+- A ledger file in REAPER's resource folder, keyed by track GUID, so a solo left by a REAPER or an app that closed is put back at the next start ([data files](../reference/data-files.md#in-reapers-resource-folder)). A project saved while a chapter is soloed carries the solo; the ledger is what puts it back.
+- Layering with `play_from`: the commands wait while a play's isolation is in place and the recovery runs the play's first, so the two never restore each other's solos. Run in REAPER 7.82 on Linux, 2026-11-17: the mix held only the soloed chapter, the writes were not edits, and a restore sent during a play waited and then returned the narrator's state.
+- Audacity: nothing new. It reports no mute state to put back and adds no undo step for a mute, so it keeps the cheap tier.
+
+Not seen yet: the redraw of the solo state in a narrator's own window, Windows, a real crash and a project saved while soloed (owner rows A4g to A4i of [the verification pass](../operations/reaper-verification-pass.md)).
 
 ## Questions for the owner
 
