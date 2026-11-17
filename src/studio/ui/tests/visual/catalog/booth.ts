@@ -91,9 +91,23 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-track-missing',
+    description:
+      'Booth on a chapter whose linked track is no longer in the project (the host answers track_missing; the page injects it): the "Chapter 1’s track is not in the project" dialog opens by itself, saying Record cannot start until the chapter is linked to a track that is in the project, with Link track, Create a new track and Check again',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-link-refused',
     description:
       'The Link dialog after the host refuses the link (Link track pressed, "That chapter is not in the manuscript."): the dialog stays open for a retry and the failure is an error toast over it, "The link could not be made: …", with no line added to the dialog',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-track-missing-closed',
+    description:
+      'The same Booth after the dialog was closed: the "Track missing" chip under the text reopens it, the top-bar setup chip reads "REAPER · track missing", and Record looks off',
     ...REFLOW,
   },
   {
