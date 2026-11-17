@@ -226,6 +226,7 @@ export function useArmBoothOnOpen({
     if (follow !== true && !dueAfterStop.current) return;
     done.current = true;
     dueAfterStop.current = false;
+    if (follow === true) monitorAsked = true;
     if (recording) owed.current = true;
     void place
       .dawArmBoothVoice(chapterId)
@@ -242,6 +243,14 @@ export function useArmBoothOnOpen({
   }, [enabled, follow, chapterId, canArm, recording, place]);
 }
 
+// Whether this page asked the DAW to turn an input monitoring on and no release has been answered since: the page's copy of the host's own note.
+let monitorAsked = false;
+
+/** Forgets that a monitoring was asked for: a test starts from nothing owed. */
+export function forgetBoothMonitorAsked() {
+  monitorAsked = false;
+}
+
 /**
  * Leaving the Booth puts back the input monitoring it turned on (only that, and only where the narrator has not changed it since; the DAW holds a
  * restore that waits for a recording to stop). Mounted once per Booth visit, not per chapter, so stepping through chapters keeps one voice monitored at a time
@@ -256,9 +265,13 @@ export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
       void place
         .dawReleaseBoothMonitor()
         .then((result) => {
-          if (!result.ok) sayRef.current(result.refused ?? result.message);
+          if (result.ok) monitorAsked = false;
+          else sayRef.current(result.refused ?? result.message);
         })
-        .catch(() => sayRef.current('The DAW could not put your input monitoring back, so it may still be on. Turn it off in the DAW.'));
+        // A call that failed outright says nothing about what is owed, so it speaks only when this page asked for a monitoring (the host names its DAW; here it is "the DAW").
+        .catch(() => {
+          if (monitorAsked) sayRef.current('The DAW could not put your input monitoring back, so it may still be on. Turn it off in the DAW.');
+        });
     },
     [place],
   );

@@ -46,10 +46,10 @@ func (h *Host) dawArmBoothVoiceIn(ctx context.Context, svc hostServices, recorde
 		keepBoothMonitor(ctx, recorder)
 		return dawport.Result{OK: true}, nil
 	}
-	return armBoothVoiceLane(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc), &h.boothMonitorOwed)
+	return armBoothVoiceLane(ctx, svc, readAloudAdapterName(svc), recorder, chapterID, followChapterSetting(svc), &h.boothMonitorOwed, !h.recordingOtherChapter(chapterID))
 }
 
-func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool, owed *monitorDebt) (dawport.Result, error) {
+func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recorder dawport.Recorder, chapterID string, monitor bool, owed *monitorDebt, keepOnRecording bool) (dawport.Result, error) {
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return dawport.Result{OK: true}, nil
@@ -71,12 +71,20 @@ func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recor
 	}
 	armed, err := armLaneOwing(ctx, armer, target, monitor, owed)
 	if err != nil {
-		if errors.Is(err, bridge.ErrRecording) {
+		if errors.Is(err, bridge.ErrRecording) && keepOnRecording {
 			keepBoothMonitor(ctx, recorder)
 		}
 		return dawport.Refused(boothArmRefusal(name, err)), nil
 	}
 	return dawport.Result{OK: true, Changed: armed.Changed || armed.Monitored}, nil
+}
+
+// recordingOtherChapter is true while this app records a chapter other than chapterID: an arm for chapterID then says nothing about a release that waits for
+// that take, so it is not dropped.
+func (h *Host) recordingOtherChapter(chapterID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.readAloudRecordingChapter != "" && h.readAloudRecordingChapter != chapterID
 }
 
 // keepBoothMonitor drops a monitoring release that waits for a take to stop, when the narrator is back in the Booth during it. Best effort: a recorder
@@ -143,6 +151,13 @@ func (h *Host) releaseBoothMonitor(ctx context.Context, svc hostServices, record
 		return dawport.Result{OK: true}
 	}
 	result := dawReleaseBoothMonitorIn(ctx, readAloudAdapterName(svc), recorder)
+	if _, can := recorder.(dawport.MonitorReleaser); !can {
+		// A recorder that cannot release (another DAW after a relink): the monitoring a REAPER turned on may still be on, and its own ledger is what puts it back.
+		if owed {
+			h.boothMonitorOwed.Store(true)
+		}
+		return result
+	}
 	if !result.OK {
 		if !owed {
 			// Nothing was turned on in this session (the switch is off, or the Booth never monitored): a slow DAW has nothing to tell the narrator.
@@ -153,15 +168,15 @@ func (h *Host) releaseBoothMonitor(ctx context.Context, svc hostServices, record
 	return result
 }
 
-// monitorUnreachableSentence names the linked DAW, or says "The DAW" when none is linked. The monitoring is put back by the DAW's own ledger the next time
-// its bridge starts, which the narrator knows as the DAW opening.
+// monitorUnreachableSentence names the linked DAW, or says "The DAW" when none is linked. The DAW's own ledger puts the monitoring back the next time its
+// bridge starts, but when that is depends on the launcher script setting, so the sentence promises no time.
 func monitorUnreachableSentence(svc hostServices) string {
 	name, again := "The DAW", "the DAW"
 	if svc.dawPortResolver != nil && svc.dawPortResolver.Kind().String() != "none" {
 		name = readAloudAdapterName(svc)
 		again = name
 	}
-	return fmt.Sprintf("%s could not be reached, so your input monitoring may still be on. Turn it off in %s, or it goes off the next time %s opens.", name, again, again)
+	return fmt.Sprintf("%s could not be reached, so your input monitoring may still be on. Turn it off in %s.", name, again)
 }
 
 // boothReleaseRefusal words a failed release on leaving the Booth (monitor_restore answers only MONITOR_RESTORED or an error, never a stale track): what failed (putting the input monitoring back), that it may still be on and what to do.

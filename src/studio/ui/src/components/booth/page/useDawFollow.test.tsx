@@ -5,13 +5,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawPlace } from '../../../api/contracts/daw';
 import type { ScopedSettingField } from '../../../api/contracts/system';
+import { createDawMock } from '../../../api/dawMock';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { forgetBoothMonitorAsked, useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 
 afterEach(() => {
+  forgetBoothMonitorAsked();
   cleanup();
   vi.useRealTimers();
 });
@@ -413,6 +415,34 @@ describe('arming the Booth voice on entry (#3428)', () => {
 });
 
 describe('putting the monitoring back on leaving the Booth (#3428)', () => {
+  it('says nothing on leave when the release fails with nothing owed, and says may still be on when something is owed', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    const sentence = 'REAPER did not answer in time, so your input monitoring may still be on. Turn it off in REAPER.';
+    daw.control.refuseNextRelease(sentence);
+    const quiet = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(quiet), { wrapper: wrapperFor({ dawReleaseBoothMonitor: daw.dawReleaseBoothMonitor }) }).unmount();
+    await waitFor(() => expect(daw.control.armed().releases).toBe(1));
+    await act(async () => {});
+    expect(quiet).not.toHaveBeenCalled();
+    // The Booth turned a monitoring on, and the put-back fails.
+    expect((await daw.dawArmBoothVoice('c-1')).ok).toBe(true);
+    daw.control.refuseNextRelease(sentence);
+    const say = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: daw.dawReleaseBoothMonitor }) }).unmount();
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith(sentence));
+  });
+
+  it('says nothing when the call itself fails and no monitoring was asked for', async () => {
+    const failing = vi.fn(async () => {
+      throw new Error('bridge down');
+    });
+    const say = vi.fn();
+    renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: failing }) }).unmount();
+    await waitFor(() => expect(failing).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(say).not.toHaveBeenCalled();
+  });
+
   it('releases once, when the Booth unmounts, and not while it stays', async () => {
     const dawReleaseBoothMonitor = vi.fn(async () => moved);
     const say = vi.fn();
@@ -426,7 +456,7 @@ describe('putting the monitoring back on leaving the Booth (#3428)', () => {
   });
 
   it("says the host's sentence when the DAW cannot be reached on leaving, so the narrator knows the monitoring may be on", async () => {
-    const sentence = 'REAPER could not be reached, so your input monitoring may still be on. Turn it off in REAPER, or it goes off the next time REAPER opens.';
+    const sentence = 'REAPER could not be reached, so your input monitoring may still be on. Turn it off in REAPER.';
     const unreachable = vi.fn(async () => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence }));
     const say = vi.fn();
     renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: unreachable }) }).unmount();
@@ -438,6 +468,12 @@ describe('putting the monitoring back on leaving the Booth (#3428)', () => {
     const say = vi.fn();
     renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: refused }) }).unmount();
     await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith('REAPER did not answer within 3 seconds.'));
+    // A monitoring was asked for this visit, so a call that fails outright may have left it on.
+    const arming = vi.fn(async () => moved);
+    renderHook(() => useArmBoothOnOpen({ enabled: true, follow: true, chapterId: 'c-9', canArm: true, say: vi.fn() }), {
+      wrapper: wrapperFor({ dawArmBoothVoice: arming }),
+    });
+    await waitFor(() => expect(arming).toHaveBeenCalledTimes(1));
     const failing = vi.fn(async () => {
       throw new Error('bridge down');
     });

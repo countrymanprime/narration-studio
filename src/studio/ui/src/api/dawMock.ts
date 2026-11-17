@@ -431,6 +431,8 @@ export interface DawMockControl {
   stopInDaw(): void;
   /** The next monitor-level call fails with this sentence (the DAW did not take the change), as a bridge that answers an error would. */
   refuseNextLevel(sentence: string): void;
+  /** The next put-back of the Booth's monitoring (`dawReleaseBoothMonitor`) fails with this sentence, as the host says it only when a monitoring is owed. */
+  refuseNextRelease(sentence: string): void;
   /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
@@ -497,6 +499,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   // The monitor level the DAW holds, on the page's 0 to 100 scale (the mock's own starting value for its slider).
   let monitorLevel = 60;
   let refuseLevel: string | null = null;
+  let refuseRelease: string | null = null;
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
@@ -680,6 +683,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuseNextLevel: (sentence) => {
       refuseLevel = sentence;
     },
+    refuseNextRelease: (sentence) => {
+      refuseRelease = sentence;
+    },
     syncCalls: () => sync.calls.map((call) => ({ ...call })),
     moveInDaw: ({ cursor, head, playing, recording }) => {
       if (recording !== undefined) sync.recording = recording;
@@ -801,7 +807,14 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     dawReleaseBoothMonitor: async () => {
       monitorReleases += 1;
-      return { ok: true, changed: armedChapters.length > 0, message: '', undoSteps: 0 };
+      const owed = armedChapters.length > 0;
+      if (refuseRelease !== null) {
+        const sentence = refuseRelease;
+        refuseRelease = null;
+        // The host (bindings_booth_arming.go) refuses only when a monitoring is owed; with nothing owed a failed release answers done, silently.
+        if (owed) return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+      }
+      return { ok: true, changed: owed, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.

@@ -16,7 +16,7 @@ import (
 
 func armBoothVoice(t *testing.T, host *Host, recorder dawport.Recorder, chapterID string) dawport.Result {
 	t.Helper()
-	result, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", recorder, chapterID, true, nil)
+	result, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", recorder, chapterID, true, nil, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestArmingAfterATakeWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	switchFollow(t, host, "false")
 	fake := &fakeLaneRecorder{}
 	// The binding reads the switch itself: a voice chosen during a take is armed after it, and the monitoring waits for the switch.
-	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services()), nil); err != nil {
+	if _, err := armBoothVoiceLane(context.Background(), host.services(), "REAPER", fake, ids[0], followChapterSetting(host.services()), nil, true); err != nil {
 		t.Fatal(err)
 	}
 	if len(fake.laneArmed) != 1 || fake.laneMonitor[0] {
@@ -195,7 +195,7 @@ func TestLeavingTheBoothWhileTheDAWCannotBeReachedSaysSoOnlyWhenAMonitoringMayBe
 		t.Fatalf("entry arm: %+v, %v", got, err)
 	}
 	got := releaseJSON(t, host)
-	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "goes off the next time") || got.Message != got.Refused {
+	if got.OK || !strings.Contains(got.Refused, "could not be reached") || !strings.Contains(got.Refused, "Turn it off in the DAW") || got.Message != got.Refused {
 		t.Fatalf("left with the DAW unreachable: %+v, want a refusal that says the monitoring may be on and when it is put back", got)
 	}
 }
@@ -487,7 +487,7 @@ func TestTheOwedMonitoringSentenceNamesTheLinkedDAW(t *testing.T) {
 	svc.dawPortResolver = resolver
 	got := monitorUnreachableSentence(svc)
 	name := svc.dawPortResolver.Kind().String()
-	if name == "none" || !strings.HasPrefix(got, name+" could not be reached") || !strings.Contains(got, "Turn it off in "+name) || strings.Contains(got, "The DAW") {
+	if name == "none" || !strings.HasPrefix(got, name+" could not be reached") || !strings.Contains(got, "Turn it off in "+name) || strings.Contains(got, "next time") || strings.Contains(got, "The DAW") {
 		t.Fatalf("a linked DAW: %q, want it named (%q)", got, name)
 	}
 }
@@ -503,5 +503,32 @@ func TestDuringAnAppTakeAnArmForAnotherChapterIsRefusedAndTheRecordingChapterIsS
 	got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), fake, ids[0])
 	if err != nil || got.OK || got.Refused == "" || len(fake.laneArmed) != 1 {
 		t.Fatalf("another chapter: %+v, %v, armed %v, want the DAW asked and a refusal", got, err, fake.laneArmed)
+	}
+}
+
+func TestAReleaseThroughARecorderWithoutTheReleaserRoleKeepsAnOwedMonitoringOwed(t *testing.T) {
+	host, _ := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	host.boothMonitorOwed.Store(true)
+	got := host.releaseBoothMonitor(context.Background(), host.services(), &fakeVoiceRecorder{})
+	if !got.OK || !host.boothMonitorOwed.Load() {
+		t.Fatalf("%+v owed %v: a recorder that cannot release must leave the monitoring owed", got, host.boothMonitorOwed.Load())
+	}
+	host.boothMonitorOwed.Store(false)
+	host.releaseBoothMonitor(context.Background(), host.services(), &fakeVoiceRecorder{})
+	if host.boothMonitorOwed.Load() {
+		t.Fatal("nothing was owed, and nothing becomes owed")
+	}
+}
+
+func TestAnArmForAnotherChapterDuringAnAppTakeDoesNotDropAWaitingRelease(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{laneErr: bridge.ErrRecording}
+	host.setReadAloudRecording("a-chapter-the-app-is-recording", fake)
+	got, err := host.dawArmBoothVoiceIn(context.Background(), host.services(), fake, ids[0])
+	if err != nil || got.OK {
+		t.Fatalf("%+v, %v, want a refusal", got, err)
+	}
+	if !reflect.DeepEqual(fake.calls, []string{"ArmLane"}) {
+		t.Fatalf("calls %v, want the arm alone: the release that waits for the take is not this chapter's to drop", fake.calls)
 	}
 }
