@@ -10,6 +10,8 @@ import { masterDrivers } from './drivers/master';
 import { boothDrivers } from './drivers/booth';
 
 test.use({ viewport: { width: 1440, height: 900 } });
+// Each test steps the window through 201 heights and measures at each; the form dialog's took 31 s on the CI runners (shards 2 and 5), over Playwright's 30 s default.
+test.describe.configure({ timeout: 120_000 });
 
 /** The Story Bible's "Unsaved changes" question: an entry edit typed and not saved, then Production. */
 async function openUnsavedQuestion(page: Page): Promise<void> {
