@@ -312,7 +312,7 @@ describe('the stop of a take whose listening failed has a limit', () => {
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
-      await screen.findByText(/The recording could not be stopped: the stop did not answer in time\. Stop it in REAPER\./);
+      await screen.findByText(/The take could not be stopped: REAPER did not answer in time\. Stop it in REAPER\./);
       await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
       expect(page.undoLast).not.toHaveBeenCalled();
     } finally {
@@ -428,7 +428,7 @@ describe('the stop and the undo of a take whose listening failed', () => {
       await space();
       await waitFor(() => expect(page.recordStop).toHaveBeenCalledTimes(1));
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
-      await screen.findByText(/The recording could not be stopped: the stop did not answer in time\. Stop it in REAPER\./);
+      await screen.findByText(/The take could not be stopped: REAPER did not answer in time\. Stop it in REAPER\./);
       await act(async () => answerStop({ ok: true, changed: true, message: '', undoSteps: 1 }));
       await act(() => vi.advanceTimersByTimeAsync(50));
       expect(page.undoLast).not.toHaveBeenCalled();
@@ -447,7 +447,7 @@ describe('the stop and the undo of a take whose listening failed', () => {
       await space();
       await waitFor(() => expect(page.undoLast).toHaveBeenCalledTimes(1));
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.undoLast + 5));
-      await screen.findByText(/The short recording could not be taken back: the undo did not answer in time\. Undo it in REAPER\./);
+      await screen.findByText(/The short recording could not be taken back: REAPER did not answer in time\. Undo it in REAPER\./);
       await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
     } finally {
       vi.useRealTimers();

@@ -309,7 +309,7 @@ describe('the Record control stop (#3320)', () => {
     await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
     await expect(pressed).resolves.toBe(false);
     expect(view.onBlocked).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: expect.stringMatching(/Stop did not go through: the stop did not answer in time/) }),
+      expect.objectContaining({ reason: expect.stringMatching(/Stop did not go through: REAPER did not answer in time/) }),
     );
     // The take may still run; Stop asks once more and goes through.
     expect(view.result.current.recording).toBe(true);

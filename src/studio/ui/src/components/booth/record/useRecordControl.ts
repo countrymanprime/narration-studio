@@ -5,7 +5,7 @@ import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../..
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import type { DawRecordStart } from '../../../ports/daw';
-import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
+import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
@@ -611,7 +611,7 @@ export function useRecordControl({
           // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
           // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
           const stopAsked = await limited('recordStop', daw.recordStop());
-          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          if (stopAsked.timedOut) throw new Error(noAnswerSentence(recorderName(capabilitiesRef.current?.daw)));
           result = stopAsked.value;
         }
         if (result.ok && starting && !alive.current && runningStart > seq) {
@@ -657,7 +657,7 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
-        const sentence = `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
+        const sentence = `${what}: ${apiErrorMessage(error).replace(/\.$/, '')}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
         setRefused({ chapterId, sentence });
         block({ cause: 'failed', reason: sentence });
       } finally {

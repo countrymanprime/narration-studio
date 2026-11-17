@@ -12,7 +12,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { recordsInApp, recorderNameCapital } from '../../../studio/dawNames';
+import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital } from '../../../studio/dawNames';
 import { dawShortName } from '../../../studio/StudioProvider';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
@@ -421,6 +421,7 @@ export function useBoothPage(options: BoothPageOptions) {
   /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
   const { stopped: markTakeStopped, appStop } = control;
   const recorderLabel = control.capabilities?.daw ?? 'the DAW';
+  const recorderWords = recorderName(control.capabilities?.daw);
   const dropUnheardTake = useCallback(async (): Promise<boolean> => {
     unheard.current = true;
     const failed = (message: string): DawResult => ({ ok: false, changed: false, message, undoSteps: 0 });
@@ -437,11 +438,11 @@ export function useBoothPage(options: BoothPageOptions) {
           `A late stop of a dropped take answered ${late.ok ? 'ok' : 'refused'}; its short recording (${late.undoSteps} undo steps) was left in the DAW.`,
         ),
     );
-    const stopped = stopAsked.timedOut ? failed('the stop did not answer in time.') : stopAsked.value;
+    const stopped = stopAsked.timedOut ? failed(noAnswerSentence(recorderWords)) : stopAsked.value;
     markTakeStopped();
     if (!stopped.ok) {
       // Still unheard: the Booth stops holding the take (markTakeStopped), but a take its text could not follow is not mapped or told as saved.
-      overlay.toast(`The recording could not be stopped: ${stopped.refused ?? `${stopped.message} Stop it in ${recorderLabel}.`}`, { tone: 'error' });
+      overlay.toast(`The take could not be stopped: ${stopped.refused ?? `${stopped.message} Stop it in ${recorderLabel}.`}`, { tone: 'error' });
       return false;
     }
     if (stopped.undoSteps < 1) return true;
@@ -449,11 +450,11 @@ export function useBoothPage(options: BoothPageOptions) {
       'undoLast',
       daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.')),
     );
-    const undone = undoAsked.timedOut ? failed('the undo did not answer in time.') : undoAsked.value;
+    const undone = undoAsked.timedOut ? failed(noAnswerSentence(recorderWords)) : undoAsked.value;
     if (!undone.ok)
       overlay.toast(`The short recording could not be taken back: ${undone.refused ?? `${undone.message} Undo it in ${recorderLabel}.`}`, { tone: 'error' });
     return undone.ok;
-  }, [daw, markTakeStopped, overlay, recorderLabel, appStop]);
+  }, [daw, markTakeStopped, overlay, recorderLabel, recorderWords, appStop]);
 
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
@@ -1012,7 +1013,9 @@ export function useBoothPage(options: BoothPageOptions) {
         'recordStop',
         appStop(() => daw.recordStop()).catch((): DawResult => ({ ok: false, changed: false, undoSteps: 0, message: 'the stop did not go through.' })),
       );
-      const result: DawResult = stopAsked.timedOut ? { ok: false, changed: false, undoSteps: 0, message: 'the stop did not answer in time.' } : stopAsked.value;
+      const result: DawResult = stopAsked.timedOut
+        ? { ok: false, changed: false, undoSteps: 0, message: noAnswerSentence(recorderName(latestDaw.current)) }
+        : stopAsked.value;
       // Undoable from the next page: a DAW's take is in the history before the page goes.
       if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
       // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
