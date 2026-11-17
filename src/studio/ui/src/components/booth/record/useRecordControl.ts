@@ -510,7 +510,7 @@ export function useRecordControl({
     (how: string) => {
       // The page may be gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
       // bookkeeping, so a take it kept is not in Undo.)
-      const name = capabilitiesRef.current?.daw ?? 'the DAW';
+      const name = recorderName(capabilitiesRef.current?.daw);
       const unstopped = (why: string) => {
         logUi('ui.record', `The late take was not stopped: ${why}`);
         overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
@@ -569,7 +569,7 @@ export function useRecordControl({
           if (how?.current && !how.current()) return false;
           if (checked.timedOut) {
             // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
-            const sentence = `${capabilitiesRef.current.daw ?? 'The DAW'} could not confirm the open project in time, so no take was started.`;
+            const sentence = `${recorderNameCapital(capabilitiesRef.current.daw)} could not confirm the open project in time, so no take was started.`;
             setRefused({ chapterId, sentence });
             block({ cause: 'failed', reason: sentence });
             return false;
@@ -599,7 +599,7 @@ export function useRecordControl({
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
-            const name = capabilitiesRef.current?.daw ?? 'the DAW';
+            const name = recorderName(capabilitiesRef.current?.daw);
             const sentence = `The Booth gave up waiting for ${name} to start recording.`;
             if (how?.current && !how.current()) return false;
             setRefused({ chapterId, sentence });
