@@ -57,7 +57,7 @@ export const PRESS_LIMIT_BASIS: Record<PressStage, string> = {
   undoLast: 'host limit: undoLastTimeout, 12 s',
   roll: 'host limit: rollTimeout (read from the Go source by the guard)',
   voiceChoice:
-    'host limit: BoothVoiceSet runs under laneCommandTimeout: the arm wait, the late wait for a command REAPER has read and two live list reads (read from the Go source by the guard)',
+    'host limit: BoothVoiceSet runs under laneCommandTimeout: the arm wait, the late wait for a command the DAW has read and two live list reads (read from the Go source by the guard)',
 };
 
 /** The limit of the DAW's start of the take: the app's own recorder takes longer than a DAW engine to answer. */
