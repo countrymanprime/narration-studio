@@ -35,15 +35,15 @@ export function chapterTrackButtonState(link: ChapterTrackLink): ChapterTrackBut
  * (#3415). Not followed: a missing warning on a track the list now has (an undone delete); the next read of the links settles it.
  */
 export function followLiveTracks(link: ChapterTrackLink, tracks: readonly { guid: string; name: string }[] | undefined): ChapterTrackLink {
-  if (!tracks) return link;
-  // Several links are several links, whichever of their tracks is there: the Engine row says so, so the panel does not call it missing.
+  // Several links are several links, whichever of their tracks is there, and whether or not the live list has been read yet: the Engine row says so,
+  // so the panel does not call it missing, and the header, the reason and the Keep-this-one list read one state (#3363).
   if (link.links.length > 1) {
     const warnings = link.warnings.filter((warning) => warning !== 'confirmed-track-missing');
     return warnings.length === link.warnings.length && link.warnings.includes('confirmed-links-conflict')
       ? link
       : { ...link, warnings: warnings.includes('confirmed-links-conflict') ? warnings : [...warnings, 'confirmed-links-conflict'] };
   }
-  if (link.status !== 'confirmed' || link.links.length !== 1) return link;
+  if (!tracks || link.status !== 'confirmed' || link.links.length !== 1) return link;
   const live = tracks.find((track) => track.guid === link.links[0].trackGuid);
   if (!live) {
     return link.warnings.includes('confirmed-track-missing') ? link : { ...link, warnings: [...link.warnings, 'confirmed-track-missing'] };

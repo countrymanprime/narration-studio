@@ -171,3 +171,22 @@ describe('noShowableTrackReason (#3363)', () => {
     ).toMatch(/linked to more than one track/);
   });
 });
+
+describe('followLiveTracks before the live list is read (#3363)', () => {
+  it('already calls several links several, and not missing', () => {
+    const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
+    const saved: ChapterTrackLink = {
+      ...base,
+      status: 'confirmed',
+      track,
+      links: [mapping, { ...mapping, trackGuid: '{U}' }],
+      warnings: ['confirmed-track-missing'],
+    };
+    const followed = followLiveTracks(saved, undefined);
+    expect(followed.warnings).toEqual(['confirmed-links-conflict']);
+    expect(chapterTrackButtonState(followed).kind).toBe('ambiguous');
+    // One link with no live list stays as read.
+    const one = { ...base, status: 'confirmed' as const, track, links: [mapping], warnings: ['confirmed-track-missing' as const] };
+    expect(followLiveTracks(one, undefined)).toBe(one);
+  });
+});

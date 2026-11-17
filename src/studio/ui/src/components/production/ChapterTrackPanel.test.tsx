@@ -178,6 +178,20 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBe(2);
   });
 
+  // #3363 (ux-review): the saved read of two confirmed links with one track gone is `confirmed` + the missing warning; before the live list is read
+  // the header must not say Missing over the Keep-this-one rows.
+  it('calls two confirmed links with one track gone Several tracks before the live list is read', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: '{GONE}' };
+    const saved: ChapterTrackLink = { ...link, status: 'confirmed', links: [...link.links, second], warnings: ['confirmed-track-missing'] };
+    vi.spyOn(api, 'tracksLive').mockRejectedValue(new Error('REAPER is not answering'));
+    renderPanel(api, saved, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.queryByText('Track missing')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBe(2);
+  });
+
   it('shows a linked track under the name it has now', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
