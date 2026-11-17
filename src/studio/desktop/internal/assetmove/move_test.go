@@ -3,6 +3,7 @@ package assetmove
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -792,12 +793,21 @@ func TestEachPassCountsAgainstTheRealTotal(t *testing.T) {
 	}
 }
 
-// The permission cases need a user the disk can refuse; they run as an ordinary user (CI) and skip for root, who is never refused.
+// The cases that need a mode bit run as an ordinary user and skip for root, who is never refused, and on Windows, where a mode bit does not
+// bind an elevated user. The cases that can make the failure another way (makeUnreadable, makeUndeletable) run on every OS (#3630).
 func notRoot(t *testing.T) {
 	t.Helper()
 	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
 		t.Skip("permissions are not enforced for this user")
 	}
+}
+
+// refusedByTheDisk reports whether err is the operating system refusing an operation (a *fs.PathError: permission denied on Unix, a sharing or
+// lock violation on Windows), and not one of the move's own errors (ErrIncomplete, ErrMismatch): a guard that only asks for "an error" can pass
+// on the wrong one.
+func refusedByTheDisk(err error) bool {
+	var refused *fs.PathError
+	return errors.As(err, &refused)
 }
 
 func lock(t *testing.T, path string, mode os.FileMode) {
@@ -809,14 +819,13 @@ func lock(t *testing.T, path string, mode os.FileMode) {
 }
 
 func TestMoveStopsOnASourceFileItCannotRead(t *testing.T) {
-	notRoot(t)
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	files := seed(t, source)
-	lock(t, filepath.Join(source, "tts", "voice.json"), 0o000)
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	letGo := makeUnreadable(t, filepath.Join(source, "tts", "voice.json"))
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the read refused by the disk, got %v", err)
 	}
-	lock(t, filepath.Join(source, "tts", "voice.json"), 0o644)
+	letGo()
 	assertIntact(t, source, files)
 	if _, err := os.Stat(target); err == nil {
 		t.Fatal("target left behind")
@@ -824,20 +833,25 @@ func TestMoveStopsOnASourceFileItCannotRead(t *testing.T) {
 }
 
 func TestMoveStopsOnASourceFolderItCannotList(t *testing.T) {
-	notRoot(t)
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	seed(t, source)
-	lock(t, filepath.Join(source, "whisper"), 0o000)
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	whole := filepath.Join(t.TempDir(), "whole")
+	seed(t, whole)
+	makeUnreadable(t, filepath.Join(source, "whisper"))
+	reported := false
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, func(Progress) { reported = true }); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk to refuse it, got %v", err)
 	}
-	if err := Covered(source, filepath.Join(t.TempDir(), "x"), kinds); err == nil {
-		t.Fatal("Covered read a folder it cannot list")
+	if reported {
+		t.Fatal("the copy began before the unlistable folder was found: measure did not stop it")
+	}
+	if err := Covered(source, whole, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("Covered must fail on the folder it cannot list, got %v", err)
 	}
 }
 
 func TestMoveStopsWhenAFileTheCopyJustWroteCannotBeReadBack(t *testing.T) {
-	notRoot(t)
+	notRoot(t) // Unix only: on Windows a file held open cannot be cleaned up after the failed move, so the leftover check below cannot hold (#3630)
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	seed(t, source)
 	afterCopy = func(dst string) error {
@@ -884,7 +898,8 @@ func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
 	}
 }
 
-func TestCheckAndMoveRefuseATargetTheyCannotListOrMakeInside(t *testing.T) {
+// A closed folder stops a path that goes through it: a mode bit does that, and a held handle on Windows does not, so it is Unix only.
+func TestCheckRefusesATargetBehindAClosedFolder(t *testing.T) {
 	notRoot(t)
 	source, parent := filepath.Join(t.TempDir(), "old"), t.TempDir()
 	seed(t, source)
@@ -897,21 +912,25 @@ func TestCheckAndMoveRefuseATargetTheyCannotListOrMakeInside(t *testing.T) {
 		t.Fatal("a target behind a closed folder was accepted")
 	}
 	lock(t, closed, 0o755)
+}
+
+func TestCheckRefusesATargetItCannotList(t *testing.T) {
+	source, parent := filepath.Join(t.TempDir(), "old"), t.TempDir()
+	seed(t, source)
 	listed := filepath.Join(parent, "unlisted")
 	if err := os.MkdirAll(listed, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lock(t, listed, 0o300)
+	makeUnreadable(t, listed)
 	if err := Check(Plan{Source: source, Target: listed, Dirs: kinds}); err == nil {
 		t.Fatal("a target that cannot be listed was accepted")
 	}
 }
 
 func TestRemoveOldReportsAFolderItCannotFullyDelete(t *testing.T) {
-	notRoot(t)
 	root := filepath.Join(t.TempDir(), "old")
 	seed(t, root)
-	lock(t, filepath.Join(root, "tts"), 0o555)
+	makeUndeletable(t, filepath.Join(root, "tts"))
 	if err := RemoveKinds(root, kinds); err == nil {
 		t.Fatal("want an error")
 	}
@@ -921,7 +940,6 @@ func TestRemoveOldReportsAFolderItCannotFullyDelete(t *testing.T) {
 }
 
 func TestFinishReportsAMarkerItCannotRemove(t *testing.T) {
-	notRoot(t)
 	target := filepath.Join(t.TempDir(), "t")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
@@ -929,21 +947,30 @@ func TestFinishReportsAMarkerItCannotRemove(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(target, journalName), []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lock(t, target, 0o555)
+	makeUndeletable(t, target)
 	if err := Finish(target); err == nil {
 		t.Fatal("want an error")
 	}
 }
 
 func TestSizesAndCoveredReadAFolderWithAnUnlistableChild(t *testing.T) {
-	notRoot(t)
 	root := filepath.Join(t.TempDir(), "n")
+	seed(t, root)
 	if err := os.MkdirAll(filepath.Join(root, "tts", "deep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lock(t, filepath.Join(root, "tts", "deep"), 0o000)
-	if _, err := measure(root, kinds); err == nil {
-		t.Fatal("measure read through a closed folder")
+	if err := os.WriteFile(filepath.Join(root, "tts", "deep", "f"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	makeUnreadable(t, filepath.Join(root, "tts", "deep"))
+	if _, err := measure(root, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("measure read through a closed folder: %v", err)
+	}
+	if _, err := sizes(filepath.Join(root, "tts")); !refusedByTheDisk(err) {
+		t.Fatalf("sizes read through a closed folder: %v", err)
+	}
+	if err := Covered(root, root, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("Covered must not answer for a folder it cannot list, got %v", err)
 	}
 }
 

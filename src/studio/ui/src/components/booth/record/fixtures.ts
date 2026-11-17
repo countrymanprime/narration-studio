@@ -6,17 +6,22 @@ import { DAW_ANSWERS, DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw'
 import type { NarrationApi } from '../../../types';
 
 // The host's sentences for a chapter with no track and one with several, as the host words them (DAW_ANSWERS.noTrack is the fixture's own).
-export const REFUSALS = { none: DAW_ANSWERS.noTrack, several: 'More than one track is linked to this chapter in REAPER.' };
+export const REFUSALS = {
+  none: DAW_ANSWERS.noTrack,
+  several: 'More than one track is linked to this chapter in REAPER.',
+  missing: 'The track linked to this chapter is no longer in the REAPER project.',
+};
 
 export const setupCapabilities = (id: DawSetupId): DawCapabilities => DAW_SETUPS[id];
 export const dawClientFor = (id: DawSetupId, chapterIds: readonly string[] = ['c1']) =>
   createMockDawClient(DAW_SETUPS[id], { chapterIds, candidateIds: [], findingIds: [] });
 
-export type TrackKind = 'one' | 'none' | 'several';
+export type TrackKind = 'one' | 'none' | 'several' | 'missing';
 const STATES: Record<TrackKind, ReadAloudReaperState> = {
   one: { status: 'ready', message: '', playing: false, recording: false },
   none: { status: 'no_link', reason: 'unlinked', message: REFUSALS.none, playing: false, recording: false },
   several: { status: 'no_link', reason: 'several_links', message: REFUSALS.several, playing: false, recording: false },
+  missing: { status: 'no_link', reason: 'track_missing', message: REFUSALS.missing, playing: false, recording: false },
 };
 
 /** An api whose chapters have the given tracks (one when unlisted), as the host's `readAloudReaperState` reports them. */
