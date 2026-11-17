@@ -25,6 +25,7 @@ type TrackState struct {
 	RecordInput                *int        // the named track's I_RECINPUT as REAPER stores it; nil with no track
 	InputDevice                string      // GetAudioDeviceInfo("IDENT_IN"); "" when REAPER has none open or cannot say
 	OutputDevice               string      // GetAudioDeviceInfo("IDENT_OUT"); "" likewise, and from a script older than the field
+	ArmedGUIDs                 []string    // the armed tracks (at most 32; ArmedCount says how many there are); nil from a script older than the field
 	InputChannel               string      // REAPER's name for the channel(s) RecordInput records from ("In 1 / In 2"); "" when none
 	Items                      []TrackItem // the named track's items, at most the bridge's limit
 	ItemsTotal                 int         // how many items the track holds, listed or not
@@ -151,6 +152,11 @@ func readTrackState(fields []string) TrackState {
 	}
 	if len(fields) > 14 {
 		state.InputChannel = DeviceName(fields[14])
+	}
+	if len(fields) > 15 {
+		for _, guid := range strings.Fields(fields[15]) {
+			state.ArmedGUIDs = append(state.ArmedGUIDs, normalizeGUID(guid))
+		}
 	}
 	return state
 }
