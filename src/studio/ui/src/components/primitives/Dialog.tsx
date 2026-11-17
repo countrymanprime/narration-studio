@@ -101,10 +101,10 @@ const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(
 // While a toast shows over an open dialog, `ToastRegion` publishes `--toast-h`, the room it takes from the window's bottom edge (#3622). In a window under 300 px tall (where the ramp above has given the toast's
 // static room back) the popup takes only what is left above the toast: the window less the toast's room less the popup's 0.5rem margin above it, so a toast never sits on the title, a focused field or the action row
 // (#3605, #3601). With no toast the property is unset and the term is the window less 0.5rem, which the ramp never exceeds, so nothing changes; at 300 px and taller the rule is not applied. The popup is
-// top-aligned there (`DIALOG_SHORT_ALIGN`), so its bottom edge is its top margin plus its height.
+// top-aligned while the toast shows (`DIALOG_SHORT_ALIGN`, only when the root carries `--toast-h`), so its bottom edge is its top margin plus its height.
 const DIALOG_TOAST_ROOM =
   '[@media(max-height:299px)]:max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)),calc(100dvh_-_var(--toast-h,0px)_-_0.5rem))]';
-const DIALOG_SHORT_ALIGN = '[@media(max-height:299px)]:items-start';
+const DIALOG_SHORT_ALIGN = '[@media(max-height:299px)]:[:root[style*=--toast-h]_&]:items-start';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
 // tall or less it is 8 px, and 6 px on the action row (#3521). At 320 x 300 the question row's two widest labels (Discard & continue 145.16 px, Save & continue 125.34 px)

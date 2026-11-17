@@ -1,7 +1,6 @@
 // A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window under 300 px tall (#3605 item 2, #3601, #3549).
 // In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
-// a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one, two and
-// three stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
+// a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
 // wide and 262 to 299 px at 275 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
 // not under the toast. A window 300 px tall or more keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
@@ -63,11 +62,12 @@ async function problemsOf(page: Page): Promise<string[]> {
 
 const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]');
 
-type Case = { name: string; toasts: number; open: (page: Page) => Promise<void> };
+type Case = { name: string; toasts: number; focusField?: boolean; open: (page: Page) => Promise<void> };
 /** New project over `count` Undo toasts (each recent project removed raises one), its Name field focused. */
 const undoToasts = (count: number): Case => ({
   name: count === 1 ? 'New project with its Name field focused, one Undo toast' : `New project under ${count} stacked Undo toasts`,
   toasts: count,
+  focusField: true,
   open: async (page) => {
     await page.goto('/?mockNoProject=1');
     await settlePage(page);
@@ -103,6 +103,8 @@ for (const c of CASES) {
   test(`a toast never covers or hides the dialog's title, focused field or buttons under 300 px of height: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
+    // The stack the case raised is whole in a tall window; under 300 px only the newest shows.
+    expect(await shown(page).count(), `${c.toasts} toast(s) raised`).toBe(c.toasts);
     const problems: string[] = [];
     for (const [width, height] of SIZES) {
       await page.setViewportSize({ width, height });
@@ -112,6 +114,18 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
+      // A long message scrolls inside 2.5rem (40 px) over a dialog, so it never takes the dialog's room.
+      const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
+      if (text > 41) problems.push(`${width}x${height}: the toast's text is ${text} px high, over 2.5rem`);
+      if (
+        c.focusField &&
+        !(await page
+          .getByRole('dialog')
+          .locator('input')
+          .first()
+          .evaluate((input) => input === document.activeElement))
+      )
+        problems.push(`${width}x${height}: the Name field lost focus`);
       const found = await problemsOf(page);
       if (found.length) problems.push(`${width}x${height}: ${found.join('; ')}`);
     }

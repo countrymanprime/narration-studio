@@ -172,7 +172,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
 }
 
 /** A window this short has no room for a stack of toasts beside a dialog's title, field and buttons: the region shows only the newest toast (#3605, #3629). */
-export const SHORT_WINDOW_QUERY = '(max-height: 299px)';
+const SHORT_WINDOW_QUERY = '(max-height: 299px)';
 function useShortWindow(): boolean {
   const [short, setShort] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(SHORT_WINDOW_QUERY).matches === true);
   useEffect(() => {
