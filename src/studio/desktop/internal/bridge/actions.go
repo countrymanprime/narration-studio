@@ -22,6 +22,8 @@ type Actions struct {
 	// +checklocks:mu
 	timeout time.Duration
 	// +checklocks:mu
+	lateWait time.Duration
+	// +checklocks:mu
 	pending map[string]*actionRun
 	// +checklocks:mu
 	next uint64
@@ -155,7 +157,7 @@ type answerSet struct {
 // refuses every command with ErrNotGated, so an Actions nobody gated sends nothing. With a nil
 // client every request the gate lets through is ErrUnavailable.
 func NewActions(client *Client, gate Gate) *Actions {
-	a := &Actions{client: client, gate: gate, timeout: DefaultAnswerTimeout, pending: map[string]*actionRun{}}
+	a := &Actions{client: client, gate: gate, timeout: DefaultAnswerTimeout, lateWait: LateAnswerWait, pending: map[string]*actionRun{}}
 	if client != nil {
 		client.Subscribe(Subscription{Tags: actionTags, Owns: a.owns, Handle: a.handle, Invalid: a.invalid})
 	}
@@ -201,14 +203,68 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		}
 		return got.events, got.err
 	case <-timer.C:
+		retracted := a.client.Retract(target)
+		if !retracted && mayRunLong[command] {
+			// REAPER already read this command, so it is at work on it (a create or an arm in a big project can take longer than the
+			// usual wait): keep waiting for its answer rather than report a failure for a change that is about to land.
+			return a.waitLate(ctx, command, runID, run, started)
+		}
 		a.report(command, "no_answer", started)
-		a.logFailure(command, runID, "no answer within "+timeout.String()+retractNote(a.client.Retract(target)))
+		a.logFailure(command, runID, "no answer within "+timeout.String()+" (command taken back)")
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
 		a.report(command, "cancelled", started)
 		a.logFailure(command, runID, "cancelled"+retractNote(a.client.Retract(target)))
 		return nil, ctx.Err()
 	}
+}
+
+// LateAnswerWait is how much longer a command in mayRunLong is waited for once REAPER has read it and has not answered in
+// DefaultAnswerTimeout. A command REAPER never read is taken back and fails at DefaultAnswerTimeout, as before.
+const LateAnswerWait = 20 * time.Second
+
+// mayRunLong are the commands REAPER can take longer than DefaultAnswerTimeout to finish once it has read them, and whose abandoned wait
+// does harm (#3645): track_create and the two arms report a failure for a change that still lands (a lane made and then "not found", a
+// retry that makes a second one), and tracks_read answers the saved project, without the lane just made, in place of the live list.
+// Other commands keep the short wait.
+var mayRunLong = map[string]bool{"track_create": true, "arm_only": true, "arm_lane": true, "tracks_read": true}
+
+// ErrAnswerLate is ErrNoAnswer for a command REAPER had read: it may still have done what it was asked, so the caller reads back
+// before saying it failed or sending it again. errors.Is(err, ErrNoAnswer) holds.
+var ErrAnswerLate = fmt.Errorf("%w: REAPER took the command but has not confirmed it yet", ErrNoAnswer)
+
+// waitLate waits up to LateAnswerWait more for the answer of a command REAPER has read.
+func (a *Actions) waitLate(ctx context.Context, command, runID string, run *actionRun, started time.Time) ([]Event, error) {
+	a.mu.Lock()
+	wait := a.lateWait
+	a.mu.Unlock()
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case got := <-run.done:
+		if got.err != nil {
+			a.report(command, "error", started)
+			a.logFailure(command, runID, failureKind(got.err))
+		} else {
+			a.report(command, "answered", started)
+		}
+		return got.events, got.err
+	case <-timer.C:
+		a.report(command, "no_answer", started)
+		a.logFailure(command, runID, "no answer within "+wait.String()+" more (REAPER had already read the command)")
+		return nil, ErrAnswerLate
+	case <-ctx.Done():
+		a.report(command, "cancelled", started)
+		a.logFailure(command, runID, "cancelled (REAPER had already read the command)")
+		return nil, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
+	}
+}
+
+// SetLateWait changes how long a command in mayRunLong is waited for after REAPER has read it.
+func (a *Actions) SetLateWait(wait time.Duration) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.lateWait = wait
 }
 
 // retractNote is what the host log adds when a request ends unanswered: whether the command was taken back before REAPER read it.

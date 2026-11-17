@@ -1092,3 +1092,78 @@ describe('a lane armed in the DAW', () => {
     expect(set).not.toHaveBeenCalled();
   });
 });
+
+// #3645: a read of the host that began before a lane was chosen or added answers for the voice as it was. Landing late, it must neither
+// put lane 1 back over the lane the narrator just chose nor drop the lane that was just added.
+describe('a late read of the host after a change made here (#3645)', () => {
+  function holdNextVoiceRead(api: ReturnType<typeof createMockApi>) {
+    const real = api.boothVoiceGet.bind(api);
+    let release: () => void = () => {};
+    let heldAnswer: Awaited<ReturnType<typeof real>> | undefined;
+    let holding = false;
+    api.boothVoiceGet = async (id: string) => {
+      if (!holding) return real(id);
+      holding = false;
+      heldAnswer = await real(id);
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return heldAnswer;
+    };
+    return {
+      hold: () => {
+        holding = true;
+      },
+      release: () => release(),
+    };
+  }
+
+  it('does not move the selection back to the old voice when a choice was made while the read was out', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const held = holdNextVoiceRead(api);
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    held.hold();
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    await act(async () => hook.current.byKey(2));
+    await waitFor(() => expect(hook.current.current?.name).toBe('Extras'));
+    held.release();
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(hook.current.current?.name).toBe('Extras');
+  });
+
+  it('keeps a lane that was just added when a read that began before the add lands after it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const held = holdNextVoiceRead(api);
+    const readBack = api.voiceTracksGet.bind(api);
+    let releaseReadBack: () => void = () => {};
+    api.voiceTracksGet = async () => {
+      await new Promise<void>((resolve) => {
+        releaseReadBack = resolve;
+      });
+      return readBack();
+    };
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    held.hold();
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    let added: Promise<boolean> = Promise.resolve(false);
+    await act(async () => {
+      added = hook.current.add('Queen of Hearts', []);
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    await waitFor(() => expect(hook.current.current?.name).toBe('Queen of Hearts'));
+    held.release();
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(hook.current.current?.name).toBe('Queen of Hearts');
+    releaseReadBack();
+    await act(async () => {
+      await added;
+    });
+    expect(hook.current.voices.map((voice) => voice.name)).toContain('Queen of Hearts');
+  });
+});

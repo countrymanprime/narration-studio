@@ -8,6 +8,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/tracks"
 	"desktop/internal/voicetracks"
 )
 
@@ -102,6 +103,13 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track inside a folder from this app. Add a track named “%s” inside the chapter's folder in %s.", engine, name, engine)), nil
 	}
 	created, err := child.CreateChildTrack(ctx, name, link)
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		// REAPER took the command and has not confirmed it (#3645): the track may well exist. Read the folder back and adopt the voice
+		// that was not there before, so a slow answer is not an error and a second press does not make a second track.
+		if found, ok := h.adoptCreatedVoice(svc, link, name, voices); ok {
+			created, err = found, nil
+		}
+	}
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {
 		return boothVoiceAddRefused(readAloudTrackMissing, fmt.Sprintf("This chapter's folder is no longer in the %s project. Link the chapter again in the audio engine panel.", engine)), nil
@@ -124,13 +132,32 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	return BoothVoiceAdded{Outcome: "added", TrackGUID: created.GUID, Name: added}, nil
 }
 
+// adoptCreatedVoice reads chapter folder link back from REAPER and returns the voice named name that was not among before, the
+// direct children the folder had when the add began.
+func (h *Host) adoptCreatedVoice(svc hostServices, link, name string, before []tracks.Track) (bridge.CreatedTrack, bool) {
+	known := map[string]bool{}
+	for _, voice := range before {
+		known[strings.ToLower(voice.GUID)] = true
+	}
+	now, folder, err := chapterVoices(svc, link)
+	if err != nil || !folder {
+		return bridge.CreatedTrack{}, false
+	}
+	for _, voice := range now {
+		if !known[strings.ToLower(voice.GUID)] && strings.EqualFold(cleanTrackName(voice.Name), name) {
+			return bridge.CreatedTrack{GUID: voice.GUID, Name: voice.Name}, true
+		}
+	}
+	return bridge.CreatedTrack{}, false
+}
+
 // BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
 // Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
 // runs. The DAW's undo takes the track back; the project is not saved.
 func (h *Host) BoothVoiceAdd(chapterID, name string, characterIDs []string) (string, error) {
 	svc := h.services()
 	creator, support := trackCreatorFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceAddIn(ctx, svc, creator, support, chapterID, name, characterIDs))
 }

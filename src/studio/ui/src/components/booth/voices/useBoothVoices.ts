@@ -148,10 +148,16 @@ export function useBoothVoices({
     [notify],
   );
 
+  // Counts the changes this page made to the voice the host records on and to the voices it added (a choice, an add). A read of the host
+  // that began before such a change answers for the voice as it was: its result must not put the old voice back or drop the lane just
+  // added (#3645, a lane that vanished and a selection that fell back to lane 1).
+  const localChanges = useRef(0);
+
   // The characters and the voice the host records on, read again whenever the shared tracks are (`readAt`) and after a change made here.
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
+    const startedAt = localChanges.current;
     const pressed = retryPressed.current;
     retryPressed.current = false;
     if (!link) {
@@ -180,6 +186,7 @@ export function useBoothVoices({
       if (!live) return;
       if (!hostFailed) failing.current = false;
       setCharacters(entities.filter((entity) => entity.category === 'Character'));
+      if (localChanges.current !== startedAt) return;
       setHostVoice({
         chapterId,
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
@@ -289,6 +296,7 @@ export function useBoothVoices({
   const send = useCallback(
     (voice: Voice) => {
       sending.current = voice;
+      localChanges.current += 1;
       let accepted = false;
       setChoosing(true);
       setEpoch((n) => n + 1);
@@ -308,6 +316,7 @@ export function useBoothVoices({
               if (answer.reason === 'track_missing') refreshAll();
             }
             const guid = answer.trackGuid;
+            localChanges.current += 1;
             setHostVoice((last) => ({ chapterId, guid, added: last.chapterId === chapterId ? last.added : [] }));
           }
         })
@@ -408,6 +417,7 @@ export function useBoothVoices({
         }
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
+        localChanges.current += 1;
         setHostVoice((last) => ({
           chapterId,
           guid,

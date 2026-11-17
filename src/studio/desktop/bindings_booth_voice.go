@@ -407,7 +407,7 @@ func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, 
 		case readAloudTrackMissing:
 			chosen.Message = fmt.Sprintf("That voice track is no longer in the %s project, so it could not be armed. The Booth still records on it if it comes back.", name)
 		case "timeout":
-			chosen.Message = fmt.Sprintf("%s did not confirm within 3 seconds, so the armed track may not match the voice. The Booth records on the voice you chose.", name)
+			chosen.Message = fmt.Sprintf("%s did not confirm in time, so the armed track may not match the voice. The Booth records on the voice you chose.", name)
 		default:
 			chosen.Message = fmt.Sprintf("%s The Booth records on the voice you chose, but the armed track in %s did not change.", refusal.Message, name)
 		}
@@ -422,7 +422,7 @@ func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, 
 // the Booth's voice list.
 func (h *Host) BoothVoiceSet(chapterID, trackGUID string) (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceSetIn(ctx, svc, recorderFrom(svc), chapterID, trackGUID))
 }

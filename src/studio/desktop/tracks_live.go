@@ -24,7 +24,7 @@ import (
 // the reason the live list was not used.
 
 // tracksLiveTimeout bounds one live read; a REAPER that does not answer in it is "not answering", and the saved project is shown.
-const tracksLiveTimeout = 3 * time.Second
+const tracksLiveTimeout = 7 * time.Second
 
 // Where TracksLive's tracks came from.
 const (
