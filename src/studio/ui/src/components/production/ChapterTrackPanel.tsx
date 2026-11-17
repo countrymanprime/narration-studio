@@ -20,7 +20,7 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonState, followLiveTracks, hasSeveralLinks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -142,7 +142,8 @@ export function ChapterTrackPanel({
 
   const state = link ? chapterTrackButtonState(link) : undefined;
   const missing = state?.kind === 'missing';
-  const conflict = link?.status === 'ambiguous' && link.links.length > 1;
+  // Several confirmed links, whatever the matcher's status (a link whose track is gone leaves it confirmed): the same test as the header word and the reason.
+  const conflict = !!link && hasSeveralLinks(link);
   return (
     <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
@@ -221,7 +222,7 @@ export function ChapterTrackPanel({
                 )}
               </div>
               <ShowInDawButton
-                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link) }}
+                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link) }}
                 onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
               />
             </section>
@@ -338,7 +339,8 @@ function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; li
     linked: LINK_STATE_LABEL.linked,
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
-    ambiguous: 'Ambiguous',
+    // Several links to a chapter are "Several tracks", as the Engine says; only unconfirmed candidates are "Ambiguous".
+    ambiguous: hasSeveralLinks(link) ? LINK_STATE_LABEL.several : 'Ambiguous',
     missing: LINK_STATE_LABEL.missing,
     unlinked: LINK_STATE_LABEL.unlinked,
   };

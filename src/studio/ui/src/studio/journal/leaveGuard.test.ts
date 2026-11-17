@@ -32,4 +32,16 @@ describe('leave guard', () => {
     setLeaveGuard(() => ({ ask: { ...spec, cancelLabel: 'Stay' } }));
     expect(checkLeave('/x')).toEqual({ ask: { ...spec, cancelLabel: 'Stay' } });
   });
+
+  // #3555: the page's own render reads whether a question would be asked; that must not look like the shell asking before a move.
+  it('a peek tells the guard it is only a peek, a check does not, and a peek with no guard allows', () => {
+    const { setLeaveGuard, checkLeave, peekLeave } = createLeaveGuard();
+    expect(peekLeave('/script')).toBe('allow');
+    const guard = vi.fn(() => 'allow' as const);
+    setLeaveGuard(guard);
+    checkLeave('/script');
+    expect(guard).toHaveBeenLastCalledWith('/script');
+    peekLeave('/booth');
+    expect(guard).toHaveBeenLastCalledWith('/booth', { peek: true });
+  });
 });

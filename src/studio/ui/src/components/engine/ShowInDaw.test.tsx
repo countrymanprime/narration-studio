@@ -100,6 +100,14 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     expect(t.select).not.toHaveBeenCalled();
   });
 
+  it("a chapter's own reason for having no track to show is the one the button gives", async () => {
+    setup({ kind: 'chapter', trackGuid: undefined, reason: 'This chapter is linked to more than one track: choose one from the audio engine panel' });
+    const b = await button('Show in REAPER');
+    expect(isOff(b)).toBe(true);
+    await userEvent.hover(b);
+    expect(await screen.findByText('This chapter is linked to more than one track: choose one from the audio engine panel')).toBeTruthy();
+  });
+
   it('a DAW that cannot navigate is off with its own sentence', async () => {
     const t = setup({ kind: 'finding', id: 'f1' }, 'reaper-off');
     const b = await button(/^Show in /);

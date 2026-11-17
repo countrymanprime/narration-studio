@@ -144,6 +144,54 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
   });
 
+  // #3363: a chapter with several confirmed links is "Several tracks", as the Engine row says, and Show in REAPER says why it is off.
+  it('says a chapter linked to several tracks is that, and why Show in REAPER is off', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: '{SECOND}' };
+    const several: ChapterTrackLink = {
+      ...link,
+      status: 'ambiguous',
+      links: [...link.links, second],
+      warnings: [...link.warnings, 'confirmed-links-conflict'],
+    };
+    renderPanel(api, several, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.queryByText('Ambiguous')).toBeNull();
+    const show = await screen.findByRole('button', { name: /^Show in / });
+    expect(show.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.hover(show);
+    expect(await screen.findByText(/linked to more than one track: keep one first/)).toBeTruthy();
+    // The body shows what the header says: the Keep-this-one list of its links.
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBeGreaterThan(0);
+  });
+
+  // #3363 (ux-review): two confirmed links where one track is gone stay `confirmed` after followLiveTracks, yet the header says Several tracks:
+  // the body must offer the Keep-this-one rows, not the single-link picker.
+  it('offers Keep this one for a confirmed chapter with several links, as its header says', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: '{SECOND}' };
+    const several: ChapterTrackLink = { ...link, status: 'confirmed', links: [...link.links, second], warnings: ['confirmed-links-conflict'] };
+    renderPanel(api, several, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBe(2);
+  });
+
+  // #3363 (ux-review): the saved read of two confirmed links with one track gone is `confirmed` + the missing warning; before the live list is read
+  // the header must not say Missing over the Keep-this-one rows.
+  it('calls two confirmed links with one track gone Several tracks before the live list is read', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: '{GONE}' };
+    const saved: ChapterTrackLink = { ...link, status: 'confirmed', links: [...link.links, second], warnings: ['confirmed-track-missing'] };
+    vi.spyOn(api, 'tracksLive').mockRejectedValue(new Error('REAPER is not answering'));
+    renderPanel(api, saved, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.queryByText('Track missing')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBe(2);
+  });
+
   it('shows a linked track under the name it has now', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

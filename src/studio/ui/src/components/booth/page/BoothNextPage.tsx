@@ -7,6 +7,7 @@ import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
 import { castOf } from '../voices/whoIsIn';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
+import { readAddress } from '../../../navigation/address';
 import { headingName } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
@@ -142,7 +143,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const overlay = useOverlay();
   useReleaseBoothMonitorOnLeave((sentence) => sayDawArming(overlay, sentence));
   const [params, setParams] = useSearchParams();
-  const asked = useMemo(() => readBoothQuery(params), [params]);
+  // An address that cannot be read is no request: the gate in front of the page says so (it holds the page while a take records), and the page does not act on a half-read chapter.
+  const asked = useMemo(() => (readAddress('booth', { search: `?${params.toString()}`, hash: '' }).kind === 'bad' ? null : readBoothQuery(params)), [params]);
   // The pickup session the address opened; opening the Booth any other way is no session. It stays across chapter changes.
   const pickupKey = readPickupIds(params).join(',');
   const pickupIds = useMemo(() => (pickupKey ? pickupKey.split(',') : []), [pickupKey]);
