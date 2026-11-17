@@ -21,7 +21,11 @@ export type ShowInDawTarget =
   | { kind: 'passage'; chapterId: string; token: number | undefined }
   | { kind: 'finding'; id: string; reason?: string }
   | { kind: 'pickup'; findingId: string | undefined }
-  | { kind: 'chapter'; trackGuid: string | undefined };
+  | {
+      kind: 'chapter';
+      trackGuid: string | undefined;
+      /** Why there is no track to show, when the caller knows (a missing or several link). */ reason?: string;
+    };
 
 const CHECKING = 'Checking what the DAW can do.';
 const ASK_FAILED = 'Could not ask the DAW what it can do.';
@@ -53,7 +57,7 @@ function targetReason(target: ShowInDawTarget): string | null {
     case 'pickup':
       return target.findingId ? null : NO_RECORDING;
     case 'chapter':
-      return target.trackGuid ? null : NO_TRACK;
+      return target.trackGuid ? null : (target.reason ?? NO_TRACK);
   }
 }
 
