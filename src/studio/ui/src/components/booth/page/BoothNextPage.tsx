@@ -71,6 +71,7 @@ import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
+import { useDawSoloesChapter } from '../../../hooks/useDawSoloesChapter';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
@@ -475,6 +476,8 @@ function BoothSession({
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
 
+  // While the narrator is on this chapter the DAW soloes it in place so the other chapters are quiet; leaving the Booth puts it back (a pickup session is recorded here too).
+  useDawSoloesChapter(chapterId);
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,
     units,
