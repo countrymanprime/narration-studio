@@ -256,7 +256,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
         const trackGuid = showableTrackGuid(entry);
         // Why Show in REAPER is off says what the link is (missing, several, only suggested, none), as the panel and the Engine row say.
-        // Links not read yet is not "nothing linked": the board's own tip says it does not know yet.
+        // Links not read yet is not "nothing linked": the menu says it does not know yet (the board's Rec. cell still reads Not linked then, as before).
         const noTrack = links ? noShowableTrackReason(entry) : 'The chapter links are still loading';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
