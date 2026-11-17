@@ -120,6 +120,13 @@ for (const c of CASES) {
       // A long message scrolls inside 2.5rem (40 px) over a dialog, so it never takes the dialog's room.
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
       if (text > 41) problems.push(`${width}x${height}: the toast's text is ${text} px high, over 2.5rem`);
+      if (c.longText) {
+        const scrolls = await page.evaluate(() => {
+          const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
+          return el.scrollHeight > el.clientHeight + 1;
+        });
+        if (!scrolls) problems.push(`${width}x${height}: the long message fits in 2.5rem, so its scroll is not exercised`);
+      }
       if (
         c.focusField &&
         !(await page
@@ -168,3 +175,32 @@ test('the whole stack shows in a taller window and when no dialog is open', asyn
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(shown(page)).toHaveCount(2);
 });
+
+// A toast is inverted (`--toast-bg` is `--text`): a cover or shadow painted in `--surface` on its text box puts a light band under light text (the shared `scroll-y-edges` did, on every toast).
+// In both themes the text box of a toast keeps no `--surface` colour, in a tall window (no scroll cue at all) and in a short one with a dialog open (the cue is in the toast's own colours).
+for (const colorScheme of ['light', 'dark'] as const) {
+  test(`a toast's text box never carries the surface colour, ${colorScheme} theme`, async ({ page }) => {
+    page.setDefaultTimeout(20_000);
+    await page.emulateMedia({ colorScheme });
+    await undoToasts(1).open(page);
+    const surface = await page.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.style.background = 'var(--surface)';
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return colour;
+    });
+    const image = () => page.evaluate(() => getComputedStyle(document.querySelector('[data-toast-region] [data-toast-text]')!).backgroundImage);
+    for (const [width, height] of [
+      [1000, 700],
+      [275, 262],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await expect(shown(page)).toHaveCount(1);
+      const background = await image();
+      expect(background, `${width}x${height}: the text box's background image`).not.toContain(surface);
+      if (height >= 300) expect(background, 'a tall window draws no scroll cue').toBe('none');
+    }
+  });
+}

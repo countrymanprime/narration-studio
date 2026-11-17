@@ -137,7 +137,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className="scroll-y-edges max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-h-10"
+        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-h-10 [@media(max-height:299px)]:[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]"
       >
         {message.text}
       </span>
@@ -209,6 +209,8 @@ export function useToastsClearOfModal(active: boolean): void {
 
 /** Brings the focused control of the topmost dialog into view inside the popup's own scrolling areas (the body and any area in it), innermost first. The popup itself is never scrolled: it clips, and the header and action row stay put. */
 function keepFocusInDialog(): void {
+  // Only where the rule applies: in a taller window the room does not change with the toast, and a resize must not move a narrator's place in a long dialog.
+  if (window.innerHeight >= 300) return;
   const popup = [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop();
   const focused = document.activeElement;
   if (!popup || !(focused instanceof HTMLElement) || focused === popup || !popup.contains(focused)) return;
