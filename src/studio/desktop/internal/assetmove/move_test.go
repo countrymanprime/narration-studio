@@ -3,6 +3,7 @@ package assetmove
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -801,6 +802,14 @@ func notRoot(t *testing.T) {
 	}
 }
 
+// refusedByTheDisk reports whether err is the operating system refusing an operation (a *fs.PathError: permission denied on Unix, a sharing or
+// lock violation on Windows), and not one of the move's own errors (ErrIncomplete, ErrMismatch): a guard that only asks for "an error" can pass
+// on the wrong one.
+func refusedByTheDisk(err error) bool {
+	var refused *fs.PathError
+	return errors.As(err, &refused)
+}
+
 func lock(t *testing.T, path string, mode os.FileMode) {
 	t.Helper()
 	if err := os.Chmod(path, mode); err != nil {
@@ -813,8 +822,8 @@ func TestMoveStopsOnASourceFileItCannotRead(t *testing.T) {
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	files := seed(t, source)
 	letGo := makeUnreadable(t, filepath.Join(source, "tts", "voice.json"))
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !refusedByTheDisk(err) {
+		t.Fatalf("want the read refused by the disk, got %v", err)
 	}
 	letGo()
 	assertIntact(t, source, files)
@@ -826,12 +835,18 @@ func TestMoveStopsOnASourceFileItCannotRead(t *testing.T) {
 func TestMoveStopsOnASourceFolderItCannotList(t *testing.T) {
 	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
 	seed(t, source)
+	whole := filepath.Join(t.TempDir(), "whole")
+	seed(t, whole)
 	makeUnreadable(t, filepath.Join(source, "whisper"))
-	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
-		t.Fatal("want an error")
+	reported := false
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, func(Progress) { reported = true }); !refusedByTheDisk(err) {
+		t.Fatalf("want the disk to refuse it, got %v", err)
 	}
-	if err := Covered(source, filepath.Join(t.TempDir(), "x"), kinds); err == nil {
-		t.Fatal("Covered read a folder it cannot list")
+	if reported {
+		t.Fatal("the copy began before the unlistable folder was found: measure did not stop it")
+	}
+	if err := Covered(source, whole, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("Covered must fail on the folder it cannot list, got %v", err)
 	}
 }
 
@@ -940,12 +955,22 @@ func TestFinishReportsAMarkerItCannotRemove(t *testing.T) {
 
 func TestSizesAndCoveredReadAFolderWithAnUnlistableChild(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "n")
+	seed(t, root)
 	if err := os.MkdirAll(filepath.Join(root, "tts", "deep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "tts", "deep", "f"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	makeUnreadable(t, filepath.Join(root, "tts", "deep"))
-	if _, err := measure(root, kinds); err == nil {
-		t.Fatal("measure read through a closed folder")
+	if _, err := measure(root, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("measure read through a closed folder: %v", err)
+	}
+	if _, err := sizes(filepath.Join(root, "tts")); !refusedByTheDisk(err) {
+		t.Fatalf("sizes read through a closed folder: %v", err)
+	}
+	if err := Covered(root, root, kinds); !refusedByTheDisk(err) {
+		t.Fatalf("Covered must not answer for a folder it cannot list, got %v", err)
 	}
 }
 

@@ -52,7 +52,17 @@ func restrict(t *testing.T, path string, mode os.FileMode, enforced func() bool)
 	t.Cleanup(restore)
 	if !enforced() {
 		restore()
-		t.Skip("the file mode does not bind this user (root), so the failure cannot be made")
+		unbound(t)
 	}
 	return restore
+}
+
+// unbound ends the test when the file mode does not bind this user (root): a skip on a developer's machine, a failure in CI, where a guard that
+// quietly does not run is the thing these helpers exist to prevent (#3630).
+func unbound(t *testing.T) {
+	t.Helper()
+	if os.Getenv("CI") != "" {
+		t.Fatal("the file mode does not bind this user (root), so the guard cannot be made to bite: run CI as an ordinary user")
+	}
+	t.Skip("the file mode does not bind this user (root), so the failure cannot be made")
 }
