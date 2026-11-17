@@ -327,6 +327,17 @@ export const engineDrivers: Record<string, Driver> = {
       .scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
   },
+  'link-chapters-several': async (page) => {
+    await page.goto('/?mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await clickVisible(page, 'button', 'Link chapters to tracks');
+    await page
+      .getByRole('combobox', { name: /^Track for / })
+      .first()
+      .waitFor();
+    await page.locator('select option:checked', { hasText: 'Several tracks' }).first().waitFor({ state: 'attached' });
+  },
   'link-chapters-preview': async (page) => {
     await page.goto('/?mockChapterLink=none');
     await settlePage(page);
