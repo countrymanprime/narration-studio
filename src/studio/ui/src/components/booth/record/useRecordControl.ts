@@ -385,7 +385,7 @@ export function useRecordControl({
   // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
   const appStops = useRef(0);
   const appStopReleases = useRef(new Set<() => void>());
-  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
+  // An end the transport pushed during such a stop, to be heard if that stop failed; and the function that hears an end.
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
