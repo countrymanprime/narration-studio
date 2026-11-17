@@ -259,8 +259,8 @@ describe('reading the live track list', () => {
     const { hook } = mount(api);
     await settle();
     expect(reads()).toBe(1);
-    // After the first failure the timer waits 5 s, then 10 s, 20 s, 40 s, then the cap.
-    const waits = [5_000, 10_000, 20_000, 40_000, LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_BACKOFF_MAX_MS];
+    // The read at mount is the narrator's; each automatic read that fails then doubles the wait: 5 s to the first, 5 s, 10 s, 20 s, 40 s, then the cap.
+    const waits = [5_000, 5_000, 10_000, 20_000, 40_000, LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_BACKOFF_MAX_MS];
     let expected = 1;
     for (const wait of waits) {
       await act(async () => vi.advanceTimersByTime(wait - LIVE_TRACKS_POLL_MS)); // the timer ticks inside the wait: no read
@@ -276,6 +276,26 @@ describe('reading the live track list', () => {
     expect(hook.current.error).toBe('');
     await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
     expect(reads()).toBe(expected + 2);
+  });
+
+  it("failed presses do not lengthen the timer's wait, and a clock set back does not freeze it", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = createMockApi();
+    let answering = false;
+    api.tracksLive = vi.fn(async () => {
+      if (!answering) throw new Error('REAPER did not answer in time.');
+      return answer([track(1, 'Narrator')]);
+    });
+    const reads = () => vi.mocked(api.tracksLive).mock.calls.length;
+    const { hook } = mount(api);
+    await settle();
+    for (let press = 0; press < 5; press++) await act(async () => hook.current.refresh()); // the narrator presses Retry while REAPER is down
+    const before = reads();
+    answering = true; // REAPER is back, and the system clock was set back an hour
+    vi.setSystemTime(Date.now() - 3_600_000);
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+    expect(reads()).toBe(before + 1);
+    expect(hook.current.error).toBe('');
   });
 
   it('a press and a new read key read at once during the backoff', async () => {
@@ -407,8 +427,8 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(true);
     expect(hook.current.busy).toBe(false);
     expect(notify).toHaveBeenCalledTimes(1);
-    // The poll resumes: after the failure the timer waits one more poll (the backoff's first step), so the next tick after that reads.
-    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 2));
+    // The poll resumes.
+    await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
     expect(pending).toHaveLength(3);
     await act(async () => pending[2].resolve(answer([track(0, 'Chapter 1'), track(1, 'Added')])));
     expect(hook.current.stale).toBe(false);
