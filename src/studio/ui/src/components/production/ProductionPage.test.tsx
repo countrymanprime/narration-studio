@@ -552,6 +552,35 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/More than one track could be this chapter/);
   });
 
+  // #3363 (ux-review): the saved read of two confirmed links with one track gone says missing; the board and its menu read it as the panel does
+  // (several), also while the live track list has not been read or cannot be.
+  it('reads two confirmed links with one track gone as several on the board menu when the live list fails', async () => {
+    const base = createMockApi();
+    const severalLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return {
+        ...links,
+        chapters: links.chapters.map((chapter) => ({
+          ...chapter,
+          status: 'confirmed' as const,
+          links: ['{A}', '{B}'].map((trackGuid) => ({
+            trackGuid,
+            chapterId: chapter.chapterId,
+            chapterTitle: chapter.chapterTitle,
+            confirmedAt: '2026-10-01T10:00:00Z',
+          })),
+          warnings: ['confirmed-track-missing' as const],
+        })),
+      };
+    };
+    const tracksLive = async () => {
+      throw new Error('REAPER is not answering');
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: severalLinks, tracksLive } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/more than one track: keep one first/));
+  });
+
   // #3398: the link is written and "Track linked." said; the read after it fails. The narrator is told the change was made, once, never that the link failed.
   it('says the link was made, and that the list could not be read again, when only the read after a link rejects', async () => {
     const base = createMockApi();

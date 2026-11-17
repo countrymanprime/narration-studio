@@ -107,7 +107,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
   const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
   const trackLinks = useMemo(
-    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    // Without the live list (loading, or it failed) the links still follow it as far as they can: several links are several, as in the panel.
+    () => (savedLinks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
     [savedLinks, liveTracks],
   );
   const [open, setOpen] = useState<Open>();
