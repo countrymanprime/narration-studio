@@ -151,7 +151,7 @@ function EditingLoaded({
       }),
     [chapters],
   );
-  // With none asked for, the page opens on the first chapter with text; the credits (first in the list) are one step away.
+  // The first chapter with text, where the page opens when none is asked for and none is remembered; the credits (first in the list) are one step away.
   const first = list.find((c) => !chapters?.find((item) => item.id === c.id && isCreditsChapter(item))) ?? list[0];
   // With no chapter in the address, the chapter the narrator was last on in this project comes first, so the DAW is taken back to it after a restart
   // (#3428, A12); a chapter the book no longer has opens the first one. An address always wins, and a bad one opens the first chapter.
