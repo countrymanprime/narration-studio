@@ -10,6 +10,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 export const engineStates: StateEntry[] = [
   {
     page: 'engine',
+    state: 'links-set-refused',
+    description:
+      'Chapter links after the host refuses a link (a track picked, Use this track pressed): the failure is an error toast, "The link could not be made: That chapter is not in the manuscript.", with no error line above the list, and the row keeps its pick',
+  },
+  {
+    page: 'engine',
     state: 'default',
     description:
       'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), and Chapter links, the one list of tracks',

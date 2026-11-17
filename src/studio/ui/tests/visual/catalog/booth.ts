@@ -91,6 +91,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-unlinked-link-refused',
+    description:
+      'The Link dialog after the host refuses the link (Link track pressed, "That chapter is not in the manuscript."): the dialog stays open for a retry and the failure is an error toast over it, "The link could not be made: …", with no line added to the dialog',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-created',
     description:
       'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',

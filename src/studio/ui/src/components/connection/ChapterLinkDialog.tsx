@@ -241,9 +241,11 @@ export function ChapterLinkDialog({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-            <span className="text-[var(--text-muted)]">
-              Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
-            </span>
+            {!createOff && (
+              <span className="text-[var(--text-muted)]">
+                Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
+              </span>
+            )}
             <Button
               variant="secondary"
               size="sm"

@@ -197,12 +197,24 @@ export const boothDrivers: Record<string, Driver> = {
     const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
     const create = dialog.getByRole('button', { name: 'Create a new track' });
     await create.waitFor();
-    // Focus, not hover: the keyboard reaches the reason too, and the pointer is not where the capture leaves it.
-    await create.focus();
+    await create.hover();
     await page
       .getByRole('tooltip')
       .getByText(/cannot add a track from this app/)
       .waitFor();
+  },
+  // The host refuses the link: an error toast over the open dialog, which stays for a retry (#3365).
+  'record-unlinked-link-refused': async (page) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterTrackSet: () => Promise.reject(new Error('That chapter is not in the manuscript.')),
+      };
+    });
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
+    await dialog.getByRole('button', { name: 'Link track' }).click();
+    await page.getByText('The link could not be made: That chapter is not in the manuscript.').waitFor();
   },
   // Create a new track: REAPER adds one named after the chapter and it is linked; the message says so and Record is ready.
   'record-unlinked-created': async (page) => {
