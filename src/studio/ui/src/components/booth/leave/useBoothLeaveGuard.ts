@@ -51,8 +51,8 @@ const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
  * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
  */
 const END_GRACE_MS = 1500;
-/** What a stop or start that got no answer says: who did not answer, and what that leaves unknown. */
-const noAnswer = (daw: string) => `${daw} did not answer in time, so the take may still be recording.`;
+/** What a stop or start that got no answer says: who did not answer. What that leaves unknown (the take may still run) is said by the question and the toast around it. */
+const noAnswer = (daw: string) => `${daw} did not answer in time.`;
 
 /** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
 async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | null> {

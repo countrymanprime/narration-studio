@@ -662,7 +662,7 @@ describe('useBoothLeaveGuard', () => {
 
     it('a stop that never answers names the connected DAW, not "the DAW"', async () => {
       const t = await yesAndWait({ daw: { name: 'Audacity' } }, never);
-      expect(t.dialog()?.spec.body).toContain('Audacity did not answer in time, so the take may still be recording.');
+      expect(t.dialog()?.spec.body).toContain('Audacity did not answer in time. You can leave anyway, but it may keep recording.');
       expect(t.dialog()?.spec.body).not.toContain('The DAW');
       act(() => t.dialog()!.answer(true));
       await act(() => t.done());
@@ -671,7 +671,7 @@ describe('useBoothLeaveGuard', () => {
     it('a stop that never answers ends in "Could not stop the take", with Leave anyway, and asking is cleared', async () => {
       const t = await yesAndWait({}, never);
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
-      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time, so the take may still be recording.');
+      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time. You can leave anyway, but it may keep recording.');
       expect(t.overlay.getSnapshot().toasts.map((toast) => toast.text)).not.toContain('Stopping the take…');
       act(() => t.dialog()!.answer(true));
       await act(() => t.done());
@@ -686,7 +686,7 @@ describe('useBoothLeaveGuard', () => {
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
-      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time, so the take may still be recording.');
+      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time. You can leave anyway, but it may keep recording.');
       expect(t.stopRecording).not.toHaveBeenCalled();
       act(() => t.dialog()!.answer(false));
       await act(() => t.done());
