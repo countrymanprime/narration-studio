@@ -190,6 +190,38 @@ export function useToastsClearOfModal(active: boolean): void {
   }, [active]);
 }
 
+/** The custom property the toasts publish while they show over a dialog: how much of the window's bottom they take (their height, the gap under them and 0.5rem of air), in px. */
+export const TOAST_HEIGHT_PROPERTY = '--toast-h';
+
+/**
+ * While a toast shows over an open modal dialog, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top. `Dialog` will read it in a window
+ * under 300 px tall and take what is left above the toasts, so a toast does not sit on its content or its focused control (#3605, #3601; nothing reads it yet). With no toast, or no dialog open, the
+ * property is not set, so nothing in a normal window changes. It follows the region's height, a resize of the window and a dialog opening or closing.
+ */
+function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
+  useEffect(() => {
+    const root = document.documentElement;
+    const box = region.current;
+    if (!showing || !box) return;
+    const publish = () => {
+      if (!root.hasAttribute(MODAL_OPEN_ATTRIBUTE)) root.style.removeProperty(TOAST_HEIGHT_PROPERTY);
+      else root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${Math.ceil(window.innerHeight - box.getBoundingClientRect().top + 8)}px`);
+    };
+    publish();
+    const resize = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(publish);
+    resize?.observe(box);
+    const modal = new MutationObserver(publish);
+    modal.observe(root, { attributes: true, attributeFilter: [MODAL_OPEN_ATTRIBUTE] });
+    window.addEventListener('resize', publish);
+    return () => {
+      resize?.disconnect();
+      modal.disconnect();
+      window.removeEventListener('resize', publish);
+      root.style.removeProperty(TOAST_HEIGHT_PROPERTY);
+    };
+  }, [region, showing]);
+}
+
 const TABBABLE =
   'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 // shortcut: radio groups count as one stop per radio, so a wrap may land on a radio the browser would skip; upgrade when a dialog's last control is a radio group.
@@ -225,10 +257,14 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
+  const region = useRef<HTMLDivElement>(null);
+  const showing = messages.length > 0;
+  useToastHeightPublished(region, showing);
   // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
   // the primitives portal to <body>, and a toast raised from one was drawn underneath it.
   return createPortal(
     <div
+      ref={region}
       data-toast-region
       style={
         {

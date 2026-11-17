@@ -135,3 +135,85 @@ func TestCurrentItemRecordNeverForPartialOrFailed(t *testing.T) {
 		t.Fatalf("CurrentItemRecord() for a partial-only history = %q, want %q", staleness.State, evidence.StateNever)
 	}
 }
+
+// #3617: two items of one chapter that share an item GUID (a track copied in from another project) each have their own record, so
+// analysing one never makes the other read stale and re-scanning one never flip-flops the other.
+func twinScopes() (first, second ItemScopeInput) {
+	a := itemWith(func(item *tracks.Item, _ *tracks.Take) { item.GUID, item.Position = "dup", 0 })
+	b := itemWith(func(item *tracks.Item, _ *tracks.Take) { item.GUID, item.Position = "dup", 30 })
+	first, second = scopeFor(a), scopeFor(b)
+	second.ScopeKey = "dup#2"
+	return first, second
+}
+
+func TestTwoItemsThatShareAGUIDEachReadCurrentAfterBothAreAnalysed(t *testing.T) {
+	ledger := evidence.NewLedgerStore(t.TempDir())
+	first, second := twinScopes()
+	now := time.Now().UTC()
+	for _, in := range []ItemScopeInput{first, second} {
+		if _, err := WriteLedgerRecord(ledger, AnalyzerSilence, "v1", "params-1", in, evidence.LedgerProjectFile{}, now, now, evidence.LedgerComplete, map[string]int{"silences": 1}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for name, in := range map[string]ItemScopeInput{"first": first, "second": second} {
+		got, err := CurrentItemRecord(ledger, AnalyzerSilence, "v1", "params-1", in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.State != evidence.StateCurrent {
+			t.Fatalf("%s twin: State/Reasons = %q/%v, want current", name, got.State, got.Reasons)
+		}
+	}
+}
+
+func TestRescanningOneTwinNeverMakesTheOtherStale(t *testing.T) {
+	ledger := evidence.NewLedgerStore(t.TempDir())
+	first, second := twinScopes()
+	now := time.Now().UTC()
+	write := func(in ItemScopeInput, at time.Time) {
+		t.Helper()
+		if _, err := WriteLedgerRecord(ledger, AnalyzerSilence, "v1", "params-1", in, evidence.LedgerProjectFile{}, at, at, evidence.LedgerComplete, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(first, now)
+	write(second, now.Add(time.Second))
+	write(first, now.Add(2*time.Second))
+	for name, in := range map[string]ItemScopeInput{"first": first, "second": second} {
+		if got, _ := CurrentItemRecord(ledger, AnalyzerSilence, "v1", "params-1", in); got.State != evidence.StateCurrent {
+			t.Fatalf("%s twin after a re-scan of the first: State = %q, want current", name, got.State)
+		}
+	}
+}
+
+func TestATwinThatChangedReadsStaleAndItsSiblingStaysCurrent(t *testing.T) {
+	ledger := evidence.NewLedgerStore(t.TempDir())
+	first, second := twinScopes()
+	now := time.Now().UTC()
+	for _, in := range []ItemScopeInput{first, second} {
+		if _, err := WriteLedgerRecord(ledger, AnalyzerSilence, "v1", "params-1", in, evidence.LedgerProjectFile{}, now, now, evidence.LedgerComplete, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	moved := first
+	moved.Item.Position = 5
+	if got, _ := CurrentItemRecord(ledger, AnalyzerSilence, "v1", "params-1", moved); got.State != evidence.StateStale {
+		t.Fatalf("a moved twin: State = %q, want stale", got.State)
+	}
+	if got, _ := CurrentItemRecord(ledger, AnalyzerSilence, "v1", "params-1", second); got.State != evidence.StateCurrent {
+		t.Fatalf("its sibling: State = %q, want current", got.State)
+	}
+}
+
+func TestAnItemWithAUniqueGUIDIsStillScopedByItsGUIDAlone(t *testing.T) {
+	ledger := evidence.NewLedgerStore(t.TempDir())
+	in := scopeFor(itemWith(nil))
+	now := time.Now().UTC()
+	record, err := WriteLedgerRecord(ledger, AnalyzerSilence, "v1", "params-1", in, evidence.LedgerProjectFile{}, now, now, evidence.LedgerComplete, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := record.Scope.ItemGUIDs; len(got) != 1 || got[0] != in.Item.GUID {
+		t.Fatalf("scope = %v, want the item's GUID alone (records written before this stay readable)", got)
+	}
+}
