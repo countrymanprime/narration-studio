@@ -85,6 +85,10 @@ describe('clock, marked', () => {
     expect(clock(89, { marked: true })).toBe('0h 01m');
     expect(clock(90, { marked: true })).toBe('0h 02m');
   });
+  it('is capped at a billion seconds, like the full form', () => {
+    expect(clock(1e21, { marked: true })).toBe(clock(1e9, { marked: true }));
+    expect(clock(1e21, { marked: true })).toBe('277777h 46m');
+  });
   it('reads zero for a value that is not a time', () => {
     for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) expect(clock(bad, { marked: true })).toBe('0h 00m');
   });

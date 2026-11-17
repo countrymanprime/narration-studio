@@ -82,13 +82,16 @@ const DURATIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   },
   'components/proof/deliveryFindingFormat.ts': { 'clock(value)': "a file's duration in a delivery finding" },
 };
-/** The `clock(...)` calls of a source text, each with its balanced argument list. */
+/** A source text without its comments (they say "the clock (x)" in prose). */
+const code = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+/** The `clock(...)` calls of a source text, each with its balanced argument list (`clock (x)` with a space too). */
 function clockCalls(text: string): string[] {
   const calls: string[] = [];
-  for (let at = text.indexOf('clock('); at >= 0; at = text.indexOf('clock(', at + 1)) {
-    if (/[\w.]/.test(text[at - 1] ?? '')) continue;
+  text = code(text);
+  for (const match of text.matchAll(/(?<![\w$.])clock\s*\(/g)) {
+    const at = match.index;
     let depth = 0;
-    let end = at + 'clock'.length;
+    let end = at + match[0].length - 1;
     for (; end < text.length; end += 1) {
       if (text[end] === '(') depth += 1;
       if (text[end] === ')' && (depth -= 1) === 0) break;
@@ -97,10 +100,39 @@ function clockCalls(text: string): string[] {
   }
   return calls;
 }
+/** `clock` used as a value (`.map(clock)`, `[clock][0](x)`, `when={clock}`, `= clock`), outside its import and comments: a call this scan cannot see. */
+const bareClock = (text: string): string[] =>
+  [
+    ...text
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/^import[^;]*;$/gm, '')
+      .matchAll(/[([{=,:?]\s*clock\s*(?=[)\]},;])/g),
+  ].map((m) => m[0]);
 const files = [...sources(SRC)].map((path) => relative(SRC, path).split(sep).join('/'));
 const text = (file: string) => readFileSync(join(SRC, file), 'utf8');
 
 describe('the full form is only for Editing and Proof, and every position there uses it', () => {
+  it('sees a bare clock reference (its own check)', () => {
+    for (const code of ['xs.map(clock)', 'const f = clock;', '[clock][0](x)', '<B when={clock} />', 'fn(a, clock)'])
+      expect(bareClock(code), code).not.toEqual([]);
+    for (const code of ["import { clock } from '../clock';", '// the clock', 'clock(x)', "const label = 'the clock'", 'clockTenths(x)'])
+      expect(bareClock(code), code).toEqual([]);
+    expect(clockCalls('clock (x) + [clock][0](y)')).toEqual(['clock (x)']);
+  });
+  it('is used as a bare value by no file on Editing or Proof: every use there is a call the lists above can see', () => {
+    // (A file that does not import the formatter and has a variable of its own called `clock` is not about it.)
+    const importsFormatter = (file: string) => /import\s*\{[^}]*\bclock\b[^}]*\}\s*from\s*'[./]*\/clock'/.test(text(file));
+    expect(files.filter((file) => FINE.test(file) && importsFormatter(file) && bareClock(text(file)).length > 0)).toEqual([]);
+  });
+  it('gives every Show in {DAW} button on Editing and Proof its position formatter (`when`), so the shared component never falls back to the plain clock there', () => {
+    const missing: string[] = [];
+    for (const file of files.filter((f) => FINE.test(f))) {
+      for (const match of text(file).matchAll(/<ShowInDawButton\b[\s\S]*?\/>/g)) if (!/\bwhen=/.test(match[0])) missing.push(file);
+    }
+    expect(missing).toEqual([]);
+    expect(files.some((f) => FINE.test(f) && /<ShowInDawButton\b/.test(text(f)))).toBe(true);
+  });
   it('scans clock calls (its own check)', () => {
     expect(clockCalls('a(clock(x, { full: true }), clock(y))')).toEqual(['clock(x, { full: true })', 'clock(y)']);
     expect(clockCalls('noclock(x) + this.clock(y)')).toEqual([]);

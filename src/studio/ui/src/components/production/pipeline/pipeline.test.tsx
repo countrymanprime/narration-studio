@@ -95,7 +95,7 @@ describe('PipelineTable', () => {
     table();
     const c4 = screen.getByRole('img', { name: 'Chapter 4: 30 minutes recorded of about 1 hour estimated' });
     expect(c4.textContent).toBe('0h 30m');
-    expect(within(c4.closest('tr')!).getByRole('cell', { name: '1h 00m' })).toBeTruthy();
+    expect(within(c4.closest('tr')!).getByRole('cell', { name: '1 hour' })).toBeTruthy();
     const c5 = screen.getByRole('img', { name: 'Chapter 5: recorded not read' });
     expect(c5.textContent).toBe('Not read');
   });

@@ -62,19 +62,19 @@ export function SelectionBar({
         </span>
       </div>
       {output}
-      {/* Below 60 rem the summary takes a row of its own under the transport, so the actions stay on the transport row at the right instead of
+      {/* The selection's summary never makes the bar taller by itself where it sits beside the transport (from 60 rem): the words and the badge are one line and the range, with its length, a smaller one under them (a position is 12 characters, two of them 25 with their length), both inside the bar's own height. Below 60 rem the summary takes a row of its own under the transport, so the actions stay on the transport row at the right instead of
           dropping under the transport buttons like a second toolbar (alignment audit R3ED-9, XED-26). */}
       <div
         aria-live="polite"
         data-bar-summary
-        className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-2.5 @max-[60rem]/bar:order-last @max-[60rem]/bar:basis-full"
+        className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-x-2.5 gap-y-0.5 @max-[60rem]/bar:order-last @max-[60rem]/bar:basis-full @min-[60rem]/bar:gap-y-0 @min-[60rem]/bar:leading-[1.375rem]"
       >
         {has ? (
           <>
             <b>{plural(count, 'word')}</b>
             {summary.audible.length > 0 ? (
               <span
-                className="min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
+                className="order-last min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[length:var(--font-size-label)] text-[var(--text-muted)] @min-[60rem]/bar:basis-full @min-[60rem]/bar:leading-3.5"
                 title={`${clock(summary.start, { full: true })} to ${clock(summary.end, { full: true })} · ${summary.len.toFixed(1)} s`}
               >
                 {clock(summary.start, { full: true })} to {clock(summary.end, { full: true })}{' '}

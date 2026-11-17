@@ -93,7 +93,7 @@ describe('production-route-draws-the-mock-page', () => {
     const legend = Object.fromEntries(
       within(bar)
         .getAllByRole('listitem')
-        .map((li) => [li.textContent!.replace(/\s*\d+h \d+m$/, ''), li.querySelector('b')!.textContent!]),
+        .map((li) => [li.textContent!.replace(/\s*\d+h \d+m.*$/, ''), li.querySelector('b [aria-hidden="true"]')!.textContent!]),
     );
     const minutes = (clock: string) => {
       const [, h, m] = /(\d+)h (\d+)m/.exec(clock)!;

@@ -43,9 +43,9 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
   return `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${pad(whole % 60)}`;
 }
 
-/** "5h 40m" (see `ClockOptions.marked`): to the nearest minute; negative and non-finite input read "0h 00m", as the default reads "0:00". */
+/** "5h 40m" (see `ClockOptions.marked`): to the nearest minute; negative and non-finite input read "0h 00m", as the default reads "0:00"; capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. */
 function clockMarked(seconds: number): string {
-  const minutes = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds / 60)) : 0;
+  const minutes = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds / 60)), Math.floor(MAX_FULL_MILLIS / 1000 / 60)) : 0;
   return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m`;
 }
 

@@ -3520,6 +3520,24 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/SpokenFigure",
+      "name": "SpokenFigure",
+      "source": "src/components/primitives/SpokenFigure.tsx",
+      "stories": [
+        "Default",
+        "Inside Text",
+        "Under A Minute",
+        "Plain Text"
+      ],
+      "consumers": [
+        "src/components/primitives/StatTile.tsx",
+        "src/components/production/overview/StageBar.tsx",
+        "src/components/production/pipeline/PipelineTable.tsx",
+        "src/components/schedule/WorkedOut.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Proof/Spot takes",
       "name": "Spot takes",
       "source": "src/components/proof/spot/Spot.stories.tsx",

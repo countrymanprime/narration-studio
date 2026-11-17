@@ -4,6 +4,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../../primitives/Table';
+import { SpokenFigure } from '../../primitives/SpokenFigure';
 import { TitleSubtitle } from '../../primitives/TitleSubtitle';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
@@ -241,7 +242,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                   <RecordedCell figure={row.recorded} />
                 </TableCell>
                 <TableCell numeric align="center">
-                  {row.estimate}
+                  <SpokenFigure text={row.estimate} />
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {
                   const chip = recommendation && row.current === column && column !== 'prep';

@@ -134,46 +134,50 @@ for (const theme of ['light', 'dark'] as const) {
 // #3443: the Timeline strip's marks are hh:mm:ss.fff (12 characters each). At every size the two end marks are whole and apart: none cut off by the strip, none over another,
 // the middle mark (when drawn) is at the midpoint, and the strip draws no sideways scroll. (768 and 1024 are the guide's sizes, 360 x 500 and 320 x 300 the small windows.)
 for (const size of [...SIZES, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }] as const) {
-  test(`Editing: the Timeline strip's time marks are whole and apart (${size.width}x${size.height})`, async ({ page }) => {
-    await page.setViewportSize(size);
-    await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
-    await settlePage(page);
-    await page.locator('[data-k="p-1:1"]').click();
-    if (size.width >= 1360) await page.getByRole('button', { name: 'Timeline', exact: true }).click();
-    else {
-      await page.getByRole('button', { name: 'Clean up and effects' }).click();
-      await page.getByRole('tab', { name: 'Timeline' }).click();
-    }
-    const strip = page.getByRole('region', { name: /^Waveform and takes/ });
-    await strip.waitFor();
-    await strip.scrollIntoViewIfNeeded();
-    const result = await strip.evaluate((section) => {
-      const row = [...section.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].find((el) => /\d\d:\d\d:\d\d\.\d{3}/.test(el.textContent ?? ''))!;
-      const all = [...row.querySelectorAll<HTMLElement>('span')].map((el) => el.getBoundingClientRect());
-      const marks = all.filter((box) => box.width > 0);
-      const edge = section.getBoundingClientRect();
-      // A mark is dropped only below 28 rem (448 px) of the strip's width, and every mark is drawn from there up.
-      const hiddenWide = edge.width >= 448 && marks.length < all.length;
-      // The middle mark, when drawn, stands at the midpoint of the row (the strip's middle time), not beside the start mark.
-      const rowBox = row.getBoundingClientRect();
-      const centred = marks.length < 3 || Math.abs((marks[1].left + marks[1].right) / 2 - (rowBox.left + rowBox.right) / 2) <= 2;
-      const apart = marks.every((box, i) => i === 0 || box.left >= marks[i - 1].right - 0.5 || box.top >= marks[i - 1].bottom - 0.5);
-      return {
-        count: marks.length,
-        hiddenWide,
-        centred,
-        apart,
-        inside: marks.every((box) => box.left >= edge.left - 0.5 && box.right <= edge.right + 0.5),
-        sideways: section.scrollWidth > section.clientWidth + 1,
-      };
+  // A project of 100 hours or more writes 13 characters a mark: the same rules hold with the longer marks (from 768 up, where the middle mark is drawn).
+  for (const long of size.width >= 768 ? [false, true] : [false]) {
+    test(`Editing: the Timeline strip's time marks are whole and apart (${size.width}x${size.height}${long ? ', 100 h and more' : ''})`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
+      await settlePage(page);
+      await page.locator('[data-k="p-1:1"]').click();
+      if (size.width >= 1360) await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+      else {
+        await page.getByRole('button', { name: 'Clean up and effects' }).click();
+        await page.getByRole('tab', { name: 'Timeline' }).click();
+      }
+      const strip = page.getByRole('region', { name: /^Waveform and takes/ });
+      await strip.waitFor();
+      await strip.scrollIntoViewIfNeeded();
+      const result = await strip.evaluate((section, longer) => {
+        const row = [...section.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].find((el) => /\d\d:\d\d:\d\d\.\d{3}/.test(el.textContent ?? ''))!;
+        if (longer) row.querySelectorAll('span').forEach((mark, i) => (mark.textContent = ['100:00:00.000', '150:00:00.000', '200:00:00.000'][i] ?? ''));
+        const all = [...row.querySelectorAll<HTMLElement>('span')].map((el) => el.getBoundingClientRect());
+        const marks = all.filter((box) => box.width > 0);
+        const edge = section.getBoundingClientRect();
+        // A mark is dropped only below 34 rem (544 px) of the strip's width, and every mark is drawn from there up.
+        const hiddenWide = edge.width >= 544 && marks.length < all.length;
+        // The middle mark, when drawn, stands at the midpoint of the row (the strip's middle time), not beside the start mark.
+        const rowBox = row.getBoundingClientRect();
+        const centred = marks.length < 3 || Math.abs((marks[1].left + marks[1].right) / 2 - (rowBox.left + rowBox.right) / 2) <= 2;
+        const apart = marks.every((box, i) => i === 0 || box.left >= marks[i - 1].right - 0.5 || box.top >= marks[i - 1].bottom - 0.5);
+        return {
+          count: marks.length,
+          hiddenWide,
+          centred,
+          apart,
+          inside: marks.every((box) => box.left >= edge.left - 0.5 && box.right <= edge.right + 0.5),
+          sideways: section.scrollWidth > section.clientWidth + 1,
+        };
+      }, long);
+      expect(result.count, 'the start and end marks are drawn').toBeGreaterThanOrEqual(2);
+      expect(result.hiddenWide, 'a mark is hidden on a strip wide enough for it').toBe(false);
+      expect(result.centred, 'the middle mark is not at the midpoint').toBe(true);
+      expect(result.apart, 'the marks touch or overlap').toBe(true);
+      expect(result.inside, 'a mark is cut off by the strip').toBe(true);
+      expect(result.sideways, 'the strip scrolls sideways').toBe(false);
     });
-    expect(result.count, 'the start and end marks are drawn').toBeGreaterThanOrEqual(2);
-    expect(result.hiddenWide, 'a mark is hidden on a strip wide enough for it').toBe(false);
-    expect(result.centred, 'the middle mark is not at the midpoint').toBe(true);
-    expect(result.apart, 'the marks touch or overlap').toBe(true);
-    expect(result.inside, 'a mark is cut off by the strip').toBe(true);
-    expect(result.sideways, 'the strip scrolls sideways').toBe(false);
-  });
+  }
 }
 
 // #3443: a paragraph's time stamp in the margin is 12 characters ("00:00:01.300"); it showed ":00:01.300", cut off at the left, in the 76 px gutter. At every size the whole stamp is inside its gutter.
@@ -197,7 +201,14 @@ for (const size of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, 
 
 // #3443: the transport reads "00:00:01.687 / 14:09" and a selection "00:00:01.687 to 00:00:03.235 · 1.5 s" (the position is 12 characters). At every size, with and without
 // a selection, the position, the chapter's length and the selection's length are whole inside the bar: none cut off, none outside it (the length may drop under the position).
-for (const size of [...SIZES, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1100, height: 800 }] as const) {
+for (const size of [
+  ...SIZES,
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 1100, height: 800 },
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+] as const) {
   for (const selected of [false, true]) {
     test(`Editing: the transport and the selection's length are whole (${size.width}x${size.height}, ${selected ? 'with' : 'without'} a selection)`, async ({
       page,
@@ -206,10 +217,12 @@ for (const size of [...SIZES, { width: 390, height: 844 }, { width: 768, height:
       await page.goto('/editing/chapter-1?mockChapterLink=confirmed');
       await settlePage(page);
       await page.locator('[data-k="p-1:1"]').click();
-      if (selected) await page.locator('[data-k="p-1:4"]').click({ modifiers: ['Shift'] });
       const bar = page.getByRole('toolbar', { name: 'Playback and selection' });
       await bar.waitFor();
+      const before = (await bar.boundingBox())!.height;
+      if (selected) await page.locator('[data-k="p-1:4"]').click({ modifiers: ['Shift'] });
       if (selected) await bar.getByText('4 words').waitFor();
+      const grew = Math.round((await bar.boundingBox())!.height - before);
       const result = await bar.evaluate((el) => {
         const edge = el.getBoundingClientRect();
         const found: string[] = [];
@@ -232,6 +245,10 @@ for (const size of [...SIZES, { width: 390, height: 844 }, { width: 768, height:
       if (selected) expect(result.text, "the selection's length is drawn").toMatch(/· [\d.]+ s/);
       expect(result.found).toEqual([]);
       expect(result.sideways, 'the bar scrolls sideways').toBe(false);
+      // A selection appearing or clearing must not move the text and the waveform: the bar is as tall with one as without from 60 rem of bar (the summary sits beside the
+      // transport there), and below that it grows by no more than it did before the position got longer (main: +24 px at 768, +56 at 390 and 360, +90 at 320).
+      const most = size.width >= 1100 ? 0 : size.width >= 768 ? 24 : size.width >= 360 ? 56 : 90;
+      expect(grew, `a selection grows the bar by ${grew} px`).toBeLessThanOrEqual(most);
     });
   }
 }
