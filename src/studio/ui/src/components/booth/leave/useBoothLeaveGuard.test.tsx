@@ -686,6 +686,7 @@ describe('useBoothLeaveGuard', () => {
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time, so the take may still be recording.');
       expect(t.stopRecording).not.toHaveBeenCalled();
       act(() => t.dialog()!.answer(false));
       await act(() => t.done());
