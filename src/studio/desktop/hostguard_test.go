@@ -39,6 +39,7 @@ var swappableHostFields = map[string]bool{
 	"bridge":           true,
 	"navigation":       true,
 	"boothVoices":      true,
+	"tracksCache":      true,
 	"takeSelector":     true,
 	"puncher":          true,
 	"rangeCutter":      true,

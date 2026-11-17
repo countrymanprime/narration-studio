@@ -102,6 +102,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track inside a folder from this app. Add a track named “%s” inside the chapter's folder in %s.", engine, name, engine)), nil
 	}
 	created, err := child.CreateChildTrack(ctx, name, link)
+	svc.tracksCache.Invalidate() // a create that timed out may still have made the track: the next list is read again
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {
 		return boothVoiceAddRefused(readAloudTrackMissing, fmt.Sprintf("This chapter's folder is no longer in the %s project. Link the chapter again in the audio engine panel.", engine)), nil
