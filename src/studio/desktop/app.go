@@ -458,7 +458,9 @@ type Host struct {
 	// scripting on and start Audacity on its own (audacityauto.go); only the app's
 	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
 	// bridge files to install, for tests; nil means the real ones.
-	dawAutoEnabled     atomic.Bool
+	dawAutoEnabled atomic.Bool
+	// solo is what the host knows of the chapter solo it asked the DAW for (bindings_daw_solo.go).
+	solo               soloDebt
 	reaperResourceSeam func() string
 	reaperFilesSeam    fs.FS
 	reaperBridgeOnce   sync.Once

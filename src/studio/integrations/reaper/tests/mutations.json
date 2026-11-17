@@ -3858,8 +3858,8 @@
   {
     "name": "a restore writes a value other than the one the chapter had",
     "file": "narration_solo_chapter.lua",
-    "find": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)",
-    "replace": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', 1)"
+    "find": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)\n      restored = restored + 1",
+    "replace": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', 1)\n      restored = restored + 1"
   },
   {
     "name": "the solo is written while REAPER records",
@@ -3882,11 +3882,11 @@
   {
     "name": "a leftover play isolation is not put back before the solo ledger",
     "file": "narration_solo_chapter.lua",
-    "find": "    if registry.transport_recover then\n      registry.transport_recover()\n    end\n",
-    "replace": ""
+    "find": "    if registry.transport_recover then\n      registry.transport_recover()\n    end\n    local input = io.open(ledger_path(), 'r')",
+    "replace": "    local input = io.open(ledger_path(), 'r')"
   },
   {
-    "name": "a damaged ledger row writes a value the chapter never had",
+    "name": "a ledger row with a value other than 0 is accepted from the file",
     "file": "narration_solo_chapter.lua",
     "find": "local guid = line:match('^([^\\t]+)\\t0$')",
     "replace": "local guid = line:match('^([^\\t]+)\\t%-?%d+$')"
@@ -3924,7 +3924,7 @@
   {
     "name": "a solo that waited is never applied",
     "file": "narration_solo_chapter.lua",
-    "find": "    if state.pending then\n      local track = find_track(state.pending)",
+    "find": "    if state.pending and not (state.unsaved and (state.wait or 0) > 0) then\n      local track = find_track(state.pending)",
     "replace": "    if false then\n      local track = find_track(state.pending)"
   },
   {
@@ -4002,13 +4002,91 @@
   {
     "name": "a track that is gone is soloed as if it were there",
     "file": "narration_solo_chapter.lua",
-    "find": "    if not track then\n      event(ctx.session_dir, 'TRACK_STALE', run, guid_text)",
-    "replace": "    if false then\n      event(ctx.session_dir, 'TRACK_STALE', run, guid_text)"
+    "find": "    if not track then\n      -- A chapter that is gone",
+    "replace": "    if false then\n      -- A chapter that is gone"
   },
   {
     "name": "a play isolation is reported as not in place",
     "file": "narration_transport.lua",
     "find": "  registry.transport_isolated = function()\n    return state.isolated ~= nil",
     "replace": "  registry.transport_isolated = function()\n    return false"
+  },
+  {
+    "name": "a leftover row is put back with a value the chapter never had",
+    "file": "narration_solo_chapter.lua",
+    "find": "rows[#rows + 1] = { guid = guid, was = 0 }",
+    "replace": "rows[#rows + 1] = { guid = guid, was = 1 }"
+  },
+  {
+    "name": "a stale answer leaves the chapter that waited for the take pending",
+    "file": "narration_solo_chapter.lua",
+    "find": "      state.pending = nil\n      -- ... and the chapter soloed before",
+    "replace": "      -- ... and the chapter soloed before"
+  },
+  {
+    "name": "a stale answer leaves the chapter soloed before in place",
+    "file": "narration_solo_chapter.lua",
+    "find": "      else\n        release()\n      end\n      event(ctx.session_dir, 'TRACK_STALE'",
+    "replace": "      else\n      end\n      event(ctx.session_dir, 'TRACK_STALE'"
+  },
+  {
+    "name": "a chapter whose project is switched away from is never moved to the ghosts",
+    "file": "narration_solo_chapter.lua",
+    "find": "        if #away > 0 then",
+    "replace": "        if false then"
+  },
+  {
+    "name": "a save leaves the chapter soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if #state.rows == 0 or busy() then\n      return save()",
+    "replace": "    if true then\n      return save()"
+  },
+  {
+    "name": "a save does not put the chapter back before it writes",
+    "file": "narration_solo_chapter.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)\n        lifted",
+    "replace": "        lifted"
+  },
+  {
+    "name": "a save does not solo the chapter again after it",
+    "file": "narration_solo_chapter.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)\n      end\n    end\n    if not ok then",
+    "replace": "      end\n    end\n    if not ok then"
+  },
+  {
+    "name": "save_project does not go through the solo",
+    "file": "narration_save_project.lua",
+    "find": "  if registry.solo_around_save then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "a ghost entered again stays a ghost beside its live row",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if false then\n        mine = row\n      else\n        kept_ghosts"
+  },
+  {
+    "name": "a solo is written on top of a play isolation found after the first command",
+    "file": "narration_solo_chapter.lua",
+    "find": "    -- A play's isolation released while another project was in front is put back before this file writes a solo on top of it (idempotent).\n    if registry.transport_recover then\n      registry.transport_recover()\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a ledger that cannot be written is answered as a solo that was already in place",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if not kept then\n      event(ctx.session_dir, 'ERROR', run, NO_LEDGER)\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a waiting solo whose ledger cannot be written is dropped",
+    "file": "narration_solo_chapter.lua",
+    "find": "        if kept then\n          state.pending = nil\n        end",
+    "replace": "        state.pending = nil"
+  },
+  {
+    "name": "a ledger file that cannot be removed is reported as removed",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if left then\n      left:close()\n      return false\n    end\n",
+    "replace": ""
   }
 ]

@@ -48,7 +48,7 @@ local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
 end
 
-local function save_project(session_dir, run_id, expected)
+local function save_project(registry, session_dir, run_id, expected)
   if not reaper.APIExists('Main_SaveProject') then
     event(session_dir, 'ERROR', run_id, CANNOT)
     return
@@ -70,7 +70,15 @@ local function save_project(session_dir, run_id, expected)
     event(session_dir, 'ERROR', run_id, OTHER_PROJECT)
     return
   end
-  reaper.Main_SaveProject(0, false)
+  -- A chapter soloed in place is put back around the write, so the file never holds the solo (narration_solo_chapter.lua).
+  local function write()
+    reaper.Main_SaveProject(0, false)
+  end
+  if registry.solo_around_save then
+    registry.solo_around_save(write)
+  else
+    write()
+  end
   if reaper.APIExists('IsProjectDirty') and reaper.IsProjectDirty(0) ~= 0 then
     event(session_dir, 'ERROR', run_id, NOT_SAVED)
     return
@@ -80,6 +88,6 @@ end
 
 return function(registry)
   registry.register('save_project', function(ctx, args)
-    save_project(ctx.session_dir, args[1] or '', args[2])
+    save_project(registry, ctx.session_dir, args[1] or '', args[2])
   end)
 end

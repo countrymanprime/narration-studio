@@ -1060,7 +1060,7 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
 
 /**
  * DawSoloChapter soloes chapterID's linked track in the DAW while the narrator records that chapter, so every other chapter is quiet and not touched
- * (#3428, the owner's choice of "solo in place on the chapter"). It is one change on one track: the chapter's own voices stay audible and are never
+ * (#3428, solo in place on the chapter, chosen from the owner's A2). It is one change on one track: the chapter's own voices stay audible and are never
  * muted, a track the narrator already soloed or muted stays as it is, and the chapter put in place before is put back first. It adds no undo step and
  * changes nothing while the DAW records or plays an isolated track (the DAW does it right after). The page sends it when it enters a chapter with
  * Booth.follow_chapter_in_daw on; DawSoloRestore puts it back. An engine that cannot do this (Audacity) answers as done with nothing changed. A DAW that

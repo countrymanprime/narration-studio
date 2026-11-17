@@ -480,7 +480,10 @@ H.test('the chapter is not soloed when the ledger that puts it back cannot be wr
   local s, t = new_session()
   host.makedirs(s:path(LEDGER))
   s:send('solo_chapter', 'c1', t.ch1.guid)
-  H.eq(s:events(), { { 'CHAPTER_SOLOED', 'c1', t.ch1.guid, '0', '0' } })
+  H.eq(
+    s:events(),
+    { { 'ERROR', 'c1', "The chapter's track could not be soloed because REAPER's resource folder is not writable, so the other chapters stay as they were." } }
+  )
   H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
   s:send('solo_restore', 'r1')
   H.eq(s:events(), { { 'SOLO_RESTORED', 'r1', '0', '0', '0' } })
@@ -536,4 +539,233 @@ H.test('a ledger that stays unwritable is not opened on every tick', function()
   undo()
   H.truthy(blocked.tries - before < 12, 'the retries are spaced out by a count of ticks, got ' .. (blocked.tries - before))
   H.truthy(blocked.tries - before > 0, 'it is still tried')
+end)
+
+-- a chapter that cannot be soloed ------------------------------------------------------------------------------------
+
+H.test('a stale chapter answers TRACK_STALE and puts the chapter soloed before back', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:events()
+  s:send('solo_chapter', 'c2', '{00000000-0000-4000-8000-00000000DEAD}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'c2', '{00000000-0000-4000-8000-00000000DEAD}' } })
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'the other chapters are not left quiet for a chapter that cannot be soloed')
+  H.eq(ledger(s), nil)
+end)
+
+H.test('a stale answer drops the chapter that waits for the take, so the previous one is not soloed after it', function()
+  local s, t = new_session()
+  s.fake.play_state = 5
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:send('solo_chapter', 'c2', '{00000000-0000-4000-8000-00000000DEAD}')
+  s.fake.play_state = 0
+  s:tick()
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+  H.eq(ledger(s), nil)
+end)
+
+-- an unwritable ledger ---------------------------------------------------------------------------------------------
+
+H.test('a solo that waited for the take and could not write its ledger stays pending and is soloed once the ledger can be written', function()
+  local s, t = new_session()
+  s.fake.play_state = 5
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  host.makedirs(s:path(LEDGER))
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'nothing is soloed without its ledger')
+  os.remove(s:path(LEDGER))
+  for _ = 1, 8 do
+    s:tick()
+  end
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 })
+  H.eq(ledger(s), row(t.ch1))
+end)
+
+H.test('a ledger that still lists a chapter put back is not reported as removed, and is removed on a later tick', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  os.remove(s:path(LEDGER))
+  host.makedirs(H.join(s:path(LEDGER), 'held'))
+  s:send('solo_restore', 'r1')
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+  H.truthy(host.listdir(s:path(LEDGER)), 'the file that cannot be removed is still there')
+  os.remove(H.join(s:path(LEDGER), 'held'))
+  for _ = 1, 8 do
+    s:tick()
+  end
+  H.eq(io.open(s:path(LEDGER), 'r'), nil, 'the retry removed it')
+end)
+
+-- the project in front changes while a chapter is soloed ---------------------------------------------------------
+
+H.test('a chapter soloed in a project that is switched away from becomes a ghost on a tick, and is put back when that project returns', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:tick()
+  H.eq(ledger(s), row(t.ch1), 'the row stays on the ledger')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'put back without a restore command')
+  H.eq(ledger(s), nil)
+end)
+
+H.test('a Save as while soloed keeps the chapter soloed: the tick does not move its row away', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s.fake.project_path = H.join(host.tmpdir(), 'Book2.rpp')
+  s:tick()
+  s:tick()
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 })
+  H.eq(ledger(s), row(t.ch1))
+end)
+
+H.test('a chapter that is a ghost and is entered again is the live row, and the tick does not put it back', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:send('solo_restore', 'r1')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  s:send('solo_chapter', 'c2', t.ch1.guid)
+  s:tick()
+  s:tick()
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 }, 'the chapter stays soloed')
+  H.eq(ledger(s), row(t.ch1), 'one row')
+end)
+
+-- a project saved while a chapter is soloed ----------------------------------------------------------------------
+
+H.test('save_project writes the project with the chapter put back and soloes it again, so the file never holds the solo', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local on_disk
+  local real = reaper.Main_SaveProject
+  reaper.Main_SaveProject = function(...)
+    on_disk = solos(s)
+    return real(...)
+  end
+  s:send('save_project', 's1', s.fake.project_path)
+  reaper.Main_SaveProject = real
+  H.eq(on_disk, { 0, 0, 0, 0, 0, 0 }, 'the solo is not in the file')
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 }, 'it is back after the save')
+  H.eq(ledger(s), row(t.ch1), 'the row stays on the ledger throughout')
+  H.eq(s:events()[2][1], 'SAVED')
+end)
+
+H.test('save_project with nothing soloed by this bridge writes nothing to any track', function()
+  local s, t = new_session()
+  t.ch1.solo = 2
+  s.fake.calls = {}
+  s:send('save_project', 's1', s.fake.project_path)
+  H.eq(writes(s), {})
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 })
+end)
+
+H.test(
+  "a project saved while soloed without the bridge (the narrator's own save) reopens soloed, and that solo is read as the narrator's own: the limit",
+  function()
+    local s, t = new_session()
+    s:send('solo_chapter', 'c1', t.ch1.guid)
+    s:send('solo_restore', 'r1')
+    t.ch1.solo = 2
+    s:events()
+    s:send('solo_chapter', 'c2', t.ch1.guid)
+    H.eq(s:events(), { { 'CHAPTER_SOLOED', 'c2', t.ch1.guid, '0', '0' } })
+    H.eq(ledger(s), nil, 'no row: it is never put back')
+  end
+)
+
+-- a play's isolation left while another project was in front ---------------------------------------------------
+
+H.test('a play isolation whose project was not in front at the first command is put back before the next solo is written', function()
+  local s0, t0 = new_session()
+  with_audio(s0, t0)
+  t0.ch1.solo = 1
+  s0:send('play_from', 'p1', '10', t0.ch2.guid)
+  local play_file = H.read_file(s0:path('narration_play_isolation.txt'))
+  H.truthy(play_file, 'the play wrote its isolation file')
+  -- Another bridge start, the same tracks as the play left them (the narrator's solo on Chapter 1 turned off by it); another project is in front first.
+  local s, t = new_session()
+  with_audio(s, t)
+  t.ch2.solo = 2
+  H.write_file(s:path('narration_play_isolation.txt'), play_file)
+  local tracks = s.fake.tracks
+  s.fake.tracks = {}
+  s:send('solo_restore', 'r1')
+  s.fake.tracks = tracks
+  H.eq(solos(s), { 0, 0, 0, 2, 0, 0 }, 'not put back yet: its project was not in front')
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  H.eq(s:events()[2], { 'CHAPTER_SOLOED', 'c1', t.ch1.guid, '0', '0' }, "the narrator's own solo is found, so it is neither changed nor taken over")
+  H.eq(solos(s), { 1, 0, 0, 0, 0, 0 })
+  H.eq(ledger(s), nil)
+end)
+
+-- a write or a close of the ledger that fails after the file opened -----------------------------------------------
+
+local function with_failing_handle(fails, body)
+  local real_open = io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find(LEDGER, 1, true) and (mode or 'r'):find('w', 1, true) then
+      return {
+        write = function(self)
+          if fails == 'write' then
+            return nil, 'disk full'
+          end
+          return self
+        end,
+        close = function()
+          if fails == 'close' then
+            return nil, 'disk full'
+          end
+          return true
+        end,
+      }
+    end
+    return real_open(path, mode, ...)
+  end
+  local ok, err = pcall(body)
+  io.open = real_open
+  if not ok then
+    error(err, 0)
+  end
+end
+
+H.test('a ledger whose write fails after it opened is not reported as written: nothing is soloed', function()
+  local s, t = new_session()
+  with_failing_handle('write', function()
+    s:send('solo_chapter', 'c1', t.ch1.guid)
+  end)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+end)
+
+H.test('a ledger whose close fails after it opened is not reported as written: nothing is soloed', function()
+  local s, t = new_session()
+  with_failing_handle('close', function()
+    s:send('solo_chapter', 'c1', t.ch1.guid)
+  end)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+end)
+
+H.test('solo_restore also puts back a play isolation whose project was not in front earlier', function()
+  local s0, t0 = new_session()
+  with_audio(s0, t0)
+  t0.pickups.solo = 1
+  s0:send('play_from', 'p1', '10', t0.ch2.guid)
+  local play_file = H.read_file(s0:path('narration_play_isolation.txt'))
+  local s, t = new_session()
+  with_audio(s, t)
+  t.ch2.solo, t.pickups.solo = 2, 0
+  H.write_file(s:path('narration_play_isolation.txt'), play_file)
+  local tracks = s.fake.tracks
+  s.fake.tracks = {}
+  s:send('solo_restore', 'r1')
+  s.fake.tracks = tracks
+  s:send('solo_restore', 'r2')
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 1 })
 end)

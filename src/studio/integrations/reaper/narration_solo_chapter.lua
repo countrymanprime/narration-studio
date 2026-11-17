@@ -1,4 +1,4 @@
--- Solo in place on the chapter the narrator records (REAPER's I_SOLO), loaded by narration_ui_bridge.lua, which passes the shared helpers as the
+-- Solo in place on the chapter the narrator records (REAPER's I_SOLO; the commands are in docs/architecture/reaper-bridge.md), loaded by narration_ui_bridge.lua, which passes the shared helpers as the
 -- chunk argument. The Booth sends solo_chapter with the chapter's folder track while the narrator works on that chapter, and solo_restore when they
 -- leave. A solo on a folder keeps its voices audible (docs/reference/daw/reaper.md, "Recording on folder children") and silences every other chapter,
 -- with one write on one track: no track of the chapter and no other chapter is touched, so a mute the narrator set is never read or changed here.
@@ -35,6 +35,7 @@ local LEDGER_FILE = 'narration_solo_ledger.txt'
 local SOLO_IN_PLACE = 2
 local MAX_ROWS = 64
 local MAX_RETRY_WAIT = 256
+local NO_LEDGER = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so the other chapters stay as they were."
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -63,7 +64,13 @@ end
 -- Writes the rows (or removes the file when there are none). Answers false when the file could not be written.
 local function save(rows)
   if #rows == 0 then
+    -- A file that is still there after the remove (a folder of that name, a file held open) still lists rows that were put back: not saved.
     os.remove(ledger_path())
+    local left = io.open(ledger_path(), 'r')
+    if left then
+      left:close()
+      return false
+    end
     return true
   end
   local out = io.open(ledger_path(), 'w')
@@ -93,6 +100,12 @@ local function put_back(rows)
     end
   end
   return restored, kept, left
+end
+
+-- The project in front, as its pointer and path: two tabs that were never saved differ by the pointer.
+local function project_place()
+  local front, path = reaper.EnumProjects(-1, '')
+  return tostring(front) .. '|' .. (path or '')
 end
 
 return function(registry)
@@ -188,6 +201,10 @@ return function(registry)
   -- that a chapter already on the ledger is soloed again.
   local function apply(track)
     recover()
+    -- A play's isolation released while another project was in front is put back before this file writes a solo on top of it (idempotent).
+    if registry.transport_recover then
+      registry.transport_recover()
+    end
     local guid = normalize_guid(reaper.GetTrackGUID(track))
     local mine, others = nil, {}
     -- The same chapter can be a ghost (its track was not in front when it was tried): it is the live row again, not a second one the tick would put back.
@@ -213,23 +230,27 @@ return function(registry)
     local written = persist()
     if needs and not mine and not written then
       state.rows = before
-      return 0
+      return 0, false
     end
     local _, _, left = put_back(others)
     if #left > 0 then
       add_ghosts(left)
       persist()
     end
+    state.rows_seen = nil
     if needs then
       reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)
-      return 1
+      return 1, true
     end
-    return 0
+    return 0, true
   end
 
   -- Puts back what this file soloed, after reading a leftover the file may hold.
   local function release()
     recover()
+    if registry.transport_recover then
+      registry.transport_recover()
+    end
     local restored, kept, left = put_back(state.rows)
     state.rows = {}
     add_ghosts(left)
@@ -237,10 +258,46 @@ return function(registry)
     return restored, kept
   end
 
+  -- Runs `save` (a function that writes the project to disk) with the chapter this bridge soloed put back, then soloes it again: an I_SOLO write
+  -- marks nothing unsaved, so a project saved while soloed would keep the solo on disk and the next open would read it as the narrator's own. The row
+  -- stays on the ledger throughout. The narrator's own save in REAPER cannot be intercepted (reaper.md).
+  registry.solo_around_save = function(save)
+    if #state.rows == 0 or busy() then
+      return save()
+    end
+    local lifted = {}
+    for _, row in ipairs(state.rows) do
+      local track = find_track(row.guid)
+      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then
+        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)
+        lifted[#lifted + 1] = row.guid
+      end
+    end
+    local ok, err = pcall(save)
+    for _, guid in ipairs(lifted) do
+      local track = find_track(guid)
+      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == 0 then
+        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)
+      end
+    end
+    if not ok then
+      error(err, 0)
+    end
+  end
+
   registry.register('solo_chapter', function(ctx, args)
     local run, guid_text = args[1] or '', args[2] or ''
     local track = find_track(guid_text)
     if not track then
+      -- A chapter that is gone is not soloed after a take either: an earlier request that waits is dropped, so the narrator is not left on the
+      -- previous chapter's solo while the one in front is a track that does not exist.
+      state.pending = nil
+      -- ... and the chapter soloed before is put back, so the other chapters are not left quiet for a chapter that cannot be soloed.
+      if busy() then
+        state.waiting = #state.rows > 0
+      else
+        release()
+      end
       event(ctx.session_dir, 'TRACK_STALE', run, guid_text)
       return
     end
@@ -253,7 +310,12 @@ return function(registry)
       return
     end
     state.pending = nil
-    event(ctx.session_dir, 'CHAPTER_SOLOED', run, guid, apply(track), 0)
+    local changed, kept = apply(track)
+    if not kept then
+      event(ctx.session_dir, 'ERROR', run, NO_LEDGER)
+      return
+    end
+    event(ctx.session_dir, 'CHAPTER_SOLOED', run, guid, changed, 0)
   end)
 
   registry.register('solo_restore', function(ctx, args)
@@ -286,11 +348,35 @@ return function(registry)
         state.wait = state.wait - 1
       end
     end
-    if state.pending then
+    -- A chapter this bridge soloed whose track is not in the project in front any more (another tab was switched to): its row becomes a ghost, which
+    -- is put back whenever its project is in front again, so a restore that could not be sent is not owed forever. Looked at when the project in
+    -- front or its track count changes, never on every tick.
+    if #state.rows > 0 then
+      local place = project_place() .. '|' .. reaper.CountTracks(0)
+      if place ~= state.rows_seen then
+        state.rows_seen = place
+        local here, away = {}, {}
+        for _, row in ipairs(state.rows) do
+          local list = find_track(row.guid) and here or away
+          list[#list + 1] = row
+        end
+        if #away > 0 then
+          state.rows = here
+          add_ghosts(away)
+          persist()
+        end
+      end
+    end
+    if state.pending and not (state.unsaved and (state.wait or 0) > 0) then
       local track = find_track(state.pending)
-      state.pending = nil
       if track then
-        apply(track)
+        -- A solo whose ledger could not be written stays pending and is tried again on the next tick that is not waiting out a retry.
+        local _, kept = apply(track)
+        if kept then
+          state.pending = nil
+        end
+      else
+        state.pending = nil
       end
     end
     if state.waiting then
@@ -300,8 +386,7 @@ return function(registry)
     if #state.ghosts > 0 then
       -- The project pointer tells apart two tabs that were never saved and hold as many tracks. That tostring(ReaProject) is the same on every call
       -- is not verified in a real REAPER (reaper-verification-pass.md); if it is not, the ghosts are tried on every tick, never a wrong track.
-      local front, path = reaper.EnumProjects(-1, '')
-      local place = tostring(front) .. '|' .. (path or '') .. '|' .. reaper.CountTracks(0)
+      local place = project_place() .. '|' .. reaper.CountTracks(0)
       if place ~= state.tried then
         state.tried = place
         local _, _, left = put_back(state.ghosts)

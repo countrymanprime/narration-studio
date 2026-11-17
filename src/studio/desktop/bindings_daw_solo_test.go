@@ -128,8 +128,8 @@ func TestDawSoloRestorePutsBackAndNeverLooksAtTheSwitch(t *testing.T) {
 		t.Fatalf("waiting restore = %+v", got)
 	}
 	role.restoreErr = bridge.ErrNoAnswer
-	if got := dawSoloRestoreIn(t.Context(), "REAPER", role); got.OK || !strings.Contains(got.Refused, "not answering") {
-		t.Fatalf("no answer = %+v", got)
+	if got := dawSoloRestoreIn(t.Context(), "REAPER", role); got.OK || !strings.Contains(got.Refused, "may stay silent") || !strings.Contains(got.Refused, "Unsolo") {
+		t.Fatalf("no answer = %+v, want the sentence that says what may be left soloed and what to do", got)
 	}
 }
 
@@ -139,8 +139,54 @@ func TestRestoreSoloOnShutdownAsksTheRoleOnceAndDoesNothingWithoutOne(t *testing
 	role := &fakeSoloer{}
 	host.placeFollower = role
 	host.restoreSoloOnShutdown()
+	if role.restores != 0 {
+		t.Fatalf("restores = %d for a session that never soloed, want none", role.restores)
+	}
+	host.solo.sent.Store(true)
+	host.restoreSoloOnShutdown()
 	if role.restores != 1 {
 		t.Fatalf("restores = %d, want 1", role.restores)
+	}
+}
+
+func TestAFailedRestoreIsOwedUntilARestoreIsAnswered(t *testing.T) {
+	var debt soloDebt
+	if debt.mayBeSoloed() {
+		t.Fatal("nothing is owed before anything is soloed")
+	}
+	debt.sent.Store(true)
+	role := &fakeSoloer{restoreErr: bridge.ErrNoAnswer}
+	debt.restored(dawSoloRestoreIn(t.Context(), "REAPER", role))
+	if !debt.owed.Load() || !debt.mayBeSoloed() {
+		t.Fatal("a restore the DAW did not answer must stay owed")
+	}
+	role.restoreErr = nil
+	debt.restored(dawSoloRestoreIn(t.Context(), "REAPER", role))
+	if debt.owed.Load() || debt.mayBeSoloed() {
+		t.Fatal("an answered restore clears what was owed")
+	}
+}
+
+func TestShutdownRetriesARestoreThatFailed(t *testing.T) {
+	host, _ := newReadAloudReaperHost(t)
+	role := &fakeSoloer{}
+	host.placeFollower = role
+	host.solo.owed.Store(true)
+	host.restoreSoloOnShutdown()
+	if role.restores != 1 {
+		t.Fatalf("restores = %d, want the owed one", role.restores)
+	}
+}
+
+func TestDawSoloChapterPutsBackTheChapterBeforeWhenTheNextHasNoLinkedTrack(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	role := &fakeSoloer{}
+	got, err := dawSoloChapterIn(t.Context(), host.services(), "REAPER", available(), role, ids[1])
+	if err != nil || got.OK {
+		t.Fatalf("unlinked = %+v, %v", got, err)
+	}
+	if len(role.soloed) != 0 || role.restores != 1 {
+		t.Fatalf("soloed %v, restores %d; want the earlier chapter put back and nothing soloed", role.soloed, role.restores)
 	}
 }
 

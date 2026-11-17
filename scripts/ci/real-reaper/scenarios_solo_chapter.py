@@ -10,13 +10,16 @@
 - the layer under a play: play_from inside the soloed chapter puts our solo back and the restore after it puts back the narrator's.
 
 Every row writes its numbers to <out>/solo_chapter/<row>.json. What is pending with the owner: the redraw of the solo state in a narrator's own window,
-Windows, a project saved while soloed and a real crash.
+Windows and a real crash. The project's own file is a row of its own: save_project writes it with the solo put back, and the narrator's own save keeps the solo (the limit
+the Booth guide names).
 """
 
 from __future__ import annotations
 
 import json
+import re
 import time
+from pathlib import Path
 
 from scenario import Env, scenario
 from scenarios_follow import FOCUS_ARRANGE
@@ -151,3 +154,32 @@ def solo_under_a_play(env: Env) -> str:
     return (
         "a restore sent during a play waited; after the stop the play's isolation and then the chapter's solo were put back, leaving the narrator's own state"
     )
+
+
+SOLOED_IN_FILE = re.compile(r"^\s*MUTESOLO\s+\S+\s+2\b", re.MULTILINE)
+
+
+@scenario(
+    "follow_position",
+    "solo_chapter,solo_restore,save_project",
+    "solo_chapter: save_project writes the project with the chapter's solo put back and soloes it again (the file never holds the solo), while a save made by REAPER itself keeps the solo in the file, which is the limit the Booth guide names",
+)
+def save_while_soloed(env: Env) -> str:
+    chapter1, _ = arrange(env)
+    rpp = env.lua("ci.save_and_reload(ci.rpp) return ci.rpp")
+    env.ok("solo_chapter", chapter1, until="CHAPTER_SOLOED")
+    assert narrator_state(env)["Chapter 1"][1] == 2.0
+    env.ok("save_project", rpp, until="SAVED")
+    assert narrator_state(env)["Chapter 1"][1] == 2.0, "the chapter is soloed again after the save"
+    by_the_app = Path(rpp).read_text(encoding="utf-8")
+    assert not SOLOED_IN_FILE.search(by_the_app), "save_project wrote the chapter's solo into the file"
+    assert env.lua(LEDGER) != "", "the row stays on the ledger through the save"
+    env.lua("reaper.Main_SaveProject(0, false) return true")
+    by_reaper = Path(rpp).read_text(encoding="utf-8")
+    assert SOLOED_IN_FILE.search(by_reaper), "a save made by REAPER itself holds the solo: the limit"
+    env.ok("solo_restore", until="SOLO_RESTORED")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    reopened = env.ok("solo_chapter", env.lua(GUID, "Chapter 1"), until="CHAPTER_SOLOED")
+    assert reopened[3:] == ["1", "0"], f"after the app's save and a restore the reopened project has the chapter not soloed: {reopened}"
+    write(env, "save_while_soloed", {"by_the_app_holds_solo": False, "by_reaper_holds_solo": True, "reopened": reopened})
+    return "save_project wrote the file without the solo and soloed the chapter again; REAPER's own save kept the solo in the file; after a restore and a reopen the chapter was not soloed"

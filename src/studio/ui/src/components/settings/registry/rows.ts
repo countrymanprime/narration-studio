@@ -671,7 +671,7 @@ export const ROWS: readonly SettingMeta[] = [
     more: FOLLOW_CHAPTER_NOTE,
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',
-    syn: 'follow daw navigate chapter select track cursor',
+    syn: 'follow daw navigate chapter select track cursor solo mute quiet',
   },
   {
     id: 'project.rateBasis',
