@@ -1,6 +1,7 @@
 // A link the app cannot open does not take a running take away (#3555 item 4): the Booth stays mounted and the take goes on, with a question when the link names a chapter
 // the manuscript lacks (as for any chapter) or a message when the address is malformed. It used to replace the Booth with "This link could not be opened", dropping the take with no stop.
 import { expect, test, type Page } from '@playwright/test';
+import { enterHoldOver } from './helpers/enterHold';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
@@ -27,7 +28,8 @@ async function recording(page: Page): Promise<void> {
 /** An address arriving as an in-app link does: pushed, then heard as a pop. */
 const arrive = (page: Page, address: string) =>
   page.evaluate((to) => {
-    window.history.pushState(window.history.state, '', to);
+    const state = window.history.state as { idx?: number } | null;
+    window.history.pushState({ ...state, idx: (state?.idx ?? 0) + 1 }, '', to);
     window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
   }, address);
 
@@ -94,6 +96,36 @@ test("an ignored link is put back: the address stays the Booth's, a plain Stop l
   await expect(record(page)).toBeVisible();
   await expect(page.getByText('This link could not be opened')).toHaveCount(0);
   expect(await page.evaluate(() => window.location.pathname)).toBe('/booth');
+});
+
+// A chapter link arriving while the question for another exit (Escape, for Script) is open joins that exit: Stop and leave, or Leave anyway, still goes where the question said.
+for (const address of ['/booth?chapter=chapter-2', '/booth?chapter=chapter-3&chapter=chapter-2']) {
+  test(`${address} pushed while the Escape question is open does not change where Stop and leave goes`, async ({ page }) => {
+    await recording(page);
+    await page.keyboard.press('Escape');
+    await expect(question(page)).toBeVisible();
+    await arrive(page, address);
+    await enterHoldOver(question(page));
+    await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+    await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
+    expect(await stops(page)).toBeGreaterThan(0);
+  });
+}
+
+test('Leave anyway after a refused stop still goes where the question said, with a chapter link pushed meanwhile', async ({ page }) => {
+  await recording(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
+  await page.keyboard.press('Escape');
+  await expect(question(page)).toBeVisible();
+  await arrive(page, '/booth?chapter=chapter-2');
+  await enterHoldOver(question(page));
+  await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+  const refused = page.getByRole('alertdialog', { name: 'Could not stop the take' });
+  await expect(refused).toBeVisible();
+  // "Leave anyway" ignores a press for a moment after it appears (a double click on the button it replaced).
+  await page.waitForTimeout(600);
+  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
 });
 
 test('agreeing to the question for a chapter that is not there saves the take, and then the link says so', async ({ page }) => {

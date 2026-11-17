@@ -311,18 +311,22 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   }, [guard, decide]);
 
   const leave = useCallback(
-    async (next: string, go: (next: string) => void): Promise<void> => {
+    // True when the narrator let go and a move is on its way (this one, or the one already decided that this exit joins); false when they stayed.
+    async (next: string, go: (next: string) => void): Promise<boolean> => {
       // A move already decided is on its way (the question is open, or the stop and the run are being written): this exit is the same one, and does not go twice.
       if (asking.current) {
         if (waiting.current) sayStopping();
-        await asking.current;
-        return;
+        return await asking.current;
       }
       if (!sessionRef.current.recording && !sessionRef.current.endUnconfirmed?.()) {
         go(next);
-        return;
+        return true;
       }
-      if (await decide(next)) go(next);
+      if (await decide(next)) {
+        go(next);
+        return true;
+      }
+      return false;
     },
     [decide, sayStopping],
   );

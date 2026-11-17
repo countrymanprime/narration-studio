@@ -80,9 +80,10 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
         pendingLeave.current = null;
         now.adopt(pending.target);
       })
-      .then(() => {
+      .then((went) => {
         pendingLeave.current = null;
-        if (!moved) now.choose(followed.current.current);
+        // Nothing to put back when the narrator let go: the exit this joined (Escape, the nav) is moving them, and writing the chapter on screen into the address now would overwrite it.
+        if (!moved && went !== true) now.choose(followed.current.current);
       });
   }, [requestedQuery]);
 

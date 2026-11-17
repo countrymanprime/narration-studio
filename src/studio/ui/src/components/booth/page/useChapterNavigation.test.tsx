@@ -125,6 +125,14 @@ describe('a chapter asked for in the address', () => {
       expect(args.choose).not.toHaveBeenCalled();
     });
 
+    // BREAK A of the qa pass: a chapter link arriving while another exit's question is open (Escape, the nav) joins that exit; if the narrator lets go, nothing is put back.
+    it('puts nothing back when the exit it joined lets the narrator go', async () => {
+      const { args } = setup({ requested: { chapter: 'b' }, recording: true, leave: () => Promise.resolve(true) });
+      await act(async () => undefined);
+      expect(args.choose).not.toHaveBeenCalled();
+      expect(args.adopt).not.toHaveBeenCalled();
+    });
+
     it('puts the address back on the chapter on screen once, not on a chapter nobody asked for, when the narrator stays', async () => {
       const { args, view, answer } = openQuestion();
       view.rerender({ ...args, requested: { chapter: 'c' } });
