@@ -19,6 +19,7 @@ import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { destinationFor } from './destination';
 import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
@@ -198,7 +199,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // (a Read refused after a Stamp, or a dialog reopened while a Read ran, keep the state's own meaning).
   const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped && !failure;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
-  const voiceFolders = useVoiceLayout() === 'folders';
+  const layout = useVoiceLayout();
+  const voiceFolders = layout === 'folders';
+  const noun = destinationFor(layout).noun;
+  const Noun = noun[0]!.toUpperCase() + noun.slice(1);
   const trackOptions = [
     { value: '', label: linkStateLabel('unlinked', voiceFolders) },
     ...tracks.map((track) => {
@@ -242,7 +246,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       title="Link chapters to REAPER"
       size="wide"
       onClose={onClose}
-      description="Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve."
+      description={`Choose which REAPER ${noun} holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve.`}
       actions={
         <>
           {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
@@ -283,11 +287,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </div>
       )}
 
-      <Table label="Chapter to track mapping" columns={MAPPING_COLUMNS}>
+      <Table label={`Chapter to ${noun} mapping`} columns={MAPPING_COLUMNS}>
         <TableHead sticky>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
-            <TableHeader>REAPER track</TableHeader>
+            <TableHeader>{`REAPER ${noun}`}</TableHeader>
             <TableHeader className="whitespace-nowrap">To stamp</TableHeader>
           </TableRow>
         </TableHead>
@@ -311,7 +315,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 <TableCell>{headingName(chapter)}</TableCell>
                 <TableCell>
                   <Select
-                    label={`Track for ${chapterName(chapter, 'short')}`}
+                    label={`${Noun} for ${chapterName(chapter, 'short')}`}
                     value={mapping?.trackGuid ?? ''}
                     onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}

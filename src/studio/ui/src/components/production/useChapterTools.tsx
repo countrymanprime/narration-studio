@@ -14,6 +14,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
+import { destinationFor } from '../engine/destination';
 import { useVoiceLayout } from '../engine/voiceLayout';
 import { followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
@@ -275,8 +276,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           },
           {
             key: 'track',
-            label: 'Chapter track…',
-            unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
+            label: `Chapter ${destinationFor(latest.current.layout).noun}…`,
+            unavailable: linked ? undefined : `No chapter ${destinationFor(latest.current.layout).noun} is known yet: link one from the audio engine panel`,
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener, near: neighboursOf(list, row.id) }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),

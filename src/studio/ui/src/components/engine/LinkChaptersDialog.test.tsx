@@ -120,7 +120,7 @@ describe('LinkChaptersDialog', () => {
       </ApiProvider>,
     );
 
-    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const picker = await screen.findByRole('combobox', { name: `${layout === 'folders' ? 'Folder' : 'Track'} for ${WIRE_CHAPTERS[0].title}` });
     const labels = within(picker)
       .getAllByRole('option')
       .map((option) => option.textContent);

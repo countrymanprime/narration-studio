@@ -3,6 +3,7 @@ import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
 import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { useVoiceLayout } from '../engine/voiceLayout';
+import { destinationFor } from '../engine/destination';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -80,6 +81,10 @@ export function ChapterTrackPanel({
   const trackState = useChapterTrackState({ when: open });
   const nameOf = useChapterNameOf(open);
   const tracks: Track[] | undefined = trackState.project?.tracks;
+  const layout = useVoiceLayout();
+  // What a chapter links to, in the project's words: a track, or a folder in a Voice folders project.
+  const { noun } = destinationFor(layout);
+  const Noun = noun === 'folder' ? 'Folder' : 'Track';
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -120,7 +125,7 @@ export function ChapterTrackPanel({
     try {
       await actions.unlink(chapterId);
       setUnlinkedFrom(linkRead);
-      notify('Track unlinked.');
+      notify(`${Noun} unlinked.`);
       await onChanged();
     } catch (error) {
       notify(describeApiError(error), 'error');
@@ -141,13 +146,12 @@ export function ChapterTrackPanel({
     }
   };
 
-  const layout = useVoiceLayout();
   const state = link ? chapterTrackButtonState(link) : undefined;
   const missing = state?.kind === 'missing';
   // Several confirmed links, whatever the matcher's status (a link whose track is gone leaves it confirmed): the same test as the header word and the reason.
   const conflict = !!link && hasSeveralLinks(link);
   return (
-    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
+    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context(Noun))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
         <p role="status">Reading the saved project…</p>
       ) : (
@@ -159,15 +163,16 @@ export function ChapterTrackPanel({
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or
-                the project saved elsewhere. Link another track below.
+                The linked {noun}
+                {link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or the project saved
+                elsewhere. Link another {noun} below.
               </span>
             </InsetCard>
           )}
-          {state?.kind === 'suggested' && <p>Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.</p>}
+          {state?.kind === 'suggested' && <p>Not linked yet. This {noun} looks like the chapter; link it to use it for checks and recorded time.</p>}
           {link.status === 'ambiguous' && link.links.length <= 1 && link.candidates.length > 1 && (
             <InsetCard as="p" tone="warn">
-              {plural(link.candidates.length, 'track')} look like this chapter. Link the one it is recorded on.
+              {plural(link.candidates.length, noun)} look like this chapter. Link the one it is recorded on.
             </InsetCard>
           )}
           {trackSummary && (
@@ -232,7 +237,7 @@ export function ChapterTrackPanel({
           {conflict && (
             <section aria-labelledby="chapter-track-conflict" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-conflict">
-                Linked to {plural(link.links.length, 'track')}
+                Linked to {plural(link.links.length, noun)}
               </SectionLabel>
               <p style={{ color: 'var(--text-muted)' }}>Keep one link; the others will be cleared.</p>
               <ul className="space-y-2">
@@ -240,7 +245,7 @@ export function ChapterTrackPanel({
                   const summary = tracks?.find((track) => track.guid === mapping.trackGuid);
                   return (
                     <InsetCard as="li" key={mapping.trackGuid} className="flex items-center justify-between gap-2">
-                      <span>{summary ? trackName(summary.name, summary.index) : 'Track'}</span>
+                      <span>{summary ? trackName(summary.name, summary.index) : Noun}</span>
                       <Button variant="secondary" disabled={busy} pending={busy} onClick={() => void link_(mapping.trackGuid)}>
                         Keep this one
                       </Button>
@@ -253,7 +258,7 @@ export function ChapterTrackPanel({
           {link.candidates.length > 0 && !link.track && !conflict && (
             <section aria-labelledby="chapter-track-candidates" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-candidates">
-                Possible tracks
+                Possible {noun}s
               </SectionLabel>
               <ul className="space-y-2">
                 {link.candidates.map((candidate) => (
@@ -305,7 +310,7 @@ export function ChapterTrackPanel({
                   busy={busy}
                   onConfirm={(trackGuid) => void link_(trackGuid)}
                   onClear={() => void unlink()}
-                  changeLabel="Another track…"
+                  changeLabel={`Another ${noun}…`}
                   clearLabel="Unlink"
                 />
               )}

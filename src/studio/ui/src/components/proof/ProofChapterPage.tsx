@@ -25,6 +25,7 @@ import { useChapterCompare } from './useChapterCompare';
 import { chapterTrackOf } from '../../api/chapterTrackItems';
 import { chapterLink, linkStateLabel, linkStateOf } from '../chapterTracks/chapterLink';
 import { useVoiceLayout } from '../engine/voiceLayout';
+import { destinationFor } from '../engine/destination';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
 
@@ -48,8 +49,14 @@ type ChapterViewProps = {
 };
 
 /** One strip row for a chapter whose link is a problem: the state's shared word in bold, the sentence, and the way to the audio engine panel. */
-function LinkProblem({ state, children }: { state: 'unlinked' | 'missing'; children: ReactNode }) {
-  const folders = useVoiceLayout() === 'folders';
+function LinkProblem({ state }: { state: 'unlinked' | 'missing' }) {
+  const layout = useVoiceLayout();
+  const folders = layout === 'folders';
+  const { noun } = destinationFor(layout);
+  const children =
+    state === 'unlinked'
+      ? `This chapter isn’t linked to a REAPER ${noun} yet. Link one from the Chapter links table in the audio engine panel.`
+      : `This chapter’s linked ${noun} is no longer in the project.`;
   return (
     <p>
       <b className="font-semibold" style={{ color: 'var(--text)' }}>
@@ -189,16 +196,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         </p>
       ),
       // Said only once the links have answered: before that, no guid means not read yet.
-      links.linksReadAt !== null && !linkedTrackGuid && (
-        <LinkProblem key="link" state="unlinked">
-          This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel.
-        </LinkProblem>
-      ),
-      linkMissing && (
-        <LinkProblem key="missing" state="missing">
-          This chapter&rsquo;s linked track is no longer in the project.
-        </LinkProblem>
-      ),
+      links.linksReadAt !== null && !linkedTrackGuid && <LinkProblem key="link" state="unlinked" />,
+      linkMissing && <LinkProblem key="missing" state="missing" />,
     ].filter(Boolean);
     content = frame(
       `Proof · ${headingName(chapter)}`,
