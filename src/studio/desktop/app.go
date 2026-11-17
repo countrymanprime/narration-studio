@@ -223,6 +223,8 @@ type Host struct {
 	// boothVoices is the voice the Booth chose for each chapter of the project (bindings_booth_voice.go); swappable like transcript,
 	// so a project switch forgets the last project's choices, whose GUIDs name its tracks. Never nil once configured.
 	boothVoices *boothVoiceChoices
+	// tracksCache is the project's last live track list (tracks_cache.go), swappable like boothVoices so another project's list is never served.
+	tracksCache *liveTracksCache
 	// dawPortResolver is the DAW port's resolver over p5aAdapter: bindings_navigation.go,
 	// readaloudreaper.go, teleprompterinput.go and chapterregions.go ask it for their roles instead of holding
 	// *bridge.Client or *bridge.Actions themselves. Swappable like navigation and actions; nil with no bridge client.
@@ -741,6 +743,7 @@ func (h *Host) configureLocked(next config) {
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)
 	h.boothVoices = newBoothVoiceChoices()
+	h.tracksCache = newLiveTracksCache()
 	h.bridge = client
 	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
 	// anything else has none. The previous project's is closed, which drops its pipe.

@@ -106,6 +106,38 @@ The remaining 30 opens a second are the idle loop's listing. The longest tick mo
 
 What is left of a track read is about 9 to 12 ms of ReaScript calls per 1000 items and the Lua that builds the lines, both proportional to what the read lists.
 
+## Requests per action (#3647)
+
+The owner reports every REAPER interaction slow and hitting the 3 s limit. Two questions: what one command costs REAPER, and how many commands one user action sends.
+
+**One command, on a project of 50 tracks and 1,800 items** (the bridge harness with a counting proxy around `reaper`; times convert the call and line counts with the unit costs above, about 1.1 µs a ReaScript call and 27 µs an event line; Linux, Windows unmeasured):
+
+| Command | ReaScript calls | Event lines | Bytes | REAPER ms |
+| --- | ---: | ---: | ---: | ---: |
+| `ping`, `project_state`, `read_place`, `select_track`, `chapter_folders`, `last_action` | 7 to 19 | 1 | under 100 | under 0.1 |
+| `tracks_read` | 214 | 52 | 3.7 KB | 1.6 |
+| `chapter_track_state`, no items | 128 | 2 | 0.2 KB | 0.2 |
+| `chapter_track_state`, one voice track, with items | 629 | 48 | 8 to 10 KB | 2 |
+| `chapter_track_state`, a chapter folder, with items | 4,128 | 363 | 80 KB | 14 |
+| `go_to`, a folder (`end`, `start`) | 1,141, 777 | 2, 1 | 0.1 KB | 1.3, 0.9 |
+| `arm_lane` | 316 | 1 | 0.1 KB | 0.4 |
+
+No command on a page-open, poll, focus or lane path reads every item of the project: `tracks_read` reads none, and an item read is bounded by the one chapter asked for. The commands that scan `CountMediaItems(0)` look an item up by GUID or edit it (navigation, takes, replace, range, retake lanes, line identity, level normalize, workspace) and run on a click. A lane switch's Lua commands cost about 3 ms of REAPER time together, so no handler explains a 3 s limit.
+
+**One user action, in requests** (from the UI hooks and host bindings on `main` at the time; `TR` is `tracks_read`, `CTS` is `chapter_track_state` without items):
+
+| Action | Requests before | Where they came from |
+| --- | --- | --- |
+| Booth idle, per 5 s | 3 TR + 1 CTS | the page's live read (`useLiveTracks`) answers, and its `readAt` re-runs `boothVoiceGet` (a TR) and `readAloudReaperState` (a TR and a CTS) |
+| Booth idle, per 15 s | 1 TR + 1 CTS | `useRecordControl` asks the same `readAloudReaperState` as `useBoothVoices` |
+| Booth lane switch | about 4 TR + 3 CTS + `arm_lane` | `BoothVoiceSet` (TR, then `arm_lane`), then three `readAloudReaperState` from the choice's epoch and voice changes |
+| Booth window focus | about 9 | live tracks, record control, voices, listening mic and the pull-back all listen to focus |
+| Editing idle | 1 TR per 5 s, a transport lease every 3 s, 2 requests per REAPER edit | |
+
+The answers are small, so the volume costs REAPER little; what it multiplies is the round trip of each request (a command file, a REAPER tick that lists and reads the folder, an `events.log` append, a host poll): 11 to 80 ms measured on Linux above, unmeasured on Windows.
+
+**Fix 1: one track list per edit counter.** The live track list is read through `cachedTrackLister` (`tracks_cache.go`): while the heartbeat's change count equals the count the last answer carried, and the answer is under 10 s old, the last answer is reused; callers that arrive while a read is out share it; a track this app creates drops the answer. With no counter nothing is reused. An unchanged idle Booth tick goes from 3 TR to at most 1 TR per 10 s, and the four callers of one action share one read.
+
 ## Not measured here
 
 - Windows: file opens, directory listings and antivirus scans of `events.log`, which grows for the whole session. Each is a candidate this Linux run cannot rank.
