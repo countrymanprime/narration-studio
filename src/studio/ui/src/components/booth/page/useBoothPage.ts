@@ -420,8 +420,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const unheard = useRef(false);
   /** Stops a recording whose listening failed and takes back what the DAW recorded of it. False, with the reason said, when either did not go through. */
   const { stopped: markTakeStopped, appStop } = control;
-  const recorderLabel = control.capabilities?.daw ?? 'the DAW';
-  const recorderWords = recorderName(control.capabilities?.daw);
+  const recorderLabel = recorderName(control.capabilities?.daw);
   const dropUnheardTake = useCallback(async (): Promise<boolean> => {
     unheard.current = true;
     const failed = (message: string): DawResult => ({ ok: false, changed: false, message, undoSteps: 0 });
@@ -438,7 +437,7 @@ export function useBoothPage(options: BoothPageOptions) {
           `A late stop of a dropped take answered ${late.ok ? 'ok' : 'refused'}; its short recording (${late.undoSteps} undo steps) was left in the DAW.`,
         ),
     );
-    const stopped = stopAsked.timedOut ? failed(noAnswerSentence(recorderWords)) : stopAsked.value;
+    const stopped = stopAsked.timedOut ? failed(noAnswerSentence(recorderLabel)) : stopAsked.value;
     markTakeStopped();
     if (!stopped.ok) {
       // Still unheard: the Booth stops holding the take (markTakeStopped), but a take its text could not follow is not mapped or told as saved.
@@ -450,11 +449,11 @@ export function useBoothPage(options: BoothPageOptions) {
       'undoLast',
       daw.undoLast(TAKE_KIND, stopped.undoSteps).catch(() => failed('the undo did not go through.')),
     );
-    const undone = undoAsked.timedOut ? failed(noAnswerSentence(recorderWords)) : undoAsked.value;
+    const undone = undoAsked.timedOut ? failed(noAnswerSentence(recorderLabel)) : undoAsked.value;
     if (!undone.ok)
       overlay.toast(`The short recording could not be taken back: ${undone.refused ?? `${undone.message} Undo it in ${recorderLabel}.`}`, { tone: 'error' });
     return undone.ok;
-  }, [daw, markTakeStopped, overlay, recorderLabel, recorderWords, appStop]);
+  }, [daw, markTakeStopped, overlay, recorderLabel, appStop]);
 
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {

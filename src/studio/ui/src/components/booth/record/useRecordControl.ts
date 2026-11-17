@@ -657,7 +657,9 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
-        const sentence = `${what}: ${apiErrorMessage(error).replace(/\.$/, '')}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
+        const sentence = `${what}: ${apiErrorMessage(error)
+          .trim()
+          .replace(/[.!?]+$/, '')}. Check ${recorderName(capabilitiesRef.current?.daw)} before pressing again.`;
         setRefused({ chapterId, sentence });
         block({ cause: 'failed', reason: sentence });
       } finally {
