@@ -23,7 +23,7 @@ import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
 
@@ -200,7 +200,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
-    { value: '', label: LINK_STATE_LABEL.unlinked },
+    { value: '', label: linkStateLabel('unlinked', voiceFolders) },
     ...tracks.map((track) => {
       const name = trackName(track.name, track.index);
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
@@ -298,7 +298,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            const own =
+              state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: linkStateLabel('missing', voiceFolders) }] : trackOptions;
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
             const known = chapterNameLookup(links.chapters);
             const options = own.map((option) => {

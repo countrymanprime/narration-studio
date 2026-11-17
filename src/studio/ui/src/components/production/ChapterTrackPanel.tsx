@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -140,6 +141,7 @@ export function ChapterTrackPanel({
     }
   };
 
+  const layout = useVoiceLayout();
   const state = link ? chapterTrackButtonState(link) : undefined;
   const missing = state?.kind === 'missing';
   // Several confirmed links, whatever the matcher's status (a link whose track is gone leaves it confirmed): the same test as the header word and the reason.
@@ -222,7 +224,7 @@ export function ChapterTrackPanel({
                 )}
               </div>
               <ShowInDawButton
-                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link) }}
+                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link, layout) }}
                 onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
               />
             </section>
@@ -334,15 +336,16 @@ export function ChapterTrackPanel({
 }
 
 function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; link: ChapterTrackLink; trackSummary?: ChapterTrackSummary }) {
+  const folders = useVoiceLayout() === 'folders';
   const state = chapterTrackButtonState(link);
   const STATE_LABEL: Record<typeof state.kind, string> = {
-    linked: LINK_STATE_LABEL.linked,
+    linked: linkStateLabel('linked', folders),
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
     // Several links to a chapter are "Several tracks", as the Engine says; only unconfirmed candidates are "Ambiguous".
-    ambiguous: hasSeveralLinks(link) ? LINK_STATE_LABEL.several : 'Ambiguous',
-    missing: LINK_STATE_LABEL.missing,
-    unlinked: LINK_STATE_LABEL.unlinked,
+    ambiguous: hasSeveralLinks(link) ? linkStateLabel('several', folders) : 'Ambiguous',
+    missing: linkStateLabel('missing', folders),
+    unlinked: linkStateLabel('unlinked', folders),
   };
   // The dot is always drawn, so the name starts at one x in every state (XPR1-22): the track's colour, or a hollow ring when there is no
   // track to colour it or the linked one is missing. The name and the state share a baseline.

@@ -23,7 +23,8 @@ import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
 import { useChapterCompare } from './useChapterCompare';
 import { chapterTrackOf } from '../../api/chapterTrackItems';
-import { chapterLink, LINK_STATE_LABEL, linkStateOf } from '../chapterTracks/chapterLink';
+import { chapterLink, linkStateLabel, linkStateOf } from '../chapterTracks/chapterLink';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
 
@@ -48,10 +49,11 @@ type ChapterViewProps = {
 
 /** One strip row for a chapter whose link is a problem: the state's shared word in bold, the sentence, and the way to the audio engine panel. */
 function LinkProblem({ state, children }: { state: 'unlinked' | 'missing'; children: ReactNode }) {
+  const folders = useVoiceLayout() === 'folders';
   return (
     <p>
       <b className="font-semibold" style={{ color: 'var(--text)' }}>
-        {LINK_STATE_LABEL[state]}.
+        {linkStateLabel(state, folders)}.
       </b>{' '}
       {children} <EnginePanelLink />
     </p>

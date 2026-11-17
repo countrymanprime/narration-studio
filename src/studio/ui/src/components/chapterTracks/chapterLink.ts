@@ -41,9 +41,10 @@ export function linkStateOf(link: ChapterLink, trackExists: boolean): ChapterLin
   return link.state;
 }
 
-/** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. */
+/** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. Every surface words a state through this. */
 export function linkStateLabel(state: ChapterLinkState, folders: boolean): string {
   if (folders && state === 'several') return 'Several folders';
+  if (folders && state === 'missing') return 'Folder missing';
   return LINK_STATE_LABEL[state];
 }
 

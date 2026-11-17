@@ -172,7 +172,7 @@ caret back brightens those words again.
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
 footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · track missing**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
-- **Not linked to a track.** The chapter has no track in the DAW project, or several (the chip then reads **Linked to several tracks**), or the track it was linked to is no longer in the project (**Track missing**, as in the audio engine panel). The dialog opens by itself the first
+- **Not linked to a track.** The chapter has no track in the DAW project, or several (the chip then reads **Linked to several tracks**), or the track it was linked to is no longer in the project (**Track missing**, as in the audio engine panel; **Folder missing** and **Linked to several folders** in a Voice folders project, where every word says folder). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:
   - **Link track**: choose one of the project's tracks (the best match by name is chosen for you). A track linked to another
     chapter says so, and linking it here moves it.
@@ -612,7 +612,7 @@ If the stop does not go through, the question stays open with the DAW's sentence
 | What you see | What it means and what to do |
 | --- | --- |
 | Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
-| **Not linked to a track**, **Linked to several tracks** or **Track missing** | The chapter has no track in the DAW project, several, or one the project no longer has. **Link track** or **Create a new track** ([Recording](#recording)). |
+| **Not linked to a track**, **Linked to several tracks** or **Track missing** (**Folder missing** and **Linked to several folders** in a Voice folders project) | The chapter has no track in the DAW project, several, or one the project no longer has. **Link track** or **Create a new track** ([Recording](#recording)). |
 | **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
 | **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
 | "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |

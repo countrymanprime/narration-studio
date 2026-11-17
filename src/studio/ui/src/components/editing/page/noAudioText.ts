@@ -34,7 +34,7 @@ export function noAudioText(
       };
     case 'missing':
       return {
-        headline: `${chapter}’s linked track is not in the saved project, so there is no audio to edit.`,
+        headline: `${chapter}’s linked ${destinationFor(layout).noun} is not in the saved project, so there is no audio to edit.`,
         next: 'The script is shown without what was heard.',
       };
     case 'empty':
@@ -45,7 +45,7 @@ export function noAudioText(
         };
       if (audio.unsaved && audio.missing)
         return {
-          headline: `${chapter}’s track is not in the saved project, and ${daw} has unsaved changes.`,
+          headline: `${chapter}’s ${destinationFor(layout).noun} is not in the saved project, and ${daw} has unsaved changes.`,
           next: `It may have been added since the last save. Save the project in ${daw}, then read again.`,
         };
       if (audio.unsaved)
