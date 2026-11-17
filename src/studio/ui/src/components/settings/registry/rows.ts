@@ -1,5 +1,6 @@
 import type { AssetRef, OptionNote, SettingMeta } from './types';
 import { plural } from '../../../plural';
+import { FOLLOW_CHAPTER_NOTE } from '../followChapterNote';
 
 const whisper = (id: string, label: string): OptionNote => ({ label, asset: { kind: 'whisper', id } });
 const WHISPER: Record<string, OptionNote> = {
@@ -667,7 +668,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
     desc: 'Selects the chapter you are working on in the DAW.',
-    more: 'When you go to a chapter in the Booth, the DAW selects that chapter’s track and the tracks inside it and sets its cursor at the end of what is recorded (or at the line you went to). Editing and Pickups (with one chapter chosen) do the same and set the cursor where the chapter’s audio starts. Master & QC has no chapter in view, so it follows nothing. While you record in the Booth (a pickup session included), the DAW also solos that chapter’s track in place, so the other chapters go quiet and none of their tracks is touched; a track you muted or soloed stays as you set it, and leaving the Booth, closing the app or turning this off puts back only the solo the app set. Turn it off to leave the DAW where you put it.',
+    more: FOLLOW_CHAPTER_NOTE,
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',
     syn: 'follow daw navigate chapter select track cursor',

@@ -9,6 +9,7 @@ import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { proofingChoiceLabel } from '../proof/options';
 import { describeNumberRange, numberProblem } from './numberSetting';
 import { Button } from '../primitives/Button';
+import { FOLLOW_CHAPTER_NOTE } from './followChapterNote';
 
 // Terms of a "tags" field are comma-joined (a term never holds a comma; TagInput.tsx commits on Enter or a typed
 // comma). Splitting also accepts a pasted line break, drops blanks, caps a term at TagInput's own MAX_TERM_LENGTH,
@@ -59,8 +60,7 @@ const TOOLTIP: Record<string, string> = {
   engine:
     'Which local speech engine listens for your voice during a Booth session. Moonshine is offered on Windows only. Choosing one never downloads anything: a missing model is asked for when you start reading.',
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
-  follow_chapter_in_daw:
-    'On by default: going to a chapter in the Booth, on Editing, or on Pickups with one chapter chosen selects that chapter and its tracks in the DAW and moves its cursor (to the end of what is recorded in the Booth, to where the chapter’s audio starts on Editing and Pickups). In the Booth the DAW also solos the chapter you record in place, so the other chapters go quiet; leaving the Booth puts back only that solo. Off: the DAW stays where you put it.',
+  follow_chapter_in_daw: FOLLOW_CHAPTER_NOTE,
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
     'On by default: the app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off: the app writes nothing into REAPER, and REAPER does not connect.',
