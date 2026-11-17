@@ -5,6 +5,8 @@ import (
 	"desktop/internal/creditsid"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -199,6 +201,33 @@ func TestReadAloudReaperStateBindingAnswersJSON(t *testing.T) {
 	}
 }
 
+// The armed tracks are named when REAPER named all of them (#3429): the Booth follows a lane armed in REAPER by hand with them, and never from
+// a list REAPER cut short, where it would be guessing.
+func TestTheArmedTracksAreNamedOnlyWhenAllOfThemAre(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	a, b := "{AAAAAAAA-0000-4000-8000-0000000000B7}", "{AAAAAAAA-0000-4000-8000-0000000000B8}"
+	// The most the bridge lists (ARMED_LIST_LIMIT in narration_track_state.lua): with 32 armed, all 32 are named and reach the page.
+	full := make([]string, 32)
+	for i := range full {
+		full[i] = fmt.Sprintf("{AAAAAAAA-0000-4000-8000-%012d}", i)
+	}
+	for name, row := range map[string]struct {
+		state bridge.TrackState
+		want  []string
+	}{
+		"another track armed":   {bridge.TrackState{ArmedCount: 1, ArmedGUIDs: []string{a}}, []string{a}},
+		"two armed":             {bridge.TrackState{ArmedCount: 2, TrackArmed: true, ArmedGUIDs: []string{a, b}}, []string{a, b}},
+		"a list cut short":      {bridge.TrackState{ArmedCount: 40, ArmedGUIDs: []string{a, b}}, nil},
+		"exactly 32, all named": {bridge.TrackState{ArmedCount: 32, ArmedGUIDs: full}, full},
+		"none armed":            {bridge.TrackState{}, nil},
+		"an older script":       {bridge.TrackState{ArmedCount: 1}, nil},
+	} {
+		if got := readState(t, host, &fakeTrackStates{state: row.state}, ids[0]).ArmedTrackGUIDs; !slices.Equal(got, row.want) {
+			t.Errorf("%s: ArmedTrackGUIDs = %q, want %q", name, got, row.want)
+		}
+	}
+}
+
 // The binding's answers, pinned for the UI's schema: one of each status and reason.
 func TestContractReadAloudReaperStates(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
@@ -207,6 +236,8 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 		"ready":               {state: bridge.TrackState{TrackArmed: true, ArmedCount: 1}},
 		"not_armed":           {state: bridge.TrackState{}},
 		"other_armed":         {state: bridge.TrackState{ArmedCount: 1}},
+		"other_armed_named":   {state: bridge.TrackState{ArmedCount: 1, ArmedGUIDs: []string{"{AAAAAAAA-0000-4000-8000-0000000000B7}"}}},
+		"several_armed_named": {state: bridge.TrackState{TrackArmed: true, ArmedCount: 2, ArmedGUIDs: []string{"{AAAAAAAA-0000-4000-8000-0000000000B7}", "{AAAAAAAA-0000-4000-8000-0000000000B8}"}}},
 		"several_armed":       {state: bridge.TrackState{TrackArmed: true, ArmedCount: 3}},
 		"recording_elsewhere": {state: bridge.TrackState{ArmedCount: 1, Recording: true, Playing: true, PlayState: 5}},
 		"track_missing":       {err: &bridge.TrackStaleError{GUID: readAloudTrack}},

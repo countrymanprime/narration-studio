@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -306,5 +307,35 @@ func TestChapterTrackStateNoItemsKeepsAStaleTrackAStaleError(t *testing.T) {
 	var stale *TrackStaleError
 	if _, err := actions.ChapterTrackStateNoItems(context.Background(), testTrack); !errors.As(err, &stale) {
 		t.Fatalf("err = %v, want a *TrackStaleError", err)
+	}
+}
+
+// armedGuids (#3429) is the Booth's way to learn which tracks REAPER has armed, not only how many; an older script's row has no such field.
+func TestChapterTrackStateReadsTheArmedTracksAndNothingFromAnOlderScript(t *testing.T) {
+	a, b := "{AAAAAAAA-0000-4000-8000-0000000000B7}", "{AAAAAAAA-0000-4000-8000-0000000000B8}"
+	for name, row := range map[string]struct {
+		field []string
+		want  []string
+	}{
+		"one armed":       {[]string{"1", "1", "", "", "", "", a}, []string{a}},
+		"lower case":      {[]string{"1", "1", "", "", "", "", "{aaaaaaaa-0000-4000-8000-0000000000b7}"}, []string{a}},
+		"two armed":       {[]string{"0", "2", "", "", "", "", a + " " + b}, []string{a, b}},
+		"none armed":      {[]string{"0", "0", "", "", "", "", ""}, nil},
+		"an older script": {[]string{"0", "1", "", "", "", ""}, nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			startFakeReaper(t, client, dir, func(command []string) [][]string {
+				base := []string{"TRACK_STATE", run(command), testTrack, "0", "0.000000", "0.000000", "C:/p/Book.rpp", "0", "7"}
+				return [][]string{append(base, row.field...), {"TRACK_STATE_END", run(command), "0", "0"}}
+			})
+			got, err := actions.ChapterTrackState(context.Background(), testTrack)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(got.ArmedGUIDs, row.want) {
+				t.Fatalf("ArmedGUIDs = %q, want %q", got.ArmedGUIDs, row.want)
+			}
+		})
 	}
 }
