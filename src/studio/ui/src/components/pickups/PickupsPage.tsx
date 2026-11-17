@@ -27,6 +27,7 @@ import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
 import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
+import { useDawPullBack } from '../../hooks/useDawPullBack';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
@@ -148,6 +149,7 @@ export function PickupsPage({
 
   // Scoped to one chapter, the DAW goes to that chapter's tracks (Booth.follow_chapter_in_daw); "all" follows nothing.
   useDawGoesToChapter(scope === ALL_SCOPE ? undefined : scope);
+  useDawPullBack(scope === ALL_SCOPE ? undefined : scope);
 
   const inView = useMemo(() => inScope(list.pickups, scope), [list.pickups, scope]);
   const sessionIds = useMemo(() => inView.filter((p) => !p.done && p.included).map((p) => p.id), [inView]);

@@ -86,6 +86,10 @@ describe('Record preconditions on the Record control', () => {
     await waitFor(() => expect(record().getAttribute('aria-disabled')).toBe('true'));
     expect(described(record())).toBe(REFUSALS.several);
     cleanup();
+    show('reaper', 'gone', { gone: 'missing' });
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBe('true'));
+    expect(described(record())).toBe(REFUSALS.missing);
+    cleanup();
     show('reaper', 'one', { one: 'one' });
     await waitFor(() => expect(record().getAttribute('aria-disabled')).toBeNull());
     expect(document.getElementById('brec-why')).toBeNull();
@@ -129,6 +133,7 @@ describe('recordCheck', () => {
     expect(recordCheck(reaper, state)).toBeNull();
     expect(recordCheck(reaper, { tracks: 'unlinked', message: REFUSALS.none })).toEqual({ code: 'no_track', reason: REFUSALS.none });
     expect(recordCheck(reaper, { tracks: 'several', message: REFUSALS.several })).toEqual({ code: 'several_tracks', reason: REFUSALS.several });
+    expect(recordCheck(reaper, { tracks: 'missing', message: REFUSALS.missing })).toEqual({ code: 'track_missing', reason: REFUSALS.missing });
     expect(recordCheck(setupCapabilities('audacity'), state)?.code).toBe('capability');
     expect(recordCheck(setupCapabilities('builtin'), { ...state, tracks: 'unlinked' })).toBeNull();
   });
@@ -217,6 +222,7 @@ describe('SetupChip with the project DAW choice', () => {
   it.each([
     ['no_track', 'no track', 'this chapter has no track to record on'],
     ['several_tracks', 'several tracks', 'this chapter is linked to several tracks'],
+    ['track_missing', 'track missing', 'this chapter’s track is not in the project'],
     ['not_connected', 'not connected', 'REAPER is not connected to this app'],
     ['recording_elsewhere', 'recording elsewhere', 'REAPER is already recording a take this app did not start'],
     ['not_armed', 'not armed', 'no track is armed to record on'],

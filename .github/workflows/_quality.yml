@@ -442,6 +442,15 @@ jobs:
         with:
           targets: test-schedules
           projects: desktop
+      # A permission or link test that skips itself (an icacls deny that an elevated process is not held to, a symlink the runner may not
+      # create) reads green and proves nothing, so this prints what skipped in these two packages and why, in the job summary (#3625).
+      # Information, not a gate: go test (rest) above is the check, and a failure here must not turn the job red twice.
+      - name: Skipped Go tests (permission and link guards)
+        if: ${{ !cancelled() && matrix.shard == 2 }}
+        continue-on-error: true
+        shell: bash
+        working-directory: src/studio/desktop
+        run: go test -json -count=1 ./internal/findings/ ./internal/assetmove/ | node ../../../scripts/ci/go-skips.mjs --summary
       - name: go lint
         id: go-lint
         if: ${{ !cancelled() && matrix.shard == 1 }}

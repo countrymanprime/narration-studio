@@ -69,6 +69,10 @@ for (const rows of AREAS) {
 export const SILENT_CATCHES: Record<string, string> = {
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
+  'src/components/editing/lastChapter.ts#1':
+    'Reads the chapter Editing last showed from browser storage: storage that is missing or blocked is the same as nothing kept, and Editing opens on its first chapter as it did before the app remembered one.',
+  'src/hooks/useDawPullBack.ts#1':
+    "The pull-back to the page's chapter when the app window regains focus (Booth.follow_chapter_in_daw): a read or a move that failed leaves the DAW where the narrator put it, nothing is lost, and the page's own DAW notices say whether the DAW answers. The next focus asks again.",
   'src/components/chapterTracks/useChapterNameOf.ts#1':
     'Reads the manuscript\'s chapter headings only to name the chapter that holds a track in a picker\'s "(linked to X)": a failed read leaves the title the host kept with the link, which is a name too, and nothing the narrator pressed depends on it.',
   'src/components/chapterTracks/ChapterTrackState.tsx#1':

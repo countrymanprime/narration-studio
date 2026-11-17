@@ -1,5 +1,6 @@
 import type { AssetRef, OptionNote, SettingMeta } from './types';
 import { plural } from '../../../plural';
+import { FOLLOW_CHAPTER_NOTE } from '../followChapterNote';
 
 const whisper = (id: string, label: string): OptionNote => ({ label, asset: { kind: 'whisper', id } });
 const WHISPER: Record<string, OptionNote> = {
@@ -667,7 +668,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
     desc: 'Selects your chapter in the DAW and arms its voice.',
-    more: 'Going to a chapter in the Booth, Editing or Pickups selects its tracks in the DAW and moves the cursor there. In the Booth it also arms only your voice and turns its input monitoring on, and puts it back when you leave (REAPER only). Off: the DAW stays where you put it, and entering the Booth arms nothing.',
+    more: FOLLOW_CHAPTER_NOTE,
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',
     syn: 'follow daw navigate chapter select track cursor',

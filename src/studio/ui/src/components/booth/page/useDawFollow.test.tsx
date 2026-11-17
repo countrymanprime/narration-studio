@@ -9,6 +9,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { useDawPullBack } from '../../../hooks/useDawPullBack';
 
 afterEach(() => {
   cleanup();
@@ -425,8 +426,7 @@ describe('putting the monitoring back on leaving the Booth (#3428)', () => {
   });
 
   it("says the host's sentence when the DAW cannot be reached on leaving, so the narrator knows the monitoring may be on", async () => {
-    const sentence =
-      'REAPER could not be reached, so the input monitoring the Booth turned on may still be on. It is put back when REAPER next starts its bridge.';
+    const sentence = 'REAPER could not be reached, so your input monitoring may still be on. Turn it off in REAPER, or it goes off the next time REAPER opens.';
     const unreachable = vi.fn(async () => ({ ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence }));
     const say = vi.fn();
     renderHook(() => useReleaseBoothMonitorOnLeave(say), { wrapper: wrapperFor({ dawReleaseBoothMonitor: unreachable }) }).unmount();
@@ -444,5 +444,48 @@ describe('putting the monitoring back on leaving the Booth (#3428)', () => {
     const sayFailure = vi.fn();
     renderHook(() => useReleaseBoothMonitorOnLeave(sayFailure), { wrapper: wrapperFor({ dawReleaseBoothMonitor: failing }) }).unmount();
     await waitFor(() => expect(sayFailure).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('useMoveDawOnOpen with the DAW read first (the kept chapter)', () => {
+  const props = { enabled: true, follow: true, chapterId: 'c-1', canFollow: true, target: { where: 'end' } as const, onlyIfElsewhere: true, say: vi.fn() };
+  const elsewhere = answer({ chapterId: 'c-2', selected: 1, cursor: 9 });
+
+  it('does not move a DAW whose read answers after the Booth has been open longer than it waits', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    let release: (place: DawPlace) => void = () => undefined;
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const now = vi.spyOn(Date, 'now');
+    try {
+      renderHook(() => useMoveDawOnOpen(props), { wrapper: wrapperFor({ dawGoToChapter, dawPlace }) });
+      await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1));
+      now.mockReturnValue(Date.now() + 30_000);
+      await act(async () => release(elsewhere));
+      await act(async () => {});
+      expect(dawGoToChapter).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it('sends one move when the window gets focus while the read is out: the pull-back leaves it to the open', async () => {
+    const dawGoToChapter = vi.fn(async () => moved);
+    const releases: Array<(place: DawPlace) => void> = [];
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => releases.push(resolve)));
+    renderHook(
+      () => {
+        const moving = useMoveDawOnOpen(props);
+        useDawPullBack('c-1', moving);
+      },
+      { wrapper: wrapperFor({ dawGoToChapter, dawPlace }) },
+    );
+    await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1));
+    await act(async () => void window.dispatchEvent(new Event('focus')));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    await act(async () => releases[0]?.(elsewhere));
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledTimes(1));
+    expect(dawGoToChapter).toHaveBeenCalledWith('c-1', 'end', 0);
+    await act(async () => {});
+    expect(dawGoToChapter).toHaveBeenCalledTimes(1);
   });
 });

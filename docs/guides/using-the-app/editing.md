@@ -7,7 +7,7 @@ shows how it was heard, each line has its takes under it, and what you select is
 effect on. Open it from **Editing** in the sidebar's Edit group, from a linked chapter's **Open in Editing** in the
 [audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check finding's **Open in Editing** on
 [Proof](proof.md#one-chapter), or from **Manage takes in Editing** on a note in
-[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the first chapter.
+[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the chapter you were last on, or the first chapter with text when none is remembered.
 
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
 [Production](production.md#importing-the-manuscript).
@@ -36,8 +36,8 @@ wide or more) and the button that opens the drawer are all in it. Where the head
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
-any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
-chapter with text. A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
+any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the chapter you were last on in this project, or the first
+chapter with text when none is remembered (with or without a DAW connected, and whatever **DAW follows your chapter** says). A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
@@ -123,7 +123,7 @@ words it heard show the next time you open the chapter.
 
 ## The DAW follows the chapter
 
-Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
+Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the chapter and your cursor stays where it is. Nothing moves if the DAW is already on the chapter or is recording. Opened with no chapter named, Editing opens on the chapter you were last on in Editing in this project (kept by Editing alone: Proof and Master & QC keep their own), so after a restart the DAW goes back to it when it connects; a chapter named in the address always wins, and one the book does not have opens the first chapter. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
 
 ## The DAW tools menu
 
