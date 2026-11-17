@@ -11,6 +11,7 @@
 package editing
 
 import (
+	"strconv"
 	"time"
 
 	"desktop/internal/evidence"
@@ -27,6 +28,17 @@ type ItemScopeInput struct {
 	TrackGUID  string
 	Item       tracks.Item
 	Key        evidence.AnalysisKey
+	// ScopeKey is the name this item's record gives it (scopeKeys.key): empty means the item's GUID, which every record written before twins
+	// were told apart used.
+	ScopeKey string
+}
+
+// scopeKey is the name a record's scope and fingerprint maps give this item: its GUID unless the caller named it otherwise (ScopeKey).
+func (in ItemScopeInput) scopeKey() string {
+	if in.ScopeKey != "" {
+		return in.ScopeKey
+	}
+	return in.Item.GUID
 }
 
 // itemFingerprint computes in.Item's own single-item LedgerFingerprint,
@@ -39,8 +51,8 @@ func itemFingerprint(in ItemScopeInput) evidence.LedgerFingerprint {
 	entry := evidence.TrackFingerprintEntry{Item: in.Item, Fingerprint: itemFP}
 	return evidence.LedgerFingerprint{
 		TrackFingerprint: evidence.ComputeTrackFingerprint([]evidence.TrackFingerprintEntry{entry}),
-		ItemFingerprints: map[string]evidence.ItemFingerprint{in.Item.GUID: itemFP},
-		AnalysisKeys:     map[string]evidence.AnalysisKey{in.Item.GUID: in.Key},
+		ItemFingerprints: map[string]evidence.ItemFingerprint{in.scopeKey(): itemFP},
+		AnalysisKeys:     map[string]evidence.AnalysisKey{in.scopeKey(): in.Key},
 	}
 }
 
@@ -51,7 +63,7 @@ func WriteLedgerRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 	return ledger.Write(evidence.LedgerRecord{
 		AnalyzerID: analyzerID, AnalyzerVersion: analyzerVersion, ParamHash: paramHash,
 		Scope: evidence.LedgerScope{
-			DocumentID: in.DocumentID, ChapterID: in.ChapterID, TrackGUID: in.TrackGUID, ItemGUIDs: []string{in.Item.GUID},
+			DocumentID: in.DocumentID, ChapterID: in.ChapterID, TrackGUID: in.TrackGUID, ItemGUIDs: []string{in.scopeKey()},
 		},
 		Fingerprint: itemFingerprint(in),
 		ProjectFile: projectFile,
@@ -84,7 +96,7 @@ func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 		return ItemStaleness{}, err
 	}
 	for _, record := range records {
-		if record.Outcome != evidence.LedgerComplete || !scopesOneItem(record.Scope, in.Item.GUID) {
+		if record.Outcome != evidence.LedgerComplete || !scopesOneItem(record.Scope, in.scopeKey()) {
 			continue
 		}
 		result := evidence.EvaluateFingerprints(record, itemFingerprint(in), in.TrackGUID, analyzerVersion, paramHash)
@@ -93,7 +105,34 @@ func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 	return ItemStaleness{State: evidence.StateNever}, nil
 }
 
-// scopesOneItem reports whether scope names exactly one item, itemGUID.
-func scopesOneItem(scope evidence.LedgerScope, itemGUID string) bool {
-	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == itemGUID
+// scopesOneItem reports whether scope names exactly one item, key (ItemScopeInput.scopeKey).
+func scopesOneItem(scope evidence.LedgerScope, key string) bool {
+	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == key
+}
+
+// scopeKeys hands out the names the items of one chapter give their records. An item's GUID is its name, so every record written before
+// twins were told apart stays readable; a later item that repeats a GUID (a track copied in from another project) is "GUID#2", "GUID#3", the
+// first name no item has taken (a real GUID that already ends in "#2" keeps its own). Keyed by the GUID alone, two twins read each other's
+// record and re-scanning one made the other stale (#3617). The scan (scan.go) and the freshness read (provider.go) walk the track's items in
+// the same order and ask for a key for every item, including one they then skip, so an item keeps its name whether or not a twin before it can
+// be analysed.
+type scopeKeys struct {
+	taken map[string]bool
+	seen  map[string]int
+}
+
+func newScopeKeys() *scopeKeys { return &scopeKeys{taken: map[string]bool{}, seen: map[string]int{}} }
+
+// key is the next unused name for an item with this GUID, or "" for the first (its GUID itself).
+func (k *scopeKeys) key(guid string) string {
+	k.seen[guid]++
+	candidate := guid
+	for n := k.seen[guid]; k.taken[candidate]; n++ {
+		candidate = guid + "#" + strconv.Itoa(n)
+	}
+	k.taken[candidate] = true
+	if candidate == guid {
+		return ""
+	}
+	return candidate
 }

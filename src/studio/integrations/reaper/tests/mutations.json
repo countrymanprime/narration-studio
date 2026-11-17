@@ -398,8 +398,8 @@
   {
     "name": "every track counts as armed",
     "file": "narration_track_state.lua",
-    "find": "if armed(reaper.GetTrack(0, index)) then",
-    "replace": "if true then"
+    "find": "    if armed(track) then\n      count = count + 1",
+    "replace": "    if true then\n      count = count + 1"
   },
   {
     "name": "a muted item is reported as playing",
@@ -464,8 +464,8 @@
   {
     "name": "record_stop stops a recording the app did not start",
     "file": "narration_transport.lua",
-    "find": "  if not state.recording then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
-    "replace": "  if false then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+    "find": "  if not state.recording then\n    -- A press that armed",
+    "replace": "  if false then\n    -- A press that armed"
   },
   {
     "name": "an arm the narrator changed during the take is overwritten",
@@ -530,8 +530,8 @@
   {
     "name": "a start REAPER never reports is still claimed as the app recording",
     "file": "narration_transport.lua",
-    "find": "          state.recording = nil\n          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')",
-    "replace": "          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')"
+    "find": "          state.recording = nil\n          -- REAPER may still start late",
+    "replace": "          -- REAPER may still start late"
   },
   {
     "name": "a start cancelled while REAPER was starting is left running",
@@ -3190,6 +3190,30 @@
     "replace": "if false then"
   },
   {
+    "name": "a refused press leaves the narrator's arms changed: record_stop with no recording of ours restores nothing",
+    "file": "narration_transport.lua",
+    "find": "    if not recording() and not state.start_gave_up then\n      restore_arms(state)\n    end\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
+    "replace": "    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+  },
+  {
+    "name": "one given-up start turns the restore off for the rest of the session",
+    "file": "narration_transport.lua",
+    "find": "  state.recording = record\n  state.start_gave_up = nil\n",
+    "replace": "  state.recording = record\n"
+  },
+  {
+    "name": "record_stop puts the arms back under a start that may still begin late",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not recording() then"
+  },
+  {
+    "name": "record_stop restores the arms under the narrator's own recording",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not state.start_gave_up then"
+  },
+  {
     "name": "arm_only arms a playing REAPER, so a press the heartbeat let through leaves the narrator's arms changed",
     "file": "narration_transport.lua",
     "find": "if not keep and reaper.GetPlayState() ~= 0 then",
@@ -3800,5 +3824,17 @@
     "file": "narration_transport.lua",
     "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
     "replace": "      if row.set_mute ~= nil then\n"
+  },
+  {
+    "name": "chapter_track_state does not cut the armed list",
+    "file": "narration_track_state.lua",
+    "find": "if #guids < ARMED_LIST_LIMIT then",
+    "replace": "if true then"
+  },
+  {
+    "name": "chapter_track_state lists only the last armed track",
+    "file": "narration_track_state.lua",
+    "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
+    "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
   }
 ]

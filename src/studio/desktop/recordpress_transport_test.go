@@ -74,6 +74,18 @@ func TestRecordPressAnswersPlayingWhenArmOnlyRefusesAPlayingReaper(t *testing.T)
 	}
 }
 
+// A paused REAPER (play state 2) is neither playing nor recording to the host, so the press goes on to arm_only, where the script refuses it.
+func TestRecordPressLeavesAPausedReaperToTheScript(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	host.reachability = heartbeatWith("2")
+	reader := &countingTrackStates{}
+	recorder := &fakeRecorder{armErr: bridge.ErrPlaying}
+	result, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, reader, ids[0])
+	if err != nil || result.Reason != "playing" || reader.reads != 0 || len(recorder.calls) != 1 {
+		t.Fatalf("result %+v, err %v, %d track reads, calls %v; want playing from arm_only with no track read", result, err, reader.reads, recorder.calls)
+	}
+}
+
 func TestRecordPressAsksTheBridgeWhenTheHeartbeatCannotTellTheTransport(t *testing.T) {
 	reader := &countingTrackStates{state: bridge.TrackState{Recording: true}}
 	result, _ := pressWith(t, "", reader)

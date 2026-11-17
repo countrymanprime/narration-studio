@@ -170,9 +170,9 @@ caret back brightens those words again.
 ![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
-footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
+footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · track missing**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
-- **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
+- **Not linked to a track.** The chapter has no track in the DAW project, or several (the chip then reads **Linked to several tracks**), or the track it was linked to is no longer in the project (**Track missing**, as in the audio engine panel). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:
   - **Link track**: choose one of the project's tracks (the best match by name is chosen for you). A track linked to another
     chapter says so, and linking it here moves it.
@@ -364,7 +364,7 @@ In a project set to **Voice folders** ([the audio engine panel](navigation.md#vo
 that holds only tracks of its own (none another chapter is linked to), the chapter records on one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
 voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
 armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
-named **Narrator**. A track another chapter is linked to is never one of the voices, in either layout, so Record never arms another chapter's track. When you choose a voice while nothing is recording, REAPER arms that voice's track at once and disarms the others, so the Booth and REAPER agree; if REAPER refuses (it is recording something else, or the track is gone), the Booth still records on the voice you chose and a message says REAPER's armed track did not change.
+named **Narrator**. A track another chapter is linked to is never one of the voices, in either layout, so Record never arms another chapter's track. When you choose a voice while nothing is recording, REAPER arms that voice's track at once and disarms the others, so the Booth and REAPER agree. If REAPER refuses (it is recording something else, or the track is gone), the Booth still records on the voice you chose and a message says REAPER's armed track did not change. The other way works too, with REAPER (not yet checked by hand in REAPER): arm another of the chapter's voice tracks there, with or without disarming the current one, and within a few seconds the Booth's voice becomes that one. It does not during a take, in a cold read (which needs no voice) or when two other tracks are armed at once (it would be guessing which you meant).
 
 Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
@@ -612,7 +612,7 @@ If the stop does not go through, the question stays open with the DAW's sentence
 | What you see | What it means and what to do |
 | --- | --- |
 | Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
-| **Not linked to a track** | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)). |
+| **Not linked to a track**, **Linked to several tracks** or **Track missing** | The chapter has no track in the DAW project, several, or one the project no longer has. **Link track** or **Create a new track** ([Recording](#recording)). |
 | **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
 | **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
 | "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
