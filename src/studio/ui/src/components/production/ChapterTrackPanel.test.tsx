@@ -166,6 +166,18 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBeGreaterThan(0);
   });
 
+  // #3363 (ux-review): two confirmed links where one track is gone stay `confirmed` after followLiveTracks, yet the header says Several tracks:
+  // the body must offer the Keep-this-one rows, not the single-link picker.
+  it('offers Keep this one for a confirmed chapter with several links, as its header says', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const second = { ...link.links[0], trackGuid: '{SECOND}' };
+    const several: ChapterTrackLink = { ...link, status: 'confirmed', links: [...link.links, second], warnings: ['confirmed-links-conflict'] };
+    renderPanel(api, several, track);
+    expect(await screen.findByText('Several tracks')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Keep this one/ }).length).toBe(2);
+  });
+
   it('shows a linked track under the name it has now', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

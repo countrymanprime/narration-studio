@@ -142,7 +142,8 @@ export function ChapterTrackPanel({
 
   const state = link ? chapterTrackButtonState(link) : undefined;
   const missing = state?.kind === 'missing';
-  const conflict = link?.status === 'ambiguous' && hasSeveralLinks(link);
+  // Several confirmed links, whatever the matcher's status (a link whose track is gone leaves it confirmed): the same test as the header word and the reason.
+  const conflict = !!link && hasSeveralLinks(link);
   return (
     <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
