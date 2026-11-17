@@ -192,12 +192,13 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
-  it("keeps the chip and says the DAW's refusal in the dialog when the track cannot be added", async () => {
+  it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {
     const message = 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.';
-    renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
+    const { overlay } = renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
-    expect((await within(dialog).findByRole('alert')).textContent).toBe(message);
+    await waitFor(() => expect(overlay.getSnapshot().toasts.map((t) => t.text)).toContain(message));
+    expect(within(dialog).queryByRole('alert')).toBeNull();
     expect(recordButton().getAttribute('aria-disabled')).toBe('true');
   });
 

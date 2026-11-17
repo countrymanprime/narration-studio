@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
 import { linkStateLabel } from '../chapterTracks/chapterLink';
@@ -10,7 +11,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBackward, faForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { chapterName, context } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
-import { describeApiError } from '../../api/errorMessage';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
@@ -110,25 +110,29 @@ export function ChapterTrackPanel({
 
   const link_ = async (trackGuid: string) => {
     setBusy(true);
+    let written = false;
     try {
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
+      written = true;
       notify(linkedNotice);
       await onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'set', error), 'error');
     } finally {
       setBusy(false);
     }
   };
   const unlink = async () => {
     setBusy(true);
+    let written = false;
     try {
       await actions.unlink(chapterId);
+      written = true;
       setUnlinkedFrom(linkRead);
       notify(`${Noun} unlinked.`);
       await onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'unlink', error), 'error');
     } finally {
       setBusy(false);
     }

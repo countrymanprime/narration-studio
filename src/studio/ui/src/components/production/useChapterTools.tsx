@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
@@ -8,7 +9,6 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { changedButUnread } from '../chapterTracks/useChapterLinkActions';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
@@ -134,7 +134,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       try {
         await refreshLinks();
       } catch (error) {
-        notify(afterWrite ? changedButUnread(error) : describeApiError(error), 'error');
+        notify(afterWrite ? linkFailureSentence('unread', error) : describeApiError(error), 'error');
       }
     },
     [notify, refreshLinks],

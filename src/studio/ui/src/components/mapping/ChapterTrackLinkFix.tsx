@@ -1,8 +1,8 @@
 import { useRef } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { apiErrorMessage } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useChapterTrackState, useChapterTrackProject } from '../chapterTracks/ChapterTrackState';
 import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
@@ -57,15 +57,17 @@ export function ChapterTrackLinkFix({
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          let written = false;
           try {
             // The replacing binding: a track another chapter holds moves to this one, and the chapter that lost it is named (#3365).
             const { result, linkedNotice } = await actions.set(chapter.id, trackGuid, nameOf);
+            written = true;
             notify(linkedNotice);
             state.applyMappings(result.mappings);
             await onLinked();
           } catch (reason) {
             // A toast, the picker stays: the narrator can choose again once the cause is gone.
-            notify(`The link could not be made: ${apiErrorMessage(reason)}`, 'error');
+            notify(linkFailureSentence(written ? 'unread' : 'set', reason), 'error');
           }
         })
       }

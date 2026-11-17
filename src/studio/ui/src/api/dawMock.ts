@@ -207,6 +207,8 @@ export type DawMockSeed = {
   depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
   /** What the DAW's meters show (`dawMeters`): a record-armed track hearing the room, the default, or no track armed. */
   meters?: 'armed' | 'unarmed';
+  /** The DAW cannot add a track for a chapter from the app (`track_create` answers unsupported), so the link dialog's Create is off with its reason (`?mockDawCreate=off`). */
+  noTrackCreate?: boolean;
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
@@ -300,6 +302,8 @@ function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): D
   const { daw } = m;
   const pipe = m.connected;
   const level = declarationFor(daw)[key] ?? 'unsupported';
+  if (key === 'track_create' && m.seed.noTrackCreate)
+    return { level, available: false, reason: 'unsupported', message: `${daw} cannot add a track from this app. Add one in ${daw}, then check again.` };
   if (level === 'unsupported') {
     // No engine at all (resolver.go's Adapter == nil) is 'standalone'; a launched engine that simply cannot do this (macro_render
     // for REAPER) is 'unsupported', checked before connection state, the same order the declaration check runs in.
