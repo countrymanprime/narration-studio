@@ -33,6 +33,8 @@ type liveTracksCache struct {
 	// +checklocks:mu
 	flight *liveTracksFlight
 	// +checklocks:mu
+	epoch uint64
+	// +checklocks:mu
 	generation uint64
 	// +checklocks:mu
 	now func() time.Time
@@ -104,13 +106,13 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 		c.flight = flight
 		generation := c.generation
 		c.mu.Unlock()
-		return l.lead(ctx, c, flight, generation)
+		return l.lead(ctx, c, flight, generation, l.epoch())
 	}
 }
 
 // lead sends the one request of flight, stores its answer when nothing invalidated the list meanwhile, and wakes the callers waiting on it. It
 // does so also when the read panics, so no caller waits for a read that will never end.
-func (l cachedTrackLister) lead(ctx context.Context, c *liveTracksCache, flight *liveTracksFlight, generation uint64) (answer dawport.LiveTracks, err error) {
+func (l cachedTrackLister) lead(ctx context.Context, c *liveTracksCache, flight *liveTracksFlight, generation, epoch uint64) (answer dawport.LiveTracks, err error) {
 	finished := false
 	defer func() {
 		c.mu.Lock()
@@ -127,7 +129,7 @@ func (l cachedTrackLister) lead(ctx context.Context, c *liveTracksCache, flight 
 	c.mu.Lock()
 	flight.answer, flight.err = answer, err
 	if err == nil && generation == c.generation {
-		c.have, c.answer, c.at = true, cloneTracks(answer), c.now()
+		c.have, c.answer, c.at, c.epoch = true, cloneTracks(answer), c.now(), epoch
 	}
 	finished = true
 	c.mu.Unlock()
@@ -141,8 +143,8 @@ func cloneTracks(answer dawport.LiveTracks) dawport.LiveTracks {
 }
 
 // fresh reports whether the held answer is still REAPER's list: the heartbeat is fresh and carries a counter equal to the answer's, it names the
-// project the answer is of, and the answer is not older than liveTracksMaxAge. A REAPER restarted or a project reopened (the counter starts again)
-// with no read in between and an equal counter is served stale for at most that long.
+// project the answer is of, the bridge has not started over since (the heartbeat's epoch: a gap, another project, a counter that went down), and
+// the answer is not older than liveTracksMaxAge. A project reopened with an equal counter and no gap is served stale for at most that long.
 //
 // +checklocks:c.mu
 func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
@@ -151,7 +153,16 @@ func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
 		return false
 	}
 	open, unsaved := l.heartbeat.CurrentProject()
-	return count == c.answer.ChangeCount && !unsaved && sameLiveProject(open, c.answer.ProjectPath) && c.now().Sub(c.at) < liveTracksMaxAge
+	return count == c.answer.ChangeCount && !unsaved && sameLiveProject(open, c.answer.ProjectPath) && l.epoch() == c.epoch && c.now().Sub(c.at) < liveTracksMaxAge
+}
+
+// epoch is the heartbeat's count of times the bridge may have started over (a gap, another project, a counter that went down), or 0 for a
+// heartbeat that does not keep one: an answer read in another epoch is not reused, whatever the counters say.
+func (l cachedTrackLister) epoch() uint64 {
+	if h, ok := l.heartbeat.(interface{ Epoch() uint64 }); ok {
+		return h.Epoch()
+	}
+	return 0
 }
 
 // sameLiveProject reports whether two project paths name one file (Windows paths compare without case).

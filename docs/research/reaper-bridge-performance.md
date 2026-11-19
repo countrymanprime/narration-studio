@@ -136,7 +136,7 @@ No command on a page-open, poll, focus or lane path reads every item of the proj
 
 The answers are small, so the volume costs REAPER little; what it multiplies is the round trip of each request (a command file, a REAPER tick that lists and reads the folder, an `events.log` append, a host poll): 11 to 80 ms measured on Linux above, unmeasured on Windows.
 
-**Fix 1: one track list per edit counter.** The live track list is read through `cachedTrackLister` (`tracks_cache.go`): while the heartbeat's change count equals the count the last answer carried, and the answer is under 10 s old, the last answer is reused; callers that arrive while a read is out share it; a track this app creates drops the answer. With no counter nothing is reused. An unchanged idle Booth tick goes from 3 TR to at most 1 TR per 10 s, and the four callers of one action share one read.
+**Fix 1: one track list per edit counter.** The live track list is read through `cachedTrackLister` (`tracks_cache.go`): while the heartbeat's change count equals the count the last answer carried, and the answer is under 10 s old, the last answer is reused; callers that arrive while a read is out share it; a track this app creates drops the answer. With no counter nothing is reused, and nothing read before the bridge may have started over (a heartbeat gap longer than 5 s, another project, a counter that went down: `Reachability.Epoch`). An unchanged idle Booth tick goes from 3 TR to at most 1 TR per 10 s, and the four callers of one action share one read.
 
 ## Not measured here
 

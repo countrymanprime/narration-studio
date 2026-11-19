@@ -155,14 +155,18 @@ func TestAnAnswerIsNotReusedPastItsMaxAge(t *testing.T) {
 	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
 	cached, _ := cachedFor(inner, b)
 	read(t, cached)
-	b.advance(liveTracksMaxAge - time.Second)
-	b.set(9) // a fresh heartbeat, same counter
+	tick := func(d time.Duration) { // heartbeats keep coming, as REAPER's do every 1.5 s
+		for ; d > 0; d -= time.Second {
+			b.advance(time.Second)
+			b.set(9)
+		}
+	}
+	tick(liveTracksMaxAge - time.Second)
 	read(t, cached)
 	if calls := inner.calls.Load(); calls != 1 {
 		t.Fatalf("%d requests inside the max age, want 1", calls)
 	}
-	b.advance(2 * time.Second)
-	b.set(9)
+	tick(2 * time.Second)
 	read(t, cached)
 	if calls := inner.calls.Load(); calls != 2 {
 		t.Fatalf("%d requests past the max age, want 2: a change the counter missed must be seen", calls)
@@ -529,5 +533,24 @@ func TestAFailedReadIsNotServedToTheNextCaller(t *testing.T) {
 	got, err := cached.ReadTracks(context.Background())
 	if err != nil || len(got.Tracks) != 2 {
 		t.Fatalf("got %+v, %v: the failure was kept and served", got, err)
+	}
+}
+
+// REAPER closed and opened again (a gap in the heartbeats) with the same project and, by chance, the same counter: the list read before is not reused.
+func TestAListReadBeforeTheBridgeStartedOverIsNotReused(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	b.advance(6 * time.Second) // longer than the heartbeat timeout: the next heartbeat starts a new epoch
+	b.set(9)
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests, want 2: a list read before REAPER went quiet was served", calls)
+	}
+	b.advance(time.Second)
+	b.set(9)
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests, want 2: ordinary heartbeats must not drop the list", calls)
 	}
 }
