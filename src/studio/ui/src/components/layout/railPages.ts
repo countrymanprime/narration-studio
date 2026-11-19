@@ -18,6 +18,8 @@ export const isActivePath = (pathname: string, path: string) => (path === '/' ? 
 
 /** The rail's name for the page `to` is on (`/editing/chapter-2?x=1` is Editing), or undefined for a path no rail item owns. */
 export const pageNameFor = (to: string): string | undefined => {
+  // A move by history steps (Back, Forward) does not know its page: '' names none, where '/' would name Production (#3555 item 3).
+  if (to === '') return undefined;
   const pathname = to.split(/[?#]/)[0] || '/';
   return RAIL_PAGES.find((page) => isActivePath(pathname, page.path))?.name;
 };

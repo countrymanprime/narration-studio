@@ -305,7 +305,7 @@ describe('every-way-out-asks-while-recording', () => {
     await press('Escape');
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
     expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
+    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it and saves the take.');
     // The question holds the take while it is open.
     expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
@@ -574,7 +574,7 @@ describe('a-built-in-take-is-guarded-too', () => {
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     await press('Escape');
-    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it.');
+    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it and saves the take.');
     await act(async () => page.dialog()!.answer(false));
     page.view.unmount();
     await settle();
