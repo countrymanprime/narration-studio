@@ -181,8 +181,8 @@ describe('the Clean up tab', () => {
     mount();
     await screen.findByRole('button', { name: /^Gaps 2/ });
     for (const n of [/^Breaths 1/, /^Clicks 1/, /^Plosives 1/, /^Noise 1/]) expect(chip(n)).toBeTruthy();
-    const times = within(screen.getByRole('table', { name: 'Gaps found' })).getAllByText(/^\d+:\d\d$/);
-    expect(times.map((t) => t.textContent)).toEqual(['0:10', '0:50']);
+    const times = within(screen.getByRole('table', { name: 'Gaps found' })).getAllByText(/^\d{2}:\d{2}:\d{2}\.\d{3}$/);
+    expect(times.map((t) => t.textContent)).toEqual(['00:00:10.000', '00:00:50.000']);
     expect(screen.getAllByText('Shorten to 1.2 s')).toHaveLength(2);
     fireEvent.click(chip(/^Breaths/));
     expect(await screen.findByText('−22 dB · 0.4 s')).toBeTruthy();
@@ -262,7 +262,7 @@ describe('the Clean up tab', () => {
   it('apply-is-one-daw-change-and-one-undo: trims each selected finding to the Cuts track and records it', async () => {
     const { journal } = mount();
     await screen.findByRole('button', { name: /^Gaps 2/ });
-    fireEvent.click(screen.getByRole('checkbox', { name: '0:50' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '00:00:50.000' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply to 1 selected' }));
     await waitFor(() => expect(trim).toHaveBeenCalledTimes(1));
     expect(trim).toHaveBeenCalledWith({ chapterId: '5', itemGuid: 'item-1', start: 11.2, end: 12.4, mode: 'mute' });
@@ -521,14 +521,14 @@ describe('Preview plays the findings', () => {
     const fake = fakePlayback();
     mount({ findings: FOUR, playback: fake });
     await screen.findByRole('button', { name: /^Gaps 3/ });
-    const play = screen.getByRole('button', { name: 'Play 0:10 with 2 s before and after' });
+    const play = screen.getByRole('button', { name: 'Play 00:00:10.000 with 2 s before and after' });
     expect(play.closest('tr')!.textContent).toContain('gap');
     fireEvent.click(play);
     expect(fake.played).toEqual([[8, 14.4]]);
     cleanup();
     mount({ findings: FOUR });
     await screen.findByRole('button', { name: /^Gaps 3/ });
-    expect(screen.getByRole('button', { name: 'Play 0:10 with 2 s before and after' }).getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Play 00:00:10.000 with 2 s before and after' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('Preview plays the first three selected with two seconds around each', async () => {
@@ -562,7 +562,7 @@ describe('Preview plays the findings', () => {
     const fake = fakePlayback();
     mount({ findings: [finding({ id: 'a', start: 1, end: 4, cls: 'silence' }), ...FINDINGS], playback: fake });
     await screen.findByRole('button', { name: /^Gaps 3/ });
-    fireEvent.click(screen.getByRole('checkbox', { name: '0:10' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '00:00:10.000' }));
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(fake.played).toEqual([[0, 6]]);
     fake.finish();

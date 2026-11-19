@@ -84,7 +84,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'takes-lanes',
     description:
-      'Proof, Chapter 1 linked, on the misread at 00:12.4 whose spot has several takes: the playing take as a band on the trace, the other takes in their lanes under it, and the takes at this spot in the Inspector',
+      'Proof, Chapter 1 linked, on the misread at 00:00:12.400 whose spot has several takes: the playing take as a band on the trace, the other takes in their lanes under it, and the takes at this spot in the Inspector',
     ...REFLOW,
   },
   {
@@ -169,7 +169,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'hear-it',
     description:
-      'Proof, all chapters, Hear it pressed on the misread at 00:12.4 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
+      'Proof, all chapters, Hear it pressed on the misread at 00:00:12.400 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
     ...REFLOW,
   },
   {

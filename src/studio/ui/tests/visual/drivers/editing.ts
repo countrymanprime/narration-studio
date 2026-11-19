@@ -503,7 +503,14 @@ async function expectTimelineLaidOut(page: Page): Promise<void> {
       if (name.getBoundingClientRect().height > line * 1.5) out.push(`"${name.textContent}" wraps`);
       if (name.scrollWidth > name.clientWidth + 1) out.push(`"${name.textContent}" is clipped`);
     }
-    const ticks = [...document.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')].map((t) => t.getBoundingClientRect());
+    const marks = [...document.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')];
+    // The middle mark is dropped below 34 rem of the strip's own width (544 px) and nowhere else: a hidden mark at any other width is a defect, not a drawn mark to skip.
+    for (const mark of marks) {
+      const strip = mark.closest<HTMLElement>('[class*="@container/tl"]');
+      if (mark.getBoundingClientRect().width === 0 && (strip?.getBoundingClientRect().width ?? 0) >= 544)
+        out.push('a time mark is hidden on a strip wide enough for it');
+    }
+    const ticks = marks.map((t) => t.getBoundingClientRect()).filter((box) => box.width > 0);
     ticks.slice(1).forEach((box, i) => box.left < ticks[i].right + 4 && out.push('the time marks run together'));
     return out;
   });

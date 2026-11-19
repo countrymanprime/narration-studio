@@ -232,7 +232,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
           {text}
         </div>
         <span className="font-mono text-sm text-[var(--text-muted)]">
-          {clock(start)} to {clock(end)} · {sec(mine)}
+          {clock(start, { full: true })} to {clock(end, { full: true })} · {sec(mine)}
         </span>
       </div>
 
@@ -332,7 +332,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
               <NumberInput label="To (seconds)" value={to} min={0} max={file.length} step={0.01} onValueChange={(v) => setTo(round(v))} />
             </Captioned>
             <span className="pb-2 font-mono text-sm" data-replace-stretch>
-              {clock(from)} to {clock(to)} · {sec(Math.max(0, to - from))}
+              {clock(from, { full: true })} to {clock(to, { full: true })} · {sec(Math.max(0, to - from))}
             </span>
           </div>
           <p className="m-0 text-sm text-[var(--text-muted)]">
@@ -461,7 +461,7 @@ function StretchWave({
     <svg
       ref={ref}
       role="img"
-      aria-label={`Their file, ${clock(length)} long, with ${clock(from)} to ${clock(to)} chosen`}
+      aria-label={`Their file, ${clock(length)} long, with ${clock(from, { full: true })} to ${clock(to, { full: true })} chosen`}
       viewBox="0 0 1000 60"
       preserveAspectRatio="none"
       className="h-16 w-full cursor-crosshair touch-none rounded-[var(--control-radius)] border border-[var(--border)] bg-[var(--surface-2)]"

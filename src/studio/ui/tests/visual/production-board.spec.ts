@@ -72,3 +72,78 @@ for (const width of [1440, 1920]) {
 
 // The Rec. and Est. headers' label and info mark inside their cells is layout rule C1 (lib/layoutScan.ts), which every catalogued
 // Production state is scanned with, light and dark, at the desktop and small-desktop widths.
+
+// #3443: a figure of hours is written with its units ("2h 11m", "516h 17m"); its value must never break inside it (it was drawn "2h" over "11m" over "/ 3h 08m" at 1280 and 1440), and at the
+// small sizes no tile is cut off. The unit may move under the value, whole.
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 1280, height: 800 },
+  { width: 768, height: 1024 },
+  { width: 390, height: 844 },
+  { width: 360, height: 500 },
+  { width: 320, height: 300 },
+] as const) {
+  test(`Production / every figure's value is on one line and no tile is cut off / ${size.width}x${size.height}`, async ({ page }) => {
+    await board(page, size.width, size.height);
+    const tiles = await page
+      .getByRole('list', { name: 'Production figures' })
+      .locator('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const value = button.querySelector<HTMLElement>('.font-medium > span');
+          if (!value) return null;
+          const line = parseFloat(getComputedStyle(value).lineHeight) || 20;
+          const box = value.getBoundingClientRect();
+          const edge = button.getBoundingClientRect();
+          return {
+            text: value.textContent,
+            lines: Math.round(box.height / line),
+            cut: value.scrollWidth > button.clientWidth - 2 || box.right > edge.right + 0.5,
+          };
+        }),
+      );
+    const drawn = tiles.filter((tile): tile is NonNullable<typeof tile> => tile !== null);
+    expect(drawn.length).toBeGreaterThanOrEqual(5);
+    for (const tile of drawn) {
+      expect(tile.lines, `"${tile.text}" is on one line`).toBe(1);
+      expect(tile.cut, `"${tile.text}" is cut off by its tile`).toBe(false);
+    }
+    // A button centres its content: when one tile's figure wraps and is taller, the eyebrows of the tiles in a row must still stand at one height.
+    const eyebrows = await page
+      .getByRole('list', { name: 'Production figures' })
+      .locator('li')
+      .evaluateAll((items) =>
+        items.map((item) => {
+          const label = item.querySelector<HTMLElement>('button > div > div');
+          return {
+            row: Math.round(item.getBoundingClientRect().top),
+            top: Math.round((label?.getBoundingClientRect().top ?? 0) - item.getBoundingClientRect().top),
+          };
+        }),
+      );
+    for (const row of new Set(eyebrows.map((e) => e.row))) {
+      const heights = new Set(eyebrows.filter((e) => e.row === row).map((e) => e.top));
+      expect([...heights], 'the eyebrows of a row stand at one height').toHaveLength(1);
+    }
+  });
+}
+
+// #3443: a marked figure is read as "4 hours 35 minutes" by a screen reader through a hidden copy; copying a tile must give only what is drawn ("4h 35m left"),
+// not "4h 35m4 hours 35 minutesleft".
+test('Production / copying a tile gives the drawn figure, not its spoken copy / 1440x900', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await board(page, 1440, 900);
+  const tile = page.getByRole('list', { name: 'Production figures' }).locator('li', { hasText: 'Recording' }).first();
+  await tile.waitFor();
+  await tile.evaluate((li) => {
+    const range = document.createRange();
+    range.selectNodeContents(li);
+    const selection = getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.keyboard.press('ControlOrMeta+C');
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toMatch(/\d+h \d{2}m/);
+  expect(copied, 'the spoken copy is not copied').not.toMatch(/hours?|minutes?/);
+});

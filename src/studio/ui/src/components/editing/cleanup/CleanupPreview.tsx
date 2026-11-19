@@ -17,7 +17,7 @@ export function CleanupPreview({ preview }: { preview: Preview }) {
       <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
         {preview.lines.map((l) => (
           <li key={l.key}>
-            <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{clock(l.sec)}</span> · {l.measure} · {l.action}
+            <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{clock(l.sec, { full: true })}</span> · {l.measure} · {l.action}
           </li>
         ))}
       </ul>

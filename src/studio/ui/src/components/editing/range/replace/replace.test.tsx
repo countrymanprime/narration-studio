@@ -88,7 +88,7 @@ describe('replaceCommand', () => {
       onReplacements,
     };
     const command = replaceCommand(deps, ask);
-    expect(command.label).toBe("Replaced 3 words with Eric Leach's audio at 0:54");
+    expect(command.label).toBe("Replaced 3 words with Eric Leach's audio at 00:00:54.300");
     expect(command.daw).toBe(true);
     const run = await command.run();
     expect(run).toEqual({ ok: true, value: { id: 'r-0001', message: "Replaced 3 words with Eric Leach's audio in REAPER.", undoSteps: 1 } });
@@ -125,7 +125,7 @@ describe('replaceCommand', () => {
   });
 
   it('names one word and several', () => {
-    expect(replaceLabel(1, 'إريك 🎙', 3)).toBe("Replaced 1 word with إريك 🎙's audio at 0:03");
+    expect(replaceLabel(1, 'إريك 🎙', 3)).toBe("Replaced 1 word with إريك 🎙's audio at 00:00:03.000");
   });
 });
 

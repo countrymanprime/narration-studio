@@ -41,7 +41,7 @@ export function ReplacementMark({ wordKey }: { wordKey: string }) {
           <strong>{r.narratorName}</strong>'s audio plays here in place of yours: “{r.words.join(' ')}”.
         </p>
         <p className="m-0 font-mono text-[var(--text-muted)]">
-          Theirs {clock(r.sourceStart)} to {clock(r.sourceEnd)} · {sec(r.sourceEnd - r.sourceStart)} · {db(r.gainDb)}
+          Theirs {clock(r.sourceStart, { full: true })} to {clock(r.sourceEnd, { full: true })} · {sec(r.sourceEnd - r.sourceStart)} · {db(r.gainDb)}
           {r.measuredLufs !== null ? ` (from ${r.measuredLufs.toFixed(1)} to ${r.targetLufs.toFixed(0)} LUFS)` : ''}
         </p>
         {r.stale ? <p className="m-0 text-[var(--warn-text)]">The words changed since their audio was put here.</p> : null}

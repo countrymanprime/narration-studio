@@ -40,9 +40,9 @@ describe('KpiRow', () => {
     row();
     const strip = screen.getByRole('list', { name: 'Production figures' });
     expect(strip).toBeTruthy();
-    // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3:30 of 5:00, the fourth chapter half recorded).
-    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
-    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
+    // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3h 30m of 5h 00m, the fourth chapter half recorded).
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3h 30m');
+    expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5h 00m');
     expect(screen.getByRole('button', { name: /Recording/ }).textContent).toContain('est. 3.0× the book');
     expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toContain('est. 3.04× the book');
   });
@@ -84,7 +84,7 @@ describe('KpiRow', () => {
   it('names the ratio behind an estimate in the tooltip', async () => {
     row();
     await userEvent.hover(screen.getByRole('button', { name: /Recording/ }));
-    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s 5:00 of finished audio')).toBeTruthy();
+    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s 5h 00m of finished audio')).toBeTruthy();
   });
 
   it('due-tile-uses-the-deadline-tone', () => {
@@ -173,11 +173,20 @@ describe('StageBar', () => {
     expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Edited', 'Recorded', 'Not recorded yet']);
     expect(screen.getByText('Proofed')).toBeTruthy();
     // Chapter 1 is mastered, chapter 2 is in proof (edited), chapter 3 in edit (recorded), chapter 4 half recorded, chapter 5 untouched; a chapter is an hour.
-    expect(bar.querySelector('i[title="Delivered: 1:00"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Proofed: 0:00"]')).toBeNull();
-    expect(bar.querySelector('i[title="Edited: 1:00"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Recorded: 1:30"]')).toBeTruthy();
-    expect(bar.querySelector('i[title="Not recorded yet: 1:30"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Delivered: 1 hour"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Proofed: 0 minutes"]')).toBeNull();
+    expect(bar.querySelector('i[title="Edited: 1 hour"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Recorded: 1 hour 30 minutes"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Not recorded yet: 1 hour 30 minutes"]')).toBeTruthy();
+  });
+
+  // #3443: the legend's figures are drawn as "1h 30m" and spelled out for a screen reader ("1 hour 30 minutes").
+  it('spells the legend figures out for a screen reader, and draws them as hours and minutes', () => {
+    const { segments } = overviewFor(MID_BOOK);
+    view(<StageBar segments={segments} wph={9300} />);
+    const recorded = screen.getByText('Recorded').closest('li')!;
+    expect(recorded.querySelector('b [aria-hidden="true"]')!.textContent).toBe('1h 30m');
+    expect(recorded.querySelector('.sr-only')!.textContent).toBe('1 hour 30 minutes');
   });
 
   it('says Recorded for the share recorded and has no footnote under the legend', () => {

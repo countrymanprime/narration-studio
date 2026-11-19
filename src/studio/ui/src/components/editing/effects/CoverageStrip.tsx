@@ -82,7 +82,7 @@ export function CoverageStrip({
       >
         {cov.segs.map((s) => {
           const top = topAt((s.start + s.end) / 2);
-          const label = `${plural(s.n, 'effect')} from ${clock(s.start)} to ${clock(s.end)}`;
+          const label = `${plural(s.n, 'effect')} from ${clock(s.start, { full: true })} to ${clock(s.end, { full: true })}`;
           return (
             // native-control-ok: a bar placed by time on the strip; Button's padded uppercase chrome cannot draw it.
             <button

@@ -132,8 +132,12 @@ export const TimelineTabWithTakes: Story = {
       expect(name.getBoundingClientRect().height, `${name.textContent} is on one line`).toBeLessThanOrEqual(line * 1.5);
       expect(name.scrollWidth, `${name.textContent} is not clipped`).toBeLessThanOrEqual(name.clientWidth + 1);
     }
-    const ticks = [...canvasElement.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')].map((t) => t.getBoundingClientRect());
-    expect(ticks).toHaveLength(3);
+    const marks = [...canvasElement.querySelectorAll<HTMLElement>('#timeline [aria-hidden="true"] > span')];
+    expect(marks).toHaveLength(3);
+    // The middle mark is left out below 34 rem (544 px) of the strip and drawn from there up (#3443): a mark with no width is allowed only on a narrow strip.
+    const strip = canvasElement.querySelector<HTMLElement>('#timeline')!.getBoundingClientRect().width;
+    const ticks = marks.map((t) => t.getBoundingClientRect()).filter((box) => box.width > 0);
+    expect(ticks.length, 'the marks drawn').toBe(strip >= 544 ? 3 : 2);
     ticks.slice(1).forEach((box, i) => expect(box.left, 'the time marks do not run together').toBeGreaterThan(ticks[i].right + 4));
   },
 };
