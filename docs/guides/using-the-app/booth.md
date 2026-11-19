@@ -413,6 +413,15 @@ When your DAW is connected and following is on, the Booth and the DAW stay toget
 
 The DAW may still be connecting when the Booth opens; the Booth tries for about 20 seconds and then stays where it is. A DAW that cannot follow is left alone without a message. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the Booth's chapter and your cursor stays where it is. Nothing moves if the DAW is already on the chapter or is recording. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW); the Booth then never moves the DAW.
 
+The same switch arms your voice, in REAPER only: Audacity has no record arm or input monitoring to set, so the Booth leaves it alone, and a cold read arms nothing.
+
+- **Entering a chapter:** opening the Booth on a chapter, or going to another, arms the track the next take records on (the voice you chose, else the Narrator voice, or the chapter's one track) and disarms every other track, so only one records. It also turns that track's input monitoring on if it is off, so you hear yourself before you press Record. A track you already monitor, in either of REAPER's modes, is left as it is.
+- **Choosing another voice:** it arms that voice and puts the earlier voice's monitoring back.
+- **Leaving:** leaving the Booth, or closing the app, puts back only the monitoring the Booth turned on, and only where you have not changed it since. If you switch a monitored track off and on again yourself, the Booth cannot tell it from the one it turned on and puts it back to off.
+- **During a take:** the Booth arms and changes nothing while REAPER records, and says nothing during a take the app runs. A toast appears only when REAPER itself refuses, as it does for a recording you started by hand. A voice you choose during a take is armed as soon as it stops (and monitored, with the switch on). Leaving mid-take puts the monitoring back after the stop, unless you come back to the Booth first.
+- **REAPER cannot be reached when you leave:** a toast says your input monitoring may still be on; turn it off in REAPER. If you do not, it goes off when the app's script next starts: when REAPER opens, or with **Start the launcher script with REAPER** off in [Settings](settings.md), when the app next connects. That toast comes once when REAPER cannot be reached at all; if REAPER answers but cannot put the monitoring back, it tells you again each time you leave, until a leave works. It says nothing when the Booth never turned monitoring on.
+- **With the switch off:** entering a chapter arms nothing and turns no monitoring on; choosing a voice still arms it, and leaving still puts back whatever the Booth turned on. If you turn it off partway through a visit, a voice the Booth already monitors stays monitored until you leave.
+
 ## Where you stopped
 
 Each chapter opens where you left off in it, in this order:

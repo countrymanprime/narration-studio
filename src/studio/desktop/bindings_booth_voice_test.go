@@ -101,18 +101,40 @@ func (f *fakeVoiceRecorder) SwitchVoice(_ context.Context, guid string) (dawport
 type fakeLaneRecorder struct {
 	fakeVoiceRecorder
 	laneArmed []string
-	laneErr   error
+	// laneMonitor is the monitor argument of each ArmLane call, and monitorReleased how often ReleaseMonitor was called.
+	laneMonitor     []bool
+	monitorReleased int
+	monitorWaiting  bool
+	laneErr         error
+	// alreadyOn makes ArmLane answer that the lane's monitoring was on already, so this call turned nothing on.
+	alreadyOn bool
 }
 
 var _ dawport.LaneArmer = (*fakeLaneRecorder)(nil)
+var _ dawport.MonitorReleaser = (*fakeLaneRecorder)(nil)
 
-func (f *fakeLaneRecorder) ArmLane(_ context.Context, guid string) (dawport.Armed, error) {
+func (f *fakeLaneRecorder) ArmLane(_ context.Context, guid string, monitor bool) (dawport.Armed, error) {
 	f.calls = append(f.calls, "ArmLane")
 	f.laneArmed = append(f.laneArmed, guid)
+	f.laneMonitor = append(f.laneMonitor, monitor)
 	if f.laneErr != nil {
 		return dawport.Armed{}, f.laneErr
 	}
-	return dawport.Armed{TrackGUID: guid, Changed: true}, nil
+	return dawport.Armed{TrackGUID: guid, Changed: true, Monitored: monitor && !f.alreadyOn}, nil
+}
+
+func (f *fakeLaneRecorder) KeepMonitor(context.Context) error {
+	f.calls = append(f.calls, "KeepMonitor")
+	return nil
+}
+
+func (f *fakeLaneRecorder) ReleaseMonitor(context.Context) (dawport.MonitorReleased, error) {
+	f.calls = append(f.calls, "ReleaseMonitor")
+	f.monitorReleased++
+	if f.laneErr != nil {
+		return dawport.MonitorReleased{}, f.laneErr
+	}
+	return dawport.MonitorReleased{Restored: 1, Waiting: f.monitorWaiting}, nil
 }
 
 func boothVoiceSet(t *testing.T, host *Host, recorder dawport.Recorder, chapterID, guid string) BoothVoice {

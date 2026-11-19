@@ -145,6 +145,10 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-place-refused.json': dawPlaceSchema,
   'daw-go-to-chapter-done.json': dawResultSchema,
   'daw-go-to-chapter-refused.json': dawResultSchema,
+  // DawArmBoothVoice and DawReleaseBoothMonitor (bindings_booth_arming_test.go): the Booth arming its voice on entry, the DAW's refusal, and the monitoring put back on leaving.
+  'daw-arm-booth-voice-done.json': dawResultSchema,
+  'daw-arm-booth-voice-refused.json': dawResultSchema,
+  'daw-release-booth-monitor-done.json': dawResultSchema,
   // DawTransportSync and daw_position_changed (internal/transportsync): a done and a refused answer, and the position event playing, recording and
   // stopped with another project open.
   'daw-transport-sync-ok.json': dawResultSchema,

@@ -69,6 +69,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'loop_context',
     'master_chain_read',
     'monitor_level',
+    'monitor_restore',
     'navigate_item',
     'pick_retake_lane',
     'ping',
