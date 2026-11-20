@@ -253,6 +253,8 @@ export function useBoothPage(options: BoothPageOptions) {
     arrival.current = [];
     for (const say of raise) say();
   }, []);
+  // Whether the take that runs (or just ran) was started in the DAW.
+  const takeByDaw = useRef(false);
   const tellStopped = useCallback(
     async (
       quiet: boolean,
@@ -266,7 +268,7 @@ export function useBoothPage(options: BoothPageOptions) {
       const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
       if (began === null) return { marked: 0, take: undo };
       takeBegan.current = null;
-      const take = { quiet, survivesMoves, later: hold, ...undo };
+      const take = { quiet, survivesMoves, later: hold, byDaw: takeByDaw.current, ...undo };
       return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
     },
     [],
@@ -887,8 +889,10 @@ export function useBoothPage(options: BoothPageOptions) {
     if (recording) {
       const take = ++adoptedTakes.current;
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
-      // The last take's "Take saved" and its Undo are about a take that is over: a take beginning, pressed here or started in the DAW, takes them away.
-      overlay.dismissUndo();
+      // A take the DAW started is not the app's to have saved: its toasts say it ended, not "Take saved".
+      takeByDaw.current = !now.startedByApp;
+      // The last take's "Take saved" and its Undo are about a take that is over: a take started in the DAW takes them away; the app's own press leaves them to expire.
+      if (!now.startedByApp) overlay.dismissUndo();
       setTakeNote('');
       setPaused(false);
       setBrowse(false);

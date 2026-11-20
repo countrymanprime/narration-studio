@@ -53,7 +53,7 @@ export type FooterSpec = readonly {
   label: string;
   when?: FooterCondition;
   /** The hint is drawn struck through while the first of these conditions that is active holds, with its reason as the tooltip. */
-  off?: readonly { when: FooterCondition; reason: string }[];
+  off?: readonly { when: FooterCondition; reason: string | ((dawName: string) => string) }[];
 }[];
 
 /** A hint that is not a key ("Right-click"), drawn right after the hint of the command it names. */
@@ -71,11 +71,11 @@ export type FooterSurface = 'booth' | 'proof';
 export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';
 
 /** Why Space and R do nothing to a take the DAW started: the hints' tooltip. */
-const TAKE_IN_DAW_REASON = 'This take was started in REAPER, so it stops and rolls there';
+const TAKE_IN_DAW_REASON = (dawName: string) => `This take was started in ${dawName}, so it stops and rolls there`;
 const TAKE_IN_DAW = { when: 'takeInDaw', reason: TAKE_IN_DAW_REASON } as const;
 const COLD_READ = { when: 'coldRead', reason: COLD_READ_NO_VOICE_REASON } as const;
 /** Why the voice keys do nothing to a take the DAW started: the tooltip of their struck hints. */
-const VOICE_IN_DAW = { when: 'takeInDaw', reason: 'This take was started in REAPER, so the voice is changed there' } as const;
+const VOICE_IN_DAW = { when: 'takeInDaw', reason: (dawName: string) => `This take was started in ${dawName}, so the voice is changed there` } as const;
 
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
@@ -89,7 +89,7 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     // A chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md): the keys 1 to 9 are on the voice list.
     { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
     { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
-    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
+    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', off: [COLD_READ] },
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],
@@ -138,6 +138,8 @@ export function footerHints(
   spec: FooterSpec = FOOTER_SPECS[surface],
   extra: FooterExtra = FOOTER_EXTRAS[surface],
   active: ReadonlySet<FooterCondition> = new Set(),
+  /** What records, as `recorderName` words it: the reasons of a take the DAW started name it. */
+  dawName = 'the DAW',
 ): KeyHintItem[] {
   const hints: KeyHintItem[] = [];
   for (const { id, with: more = [], label, when, off } of spec) {
@@ -145,7 +147,12 @@ export function footerHints(
     const gestures = [id, ...more].map((commandId) => keymap[commandId]?.[0]);
     if (gestures.every((gesture) => gesture)) {
       const struck = off?.find((each) => active.has(each.when));
-      hints.push({ keys: chordKeys(gestures as Gesture[]), label, id: `hint-${id}`, ...(struck ? { off: true, offReason: struck.reason } : {}) });
+      hints.push({
+        keys: chordKeys(gestures as Gesture[]),
+        label,
+        id: `hint-${id}`,
+        ...(struck ? { off: true, offReason: typeof struck.reason === 'function' ? struck.reason(dawName) : struck.reason } : {}),
+      });
     }
     for (const hint of extra) if (hint.after === id) hints.push({ keys: hint.keys, label: hint.label });
   }

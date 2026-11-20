@@ -246,6 +246,7 @@ describe('SetupChip with the project DAW choice', () => {
     ['other_track', 'REAPER is recording on another track, so the Booth is not following it'],
     ['several_tracks', 'REAPER is recording with several tracks armed, so the Booth is not following it'],
     ['no_track_armed', 'REAPER is recording with no track armed, so the Booth is not following it'],
+    ['no_project', 'REAPER is recording while no project file is linked here, so the Booth cannot tell which chapter it is for and is not following it'],
     ['unread', 'REAPER is recording a take the Booth could not match to this chapter yet'],
   ] as const)('a take REAPER holds that the Booth does not follow (%s): the tooltip says why', async (notFollowed, sentence) => {
     render(

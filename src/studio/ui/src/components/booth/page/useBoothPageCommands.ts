@@ -13,6 +13,8 @@ export interface BoothCommands {
   /** Choosing a row of `chapters`; the page refuses it itself during a take. */
   choose: (id: string) => void;
   recording: boolean;
+  /** Why a change that waits for the take to end is off while one runs; absent, "Stop the take first" (a take REAPER started says to stop it there). */
+  whileRecording?: string;
   /** The chapter has text the reading can move through. */
   hasText: boolean;
   toggleTake: () => Promise<void>;
@@ -35,7 +37,22 @@ export interface BoothCommands {
  */
 export function useBoothPageCommands(page: BoothCommands): void {
   usePageCommands({ id: 'booth', label: 'Booth', supersedes: ['Chapters'] }, () => {
-    const { chapters, current, choose, recording, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap, search, coldRead } = page;
+    const {
+      chapters,
+      current,
+      choose,
+      recording,
+      whileRecording = WHILE_RECORDING,
+      hasText,
+      toggleTake,
+      punchAndRoll,
+      movePhrase,
+      exit,
+      pickups,
+      keymap,
+      search,
+      coldRead,
+    } = page;
     const keyOf = (id: CommandId): string | undefined => {
       const first = keymap[id]?.[0];
       return first ? gestureKeys(first).join('+') : undefined;
@@ -49,7 +66,7 @@ export function useBoothPageCommands(page: BoothCommands): void {
         group: 'Chapters',
         hint: chapter.id === current ? 'Open now' : undefined,
         icon: 'goToChapter',
-        disabledReason: recording ? WHILE_RECORDING : undefined,
+        disabledReason: recording ? whileRecording : undefined,
         run: () => choose(chapter.id),
       })),
     );
@@ -101,7 +118,7 @@ export function useBoothPageCommands(page: BoothCommands): void {
       });
     }
     if (pickups.active) {
-      const none = pickups.lines === 0 ? 'This pickup session has no lines.' : recording ? WHILE_RECORDING : undefined;
+      const none = pickups.lines === 0 ? 'This pickup session has no lines.' : recording ? whileRecording : undefined;
       items.push(
         {
           id: 'pickups.next',

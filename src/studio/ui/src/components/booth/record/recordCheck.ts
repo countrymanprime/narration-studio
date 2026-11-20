@@ -14,12 +14,13 @@ export type ChapterRecordState = {
 };
 
 /** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
-export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'unread';
+export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'no_project' | 'unread';
 /** The reason the Booth is not following the take, after "the DAW is recording"; the one place these words are written (the footer, the chip's tooltip). */
 export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, string> = {
   other_track: 'on another track, so the Booth is not following it',
   several_tracks: 'with several tracks armed, so the Booth is not following it',
   no_track_armed: 'with no track armed, so the Booth is not following it',
+  no_project: 'while no project file is linked here, so the Booth cannot tell which chapter it is for and is not following it',
 };
 
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */

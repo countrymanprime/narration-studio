@@ -204,6 +204,7 @@ export function createMockApi(
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
+    dawRecording: () => dawControl.recording(),
   });
   const merges = createMergeEvents();
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);

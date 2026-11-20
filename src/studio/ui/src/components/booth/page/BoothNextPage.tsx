@@ -21,7 +21,7 @@ import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
 import { useBoothSamples } from '../samples/useBoothSamples';
 import type { MeasurementsPort } from '../../../ports/measurements';
 import { usePort } from '../../../ports/usePort';
-import { recordsInApp } from '../../../studio/dawNames';
+import { recorderName, recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import type { ToastAction } from '../../primitives/Toast';
@@ -49,7 +49,7 @@ import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
-import { heldInDawSentence, type RecordBlock } from '../record/useRecordControl';
+import { heldInDawSentence, RECORD_BLOCKED_TOPIC, type RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -142,7 +142,12 @@ function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNo
 function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: string) => void; exitTo: string; projectFolder: string }) {
   // Leaving the Booth puts back the input monitoring it turned on; stepping through chapters inside it does not.
   const overlay = useOverlay();
-  useReleaseBoothMonitorOnLeave((sentence) => sayDawArming(overlay, sentence));
+  // Whether the DAW records a take the app did not start, set where the control is known: the leave sends the DAW nothing then.
+  const dawHoldsTake = useRef(false);
+  useReleaseBoothMonitorOnLeave(
+    (sentence) => sayDawArming(overlay, sentence),
+    () => dawHoldsTake.current,
+  );
   const [params, setParams] = useSearchParams();
   // An address that cannot be read is no request: the gate in front of the page says so (it holds the page while a take records), and the page does not act on a half-read chapter.
   const asked = useMemo(() => (readAddress('booth', { search: `?${params.toString()}`, hash: '' }).kind === 'bad' ? null : readBoothQuery(params)), [params]);
@@ -274,12 +279,15 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         pickAt={pickAt}
         onPick={setPickAt}
         measurements={measurements}
+        holdsTake={dawHoldsTake}
       />
     </>
   );
 }
 
 type SessionProps = {
+  /** Set by the session: the DAW records a take the app did not start (the leave sends it nothing then). */
+  holdsTake: { current: boolean };
   source: BoothSource;
   from?: BoothStart;
   /** What the address asks for now, and how the page takes it on. */
@@ -324,6 +332,7 @@ function BoothSession({
   pickAt,
   onPick,
   measurements,
+  holdsTake,
 }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
@@ -411,6 +420,7 @@ function BoothSession({
       survivesMoves: take.survivesMoves,
       later: take.later,
       saidSaved: marked > 0,
+      byDaw: take.byDaw,
       ...(marked > 0 ? {} : { undoTake: take.undoTake, entry: take.entry }),
     });
     return marked + added;
@@ -483,9 +493,11 @@ function BoothSession({
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
   // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
-  const dawRecording = useIsRecording() || control.recording || control.project === null || control.project.playState === 'recording';
+  const dawRecording = useIsRecording() || control.recording || (control.project === null ? !control.projectFailed : control.project.playState === 'recording');
   // A take the DAW holds that the app did not start (the narrator pressed Record there) is not armed over: the host refuses, and the arm is sent once it ends.
-  const dawHoldsOthersTake = (control.project === null || control.project.playState === 'recording') && !(control.recording && control.startedByApp);
+  const dawHoldsOthersTake =
+    (control.project === null ? !control.projectFailed : control.project.playState === 'recording') && !(control.recording && control.startedByApp);
+  holdsTake.current = dawHoldsOthersTake;
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
@@ -623,6 +635,9 @@ function BoothSession({
     return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
   });
   const pickerValue = chapterId;
+  // Why a change that waits for the take to end is off: a take REAPER started is stopped there, not here.
+  const whileRecording =
+    control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'stop it') : 'Not while recording. Stop the take first.';
   const { changeChapter, step } = useChapterNavigation({
     requested,
     chapterId,
@@ -642,6 +657,7 @@ function BoothSession({
     current: pickerValue,
     choose: (id) => changeChapter({ chapter: id }),
     recording: control.recording,
+    whileRecording,
     hasText: units.length > 0,
     toggleTake: page.toggleTake,
     punchAndRoll: page.punchAndRoll,
@@ -699,7 +715,7 @@ function BoothSession({
       ((block.cause === 'no_track' || block.cause === 'several_tracks' || block.cause === 'track_missing') && linkProblem) ||
       ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
     if (noticeUp) return setRecordAsks((n) => n + 1);
-    overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
+    overlay.toast(block.reason, { tone: 'error', topic: RECORD_BLOCKED_TOPIC, action: { label: 'Check again', onAction: control.checkAgain } });
   };
   // The message about the link is for before the take: once one starts it would only cover the text.
   useEffect(() => {
@@ -765,7 +781,7 @@ function BoothSession({
                   <ChapterStepper
                     chapters={pickerChapters}
                     value={pickerValue}
-                    disabled={control.recording ? 'Not while recording. Stop the take first.' : control.starting ? 'Not while a take is starting.' : undefined}
+                    disabled={control.recording ? whileRecording : control.starting ? 'Not while a take is starting.' : undefined}
                     onChange={(id) => changeChapter({ chapter: id })}
                     onStep={step}
                   />
@@ -802,6 +818,7 @@ function BoothSession({
               }
               recording={control.recording}
               paused={page.paused}
+              startedIn={control.recording && !control.startedByApp ? recorderName(control.capabilities?.daw) : undefined}
               coldRead={page.coldRead.on}
               panelOpen={side.open}
               onTogglePanel={side.toggle}
@@ -969,6 +986,7 @@ function BoothSession({
             coldRead={page.coldRead}
             voiceFolders={voices.voices.length > 0}
             takeInDaw={control.recording && !control.startedByApp}
+            dawName={recorderName(control.capabilities?.daw)}
             voice={
               <VoiceControl
                 voices={voices.voices}

@@ -2,6 +2,7 @@
 // #3666: a take the narrator starts in the DAW itself, with the right project open and the chapter's lane armed, is followed like the app's own:
 // the listening starts, Record becomes Stop, and the DAW is never asked to stop it, roll it or move. The same take with another lane armed is not followed.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/hostWindow', () => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
@@ -28,7 +29,15 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, sameProject = true, holdStart = false } = {}) {
+/** The router from inside it: a chapter link, as one elsewhere in the app would make it. */
+const driver = { go: (_to: string): void => undefined };
+function Driver() {
+  const navigateTo = useNavigate();
+  driver.go = (to) => void navigateTo(to);
+  return null;
+}
+
+function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, sameProject = true, holdStart = false, projectFails = false } = {}) {
   const armRefusal = 'REAPER is recording. Stop recording first.';
   let recording = alreadyRecording;
   const listeners = new Set<(next: DawTransport) => void>();
@@ -42,12 +51,15 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
   const daw = {
     ...base,
     subscribeTransport: (listener: (next: DawTransport) => void) => (listeners.add(listener), () => void listeners.delete(listener)),
-    projectState: async (): Promise<DawProjectState> => ({
-      savedAt: null,
-      unsavedChanges: false,
-      playState: recording ? 'recording' : 'stopped',
-      playPosition: 3,
-    }),
+    projectState: async (): Promise<DawProjectState> => {
+      if (projectFails) throw new Error('no answer');
+      return {
+        savedAt: null,
+        unsavedChanges: false,
+        playState: recording ? 'recording' : 'stopped',
+        playPosition: 3,
+      };
+    },
     recordStop,
     recordStart,
     roll,
@@ -56,6 +68,7 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
   const events = new Set<(event: TeleprompterEvent) => void>();
   const states = new Set<(state: TeleprompterState) => void>();
   // As the host answers an arm while a take it did not start runs: refused (the page test's default stub always succeeds).
+  const dawReleaseBoothMonitor = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
   const dawArmBoothVoice = vi.fn(async () =>
     recording ? { ok: false, changed: false, message: armRefusal, refused: armRefusal, undoSteps: 0 } : { ok: true, changed: true, message: '', undoSteps: 0 },
   );
@@ -65,6 +78,7 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
     subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => (states.add(on), () => void states.delete(on)),
     teleprompterStart,
     dawArmBoothVoice,
+    dawReleaseBoothMonitor,
     dawGoToChapter,
     readAloudReaperState: async () => ({ status: recording ? status : 'ready', message: '', trackGuid: '{T}', armedCount: 1, playing: recording, recording }),
     bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: sameProject }),
@@ -75,6 +89,7 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
   render(
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <BoothNextPage hasManuscript navigate={navigate} />
+      <Driver />
     </BoothHost>,
   );
   /** The narrator presses Record or Stop in the DAW itself. */
@@ -90,11 +105,42 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
       act(async () => states.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state }))),
     event: (event: TeleprompterEvent) => act(async () => events.forEach((on) => on(event))),
   };
-  return { navigate, session, recordStart, inDaw, teleprompterStart, recordStop, roll, dawGoToChapter, dawArmBoothVoice, overlay, dismissUndo };
+  return {
+    navigate,
+    session,
+    recordStart,
+    inDaw,
+    teleprompterStart,
+    recordStop,
+    roll,
+    dawGoToChapter,
+    dawArmBoothVoice,
+    dawReleaseBoothMonitor,
+    overlay,
+    dismissUndo,
+  };
 }
 
 const ready = () => waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
 const stopShown = () => waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+
+describe("a take pressed in the app leaves the last take's message alone (intent A5)", () => {
+  it('only a take the DAW started takes the previous "Take saved" and its Undo away', async () => {
+    const { dismissUndo } = mount('recording_here');
+    await ready();
+    dismissUndo.mockClear();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
+    await stopShown();
+    expect(dismissUndo).not.toHaveBeenCalled();
+  });
+});
+
+describe('a Booth whose transport read fails (QA R6)', () => {
+  it('still arms the chapter once: a failed read is not waited for for ever', async () => {
+    const { dawArmBoothVoice } = mount('ready', { projectFails: true });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(1));
+  });
+});
 
 describe('a Booth opened during a take REAPER started (QA B3)', () => {
   it('asks no arm and says nothing about a refusal; the arm is asked once when the take ends', async () => {
@@ -125,6 +171,35 @@ describe('around a take REAPER started (QA B4, A4)', () => {
     expect(screen.queryByText('Leave the Booth?')).toBeNull();
   });
 
+  it("the chapter controls say a followed take is stopped in REAPER, not 'Stop the take first' (A1)", async () => {
+    const { inDaw } = mount('recording_here');
+    await ready();
+    await inDaw(true);
+    await stopShown();
+    expect(screen.getByRole('group', { name: 'REAPER started this take, so stop it in REAPER.' }).tabIndex).toBe(0);
+    expect(screen.queryByRole('group', { name: 'Not while recording. Stop the take first.' })).toBeNull();
+  });
+
+  it('a chapter link during a followed take asks "Open another chapter?"; Open shows the next chapter and sends REAPER nothing (A2)', async () => {
+    const { inDaw, recordStop, dawGoToChapter, dawArmBoothVoice, dawReleaseBoothMonitor } = mount('recording_here');
+    await ready();
+    await inDaw(true);
+    await stopShown();
+    dawGoToChapter.mockClear();
+    dawArmBoothVoice.mockClear();
+
+    await act(async () => driver.go('/booth?chapter=c2'));
+    expect(await screen.findByText('Open another chapter?')).toBeTruthy();
+    expect(screen.getByText(/stop it in REAPER\./)).toBeTruthy();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Open' })));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+
+    expect(recordStop).not.toHaveBeenCalled();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+    expect(dawReleaseBoothMonitor).not.toHaveBeenCalled();
+  });
+
   it('at the end of the chapter the listening ends, nothing is sent to REAPER, and the page keeps REC and Stop until REAPER stops (A4)', async () => {
     const { inDaw, recordStop, session } = mount('recording_here');
     await ready();
@@ -153,7 +228,8 @@ describe('a take started in the DAW', () => {
 
     await stopShown();
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
-    expect(screen.getAllByText(/REC/).length).toBeGreaterThan(0);
+    // The pill says whose take it is, before any key is pressed.
+    expect(screen.getByText('REC · REAPER', { exact: true })).toBeTruthy();
     expect(screen.getAllByText(/\d\d:\d\d/).length).toBeGreaterThan(0);
     // The last take's "Take saved" and Undo are about a take that is over.
     expect(dismissUndo).toHaveBeenCalled();
@@ -201,7 +277,7 @@ describe('a take started in the DAW', () => {
   });
 
   it('Leave on that question leaves and sends REAPER no stop, though the page goes away mid-take (#3666)', async () => {
-    const { inDaw, recordStop, navigate } = mount('recording_here');
+    const { inDaw, recordStop, navigate, dawReleaseBoothMonitor } = mount('recording_here');
     await ready();
     await inDaw(true);
     await stopShown();
@@ -211,6 +287,8 @@ describe('a take started in the DAW', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalled());
     cleanup();
     expect(recordStop).not.toHaveBeenCalled();
+    // Nothing else is sent to REAPER while it records a take the app did not start: not the monitoring release either (the host keeps what is owed).
+    expect(dawReleaseBoothMonitor).not.toHaveBeenCalled();
   });
 
   it('R asks the DAW nothing and says where to roll; Space says where to stop', async () => {

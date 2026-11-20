@@ -85,6 +85,7 @@ export function BoothFooter({
   voice,
   voiceFolders = false,
   takeInDaw = false,
+  dawName,
 }: {
   record: ReactNode;
   seconds: number;
@@ -112,6 +113,8 @@ export function BoothFooter({
   voiceFolders?: boolean;
   /** The running take was started in the DAW: Space and R cannot stop or roll it from here, so their hints are struck through. */
   takeInDaw?: boolean;
+  /** What records, as `recorderName` words it: the struck hints' reasons name it. */
+  dawName?: string;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
@@ -130,6 +133,7 @@ export function BoothFooter({
       // A cold read needs no voice, so the voice keys only explain then and their hints are struck through.
       ...(coldRead?.mode && !recording ? ['coldRead' as const] : []),
     ]),
+    dawName,
   );
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);

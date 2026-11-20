@@ -40,6 +40,8 @@ export type StoppedTake = {
   later?: (raise: () => void) => void;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
+  /** The take was one the DAW started: the app did not save it, so the toast does not say "Take saved". */
+  byDaw?: boolean;
 };
 
 export type PickupSessionModel = {
@@ -131,7 +133,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   );
 
   const takeStopped = useCallback(
-    async ({ began, stopped, quiet = false, survivesMoves, later, undoTake, entry }: StoppedTake): Promise<number> => {
+    async ({ began, stopped, quiet = false, survivesMoves, later, undoTake, entry, byDaw = false }: StoppedTake): Promise<number> => {
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
@@ -153,7 +155,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         return 0;
       }
       if (!quiet || survivesMoves) {
-        const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
+        const text = `${byDaw ? 'The take ended' : 'Take saved'} · ${plural(targets.length, 'pickup')} marked recorded`;
         // Stop and leave: the sentence is shown on the page landed on, with no Undo (an Undo toast goes at the next move, and this one's Undo is #3545's to get right).
         if (quiet) {
           const say = () => overlay.toast(text);

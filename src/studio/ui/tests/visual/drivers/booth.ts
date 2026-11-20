@@ -330,7 +330,7 @@ export const boothDrivers: Record<string, Driver> = {
     await page.clock.pauseAt(REC_START + 1_000);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
-    await page.getByText('REC', { exact: true }).waitFor();
+    await page.getByText('REC · REAPER', { exact: true }).waitFor();
     await page.getByRole('button', { name: /^Stop$/ }).click();
     await page.getByText('REAPER started this take, so stop it in REAPER.').waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

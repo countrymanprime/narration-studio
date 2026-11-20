@@ -26,13 +26,17 @@ export const heldInDawSentence = (daw: DawKind | undefined, what: 'stop it' | 'r
   `${recorderNameCapital(daw)} started this take, so ${what} in ${recorderName(daw)}.`;
 /** The topic of the sentence above: gone when the take ends. */
 export const HELD_TOPIC = 'daw-held';
+/** The topic of the message a refused press of Record leaves up (with Check again): it is about this Booth, so it goes when the Booth does. */
+export const RECORD_BLOCKED_TOPIC = 'record-blocked';
 /** What the Booth says when a press inside that guard is ignored. */
 export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
 
 /** The statuses that say the DAW records: true of the moment of the read only, so they are not kept once the transport says it stopped. */
 const isRecordingStatus = (status: ReadAloudReaperStatus) => status === 'recording_here' || status === 'recording_elsewhere';
 
-function notFollowedOf(match: { status: ReadAloudReaperStatus; armedCount?: number } | null): NotFollowedWhy {
+function notFollowedOf(match: { status: ReadAloudReaperStatus; armedCount?: number } | null, projectLinked: boolean): NotFollowedWhy {
+  // With no project file linked nothing can be matched to this chapter, whatever else the reads say.
+  if (!projectLinked) return 'no_project';
   if (!match || match.status !== 'recording_elsewhere') return 'unread';
   return match.armedCount === 0 ? 'no_track_armed' : (match.armedCount ?? 1) > 1 ? 'several_tracks' : 'other_track';
 }
@@ -94,6 +98,8 @@ export type RecordControlState = {
   dawStatus: ReadAloudReaperStatus | null;
   /** Why a take the DAW holds is not followed: another track is armed, several are, none is, or the lane could not be read yet. Null while nothing is held. */
   notFollowed: NotFollowedWhy | null;
+  /** True while the last read of the DAW's transport failed: `project` is then the last answer, or null if it never answered. */
+  projectFailed: boolean;
   /** True while the last read failed: the picture above is then the last one heard, not the DAW's answer now. */
   readFailed: boolean;
   /** The host's link facts for the setup steps (whether a project file is linked, where the launcher file is), read with the capabilities. */
@@ -120,8 +126,10 @@ export const stoppedInDaw = (daw: DawKind | undefined, why = '') =>
     : `${recorderNameCapital(daw)} stopped recording. The take ended there; press Record to start the next one.`;
 
 /** What the Booth says once a DAW that went quiet during a take answers again: its own take ended when it went quiet, and what the DAW did with the audio is for the narrator to check. */
-const backInDaw = (daw: DawKind | undefined) => {
+const backInDaw = (daw: DawKind | undefined, byDaw: boolean) => {
   const name = recorderNameCapital(daw);
+  // A take the DAW started was only followed: the Booth stopped listening, it did not end anything.
+  if (byDaw) return `${name} answers again. The Booth stopped listening to its take when ${name} went quiet; check in ${name} whether it is still recording.`;
   return `${name} answers again. This window ended its take when ${name} went quiet; check in ${name} whether that take was kept.`;
 };
 
@@ -194,6 +202,8 @@ export function useRecordControl({
   // False from the moment the DAW goes quiet until a read of its transport answers: the project's play state kept from before says nothing of what it does now.
   const [projectHeard, setProjectHeard] = useState(true);
   const [projectAsk, setProjectAsk] = useState(0);
+  // The last read of the transport failed: `project` is then what was last heard, or null; a page that waits for it must not wait for ever.
+  const [projectFailed, setProjectFailed] = useState(false);
   // Which read of the link and of the chapter's lane answered last: `readSeq` numbers the reads as they start, so an answer can be told from one begun before an event.
   const readSeq = useRef(0);
   const [matchSeq, setMatchSeq] = useState(0);
@@ -222,7 +232,7 @@ export function useRecordControl({
   // Whether the DAW answered the last time it was heard, kept apart from state so a transport event in the same tick sees it.
   const reachableRef = useRef<boolean | null>(null);
   // Set when a take ended because the DAW went quiet: the next time it answers, the narrator is told what became of the take.
-  const lostTake = useRef(false);
+  const lostTake = useRef<'app' | 'daw' | null>(null);
   // What `endConfirmed` answers: set where a take ends, so the leave guard can tell a take the DAW ended from a DAW that went quiet. Null (a stop of ours) is confirmed.
   const endCheck = useRef<Promise<boolean> | null>(null);
   const endOpen = useRef(false);
@@ -235,6 +245,7 @@ export function useRecordControl({
     const check: Promise<boolean> = read.then(() => {
       const answering = reachableRef.current !== false;
       if (endCheck.current === check) endOpen.current = !answering;
+      if (answering && !recordingRef.current) setStartedInDaw(false);
       return answering;
     });
     endCheck.current = check;
@@ -260,12 +271,16 @@ export function useRecordControl({
   // A later picture that says the DAW answers while no take runs here settles a take whose end was not known to be with the DAW answering (it went quiet and
   // came back): nothing is left to stop, so leaving is silent again.
   const answeringAgain = (next: DawCapabilities) => {
-    if (next.reachable && !recordingRef.current) endOpen.current = false;
+    if (next.reachable && !recordingRef.current) {
+      endOpen.current = false;
+      setStartedInDaw(false);
+    }
   };
   const hearAgain = (next: DawCapabilities) => {
     if (next.reachable && lostTake.current) {
-      lostTake.current = false;
-      notifyRef.current(backInDaw(next.daw), TAKE_TOPIC);
+      const byDaw = lostTake.current === 'daw';
+      lostTake.current = null;
+      notifyRef.current(backInDaw(next.daw, byDaw), TAKE_TOPIC);
     }
   };
   useEffect(() => {
@@ -349,9 +364,10 @@ export function useRecordControl({
   // Only then: a take this window started and ended is over, whatever the project state it has not yet re-read still says.
   const inApp = recordsInApp(capabilities?.daw);
   const recordedHere = useRef(false);
-  // A quiet DAW keeps the claim (its take may still run and is the app's when it answers again), but a quiet DAW's take is not adopted back meanwhile.
+  // A quiet DAW's take is not adopted back meanwhile. Only the app's own recorder is taken back on its word alone: a DAW's take, the app's own claim on it included,
+  // goes through the same lane and project read as any take the DAW holds (`heldHere`).
   const answering = capabilities?.reachable !== false;
-  const adopt = !recording && answering && projectHeard && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording';
+  const adopt = !recording && answering && projectHeard && inApp && !recordedHere.current && project?.playState === 'recording';
   const wasRecording = useRef(false);
   // In this order: a take that just ended clears the flag before the next effect asks whether to take one back.
   useEffect(() => {
@@ -361,7 +377,7 @@ export function useRecordControl({
   }, [recording]);
   useEffect(() => {
     // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
-    if (!recording && answering && projectHeard && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
+    if (!recording && answering && projectHeard && inApp && !recordedHere.current && project?.playState === 'recording') {
       heardRecording.current = true;
       endCheck.current = null;
       endOpen.current = false;
@@ -372,7 +388,7 @@ export function useRecordControl({
   // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), as the reads above (`link`, `match`) say
   // once they have been made after the take was seen (`readSeq`); any other is "elsewhere". Nothing but this app starts a take of its own recorder.
   // A press in flight owns the transport events of its own start, so it is never taken for a take of the DAW's.
-  const heldInDaw = !recording && !adopt && !inApp && !starting && project?.playState === 'recording';
+  const heldInDaw = !recording && !adopt && !inApp && !starting && projectHeard && project?.playState === 'recording';
   const [startedInDaw, setStartedInDaw] = useState(false);
   const startedInDawRef = useRef(false);
   startedInDawRef.current = startedInDaw;
@@ -392,17 +408,23 @@ export function useRecordControl({
     wasHeld.current = heldInDaw;
   }, [heldInDaw]);
   const read = heldSeq.current < matchSeq && heldSeq.current < linkSeq;
-  const undecided = heldInDaw && readsTracks && !read;
+  // Not decided until the DAW has been heard once (what it reads is not known before), nor before the reads that follow the take have answered.
+  const undecided = heldInDaw && (readsTracks || !capabilities) && !read;
   // A take the Booth stopped following (another lane, another project) is not begun a second time when its lane is armed alone again: the next take is.
   const [abandoned, setAbandoned] = useState(false);
   const heldHere = heldInDaw && read && !abandoned && match?.chapterId === chapterId && match.status === 'recording_here' && link.open === 'same';
   useEffect(() => {
     if (abandoned && project?.playState !== 'recording') setAbandoned(false);
   }, [abandoned, project?.playState]);
+  // Who started the take is kept until its end is confirmed: a DAW that went quiet after the take ended may still be recording, and it is still not the app's to stop.
   useEffect(() => {
-    if (!recording) setStartedInDaw(false);
+    if (!recording && !endOpen.current) setStartedInDaw(false);
   }, [recording]);
   const takeElsewhere = heldInDaw && !undecided && !heldHere;
+  // A claim on a take that is not on this chapter's lane in the linked project is over: that take is the DAW's, and the app sends it no stop.
+  useEffect(() => {
+    if (takeElsewhere) appTakeRunning = false;
+  }, [takeElsewhere]);
   const adoptedSeq = useRef(0);
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -412,6 +434,14 @@ export function useRecordControl({
     endCheck.current = null;
     endOpen.current = false;
     adoptedSeq.current = readSeq.current;
+    // The app's own claim on a take that is on this chapter's lane in the linked project (a Booth left and opened again, a DAW that went quiet and came back): it is
+    // still the app's. Any other take, claim or not, is the DAW's.
+    if (appTakeRunning) {
+      recordingRef.current = true;
+      setStartedInDaw(false);
+      setRecording(true);
+      return;
+    }
     setStartedInDaw(true);
     // Where the take began, as a press's answer gives it: the roll and the passage map count from there: the transport event's position when there was one. A take
     // found already running has no known start: the DAW's play position is where it is now, and the clock counts from here.
@@ -439,6 +469,14 @@ export function useRecordControl({
   useEffect(() => {
     if (!recording) overlay.dismissTopic(HELD_TOPIC);
   }, [recording, overlay]);
+  // Leaving the Booth takes its messages about a take and a refused Record with it: they would follow the narrator to the next page.
+  useEffect(
+    () => () => {
+      overlay.dismissTopic(HELD_TOPIC);
+      overlay.dismissTopic(RECORD_BLOCKED_TOPIC);
+    },
+    [overlay],
+  );
   const refusedForChapter =
     takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
@@ -476,7 +514,7 @@ export function useRecordControl({
     markEnd(read);
     const say = () =>
       void read.then(() => {
-        if (reachableRef.current === false) lostTake.current = true;
+        if (reachableRef.current === false) lostTake.current = byDaw ? 'daw' : 'app';
         if (reachableRef.current === false) notifyRef.current(lostInDaw(daw_), TAKE_TOPIC);
         else {
           // The DAW answers and the take is over: the app's claim on it ends too (a quiet DAW keeps it, its take may still run).
@@ -557,7 +595,7 @@ export function useRecordControl({
   // The DAW answered that it does not record: a claim on a take that was kept through a quiet DAW is dropped (a take that ended while it was quiet is over),
   // so the next take in the DAW is the DAW's and is followed only on this chapter's lane. Not while a press is out or a take runs here.
   const dawAnswersStopped = () => {
-    if (!recordingRef.current && !busy.current && reachableRef.current !== false) appTakeRunning = false;
+    if (!recordingRef.current && !busy.current && reachableRef.current === true) appTakeRunning = false;
   };
   // Where the DAW's take began, as its transport event said it: the play head a later read finds has moved on.
   const transportRecording = useRef(false);
@@ -570,6 +608,7 @@ export function useRecordControl({
         if (transport.recording && !transportRecording.current) seenStart.current = transport.position;
         if (!transport.recording) {
           seenStart.current = undefined;
+          setAbandoned(false);
           dawAnswersStopped();
         }
         transportRecording.current = transport.recording;
@@ -600,10 +639,15 @@ export function useRecordControl({
       .then((state) => {
         if (!current) return;
         setProject(state);
+        setProjectFailed(false);
         setProjectHeard(true);
         if (state.playState !== 'recording') dawAnswersStopped();
       })
-      .catch(() => current && setProject((last) => last));
+      .catch(() => {
+        if (!current) return;
+        setProject((last) => last);
+        setProjectFailed(true);
+      });
     return () => {
       current = false;
     };
@@ -638,7 +682,9 @@ export function useRecordControl({
 
   // The DAW reports a take this app did not start (the narrator pressed Record there): a second start would fight it, so Record says so first.
   const base: ChapterRecordState = match?.chapterId === chapterId ? match : { tracks: 'unread', message: '' };
-  const notFollowed = takeElsewhere ? notFollowedOf(match?.chapterId === chapterId ? match : null) : null;
+  const notFollowed = takeElsewhere
+    ? notFollowedOf(match?.chapterId === chapterId ? match : null, !link.loaded || link.failed || link.facts.dawFileLinked)
+    : null;
   const chapter: ChapterRecordState = { ...base, elsewhere: takeElsewhere, notFollowed };
   const check = capabilities ? recordCheck(capabilities, chapter, link.open) : null;
   const shown = refused?.chapterId === chapterId ? refused.sentence : '';
@@ -648,6 +694,8 @@ export function useRecordControl({
   const reason = check?.reason ?? (shown || quiet);
 
   const gate: RecordBlock | null = check ? { cause: check.code, reason: check.reason } : blind ? { cause: 'unknown', reason: quiet } : null;
+  const undecidedRef = useRef(undecided);
+  undecidedRef.current = undecided;
   const gateRef = useRef(gate);
   gateRef.current = gate;
   const capabilitiesRef = useRef(capabilities);
@@ -706,6 +754,15 @@ export function useRecordControl({
   const toggle = useCallback(
     async (at?: number, how?: { automatic?: boolean; current?: () => boolean }): Promise<boolean> => {
       if (busy.current) return false;
+      // The DAW records and the lane has not been read yet: whether that take is this chapter's is not known, and a start would fight it.
+      if (!recordingRef.current && undecidedRef.current) {
+        const name = recorderNameCapital(capabilitiesRef.current?.daw);
+        block({
+          cause: 'unknown',
+          reason: `${name} is recording a take, and the Booth has not yet checked whether it is this chapter's. Press Record again in a moment.`,
+        });
+        return false;
+      }
       if (!recordingRef.current && gateRef.current) {
         block(gateRef.current);
         return false;
@@ -734,6 +791,8 @@ export function useRecordControl({
             system.bootstrap().catch(() => null),
           );
           if (how?.current && !how.current()) return false;
+          // A take the DAW started while this press was asking is followed (`heldHere`): this press must not start another.
+          if (recordingRef.current) return false;
           if (checked.timedOut) {
             // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
             const sentence = `${recorderNameCapital(capabilitiesRef.current.daw)} could not confirm the open project in time, so no take was started.`;
@@ -753,6 +812,7 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         if (starting) await playTakeTone();
         if (starting && how?.current && !how.current()) return false;
+        if (starting && recordingRef.current) return false;
         // From here the host has the start: a leave can no longer cancel it, so it asks (`starting`) and waits for the answer (`settle`).
         if (starting) setStarting(true);
         let result: DawRecordStart;
@@ -918,6 +978,7 @@ export function useRecordControl({
   return {
     capabilities,
     project,
+    projectFailed,
     recording,
     starting,
     settle,

@@ -215,6 +215,17 @@ describe('a pickup session in the Booth', () => {
     expect(await screen.findByText('Pickups · 3 open')).toBeTruthy();
   });
 
+  it('a take the DAW started is not said to be saved: the toast says it ended', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a', 'c'] });
+    await screen.findByText('Pickups · 2 open');
+    await act(async () => {
+      expect(await stop({ began: 0, stopped: 0, byDaw: true })).toBe(1);
+    });
+    expect(toasts()).toContain('The take ended · 1 pickup marked recorded');
+    expect(toasts()).not.toContain('Take saved · 1 pickup marked recorded');
+  });
+
   it('a-take-that-ran-over-a-line: with a DAW take whose undo is refused, the toast Undo leaves the lines recorded', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a', 'b', 'c'] });

@@ -268,14 +268,18 @@ export function forgetBoothMonitorAsked() {
 /**
  * Leaving the Booth puts back the input monitoring it turned on (only that, and only where the narrator has not changed it since; the DAW holds a
  * restore that waits for a recording to stop). Mounted once per Booth visit, not per chapter, so stepping through chapters keeps one voice monitored at a time
- * without a release between. A DAW that would not answer is said (`say`): the monitoring may still be on there.
+ * without a release between. Nothing is sent while the DAW records a take the app did not start (`skip`). A DAW that would not answer is said (`say`): the monitoring may still be on there.
  */
-export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
+export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void, skip: () => boolean = () => false) {
   const place = usePort('dawPlace');
+  const skipRef = useRef(skip);
+  skipRef.current = skip;
   const sayRef = useRef(say);
   sayRef.current = say;
   useEffect(
     () => () => {
+      // The DAW records a take the app did not start: nothing is sent to it, and the host keeps what is owed for the next entry or leave.
+      if (skipRef.current()) return;
       void place
         .dawReleaseBoothMonitor()
         .then((result) => {

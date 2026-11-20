@@ -23,6 +23,8 @@ export type SuspectedTake = {
   saidSaved?: boolean;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
+  /** The take was one the DAW started: the app did not save it, so the toast does not say "Take saved". */
+  byDaw?: boolean;
 };
 
 const lines = (n: number) => `${formatCount(n)} suspected ${pluralWord(n, 'line')} added to Pickups`;
@@ -43,7 +45,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   latest.current = { chapterId, flags };
 
   const takeStopped = useCallback(
-    async ({ paragraphIds, quiet = false, survivesMoves, later, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
+    async ({ paragraphIds, quiet = false, survivesMoves, later, saidSaved = false, undoTake, entry, byDaw = false }: SuspectedTake): Promise<number> => {
       const { chapterId: chapter, flags: all } = latest.current;
       const read = keptLines(suspectedLines(all, paragraphIds));
       if (read.length === 0) return 0;
@@ -90,7 +92,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       if (refused) overlay.toast(refused, { tone: 'error' });
       if (changed.length === 0 || (quiet && !survivesMoves)) return changed.length;
       const withTake = !saidSaved && undoTake;
-      const text = saidSaved ? lines(changed.length) : `Take saved · ${lines(changed.length)}`;
+      const text = saidSaved ? lines(changed.length) : `${byDaw ? 'The take ended' : 'Take saved'} · ${lines(changed.length)}`;
       // Stop and leave: the sentence is shown on the page landed on, with no Undo (see #3545 for the Undo path).
       if (quiet) {
         const say = () => overlay.toast(text);

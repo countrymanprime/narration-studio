@@ -1191,21 +1191,19 @@ describe('a press the narrator left behind by changing chapter, whose take still
       listeners.add(listener);
       return () => listeners.delete(listener);
     }) as unknown as typeof daw.subscribeTransport;
-    // A page that finds the DAW stopped forgets the app's claim on the take (#3666): a take it reports recording after that is REAPER's, and is followed when the
-    // linked project is the open one and the chapter's lane is the one armed, which this DAW says.
-    const asREAPERs: Partial<NarrationApi> = adoptLate
-      ? {
-          readAloudReaperState: async () => ({
-            status: dawRecording ? 'recording_here' : 'ready',
-            message: '',
-            trackGuid: '{T}',
-            armedCount: 1,
-            playing: dawRecording,
-            recording: dawRecording,
-          }),
-          bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true }),
-        }
-      : {};
+    // The page that opens on the next chapter takes the app's own claim back only on this chapter's lane in the linked project, as any take the DAW holds is (#3666): this
+    // DAW says so. A page that finds the DAW stopped forgets the claim, and a take it reports recording after that is REAPER's, followed on the same terms.
+    const asREAPERs: Partial<NarrationApi> = {
+      readAloudReaperState: async () => ({
+        status: dawRecording ? 'recording_here' : 'ready',
+        message: '',
+        trackGuid: '{T}',
+        armedCount: 1,
+        playing: dawRecording,
+        recording: dawRecording,
+      }),
+      bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true }),
+    };
     const page = mountBooth(host, daw, asREAPERs);
     if (stop === 'refused') page.recordStop.mockResolvedValueOnce(stopRefused as never);
     await ready();
@@ -1226,7 +1224,7 @@ describe('a press the narrator left behind by changing chapter, whose take still
       await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
     }
     await settle();
-    return { host, control, page, push };
+    return { host, control, page, push, asREAPERs };
   };
   const toasted = (page: ReturnType<typeof mountBooth>) => vi.spyOn(page.overlay, 'toast');
   const said = (spy: ReturnType<typeof toasted>) => spy.mock.calls.map(([text]) => text).filter((text) => UNHEARD.test(text));
@@ -1350,11 +1348,14 @@ describe('a press the narrator left behind by changing chapter, whose take still
       const host = fakeHost();
       host.quietFailures();
       let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
-      const { page, push } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+      const { page, push, asREAPERs } = await changeChapterDuringStart('refused', host, {
+        idleAtChange: true,
+        beforeChange: () => void (own = host.holdNextStart()),
+      });
       await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
       page.view.unmount();
       if (takeEndsMeanwhile) await push(false);
-      const back = mountBooth(host, page.daw, {}, search);
+      const back = mountBooth(host, page.daw, asREAPERs, search);
       if (!takeEndsMeanwhile) await screen.findByRole('button', { name: /^Stop$/ });
       else await screen.findByRole('button', { name: /^Record$/ });
       return { host, own, back, push };
@@ -1370,12 +1371,14 @@ describe('a press the narrator left behind by changing chapter, whose take still
     });
 
     it('the take that ends later lets the handed-over listening go, and the claim with it', async () => {
-      const { host, own, back } = await leaveAndReturn();
+      const { host, own, back, push } = await leaveAndReturn();
       await own();
       await settle();
       skipStartGuard();
       await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
       await waitFor(() => expect(back.recordStop).toHaveBeenCalled());
+      // The DAW stops recording, as the stop asked it to (this fake DAW says what it was last pushed).
+      await push(false);
       await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
       await waitFor(() => expect(host.phase()).not.toBe('running'));
       expect(joinListening(), 'a claim outlived the session it was for').toBeNull();
