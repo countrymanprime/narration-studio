@@ -30,7 +30,9 @@ async function recording(page: Page): Promise<void> {
   await pastStartGuard(page);
 }
 
-test('Stop and leave on the question for a take that may still run stops a take REAPER started since, and does not leave it recording', async ({ page }) => {
+test('a take that may still run, then REAPER records a take of its own: the question is asked again as the take the app does not stop, and leaving stops nothing', async ({
+  page,
+}) => {
   await recording(page);
   await daw(page).quiet();
   await page.keyboard.press('Escape');
@@ -38,13 +40,17 @@ test('Stop and leave on the question for a take that may still run stops a take 
   await expect(unconfirmed).toBeVisible();
   await expect(unconfirmed).toContainText('may still be recording');
   await daw(page).heartbeat();
+  // REAPER answered that it was not recording, so the claim on the app's own take is over (#3666); the take it records now is REAPER's.
   await daw(page).startInDaw();
   await expect.poll(() => daw(page).recording()).toBe(true);
-  await enterHoldOver(unconfirmed);
-  await unconfirmed.getByRole('button', { name: 'Stop and leave' }).click();
+  const question = page.getByRole('alertdialog', { name: 'Leave the Booth?' });
+  await expect(question.getByRole('button', { name: 'Stay' })).toBeVisible();
+  await expect(question).toContainText('The app did not start this take');
+  await enterHoldOver(question);
+  await question.getByRole('button', { name: 'Leave', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
-  expect(await stops(page)).toBeGreaterThan(0);
-  expect(await daw(page).recording()).toBe(false);
+  expect(await stops(page)).toBe(0);
+  expect(await daw(page).recording()).toBe(true);
 });
 
 test('a question that says REAPER is recording is asked again, as the unconfirmed one, when the DAW goes quiet', async ({ page }) => {

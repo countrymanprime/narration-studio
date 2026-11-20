@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { CapabilitiesBody } from './CapabilitiesBody';
+import { CapabilitiesRowBody } from './CapabilitiesRowBody';
 import { DefinitionsBody } from './DefinitionsBody';
 import { DeliveryCustomBody, DeliveryDefaultBody, DeliveryProfileBody } from './DeliveryBodies';
 import { EngineBody } from './EngineBody';
@@ -8,7 +8,6 @@ import { MicBody } from './MicBody';
 import { SampleOutputBody } from './SampleOutputBody';
 import { SampleStorageBody } from './SampleStorageBody';
 import { MwKeyBody } from './MwKeyBody';
-import { SyncActivityBody } from './SyncActivityBody';
 import { SyncEnabledBody } from './SyncEnabledBody';
 import { VoicesBody } from './VoicesBody';
 import { TakeToneRowBody } from './TakeToneBody';
@@ -20,11 +19,10 @@ export const RECORDING_CONTROLS: Record<string, ComponentType> = {
   'daw.sampleOutput': SampleOutputBody,
   'daw.sampleStorage': SampleStorageBody,
   'daw.startTone': TakeToneRowBody,
-  'daw.capabilities': CapabilitiesBody,
+  'daw.capabilities': CapabilitiesRowBody,
   'daw.layout': ChapterLayoutBody,
   'daw.sync': SyncEnabledBody,
   'daw.voices': VoicesBody,
-  'daw.syncActivity': SyncActivityBody,
   'voice.dict': DefinitionsBody,
   'voice.mwKey': MwKeyBody,
   'delivery.profile': DeliveryProfileBody,

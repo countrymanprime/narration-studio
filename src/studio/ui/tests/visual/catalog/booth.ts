@@ -126,6 +126,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-starting',
+    description:
+      'Booth for a linked project while the app opens REAPER on it (?mockDawConnected=0&mockDawChoice=starting, #3668): the quiet mark above the footer reads "Starting REAPER…" and no dialog opens; Record stays disabled until REAPER answers',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-connect-closed',
     description:
       'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands under the text and reopens it; Record stays disabled, described by the capability\'s sentence, which the footer does not draw while the mark is up',
@@ -173,6 +180,14 @@ export const boothStates: StateEntry[] = [
     state: 'recording',
     description:
       'Booth, a take running (Record pressed, the page clock paused so the timer reads 00:00): Stop in place of Record, the REC pill beside the setup chip, the resume line gone, and the session section counting the take',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'recording-in-daw',
+    description:
+      "Booth, a take the narrator started in REAPER itself (this chapter's track armed, the mock's default; the page clock paused): the Booth follows it, so Stop and the REC pill show, the footer's Record / stop and Punch and roll hints are struck through, and Stop was pressed once: \"REAPER started this take, so stop it in REAPER.\" (#3666)",
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

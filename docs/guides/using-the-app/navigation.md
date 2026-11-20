@@ -119,6 +119,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 
 - **Green dot, "REAPER"**: the DAW is running with the linked project open.
 - **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on. The panel says so too, with when the app last checked and **Check again**.
+- **Amber dot, "REAPER: Starting"**: the app is opening the DAW on the linked project and is waiting for it to answer. Hover it for "The app is starting it"; the panel says "REAPER is starting." Nothing needs you yet.
 - **Amber dot, "REAPER: Other project"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "REAPER: Not linked"**: nothing is linked yet.
@@ -180,7 +181,7 @@ follows you between projects rather than resetting when you switch.
 
 ## The audio engine panel
 
-Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen.
+Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen; **Show what each recording tool can do** (an icon button) opens the [capabilities list](settings.md#capabilities): what each recording tool can do, and what the linked one does now.
 It holds everything about the REAPER project itself rather than one stage of the work: the linked project
 file, the REAPER tools, chapter sync, the project's tracks and each chapter's link to its track. Close it
 with its close button, Escape or a click beside it. Every "Open the audio engine panel" pointer in the app, in a message or a dialog, opens it over the page you are on and closes the dialog it was in. (It replaced the Tracks page; an old link to that page
@@ -462,7 +463,7 @@ recognize as any chapter's is listed under **Not chapters** so it isn't mistaken
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 
-The log of what each sync did, with an **Undo** icon on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
+What each sync did is not listed in the app: the app keeps it in the project folder for diagnostics. Right after a sync links a track, a message says so with **Undo**, and a link can be removed any time in the chapter links table.
 
 ## What next
 

@@ -243,6 +243,16 @@ describe('suspected lines feed Pickups', () => {
     expect(accepted.size).toBe(0);
   });
 
+  it('a take the DAW started is not said to be saved: the toast says it ended, with the lines the Undo takes back', async () => {
+    const { wrapper } = host();
+    const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper });
+    await act(async () => {
+      await result.current.takeStopped({ ...read('p9'), byDaw: true });
+    });
+    expect(toastUndo).toHaveBeenCalledWith('The take ended · 1 suspected line added to Pickups', expect.any(Function), { entry: expect.any(Number) });
+  });
+
   it('with a DAW take, the toast that says the take is saved undoes the take first; a refusal leaves the lines', async () => {
     const { review, wrapper, accepted } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);

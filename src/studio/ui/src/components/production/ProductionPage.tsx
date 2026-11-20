@@ -40,7 +40,7 @@ import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
 import { useDawConnection } from '../connection/useDawConnection';
 import { useDawStatus } from '../connection/useDawStatus';
-import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
+import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
 import { pickupChapters } from './pipeline/nextUpSources';
@@ -135,10 +135,9 @@ export function ProductionPage({
   refreshBootstrap: () => Promise<void>;
   /** Says a chapter's status or kind changed here, so the chapter list other pages read is read again (`MANUSCRIPT_CHANGED`). */
   onManuscriptChanged?: () => void;
-  /** How long after the app opens an unconnected DAW shows as connecting rather than not running (tests pass 0). */
+  /** How long after the DAW stops answering it shows as connecting rather than not running (tests pass 0). */
   dawConnectGraceMs?: number;
 }) {
-  const settling = useConnectGrace(dawConnectGraceMs);
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
@@ -359,17 +358,7 @@ export function ProductionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {connection.off && (
-        <div className="flex">
-          {settling ? (
-            <p role="status" className="m-0 text-[0.875rem] text-[var(--text-muted)]">
-              Connecting to {caps?.daw ?? 'the DAW'}…
-            </p>
-          ) : (
-            connection.indicator
-          )}
-        </div>
-      )}
+      {connection.off && <div className="flex">{connection.indicator}</div>}
       {connection.dialog}
       <PageHeader
         loading={load.status === 'loading'}

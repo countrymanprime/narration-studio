@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "REAPER is not answering. Check that REAPER is open, then try again.",
+  "undoSteps": 0,
+  "refused": "REAPER is not answering. Check that REAPER is open, then try again."
+}

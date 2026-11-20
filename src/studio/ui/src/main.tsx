@@ -154,7 +154,7 @@ const mockRoomTone = Number.isFinite(mockRoomToneParam) && mockRoomToneParam >= 
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
-// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable` makes
+// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_here|recording_elsewhere|unavailable` makes
 // the read-aloud dialog's REAPER state answer that for every chapter.
 const mockReaperState = MOCK_REAPER_SEEDS.find((seed) => seed === mockParams.get('mockReaperState'));
 // `?mockReaperInput=matched|uncertain|no_match|reaper_no_device` makes the microphone REAPER records from
@@ -166,11 +166,11 @@ const mockReaperInput = MOCK_REAPER_INPUT_SEEDS.find((seed) => seed === mockPara
 const mockResume = MOCK_RESUME_SEEDS.find((seed) => seed === mockParams.get('mockResume'));
 // `?mockRemoved=1`: the last narration chapter boots removed from recording.
 const mockRemoved = mockParams.get('mockRemoved') === '1';
-// `?mockChapterSync=ask|off|linked|unsaved|pickups|activity|background`: chapter sync's consent at boot
-// (`unsaved` is REAPER holding unsaved edits, with a Sync activity row; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is the engine
-// panel's Sync activity with an automatic and a manual link; `background` is a background check waiting because the
+// `?mockChapterSync=ask|off|linked|unsaved|pickups|activity|needs-you|background`: chapter sync's consent at boot
+// (`unsaved` is REAPER holding unsaved edits, with one stored batch; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is a sync that
+// made an automatic and a manual link, `needs-you` the same after the automatic one was undone; `background` is a background check waiting because the
 // heartbeat says REAPER is recording).
-const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
+const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'needs-you', 'background'] as const).find(
   (seed) => seed === mockParams.get('mockChapterSync'),
 );
 // `?mockBackgroundChecks=confirm|running|waiting`: background recording checks at boot (`confirm` shows the first-time notice, `running`

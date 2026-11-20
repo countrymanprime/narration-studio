@@ -83,7 +83,7 @@ func TestNoManuscriptGivesNoPlaces(t *testing.T) {
 	if got := recordedThroughsFor(t.TempDir(), []string{"c1"}, nil, nil); len(got) != 0 {
 		t.Fatalf("got %+v, want none", got)
 	}
-	if got := recordedThroughs("", nil, nil)([]string{"c1"}, nil); got != nil {
-		t.Fatalf("with no project got %+v, want nil", got)
+	if got, fractions := recordedThroughs("", nil, nil)([]string{"c1"}, nil); got != nil || fractions != nil {
+		t.Fatalf("with no project got %+v and %v, want nil", got, fractions)
 	}
 }

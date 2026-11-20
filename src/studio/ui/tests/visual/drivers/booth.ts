@@ -265,6 +265,17 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },
+  // The linked project while the host starts REAPER (#3668): the mark says so and the dialog does not open, however long after the app opened.
+  'record-starting': async (page) => {
+    await openBooth(page, '?mockDawConnected=0&mockDawChoice=starting');
+    await page
+      .locator('#brec-setup')
+      .getByRole('button', { name: /Starting REAPER/ })
+      .waitFor();
+    await page.waitForTimeout(600);
+    if ((await page.getByRole('dialog', { name: /is not connected/ }).count()) > 0)
+      throw new Error('the not-connected dialog opened while the host is starting REAPER');
+  },
   // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
   'record-connect-closed': async (page) => {
     await openBooth(page, '?mockDawConnected=0');
@@ -323,6 +334,18 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   recording: (page) => startTake(page),
+  // A take started in REAPER itself with this chapter's track the one armed: the Booth follows it, and Stop says where to stop it.
+  'recording-in-daw': async (page) => {
+    await readyToRecord(page);
+    await page.clock.install({ time: REC_START });
+    await page.clock.pauseAt(REC_START + 1_000);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.getByText('REC · REAPER', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Stop$/ }).click();
+    await page.getByText('REAPER started this take, so stop it in REAPER.').waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   // Stopped through Stop once the start guard has passed: the take is in the history, and the message offers its Undo.
   'take-saved': async (page) => {
     await startTake(page);

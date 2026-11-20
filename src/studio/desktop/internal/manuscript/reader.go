@@ -76,14 +76,14 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 	paragraphIDs := paragraphIDsByChapter(objects(data["paragraphs"]))
 	recorded, lengths, through := map[string]float64{}, map[string]RecordedLength{}, map[string]recordedthrough.Through{}
 	if measure {
-		recorded, lengths = s.recordedFractions(), s.recordedLengths()
+		lengths = s.recordedLengths()
 		ids := []string{}
 		for _, chapter := range objects(data["chapters"]) {
 			if !isFrontMatter(chapter) {
 				ids = append(ids, text(chapter, "id"))
 			}
 		}
-		through = s.recordedThrough(ids, lengths)
+		through, recorded = s.measured(ids, lengths)
 	}
 	result := make([]map[string]any, 0, len(objects(data["chapters"])))
 	for _, chapter := range objects(data["chapters"]) {

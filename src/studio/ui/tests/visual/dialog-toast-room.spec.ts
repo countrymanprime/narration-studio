@@ -1,8 +1,9 @@
-// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window under 300 px tall (#3605 item 2, #3601, #3549).
-// In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
-// a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
-// wide and 262, 280 and 299 px at 275 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
-// not under the toast. A window 300 px tall or more keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
+// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, at any window size (#3605 items 1 and 2, #3601, #3549).
+// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes) and a long message scrolls inside two lines (2.5rem at 400 px
+// of height or less). At 400 px or less `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it; in a taller window the dialog does not change, since a toast that
+// size fits the 4.75rem under it. Each case opens a dialog under toasts the way the narrator meets them (one and two Undo toasts over New project with its Name field focused; one long
+// error over the status report), then walks the sizes below: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at
+// five points not under the toast. With no toast the dialog's size is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { clickVisible } from './drivers/shared';
@@ -62,7 +63,8 @@ async function problemsOf(page: Page): Promise<string[]> {
   });
 }
 
-const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]');
+// An older Undo toast waits mounted but not drawn (its clock runs), so only the visible ones count.
+const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]:visible');
 
 type Case = { name: string; toasts: number; focusField?: boolean; longText?: boolean; open: (page: Page) => Promise<void> };
 /** New project over `count` Undo toasts (each recent project removed raises one), its Name field focused. */
@@ -100,14 +102,33 @@ const CASES: Case[] = [
   },
 ];
 
-const SIZES: [number, number][] = [[275, 262], [275, 280], [275, 299], ...Array.from({ length: 39 }, (_, step): [number, number] => [320, 261 + step])];
+// #3605 item 2: the rule reaches up to 400 px, where a toast over 100 px tall at 320 wide covered Cancel and Done (320x300-380, 275x300-380, 360x261-380, 400x261-340).
+const SIZES: [number, number][] = [
+  [275, 262],
+  [275, 280],
+  [275, 299],
+  [275, 300],
+  [275, 340],
+  [275, 380],
+  [275, 400],
+  [360, 261],
+  [360, 330],
+  [360, 380],
+  [400, 261],
+  [400, 340],
+  [400, 400],
+  // #3605: above 400 px of height a toast taller than the dialog's static 4.75rem room covered its buttons (401-800 px tall at 275-400 wide; two stacked toasts at 441 wide and more).
+  ...[275, 320, 360, 400, 441, 480, 560, 640].flatMap((width) => Array.from({ length: 14 }, (_, step): [number, number] => [width, 401 + step * 31])),
+  ...Array.from({ length: 60 }, (_, step): [number, number] => [320, 401 + step * 7]),
+  [900, 420],
+  [1440, 900],
+  ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
+];
 
 for (const c of CASES) {
-  test(`a toast never covers or hides the dialog's title, focused field or buttons under 300 px of height: ${c.name}`, async ({ page }) => {
+  test(`a toast never covers or hides the dialog's title, focused field or buttons: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
-    // The stack the case raised is whole in a tall window; under 300 px only the newest shows.
-    expect(await shown(page).count(), `${c.toasts} toast(s) raised`).toBe(c.toasts);
     const problems: string[] = [];
     for (const [width, height] of SIZES) {
       await page.setViewportSize({ width, height });
@@ -119,10 +140,11 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside 2.5rem (40 px) over a dialog, so it never takes the dialog's room.
+      // A long message scrolls inside two lines (2.5rem, 40 px, at 400 px of height or less) over a dialog, so it never takes the dialog's room.
+      const cap = height > 400 ? 41 : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
-      if (text > 41) problems.push(`${width}x${height}: the toast's text is ${text} px high, over 2.5rem`);
-      if (c.longText) {
+      if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
+      if (c.longText && width <= 400) {
         const scrolls = await page.evaluate(() => {
           const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
           return el.scrollHeight > el.clientHeight + 1;
@@ -138,18 +160,63 @@ for (const c of CASES) {
           .evaluate((input) => input === document.activeElement))
       )
         problems.push(`${width}x${height}: the Name field lost focus`);
-      const found = await problemsOf(page);
+      // Above 400 px of height the toast changes nothing in the dialog (the test below), so what its own layout hides there is not the toast's doing: the status report's
+      // Open the folder has no room in its scroll area at 401-432 px of height with or without a toast (#3605).
+      const found = (await problemsOf(page)).filter((problem) => height <= 400 || !/^Open the folder is hidden \(\d+ of 36 px high\)$/.test(problem));
       if (found.length) problems.push(`${width}x${height}: ${found.join('; ')}`);
     }
     expect(problems).toEqual([]);
   });
 }
 
+// Above 400 px of height a toast coming or going moves nothing in the dialog (#3605: no toast may make a layout jump): the popup and its buttons are where they were once the toast is dismissed.
+for (const c of CASES) {
+  test(`a toast going leaves the dialog where it was above 400 px of height: ${c.name}`, async ({ page }) => {
+    page.setDefaultTimeout(20_000);
+    await c.open(page);
+    const boxes = () =>
+      page.evaluate(() => {
+        const popup = [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].pop()!;
+        return [popup, ...popup.querySelectorAll('button')].map((el) => {
+          const box = el.getBoundingClientRect();
+          return [box.top, box.bottom, box.left, box.right].map(Math.round).join(',');
+        });
+      });
+    const withToast: Record<string, string[]> = {};
+    const sizes = [
+      [275, 401],
+      [275, 500],
+      [320, 520],
+      [320, 700],
+      [400, 500],
+      [441, 525],
+      [640, 480],
+      [1440, 900],
+    ] as const;
+    for (const [width, height] of sizes) {
+      await page.setViewportSize({ width, height });
+      await shown(page).first().hover();
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      withToast[`${width}x${height}`] = await boxes();
+    }
+    // Each toast in turn until none is left: an older one takes the newest's place if its time has not run out while it waited.
+    while ((await shown(page).count()) > 0) {
+      await page.getByRole('button', { name: 'Dismiss message' }).click();
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      expect(await boxes(), 'the popup and its buttons as a toast goes').toEqual(withToast[`${sizes.at(-1)!.join('x')}`]);
+    }
+    for (const [width, height] of sizes) {
+      await page.setViewportSize({ width, height });
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      expect(await boxes(), `${width}x${height}: the popup and its buttons with no toast`).toEqual(withToast[`${width}x${height}`]);
+    }
+  });
+}
+
 // The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('under 300 px of height the older toast waits for the newest to go', async ({ page }) => {
+test('over a dialog the older toast waits for the newest to go', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
-  expect(await shown(page).count(), 'a tall window shows the stack').toBe(2);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
@@ -161,15 +228,27 @@ test('under 300 px of height the older toast waits for the newest to go', async 
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
 });
 
-// The rule is for a window with a dialog open, where the dialog needs its chrome: a taller window shows the whole stack again, and with no dialog open an older error and its Retry are not hidden by a newer message.
-test('the whole stack shows in a taller window and when no dialog is open', async ({ page }) => {
+// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove). An Undo toast that waited behind a newer one must not come back afresh after that:
+// its Undo answered "already removed" and restored nothing (qa on #3745). It waits with its clock running, so it is gone by the time the newest has gone.
+test('an Undo toast that waited behind a newer one over a dialog does not come back with a dead Undo', async ({ page }) => {
+  page.setDefaultTimeout(20_000);
+  await undoToasts(2).open(page);
+  await expect(shown(page)).toHaveCount(1);
+  // Past the 6 s the removals wait for an Undo: both toasts' 5 s ran from when they were raised, so none is left to offer one.
+  await page.waitForTimeout(6_500);
+  expect(await shown(page).count(), 'toasts still offering Undo after the removals were sent').toBe(0);
+  await expect(page.getByText(/was already removed from recent projects/)).toHaveCount(0);
+});
+
+// The rule is for a window with a dialog open, where the dialog needs its chrome, at any size: with no dialog open an older error and its Retry are not hidden by a newer message.
+test('the newest toast alone shows over a dialog at any size, and the whole stack when no dialog is open', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
-  await page.setViewportSize({ width: 320, height: 500 });
-  await expect(shown(page)).toHaveCount(2);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(shown(page)).toHaveCount(1);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   expect(await shown(page).first().innerText(), 'the same newest toast again').toBe(first);
@@ -179,7 +258,7 @@ test('the whole stack shows in a taller window and when no dialog is open', asyn
 });
 
 // A toast is inverted (`--toast-bg` is `--text`): a cover or shadow painted in `--surface` on its text box puts a light band under light text (the shared `scroll-y-edges` did, on every toast).
-// In both themes the text box of a toast keeps no `--surface` colour, in a tall window (no scroll cue at all) and in a short one with a dialog open (the cue is in the toast's own colours).
+// In both themes the text box of a toast keeps no `--surface` colour, with a dialog open at any size (the cue is in the toast's own colours) and with none open (no scroll cue at all).
 for (const colorScheme of ['light', 'dark'] as const) {
   test(`a toast's text box never carries the surface colour, ${colorScheme} theme`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
@@ -202,7 +281,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(shown(page)).toHaveCount(1);
       const background = await image();
       expect(background, `${width}x${height}: the text box's background image`).not.toContain(surface);
-      if (height >= 300) expect(background, 'a tall window draws no scroll cue').toBe('none');
     }
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await image(), 'no dialog open draws no scroll cue').toBe('none');
   });
 }

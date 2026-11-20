@@ -1,4 +1,4 @@
-// Alt+Space in the Booth (#3445): the main button switches to its other mode and starts it at once, by the same press as Record and Cold read. From
+// Ctrl+Alt+Space in the Booth (#3445, #3744; it was Alt+Space, which Windows keeps for the window menu): the main button switches to its other mode and starts it at once, by the same press as Record and Cold read. From
 // Record it starts a cold read, from Cold read a take; nothing new while either runs or while a popup has the keyboard; a held chord starts once.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
@@ -33,10 +33,10 @@ const onThePage = (page: Page) =>
     return !el || el === document.body || el.tagName === 'MAIN';
   });
 
-test.describe('Alt+Space switches the main button and starts it', () => {
+test.describe('Ctrl+Alt+Space switches the main button and starts it', () => {
   test('from Record: the button turns to Cold read and a cold read starts; Space then stops it', async ({ page }) => {
     await openBooth(page);
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await expect(coldRunning(page)).toBeVisible();
     await expect(stop(page)).toHaveCount(0);
     expect(await onThePage(page)).toBe(true);
@@ -49,7 +49,7 @@ test.describe('Alt+Space switches the main button and starts it', () => {
   test('from Cold read: the button turns to Record and a take starts; Space then stops it', async ({ page }) => {
     await openBooth(page);
     await chooseColdRead(page);
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await expect(stop(page)).toBeVisible();
     await expect(coldRunning(page)).toHaveCount(0);
     expect(await onThePage(page)).toBe(true);
@@ -63,7 +63,7 @@ test.describe('Alt+Space switches the main button and starts it', () => {
     await openBooth(page);
     await page.keyboard.press('Space');
     await expect(stop(page)).toBeVisible();
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await page.waitForTimeout(500);
     await expect(stop(page)).toBeVisible();
     await expect(coldRunning(page)).toHaveCount(0);
@@ -71,9 +71,9 @@ test.describe('Alt+Space switches the main button and starts it', () => {
 
   test('during a cold read it does nothing new: the cold read goes on and no take starts', async ({ page }) => {
     await openBooth(page);
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await expect(coldRunning(page)).toBeVisible();
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await page.waitForTimeout(500);
     await expect(coldRunning(page)).toBeVisible();
     await expect(stop(page)).toHaveCount(0);
@@ -83,7 +83,7 @@ test.describe('Alt+Space switches the main button and starts it', () => {
     await openBooth(page);
     await chooseColdRead(page);
     await expect(page.getByRole('button', { name: 'Record options' })).toBeFocused();
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await expect(stop(page)).toBeVisible();
     expect(await onThePage(page)).toBe(true);
     await pastStartGuard(page);
@@ -91,7 +91,17 @@ test.describe('Alt+Space switches the main button and starts it', () => {
     await expect(stop(page)).toHaveCount(0);
   });
 
-  test('the footer keeps the room it had: no Alt+Space hint, one row at 1280', async ({ page }) => {
+  // Alt+Space is the window menu's (#3744): the Booth does not use it, so a press of it starts nothing.
+  test('Alt+Space is not the switch: it starts nothing and the mode stays', async ({ page }) => {
+    await openBooth(page);
+    await page.keyboard.press('Alt+Space');
+    await page.waitForTimeout(500);
+    await expect(stop(page)).toHaveCount(0);
+    await expect(coldRunning(page)).toHaveCount(0);
+    await expect(record(page)).toBeVisible();
+  });
+
+  test('the footer keeps the room it had: no Ctrl+Alt+Space hint, one row at 1280', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await openBooth(page);
     const hints = page.locator('#bkeys');
@@ -109,11 +119,13 @@ test.describe('Alt+Space switches the main button and starts it', () => {
   test('a held chord starts once', async ({ page }) => {
     await openBooth(page);
     await chooseColdRead(page);
+    await page.keyboard.down('Control');
     await page.keyboard.down('Alt');
     await page.keyboard.down('Space');
     for (let i = 0; i < 10; i++) await page.keyboard.down('Space');
     await page.keyboard.up('Space');
     await page.keyboard.up('Alt');
+    await page.keyboard.up('Control');
     await expect(stop(page)).toBeVisible();
     await page.waitForTimeout(500);
     await expect(stop(page)).toBeVisible();
@@ -123,16 +135,16 @@ test.describe('Alt+Space switches the main button and starts it', () => {
     await openBooth(page);
     await page.getByRole('button', { name: 'Record options' }).click();
     await expect(page.getByRole('dialog', { name: 'Record options' })).toBeVisible();
-    await page.keyboard.press('Alt+Space');
+    await page.keyboard.press('Control+Alt+Space');
     await page.waitForTimeout(500);
     await expect(stop(page)).toHaveCount(0);
     await expect(coldRunning(page)).toHaveCount(0);
   });
 
-  test('the keydown is handled, so the window menu Alt+Space opens on Windows is not asked for', async ({ page }) => {
+  test('the keydown is handled, so nothing is left for the window to act on', async ({ page }) => {
     await openBooth(page);
     const prevented = await page.evaluate(() => {
-      const event = new KeyboardEvent('keydown', { key: ' ', code: 'Space', altKey: true, bubbles: true, cancelable: true });
+      const event = new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, altKey: true, bubbles: true, cancelable: true });
       document.querySelector('main')?.dispatchEvent(event);
       return event.defaultPrevented;
     });

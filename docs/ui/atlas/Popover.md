@@ -22,6 +22,7 @@ Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popove
 - `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
+- `src/components/primitives/ColourField.tsx`
 - `src/components/primitives/Dialog.tsx`
 - `src/components/primitives/HelpButton.tsx`
 - `src/components/primitives/NavButton.tsx`

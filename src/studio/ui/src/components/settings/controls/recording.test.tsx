@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
-import { DAW_CAPABILITIES } from '../../../api/contracts/daw';
+import { DAW_CAPABILITIES, type DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
@@ -222,9 +222,8 @@ describe('Recording & DAW: Record with', () => {
 
   it('words the Recording tool rows for the chosen DAW: Capabilities is for every DAW and the REAPER-only rows are not shown under Audacity', async () => {
     const audacity = createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } });
-    await renderPage({ api: audacity, category: 'Recording & DAW', advanced: true });
+    await renderPage({ api: audacity, category: 'Recording & DAW' });
     await screen.findByRole('group', { name: 'Audacity connection' });
-    expect(row('daw.capabilities')).toBeTruthy();
     expect(row('daw.reaperPath')).toBeFalsy();
     expect(row('daw.autoLauncher')).toBeFalsy();
     expect(document.body.textContent).not.toMatch(/experimental/i);
@@ -243,7 +242,6 @@ describe('Recording & DAW: Record with', () => {
     fireEvent.click(screen.getByRole('radio', { name: /^Audacity/ }));
     await waitFor(() => expect(row('daw.reaperPath')).toBeFalsy());
     expect(row('daw.autoLauncher')).toBeFalsy();
-    expect(row('daw.capabilities')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /^REAPER\./ }));
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
@@ -274,6 +272,11 @@ describe('Recording & DAW: Record with', () => {
       /The app opened REAPER and connects on its own once REAPER has the project open\. Opened \d+ s ago\./,
     );
     expect(screen.queryByRole('button', { name: 'Start REAPER' })).toBeNull();
+    // The line under the chosen radio agrees with the card: it does not tell the narrator to open REAPER while the app is opening it.
+    expect(screen.getByRole('radio', { name: /^REAPER/ }).closest('label, div')?.parentElement?.textContent ?? document.body.textContent).toContain(
+      'REAPER is starting. The app connects to it by itself.',
+    );
+    expect(document.body.textContent).not.toMatch(/Open REAPER; the app connects/);
   });
 
   it('a bridge problem is the host sentence, under the card', async () => {
@@ -435,15 +438,6 @@ describe('Recording & DAW: Microphone, settings unreadable', () => {
 
 // Alignment audit (XSE2-4, XSE2-6, XSE2-7, R4SE2-11, R3SE2-14).
 describe('Recording & DAW: layout', () => {
-  it('fixes the Capabilities columns and does not repeat the row description under the table', async () => {
-    await renderPage({ category: 'Recording & DAW', advanced: true });
-    const table = await within(row('daw.capabilities')).findByRole('table', { name: /^What .* can do$/ });
-    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '60%']);
-    // Read-only: no Auto / On / Off control in any row.
-    expect(within(table).queryAllByRole('combobox')).toHaveLength(0);
-    expect(row('daw.capabilities').textContent).not.toContain('Auto follows what the recording tool reports.');
-  });
-
   it('draws the connection card on the card surface with its buttons in one row, Test connection last', async () => {
     await renderPage({ category: 'Recording & DAW' });
     const card = await screen.findByRole('group', { name: 'Connection' });
@@ -455,17 +449,57 @@ describe('Recording & DAW: layout', () => {
   });
 });
 
-describe('Recording & DAW: Capabilities', () => {
-  it('lists every capability with what the tool reports now, in the host’s words, and no setting', async () => {
+/** The Capabilities row (App & updates) and the dialog its button opens: the one capability reference, as the audio engine panel opens it too. */
+async function openCapabilities(api: NarrationApi) {
+  await renderPage({ api, category: 'App & updates' });
+  const line = row('daw.capabilities');
+  await userEvent.click(await within(line).findByRole('button', { name: 'See what each tool can do' }));
+  return { line, dialog: await screen.findByRole('dialog', { name: /^What .* can do$/ }) };
+}
+
+describe('App & updates: Capabilities', () => {
+  it('says in one line how much the linked tool does now, and holds no table until it is opened', async () => {
+    await renderPage({ category: 'App & updates' });
+    const line = row('daw.capabilities');
+    expect(await within(line).findByText(/^REAPER does \d+ of 42 things the app asks of it now\.$/)).toBeTruthy();
+    expect(within(line).queryByRole('table')).toBeNull();
+    // Recording & DAW no longer carries it.
+    cleanup();
+    await renderPage({ category: 'Recording & DAW', advanced: true });
+    expect(row('daw.capabilities')).toBeFalsy();
+  });
+
+  it('lists every capability with what it is for, which tools do it and what the tool reports now, in the host’s words, with no setting', async () => {
     const api = createMockApi({}, { daw: { connected: false } });
-    await renderPage({ api, category: 'Recording & DAW', advanced: true });
-    const table = await within(row('daw.capabilities')).findByRole('table', { name: /^What .* can do$/ });
+    const { dialog } = await openCapabilities(api);
+    const table = await within(dialog).findByRole('table', { name: 'What the recording tools can do' });
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(DAW_CAPABILITIES.length + 1));
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '7rem', '7rem', '7rem', '7rem', '10rem']);
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent),
+    ).toEqual([
+      'What',
+      expect.stringMatching(/^REAPER/),
+      expect.stringMatching(/^Audacity 3/),
+      expect.stringMatching(/^Audacity 4/),
+      expect.stringMatching(/^Built-in/),
+      expect.stringMatching(/^Now in /),
+    ]);
     const report = await api.dawCapabilities();
     const recordRow = within(table).getByText('Record').closest('tr')!;
+    expect(within(recordRow).getByText('Arms a chapter’s track and starts and stops recording on it.')).toBeTruthy();
+    expect(within(recordRow).getByText('Used by Booth')).toBeTruthy();
     expect(within(recordRow).getByText('Unavailable')).toBeTruthy();
     expect(within(recordRow).getByText(report.capabilities.record!.message!)).toBeTruthy();
+    // Built-in is the one other tool that records; Audacity 4 has no scripting pipe.
+    expect(within(recordRow).getAllByText('Yes')).toHaveLength(2);
+    expect(within(recordRow).getAllByText('No')).toHaveLength(1);
+    expect(within(recordRow).getAllByText('Not yet')).toHaveLength(1);
+    expect(within(recordRow).getByText('Used by Booth')).toBeTruthy();
     expect(within(recordRow).queryByRole('combobox')).toBeNull();
+    expect(dialog.textContent).not.toMatch(/experimental/i);
   });
 
   it('follows the host’s live report and offers Retry when the first read fails', async () => {
@@ -478,36 +512,37 @@ describe('Recording & DAW: Capabilities', () => {
         return base.dawCapabilities();
       },
     });
-    await renderPage({ api, category: 'Recording & DAW', advanced: true });
-    expect(await within(row('daw.capabilities')).findByText(/bridge unreadable/)).toBeTruthy();
+    const { dialog } = await openCapabilities(api);
+    expect(await within(dialog).findByText(/bridge unreadable/)).toBeTruthy();
+    // The static columns still draw while the live one cannot.
+    expect(within(dialog).getAllByText('Yes').length).toBeGreaterThan(0);
     fail = false;
-    fireEvent.click(within(row('daw.capabilities')).getByRole('button', { name: 'Retry' }));
-    await waitFor(() => expect(within(row('daw.capabilities')).queryByText(/bridge unreadable/)).toBeNull());
-    expect(within(row('daw.capabilities')).getAllByText(/Available|Unavailable/).length).toBeGreaterThan(0);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(within(dialog).queryByText(/bridge unreadable/)).toBeNull());
+    expect(within(dialog).getAllByText(/Available|Unavailable/).length).toBeGreaterThan(0);
   });
-});
 
-describe('Recording & DAW: a failed capability read', () => {
-  it('keeps focus on the page when Retry succeeds and its error line goes away, and on Retry when the read fails again', async () => {
-    let fail = true;
-    const base = createMockApi({}, {});
-    const dawCapabilities = vi.fn(async () => {
-      if (fail) throw new Error('bridge unreadable');
-      return base.dawCapabilities();
+  it('keeps focus on Retry when the read fails again and closes back to the button', async () => {
+    const dawCapabilities = vi.fn<() => Promise<DawCapabilities>>(async () => {
+      throw new Error('bridge unreadable');
     });
     const api = createMockApi({ subscribeDawCapabilities: () => () => undefined, dawCapabilities });
-    await renderPage({ api, category: 'Recording & DAW', advanced: true });
-    const line = row('daw.capabilities');
-    await within(line).findByText(/bridge unreadable/);
-    const retry = within(line).getByRole('button', { name: 'Retry' });
+    const { line, dialog } = await openCapabilities(api);
+    await within(dialog).findByText(/bridge unreadable/);
+    const retry = within(dialog).getByRole('button', { name: 'Retry' });
     const reads = dawCapabilities.mock.calls.length;
     await userEvent.click(retry);
     await waitFor(() => expect(dawCapabilities.mock.calls.length).toBeGreaterThan(reads));
     expect(document.activeElement).toBe(retry);
-    fail = false;
-    await userEvent.click(within(line).getByRole('button', { name: 'Retry' }));
-    await waitFor(() => expect(within(line).queryByText(/bridge unreadable/)).toBeNull());
-    expect(document.activeElement).toBe(screen.getByRole('main'));
+    // A read that then succeeds takes the error line, and the Retry in it, away: focus stays in the dialog, never on <body>.
+    const base = createMockApi({}, {});
+    dawCapabilities.mockImplementation(async () => base.dawCapabilities());
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(within(dialog).queryByText(/bridge unreadable/)).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^What .* can do$/ })).toBeNull());
+    expect(document.activeElement).toBe(within(line).getByRole('button', { name: 'See what each tool can do' }));
   });
 });
 

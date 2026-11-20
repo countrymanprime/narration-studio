@@ -134,6 +134,8 @@ var commandCapability = map[string]dawport.Capability{
 	"arm_only":                   dawport.CapRecord,
 	"arm_lane":                   dawport.CapRecord,
 	"monitor_restore":            dawport.CapRecord,
+	"solo_chapter":               dawport.CapFollowPosition,
+	"solo_restore":               dawport.CapFollowPosition,
 	"record_start":               dawport.CapRecord,
 	"record_stop":                dawport.CapRecord,
 	"switch_voice":               dawport.CapRecord,

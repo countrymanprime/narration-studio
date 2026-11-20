@@ -69,6 +69,8 @@ for (const rows of AREAS) {
 export const SILENT_CATCHES: Record<string, string> = {
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
+  'src/hooks/useDawSoloesChapter.ts#1':
+    "The DAW's quiet around the chapter the Booth is on (dawSoloChapter and dawSoloRestore, Booth.follow_chapter_in_daw): a call that fails leaves the DAW as it was or leaves the chapter soloed, never anything else, and the DAW's own ledger puts a solo it could not be told to put back at the bridge's next start. The one rejection is swallowed so the next call in the order still runs; the page's own DAW notices say whether the DAW answers, and a narrator's action never waits on it.",
   'src/components/editing/lastChapter.ts#1':
     'Reads the chapter Editing last showed from browser storage: storage that is missing or blocked is the same as nothing kept, and Editing opens on its first chapter as it did before the app remembered one.',
   'src/hooks/useDawPullBack.ts#1':
@@ -118,8 +120,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
-  'src/components/editing/ribbon/useRibbonPeaks.ts#1':
-    "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
+  'src/hooks/useRingPrefetch.ts#1':
+    "A background read only warms the caller's own kept data (Editing: the other chapters' waveforms, a failed one not kept); the run goes on, a later run asks again, and the page that needs the data asks for itself and says why it has none.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   // useZoom's three call sites, none of which has anywhere better to send a failure -

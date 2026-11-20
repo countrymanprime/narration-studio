@@ -1,16 +1,18 @@
 import { useEffect, type ReactNode } from 'react';
-import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
+import { DAW_CONNECT_GRACE_MS, useDawConnecting, useReopenOnBridgeProblem } from './useDawConnecting';
 import { useDawStatus } from './useDawStatus';
 import { useOpenOnce } from './useOpenOnce';
+
+const noop = () => undefined;
 
 export interface DawConnectionOptions {
   /** What still works while the DAW is off, said once in the dialog; named for the DAW the capability report gives. */
   stillWorks: (dawName: string) => string;
   /** The chip's element id, for a page that points a skip link or a focus return at it. */
   id?: string;
-  /** How long after the app opens a DAW that has not connected yet is left alone before the dialog opens by itself (tests shorten it). */
+  /** How long after the DAW stops answering it is left alone before the dialog opens by itself, on top of the host's own "starting" (tests shorten it). */
   graceMs?: number;
   /** Told whenever the dialog opens or closes, for a page that holds another dialog while this one is up so two never stack. */
   onDialogOpen?: (open: boolean) => void;
@@ -35,8 +37,9 @@ export interface DawConnection {
  */
 export function useDawConnection({ stillWorks, id = 'dawoff', graceMs = DAW_CONNECT_GRACE_MS, onDialogOpen }: DawConnectionOptions): DawConnection {
   const daw = useDawStatus();
-  const settling = useConnectGrace(graceMs);
-  const state = useOpenOnce(daw.off ? `reaper-off:${daw.dawName}` : null, settling);
+  const connecting = useDawConnecting(Boolean(daw.off), graceMs);
+  const state = useOpenOnce(daw.off ? `reaper-off:${daw.dawName}` : null, connecting.connecting);
+  useReopenOnBridgeProblem(daw.off ? state.reopen : noop);
   const dialogOpen = Boolean(daw.off) && state.open;
   useEffect(() => {
     onDialogOpen?.(dialogOpen);
@@ -45,7 +48,9 @@ export function useDawConnection({ stillWorks, id = 'dawoff', graceMs = DAW_CONN
   return {
     off: true,
     dialogOpen,
-    indicator: <ConnectionIndicator id={id} label={`${daw.dawName} not connected`} onOpen={state.reopen} />,
+    indicator: (
+      <ConnectionIndicator id={id} label={connecting.connecting ? connecting.label(daw.dawName) : `${daw.dawName} not connected`} onOpen={state.reopen} />
+    ),
     dialog: dialogOpen ? (
       <ConnectionResolveDialog
         variant="reaper-off"

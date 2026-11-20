@@ -437,12 +437,18 @@ export interface DawMockControl {
   refuseNextLevel(sentence: string): void;
   /** The next put-back of the Booth's monitoring (`dawReleaseBoothMonitor`) fails with this sentence, as the host says it only when a monitoring is owed. */
   refuseNextRelease(sentence: string): void;
+  /** The next take-off of the chapter solo (`dawSoloRestore`) fails with this sentence, as the host says it only when a solo may be on. */
+  refuseNextRestore(sentence: string): void;
+  /** The chapter has no linked track in the DAW, so `dawSoloChapter` refuses it as the host does. */
+  unlinkChapter(chapterId: string): void;
   /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: DawGoToWhere; seconds: number }[];
   /** The chapters the Booth asked the DAW to arm (`dawArmBoothVoice`), oldest first, and how many times it asked to put the monitoring back (`dawReleaseBoothMonitor`). */
   armed(): { chapterIds: string[]; releases: number };
+  /** The chapter the DAW holds soloed in place for the Booth (`dawSoloChapter`), or '' for none, and how many times it was put back (`dawSoloRestore`). */
+  soloed(): { chapterId: string; restores: number };
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
   syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
@@ -460,8 +466,10 @@ export interface DawMockControl {
   endTakeInDaw(undoSteps?: number): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
-  /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
+  /** Whether the DAW is recording, whoever started it. */
   recording(): boolean;
+  /** Whether the recording that runs is one this app started: the bridge stops and rolls only that one (`RECORD_NOT_OURS` otherwise). */
+  ownTake(): boolean;
   /** While true, events (capabilities, transport, project state) are not delivered; reads still answer. */
   dropEvents(on: boolean): void;
   /** The next record start (or stop) is refused with this sentence, as a full disk or a locked file would. */
@@ -488,6 +496,10 @@ export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & D
 /** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
 const HEARTBEAT_MS = 250;
 
+/** The host's sentence for a restore that could not take the solo off (bindings_daw_solo.go, soloLeftSentence; the golden daw-solo-restore-refused.json pins it). */
+export const SOLO_LEFT_SENTENCE =
+  "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.";
+
 const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 
 export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
@@ -504,12 +516,27 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let monitorLevel = 60;
   let refuseLevel: string | null = null;
   let refuseRelease: string | null = null;
+  let refuseRestore: string | null = null;
+  const unlinked = new Set<string>();
+  // What was asked while the DAW recorded: the DAW applies it right after the stop (narration_solo_chapter.lua's tick). A restore that waits is a
+  // restore, and a solo that waits is a solo that may be on, for the host's debt.
+  let waitingSolo: string | null = null;
+  let waitingRestore = false;
+  const applyWaitingSolo = () => {
+    if (waitingRestore) solo.chapterId = '';
+    if (waitingSolo !== null) solo.chapterId = waitingSolo;
+    waitingSolo = null;
+    waitingRestore = false;
+  };
+  const recordingNow = () => currentTransport(live, currentCapabilities(live)).recording;
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
   // What the Booth asked of the DAW's armed tracks and input monitoring (dawArmBoothVoice, dawReleaseBoothMonitor).
   const armedChapters: string[] = [];
   let monitorReleases = 0;
+  // The chapter soloed in place for the Booth, and the restores the app sent.
+  const solo = { chapterId: '', restores: 0 };
   // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
   const sync: {
     playing: boolean;
@@ -655,10 +682,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     stopInDaw: () => {
       live.transport = { playing: false, recording: false };
+      applyWaitingSolo();
       publish();
     },
     endTakeInDaw: (undoSteps = 1) => {
       live.transport = { playing: false, recording: false };
+      applyWaitingSolo();
       publish();
       for (const on of endedSubs) on({ undoSteps });
     },
@@ -678,6 +707,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       publish();
     },
     recording: () => isRecording() && !!currentCapabilities(live).reachable,
+    ownTake: () => isRecording() && appTake !== null,
     dropEvents: (on) => {
       dropped = on;
     },
@@ -689,6 +719,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     refuseNextRelease: (sentence) => {
       refuseRelease = sentence;
+    },
+    refuseNextRestore: (sentence) => {
+      refuseRestore = sentence;
+    },
+    unlinkChapter: (chapterId) => {
+      unlinked.add(chapterId);
     },
     syncCalls: () => sync.calls.map((call) => ({ ...call })),
     moveInDaw: ({ cursor, head, playing, recording }) => {
@@ -710,6 +746,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     moves: () => moved.map((move) => ({ ...move })),
     armed: () => ({ chapterIds: [...armedChapters], releases: monitorReleases }),
+    soloed: () => ({ ...solo }),
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
@@ -732,6 +769,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return { reason: 'unavailable', message };
       }
       if (kind === 'stop') {
+        // The bridge stops only a take it started.
+        if (isRecording() && appTake === null)
+          return { reason: 'unavailable', message: 'REAPER is not recording anything this app started, so nothing was stopped.' };
         if (!isRecording() && !caps.reachable) return { reason: 'standalone', message: record?.message ?? MESSAGE_NOT_RUNNING_REAPER };
         live.transport = { playing: false, recording: false };
         later(HEARTBEAT_MS, publish);
@@ -819,6 +859,47 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         if (owed) return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
       }
       return { ok: true, changed: owed, message: '', undoSteps: 0 };
+    },
+    // The host's answers (bindings_daw_solo.go): the capability's own sentence when it refuses it, else the chapter is the one soloed; a restore needs no capability.
+    dawSoloChapter: async (chapterId) => {
+      const refusal = followRefusal();
+      if (refusal !== null) return refusedMove(refusal);
+      if (unlinked.has(chapterId)) {
+        // The host asks for the chapter before to be put back and refuses the one without a linked track; while the DAW records the DAW waits.
+        if (recordingNow()) waitingRestore = true;
+        else solo.chapterId = '';
+        return refusedMove('This chapter has no linked track in the DAW.');
+      }
+      // While the DAW records it touches nothing and does it right after the stop: done, nothing changed yet.
+      if (recordingNow()) {
+        waitingSolo = chapterId;
+        return { ok: true, changed: false, message: '', undoSteps: 0 };
+      }
+      waitingSolo = null;
+      const changed = solo.chapterId !== chapterId;
+      solo.chapterId = chapterId;
+      return { ok: true, changed, message: '', undoSteps: 0 };
+    },
+    dawSoloRestore: async () => {
+      // A DAW that does not answer cannot take the solo off: the host refuses when a solo may be on, and says nothing when none is.
+      if (!currentCapabilities(live).reachable && (solo.chapterId !== '' || waitingSolo !== null)) return refusedMove(SOLO_LEFT_SENTENCE);
+      if (recordingNow()) {
+        // While the DAW records it touches nothing; the solo that waits is dropped and the restore is done right after the stop.
+        waitingSolo = null;
+        waitingRestore = solo.chapterId !== '';
+        return { ok: true, changed: false, message: '', undoSteps: 0 };
+      }
+      waitingSolo = null;
+      if (refuseRestore !== null) {
+        const sentence = refuseRestore;
+        refuseRestore = null;
+        // The host (bindings_daw_solo.go) refuses only when a solo may be on; with nothing soloed a failed restore answers done, silently.
+        if (solo.chapterId !== '') return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+      }
+      const changed = solo.chapterId !== '';
+      solo.chapterId = '';
+      solo.restores += 1;
+      return { ok: true, changed, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.

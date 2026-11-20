@@ -23,7 +23,11 @@ type fakeFolderCreator struct {
 
 var _ dawport.FolderTrackCreator = (*fakeFolderCreator)(nil)
 
-func (f *fakeFolderCreator) CreateFolderTrack(_ context.Context, name, childName string) (dawport.CreatedFolder, error) {
+func (f *fakeFolderCreator) CreateFolderTrack(_ context.Context, name string, children ...string) (dawport.CreatedFolder, error) {
+	childName := ""
+	if len(children) > 0 {
+		childName = children[0]
+	}
 	f.folders = append(f.folders, [2]string{name, childName})
 	if f.err != nil {
 		return dawport.CreatedFolder{}, f.err

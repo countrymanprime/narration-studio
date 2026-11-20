@@ -46,12 +46,16 @@ async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningS
   await showChapterTop(page);
 }
 
-test('the stop of a take whose listening failed ends at its limit with a sentence, and Record is free', async ({ page }) => {
+test('the stop of a take whose listening failed ends at its limit with a sentence, and Stop stays for the take that still records', async ({ page }) => {
   await openBooth(page, 'stopNeverAnswers');
   await page.keyboard.press('Space');
   await expect(page.getByText(/The take could not be stopped: REAPER did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
-  await expect(record(page)).toBeVisible();
-  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
+  // The DAW never answered the stop and still says it records on this lane: a non-answer keeps the claim, so the take is still the narrator's to stop
+  // (Record would only be refused). The press is not left busy.
+  const stop = page.getByRole('button', { name: /^Stop$/ });
+  await expect(stop).toBeVisible();
+  await expect(stop).not.toHaveAttribute('aria-busy', 'true');
+  await expect(record(page)).toHaveCount(0);
   expect((await calls(page)).stops).toBe(1);
 });
 
@@ -282,6 +286,15 @@ const installHeldTake = () => {
   const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead, script: null, position: null });
   const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
   w.__NARRATION_MOCK_OVERRIDES__ = {
+    // The fake DAW's take is on the chapter's armed lane in the linked project, as the host answers it (the Booth follows only such a take).
+    readAloudReaperState: async () => ({
+      status: w.__recording ? 'recording_here' : 'ready',
+      message: '',
+      trackGuid: '{11111111-1111-4111-8111-111111111111}',
+      armedCount: 1,
+      playing: w.__recording,
+      recording: w.__recording,
+    }),
     subscribeDawTransport: (listener: (transport: unknown) => void) => (w.__transport.add(listener), () => w.__transport.delete(listener)),
     dawProjectState: async () => ({ savedAt: null, unsavedChanges: false, playState: w.__recording ? 'recording' : 'stopped', playPosition: 0 }),
     teleprompterState: async () => state(),

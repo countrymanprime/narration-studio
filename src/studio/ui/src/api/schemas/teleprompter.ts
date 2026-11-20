@@ -303,7 +303,7 @@ export const teleprompterFlagFindingsSchema = z.array(teleprompterFlagFindingSch
 
 /** `ReadAloudReaperState` (`src/studio/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
 export const readAloudReaperStateSchema = z.object({
-  status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable']),
+  status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_here', 'recording_elsewhere', 'unavailable']),
   reason: z.enum(['unlinked', 'several_links', 'track_missing', 'standalone', 'not_running', 'failed']).optional(),
   message: z.string(),
   trackGuid: z.string().optional(),

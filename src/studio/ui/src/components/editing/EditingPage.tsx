@@ -22,7 +22,7 @@ import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from '../connection/useDawStatus';
 import { useDawConnection } from '../connection/useDawConnection';
-import { DAW_CONNECT_GRACE_MS } from '../production/pipeline/dawConnectGrace';
+import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
 import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';
@@ -163,7 +163,7 @@ function EditingLoaded({
   useEffect(() => {
     if (projectFolder && shownId && chaptersOf === projectFolder) saveEditingChapter(projectFolder, shownId);
   }, [projectFolder, shownId, chaptersOf]);
-  // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
+  // The other chapters' waveforms are read in the background, the nearest first, so a step or a jump is drawn at once.
   usePrefetchPeaks(
     list.map((c) => c.id),
     chapter?.id,

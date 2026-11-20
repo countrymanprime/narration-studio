@@ -1,3 +1,4 @@
+import { startingStatement } from '../../daw/dawSession';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,6 +13,7 @@ import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { AudacityLinkCard } from './AudacityLinkCard';
 import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
+import { CapabilityReferenceButton } from './CapabilityReferenceButton';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { LayoutToggle, VoicesCard } from './VoicesCard';
 import { VoiceLayoutContext } from './voiceLayout';
@@ -20,6 +22,7 @@ import { DAW_TOOL_GROUPS } from './dawTools';
 import { DawToolsMenu } from './DawToolsMenu';
 import { useChapterLinks } from './useChapterLinks';
 import { useAudacityLink } from './useAudacityLink';
+import { useDawStarting } from '../../daw/useDawSession';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
@@ -176,7 +179,8 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <CapabilityReferenceButton />
           <IconButton action="gear" label="Recording settings" onClick={onOpenRecordingSettings} />
         </div>
         {forAudacity ? (
@@ -256,6 +260,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
   const notRunning = link.dawFileLinked && !link.dawReachable;
+  const starting = useDawStarting();
   // While the picker asks which of several files to read, the list is the choice: a second "link a file" route above it is left out (R3EN2-5).
   const picking = !!discovery && !discovery.selected && discovery.candidates.length > 1;
   return (
@@ -278,11 +283,11 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
           </div>
         )}
         {notRunning && (
-          // The panel opens from a chip that says "Not running", so it says so too, with when the app last checked and a way to ask again.
+          // The panel opens from a chip that says "Not running" (or "Starting" while the host opens it), so it says so too, with when the app last checked and a way to ask again.
           <InsetCard tone="warn" fill className="space-y-2">
             <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
               <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
-              <span>REAPER is not running.</span>
+              <span>{starting ? startingStatement('REAPER') : 'REAPER is not running.'}</span>
             </p>
             <CheckLine waiting="Waiting for REAPER to start" unknown="REAPER is not running" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">

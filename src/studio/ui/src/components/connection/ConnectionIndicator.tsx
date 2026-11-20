@@ -2,7 +2,8 @@ import { HeaderChip } from '../primitives/HeaderChip';
 
 /**
  * The quiet mark that stands where the red banner stood: a neutral chip with the condition in a few words, which reopens the dialog that
- * explains it and offers the fix. It never draws more than one line and is not a live region: the dialog is what says it.
+ * explains it and offers the fix. It never draws more than one line and is not a live region: the dialog is what says it. It has no reserved width: a slot wide enough for the
+ * longest label (the connecting one) squeezed the Editing legend at 1024 px, so the controls beside it move a few pixels when the label changes (#3668).
  */
 export function ConnectionIndicator({ label, onOpen, id }: { label: string; onOpen: () => void; id?: string }) {
   return (

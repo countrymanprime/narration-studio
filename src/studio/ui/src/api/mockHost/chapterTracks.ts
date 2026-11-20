@@ -29,6 +29,7 @@ export function createChapterTracksMock(
     manuscriptReady,
     dawFileLinked,
     peekCoverage,
+    dawRecording = () => false,
     chaptersWithCredits,
     voiceLayout,
   }: {
@@ -37,6 +38,8 @@ export function createChapterTracksMock(
     voiceLayout: () => Promise<VoiceTracksLayout>;
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
+    /** Whether the DAW records now (a take started in it by hand, or the app's own): the host refuses to add or move tracks then. */
+    dawRecording?: () => boolean;
     /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
     chaptersWithCredits: () => ManuscriptChapter[];
   },
@@ -94,14 +97,15 @@ export function createChapterTracksMock(
     }));
     return { outcome: 'nested', moves, expected: moves.map((move) => move.trackGuid) };
   };
+  // `activity` is a sync that linked Chapter 1 by itself and Chapter 2 by the narrator; `needs-you` is the same after the narrator undid the automatic link.
+  const activitySeed = initial.chapterSync === 'activity' || initial.chapterSync === 'needs-you';
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
   let chapterSyncDecidedAt: string | null = chapterSyncConsent === 'undecided' ? null : '2026-09-24T09:00:00Z';
-  let chapterSyncLastSync: string | null =
-    initial.chapterSync === 'activity'
-      ? '2026-09-24T10:42:00Z'
-      : chapterSyncConsent === 'on' && initial.chapterSync !== 'linked'
-        ? '2026-09-24T09:00:00Z'
-        : null;
+  let chapterSyncLastSync: string | null = activitySeed
+    ? '2026-09-24T10:42:00Z'
+    : chapterSyncConsent === 'on' && initial.chapterSync !== 'linked'
+      ? '2026-09-24T09:00:00Z'
+      : null;
   const chapterSyncRejected = new Set<string>();
   // Background recording checks (src/studio/desktop/coverage_background.go): the `backgroundChecks` seed, then what the narrator saves.
   const background: ChapterSyncBackground = {
@@ -120,15 +124,15 @@ export function createChapterTracksMock(
   };
   const mockBackground = (): ChapterSyncBackground => ({ ...background });
   const chapterSyncUnsavedEdits = initial.chapterSync === 'unsaved';
-  // The Sync activity list, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
+  // The stored sync batches, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
   let chapterSyncActivity: ChapterSyncBatch[] =
     initial.chapterSync === 'unsaved'
       ? [{ at: '2026-09-24T09:05:00Z', trigger: 'watch', linked: [], newTracks: [{ guid: '{mock-room-tone}', name: 'Room tone', index: 9, marker: '' }] }]
-      : initial.chapterSync === 'activity'
+      : activitySeed
         ? mockSyncActivity()
         : [];
   // The activity seed's links: Chapter 1 by sync (its Undo shows), Chapter 2 by the narrator ("…automatically, 1 by you").
-  if (initial.chapterSync === 'activity') {
+  if (activitySeed) {
     const [first, second] = project.tracks;
     s.chapterTrackMappings = [
       {
@@ -148,6 +152,14 @@ export function createChapterTracksMock(
         match: null,
       },
     ];
+  }
+  // Undone: the automatic link is gone and sync will not make it again, so the chapter waits in "Needs you".
+  if (initial.chapterSync === 'needs-you') {
+    const undone = s.chapterTrackMappings.find((mapping) => mapping.origin === 'auto');
+    if (undone) {
+      s.chapterTrackMappings = s.chapterTrackMappings.filter((mapping) => mapping !== undone);
+      chapterSyncRejected.add(`${undone.trackGuid}\u0000${undone.chapterTitle}`);
+    }
   }
   const chapterSyncSubscribers = new Set<(state: ChapterSyncState) => void>();
   const mockLinksRead = () => {
@@ -317,7 +329,7 @@ export function createChapterTracksMock(
           reason: 'name_taken' as const,
           message: `REAPER already has a ${taken.isFolder ? 'folder' : 'track'} named “${taken.name.trim()}”. Link that one with the picker instead of adding another.`,
         };
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal) return refusal;
       const next = () => {
         s.createdTracks += 1;
@@ -359,13 +371,13 @@ export function createChapterTracksMock(
     // linked chapters' tracks sit inside the first linked chapter's folder until a repair the narrator confirmed moves them out.
     chapterFoldersCheck: async () => {
       await manuscriptReady;
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
       return wireClone(nestedPlan());
     },
     chapterFoldersRepair: async (expected) => {
       await manuscriptReady;
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
       const plan = nestedPlan();
       if (expected.join(',') !== plan.expected.join(',')) {
@@ -481,7 +493,7 @@ export function createChapterTracksMock(
   return { bindings, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
 }
 
-/** The activity seed's Sync activity, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
+/** The activity seed's stored batches, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
 function mockSyncActivity(): ChapterSyncBatch[] {
   const [first] = WIRE_TRACKS_PROJECT.tracks;
   const chapter = WIRE_CHAPTERS[0];
@@ -522,13 +534,17 @@ function mockSyncActivity(): ChapterSyncBatch[] {
 
 /** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
 // Only the connection refusals a seed can stage, so the chapter-folder check can answer them too (its reasons are a subset of a create's).
-function mockCreateRefusal(seed: MockApiSeed['reaperState']): { outcome: 'refused'; reason: 'standalone' | 'recording'; message: string } | null {
+function mockCreateRefusal(
+  seed: MockApiSeed['reaperState'],
+  recordingNow = false,
+): { outcome: 'refused'; reason: 'standalone' | 'recording'; message: string } | null {
   if (seed === 'unavailable')
     return {
       outcome: 'refused',
       reason: 'standalone',
       message: 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.',
     };
-  if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
+  if (seed === 'recording_elsewhere' || recordingNow)
+    return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
   return null;
 }

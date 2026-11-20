@@ -4,6 +4,9 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { retryAction } from '../../primitives/Toast';
+import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
+import { HELD_TOPIC } from '../record/useRecordControl';
+import { takeToastOpener } from '../record/takeWords';
 import { usePort } from '../../../ports/usePort';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
@@ -24,6 +27,8 @@ export type PickupSessionOptions = {
   blocked?: () => boolean;
   /** The line the session was on before the page changed chapter under it; left out: the first line. */
   initialAt?: string | null;
+  /** Why a jump is refused while a take records (a take the DAW started is stopped there); absent, "Not while recording. Stop the take first.". */
+  whileRecording?: string;
 };
 
 /**
@@ -40,6 +45,8 @@ export type StoppedTake = {
   later?: (raise: () => void) => void;
   undoTake?: () => Promise<Result<unknown>>;
   entry?: number;
+  /** The take was one the DAW started: the app did not save it, so the toast does not say "Take saved". */
+  byDaw?: boolean;
 };
 
 export type PickupSessionModel = {
@@ -64,7 +71,7 @@ export type PickupSessionModel = {
  * host to its marker, a refusal being the answer. `N` and `Shift+N` are registered only while a session runs.
  */
 export function usePickupSession(options: PickupSessionOptions): PickupSessionModel {
-  const { ids, chapterId, units, recording, onJump, blocked, initialAt = null } = options;
+  const { ids, chapterId, units, recording, onJump, blocked, initialAt = null, whileRecording } = options;
   const pickups = usePort('pickups');
   const overlay = useOverlay();
   const journal = useJournalOrOwn();
@@ -92,8 +99,8 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   const at = active ? (lines.find((item) => item.id === picked)?.id ?? lines[0]?.id ?? null) : null;
   const bars = useMemo(() => pickupBars(lines, chapterId), [lines, chapterId]);
 
-  const latest = useRef({ lines, at, units, chapterId, recording, onJump, blocked });
-  latest.current = { lines, at, units, chapterId, recording, onJump, blocked };
+  const latest = useRef({ lines, at, units, chapterId, recording, onJump, blocked, whileRecording });
+  latest.current = { lines, at, units, chapterId, recording, onJump, blocked, whileRecording };
 
   const take = useCallback((answer: PickupList) => setList(answer.pickups), []);
 
@@ -102,7 +109,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
       const now = latest.current;
       if (!line) return;
       if (now.recording) {
-        overlay.toast('Stop recording first.');
+        overlay.toast(now.whileRecording ?? NOT_WHILE_RECORDING, { topic: HELD_TOPIC });
         return;
       }
       if (now.blocked?.()) return;
@@ -131,7 +138,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   );
 
   const takeStopped = useCallback(
-    async ({ began, stopped, quiet = false, survivesMoves, later, undoTake, entry }: StoppedTake): Promise<number> => {
+    async ({ began, stopped, quiet = false, survivesMoves, later, undoTake, entry, byDaw = false }: StoppedTake): Promise<number> => {
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
@@ -153,7 +160,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         return 0;
       }
       if (!quiet || survivesMoves) {
-        const text = `Take saved · ${plural(targets.length, 'pickup')} marked recorded`;
+        const text = `${takeToastOpener(byDaw)} · ${plural(targets.length, 'pickup')} marked recorded`;
         // Stop and leave: the sentence is shown on the page landed on, with no Undo (an Undo toast goes at the next move, and this one's Undo is #3545's to get right).
         if (quiet) {
           const say = () => overlay.toast(text);

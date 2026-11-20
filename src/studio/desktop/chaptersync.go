@@ -9,6 +9,7 @@ import (
 
 	"desktop/internal/chaptermatch"
 	"desktop/internal/chaptersync"
+	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 	"desktop/internal/project"
 	"desktop/internal/tracks"
@@ -310,6 +311,10 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 	}
 	check := in.svc.coverage
 	alignment := coverageSettings(in.svc.settings).Alignment
+	var pass coverage.Pass
+	if check != nil {
+		pass = check.Pass() // one listing of the ledger answers every chapter
+	}
 	for _, chapter := range in.chapters {
 		row := chapterSyncChapter{ChapterID: chapter.ID, ChapterTitle: chapter.Title, Freshness: string(evidence.StateNever), Reasons: []string{}}
 		if link, ok := linkOf[chapter.ID]; ok {
@@ -326,7 +331,7 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)
-			if result, err := check.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
+			if result, err := pass.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
 				row.Freshness = string(result.State)
 				if result.Reasons != nil {
 					row.Reasons = result.Reasons
@@ -495,6 +500,11 @@ func (h *Host) runChapterSync(trigger string) (chapterSyncState, error) {
 	}
 	if err := chaptersync.NewStore(in.svc.config.projectFolder).Write(plan.Snapshot, entries...); err != nil {
 		return chapterSyncState{}, err
+	}
+	// One host-log line for each sync that did something (#3671), counts only: no chapter or track name or path. It stays in logs/host.log
+	// (Settings > Open log folder) after a re-import clears the project's stored list; the diagnostics bundle leaves host.log out.
+	if batch != nil && h.log != nil {
+		_ = h.log.Report("chapter_sync", fmt.Sprintf("%s: linked %d, new tracks %d", trigger, len(written), len(newUnmatched)))
 	}
 	state := in.stateOf(plan, kept, planned)
 	state.Counts.Linked = len(kept) + len(written)

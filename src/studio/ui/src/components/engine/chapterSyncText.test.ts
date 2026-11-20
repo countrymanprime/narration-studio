@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterSyncNeedsYou, ChapterSyncPickupTrack, ChapterSyncTrackRef } from '../../api/contracts/chapterSync';
 import {
-  chapterSyncActivityRows,
   chapterSyncBackgroundWaitText,
   chapterSyncNotChaptersText,
   chapterSyncPanelNotChaptersText,
@@ -183,45 +182,6 @@ describe('chapterSyncSummaryFacts', () => {
     expect(
       chapterSyncSummaryFacts({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 0, daw: { daw: 'Audacity', linkedFile: null } }, now).synced,
     ).toBe('Not synced yet');
-  });
-});
-
-describe('chapterSyncActivityRows', () => {
-  const link = (chapterId: string, chapterTitle: string, trackGuid: string) => ({
-    chapterId,
-    chapterTitle,
-    trackGuid,
-    confirmedAt: '',
-    origin: 'auto' as const,
-  });
-  it('writes one line per link and new track, and one for the first sync', () => {
-    const rows = chapterSyncActivityRows(
-      [
-        { at: '2026-09-28T10:42:00Z', trigger: 'watch', linked: [link('c11', 'Chapter 11', 'g11')], newTracks: [] },
-        { at: '2026-09-27T10:00:00Z', trigger: 'watch', linked: [], newTracks: [{ guid: 'g0', name: 'Room tone', index: 9, marker: '' }] },
-        { at: '2026-09-22T09:00:00Z', trigger: 'consent', linked: Array.from({ length: 8 }, (_, i) => link(`c${i}`, `Chapter ${i}`, `g${i}`)), newTracks: [] },
-        { at: '2026-09-21T09:00:00Z', trigger: 'undo', linked: [], newTracks: [] },
-      ],
-      (guid) => (guid === 'g11' ? 'Ch. 11' : ''),
-    );
-    expect(rows.map((row) => row.text)).toEqual(['Linked “Ch. 11” to Chapter 11', 'New track “Room tone”, not a chapter', 'First sync: 8 chapters linked']);
-    expect(rows[0].undoTrackGuid).toBe('g11');
-    expect(rows[1].undoTrackGuid).toBe('');
-    expect(rows[2].at).toBe('2026-09-22T09:00:00Z');
-  });
-
-  it('falls back when the track’s name is no longer known', () => {
-    const rows = chapterSyncActivityRows([{ at: '2026-09-28T10:42:00Z', trigger: 'import', linked: [link('c2', 'Chapter 2', 'g2')], newTracks: [] }], () => '');
-    expect(rows[0].text).toBe('Linked a track to Chapter 2');
-  });
-
-  // #3357: a name of spaces or zero-width characters is truthy but draws nothing.
-  it('names a track whose name draws nothing "Unnamed track" in the linked line', () => {
-    const rows = chapterSyncActivityRows(
-      [{ at: '2026-09-28T10:42:00Z', trigger: 'import', linked: [link('c2', 'Chapter 2', 'g2')], newTracks: [] }],
-      () => ' \u200B ',
-    );
-    expect(rows[0].text).toBe('Linked “Unnamed track” to Chapter 2');
   });
 });
 

@@ -1,8 +1,9 @@
 import { fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
-// Settings' overlays are dialogs the catalog already reaches (tests/visual/drivers/settings.ts).
+// Settings' overlays are dialogs, and the colour swatches of an entry type, that the catalog already reaches (tests/visual/drivers/settings.ts).
 export const settingsCases: OverlayCase[] = [
   fromState('settings', 'marks-dialog'),
+  fromState('settings', 'project-type-colour', 'popover'),
   fromState('settings', 'delivery-profile-editor'),
   fromState('settings', 'diagnostics-preview'),
   fromState('settings', 'about-download-confirm'),

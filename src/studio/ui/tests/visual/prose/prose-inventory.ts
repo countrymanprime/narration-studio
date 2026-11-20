@@ -64,7 +64,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/booth/record/RecordSetup.tsx',
-    text: 'A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
+    text: '…A take would not land in the project linked here. Open the linked project in …, or link the open project.',
     class: 'error',
   },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
@@ -175,6 +175,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'replaces audio when it cuts, so the audio around the cut is backed up first.',
     class: 'overlay',
   },
+  { file: 'components/engine/CapabilityReferenceDialog.tsx', text: 'The recording tool’s capabilities could not be read: ….', class: 'error' },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
@@ -429,7 +430,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/BackupsSection.tsx', text: 'The backups settings could not be read: ….', class: 'error' },
   { file: 'components/settings/BackupsSection.tsx', text: 'The change was not saved: ….', class: 'error' },
-  { file: 'components/settings/CapabilitySection.tsx', text: "The DAW's capabilities could not be read: ….", class: 'error' },
   {
     file: 'components/settings/CreditsPanel.tsx',
     text: 'The global narrator default is …; a narrator override here applies only to this project.',
@@ -478,7 +478,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The app is free software, licensed under the GNU Affero General Public License, version 3 or later.',
     class: 'state',
   },
-  { file: 'components/settings/controls/CapabilitiesBody.tsx', text: 'The recording tool’s capabilities could not be read: ….', class: 'error' },
   { file: 'components/settings/controls/DeliveryBodies.tsx', text: 'None checked. Master &amp; QC measures but does not judge.', class: 'state' },
   {
     file: 'components/settings/controls/EngineBody.tsx',
@@ -592,11 +591,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/connection/ReaperOffDialog.tsx',
     text: 'The project is linked, but … has not connected: it is closed, or its bridge has not started yet.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/connection/ReaperOffDialog.tsx',
-    text: 'This app opened … on the linked project and is waiting for its bridge to answer.',
     class: 'overlay',
   },
   {

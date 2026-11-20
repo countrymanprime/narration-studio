@@ -59,7 +59,7 @@ function renderPage(
 }
 
 describe('the DAW connection chip (#2823)', () => {
-  it('shows the shared REAPER-not-connected chip in the list header while the DAW is away', async () => {
+  it('shows the shared REAPER connection chip ("Connecting" while the app is still connecting) in the list header while the DAW is away', async () => {
     renderPage(
       createMockApi({
         pickupsList: () => Promise.resolve(LIST),
@@ -67,7 +67,7 @@ describe('the DAW connection chip (#2823)', () => {
         subscribeDawCapabilities: () => () => undefined,
       }),
     );
-    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Connecting to REAPER/, hidden: true })).toBeTruthy();
   });
 });
 
