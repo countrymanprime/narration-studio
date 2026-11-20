@@ -932,7 +932,7 @@ func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
 }
 
 // armCreatedTrack arms the track a ChapterTrackCreate just made, and monitors it when Booth.follow_chapter_in_daw is on, on every screen that creates one
-// (the Booth's link dialog, the Engine panel, Chapter links, Editing and Production): a created track is armed (#3670). The voice is armed when the
+// (the Booth's link dialog, the Engine panel, Chapter links and Editing): a created track is armed (#3670). The voice is armed when the
 // new track is a folder with a Narrator child, else the track itself. A refusal leaves the track added and linked and says so in ArmMessage.
 func (h *Host) armCreatedTrack(svc hostServices, created any) any {
 	made, ok := created.(chapterTrackCreated)
@@ -945,6 +945,9 @@ func (h *Host) armCreatedTrack(svc hostServices, created any) any {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
 	defer cancel()
+	if h.readAloudRecordingActive() || h.recordStarting() {
+		return made // a take of this app is starting or running: arming another track would move its arm
+	}
 	armer, ok := recorderFrom(svc).(dawport.LaneArmer)
 	if !ok {
 		return made // no DAW linked, or one with no armed tracks: nothing to arm

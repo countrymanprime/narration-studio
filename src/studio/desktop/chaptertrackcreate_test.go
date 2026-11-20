@@ -324,18 +324,18 @@ func TestContractChapterTrackCreate(t *testing.T) {
 	}
 	pin(t, "chapter-track-create-folder", folders.config.projectFolder, createdFolder)
 
-	// A created track the DAW would not arm (#3670): the same answer with armMessage.
+	// A created track the DAW would not arm (#3670): the answer the binding gives, its armMessage written by the host itself.
 	armHost, armIDs := newTestHostForChapterMatch(t)
-	armed, err := chapterTrackCreateIn(context.Background(), armHost.services(), &fakeCreator{index: 3}, createAvailable(), armIDs[1])
+	hostWithArmingDAW(t, armHost, &fakeCreator{index: 3}, &fakeLaneRecorder{laneErr: bridge.ErrRecording})
+	rawArmed, err := armHost.ChapterTrackCreate(armIDs[1])
 	if err != nil {
 		t.Fatal(err)
 	}
-	if made, ok := armed.(chapterTrackCreated); ok {
-		made.ArmMessage = "The track “Chapter 2” was added and linked, but REAPER did not arm it: REAPER is already recording."
-		pin(t, "chapter-track-create-arm-refused", armHost.config.projectFolder, made)
-	} else {
-		t.Fatalf("answer %T", armed)
+	var armedPayload any
+	if err := json.Unmarshal([]byte(rawArmed), &armedPayload); err != nil {
+		t.Fatal(err)
 	}
+	pin(t, "chapter-track-create-arm-refused", armHost.config.projectFolder, armedPayload)
 
 	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))})
 	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[2])

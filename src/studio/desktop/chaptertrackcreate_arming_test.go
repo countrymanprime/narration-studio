@@ -88,3 +88,37 @@ func TestChapterTrackCreateInVoiceFoldersArmsTheNarratorNotTheFolder(t *testing.
 		t.Fatalf("armed %v monitor %v, want the Narrator child armed with monitoring", recorder.laneArmed, recorder.laneMonitor)
 	}
 }
+
+// With "DAW follows your chapter" off the new track is still armed, without monitoring.
+func TestChapterTrackCreateWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	off := "false"
+	if err := host.saveSettings("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
+		t.Fatal(err)
+	}
+	recorder := &fakeLaneRecorder{}
+	hostWithArmingDAW(t, host, &fakeCreator{}, recorder)
+	if _, err := host.ChapterTrackCreate(ids[0]); err != nil {
+		t.Fatal(err)
+	}
+	if len(recorder.laneArmed) != 1 || recorder.laneMonitor[0] {
+		t.Fatalf("armed %v monitor %v, want armed once without monitoring", recorder.laneArmed, recorder.laneMonitor)
+	}
+}
+
+// A take of this app starting or running keeps its arm: the create does not move it.
+func TestChapterTrackCreateDuringATakeArmsNothing(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	recorder := &fakeLaneRecorder{}
+	hostWithArmingDAW(t, host, &fakeCreator{}, recorder)
+	host.mu.Lock()
+	host.readAloudStarting++
+	host.mu.Unlock()
+	raw, err := host.ChapterTrackCreate(ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decodeBinding(t, raw)["outcome"] != "created" || len(recorder.laneArmed) != 0 {
+		t.Fatalf("answer %s armed %v", raw, recorder.laneArmed)
+	}
+}
