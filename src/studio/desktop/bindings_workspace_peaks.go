@@ -128,11 +128,16 @@ func itemPeaks(whole func(file string) sourcePeaks, project tracks.Project, item
 	if item.Length <= 0 {
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item has no played range"}
 	}
+	// The range is refused before the source is read, so a bad range answers the same reason whatever the source is.
+	rng := measure.Range{StartSeconds: item.SourceStart, LengthSeconds: item.Length * item.PlayRate}
+	if rng.Validate() != nil {
+		return WorkspacePeaksItem{Index: item.Index, Reason: "this item's waveform could not be computed"}
+	}
 	source := whole(take.SourceFile)
 	if source.reason != "" {
 		return WorkspacePeaksItem{Index: item.Index, Reason: source.reason}
 	}
-	peaks, err := measure.SlicePeaks(source.whole, measure.Range{StartSeconds: item.SourceStart, LengthSeconds: item.Length * item.PlayRate})
+	peaks, err := measure.SlicePeaks(source.whole, rng)
 	if err != nil {
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item's waveform could not be computed"}
 	}

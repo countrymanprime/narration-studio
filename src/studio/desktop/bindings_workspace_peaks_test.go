@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"desktop/internal/coverage"
+	"desktop/internal/tracks"
 )
 
 // minimalMonoWAV builds a small real RIFF/WAVE file (16-bit PCM mono, a short tone) that measure.PeaksFile can
@@ -203,6 +204,21 @@ func TestWorkspacePeaksCutsEveryItemOfOneSourceFromItsOwnRange(t *testing.T) {
 	}
 	if p := got.Items[1].Peaks; p.Buckets != 2*50 || p.StartSeconds != 1 || len(p.MinMax) != 2*2*50 {
 		t.Fatalf("second item's peaks = %d buckets from %v", p.Buckets, p.StartSeconds)
+	}
+}
+
+func TestItemPeaksRefusesABadRangeBeforeReadingItsSource(t *testing.T) {
+	project := tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{{GUID: "{ITEM-1}", Takes: []tracks.Take{{SourceFile: "take.mp3", SourceAvailable: true}}}}}}}
+	read := false
+	whole := func(string) sourcePeaks {
+		read = true
+		return sourcePeaks{reason: "no waveform"}
+	}
+
+	got := itemPeaks(whole, project, coverage.AlignmentItem{Index: 0, ItemGUID: "{ITEM-1}", Live: true, SourceStart: -1, Length: 2, PlayRate: 1})
+
+	if got.Reason != "this item's waveform could not be computed" || read {
+		t.Fatalf("got = %+v, source read = %v; want the bad range refused without reading the source", got, read)
 	}
 }
 
