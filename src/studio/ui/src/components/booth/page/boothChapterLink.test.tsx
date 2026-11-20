@@ -192,40 +192,17 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
-  // #3670: the host arms the track a create makes (on every screen), so the page does not ask for a second arm after a create.
-  it('does not ask the DAW to arm again after the host created and armed the track', async () => {
+  // #3670: the entry arm found no track for the unlinked chapter; the track just created is armed and monitored now, without a second press.
+  it('asks the DAW to arm the voice of the track it just created', async () => {
     const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
     renderUnlinked({ dawArmBoothVoice } as Partial<NarrationApi>);
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
     const before = dawArmBoothVoice.mock.calls.length;
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    await act(async () => new Promise((r) => setTimeout(r, 30)));
-    expect(dawArmBoothVoice.mock.calls.length).toBe(before);
-  });
-
-  // The host could not arm the track it created (armMessage): the page owes the arm, as for an entry arm that was refused.
-  it('asks the DAW to arm the created track again when the host could not', async () => {
-    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
-    renderUnlinked({
-      dawArmBoothVoice,
-      chapterTrackCreate: async (chapterId: string) => {
-        const link = { trackGuid: '{NEW}', chapterId, chapterTitle: 'Chapter 1', confirmedAt: '2026-10-23T10:00:00Z', origin: 'manual' as const, match: null };
-        return {
-          outcome: 'created' as const,
-          documentId: 'doc',
-          link,
-          displaced: null,
-          mappings: [link],
-          track: { guid: '{NEW}', name: 'Chapter 1', index: 0 },
-          armMessage: 'The track “Chapter 1” was added and linked, but REAPER did not answer, so it was not armed.',
-        };
-      },
-    } as Partial<NarrationApi>);
-    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
-    const before = dawArmBoothVoice.mock.calls.length;
-    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
     await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBeGreaterThan(before));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+    expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
   });
 
   it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {

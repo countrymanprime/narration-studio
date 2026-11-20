@@ -107,13 +107,7 @@ export type ChapterTrackCreateReason =
   | 'link_failed';
 export type CreatedTrack = { guid: string; name: string; index: number };
 export type ChapterTrackCreateResult =
-  | (ChapterTrackSetResult & {
-      outcome: 'created';
-      track: CreatedTrack;
-      voice?: CreatedTrack;
-      /** Why the new track was added and linked but not armed (#3670); absent when it was armed. */
-      armMessage?: string;
-    })
+  | (ChapterTrackSetResult & { outcome: 'created'; track: CreatedTrack; voice?: CreatedTrack })
   | { outcome: 'refused'; reason: ChapterTrackCreateReason; message: string };
 
 /** TrackSelectInReaper's answer: "Select in REAPER" from the chapter track

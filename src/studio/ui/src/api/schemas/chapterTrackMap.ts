@@ -100,7 +100,6 @@ export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
     outcome: z.literal('created'),
     track: createdTrackSchema,
     voice: createdTrackSchema.optional(),
-    armMessage: z.string().optional(),
   }),
   z.object({
     outcome: z.literal('refused'),

@@ -5,17 +5,14 @@ import (
 	"desktop/internal/creditsid"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"unicode"
 
 	"desktop/internal/asrport"
-	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 	"desktop/internal/guide"
 	"desktop/internal/importer"
@@ -931,80 +928,7 @@ func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
 	creator, support := trackCreatorFrom(svc)
 	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID)
 	h.linksChanged(err)
-	return encodeBinding(h.armCreatedTrack(svc, created), err)
-}
-
-// armCreatedTrack arms the track a ChapterTrackCreate just made, and monitors it when Booth.follow_chapter_in_daw is on, on every screen that creates one
-// (the Booth's link dialog, the Engine panel, Chapter links and Editing): a created track is armed (#3670). The voice is armed when the
-// new track is a folder with a Narrator child, else the track itself. A refusal leaves the track added and linked and says so in ArmMessage.
-func (h *Host) armCreatedTrack(svc hostServices, created any) any {
-	made, ok := created.(chapterTrackCreated)
-	if !ok {
-		return created
-	}
-	target := made.Track.GUID
-	if made.Voice != nil {
-		target = made.Voice.GUID
-	}
-	name := readAloudAdapterName(svc)
-	subject := fmt.Sprintf("The %s “%s” was added and linked", createdNoun(made.Voice != nil), clipTrackName(made.Track.Name))
-	if h.readAloudRecordingActive() || h.recordStarting() {
-		// A take of this app is starting or running: arming another track would move its arm, so it is left and said.
-		made.ArmMessage = subject + ", but a take is starting or running, so it was not armed."
-		return made
-	}
-	armer, ok := recorderFrom(svc).(dawport.LaneArmer)
-	if !ok {
-		return made // no DAW linked, or one with no armed tracks: nothing to arm
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
-	defer cancel()
-	if _, err := armLaneOwing(ctx, armer, target, followChapterSetting(svc), &h.boothMonitorOwed); err != nil {
-		made.ArmMessage = subject + ", but " + createArmFailure(name, err)
-	}
-	return made
-}
-
-// createdNoun is what ChapterTrackCreate made, for a sentence: a folder with a Narrator voice, else a track.
-func createdNoun(folder bool) string {
-	if folder {
-		return "folder"
-	}
-	return "track"
-}
-
-// clipTrackName is a track name made safe for a sentence: one line, no control or bidi characters, at most 60 characters.
-func clipTrackName(name string) string {
-	clean := strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) || (r >= 0x202A && r <= 0x202E) || (r >= 0x2066 && r <= 0x2069) {
-			return ' '
-		}
-		return r
-	}, name)
-	clean = strings.Join(strings.Fields(clean), " ")
-	if clean == "" {
-		return "new track"
-	}
-	if runes := []rune(clean); len(runes) > 60 {
-		return string(runes[:60]) + "…"
-	}
-	return clean
-}
-
-// createArmFailure words why the DAW did not arm a track the app just created: not a record start's sentences ("Nothing started", "3 seconds").
-func createArmFailure(name string, err error) string {
-	var stale *bridge.TrackStaleError
-	switch {
-	case errors.As(err, &stale):
-		return fmt.Sprintf("it is no longer in the %s project, so it could not be armed.", name)
-	case errors.Is(err, bridge.ErrAnswerLate), errors.Is(err, context.DeadlineExceeded):
-		return fmt.Sprintf("%s did not confirm in time, so it may not be armed. Check %s.", name, name)
-	case errors.Is(err, bridge.ErrRecording):
-		return fmt.Sprintf("%s is recording, so it was not armed.", name)
-	case errors.Is(err, bridge.ErrNoAnswer), errors.Is(err, bridge.ErrUnavailable):
-		return fmt.Sprintf("%s did not answer, so it was not armed. Arm it in %s.", name, name)
-	}
-	return fmt.Sprintf("%s did not arm it. Arm it in %s.", name, name)
+	return encodeBinding(created, err)
 }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits

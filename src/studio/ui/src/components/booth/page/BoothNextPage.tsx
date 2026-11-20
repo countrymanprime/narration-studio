@@ -700,9 +700,8 @@ function BoothSession({
     control.refresh();
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
     voices.reload();
-    // The entry arm found no track to arm for this chapter: a linked existing track is armed and monitored now (#3670). A track the app just made was
-    // armed by the create itself, on every screen that creates one.
-    if (!created || created.armMessage) armNow();
+    // The entry arm found no track to arm for this chapter: the voice of the new link is armed and monitored now (#3670).
+    armNow();
     overlay.toast(
       created ? createdSentence(created, recordName, page.dawName) : dest.linkedToast(recordName),
       // The save the narrator owes REAPER is worth more than the usual five seconds.
