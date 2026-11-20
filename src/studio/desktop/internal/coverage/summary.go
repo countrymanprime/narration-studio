@@ -61,6 +61,45 @@ type summaryStore struct {
 	// writing keeps one file write at a time: a finished check and a read that rebuilds the same summary would share
 	// writeAtomically's temporary file.
 	writing sync.Mutex
+	// +checklocks:mu
+	building map[string]*summaryBuild
+}
+
+// summaryBuild is one rebuild of a record's summary in progress: readers that arrive meanwhile wait for it.
+type summaryBuild struct {
+	done    chan struct{}
+	summary ResultSummary
+	ok      bool
+}
+
+// build runs rebuild for recordID once however many readers ask at the same time: the first runs it, the others wait for
+// its answer. A background fill and a page's read that meet on one record therefore decode its result once.
+func (s *summaryStore) build(recordID string, rebuild func() (ResultSummary, bool)) (ResultSummary, bool) {
+	s.mu.Lock()
+	if running, found := s.building[recordID]; found {
+		s.mu.Unlock()
+		<-running.done
+		return running.summary, running.ok
+	}
+	if held, found := s.held[recordID]; found { // built between the caller's miss and here
+		s.mu.Unlock()
+		return held, true
+	}
+	if s.building == nil {
+		s.building = map[string]*summaryBuild{}
+	}
+	running := &summaryBuild{done: make(chan struct{})}
+	s.building[recordID] = running
+	s.mu.Unlock()
+
+	defer func() {
+		s.mu.Lock()
+		delete(s.building, recordID)
+		s.mu.Unlock()
+		close(running.done)
+	}()
+	running.summary, running.ok = rebuild()
+	return running.summary, running.ok
 }
 
 func (s *summaryStore) path(recordID string) (string, bool) {
@@ -139,13 +178,15 @@ func (s *Service) summary(recordID string) (ResultSummary, bool) {
 	if summary, ok := s.summaries.read(recordID); ok {
 		return summary, true
 	}
-	stored, ok := s.results.read(recordID)
-	if !ok {
-		return ResultSummary{}, false
-	}
-	summary := summarize(stored)
-	if err := s.summaries.write(summary); err != nil {
-		s.config.Reporter.Warn("coverage_summary_not_stored", err.Error())
-	}
-	return summary, true
+	return s.summaries.build(recordID, func() (ResultSummary, bool) {
+		stored, ok := s.results.readUncached(recordID)
+		if !ok {
+			return ResultSummary{}, false
+		}
+		summary := summarize(stored)
+		if err := s.summaries.write(summary); err != nil {
+			s.config.Reporter.Warn("coverage_summary_not_stored", err.Error())
+		}
+		return summary, true
+	})
 }
