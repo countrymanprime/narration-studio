@@ -36,7 +36,7 @@ jobs:
     #   - Scope: which job families the change reaches, so the others are skipped (no runner, no toolchain setup) instead of starting,
     #     installing and finding nothing to do. Same rule as every nx-run / nx-affected step (scripts/ci/nx-scope.sh: everything on a
     #     manual run or a workspace-wide file, else `nx show projects --affected`).
-    #       - ui: Test (Linux), the Vitest, visual and atlas steps in all six shards (`test-shards`); otherwise the job is skipped.
+    #       - ui: Test (Linux)'s Vitest, visual and atlas steps, in all six shards (`test-shards`); otherwise shard 1 alone runs.
     #       - shell: Test (Windows 1/2) and (2/2) (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
     #     A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
     #     A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
@@ -56,8 +56,7 @@ jobs:
       shell: ${{ steps.shell.outputs.affected == 'true' || steps.pins.outputs.shell == 'true' }}
       static: ${{ steps.pins.outputs.static }}
       quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
-      # Test (Linux)'s shards: all six when the UI is affected. Otherwise the job is skipped (its `if`), and the one-shard list only keeps
-      # the matrix expression valid.
+      # Test (Linux)'s shards: all six when the UI is affected, else shard 1 alone.
       test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5,6]' || '[1]' }}
       ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
@@ -180,7 +179,7 @@ jobs:
   test-linux:
     # The UI's Linux tests, in six shards (owner decision, #3065: each shard well under the 30-minute limit). The quick tests and the rename
     # rehearsal that shard 1 also ran are Test (Linux quick), below: with them shard 1 reached the limit.
-    #   - Every shard runs a sixth of:
+    #   - Every shard, when the UI is affected, runs a sixth of:
     #       - Vitest (`vitest --shard=i/6`, split by cost, src/studio/ui/scripts/vitest-shards.mjs). A shard checks no coverage floor; it
     #         uploads a blob of its results and coverage, and ci.yml's `CI passed` (.github/actions/ci-gate) merges the five and checks the
     #         floors of scripts/ci/coverage-floors.json over the whole run. No Nx cache and no retry.
@@ -192,14 +191,15 @@ jobs:
     #       - the component atlas (full tier): every Storybook story x light/dark x wide/narrow, with play() interactions, axe and overflow
     #         checks (`pnpm atlas --shard=i/6`); shard 1 also checks docs/ui equals a fresh generation (fix with
     #         `pnpm --dir src/studio/ui docs:atlas`).
-    #     A change that does not reach the UI skips the job (lint's `ui`): it has nothing to run, and a skipped job counts as passed.
+    #     A change that does not reach the UI runs shard 1 alone (lint's `test-shards`), whose steps then find nothing to do. The shard still
+    #     starts because its own scope check differs from lint's on a workflow pin bump that reaches neither this job nor the gate: there
+    #     shard 1 runs its sixth of the UI steps and `atlas docs`, as it always has (#3836).
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result.
     # 30 min, six shards: five shards each took 20 to 28.7 min on 2026-11-10 (ten full runs, #3327), the longest 27.6 to 28.7 against the
     # 30 min limit, from about 125 min of this work in total; a sixth is about 21 min plus about 1.5 of setup, which leaves room for a slow
     # `setup-playwright` (up to 11 min seen once). The timeout stays 30.
     name: Test (Linux ${{ matrix.shard }}/6)
     needs: lint
-    if: ${{ needs.lint.outputs.ui == 'true' }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -420,7 +420,7 @@ jobs:
     #     (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on the default
     #     scheduler fails there on demand); then reaper (Lua), the bridge harness under Lua 5.4 on Windows, because the bridge builds paths
     #     from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's `pr` configuration (the characterization
-    #     tests, about a minute) here and in Test (Linux); every other run (main-health, a manual run) and post-merge.yml run the mutation
+    #     tests, about a minute) here and in Test (Linux quick); every other run (main-health, a manual run) and post-merge.yml run the mutation
     #     checks on both.
     #   Each go test step checks the coverage floors of the packages it ran; together they run every package once.
     # Measured on one runner (run 42405595296): root 10.6, rest 10.7, schedules 2.7, lint 1.25, harness 0.6 min, 28.2 with setup, past
