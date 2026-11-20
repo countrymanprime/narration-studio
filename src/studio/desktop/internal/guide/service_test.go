@@ -1,9 +1,12 @@
 package guide
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -147,6 +150,96 @@ func TestDialogueCuesRejectsMalformedShape(t *testing.T) {
 	}
 	if _, err := s.DialogueCues(); err == nil {
 		t.Fatal("malformed dialogue_cues must return an error")
+	}
+}
+
+func serviceWithCuesIn(t *testing.T, chapterIDs ...string) *Service {
+	t.Helper()
+	root := t.TempDir()
+	s := New(root, "", "", settings.New(root, root), process.NewSupervisor())
+	if err := os.MkdirAll(filepath.Dir(s.guidePath()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cues := make([]map[string]any, 0, len(chapterIDs))
+	for index, chapterID := range chapterIDs {
+		cues = append(cues, map[string]any{"id": fmt.Sprintf("cue-%d", index+1), "chapterId": chapterID})
+	}
+	document, err := json.Marshal(map[string]any{"dialogue_cues": cues})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.guidePath(), document, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestDialogueCuesInKeepsOnlyTheAskedChaptersInFileOrder(t *testing.T) {
+	s := serviceWithCuesIn(t, "ch1", "ch2", "ch1", "ch3")
+	cases := []struct {
+		name string
+		ask  []string
+		want []string
+	}{
+		{"an unknown chapter", []string{"missing"}, []string{}},
+		{"an empty list", []string{}, []string{}},
+		{"a nil list", nil, []string{}},
+		{"one chapter", []string{"ch1"}, []string{"cue-1", "cue-3"}},
+		{"ids asked in reverse keep the file's order", []string{"ch3", "ch2", "ch1"}, []string{"cue-1", "cue-2", "cue-3", "cue-4"}},
+		{"a duplicate id gives no duplicate cue", []string{"ch2", "ch2"}, []string{"cue-2"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cues, err := s.DialogueCuesIn(c.ask)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cues == nil {
+				t.Fatal("the result must never be nil")
+			}
+			ids := []string{}
+			for _, cue := range cues {
+				ids = append(ids, cue.ID)
+			}
+			if !slices.Equal(ids, c.want) {
+				t.Fatalf("cues = %v, want %v", ids, c.want)
+			}
+		})
+	}
+}
+
+func TestDialogueCuesInEveryChapterEqualsDialogueCues(t *testing.T) {
+	s := serviceWithCuesIn(t, "ch1", "ch2", "ch1", "ch3")
+	all, err := s.DialogueCues()
+	if err != nil {
+		t.Fatal(err)
+	}
+	in, err := s.DialogueCuesIn([]string{"ch1", "ch2", "ch3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(in, all) {
+		t.Fatalf("every chapter = %#v, want %#v", in, all)
+	}
+}
+
+func TestDialogueCuesInToleratesMissingGuide(t *testing.T) {
+	root := t.TempDir()
+	s := New(root, "", "", settings.New(root, root), process.NewSupervisor())
+	if cues, err := s.DialogueCuesIn([]string{"ch1"}); err != nil || cues == nil || len(cues) != 0 {
+		t.Fatalf("missing guide must be empty: %#v, %v", cues, err)
+	}
+}
+
+func TestDialogueCuesInRejectsMalformedShapeAsDialogueCuesDoes(t *testing.T) {
+	s := serviceWithCuesIn(t)
+	if err := os.WriteFile(s.guidePath(), []byte(`{"dialogue_cues":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, want := s.DialogueCues()
+	_, got := s.DialogueCuesIn([]string{"ch1"})
+	if want == nil || got == nil || got.Error() != want.Error() {
+		t.Fatalf("error = %v, want %v", got, want)
 	}
 }
 

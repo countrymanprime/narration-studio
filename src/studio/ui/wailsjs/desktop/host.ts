@@ -222,7 +222,7 @@ export function BoothPunchTarget(chapterID: string, paragraphID: string, fromWor
 
 /**
  * BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
- * Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
+ * Bible ids) to it, chooses it for the next take and arms its lane with monitoring as a voice chosen from the list is (#3670). Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
  * runs. The DAW's undo takes the track back; the project is not saved.
  */
 export function BoothVoiceAdd(chapterID: string, name: string, characterIDs: string[]): $CancellablePromise<string> {
@@ -712,7 +712,8 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
  * DawArmBoothVoice arms the track the Booth's next take on chapterID records on (the chapter's one track, or the voice it chose, else its
  * Narrator voice, as a record start picks it) and turns that track's input monitoring on when it is off, so the narrator hears themselves as
  * soon as the Booth opens on the chapter (#3428, the owner's answer 8). The page sends it once per chapter it enters, when Booth.follow_chapter_in_daw
- * is on and the DAW can follow; the voice a later choice makes is armed and monitored by BoothVoiceSet.
+ * is on and the DAW can follow, and again after a take that a voice was chosen during (with the switch off too, when it arms without monitoring: a voice
+ * choice still arms); the voice a later choice makes is armed and monitored by BoothVoiceSet.
  * 
  * It does nothing, and says nothing, for a DAW with no armed tracks, a chapter with no one track or no voice to arm, a take this app runs or
  * starts, and a DAW that is recording (the DAW refuses and the answer carries its sentence): a hot track is never moved under a take. A DAW that
@@ -1094,7 +1095,7 @@ export function DawSoloChapter(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
- * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the chapter's recording or turns the switch off: only the tracks it
+ * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the Booth or turns the switch off: only the tracks it
  * soloed, and only where the narrator has not changed the solo since. It does not look at the switch, so it works after the switch was turned off. While
  * the DAW records it touches nothing and the DAW puts it back itself once the recording stops. A DAW with nothing to put back answers as done.
  */
@@ -1759,6 +1760,15 @@ export function GuideDeleteAll(confirmed: boolean): $CancellablePromise<string> 
  */
 export function GuideDialogueCues(): $CancellablePromise<string> {
     return $Call.ByID(1741759900);
+}
+
+/**
+ * GuideDialogueCuesIn returns the dialogue cues of the given chapters only,
+ * in the file's order: what a page that draws a few chapters reads instead
+ * of the whole book's cues.
+ */
+export function GuideDialogueCuesIn(chapterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(4235836915, chapterIDs);
 }
 
 export function GuideEdit(id: string, values: { [_ in string]?: string }): $CancellablePromise<string> {
