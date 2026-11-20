@@ -74,6 +74,10 @@ func fakeSidecar(mode string) {
 		line(`{"source":"booknlp","payload":{"kind":"property","entry":"The Old Man","key":"Gender","value":"Male"},"confidence":0.9,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
 		line(`{"source":"booknlp","payload":{"kind":"alias","entry":"the old man","alias":"him"},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
 		line(`{"source":"booknlp","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+	case "twins":
+		line(`{"source":"booknlp","payload":{"kind":"entry","name":"Mother","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"entry","name":"mother","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"property","entry":"Mother","key":"Gender","value":"Female"},"confidence":0.9,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
 	case "common-noun-character":
 		line(`{"source":"booknlp","payload":{"kind":"entry","name":"the old man","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
 	case "bad-quote":
@@ -242,6 +246,22 @@ func TestTheLinesAboutADroppedCharacterAreDroppedWithIt(t *testing.T) {
 	}
 	if len(raws) != 1 || raws[0].Payload.Name != "Alice" || len(*logged) != 4 {
 		t.Fatalf("raws = %+v, logged = %q; want only Alice, with a log line for each of the four dropped", raws, *logged)
+	}
+}
+
+// A name kept in one spelling is not lost to a dropped spelling of the same name: Mother stays when mother is dropped.
+func TestAKeptNameIsNotDroppedWithItsLowerCaseTwin(t *testing.T) {
+	source, _ := fake(t, "twins")
+	raws, err := extract(t, source, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, raw := range raws {
+		names = append(names, string(raw.Payload.Kind)+":"+raw.Payload.Name+raw.Payload.Entry)
+	}
+	if len(raws) != 2 {
+		t.Fatalf("raws = %v, want the entry Mother and its property", names)
 	}
 }
 

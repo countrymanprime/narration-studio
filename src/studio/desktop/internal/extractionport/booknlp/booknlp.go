@@ -173,15 +173,24 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 	}
 	// An entry that is no name is dropped with every line that is about it (its speaker lines, properties, aliases and relationships):
 	// none of them could be applied to an entry the Story Bible does not have (#3661).
-	notNames := map[string]bool{}
+	// A name that is also kept in another spelling (Mother and mother) is not dropped: the lines about it belong to the kept entry.
+	notNames, kept := map[string]bool{}, map[string]bool{}
 	for _, raw := range parsed {
-		if raw.Payload.Kind == extraction.KindEntry && !extraction.ProperName(raw.Payload.Name) {
+		if raw.Payload.Kind != extraction.KindEntry {
+			continue
+		}
+		if extraction.ProperName(raw.Payload.Name) {
+			kept[nameKey(raw.Payload.Name)] = true
+		} else {
 			notNames[nameKey(raw.Payload.Name)] = true
 		}
 	}
+	for key := range kept {
+		delete(notNames, key)
+	}
 	raws := []extractionport.Raw{}
 	for _, raw := range parsed {
-		if raw.Payload.Kind == extraction.KindEntry && notNames[nameKey(raw.Payload.Name)] {
+		if raw.Payload.Kind == extraction.KindEntry && !extraction.ProperName(raw.Payload.Name) {
 			s.log(fmt.Sprintf("Dropped a BookNLP suggestion: %q is not a name.", raw.Payload.Name))
 			continue
 		}

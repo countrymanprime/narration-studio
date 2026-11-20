@@ -29,7 +29,7 @@ var spans = []nameCase{
 	{"Lord Voldemort", "Character", true}, {"Will", "Character", true}, {"Will Graham", "Character", true}, {"Excalibur", "Item", true}, {"The Maltese Falcon", "Item", true},
 
 	// The qa-breaker's names (#3661): real names the rule first lost, and junk it first kept.
-	{"Do'Urden", "Character", true}, {"A'isha", "Character", true}, {"Be’lakor", "Character", true}, {"O'Neill", "Character", true}, {"M'Baku", "Character", true},
+	{"Do'Urden", "Character", true}, {"A'isha", "Character", true}, {"Be’lakor", "Character", true}, {"M'Baku", "Character", true}, {"El-ahrairah", "Character", true}, {"Da-eun", "Character", true},
 	{"Dr. No", "Character", true}, {"Lord No", "Character", true}, {"Dr Who", "Character", true},
 	{"al-Rashid", "Character", true}, {"van-der-Berg", "Character", true}, {"Harun al-Rashid", "Character", true},
 	{"ნინო", "Character", true}, {"ნინო ჭავჭავაძე", "Character", true}, {"თბილისი", "Place", true},
@@ -47,8 +47,8 @@ func TestProperNameKeepsNamesAndDropsWordsThatOnlyLookLikeThem(t *testing.T) {
 	}
 }
 
-// TestPrecisionOnTheOwnersStyleOfSpans prints what the rules did to the fixture: before, every span became an entry; after, only names do.
-func TestPrecisionOnTheOwnersStyleOfSpans(t *testing.T) {
+// TestPrecisionOnASyntheticFixtureOfSpans prints what the rules did to the fixture (written beside the rule, not model output, not the owner's text): before, every span became an entry; after, only names do.
+func TestPrecisionOnASyntheticFixtureOfSpans(t *testing.T) {
 	var before, valid, kept, keptValid int
 	for _, c := range spans {
 		before++

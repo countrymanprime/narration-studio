@@ -84,7 +84,7 @@ var contractionSuffixes = map[string]bool{"s": true, "m": true, "ll": true, "re"
 func isNameWord(word string) bool {
 	trimmed := trimEdges(word)
 	// A particle joined by a hyphen (al-Rashid, van-der-Berg) is judged by the name after it.
-	if cut := strings.IndexByte(trimmed, '-'); cut > 0 && cut < len(trimmed)-1 && surnameParticles[strings.ToLower(trimmed[:cut])] {
+	if cut := strings.IndexByte(trimmed, '-'); cut > 0 && cut < len(trimmed)-1 && !startsUpper(trimmed) && surnameParticles[strings.ToLower(trimmed[:cut])] {
 		return isNameWord(trimmed[cut+1:])
 	}
 	if !startsUpper(trimmed) {
