@@ -195,6 +195,13 @@ export const boothDrivers: Record<string, Driver> = {
     await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
     await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
   },
+  // A Voice folders project: the dialog says folder and lists what the new folder is made with, the Narrator as a fact and Extras ticked (#3748).
+  'record-unlinked-folders': async (page) => {
+    await openBooth(page, `${UNLINKED}&mockVoiceFolders=1`);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a folder$/ });
+    await dialog.getByRole('button', { name: 'Create a new folder' }).waitFor();
+    await dialog.getByRole('group', { name: 'Tracks in the new folder' }).waitFor();
+  },
   // Closed with its X: the chip above the footer and the footer's sentence say what Record waits for; a press of Record reopens the dialog.
   'record-unlinked-closed': async (page) => {
     await openBooth(page, UNLINKED);

@@ -196,9 +196,18 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
     creating it reminds you.
 
   In a project whose layout is **Voice folders** ([Settings](settings.md)) the same messages say folder: **Not linked to a folder**,
-  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with a Narrator track in it), the chip
+  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with its tracks in it, below), the chip
   **REAPER · no folder**, and a message after creating it that names the folder and its Narrator ("Folder “Chapter 1” with a Narrator track added
   in REAPER and linked to Chapter 1"). Record then records on that Narrator, and the voice control lists it, before you save the REAPER project.
+
+  Above **Create a new folder** the dialog lists what the folder is made with, in this order: the **Narrator**, which is always made, the
+  project's known voices, and **Extras**, a track for sound that is not a voice (a crowd, a door, music). Untick any voice or Extras to leave it out;
+  with two or more voices **All N voices** ticks or clears them together, and a long list scrolls inside its own box so the buttons stay in view. What
+  you leave out is remembered for the next chapter, and a voice that appears later starts ticked; the same list is a row in [Settings](settings.md).
+  Extras is not a voice: the Booth never arms it and the chapter's record progress does not ask for a take on it (the Engine panel's **Create a folder
+  for this chapter** button makes the folder with the choice you made last).
+
+  ![Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder](../../images/ui/booth-record-unlinked-folders.webp)
 
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
   why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.

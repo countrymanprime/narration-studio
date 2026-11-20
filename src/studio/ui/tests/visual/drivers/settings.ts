@@ -236,6 +236,11 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.voices');
     await row.getByRole('table', { name: /^Voices of / }).waitFor();
   },
+  'recording-new-chapter-folder': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
+    const row = await showSettingsRow(page, 'daw.newChapter');
+    await row.getByRole('group', { name: 'Tracks in the new folder' }).waitFor();
+  },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);

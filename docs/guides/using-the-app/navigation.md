@@ -312,7 +312,7 @@ message says why. Nothing is added either when the chapter is already linked to 
 name the new one would get: link that one with the track picker instead. While one track is being added, the other rows' buttons are off.
 If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
 it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
-after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
+after the chapter with its tracks inside it, the **Narrator** and then the voices and **Extras** you last chose (the Booth's create dialog and the **New chapter folder** row in [Settings](settings.md) set that choice; every known voice and Extras until you choose otherwise), and the chapter is linked to the folder. The Booth's and Editing's link dialog
 says **Create a new folder** in a Voice folders project and makes the same folder.
 
 ![Chapter links after Create a track for this chapter: the first chapter linked to its new track, and a message saying it was made](../../images/ui/engine-panel-chapter-track-created.webp)
