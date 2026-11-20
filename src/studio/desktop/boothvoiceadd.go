@@ -206,7 +206,7 @@ func (h *Host) adoptCreatedVoice(svc hostServices, link, name string, before []t
 }
 
 // BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
-// Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
+// Bible ids) to it, chooses it for the next take and arms its lane with monitoring as a voice chosen from the list is (#3670). Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
 // runs. The DAW's undo takes the track back; the project is not saved.
 func (h *Host) BoothVoiceAdd(chapterID, name string, characterIDs []string) (string, error) {
 	svc := h.services()

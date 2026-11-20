@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
@@ -190,6 +190,7 @@ export function useArmBoothOnOpen({
   say: (sentence: string) => void;
 }) {
   const place = usePort('dawPlace');
+  const [again, setAgain] = useState(0);
   const done = useRef(false);
   const wasRecording = useRef(false);
   const wasCanArm = useRef(canArm);
@@ -240,7 +241,12 @@ export function useArmBoothOnOpen({
       .catch(() => {
         if (!unmounted.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it in the DAW yourself.");
       });
-  }, [enabled, follow, chapterId, canArm, recording, place]);
+  }, [enabled, follow, chapterId, canArm, recording, place, again]);
+  // The chapter's track was just created or linked here (#3670): the entry arm found nothing to arm, so it is owed now, not at the next entry.
+  return useCallback(() => {
+    done.current = false;
+    setAgain((n) => n + 1);
+  }, []);
 }
 
 // Whether this page asked the DAW to turn an input monitoring on and no release has been answered since: the page's copy of the host's own note.

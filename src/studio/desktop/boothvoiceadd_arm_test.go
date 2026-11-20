@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"desktop/internal/dawport/dawporttest"
+	"strings"
 	"testing"
 
 	"desktop/internal/bridge"
@@ -74,5 +76,48 @@ func TestAnAddWithNoRecorderArmsNothing(t *testing.T) {
 	got := addWithRecorder(t, host, nil, &fakeChildCreator{}, ids[0], "King")
 	if got.Outcome != "added" || got.Reason != "" {
 		t.Fatalf("got %+v", got)
+	}
+}
+
+// rolesAdapter is a fake DAW whose creator and recorder roles are the given ones: the production wiring (BoothVoiceAdd reading both from the resolver).
+type rolesAdapter struct {
+	*dawporttest.Fake
+	creator  dawport.TrackCreator
+	recorder dawport.Recorder
+}
+
+func (a rolesAdapter) Role(capability dawport.Capability) any {
+	switch capability {
+	case dawport.CapTrackCreate:
+		return a.creator
+	case dawport.CapRecord:
+		return a.recorder
+	}
+	return a.Fake.Role(capability)
+}
+
+// #3670 through the real binding: BoothVoiceAdd finds the creator and the recorder in the DAW port and arms the new voice with monitoring. A recorderFrom that
+// returned nil would leave every other test here green, so this one drives the entry point the app calls.
+func TestBoothVoiceAddArmsTheNewVoiceThroughTheDawPort(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	recorder := &fakeLaneRecorder{}
+	adapter := rolesAdapter{
+		Fake:     dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Supported)),
+		creator:  &fakeChildCreator{},
+		recorder: recorder,
+	}
+	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{
+		Adapter: adapter,
+		Runtime: func() dawport.Runtime { return dawport.Runtime{Bridge: true, Reachable: true} },
+	})
+	raw, err := host.BoothVoiceAdd(ids[0], "King", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(raw, `"outcome":"added"`) {
+		t.Fatalf("answer %s", raw)
+	}
+	if len(recorder.laneArmed) != 1 || recorder.laneArmed[0] != addedVoiceTrack || !recorder.laneMonitor[0] {
+		t.Fatalf("armed %v monitor %v, want the new voice armed once with monitoring", recorder.laneArmed, recorder.laneMonitor)
 	}
 }
