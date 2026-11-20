@@ -43,7 +43,7 @@ export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, book
  * The most chapter text the store holds, in characters of JSON (about 8 MB: a 10 hour book's text), beyond which the least recently used chapters are dropped. Titles are
  * never budgeted: the chapter list is one slot of all of them. The owner can set this (#3658).
  */
-export const CHAPTER_TEXT_BUDGET = 8_000_000;
+const CHAPTER_TEXT_BUDGET = 8_000_000;
 
 /**
  * The text of each chapter, keyed by chapter id, in the same store as the chapter list: stale when a job ends (an import or a re-split replaced the
