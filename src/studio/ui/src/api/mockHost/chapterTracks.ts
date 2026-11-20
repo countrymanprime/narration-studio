@@ -32,10 +32,13 @@ export function createChapterTracksMock(
     dawRecording = () => false,
     chaptersWithCredits,
     voiceLayout,
+    knownVoices,
   }: {
     manuscriptReady: Promise<void>;
     /** The project's layout (voice-tracks.json) as ChapterTrackCreate reads it at the press: a folder with a Narrator child, or one track. */
     voiceLayout: () => Promise<VoiceTracksLayout>;
+    /** The names the project's voice setup assigns characters to, as ChapterCreateOptions lists them (#3748). */
+    knownVoices: () => Promise<string[]>;
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
     /** Whether the DAW records now (a take started in it by hand, or the app's own): the host refuses to add or move tracks then. */
@@ -48,6 +51,13 @@ export function createChapterTracksMock(
   const project = mockTracksProject(initial);
   // The tracks ChapterTrackCreate added in REAPER this session: in REAPER's live list at once, in the saved project only after a save.
   const added: Track[] = [];
+  // What the last create left out (#3748), as voice-tracks.json keeps it: the voices unticked and whether Extras was.
+  let skipVoices: string[] = [];
+  let noExtras = false;
+  const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const voicesOffered = async () => (await knownVoices()).filter((name) => !sameName(name, 'Narrator') && !sameName(name, 'Extras'));
+  /** True when the project assigns characters to a track called Extras: that track is a voice, never the not-a-voice one the create adds. */
+  const extrasIsVoice = async () => (await knownVoices()).some((name) => sameName(name, 'Extras'));
   // `?mockReaperState=no_link` stages a chapter with no link: as the Booth's read does (mockApi's `linked`), only a link the narrator made
   // this session counts, not one seeded or written by chapter sync on its own.
   const startedAt = Date.now();
@@ -302,7 +312,13 @@ export function createChapterTracksMock(
     // ChapterTrackCreate (src/studio/desktop/chaptertrackcreate.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in
     // REAPER. The new track (a folder with a Narrator child in a Voice folders project) joins REAPER's live list (TracksLive) at once; the saved
     // project the matcher reads has it only after a save, so it is not added there.
-    chapterTrackCreate: async (chapterId) => {
+    // ChapterCreateOptions (chaptercreateoptions.go): the known voices and Extras, ticked unless the last create left them out.
+    chapterCreateOptions: async () => {
+      if ((await voiceLayout()) !== 'folders') return { folders: false, narrator: 'Narrator', voices: [], extras: { name: '', checked: false } };
+      const voices = (await voicesOffered()).map((name) => ({ name, checked: !skipVoices.some((skipped) => sameName(skipped, name)) }));
+      return wireClone({ folders: true, narrator: 'Narrator', voices, extras: { name: 'Extras', checked: !noExtras } });
+    },
+    chapterTrackCreate: async (chapterId, choice) => {
       await manuscriptReady;
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
       const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
@@ -343,9 +359,27 @@ export function createChapterTracksMock(
       const base = { color: '', muted: false, soloed: false, items: [] };
       added.push({ ...base, ...track, depth: 0, isFolder: folders });
       let voice: { guid: string; name: string; index: number } | undefined;
+      const children: Array<{ guid: string; name: string; index: number; notVoice: boolean }> = [];
       if (folders) {
-        voice = { ...next(), name: 'Narrator' };
-        added.push({ ...base, ...voice, depth: 1, isFolder: false });
+        // The Narrator, then the chosen voices and Extras (the last pick when none is sent), each a child of the folder, in order.
+        const offered = await voicesOffered();
+        const picked = choice ? choice.voices : offered.filter((name) => !skipVoices.some((skipped) => sameName(skipped, name)));
+        const withExtras = choice ? choice.extras : !noExtras;
+        const names: string[] = ['Narrator'];
+        for (const name of picked.map((entry) => entry.trim().replace(/[\r\n\t]+/g, ' ')))
+          if (name !== '' && !names.some((have) => sameName(have, name)) && !sameName(name, 'Extras')) names.push(name);
+        if (withExtras) names.push('Extras');
+        const extrasVoice = await extrasIsVoice();
+        for (const name of names) {
+          const child = { ...next(), name };
+          added.push({ ...base, ...child, depth: 1, isFolder: false });
+          children.push({ ...child, notVoice: name === 'Extras' && !extrasVoice });
+        }
+        voice = { guid: children[0].guid, name: children[0].name, index: children[0].index };
+        if (choice) {
+          skipVoices = offered.filter((name) => !choice.voices.some((picked) => sameName(picked, name)));
+          noExtras = !choice.extras;
+        }
       }
       const link: TrackMapping = {
         trackGuid: track.guid,
@@ -364,7 +398,7 @@ export function createChapterTracksMock(
         displaced: null,
         mappings: s.chapterTrackMappings,
         track,
-        ...(voice ? { voice } : {}),
+        ...(voice ? { voice, children } : {}),
       });
     },
     // ChapterFoldersCheck / ChapterFoldersRepair (src/studio/desktop/chapterfolders.go): with `?mockNestedChapters=1` the second and third

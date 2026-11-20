@@ -253,6 +253,14 @@ export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
 }
 
 /**
+ * ChapterCreateOptions lists what a new chapter folder can be made with (chaptercreateoptions.go): the Narrator, the known voices and Extras,
+ * each ticked unless the remembered choice left it out, in the order the folder gets them. A project with no folders answers Folders false.
+ */
+export function ChapterCreateOptions(): $CancellablePromise<string> {
+    return $Call.ByID(579516027);
+}
+
+/**
  * ChapterFoldersCheck asks the DAW whether any linked chapter's track sits inside another linked chapter's folder, and which tracks a
  * repair would move. It writes nothing.
  */
@@ -339,10 +347,11 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
  * of the DAW project's track list and links the chapter to it
  * (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
  * payload and the new track; "refused" says why nothing was added. A
- * chapter the manuscript does not have is an error.
+ * chapter the manuscript does not have is an error. In a Voice folders project the folder is made with its Narrator and the voices and Extras
+ * named in choice, a JSON chapterCreateChoice ("" is the remembered pick, #3748); a flat project ignores it.
  */
-export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(626919906, chapterID);
+export function ChapterTrackCreate(chapterID: string, choice: string): $CancellablePromise<string> {
+    return $Call.ByID(626919906, chapterID, choice);
 }
 
 export function ChapterTrackLinks(): $CancellablePromise<string> {

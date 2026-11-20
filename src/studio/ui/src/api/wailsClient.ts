@@ -93,6 +93,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterCreateOptionsSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
   trackSelectResultSchema,
@@ -804,7 +805,9 @@ export const wailsClient: NarrationApi = {
   tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
-  chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
+  chapterTrackCreate: (chapterId, choice) =>
+    decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId, choice ? JSON.stringify(choice) : '')),
+  chapterCreateOptions: () => decode(chapterCreateOptionsSchema, 'ChapterCreateOptions', host.ChapterCreateOptions()),
   chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
   chapterFoldersRepair: (expected) => decode(chapterFoldersSchema, 'ChapterFoldersRepair', host.ChapterFoldersRepair(expected)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),

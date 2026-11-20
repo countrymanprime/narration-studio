@@ -86,7 +86,7 @@ func TestTwoConcurrentCreatesForOneChapterAddOneTrack(t *testing.T) {
 	}
 	answers := make(chan answer, 2)
 	press := func() {
-		result, err := chapterTrackCreateIn(context.Background(), host.services(), creator, createAvailable(), ids[2])
+		result, err := chapterTrackCreateIn(context.Background(), host.services(), creator, createAvailable(), ids[2], nil)
 		answers <- answer{result, err}
 	}
 	go press()

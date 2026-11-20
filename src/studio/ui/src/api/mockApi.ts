@@ -201,6 +201,7 @@ export function createMockApi(
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
     voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
+    knownVoices: async () => (await voiceTracks.voiceTracksGet()).tracks.map((assignment) => assignment.track),
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),

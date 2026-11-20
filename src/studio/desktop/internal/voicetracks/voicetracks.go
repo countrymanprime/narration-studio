@@ -107,6 +107,15 @@ type voiceFile struct {
 	Narrators         []string              `json:"narrators,omitempty"`
 	// NotVoices are the tracks (lower case GUIDs) the narrator marked as not a voice; absent in a file written before the mark existed.
 	NotVoices []string `json:"notVoices,omitempty"`
+	// NewChapter is the choice remembered for what a new chapter folder is made with (#3748); absent until a create chose one, which reads as every voice and Extras.
+	NewChapter *NewChapter `json:"newChapter,omitempty"`
+}
+
+// NewChapter is what a new chapter folder is made with besides the Narrator (#3748): every known voice and Extras unless named here. A voice the
+// narrator unticked is in SkipVoices, so a voice that appears later starts ticked; NoExtras is Extras unticked.
+type NewChapter struct {
+	SkipVoices []string `json:"skipVoices"`
+	NoExtras   bool     `json:"noExtras"`
 }
 
 // Service reads and writes a project's voice setup. It holds no state, so the host builds one per call; a read-modify-write of
@@ -256,6 +265,44 @@ func (s State) IsNotVoice(guid string) bool {
 	return slices.Contains(s.NotVoiceGUIDs, strings.ToLower(strings.TrimSpace(guid)))
 }
 
+// NewChapter is the remembered choice for a new chapter folder: every voice and Extras when none was made. It is read with no change to the file.
+func (s *Service) NewChapter() (NewChapter, error) {
+	file, err := s.read()
+	if err != nil {
+		return NewChapter{}, err
+	}
+	if file.NewChapter == nil {
+		return NewChapter{SkipVoices: []string{}}, nil
+	}
+	return NewChapter{SkipVoices: append([]string{}, file.NewChapter.SkipVoices...), NoExtras: file.NewChapter.NoExtras}, nil
+}
+
+// SetNewChapter remembers the voices a new chapter folder is not made with and whether it has no Extras. Names are trimmed, kept once (compared
+// without case) and bounded like the track names they stand for; a choice that is every voice and Extras removes the entry.
+func (s *Service) SetNewChapter(skipVoices []string, noExtras bool) (State, error) {
+	kept := make([]string, 0, len(skipVoices))
+	for _, name := range skipVoices {
+		name = strings.TrimSpace(name)
+		if !validText(name, MaxTrackName) {
+			return State{}, fmt.Errorf("%w: a voice name", ErrInvalid)
+		}
+		if !slices.ContainsFunc(kept, func(have string) bool { return strings.EqualFold(have, name) }) {
+			kept = append(kept, name)
+		}
+	}
+	if len(kept) > MaxTracks {
+		return State{}, fmt.Errorf("%w: more than %d voices left out", ErrInvalid, MaxTracks)
+	}
+	return s.change(func(file *voiceFile) error {
+		if len(kept) == 0 && !noExtras {
+			file.NewChapter = nil
+			return nil
+		}
+		file.NewChapter = &NewChapter{SkipVoices: kept, NoExtras: noExtras}
+		return nil
+	})
+}
+
 // SetNarratorCharacter sets the character the Narrator track also voices, or clears it with "".
 func (s *Service) SetNarratorCharacter(id string) (State, error) {
 	if id != "" && !validText(id, MaxCharacterID) {
@@ -345,6 +392,16 @@ func (f voiceFile) valid() bool {
 		}
 		if !validGUIDs(entry.GUIDs) {
 			return false
+		}
+	}
+	if f.NewChapter != nil {
+		if len(f.NewChapter.SkipVoices) > MaxTracks {
+			return false
+		}
+		for _, name := range f.NewChapter.SkipVoices {
+			if name != strings.TrimSpace(name) || !validText(name, MaxTrackName) {
+				return false
+			}
 		}
 	}
 	return validGUIDs(f.Narrators) && validGUIDs(f.NotVoices)
