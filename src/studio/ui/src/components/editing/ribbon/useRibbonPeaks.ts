@@ -40,8 +40,10 @@ export function forgetPeaks(workspace: object, chapterId?: string): void {
 const PREFETCH_GAP_MS = 150;
 
 /**
- * Reads the other chapters' peaks in the background, one at a time, from the one after `currentId` and round to the ones before it, so the
- * next chapter's waveform is already there. It starts once the current chapter is read, and stops when the page closes.
+ * Reads the peaks of the chapters next to `currentId` in the background (the one after it, then the one before), one at a time after the
+ * current chapter's own, so a step to either is drawn at once. Only those: every chapter of a book was one host read a chapter, each
+ * decoding that chapter's audio on a first visit, and its whole waveform kept in the page (about 12 MB for a 17 hour book, #3767). A chapter
+ * the narrator opens stays kept as before. It stops when the page closes.
  */
 export function usePrefetchPeaks(chapterIds: readonly string[], currentId: string | undefined): void {
   const workspace = usePort('workspace');
@@ -50,7 +52,8 @@ export function usePrefetchPeaks(chapterIds: readonly string[], currentId: strin
     if (!currentId || chapterIds.length < 2) return;
     let live = true;
     const at = chapterIds.indexOf(currentId);
-    const order = at < 0 ? [...chapterIds] : [...chapterIds.slice(at), ...chapterIds.slice(0, at)];
+    if (at < 0) return;
+    const order = [currentId, chapterIds[at + 1], chapterIds[at - 1]].filter((id) => id !== undefined);
     void (async () => {
       for (const id of order) {
         if (!live) return;

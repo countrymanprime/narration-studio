@@ -79,25 +79,54 @@ describe('useRibbonPeaks', () => {
   });
 });
 
-// The other chapters are read in the background, one at a time and in order, so the next chapter's waveform is already there.
+// The chapters next to the open one are read in the background, one at a time, so a step to either is drawn at once. The rest of the book
+// is not read: that was one host read a chapter and the whole book's waveform kept in the page (#3767).
 describe('usePrefetchPeaks', () => {
-  it('reads the other chapters one after another in order, never two at once, and stops when the page closes', async () => {
+  const slowPeaks = () => {
+    const seen = { order: [] as string[], most: 0 };
     let inFlight = 0;
-    let most = 0;
-    const order: string[] = [];
     const workspacePeaks = vi.fn(async (chapterId: string) => {
-      order.push(chapterId);
+      seen.order.push(chapterId);
       inFlight += 1;
-      most = Math.max(most, inFlight);
+      seen.most = Math.max(seen.most, inFlight);
       await new Promise((resolve) => setTimeout(resolve, 5));
       inFlight -= 1;
       return result(chapterId);
     });
+    return { seen, workspacePeaks };
+  };
+  const book = Array.from({ length: 40 }, (_, i) => `p-${i + 1}`);
+
+  it('reads the open chapter, the next and the previous, never two at once, and no other chapter of the book', async () => {
+    const { seen, workspacePeaks } = slowPeaks();
     const api = { ...createMockApi(), workspacePeaks };
-    const view = renderHook(() => usePrefetchPeaks(['p-1', 'p-2', 'p-3', 'p-4'], 'p-2'), { wrapper: withApi(api) });
-    await waitFor(() => expect(order).toEqual(['p-2', 'p-3', 'p-4', 'p-1']), { timeout: 3000 });
-    expect(most).toBe(1);
+    const view = renderHook(() => usePrefetchPeaks(book, 'p-20'), { wrapper: withApi(api) });
+    await waitFor(() => expect(seen.order).toEqual(['p-20', 'p-21', 'p-19']), { timeout: 3000 });
+    await new Promise((resolve) => setTimeout(resolve, 400)); // longer than the gap between reads: a fourth read would have started
+    expect(seen.order).toHaveLength(3);
+    expect(seen.most).toBe(1);
     view.unmount();
-    expect(workspacePeaks).toHaveBeenCalledTimes(4);
+  });
+
+  it('reads the new neighbours when the narrator steps on, and not again what it has', async () => {
+    const { seen, workspacePeaks } = slowPeaks();
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(({ at }) => usePrefetchPeaks(book, at), { wrapper: withApi(api), initialProps: { at: 'p-1' } });
+    await waitFor(() => expect(seen.order).toEqual(['p-1', 'p-2']), { timeout: 3000 }); // the first chapter has none before it
+    view.rerender({ at: 'p-2' });
+    await waitFor(() => expect(seen.order).toEqual(['p-1', 'p-2', 'p-3']), { timeout: 3000 });
+    view.rerender({ at: 'p-40' });
+    await waitFor(() => expect(seen.order).toEqual(['p-1', 'p-2', 'p-3', 'p-40', 'p-39']), { timeout: 3000 }); // the last has none after it
+    view.unmount();
+  });
+
+  it('stops when the page closes', async () => {
+    const { seen, workspacePeaks } = slowPeaks();
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(() => usePrefetchPeaks(book, 'p-20'), { wrapper: withApi(api) });
+    await waitFor(() => expect(seen.order).toEqual(['p-20']));
+    view.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(seen.order).toEqual(['p-20']);
   });
 });
