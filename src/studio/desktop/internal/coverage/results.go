@@ -83,6 +83,8 @@ type resultCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	entries []resultCacheEntry
+	// +checklocks:mu
+	epoch uint64
 }
 
 type resultCacheEntry struct {
@@ -113,12 +115,26 @@ func (c *resultCache) get(recordID string, info os.FileInfo) (StoredResult, bool
 	return StoredResult{}, false
 }
 
-func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult) {
+// now is the cache's epoch, which every drop moves: a reader takes it before it decodes, and put refuses a result decoded across a drop
+// (a write of that record, or another reader's miss), so content read before a write is never stored after it.
+func (c *resultCache) now() uint64 {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.epoch
+}
+
+func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult, epoch uint64) {
 	if c == nil {
 		return
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.epoch != epoch {
+		return
+	}
 	c.dropLocked(recordID)
 	entries := append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
 	if len(entries) > resultCacheSize {
@@ -139,6 +155,7 @@ func (c *resultCache) drop(recordID string) {
 
 // +checklocks:c.mu
 func (c *resultCache) dropLocked(recordID string) {
+	c.epoch++
 	kept := make([]resultCacheEntry, 0, resultCacheSize+1)
 	for _, entry := range c.entries {
 		if entry.recordID != recordID {
@@ -202,6 +219,7 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	}
 	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
 	s.cache.drop(recordID)
+	epoch := s.cache.now()
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult
@@ -215,7 +233,7 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		return nil
 	})
 	if outcome == persist.Loaded && statErr == nil {
-		s.cache.put(recordID, info, result)
+		s.cache.put(recordID, info, result, epoch)
 	}
 	return result, outcome == persist.Loaded
 }

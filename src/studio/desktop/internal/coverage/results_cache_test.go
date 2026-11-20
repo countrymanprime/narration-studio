@@ -103,7 +103,7 @@ func TestTheResultReadMostRecentlyOutlivesASweepOfOthers(t *testing.T) {
 	cache := service.results.cache
 	result, _ := service.results.read(id)
 	for i := 0; i < resultCacheSize+2; i++ {
-		cache.put(fmt.Sprintf("other-%d", i), info, result)
+		cache.put(fmt.Sprintf("other-%d", i), info, result, cache.now())
 		// The page reads its own chapter between the sweep's reads.
 		if _, ok := cache.get(id, info); !ok {
 			t.Fatalf("after %d other results the one read in between was pushed out", i+1)
@@ -165,4 +165,32 @@ func mustPath(t *testing.T, service *Service, id string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+// A reader that decoded the file before a write must not store what it read after the write dropped the record: the entry would carry the old
+// content under a stamp the new file may share (a coarse file time).
+func TestAReaderThatDecodedBeforeAWriteDoesNotStoreItsResult(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: alignedResults})
+	run(t, service, testRequest())
+	id := alignmentOf(t, service).RecordID
+	path := mustPath(t, service, id)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, ok := service.results.read(id)
+	if !ok {
+		t.Fatal("no result")
+	}
+	cache := service.results.cache
+	cache.drop(id)
+	epoch := cache.now() // the reader begins
+	if err := service.results.write(result); err != nil {
+		t.Fatal(err) // the writer drops the record and writes
+	}
+	cache.put(id, info, result, epoch) // the late reader stores what it read
+	if _, ok := cache.get(id, info); ok {
+		t.Fatal("a result decoded before the write was stored after it")
+	}
 }
