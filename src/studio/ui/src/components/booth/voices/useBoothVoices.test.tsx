@@ -871,8 +871,8 @@ describe('a lane armed in the DAW', () => {
     expect(hook.current.current?.name).toBe('Extras');
   });
 
-  // #3645: the add chooses the new voice but arms nothing, so the old lane is still the armed one: that is not the narrator arming it by hand.
-  it('does not follow the DAW back to the old lane after a voice was just added', async () => {
+  // #3645: an add whose arm the DAW refused leaves the old lane armed: that is not the narrator arming it by hand.
+  it('does not follow the DAW back to the old lane after a voice was just added and its arm refused', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
     let added = '';
@@ -884,7 +884,7 @@ describe('a lane armed in the DAW', () => {
     api.boothVoiceAdd = async (...args: Parameters<typeof realAdd>) => {
       const answer = await realAdd(...args);
       added = answer.trackGuid ?? '';
-      return answer;
+      return { ...answer, reason: 'recording' as const, message: 'REAPER is recording, so the armed track did not change.' };
     };
     const set = vi.spyOn(api, 'boothVoiceSet');
     const { hook } = await mount({}, false, api);
