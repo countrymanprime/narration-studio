@@ -381,7 +381,7 @@ export function Dialog({
               <div
                 className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:260px)]:py-1! [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-1.5`}
               >
-                <Parts.Title title={title} className={`flex-1 ${OVERLAY_TITLE_CLASS} [@media(max-height:400px)]:line-clamp-3`}>
+                <Parts.Title title={title} className={`flex-1 ${OVERLAY_TITLE_CLASS} line-clamp-3`}>
                   {title}
                 </Parts.Title>
                 {onClose && (
