@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 
 	"desktop/internal/bridge"
@@ -142,7 +143,7 @@ func TestRestoreSoloOnShutdownAsksTheRoleOnceAndDoesNothingWithoutOne(t *testing
 	if role.restores != 0 {
 		t.Fatalf("restores = %d for a session that never soloed, want none", role.restores)
 	}
-	host.solo.start()
+	host.solo.answered(host.solo.start())
 	host.restoreSoloOnShutdown()
 	if role.restores != 1 {
 		t.Fatalf("restores = %d, want 1", role.restores)
@@ -154,15 +155,15 @@ func TestAFailedRestoreIsOwedUntilARestoreIsAnswered(t *testing.T) {
 	if debt.mayBeSoloed() {
 		t.Fatal("nothing is owed before anything is soloed")
 	}
-	debt.start()
+	debt.answered(debt.start())
 	role := &fakeSoloer{restoreErr: bridge.ErrNoAnswer}
 	got := debt.restore(t.Context(), "REAPER", role)
-	if got.OK || !strings.Contains(got.Refused, "may stay silent") || !debt.owed.Load() || !debt.mayBeSoloed() {
+	if got.OK || !strings.Contains(got.Refused, "may stay silent") || !debt.isOwed() || !debt.mayBeSoloed() {
 		t.Fatalf("a restore the DAW did not answer must stay owed and say so: %+v", got)
 	}
 	role.restoreErr = nil
 	debt.restore(t.Context(), "REAPER", role)
-	if debt.owed.Load() || debt.mayBeSoloed() {
+	if debt.isOwed() || debt.mayBeSoloed() {
 		t.Fatal("an answered restore clears what was owed")
 	}
 }
@@ -175,9 +176,9 @@ func TestARestoreThatReachedNoSoloerKeepsWhatMayBeSoloed(t *testing.T) {
 		for _, owed := range []bool{false, true} {
 			var debt soloDebt
 			if owed {
-				debt.owed.Store(true)
+				debt.owed = true
 			} else {
-				debt.start()
+				debt.answered(debt.start())
 			}
 			got := debt.restore(t.Context(), "REAPER", c.follower)
 			if got.OK || !strings.Contains(got.Refused, "Unsolo") || !debt.mayBeSoloed() {
@@ -193,7 +194,7 @@ func TestDawSoloRestoreSaysNothingWhenNothingMayBeSoloed(t *testing.T) {
 		if got := debt.restore(t.Context(), "REAPER", follower); !got.OK || got.Refused != "" {
 			t.Errorf("%T: %+v, want done and silent", follower, got)
 		}
-		if debt.owed.Load() {
+		if debt.isOwed() {
 			t.Error("nothing was soloed, so nothing is owed")
 		}
 	}
@@ -213,12 +214,12 @@ func (b *blockedSoloer) SoloRestore(ctx context.Context) (dawport.SoloReleased, 
 
 func TestARestoreAnsweredAfterALaterSoloKeepsTheSoloOwed(t *testing.T) {
 	var debt soloDebt
-	debt.start()
+	debt.answered(debt.start())
 	role := &blockedSoloer{entered: make(chan struct{}), release: make(chan struct{})}
 	done := make(chan dawport.Result)
 	go func() { done <- debt.restore(t.Context(), "REAPER", role) }()
 	<-role.entered
-	debt.start() // a chapter soloed while the restore is in flight
+	debt.answered(debt.start()) // a chapter soloed while the restore is in flight
 	close(role.release)
 	if got := <-done; !got.OK {
 		t.Fatalf("restore = %+v", got)
@@ -230,7 +231,7 @@ func TestARestoreAnsweredAfterALaterSoloKeepsTheSoloOwed(t *testing.T) {
 
 func TestAStaleFailedRestoreDoesNotReownADebtALaterRestoreCleared(t *testing.T) {
 	var debt soloDebt
-	debt.start()
+	debt.answered(debt.start())
 	slow := &blockedSoloer{entered: make(chan struct{}), release: make(chan struct{})}
 	slow.restoreErr = bridge.ErrNoAnswer
 	first := make(chan dawport.Result)
@@ -261,6 +262,88 @@ func TestARestoreAfterOnlyRefusedSolosSaysNothing(t *testing.T) {
 	}
 }
 
+func TestASoloInFlightWhenARestoreIsAnsweredStaysCounted(t *testing.T) {
+	var debt soloDebt
+	debt.start() // asked, not answered yet
+	if got := debt.restore(t.Context(), "REAPER", &fakeSoloer{}); !got.OK {
+		t.Fatalf("restore = %+v", got)
+	}
+	if !debt.mayBeSoloed() {
+		t.Fatal("a solo that had not been answered when the restore was answered may still land: it stays counted")
+	}
+}
+
+func TestAStaleSoloCancelledAfterARestoreCoveredItDoesNotHideTheNextSolo(t *testing.T) {
+	var debt soloDebt
+	first := debt.start()
+	debt.answered(first)
+	stale := debt.start()
+	debt.restore(t.Context(), "REAPER", &fakeSoloer{}) // covers the first
+	debt.cancel(stale)
+	next := debt.start()
+	debt.answered(next)
+	if !debt.mayBeSoloed() {
+		t.Fatal("the next solo must be counted after a cancelled one")
+	}
+}
+
+func TestASoloTheDawAnsweredWithAnErrorIsNotOwed(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	var debt soloDebt
+	role := &fakeSoloer{soloErr: errors.New("The chapter's track could not be soloed because REAPER's resource folder is not writable")}
+	if got, _ := dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[0], &debt); got.OK {
+		t.Fatal("an error must refuse")
+	}
+	if debt.mayBeSoloed() {
+		t.Fatal("a solo REAPER answered with an error soloed nothing")
+	}
+	role.soloErr = bridge.ErrNoAnswer
+	dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[0], &debt)
+	if !debt.mayBeSoloed() {
+		t.Fatal("a solo that got no answer may still have landed")
+	}
+}
+
+func TestSoloDebtHoldsUnderConcurrentSolosAndRestores(t *testing.T) {
+	var debt soloDebt
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 50; j++ {
+				seq := debt.start()
+				debt.answered(seq)
+				if j%3 == 0 {
+					debt.cancel(seq)
+				}
+			}
+		}()
+		go func(i int) {
+			defer wg.Done()
+			role := &fakeSoloer{}
+			if i%2 == 0 {
+				role.restoreErr = bridge.ErrNoAnswer
+			}
+			for j := 0; j < 50; j++ {
+				debt.restore(t.Context(), "REAPER", role)
+			}
+		}(i)
+	}
+	wg.Wait()
+	debt.restore(t.Context(), "REAPER", &fakeSoloer{})
+	if debt.mayBeSoloed() {
+		t.Fatal("a restore that goes through after everything has settled leaves nothing owed")
+	}
+}
+
+func TestTheRestoreSentenceIsTheOneTheMockUses(t *testing.T) {
+	var debt soloDebt
+	debt.answered(debt.start())
+	got := debt.restore(t.Context(), "REAPER", &fakeSoloer{restoreErr: bridge.ErrNoAnswer})
+	contractfile.Check(t, "daw-solo-restore-refused", got)
+}
+
 func TestASoloTheHostRefusedBeforeAskingTheDawIsNotCounted(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	var debt soloDebt
@@ -280,7 +363,7 @@ func TestShutdownRetriesARestoreThatFailed(t *testing.T) {
 	host, _ := newReadAloudReaperHost(t)
 	role := &fakeSoloer{}
 	host.placeFollower = role
-	host.solo.owed.Store(true)
+	host.solo.owed = true
 	host.restoreSoloOnShutdown()
 	if role.restores != 1 {
 		t.Fatalf("restores = %d, want the owed one", role.restores)

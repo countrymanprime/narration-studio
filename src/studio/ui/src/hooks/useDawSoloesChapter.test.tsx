@@ -151,10 +151,11 @@ describe('a restore that did not reach the DAW', () => {
   const failed = { ok: false, changed: false, message: hostSentence, undoSteps: 0, refused: hostSentence };
 
   /** A DAW with a state: the chapter it holds soloed. `restoreAnswers` scripts the next restores ('fail', 'throw', or ok when empty). */
-  async function daw(setSwitch = 'true') {
+  async function daw(setSwitch = 'true', strict = true) {
     const real = await capsWith(true);
     const off = await capsWith(false);
-    let push: (caps: DawCapabilities) => void = () => undefined;
+    const listeners = new Set<(caps: DawCapabilities) => void>();
+    const push = (caps: DawCapabilities) => listeners.forEach((listener) => listener(caps));
     const state = { soloed: '', restores: 0, script: [] as Array<'fail' | 'throw'>, solo: 'ok' as 'ok' | 'refuse' };
     const dawSoloChapter = vi.fn(async (id: string) => {
       if (state.solo === 'refuse') return { ok: false, changed: false, message: 'no', undoSteps: 0 };
@@ -175,15 +176,18 @@ describe('a restore that did not reach the DAW', () => {
       settingsForScope: async () => setting(setSwitch),
       dawCapabilities: async () => real,
       subscribeDawCapabilities: (onUpdate: (caps: DawCapabilities) => void) => {
-        push = onUpdate;
-        return () => undefined;
+        listeners.add(onUpdate);
+        return () => void listeners.delete(onUpdate);
       },
     });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <StrictMode>
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      strict ? (
+        <StrictMode>
+          <ApiProvider api={api}>{children}</ApiProvider>
+        </StrictMode>
+      ) : (
         <ApiProvider api={api}>{children}</ApiProvider>
-      </StrictMode>
-    );
+      );
     return { state, dawSoloChapter, dawSoloRestore, wrapper, real, off, push: (caps: DawCapabilities) => act(() => push(caps)) };
   }
 
@@ -228,19 +232,143 @@ describe('a restore that did not reach the DAW', () => {
     restore();
   });
 
-  it('a Booth whose solo is refused after the DAW comes back is left as the DAW answered', async () => {
+  it('a Booth that holds its solo is not taken off by the retry, even when its solo is refused after the DAW comes back', async () => {
     const d = await daw();
     const { restore } = await toasts();
     d.state.script.push('fail');
     renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
     await waitFor(() => expect(d.state.soloed).toBe('c-1'));
     await d.push(d.off);
-    await waitFor(() => expect(d.state.restores).toBeGreaterThan(0));
+    await waitFor(() => expect(d.state.restores).toBe(1));
     d.state.solo = 'refuse';
     await d.push(d.real);
-    await waitFor(() => expect(d.state.restores).toBeGreaterThan(1));
     await act(async () => {});
-    expect(d.state.soloed).toBe('');
+    expect(d.state.restores).toBe(1);
+    expect(d.state.soloed).toBe('c-1');
+    restore();
+  });
+
+  /** The shell with the Booth that can leave while the narrator stays on the page. */
+  function Tree({ booth }: { booth: boolean }) {
+    useRetryOwedSoloRestore('/script');
+    return booth ? <Booth chapter="c-1" /> : null;
+  }
+
+  it('an owed restore is sent again while the narrator stays on one page: when the window gets focus again', async () => {
+    const d = await daw('true', false);
+    const { told, restore } = await toasts();
+    const tree = renderTree(<Tree booth />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await act(async () => {});
+    d.state.script.push('fail');
+    const before = d.state.restores;
+    tree.rerender(<Tree booth={false} />);
+    await waitFor(() => expect(d.state.restores).toBe(before + 1));
+    expect(d.state.soloed).toBe('c-1');
+    await waitFor(() => expect(told).toHaveLength(1));
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    restore();
+  });
+
+  it('a slow failing restore leaves no false toast over a chapter the Booth soloed again', async () => {
+    const d = await daw('true', false);
+    const { told, dismissed, restore } = await toasts();
+    let gate: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (gate = resolve));
+    renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await act(async () => {});
+    d.dawSoloRestore.mockImplementationOnce(async () => {
+      d.state.restores += 1;
+      await held;
+      return failed;
+    });
+    await d.push(d.off);
+    await d.push(d.real);
+    gate();
+    await waitFor(() => expect(told).toHaveLength(1));
+    await act(async () => {});
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(dismissed).toEqual(['daw-solo-left']));
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    restore();
+  });
+
+  it('a retry with a Booth that holds its solo and nothing told clears the debt quietly', async () => {
+    const d = await daw('true', false);
+    const { told, dismissed, restore } = await toasts();
+    renderTree(<Tree booth />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await act(async () => {});
+    d.dawSoloRestore.mockImplementationOnce(async () => {
+      d.state.restores += 1;
+      return { ...failed, refused: '' };
+    });
+    await d.push(d.off);
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    await act(async () => {});
+    await d.push(d.real);
+    await act(async () => {});
+    expect(told).toEqual([]);
+    expect(dismissed).toEqual([]);
+    expect(d.state.restores).toBe(1);
+    restore();
+  });
+
+  it('a retry whose Booth solo was refused takes the owed solo off and asks for the Booth solo again, on every try', async () => {
+    const d = await daw('true', false);
+    const { restore } = await toasts();
+    d.state.solo = 'refuse';
+    d.state.script.push('fail');
+    renderTree(<Tree booth />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalled());
+    d.state.soloed = 'old';
+    await act(async () => {});
+    await d.push(d.off);
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    await act(async () => {});
+    await d.push(d.real);
+    await waitFor(() => expect(d.state.restores).toBe(2));
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    d.state.solo = 'ok';
+    d.state.script.push('fail');
+    await d.push(d.off);
+    await d.push(d.real);
+    await act(async () => {});
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    restore();
+  });
+
+  it('a retry that finds a Booth whose own solo was refused takes the owed solo off and sets the Booth solo when it is answered now', async () => {
+    const d = await daw('true', false);
+    const { told, restore } = await toasts();
+    d.state.solo = 'refuse';
+    const tree = renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    d.state.script.push('fail');
+    tree.rerender(<Shell chapter="" />);
+    await waitFor(() => expect(told).toHaveLength(1));
+    tree.rerender(<Shell chapter="c-1" />);
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    d.state.solo = 'ok';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    restore();
+  });
+
+  it('tells the narrator once when the restore cannot reach the host at all', async () => {
+    const d = await daw();
+    const { told, restore } = await toasts();
+    d.state.script.push('throw');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    booth.unmount();
+    await waitFor(() => expect(told).toHaveLength(1));
+    expect(told[0]).toContain('may stay silent');
     restore();
   });
 
@@ -287,17 +415,16 @@ describe('a restore that did not reach the DAW', () => {
     restore();
   });
 
-  it('tells the narrator once, takes the toast away when the restore goes through, and a restore that threw and was then refused is told too', async () => {
+  it('tells the narrator once, takes the toast away when the restore goes through, and a refusal after a throw is not told a second time', async () => {
     const d = await daw();
     const { told, dismissed, restore } = await toasts();
     d.state.script.push('throw', 'fail');
     const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
     await waitFor(() => expect(d.state.soloed).toBe('c-1'));
     booth.unmount();
-    await waitFor(() => expect(d.state.restores).toBe(1));
-    expect(told).toEqual([]);
+    await waitFor(() => expect(told).toHaveLength(1));
     const shell = renderHook(({ page }: { page: string }) => useRetryOwedSoloRestore(page), { wrapper: d.wrapper, initialProps: { page: '/editing' } });
-    await waitFor(() => expect(told).toEqual([hostSentence]));
+    await waitFor(() => expect(d.state.restores).toBe(2));
     shell.rerender({ page: '/proof' });
     await waitFor(() => expect(d.state.soloed).toBe(''));
     expect(told).toHaveLength(1);

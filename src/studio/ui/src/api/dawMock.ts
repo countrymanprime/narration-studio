@@ -494,6 +494,10 @@ export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & D
 /** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
 const HEARTBEAT_MS = 250;
 
+/** The host's sentence for a restore that could not take the solo off (bindings_daw_solo.go, soloLeftSentence; the golden daw-solo-restore-refused.json pins it). */
+export const SOLO_LEFT_SENTENCE =
+  "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.";
+
 const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 
 export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): DawMock {
@@ -512,12 +516,17 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let refuseRelease: string | null = null;
   let refuseRestore: string | null = null;
   const unlinked = new Set<string>();
-  // The solo asked while the DAW recorded: the DAW applies it right after the stop (narration_solo_chapter.lua's tick).
+  // What was asked while the DAW recorded: the DAW applies it right after the stop (narration_solo_chapter.lua's tick). A restore that waits is a
+  // restore, and a solo that waits is a solo that may be on, for the host's debt.
   let waitingSolo: string | null = null;
+  let waitingRestore = false;
   const applyWaitingSolo = () => {
+    if (waitingRestore) solo.chapterId = '';
     if (waitingSolo !== null) solo.chapterId = waitingSolo;
     waitingSolo = null;
+    waitingRestore = false;
   };
+  const recordingNow = () => currentTransport(live, currentCapabilities(live)).recording;
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
@@ -850,12 +859,13 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       const refusal = followRefusal();
       if (refusal !== null) return refusedMove(refusal);
       if (unlinked.has(chapterId)) {
-        // The host puts the chapter before back and refuses the one without a linked track.
-        solo.chapterId = '';
+        // The host asks for the chapter before to be put back and refuses the one without a linked track; while the DAW records the DAW waits.
+        if (recordingNow()) waitingRestore = true;
+        else solo.chapterId = '';
         return refusedMove('This chapter has no linked track in the DAW.');
       }
       // While the DAW records it touches nothing and does it right after the stop: done, nothing changed yet.
-      if (currentTransport(live, currentCapabilities(live)).recording) {
+      if (recordingNow()) {
         waitingSolo = chapterId;
         return { ok: true, changed: false, message: '', undoSteps: 0 };
       }
@@ -866,8 +876,13 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     dawSoloRestore: async () => {
       // A DAW that does not answer cannot take the solo off: the host refuses when a solo may be on, and says nothing when none is.
-      if (!currentCapabilities(live).reachable && solo.chapterId !== '')
-        return refusedMove("The DAW did not answer, so the other chapters may stay silent. Unsolo the chapter's track in the DAW.");
+      if (!currentCapabilities(live).reachable && (solo.chapterId !== '' || waitingSolo !== null)) return refusedMove(SOLO_LEFT_SENTENCE);
+      if (recordingNow()) {
+        // While the DAW records it touches nothing; the solo that waits is dropped and the restore is done right after the stop.
+        waitingSolo = null;
+        waitingRestore = solo.chapterId !== '';
+        return { ok: true, changed: false, message: '', undoSteps: 0 };
+      }
       waitingSolo = null;
       if (refuseRestore !== null) {
         const sentence = refuseRestore;

@@ -153,6 +153,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-solo-chapter-done.json': dawResultSchema,
   'daw-solo-chapter-refused.json': dawResultSchema,
   'daw-solo-restore-done.json': dawResultSchema,
+  'daw-solo-restore-refused.json': dawResultSchema,
   // DawTransportSync and daw_position_changed (internal/transportsync): a done and a refused answer, and the position event playing, recording and
   // stopped with another project open.
   'daw-transport-sync-ok.json': dawResultSchema,

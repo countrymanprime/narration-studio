@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DawPlaceApi } from '../ports';
 import { usePort } from '../ports/usePort';
 import { useDawCapabilities } from './useDawCapabilities';
@@ -21,12 +21,22 @@ let owed = false;
 let told = false;
 let held: string | null = null;
 const TOLD_TOPIC = 'daw-solo-left';
+/** Said once when a restore could not reach the host at all (the host's own sentence is the only copy of the other case). */
+const NOT_REACHED =
+  "The solo could not be taken off the chapter's track, so the other chapters may stay silent. Unsolo it in the DAW if they are still silent.";
 
 type Ui = { say: (sentence: string) => void; withdraw: () => void };
 
 /** Sends the restore. `reassert` is for a retry, which may arrive while a Booth is on a chapter: that chapter is soloed again after it. */
 const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
   inOrder(async () => {
+    // A retry that finds a Booth on a chapter whose own solo was answered as done has nothing to take off: that solo is the one in force.
+    if (reassert && held !== null && maySolo) {
+      owed = false;
+      if (told) ui.withdraw();
+      told = false;
+      return;
+    }
     try {
       const answer = await place.dawSoloRestore();
       if (answer.ok) {
@@ -43,8 +53,12 @@ const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
         }
       }
     } catch {
-      // The call did not reach the host; the page's own DAW notices say so, and what may be soloed stays owed.
+      // The call did not reach the host: what may be soloed stays owed, and the narrator is told once.
       owed = maySolo || owed;
+      if (owed && !told) {
+        told = true;
+        ui.say(NOT_REACHED);
+      }
     }
     if (reassert && held !== null) {
       const chapter = held;
@@ -117,19 +131,27 @@ export function useDawSoloesChapter(chapterId: string | undefined): void {
 }
 
 /**
- * Mounted once in the app shell: an owed restore is sent again on the next report of the DAW's capabilities and on the next page change, on any page and
+ * Mounted once in the app shell: an owed restore is sent again when the DAW's capabilities change, on the next page change and when the app's window gets focus, on any page and
  * whatever the switch said when the app started (the restore does not look at it). A Booth that is on a chapter at that moment has its solo set again after it.
  */
 export function useRetryOwedSoloRestore(page: string): void {
   const place = usePort('dawPlace');
   const { caps } = useDawCapabilities();
   const ui = useUi();
+  // The DAW reports only when its capabilities change, so a DAW that keeps answering sends nothing to retry on: the narrator coming back to the app's window
+  // is the other moment (no timer).
+  const [focuses, setFocuses] = useState(0);
+  useEffect(() => {
+    const again = () => setFocuses((count) => count + 1);
+    window.addEventListener('focus', again);
+    return () => window.removeEventListener('focus', again);
+  }, []);
   const reachable = !!caps?.capabilities.follow_position?.available;
   const uiRef = useRef(ui);
   uiRef.current = ui;
   useEffect(() => {
     if (reachable && owed) restoreNow(place, uiRef.current, true);
-  }, [caps, page, place, reachable]);
+  }, [caps, page, place, reachable, focuses]);
 }
 
 /** For tests only: forgets what the page knows of the solo, so one test's owed restore does not reach the next. */

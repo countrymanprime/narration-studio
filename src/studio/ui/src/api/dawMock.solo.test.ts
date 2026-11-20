@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDawMock } from './dawMock';
+import { createDawMock, SOLO_LEFT_SENTENCE } from './dawMock';
 
 // The mock answers the chapter solo as the host does (bindings_daw_solo.go): the parity rows.
 const done = (changed: boolean) => ({ ok: true, changed, message: '', undoSteps: 0 });
@@ -52,7 +52,36 @@ describe('the mock DAW, chapter solo', () => {
     daw.control.quiet();
     const refused = await daw.dawSoloRestore();
     expect(refused.ok).toBe(false);
-    expect(refused.refused).toContain('may stay silent');
+    expect(refused.refused).toBe(SOLO_LEFT_SENTENCE);
     expect(daw.control.soloed().chapterId).toBe('c-0001');
+  });
+
+  it('a restore asked during a take waits for the stop, as the DAW does', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    await daw.dawSoloChapter('c-0001');
+    daw.control.record('start', 'c-0001');
+    expect(await daw.dawSoloRestore()).toEqual(done(false));
+    expect(daw.control.soloed().chapterId).toBe('c-0001');
+    daw.control.stopInDaw();
+    expect(daw.control.soloed().chapterId).toBe('');
+  });
+
+  it('refuses a restore after a solo that waited for the take and then the DAW went quiet, with the host sentence', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: true } });
+    await daw.dawSoloChapter('c-0001');
+    daw.control.quiet();
+    const refused = await daw.dawSoloRestore();
+    expect(refused.refused).toBe(SOLO_LEFT_SENTENCE);
+  });
+
+  it('an unlinked chapter asked during a take leaves the earlier solo until the stop', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    await daw.dawSoloChapter('c-0001');
+    daw.control.unlinkChapter('c-0002');
+    daw.control.record('start', 'c-0001');
+    expect((await daw.dawSoloChapter('c-0002')).ok).toBe(false);
+    expect(daw.control.soloed().chapterId).toBe('c-0001');
+    daw.control.stopInDaw();
+    expect(daw.control.soloed().chapterId).toBe('');
   });
 });

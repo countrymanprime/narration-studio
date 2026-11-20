@@ -26,3 +26,20 @@ test('a DAW that goes quiet and answers again leaves the Booth chapter soloed', 
   await settlePage(page);
   expect(await soloed(page)).toBe(chapter);
 });
+
+test('an owed restore is sent again when the window gets focus, with the narrator staying on the Script page', async ({ page }) => {
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect.poll(() => soloed(page)).not.toBe('');
+  await page.evaluate(() =>
+    window.__NARRATION_MOCK_DAW__?.refuseNextRestore(
+      'REAPER could not take the solo off the chapter’s track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.',
+    ),
+  );
+  await goToPage(page, 'Script');
+  await settlePage(page);
+  expect(await soloed(page)).not.toBe('');
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => soloed(page)).toBe('');
+});

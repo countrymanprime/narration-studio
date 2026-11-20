@@ -10,8 +10,8 @@
 --   * when expected_path is not the open project's file (the narrator opened another project: saving would write to a
 --     project the app does not read), compared with slashes folded, and case too on Windows and macOS; a different spelling of the same file (a symlink, a mapped drive) is refused, which is the safe side; Windows not run;
 --   * when the project has never been saved;
---   * when a chapter is soloed in place (narration_solo_chapter.lua) and REAPER plays one isolated track or a record_start waits for REAPER, since the
---     solo cannot be taken off for the write and the file would hold it;
+--   * when a chapter is soloed in place (narration_solo_chapter.lua) and still reads soloed while a record_start waits for REAPER or REAPER plays one
+--     isolated track, since the solo cannot be taken off for the write and the file would hold it;
 --   * when REAPER still reports the project as needing a save after the call (fake-only so far: a save REAPER cannot write blocks it
 --     before this line, see below, and a project that was already clean cannot show a failed save).
 -- A file REAPER cannot write is the host's check, before it sends this: REAPER 7.82 waits on its own error dialog and answers no

@@ -4342,9 +4342,9 @@
     "replace": ""
   },
   {
-    "name": "a save during a play isolation writes the chapter's solo into the file",
+    "name": "a save while the bridge is busy writes the chapter's solo into the file",
     "file": "narration_solo_chapter.lua",
-    "find": "      if #state.rows > 0 then\n        return false, SAVE_WHILE_BUSY\n      end\n",
+    "find": "      if reads_ours(state.rows) or reads_ours(state.ghosts) or state.pending ~= nil or unread then\n        return false, SAVE_WHILE_BUSY\n      end\n",
     "replace": ""
   },
   {
@@ -4382,5 +4382,29 @@
     "file": "narration_solo_chapter.lua",
     "find": "    if state.in_tick and state.tick_wrote and state.unsaved then\n      return false\n    end\n",
     "replace": ""
+  },
+  {
+    "name": "a save during a wait ignores whether the chapter still reads our solo",
+    "file": "narration_solo_chapter.lua",
+    "find": "      local track = find_track(row.guid)\n      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then\n        return true\n      end",
+    "replace": "      local track = find_track(row.guid)\n      if track then\n        return true\n      end"
+  },
+  {
+    "name": "a save under a play isolation ignores a solo that waits",
+    "file": "narration_solo_chapter.lua",
+    "find": "reads_ours(state.ghosts) or state.pending ~= nil or unread",
+    "replace": "reads_ours(state.ghosts) or unread"
+  },
+  {
+    "name": "a save during a wait ignores a leftover ledger not looked at yet",
+    "file": "narration_solo_chapter.lua",
+    "find": "reads_ours(state.ghosts) or state.pending ~= nil or unread",
+    "replace": "reads_ours(state.ghosts) or state.pending ~= nil"
+  },
+  {
+    "name": "a save leaves a ghost that is back in front soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if #state.ghosts > 0 then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then",
+    "replace": "    if false then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then"
   }
 ]

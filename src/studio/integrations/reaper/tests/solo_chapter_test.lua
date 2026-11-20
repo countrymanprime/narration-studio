@@ -892,18 +892,76 @@ H.test('save_project before the first tick puts a leftover chapter back, so the 
   H.eq(on_disk, { 0, 0, 0, 0, 0, 0 })
 end)
 
-H.test('save_project while a play isolation is in place and a chapter is soloed is refused, writing nothing', function()
-  local s, t = new_session()
-  with_audio(s, t)
-  s:send('solo_chapter', 'c1', t.ch1.guid)
-  s:send('play_from', 'p1', '10', t.ch2.guid)
+-- A record_start that waits for REAPER makes the bridge busy while our solo is still on the track.
+local function waiting_for_record(s, t)
+  s.fake.record_delay_ticks = 3
+  t.a.armed = true
+  s:send('record_start', 'rs1', t.a.guid)
   s:events()
+end
+
+H.test('save_project while a record_start waits and a chapter is still soloed is refused, writing nothing', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  waiting_for_record(s, t)
   local saves = s.fake.saves or 0
   s:send('save_project', 's1', s.fake.project_path)
   local event = s:events()[1]
   H.eq(event[1], 'ERROR')
   H.truthy(event[3]:find('not saved', 1, true))
   H.eq(s.fake.saves or 0, saves)
+end)
+
+H.test('save_project while a record_start waits saves when the narrator took the chapter off in REAPER meanwhile', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  waiting_for_record(s, t)
+  t.ch1.solo = 0
+  local saves = s.fake.saves or 0
+  s:send('save_project', 's1', s.fake.project_path)
+  H.eq(s.fake.saves or 0, saves + 1)
+end)
+
+H.test('save_project under a play isolation with a solo waiting to be applied is refused', function()
+  local s, t = new_session()
+  with_audio(s, t)
+  s:send('play_from', 'p1', '10', t.ch2.guid)
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:events()
+  local saves = s.fake.saves or 0
+  s:send('save_project', 's1', s.fake.project_path)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(s.fake.saves or 0, saves)
+end)
+
+H.test('save_project while a record_start waits and a leftover ledger was not looked at yet is refused', function()
+  local s, t = new_session()
+  H.write_file(s:path(LEDGER), row(t.ch1))
+  waiting_for_record(s, t)
+  local saves = s.fake.saves or 0
+  s:send('save_project', 's1', s.fake.project_path)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(s.fake.saves or 0, saves)
+end)
+
+H.test('save_project takes a chapter off that is a ghost whose project is back in front, before the write', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:send('solo_restore', 'r1')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  t.ch1.solo = 2
+  local on_disk
+  local real = reaper.Main_SaveProject
+  reaper.Main_SaveProject = function(...)
+    on_disk = solos(s)
+    return real(...)
+  end
+  s.fake.project_path = book
+  s:send('save_project', 's1', book)
+  reaper.Main_SaveProject = real
+  H.eq(on_disk, { 0, 0, 0, 0, 0, 0 })
 end)
 
 H.test('save_project puts the chapter back even when the write raises, and answers ERROR', function()

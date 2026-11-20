@@ -1,3 +1,4 @@
+import { SOLO_LEFT_SENTENCE } from './dawMock';
 import { readdirSync, readFileSync } from 'node:fs';
 import { DAW_CHOSEN_CHAIN } from './contracts/daw';
 import { fileURLToPath } from 'node:url';
@@ -3882,7 +3883,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   });
 
   it('dawSoloChapter and dawSoloRestore: the host goldens parse, and the mock solos one chapter, refuses as the host does and restores without the switch', async () => {
-    for (const name of ['daw-solo-chapter-done.json', 'daw-solo-chapter-refused.json', 'daw-solo-restore-done.json'])
+    for (const name of ['daw-solo-chapter-done.json', 'daw-solo-chapter-refused.json', 'daw-solo-restore-done.json', 'daw-solo-restore-refused.json'])
       expectMatches(dawResultSchema, readGolden(name), name);
     const api = createMockApi({}, { daw: {} });
     expect(await api.dawSoloChapter('c-0001')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
@@ -3891,6 +3892,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawSoloRestore()).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
     expect(await api.dawSoloRestore()).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
 
+    expect(readGolden('daw-solo-restore-refused.json')).toEqual({
+      ok: false,
+      changed: false,
+      message: SOLO_LEFT_SENTENCE,
+      undoSteps: 0,
+      refused: SOLO_LEFT_SENTENCE,
+    });
     const off = createMockApi({}, { daw: { reachable: false } });
     const refused = await off.dawSoloChapter('c-0001');
     expect(refused.ok).toBe(false);

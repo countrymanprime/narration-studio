@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"desktop/internal/bridge"
@@ -17,57 +17,96 @@ const soloNotQuietedSentence = "%s could not quiet the other chapters: %s."
 // soloLeftSentence is what the narrator is told, once, when a solo that may be on could not be taken off (the page shows it as a toast): what may stay
 // silent and what to do. It is said only when something may be soloed, and it does not say when the narrator left: the DAW may have gone away mid-visit.
 // The page sends the restore again when the DAW can follow again, and the DAW's own ledger puts it back the next time its bridge starts.
-const soloLeftSentence = "%s could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in %s if they still are when you leave the Booth."
+const soloLeftSentence = "%s could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in %s if they are still silent."
 
-// soloDebt is what the host knows of the solo it asked the DAW for. started counts the solos asked for (counted just before the request, since one that
-// timed out may still have landed) and through is the count a restore the DAW answered covered, so a solo started while a restore was in flight is never
-// forgotten. owed is set when a restore that may have had something to take off failed or reached no DAW that can do it. The shutdown restore is sent
-// only when something may be soloed, so a session that never used the feature asks the DAW for nothing.
+// soloDebt is what the host knows of the solo it asked the DAW for, under one mutex. pending holds the solos that may be on, by the number each was
+// asked under: false while the DAW has not answered yet (a solo that is in flight when a restore is answered may still land, so that restore does not cover
+// it), true once it answered or timed out (one that timed out may still have landed). A restore the DAW answered covers the answered solos asked before it;
+// a solo the DAW answered it did not do is cancelled. owed is set when a restore that may have had something to take off failed or reached no DAW that
+// can do it. The shutdown restore is sent only when something may be soloed, so a session that never used the feature asks the DAW for nothing.
 type soloDebt struct {
-	started, through atomic.Int64
-	owed             atomic.Bool
+	mu      sync.Mutex
+	next    int64
+	pending map[int64]bool
+	owed    bool
 }
 
-func (d *soloDebt) mayBeSoloed() bool { return d.started.Load() > d.through.Load() || d.owed.Load() }
+func (d *soloDebt) mayBeSoloed() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return len(d.pending) > 0 || d.owed
+}
 
-// start is called just before a solo is asked for.
-func (d *soloDebt) start() {
-	if d != nil {
-		d.started.Add(1)
+func (d *soloDebt) isOwed() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.owed
+}
+
+// start is called just before a solo is asked for and answers the number it was asked under.
+func (d *soloDebt) start() int64 {
+	if d == nil {
+		return 0
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.next++
+	if d.pending == nil {
+		d.pending = map[int64]bool{}
+	}
+	d.pending[d.next] = false
+	return d.next
+}
+
+// answered records that the DAW answered the solo (or that the wait for it ended): from now a restore asked after it covers it.
+func (d *soloDebt) answered(seq int64) {
+	if d == nil {
+		return
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if _, on := d.pending[seq]; on {
+		d.pending[seq] = true
 	}
 }
 
 // cancel takes back a solo the DAW answered it did not do.
-func (d *soloDebt) cancel() {
-	if d != nil {
-		d.started.Add(-1)
+func (d *soloDebt) cancel(seq int64) {
+	if d == nil {
+		return
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.pending, seq)
 }
 
-// restore asks for the restore and records the answer. The mark is read before the ask, so a solo started during it stays owed. A failure, or a DAW
-// that cannot do it, keeps the debt and is reported with the sentence only when something may be soloed; with nothing soloed it is not reported at all.
+// restore asks for the restore and records the answer. The mark is read before the ask: only the answered solos up to it are covered by a restore that
+// went through. A failure, or a DAW that cannot do it, keeps the debt and is reported with the sentence only when something may be soloed.
 func (d *soloDebt) restore(ctx context.Context, name string, follower dawport.PlaceFollower) dawport.Result {
-	mark := d.started.Load()
-	pending := d.mayBeSoloed()
+	d.mu.Lock()
+	mark := d.next
+	pending := len(d.pending) > 0 || d.owed
+	d.mu.Unlock()
 	result, reached := restoreSolo(ctx, name, follower)
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if reached && result.OK {
-		for {
-			seen := d.through.Load()
-			if seen >= mark || d.through.CompareAndSwap(seen, mark) {
-				break
+		for seq, answered := range d.pending {
+			if seq <= mark && answered {
+				delete(d.pending, seq)
 			}
 		}
-		d.owed.Store(false)
+		d.owed = false
 		return result
 	}
 	if !pending {
 		return dawport.Result{OK: true}
 	}
 	// A failure answered after a later restore went through owes nothing the later one did not already take off.
-	if d.started.Load() > d.through.Load() {
-		d.owed.Store(true)
+	if len(d.pending) > 0 {
+		d.owed = true
 	}
-	if !d.mayBeSoloed() {
+	if len(d.pending) == 0 && !d.owed {
 		return dawport.Result{OK: true}
 	}
 	if reached {
@@ -105,7 +144,11 @@ func dawSoloChapterWith(ctx context.Context, svc hostServices, name string, supp
 	}
 	if unlinked != nil {
 		// The chapter before is put back, so the other chapters are not left quiet for a chapter that cannot be soloed.
-		putBackBefore(ctx, follower)
+		if debt != nil {
+			debt.restore(ctx, name, follower)
+		} else {
+			putBackBefore(ctx, follower)
+		}
 		return dawport.Refused(unlinked.Message), nil
 	}
 	if follower == nil {
@@ -115,16 +158,19 @@ func dawSoloChapterWith(ctx context.Context, svc hostServices, name string, supp
 	if !ok {
 		return dawport.Result{OK: true}, nil
 	}
-	debt.start()
+	seq := debt.start()
 	soloed, err := soloer.SoloChapter(ctx, track)
 	if err != nil {
-		var stale *bridge.TrackStaleError
-		if errors.As(err, &stale) {
-			// The DAW answered that the track is gone: nothing was soloed by this call, so it is not owed.
-			debt.cancel()
+		if errors.Is(err, bridge.ErrNoAnswer) || errors.Is(err, bridge.ErrUnavailable) || errors.Is(err, context.DeadlineExceeded) {
+			// The DAW did not answer: the solo may still have landed, so it stays owed.
+			debt.answered(seq)
+		} else {
+			// The DAW answered with an error (the track is gone, its ledger cannot be written): nothing was soloed by this call.
+			debt.cancel(seq)
 		}
 		return soloRefusal(name, err), nil
 	}
+	debt.answered(seq)
 	return dawport.Result{OK: true, Changed: soloed.Changed}, nil
 }
 

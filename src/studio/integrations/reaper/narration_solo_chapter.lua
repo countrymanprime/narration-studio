@@ -36,7 +36,7 @@ local SOLO_IN_PLACE = 2
 local MAX_ROWS = 64
 local MAX_RETRY_WAIT = 256
 local SAVE_WHILE_BUSY =
-  'The project was not saved because a chapter is soloed while REAPER plays one track or waits to record, and the file would hold the solo. Save again once it stops.'
+  'The project was not saved because a chapter is soloed while REAPER waits to record or plays one track, and the file would hold the solo. Save again once it has started or stopped.'
 local NO_LEDGER = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was soloed."
 
 local function normalize_guid(guid)
@@ -269,10 +269,27 @@ return function(registry)
   -- Runs `save` (a function that writes the project to disk) with the chapter this bridge soloed put back, then soloes it again: an I_SOLO write
   -- marks nothing unsaved, so a project saved while soloed would keep the solo on disk and the next open would read it as the narrator's own. The row
   -- stays on the ledger throughout. The narrator's own save in REAPER cannot be intercepted (reaper.md).
+  -- Whether a row in `list` is on a track that still reads the solo this file set.
+  local function reads_ours(list)
+    for _, row in ipairs(list) do
+      local track = find_track(row.guid)
+      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then
+        return true
+      end
+    end
+    return false
+  end
+
   registry.solo_around_save = function(save)
     if busy() then
-      -- A play's isolation or a record_start that waits is in place: the solo cannot be lifted for the write, so a save would hold it. Refused.
-      if #state.rows > 0 then
+      -- A record_start waits for REAPER (or a play's isolation is in place) and a chapter of ours still reads soloed, a solo waits to be applied, or a
+      -- leftover ledger was not looked at yet: the solo cannot be lifted for the write, so a save would hold it. Refused. (A play's isolation takes our own solo
+      -- off by itself; its own solo in the file is the transport's, not ours.)
+      local unread = not state.recovered and io.open(ledger_path(), 'r')
+      if unread then
+        unread:close()
+      end
+      if reads_ours(state.rows) or reads_ours(state.ghosts) or state.pending ~= nil or unread then
         return false, SAVE_WHILE_BUSY
       end
       save()
@@ -280,6 +297,15 @@ return function(registry)
     end
     -- A leftover a closed REAPER left is put back first, so the file does not hold it either.
     recover()
+    -- A chapter soloed in another project that is back in front and was not looked at yet is taken off before the write as well.
+    if #state.ghosts > 0 then
+      local _, _, away = put_back(state.ghosts)
+      if #away ~= #state.ghosts then
+        state.ghosts = {}
+        add_ghosts(away)
+        persist()
+      end
+    end
     if #state.rows == 0 then
       save()
       return true
