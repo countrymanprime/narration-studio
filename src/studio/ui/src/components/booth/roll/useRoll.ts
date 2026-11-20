@@ -47,7 +47,7 @@ export type RollActions = TakeControls & {
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
   notify: (sentence: string, topic?: string) => void;
-  /** Says why the press ended without a take (a refusal, a lookup that failed or ran out): one message that stays until dismissed and takes the press's notes away. */
+  /** Says why the press ended without a take (a refusal, a lookup that failed or ran out): one message that stays until dismissed or its 20 s are up and takes the press's notes away. */
   refuse: (sentence: string) => void;
 };
 

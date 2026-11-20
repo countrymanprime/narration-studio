@@ -102,7 +102,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     "Says that the DAW would not arm the chapter's voice on entry or put its monitoring back on leaving: the voice list's own press arms again and the setup notice's Check again reads the DAW afresh, so a retry here would repeat a call the narrator has already moved past (#3428).",
   ),
   'src/components/booth/page/useBoothPage.ts#1': no(
-    'Ends a press that started no take (a refusal, a lookup that failed or ran out) or a roll the DAW refused during a take: repeating asks the same question, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
+    'Ends a press that started no take (a refusal, a lookup that failed or ran out) or a roll the DAW refused during a take: repeating asks the same question, and Record on the page (R during a take) is the control for the next try, so a Retry on the toast would be a second one.',
   ),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
   'src/components/booth/page/useBoothPage.ts#3': no(RC),

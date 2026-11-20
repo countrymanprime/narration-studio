@@ -173,7 +173,7 @@ export function useBoothPage(options: BoothPageOptions) {
     [overlay],
   );
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
-  // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed (`PRESS_TOPIC`: a newer one replaces it),
+  // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed or its 20 s are up (`PRESS_TOPIC`: a newer one replaces it),
   // and the press's notes ("Starting from ¶ 3") go with it (`PRESS_NOTE_TOPIC`).
   const pressRefusal = useCallback(
     (sentence: string) => {

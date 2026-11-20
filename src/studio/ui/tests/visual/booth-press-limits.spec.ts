@@ -137,7 +137,7 @@ test('a lookup of the chosen start that never answers ends the press with one er
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   expect(await timesSaid(page, /did not come back in time, so no take was started/)).toBe(1);
-  // The press's note about the start is gone with it, and the message is an error that stays until dismissed.
+  // The press's note about the start is gone with it, and the message is an error that stays until dismissed or its 20 s are up.
   await expect(page.getByText(/Starting from/)).toHaveCount(0);
   await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
