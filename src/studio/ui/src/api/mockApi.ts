@@ -210,9 +210,12 @@ export function createMockApi(
   const guideSetting = (key: string) => settings.settings.global.ManuscriptGuide?.find((item) => item.key === key)?.effectiveValue ?? '';
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges, () => {
     const lines = Number(guideSetting('speaker_fallback_max_quotes'));
-    return { on: guideSetting('speaker_fallback') === 'true', maxLines: Number.isInteger(lines) && lines >= 1 && lines <= 200 ? lines : 20 };
+    return {
+      on: initial.localModel !== 'none' && guideSetting('speaker_fallback') === 'true',
+      maxLines: Number.isInteger(lines) && lines >= 1 && lines <= 200 ? lines : 20,
+    };
   });
-  const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
+  const { clearSuggestions, ...extraction } = createExtractionMock(endJob, initial.localModel === 'none' ? 'none' : 'installed');
   const character = createCharacterMock(s);
   const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({

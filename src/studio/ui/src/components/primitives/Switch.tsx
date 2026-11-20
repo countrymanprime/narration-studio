@@ -28,7 +28,7 @@ export function Switch({
 }) {
   const reasonId = useId();
   const off = Boolean(disabledReason);
-  return (
+  const label = (
     <label className={`inline-flex items-center gap-2 text-sm ${disabled || off ? '' : 'cursor-pointer'} ${className}`.trim()}>
       <BaseSwitch.Root
         checked={checked}
@@ -44,11 +44,16 @@ export function Switch({
       </BaseSwitch.Root>
       {/* min-w-0: a long label shrinks and clips inside its column instead of running behind the next one. */}
       <span className="min-w-0 flex-1">{children}</span>
-      {off && (
-        <span id={reasonId} className="text-xs text-[var(--text-muted)]">
-          {disabledReason}
-        </span>
-      )}
     </label>
+  );
+  // The reason stands beside the label, not inside it: inside, it would be read as part of the switch's name and again as its description.
+  if (!off) return label;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      {label}
+      <span id={reasonId} className="text-xs text-[var(--text-muted)]">
+        {disabledReason}
+      </span>
+    </span>
   );
 }

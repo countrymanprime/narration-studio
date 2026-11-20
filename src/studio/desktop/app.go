@@ -2074,6 +2074,10 @@ func (h *Host) settingsForScope(scope string) (map[string]any, error) {
 		}
 		for _, schema := range schemas {
 			effective, source := store.Effective(tool, schema.key, "")
+			// A setting that is this computer's only is shown as the host reads it: a project file's value for it counts for nothing.
+			if tool == "ManuscriptGuide" && strings.HasPrefix(schema.key, "speaker_fallback") {
+				effective, source = store.EffectiveGlobal(tool, schema.key, "")
+			}
 			current, set := scoped[schema.key]
 			field := map[string]any{"key": schema.key, "label": schema.label, "kind": schema.kind, "choices": schema.choices, "value": current, "isSet": set, "effectiveValue": effective, "effectiveSource": source}
 			if spec, ok := numberSpecs[tool][schema.key]; ok {

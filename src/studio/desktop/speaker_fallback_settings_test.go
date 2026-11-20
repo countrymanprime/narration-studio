@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -173,6 +174,31 @@ func TestAProjectsSettingsFileCannotTurnTheLocalModelOnOrRaiseItsCap(t *testing.
 	saveGuideSetting(t, store, "global", "speaker_fallback_max_quotes", "1")
 	if result := runAttribution(t, svc); model.asked != 1 || result.ModelFilled != 1 {
 		t.Fatalf("the project's file raised the cap: asked %d, result %+v", model.asked, result)
+	}
+}
+
+// Settings shows what a run reads: a project file's value for these three is not shown as the value in effect.
+func TestSettingsShowsThisComputersValueForTheLocalModelWhateverAProjectFileSays(t *testing.T) {
+	f := newSpacyFixture(t)
+	store := f.host.services().settings
+	saveGuideSetting(t, store, "global", "speaker_fallback", "true")
+	saveGuideSetting(t, store, "global", "speaker_fallback_max_quotes", "50")
+	saveGuideSetting(t, store, "project", "speaker_fallback", "false")
+	saveGuideSetting(t, store, "project", "speaker_fallback_max_quotes", "1")
+	schemas, err := f.host.settingsForScope("global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields, _ := schemas["ManuscriptGuide"].([]map[string]any)
+	shown := map[string]any{}
+	for _, field := range fields {
+		shown[field["key"].(string)] = fmt.Sprint(field["effectiveValue"], " from ", field["effectiveSource"])
+	}
+	if shown["speaker_fallback"] != "true from global" || shown["speaker_fallback_max_quotes"] != "50 from global" {
+		t.Fatalf("shown %v", shown)
+	}
+	if !speakerFallbackOn(store) || speakerFallbackQuotes(store) != 50 {
+		t.Fatal("a run reads something else than Settings shows")
 	}
 }
 

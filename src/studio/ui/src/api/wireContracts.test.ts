@@ -1196,6 +1196,17 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     // The three settings are this computer's: a project cannot hold them.
     await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback: 'true' })).rejects.toThrow(/global/);
     await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback_max_quotes: '200' })).rejects.toThrow(/global/);
+    // A suggestion whose entry is deleted goes back to unknown at the next run, reason gone.
+    const other = createMockApi();
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    await other.guideAttributeSpeakers();
+    const filled = (await other.guideDialogueCues()).find((cue) => cue.speaker_source === 'local-model')!;
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    await other.guideDelete(filled.speaker_entity_id!);
+    await other.guideAttributeSpeakers();
+    const orphan = (await other.guideDialogueCues()).find((cue) => cue.id === filled.id);
+    expect(orphan).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(orphan?.evidence.reason).toBeUndefined();
     // The local model is never started from a scan.
     expect((await api.extractionSources()).find((source) => source.id === 'local-model')).toMatchObject({ runs: false, available: true });
   });

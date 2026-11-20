@@ -113,6 +113,8 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /** `?mockLocalModel=none`: no local model for unknown speakers is installed, as in the app today; unset, the mock's stand-in is. */
+  localModel?: 'none';
   /**
    * `?mockAssetsVerify=`: what Check the files answers. `damaged` and `absent` find the asset damaged or gone (and the list then says so),
    * `fails` refuses with the host's sentence, `silent` refuses with no words, `hangs` never answers. Unset, a check finds the files whole.

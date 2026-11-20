@@ -410,7 +410,7 @@ function withText(p: SuggestionPayload, text: string): SuggestionPayload {
  * suggestions and the mock's copy of the entries, answers how many suggestions there were, and refuses while a scan runs. */
 export type ExtractionMock = ExtractionApi & { clearSuggestions(): number };
 
-export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined): ExtractionMock {
+export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined, localModel: 'installed' | 'none' = 'installed'): ExtractionMock {
   const seeds = seeded();
   let suggestions = seeds.suggestions;
   let entries = wireClone(ENTRIES);
@@ -692,7 +692,15 @@ export function createExtractionMock(publish: (event: JobEnded) => void = () => 
       const prompt = `You are helping an audiobook narrator prepare a Story Bible from a book manuscript.\nAnswer with ${format.toUpperCase()} only, in exactly this format.\n\nExample:\n${example}\n\nMANUSCRIPT\n`;
       return Promise.resolve({ format, prompt, example, maxBytes: IMPORT_MAX_BYTES });
     },
-    extractionSources: () => Promise.resolve(wireClone(SOURCES)),
+    // With no local model installed the row is the host's own: unavailable, with its sentence.
+    extractionSources: () =>
+      Promise.resolve(
+        wireClone(
+          localModel === 'none'
+            ? SOURCES.map((source) => (source.id === 'local-model' ? { ...source, available: false, reason: 'No local model is installed.' } : source))
+            : SOURCES,
+        ),
+      ),
     extractionScan: (sourceIds) => {
       const runnable = SOURCES.filter((s) => s.runs).map((s) => s.id);
       const refused = sourceIds.find((id) => !runnable.includes(id));

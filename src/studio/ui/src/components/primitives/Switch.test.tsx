@@ -55,7 +55,8 @@ describe('Switch', () => {
         Ask a local model
       </Switch>,
     );
-    const toggle = screen.getByRole('switch', { name: /Ask a local model/ });
+    // The reason is the description, not part of the name: it is read once.
+    const toggle = screen.getByRole('switch', { name: 'Ask a local model' });
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
     expect(toggle.hasAttribute('disabled')).toBe(false);
     const reason = screen.getByText('No local model is installed.');

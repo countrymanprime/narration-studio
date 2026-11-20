@@ -358,6 +358,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'project-unknown-speakers-no-model',
+    description:
+      'Settings, Project, the Unknown speakers section as the app ships (`?mockLocalModel=none`): the switch off beside "No local model is installed.", and the model and lines rows off with the same reason',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'project-type-colour',
     description:
       'Settings, Project scrolled to Entry types with the colour box of Place opened: a row of six swatches in a popover under the box, Blue ringed and checked',

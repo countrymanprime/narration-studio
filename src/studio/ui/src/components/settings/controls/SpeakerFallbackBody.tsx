@@ -1,13 +1,7 @@
-import { useEffect, useState } from 'react';
-import { usePort } from '../../../ports/usePort';
 import { Switch } from '../../primitives/Switch';
 import { useSettingsStore } from '../data/SettingsStore';
+import { useLocalModelMissing } from '../data/useLocalModel';
 import { rowOf } from '../registry/rows';
-
-/** What the row says while the host has not answered whether a local model is installed. */
-const CHECKING = 'Checking for a local model…';
-/** What it says when the host cannot be asked: the switch stays off rather than promise a model that may not be there. */
-const CANNOT_TELL = 'Could not check for a local model.';
 
 /**
  * Whether Find who speaks each line also asks a local model about the lines the rules leave unknown (issue 3743). The switch works
@@ -18,22 +12,8 @@ const CANNOT_TELL = 'Could not check for a local model.';
  */
 export function SpeakerFallbackBody() {
   const row = rowOf('project.speakerFallback')!;
-  const api = usePort('extraction');
   const store = useSettingsStore();
-  const [missing, setMissing] = useState<string | undefined>(CHECKING);
-  useEffect(() => {
-    let alive = true;
-    api.extractionSources().then(
-      (sources) => {
-        const model = sources.find((source) => source.id === 'local-model');
-        if (alive) setMissing(model?.available ? undefined : model?.reason || 'No local model is installed.');
-      },
-      () => alive && setMissing(CANNOT_TELL),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [api]);
+  const missing = useLocalModelMissing();
   const on = store.fieldsOf(row).global?.effectiveValue === 'true';
   return (
     <Switch checked={on && !missing} disabledReason={missing} onChange={(next) => void store.write(row, 'global', next ? 'true' : null)}>

@@ -15,6 +15,7 @@ import { useHasProject } from './SettingsHost';
 import { AssetNote } from './AssetNote';
 import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useRowReset } from './RowResetContext';
+import { useLocalModelMissing } from '../data/useLocalModel';
 import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
 import { ValueControl } from './ValueControl';
@@ -83,6 +84,13 @@ const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 firs
 // the reset, and the shortcut list has Reset all to defaults.
 const OWN_RESET = new Set(['daw.layout', 'daw.sync', 'look.zoom', 'look.entrySort', 'app.tips', 'keys.map']);
 
+/**
+ * Rows with a body of their own whose one value is this computer's host field and nothing else: Changed and Reset work for them as
+ * for a plain field. Not every custom body over a field: the microphone row has a second setting, and the voice sample rows
+ * write the project's value, so the computer's field does not say whether they changed.
+ */
+const OWN_FIELD: ReadonlySet<string> = new Set(['project.speakerFallback']);
+
 export function SettingRowView({ row, children, flash, wide }: { row: SettingMeta; children?: ReactNode; flash?: boolean; wide?: boolean }) {
   const store = useSettingsStore();
   const hasProject = useHasProject();
@@ -107,22 +115,24 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const rowEl = useRef<HTMLDivElement>(null);
   const ownReset = useRowReset(row.id);
   const { notify } = useSettingsHost();
-  // A custom body over a host field of its own is put back as any field is: its saved value cleared.
-  const reset = ownReset ?? (hasCustom && row.field ? () => store.write(row, 'global', null) : undefined);
+  // A custom body in OWN_FIELD is put back as any field is: its saved value cleared.
+  const reset = ownReset ?? (hasCustom && OWN_FIELD.has(row.id) ? () => store.write(row, 'global', null) : undefined);
   const comp = computerValue(row, global);
   const own = overrideValue(row, project);
   // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
   useBrowserSettingsVersion();
-  // A custom body that draws a host field of its own (a switch that can be off with a reason) is changed when that field is.
+  // A custom body in OWN_FIELD (a switch that can be off with a reason) is changed when its field is.
   const changed = hasCustom
-    ? isBrowserChanged(row) || store.customChanged.has(row.id) || (Boolean(row.field) && global !== undefined && isChanged(row, global))
+    ? isBrowserChanged(row) || store.customChanged.has(row.id) || (OWN_FIELD.has(row.id) && global !== undefined && isChanged(row, global))
     : isAnyChanged(row, global, project, store.customChanged);
   // A rejected value shows its reason, not a Saved mark left over from the last good one: the fade that hides the mark is a motion animation, so under reduced motion nothing else would.
   const saved = store.saved?.row === row.id && !store.rowErrors[row.id] && !refused.global && !refused.project;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
   // A row another switch governs is off while that switch is, and says so (CS-B4).
   const governor = row.governedBy ? rowOf(row.governedBy.row) : undefined;
-  const governedOff = Boolean(governor) && store.fieldsOf(governor!).global?.effectiveValue !== 'true';
+  // It follows what that switch shows, not only what is saved: with no local model to use, the switch is off whatever was saved.
+  const modelMissing = useLocalModelMissing(Boolean(row.governedBy?.needsLocalModel));
+  const governedOff = Boolean(governor) && (Boolean(modelMissing) || store.fieldsOf(governor!).global?.effectiveValue !== 'true');
   const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${governedOff ? ` ${uid}g` : ''}${error ? ` ${uid}e` : ''}`;
 
   /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
@@ -263,7 +273,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
             </div>
             {governedOff && (
               <span id={`${uid}g`} data-governed-off={row.id} className="text-[0.8125rem] text-[var(--text-muted)]">
-                {row.governedBy!.reason}
+                {modelMissing ?? row.governedBy!.reason}
               </span>
             )}
             {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}

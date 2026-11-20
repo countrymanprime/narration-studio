@@ -117,7 +117,7 @@ export const settingsFeedback: Record<string, FeedbackRow> = {
   'src/components/settings/UpdatesPanel.tsx::updateOpenNotes#1': row('click', 'os-dialog', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'Opens the browser; instant.'),
   'src/components/settings/UpdatesPanel.tsx::updateShowDownload#1': row('click', 'os-dialog', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'Opens Explorer; instant.'),
   'src/components/settings/UpdatesPanel.tsx::updateInstall#1': row('click', 'job', 'dialog', 'dialog', 'dialog', 'inline', 'no', 'ok', 'The install dialog is shown at once and the app restarts.'),
-  'src/components/settings/controls/SpeakerFallbackBody.tsx::extractionSources#1': row('mount', 'instant', 'inline', 'na', 'ui', 'inline', 'na', 'ok', 'A mount-time read of whether a local model is installed, for the Unknown speakers switch: the switch is off beside "Checking for a local model…" until the host answers, then works or stays off beside the host\'s reason; a failed read leaves it off beside "Could not check for a local model."'),
+  'src/components/settings/data/useLocalModel.ts::extractionSources#1': row('mount', 'instant', 'inline', 'na', 'ui', 'inline', 'na', 'ok', 'A mount-time read of whether a local model is installed, for the Unknown speakers switch and the two rows it governs: each is off beside "Checking for a local model…" until the host answers, then works or stays off beside the host\'s reason; a failed read leaves it off beside "Could not check for a local model."'),
   'src/components/settings/UpdatesPanel.tsx::updateStatus#2': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Re-reads the status when the saved channel changes.'),
 
 };

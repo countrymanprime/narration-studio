@@ -356,7 +356,9 @@ export function createStoryBibleMock(
         const found = cue.evidence.tag ? named(cue.evidence.tag) : undefined;
         const speaker = found?.id ?? null;
         // As the host's refresh: a model's suggestion stays while the rules find no speaker for the line; a speaker they find replaces it.
-        if (cue.speaker_source === 'local-model' && speaker === null) return cue;
+        // As the host too: only while its entry is still one that speaks.
+        const stillSpeaks = s.entities.some((row) => row.id === cue.speaker_entity_id && types.some((type) => type.name === row.category && type.speaks));
+        if (cue.speaker_source === 'local-model' && speaker === null && stillSpeaks) return cue;
         if (speaker === cue.speaker_entity_id && cue.speaker_source !== 'local-model') return cue;
         previous.push({ cueId: cue.id, speakerEntityId: cue.speaker_entity_id, speakerSource: cue.speaker_source });
         if (cue.speaker_entity_id === null) filled += 1;

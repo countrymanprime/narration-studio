@@ -67,10 +67,10 @@ describe('settings-unknown-speakers-switch', () => {
     );
     const save = vi.spyOn(api, 'saveSettings');
     const toggle = await renderProject(api);
-    const reason = await screen.findByText('No local model is installed.');
+    await waitFor(() => expect(screen.getAllByText('No local model is installed.').length).toBeGreaterThan(0));
     // The reason is the switch's own description and the switch is still a tab stop, so a keyboard and a screen reader get it.
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
-    expect(toggle.getAttribute('aria-describedby')).toBe(reason.id);
+    expect(document.getElementById(toggle.getAttribute('aria-describedby') ?? '')?.textContent).toBe('No local model is installed.');
     toggle.focus();
     expect(document.activeElement).toBe(toggle);
     expect(toggle.getAttribute('aria-checked')).toBe('false');
@@ -83,9 +83,9 @@ describe('settings-unknown-speakers-switch', () => {
     const api = createMockApi();
     vi.spyOn(api, 'extractionSources').mockRejectedValue(new Error('the host is gone'));
     const toggle = await renderProject(api);
-    const reason = await screen.findByText('Could not check for a local model.');
+    await waitFor(() => expect(screen.getAllByText('Could not check for a local model.')).toHaveLength(3));
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
-    expect(toggle.getAttribute('aria-describedby')).toBe(reason.id);
+    expect(document.getElementById(toggle.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Could not check for a local model.');
   });
 
   it('once on, the row is marked Changed and its Reset turns it off again', async () => {
@@ -101,6 +101,27 @@ describe('settings-unknown-speakers-switch', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /^Reset Ask a local model about unknown speakers/ })).toBeNull());
   });
 
+  it("with the setting saved on but no model to use, the rows it governs are off too, with the host's reason", async () => {
+    const api = createMockApi();
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const sources = await api.extractionSources();
+    vi.spyOn(api, 'extractionSources').mockResolvedValue(
+      sources.map((source) => (source.id === 'local-model' ? { ...source, available: false, reason: 'No local model is installed.' } : source)),
+    );
+    const toggle = await renderProject(api);
+    await waitFor(() => expect(screen.getAllByText('No local model is installed.')).toHaveLength(3));
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    const model = screen.getByRole('combobox', { name: /Local model for unknown speakers/ }) as HTMLSelectElement;
+    const lines = screen.getByRole('textbox', { name: /Lines the local model may take per run/ }) as HTMLInputElement;
+    expect(model.disabled).toBe(true);
+    expect(lines.disabled).toBe(true);
+    expect(screen.queryByText('Turn on the local model above to change this.')).toBeNull();
+    for (const control of [model, lines]) {
+      const described = (control.getAttribute('aria-describedby') ?? '').split(' ').map((id) => document.getElementById(id)?.textContent);
+      expect(described).toContain('No local model is installed.');
+    }
+  });
+
   it('keeps the model and the lines per run off, each with the reason, until the switch is on', async () => {
     const toggle = await renderProject(createMockApi());
     const model = screen.getByRole('combobox', { name: /Local model for unknown speakers/ });
@@ -108,7 +129,7 @@ describe('settings-unknown-speakers-switch', () => {
     const reasons = () => screen.queryAllByText('Turn on the local model above to change this.');
     expect((model as HTMLSelectElement).disabled).toBe(true);
     expect((lines as HTMLInputElement).disabled).toBe(true);
-    expect(reasons()).toHaveLength(2);
+    await waitFor(() => expect(reasons()).toHaveLength(2));
     for (const control of [model, lines]) {
       expect(control.getAttribute('aria-describedby')?.split(' ')).toEqual(
         expect.arrayContaining(
