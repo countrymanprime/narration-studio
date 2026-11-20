@@ -167,7 +167,7 @@ type MappingStore struct {
 // next read sees. A file's time says nothing about a second write inside the file system's clock tick (2 s on FAT, 10 ms on exFAT,
 // a few ms on older ext4, up to a clock tick on NTFS), and its identity says nothing either (inode numbers come back, and Windows
 // reads it by path when it is asked): so a decode is held only for a file last written more than heldMappingAge before it was
-// read, as git does for its index, and a younger file is decoded on every read. Its own mutex is taken by the store's readers and
+// read, as git does for its index, and a younger file is decoded on every read. (Like git's, the rule trusts the clock that stamped the file: a share whose server clock runs more than heldMappingAge behind this one makes a just-written file look old.) Its own mutex is taken by the store's readers and
 // writers, which already hold the store's.
 type heldMapping struct {
 	mu sync.Mutex
@@ -481,6 +481,8 @@ func (s *MappingStore) readLocked(documentID string) mappingFileShape {
 // and the next read decodes again; only a successful decode of a file older than heldMappingAge is held, so a missing, corrupt,
 // newer-version or just-written file is read (and reported) each time.
 func (s *MappingStore) loadLocked() (mappingFileShape, bool) {
+	// The clock is read before the stat: the age is judged at the moment the file was looked at, not after a decode that may have stalled.
+	read := s.clock()
 	info, statErr := os.Stat(s.path)
 	s.hold.mu.Lock()
 	defer s.hold.mu.Unlock()
@@ -490,7 +492,7 @@ func (s *MappingStore) loadLocked() (mappingFileShape, bool) {
 	s.hold.shape, s.hold.info = nil, nil
 	s.hold.decodes++
 	decoded, ok := readMappingFile(s.Reporter, s.path)
-	if ok && statErr == nil && s.clock().Sub(info.ModTime()) > heldMappingAge {
+	if ok && statErr == nil && read.Sub(info.ModTime()) > heldMappingAge {
 		s.hold.shape, s.hold.info = &decoded, info // readLocked copies it before any caller sees it
 	}
 	return decoded, ok

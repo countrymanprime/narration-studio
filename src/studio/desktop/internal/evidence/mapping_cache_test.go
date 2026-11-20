@@ -213,6 +213,9 @@ func TestEditingAReturnedShapeDoesNotChangeTheHeldRead(t *testing.T) {
 	if err := store.Clear("doc-1", "track-q"); err != nil { // records the pair as rejected
 		t.Fatal(err)
 	}
+	if err := store.Carry("doc-1", CarryOver{Links: []TrackMapping{{TrackGUID: "track-old", ChapterID: "c-9", ChapterTitle: "Nine"}}}); err != nil {
+		t.Fatal(err)
+	}
 	aged(t, project, time.Minute)
 	first, _ := store.List("doc-1")
 	if len(first) != 1 || !held(store) {
@@ -222,9 +225,10 @@ func TestEditingAReturnedShapeDoesNotChangeTheHeldRead(t *testing.T) {
 	shape := store.readLocked("doc-1")
 	shape.Mappings[0].ChapterID = "edited"
 	shape.Rejected[0].ChapterTitle = "edited"
+	shape.Previous[0].ChapterID = "edited"
 	again := store.readLocked("doc-1")
 	store.mu.Unlock()
-	if again.Mappings[0].ChapterID != "c-1" || again.Rejected[0].ChapterTitle != "Quiet" {
+	if again.Mappings[0].ChapterID != "c-1" || again.Rejected[0].ChapterTitle != "Quiet" || again.Previous[0].ChapterID != "c-9" {
 		t.Fatalf("an edited shape leaked into the held read: %+v", again)
 	}
 }
@@ -261,5 +265,31 @@ func TestACorruptFileIsNotHeld(t *testing.T) {
 	}
 	if list, _ := store.List("doc-1"); len(list) != 1 {
 		t.Fatalf("after repair list = %v", list)
+	}
+}
+
+// The age rule's size is pinned: a file written 2 s before the read is not held, one written 4 s before is.
+func TestTheAgeRuleHoldsOnlyAFileOlderThanThreeSeconds(t *testing.T) {
+	project := t.TempDir()
+	store := NewMappingStore(project)
+	if _, err := store.Confirm("doc-1", "track-a", "c-1", "One"); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(MappingFile(project))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		age  time.Duration
+		held bool
+	}{{2 * time.Second, false}, {4 * time.Second, true}} {
+		store.now = func() time.Time { return info.ModTime().Add(c.age) }
+		store.hold.clear()
+		if _, err := store.List("doc-1"); err != nil {
+			t.Fatal(err)
+		}
+		if got := held(store); got != c.held {
+			t.Fatalf("a file read %v after it was written: held = %v, want %v", c.age, got, c.held)
+		}
 	}
 }
