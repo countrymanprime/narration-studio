@@ -152,7 +152,7 @@ Solo in place on the chapter was chosen from the owner's A2 over muting the othe
 - Layering with `play_from`: the commands wait while a play's isolation is in place and the recovery runs the play's first, so the two never restore each other's solos. Run locally in REAPER 7.82 on Linux, 2026-11-17, by `scripts/ci/real-reaper/scenarios_solo_chapter.py` (no CI run link; the scenario output was not kept): the mix held only the soloed chapter, the writes were not edits, and a restore sent during a play waited and then returned the narrator's state.
 - Audacity: nothing new. It reports no mute state to put back and adds no undo step for a mute, so it keeps the cheap tier.
 
-Not seen yet: the redraw of the solo state in a narrator's own window, Windows, a real crash and a project saved in REAPER's window while soloed (owner rows A4g to A4j of [the verification pass](../operations/reaper-verification-pass.md)).
+Not seen yet: the redraw of the solo state in a narrator's own window, Windows, a real crash and a project saved in REAPER's window while soloed (owner rows A4k to A4n of [the verification pass](../operations/reaper-verification-pass.md)).
 
 ## Questions for the owner
 
