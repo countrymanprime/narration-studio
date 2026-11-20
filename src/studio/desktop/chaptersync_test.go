@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -337,7 +338,8 @@ func TestASyncThatLinkedSomethingIsOneLineInTheHostLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	if len(lines) != 1 || !strings.Contains(lines[0], "chapter_sync consent: linked 1, new tracks") {
+	// The whole line is pinned, so any name, path or GUID added to it fails here.
+	if len(lines) != 1 || !regexp.MustCompile(`^\S+ chapter_sync consent: linked 1, new tracks 0$`).MatchString(lines[0]) {
 		t.Fatalf("host log = %q", string(data))
 	}
 	if strings.Contains(string(data), "Chapter I") {
