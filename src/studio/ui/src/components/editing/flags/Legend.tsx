@@ -3,6 +3,9 @@ import { Badge, toneColors } from '../../primitives/StatusBadge';
 import type { ChapterDoc } from '../model';
 import { FLAG_KINDS, FLAG_LABEL, flagKindId } from './flagText';
 
+/** Drawn only where the header has room (one width for both: the badge and "Flagged by"). */
+const WHEN_WIDE = 'hidden @min-[1240px]/hd:inline';
+
 export interface LegendProps {
   doc: ChapterDoc;
   /** The chapter has no audio to edit (its words were never matched to a recording), which is not the same as nothing transcribed. */
@@ -19,7 +22,7 @@ export function Legend({ doc, noAudio = false }: LegendProps) {
   if (!doc.aligned) {
     return (
       // Drawn only where the header has room, as "Flagged by" is (the same width): in a crowded header it wrapped, was cut mid-word or pushed the header taller, and the note over the script says the same.
-      <div id="legend" className="hidden min-w-0 items-center justify-end gap-3 text-[length:var(--font-size-sm)] @min-[1240px]/hd:flex">
+      <div id="legend" className={`${WHEN_WIDE} min-w-0 text-[length:var(--font-size-sm)]`}>
         <Badge label={noAudio ? 'No audio to edit' : 'Not transcribed yet'} colors={toneColors('neutral')} />
       </div>
     );
@@ -39,7 +42,7 @@ export function Legend({ doc, noAudio = false }: LegendProps) {
           <span data-legend-label>{`${FLAG_LABEL[k][0]} · ${doc.counts[k]}`}</span>
         </span>
       ))}
-      <span title={`Flagged by ${doc.engine.name}`} className="hidden min-w-0 truncate text-[var(--text-muted)] @min-[1240px]/hd:inline">
+      <span title={`Flagged by ${doc.engine.name}`} className={`${WHEN_WIDE} min-w-0 truncate text-[var(--text-muted)]`}>
         Flagged by {doc.engine.name.split(' ')[0]}
       </span>
     </div>
