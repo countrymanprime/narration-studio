@@ -223,10 +223,24 @@ export function ChapterLinkDialog({
   const createOff = create?.available === false;
   // Why Create is off sits on its tooltip, not in the page (#3365); while a link is out it is off with no reason of its own.
   const createOffWhy = create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`;
+  // The read behind tracks already on screen can turn the primary action from Link into Create or back; a press that lands just then would do the other thing, so the button is busy for a moment after it changes (#3669).
+  const kind = createFirst ? 'create' : 'link';
+  const shownKind = useRef<string | null>(null);
+  const [settling, setSettling] = useState(false);
+  useEffect(() => {
+    if (read.status !== 'ready') return;
+    if (shownKind.current !== null && shownKind.current !== kind) {
+      setSettling(true);
+      const timer = setTimeout(() => setSettling(false), 700);
+      shownKind.current = kind;
+      return () => clearTimeout(timer);
+    }
+    shownKind.current = kind;
+  }, [kind, read.status]);
   const createAction = {
     label: createLabel,
     onPress: createTrack,
-    pending: creating,
+    pending: creating || settling,
     disabled: createOff || linking,
     disabledReason: createOff ? createOffWhy : '',
   };
@@ -243,7 +257,7 @@ export function ChapterLinkDialog({
           : {
               label: dest.linkButton,
               onPress: link,
-              pending: linking,
+              pending: linking || settling,
               disabled: !picked || read.status !== 'ready' || creating,
               // Never a button that only looks dead: the tooltip says what it waits for.
               disabledReason:

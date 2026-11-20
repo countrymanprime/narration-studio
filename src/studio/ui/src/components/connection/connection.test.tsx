@@ -467,6 +467,21 @@ describe('the not-linked dialog', () => {
       expect((await screen.findByRole('tooltip')).textContent).toBe('Reading the REAPER tracks…');
     });
 
+    it('a press right after the read behind turns Link track into Create a new track does not add a track nobody asked for', async () => {
+      prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const chapterTrackCreate = vi.fn(async () => ({ outcome: 'refused' as const, reason: 'busy', message: 'no' }));
+      inProject(<ConnectionResolveDialog {...link()} />, {
+        chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
+        chapterTrackCreate: chapterTrackCreate as never,
+      });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      // The fresh read has no tracks: the primary action becomes Create, and is busy for a moment, so a press that was meant for Link does nothing.
+      const create = await screen.findByRole('button', { name: 'Create a new track' });
+      await userEvent.click(create);
+      expect(chapterTrackCreate).not.toHaveBeenCalled();
+    });
+
     it('keeps the tracks shown when the read behind them fails, and Check again tries again', async () => {
       prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
       await new Promise((resolve) => setTimeout(resolve, 0));

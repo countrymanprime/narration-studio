@@ -17,6 +17,8 @@ export interface CachedMatch {
 export const MATCH_FRESH_MS = 30_000;
 /** How long the not-linked dialog's automatic opening waits for the read ahead before it opens and reads for itself. */
 export const MATCH_WAIT_MS = 2_500;
+/** How long a read ahead may take before it is given up. */
+const MATCH_READ_MS = 8_000;
 
 const matches = new Map<string, CachedMatch>();
 const reading = new Map<string, Promise<unknown>>();
@@ -46,9 +48,14 @@ export function prefetchMatch(project: string | null, chapterId: string, read: (
   const have = matches.get(key);
   if (have && Date.now() - have.at < MATCH_FRESH_MS) return;
   settled.delete(key);
-  const work = read().then(
+  const startedAt = Date.now();
+  // A read the host never answers ends after MATCH_READ_MS, so it cannot block the next read ahead for the app's life.
+  const bound = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('no answer')), MATCH_READ_MS));
+  const work = Promise.race([read(), bound]).then(
     (match) => {
-      matches.set(key, { match, at: Date.now() });
+      // A read that lands after the dialog's own newer read does not replace it.
+      const now = matches.get(key);
+      if (!now || now.at < startedAt) matches.set(key, { match, at: Date.now() });
     },
     () => undefined,
   );
