@@ -996,11 +996,21 @@ func (h *Host) packagedResources() string {
 	if err != nil {
 		return ""
 	}
-	root, err := materializeResources(resources, cache, executablePath())
+	root, err := packagedResourcesIn(resources, cache, executablePath(), func(kind, message string) { _ = h.log.Report(kind, message) })
 	if err != nil {
 		return ""
 	}
 	return root
+}
+
+// packagedResourcesIn is what a launch does with the embedded resources: name their folder by the remembered key of this executable
+// (memoizedResourceKey) and unpack them when that folder is not complete.
+func packagedResourcesIn(source fs.FS, userCache, executable string, report func(kind, message string)) (string, error) {
+	key, err := memoizedResourceKey(source, userCache, executable, report)
+	if err != nil {
+		return "", err
+	}
+	return materializeResourcesAs(key, source, userCache, executable)
 }
 
 // materializeResources unpacks the resources embedded in source into <userCache>/<data>/runtime/<key> and returns that folder.
@@ -1011,6 +1021,11 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err != nil {
 		return "", err
 	}
+	return materializeResourcesAs(key, source, userCache, executable)
+}
+
+// materializeResourcesAs is materializeResources for a caller that already has source's content key (memoizedResourceKey).
+func materializeResourcesAs(key string, source fs.FS, userCache, executable string) (string, error) {
 	target := filepath.Join(userCache, brand.DataFolder, "runtime", key)
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
