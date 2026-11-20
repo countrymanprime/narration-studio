@@ -3,6 +3,8 @@ package bridge
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -68,6 +70,9 @@ func ParseSlowLink(text string) (SlowLink, error) {
 			}
 		case "only":
 			link.Only = strings.Split(value, "+")
+			if slices.Contains(link.Only, "") {
+				err = fmt.Errorf("a command name is missing")
+			}
 		default:
 			err = fmt.Errorf("unknown key")
 		}
@@ -95,12 +100,7 @@ func (l SlowLink) matches(action string) bool {
 	if len(l.Only) == 0 {
 		return true
 	}
-	for _, name := range l.Only {
-		if name == action {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(l.Only, action)
 }
 
 // heldCommand is a command file written but not yet moved to where the DAW reads it.
@@ -117,15 +117,18 @@ type slowState struct {
 	// last is the latest release time handed out: no command is released before one sent ahead of it, so a slow link never reorders.
 	last time.Time
 	held []heldCommand
+	// closed is set by DropHeld: nothing more is held or released.
+	closed bool
 }
 
-// SetSlowLink makes this client's link slow from now on (a stall starts now); the zero SlowLink makes it prompt again. Commands already
-// held keep their release times. It is for tests and development runs (SlowLinkEnv), never set in normal use.
+// SetSlowLink makes this client's link slow from now on (a stall starts now); the zero SlowLink holds nothing new. Commands already held
+// keep their release times, and a command sent behind them waits for them. It is for tests and development runs (SlowLinkEnv), never set
+// in normal use.
 func (c *Client) SetSlowLink(link SlowLink) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	held := c.slow.held
-	c.slow = slowState{link: link, started: time.Now(), last: c.slow.last, held: held}
+	c.slow = slowState{link: link, started: time.Now(), last: c.slow.last, held: held, closed: c.slow.closed}
 }
 
 // stalled reports whether the link is inside a stall at now.
@@ -175,24 +178,49 @@ func (c *Client) plan(action string, counter uint64, now time.Time) (release tim
 	return release, false
 }
 
-// hold keeps a written command file out of the commands folder until release, then moves it in after every command sent before it.
+// hold keeps a written command file out of the commands folder until release, then moves it in after every command sent before it. The
+// file waits under a name of this client's own, so a later client on the same folder (which numbers its files from 0 again) cannot
+// overwrite it.
 // +checklocks:c.mu
-func (c *Client) hold(temporary, target string, release time.Time) {
-	c.slow.held = append(c.slow.held, heldCommand{temporary: temporary, target: target, at: release})
+func (c *Client) hold(temporary, target string, release time.Time) error {
+	held := fmt.Sprintf("%s.%p.held", target, c)
+	if err := persist.Rename(temporary, held); err != nil {
+		return err
+	}
+	c.slow.held = append(c.slow.held, heldCommand{temporary: held, target: target, at: release})
 	time.AfterFunc(time.Until(release), c.releaseDue)
+	return nil
 }
 
 // releaseDue moves every held command whose time has come into the commands folder, oldest first.
 func (c *Client) releaseDue() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	var failed error
 	now := time.Now()
-	for len(c.slow.held) > 0 && !c.slow.held[0].at.After(now) {
+	for !c.slow.closed && len(c.slow.held) > 0 && !c.slow.held[0].at.After(now) {
 		next := c.slow.held[0]
 		c.slow.held = c.slow.held[1:]
-		// The session folder can be gone by now (the app closed, a test ended); there is nobody to tell and nothing to run.
 		if err := persist.Rename(next.temporary, next.target); err != nil {
 			_ = os.Remove(next.temporary)
+			// A session folder that is gone (the app closed, a test ended) has nobody to tell and nothing to run.
+			if _, statErr := os.Stat(filepath.Dir(next.target)); statErr == nil {
+				failed = err
+			}
 		}
 	}
+	c.mu.Unlock()
+	if failed != nil {
+		c.report("bridge.slow_link", "a held command could not be released and was dropped: "+failed.Error())
+	}
+}
+
+// DropHeld ends this client's slow link: the commands it still holds are removed and never reach the DAW, and nothing more is held. The
+// host calls it on a client it replaces, whose held commands would otherwise land among the new client's (both number their files from 0).
+func (c *Client) DropHeld() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, held := range c.slow.held {
+		_ = os.Remove(held.temporary)
+	}
+	c.slow = slowState{closed: true}
 }

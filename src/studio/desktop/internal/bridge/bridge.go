@@ -96,8 +96,10 @@ func (c *Client) Send(action string, fields []string) (string, error) {
 		_ = os.Remove(temporary)
 		return target, nil
 	}
-	if len(c.slow.held) > 0 || time.Until(release) > 0 {
-		c.hold(temporary, target, release)
+	if !c.slow.closed && (len(c.slow.held) > 0 || time.Until(release) > 0) {
+		if err := c.hold(temporary, target, release); err != nil {
+			return "", fmt.Errorf("could not hold bridge command: %w", err)
+		}
 		return target, nil
 	}
 	if err := persist.Rename(temporary, target); err != nil {

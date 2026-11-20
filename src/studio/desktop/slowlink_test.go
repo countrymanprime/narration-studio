@@ -31,6 +31,7 @@ func TestSlowDawLinkSlowsTheClientAndSaysSoInTheHostLog(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			t.Cleanup(client.DropHeld)
 			var lines []string
 			slowDawLink(client, test.profile, test.development, func(kind, message string) error {
 				lines = append(lines, kind+": "+message)

@@ -749,6 +749,10 @@ func (h *Host) configureLocked(next config) {
 	h.reachability = daw.NewReachability(client)
 	h.boothVoices = newBoothVoiceChoices()
 	h.tracksCache = newLiveTracksCache()
+	if h.bridge != nil {
+		// A replaced client's held commands (a slowed development run) must not land among the new client's.
+		h.bridge.DropHeld()
+	}
 	h.bridge = client
 	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
 	// anything else has none. The previous project's is closed, which drops its pipe.

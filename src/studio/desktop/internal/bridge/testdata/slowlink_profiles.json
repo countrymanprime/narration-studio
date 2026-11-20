@@ -21,5 +21,5 @@
       "only": ["tracks_read", "arm_lane"]
     }
   ],
-  "invalid": ["fast", "delay=-1s", "delay=1", "delay=", "stall=8s/8s", "stall=8s/x", "drop=-1", "drop=one", "drop=1.5", "speed=1s", "jitter=soon", "1s 2s"]
+  "invalid": ["fast", "delay=-1s", "delay=1", "delay=", "stall=8s/8s", "stall=8s/x", "drop=-1", "drop=one", "drop=1.5", "speed=1s", "jitter=soon", "1s 2s", "only=", "only=tracks_read+"]
 }

@@ -55,8 +55,10 @@ export function parseDawLatency(text: string): DawLatency {
       } else if (key === 'drop') {
         if (!/^\d+$/.test(value)) throw new Error('drop is a whole number');
         link.drop = Number(value);
-      } else if (key === 'only') link.only = value.split('+');
-      else throw new Error('unknown key');
+      } else if (key === 'only') {
+        link.only = value.split('+');
+        if (link.only.includes('')) throw new Error('a command name is missing');
+      } else throw new Error('unknown key');
     } catch (error) {
       throw new Error(`slow link profile "${text}": "${part}": ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
