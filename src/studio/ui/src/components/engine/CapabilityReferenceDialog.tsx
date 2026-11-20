@@ -36,18 +36,19 @@ const CELL: Record<MatrixCell, { label: string; tone: 'success' | 'neutral' | 'w
 
 /** The catalogue's order, then keys only the host knows (a newer host's), under their own key. */
 function keysOf(report: DawCapabilities | undefined): string[] {
-  const reported = report ? Object.keys(report.capabilities) : [];
+  // A key with nothing visible in it would draw a row with no name, so it is left out.
+  const reported = report ? Object.keys(report.capabilities).filter((key) => key.trim() !== '') : [];
   return [...DAW_CAPABILITIES.map(({ key }) => String(key)), ...reported.filter((key) => !LABELS.has(key))];
 }
 
 /** What the capability is now: available, or the host's own sentence for why not (the page never words a refusal). */
-function Now({ support }: { support: DawCapabilitySupport | undefined }) {
-  if (!support) return <span className="text-[var(--text-muted)]">Not reported</span>;
+function Now({ support, reading }: { support: DawCapabilitySupport | undefined; reading: boolean }) {
+  if (!support) return <span className="text-[var(--text-muted)]">{reading ? 'Reading…' : 'Not reported'}</span>;
   if (support.available) return <StatusBadge tone="success" label="Available" />;
   return (
-    <span className="flex flex-col items-start gap-1">
+    <span className="flex flex-col items-start gap-1 [overflow-wrap:anywhere]">
       <StatusBadge tone="neutral" label="Unavailable" />
-      <span className="text-[0.8125rem] text-[var(--text-muted)]">{support.message ?? LEVEL_WORD[support.level] ?? LEVEL_WORD.unsupported}</span>
+      <span className="text-[0.8125rem] text-[var(--text-muted)]">{support.message?.trim() || LEVEL_WORD[support.level] || LEVEL_WORD.unsupported}</span>
     </span>
   );
 }
@@ -62,7 +63,12 @@ function worksWith(levels: readonly MatrixCell[]): string {
 
 /** How many of the capabilities the host reports are available now, for the one-line Settings row. */
 export function availableCount(report: DawCapabilities | undefined): { available: number; total: number } {
-  const all = Object.values(report?.capabilities ?? {});
+  // Over the rows the dialog lists, so the line and the table agree whatever the host sends.
+  const all = report
+    ? keysOf(report)
+        .filter((key) => Object.hasOwn(report.capabilities, key))
+        .map((key) => report.capabilities[key])
+    : [];
   return { available: all.filter((support) => support.available).length, total: all.length };
 }
 
@@ -78,7 +84,7 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
     <div className="flex w-full flex-col gap-3">
       {loadError && !report && (
         <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-[var(--danger-text)]" role="alert">
-          <span>The recording tool’s capabilities could not be read: {loadError}.</span>
+          <span>The recording tool’s capabilities could not be read: {loadError.replace(/^Error: /, '').replace(/\.+$/, '')}.</span>
           <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" onClick={onRetry} />
         </div>
       )}
@@ -97,13 +103,13 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
         </TableHead>
         <TableBody>
           {keys.map((key) => {
-            const known = key in CAPABILITY_GUIDE;
+            const known = Object.hasOwn(CAPABILITY_GUIDE, key);
             const guide = known ? CAPABILITY_GUIDE[key as keyof typeof CAPABILITY_GUIDE] : undefined;
             const levels = known ? CAPABILITY_MATRIX[key as keyof typeof CAPABILITY_MATRIX] : undefined;
             return (
               <TableRow key={key} data={{ 'data-capability': key }}>
                 <TableCell>
-                  <span className="block font-medium">{LABELS.get(key) ?? key}</span>
+                  <span className="block font-medium [overflow-wrap:anywhere]">{LABELS.get(key) ?? key}</span>
                   {guide && <span className="block text-[0.8125rem] text-[var(--text-muted)]">{guide.does}</span>}
                   {guide && (
                     <span className="block text-[0.8125rem] text-[var(--text-muted)]">
@@ -123,7 +129,7 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
                     </TableCell>
                   ))}
                 <TableCell>
-                  <Now support={report?.capabilities[key]} />
+                  <Now support={report && Object.hasOwn(report.capabilities, key) ? report.capabilities[key] : undefined} reading={!report && !loadError} />
                 </TableCell>
               </TableRow>
             );
