@@ -8,6 +8,7 @@ import { overlay } from '../../overlay/overlayService';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { forgetMatches } from './chapterMatchCache';
 import { ConnectionResolveDialog, type ConnectionResolveDialogProps } from './ConnectionResolveDialog';
 
 // The dialog that replaces the not-connected and not-linked banners: it names the problem in the host's words, offers the fix and a Check again,
@@ -81,6 +82,8 @@ const meta = {
   title: 'Connection/ConnectionResolveDialog',
   component: Stage,
   args: { props: off, api: { dawChoice: async () => choice() } },
+  // The tracks read ahead are kept for the app's life; a story starts with none, so each one sees its own read.
+  beforeEach: () => forgetMatches(),
 } satisfies Meta<typeof Stage>;
 
 export default meta;
