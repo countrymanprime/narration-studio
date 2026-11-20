@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMockApi } from '../mockApi';
-import { READ_ONLY_SETTINGS, UNREADABLE_SETTINGS } from './settings';
+import { notAColour, READ_ONLY_SETTINGS, UNREADABLE_SETTINGS } from './settings';
 
 // `?mockSettings=` (main.tsx) lets the visual suite photograph Settings while its file is still being read, cannot be read, or cannot be written.
 describe('createMockApi settings seed', () => {
@@ -29,6 +29,39 @@ describe('createMockApi settings seed', () => {
     const api = createMockApi({}, { settings: 'save-fails' });
     expect(Object.keys(await api.settingsForScope('global')).length).toBeGreaterThan(0);
     await expect(api.saveSettings('General', 'global', { debug_logging: 'true' })).rejects.toThrow(READ_ONLY_SETTINGS);
+  });
+});
+
+// R5 (#3680): the mock kept any text as a colour, so a page that sent refused text read "saved" in the mock and would be refused by the host.
+describe('createMockApi saveSettings and colours', () => {
+  const misread = async (api: ReturnType<typeof createMockApi>) =>
+    (await api.settingsForScope('global')).TranscriptCompare?.find((field) => field.key === 'color_misread')?.value;
+
+  it.each(['GGGGGG', '', ' abcdef', '#abcdef', 'abcde', 'abcdef0', 'red', '<img src=x onerror=alert(1)>', 'A'.repeat(10_000), 'ﬀﬀﬀ', 'Б5473C'])(
+    'saveSettings refuses a colour that is not six hex digits: %j',
+    async (text) => {
+      const api = createMockApi();
+      const before = await misread(api);
+      await expect(api.saveSettings('TranscriptCompare', 'global', { color_misread: text })).rejects.toThrow(notAColour('color_misread'));
+      expect(await misread(api)).toBe(before);
+    },
+  );
+
+  it('refuses the whole save, so no value beside the colour is kept', async () => {
+    const api = createMockApi();
+    await expect(api.saveSettings('TranscriptCompare', 'global', { chunk_seconds: '300', color_misread: 'GGGGGG' })).rejects.toThrow();
+    expect((await api.settingsForScope('global')).TranscriptCompare?.find((field) => field.key === 'chunk_seconds')?.value).not.toBe('300');
+  });
+
+  it.each(['AA0001', 'aa0001'])('keeps six hex digits in either case, as the host does: %j', async (hex) => {
+    const api = createMockApi();
+    await api.saveSettings('TranscriptCompare', 'global', { color_misread: hex });
+    expect(await misread(api)).toBe(hex);
+  });
+
+  it('a cleared colour is not a value to refuse', async () => {
+    const api = createMockApi();
+    await expect(api.saveSettings('TranscriptCompare', 'project', { color_misread: null })).resolves.toBeDefined();
   });
 });
 

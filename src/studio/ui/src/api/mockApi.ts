@@ -204,6 +204,7 @@ export function createMockApi(
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
+    dawRecording: () => dawControl.recording(),
   });
   const merges = createMergeEvents();
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
@@ -586,8 +587,10 @@ export function createMockApi(
     ...audacityLink,
     ...createHideTakesMock(daw, workspaceTakes),
     // The credits are recorded like a chapter and the host's DawRoll finds their track as it does a chapter's (readaloudreaper.go).
-    ...createRollMock(daw, (chapterId) =>
-      manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+    ...createRollMock(
+      daw,
+      (chapterId) => manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+      () => dawControl.recording() && !dawControl.ownTake(),
     ),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFxRangeMock(
@@ -717,7 +720,7 @@ const refusedResult = (sentence: string): DawResult => ({ ok: false, changed: fa
 
 /** DawRoll as bindings_daw_roll.go answers it: the punch capability's sentence first, then the time, the chapter (one the manuscript
  * does not have rejects), and the confirmation where punch is destructive; then what the launch's DAW answers a roll. */
-function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawRollApi {
+function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>, recordingNotOurs: () => boolean): DawRollApi {
   return {
     dawRoll: async (chapterId, at, confirmed) => {
       const setup = await daw.dawCapabilities();
@@ -726,6 +729,8 @@ function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string)
       if (!Number.isFinite(at) || at < 0) return refusedResult(DAW_ANSWERS.rollBadTime);
       if (!(await hasChapter(chapterId))) throw new Error('that chapter is not part of the current manuscript');
       if (support.destructive && !confirmed) return refusedResult(DAW_ANSWERS.rollConfirm);
+      // The bridge rolls only a take it started.
+      if (recordingNotOurs()) return refusedResult('REAPER is not recording anything this app started, so nothing was rolled.');
       const rolled = rolledOf(setup, at);
       return { ok: true, changed: true, message: rolled.message, undoSteps: rolled.undoSteps };
     },

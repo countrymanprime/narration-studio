@@ -13,20 +13,29 @@ type Story = StoryObj<typeof meta>;
 
 export const Automatic: Story = {
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('combobox', { name: 'Speaker colour' })).toHaveValue('auto');
+    const group = within(canvasElement).getByRole('radiogroup', { name: 'Speaker colour' });
+    await expect(within(group).getByRole('radio', { name: /^Automatic \(/ })).toHaveAttribute('aria-checked', 'true');
   },
 };
 
 export const Chosen: Story = {
   args: { entity: { id: 'entry-1', speaker_color: 4 } },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('combobox', { name: 'Speaker colour' })).toHaveValue('4');
+    await expect(within(canvasElement).getByRole('radio', { name: 'Red' })).toHaveAttribute('aria-checked', 'true');
   },
 };
 
 export const DisabledWhileSaving: Story = {
   args: { disabled: true },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('combobox', { name: 'Speaker colour' })).toBeDisabled();
+    await expect(within(canvasElement).getByRole('radiogroup', { name: 'Speaker colour' })).toHaveAttribute('aria-busy', 'true');
+  },
+};
+
+export const ReadOnly: Story = {
+  args: { entity: { id: 'entry-1', speaker_color: 4 }, readOnly: true },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Red')).toBeVisible();
+    await expect(within(canvasElement).queryByRole('radiogroup')).toBeNull();
   },
 };

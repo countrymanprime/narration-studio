@@ -9,6 +9,7 @@ Storybook title: `Story Bible/SpeakerColourField`. Source: `src/components/story
 - Automatic
 - Chosen
 - Disabled While Saving
+- Read Only
 
 ## Used by
 

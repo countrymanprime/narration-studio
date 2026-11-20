@@ -1,9 +1,11 @@
 import type { Page } from '@playwright/test';
+import { scriptDrivers } from '../drivers/script';
 import { selectReaderWord } from '../drivers/shared';
 import { clickCase, contextMenuCase, fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
 // The Script page's own overlays (components/script/): the reader's selection toolbar and the Mark menu under it, the text
-// settings popover, the Mark and Define marks dialogs, and the chapter and rail drawers the narrower layouts open over the reader.
+// settings popover, the Mark and Define marks dialogs, the colour swatches a mark's colour box opens over that dialog, and the chapter
+// and rail drawers the narrower layouts open over the reader.
 // Not driven: the speaker picker, the bookmark editor and the definition source menu (each needs a state the mock reaches only
 // through a long chain of steps).
 
@@ -21,6 +23,13 @@ const closeDrawer = async (page: Page) => {
   if ((await open.count()) === 0) return;
   await page.keyboard.press('Escape');
   if ((await open.count()) > 0) await page.locator('[data-scrim]').click({ position: { x: 2, y: 2 } });
+};
+
+const hoverVioletSwatch = async (page: Page) => {
+  const swatch = page.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Violet' });
+  await page.mouse.move(0, 0);
+  await swatch.hover();
+  await page.locator('[role="tooltip"]:visible').last().waitFor({ timeout: 4000 });
 };
 
 export const scriptCases: OverlayCase[] = [
@@ -44,6 +53,21 @@ export const scriptCases: OverlayCase[] = [
   fromState('script', 'rail-pronunciation-leave-confirm'),
   fromState('script', 'note-delete-confirm'),
   fromState('script', 'define-marks'),
+  // The swatches of a mark's colour box: a popover over the dialog.
+  fromState('script', 'define-marks-colour', 'popover'),
+  {
+    // Three layers: the name of a swatch, over the popover, over the dialog.
+    name: 'hint on a mark colour swatch, over its popover and the dialog',
+    kind: 'tooltip',
+    start: 'fresh',
+    scrolled: false,
+    open: async (page) => {
+      await scriptDrivers['define-marks-colour']!(page);
+      await hoverVioletSwatch(page);
+    },
+    // A hint closes when the window is resized; the pointer goes back to the swatch at the narrow size.
+    afterNarrowing: hoverVioletSwatch,
+  },
   {
     // The chapter list is a column from 1180 px; below it a drawer behind the Chapters button (src/layoutBreakpoints.ts).
     name: 'chapter drawer',

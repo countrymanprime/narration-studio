@@ -7,8 +7,8 @@ type ProjectOptions = {
   fields: ScopedSettingField[];
   /** Why they could not be read or saved, or ''. */
   error: string;
-  /** Saves `value` at the project layer; `null` hands the setting back to the computer-wide value or the default. */
-  set: (key: string, value: string | null) => void;
+  /** Saves `value` at the project layer; `null` hands the setting back to the computer-wide value or the default. Resolves to whether the host kept it. */
+  set: (key: string, value: string | null) => Promise<boolean>;
 };
 
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -51,15 +51,18 @@ export function useProjectOptions(
   }, [system, tool, wanted, version, enabled]);
 
   const set = useCallback(
-    (key: string, value: string | null) => {
+    (key: string, value: string | null) =>
       system.saveSettings(tool, 'project', { [key]: value }).then(
         () => {
           setVersion((v) => v + 1);
           onSaved?.();
+          return true;
         },
-        (e) => setError(why(e)),
-      );
-    },
+        (e) => {
+          setError(why(e));
+          return false;
+        },
+      ),
     [system, tool, onSaved],
   );
 

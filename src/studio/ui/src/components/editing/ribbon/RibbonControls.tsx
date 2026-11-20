@@ -57,9 +57,9 @@ export function ScrollEnd({ dir, ribbon }: { dir: 1 | -1; ribbon: RibbonView }) 
   );
   // A button that goes away mid-hold (the chapter changed) must not keep scrolling.
   useEffect(() => () => scroll.cancel(), [scroll]);
-  // At either end of the recording the button turns off and the hold ends there.
+  // At either end of the recording the button turns off and the hold ends there; a step still gliding arrives first (it turns off a hair before the end).
   useEffect(() => {
-    if (!able) scroll.cancel();
+    if (!able) scroll.arrive();
   }, [able, scroll]);
   return (
     <IconButton

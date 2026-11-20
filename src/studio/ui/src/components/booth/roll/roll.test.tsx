@@ -1223,3 +1223,14 @@ describe('Start from here only marks the start (#3319)', () => {
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(20);
   });
 });
+
+describe('R on a take the DAW started (#3666)', () => {
+  it('asks the DAW nothing and says where to roll', async () => {
+    const { hook, actions, dialog } = setup(SETUPS.reaper, { startedByApp: false });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.roll).not.toHaveBeenCalled();
+    expect(actions.logPunch).not.toHaveBeenCalled();
+    expect(dialog()).toBeUndefined();
+    expect(actions.notify).toHaveBeenCalledWith('REAPER started this take, so roll again in REAPER.', 'daw-held');
+  });
+});

@@ -9,6 +9,7 @@ import (
 
 	"desktop/internal/chaptermatch"
 	"desktop/internal/chaptersync"
+	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 	"desktop/internal/project"
 	"desktop/internal/tracks"
@@ -310,6 +311,10 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 	}
 	check := in.svc.coverage
 	alignment := coverageSettings(in.svc.settings).Alignment
+	var pass coverage.Pass
+	if check != nil {
+		pass = check.Pass() // one listing of the ledger answers every chapter
+	}
 	for _, chapter := range in.chapters {
 		row := chapterSyncChapter{ChapterID: chapter.ID, ChapterTitle: chapter.Title, Freshness: string(evidence.StateNever), Reasons: []string{}}
 		if link, ok := linkOf[chapter.ID]; ok {
@@ -326,7 +331,7 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)
-			if result, err := check.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
+			if result, err := pass.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
 				row.Freshness = string(result.State)
 				if result.Reasons != nil {
 					row.Reasons = result.Reasons

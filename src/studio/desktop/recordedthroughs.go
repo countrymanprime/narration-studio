@@ -12,16 +12,18 @@ import (
 // recordedThroughs is the manuscript service's recorded-through provider: for every chapter, how far it is recorded
 // (recordedthrough.Resolve) from its current Proof result, the stretches the Booth followed during takes (its reading
 // file) and the recorded length the same payload carries. It only reads; a chapter nothing says is recorded is left out.
+// The same pass over the Proof results gives the recorded fractions, returned with it so the chapter list reads them once.
 func recordedThroughs(folder string, service *coverage.Service, store *settings.Store) manuscript.RecordedThroughs {
-	return func(chapters []string, lengths map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
+	return func(chapters []string, lengths map[string]manuscript.RecordedLength) (map[string]recordedthrough.Through, map[string]float64) {
 		if folder == "" {
-			return nil
+			return nil, nil
 		}
+		var fractions map[string]float64
 		var proof map[string][]coverage.ParagraphLine
 		if service != nil && store != nil {
-			proof = service.CurrentParagraphs(coverageSettings(store).Alignment)
+			fractions, proof = service.Current(coverageSettings(store).Alignment)
 		}
-		return recordedThroughsFor(folder, chapters, proof, lengths)
+		return recordedThroughsFor(folder, chapters, proof, lengths), fractions
 	}
 }
 

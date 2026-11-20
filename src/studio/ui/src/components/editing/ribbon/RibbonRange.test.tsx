@@ -427,6 +427,33 @@ describe('zoom', () => {
     await waitFor(() => expect(label()).toBe('00:00:05.000 to 00:00:08.100'));
   });
 
+  it("an arrow's step ends exactly at the end of the recording even when a late frame lands in its last millisecond (#3756)", async () => {
+    // The arrow turns off a hair (1 microsecond) before the end; a step still gliding there must finish at the end, not stop short of it. Frames are driven by hand
+    // so the late one is the same on every machine: 199 ms into the 200 ms glide the view is 0.6 microseconds short, inside that hair.
+    const frames: Array<(now: number) => void> = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: (now: number) => void) => frames.push(cb));
+    vi.stubGlobal('cancelAnimationFrame', () => undefined);
+    const frame = (now: number) => act(() => frames.splice(0).forEach((cb) => cb(now)));
+    try {
+      mount();
+      await ready();
+      const label = () => document.querySelector('[data-view-label]')?.textContent;
+      document.documentElement.dataset.motion = 'reduce';
+      fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform back' }));
+      delete document.documentElement.dataset.motion;
+      await waitFor(() => expect(label()).toBe('00:00:00.000 to 00:00:03.100'));
+      fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform forward' }));
+      frame(1000);
+      frame(1000 + 100);
+      frame(1000 + 199);
+      expect(label()).toBe('00:00:05.000 to 00:00:08.100');
+      expect(screen.getByRole('button', { name: 'Scroll the waveform forward' }).getAttribute('aria-disabled')).toBe('true');
+    } finally {
+      delete document.documentElement.dataset.motion;
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('a press and release with the mouse steps once, not once for the press and again for the click', async () => {
     document.documentElement.dataset.motion = 'reduce';
     try {
