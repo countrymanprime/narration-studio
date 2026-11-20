@@ -37,6 +37,8 @@ func fixture(t *testing.T) (Options, *trace.Tracer, string) {
 	lines := []string{
 		`{"ts":"2026-11-03T10:00:00Z","level":"INFO","event":"run.start","tool":"measure","run":"r1","path":"` + strings.ReplaceAll(canaryPath, `\`, `\\`) + `","msg":"` + canaryWord + `"}`,
 		`{"ts":"2026-11-03T10:00:01Z","level":"INFO","event":"run.end","run":"r1","outcome":"ok","duration_ms":12,"quote":"` + canaryWord + `"}`,
+		`{"ts":"2026-11-03T10:00:02Z","level":"WARN","event":"bridge.slow","command":"arm_lane","outcome":"answered","elapsed_ms":1800,"queue_ms":300,"reaper_ms":1500,"taken":true,"arg":"` + canaryWord + `"}`,
+		`{"ts":"2026-11-03T10:00:03Z","level":"INFO","event":"bridge.timing","command":"` + strings.ReplaceAll(canaryPath, `\`, `\\`) + `","elapsed_ms":5}`,
 		`not json ` + canaryWord,
 	}
 	if err := os.WriteFile(runLog, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
@@ -137,6 +139,28 @@ func TestTheRunLogKeepsOnlyAllowListedScalarsAndDropsUnreadableLines(t *testing.
 	}
 	if strings.Contains(body, "not json") || strings.Contains(body, "quote") || strings.Contains(body, `"path"`) {
 		t.Errorf("run.jsonl kept a field outside the allow-list: %s", body)
+	}
+}
+
+// A bridge.slow warning keeps the command's name and its millisecond split, which is what explains a slow Booth action from a saved bundle, and
+// nothing else it carries; a command field that is not a word (a path) is dropped like any other string.
+func TestTheRunLogKeepsABridgeStepsNameAndMilliseconds(t *testing.T) {
+	opts, _, _ := fixture(t)
+	bundle, err := Build(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(bundle.File("run.jsonl"))
+	for _, want := range []string{`"event":"bridge.slow"`, `"command":"arm_lane"`, `"elapsed_ms":1800`, `"queue_ms":300`, `"reaper_ms":1500`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("run.jsonl lost %s: %s", want, body)
+		}
+	}
+	if strings.Contains(body, `"arg"`) || strings.Contains(body, canaryWord) {
+		t.Errorf("run.jsonl kept an argument: %s", body)
+	}
+	if strings.Contains(body, canaryPath) || strings.Contains(body, strings.ReplaceAll(canaryPath, `\`, `\\`)) {
+		t.Errorf("run.jsonl kept a command field that is a path: %s", body)
 	}
 }
 

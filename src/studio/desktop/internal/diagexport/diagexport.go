@@ -103,6 +103,9 @@ func (b *Bundle) File(name string) []byte { return b.files[name] }
 var runKeys = map[string]bool{
 	"ts": true, "level": true, "event": true, "run": true, "tool": true, "outcome": true, "duration_ms": true,
 	"kind": true, "mode": true, "first_output_ms": true, "total_ms": true, "exit_code": true, "cid": true,
+	// A bridge.timing or bridge.slow record (bridge_timing.go): a REAPER command's name and the milliseconds it took, split into the command
+	// file waiting for REAPER and REAPER's own time. The name is one of the bridge's fixed command words and still has to pass safeString.
+	"command": true, "elapsed_ms": true, "queue_ms": true, "reaper_ms": true,
 }
 
 // safeString is the only shape a kept run-log string may have: a word, an id or a timestamp.
