@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from './categories';
-import { PAGE_SETTINGS } from './pageSettings';
 import { choiceLabel } from '../data/values';
 import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
@@ -58,7 +57,7 @@ describe('the settings registry', () => {
 describe('the removed Sync activity row (#3671)', () => {
   it('is not in Settings or its search: the chapter sync log is kept in the project folder for diagnostics only', () => {
     expect(ROWS.some((candidate) => candidate.id === 'daw.syncActivity')).toBe(false);
-    expect(search('chapter sync log').some((hit) => hit.row?.id === 'daw.syncActivity')).toBe(false);
+    expect(search('chapter sync log').some((hit) => hit.row.id === 'daw.syncActivity')).toBe(false);
   });
 });
 
@@ -71,8 +70,7 @@ describe('the Parallel processes row (#2251)', () => {
       expect(row.more).toContain(words);
   });
   it('is found by the words a narrator uses', () => {
-    for (const query of ['transcriptions at once', 'workers', 'ram', 'automatic'])
-      expect(search(query).some((hit) => hit.row?.id === 'stt.workers')).toBe(true);
+    for (const query of ['transcriptions at once', 'workers', 'ram', 'automatic']) expect(search(query).some((hit) => hit.row.id === 'stt.workers')).toBe(true);
   });
 });
 
@@ -109,11 +107,11 @@ describe('the two chunk length rows (#2980)', () => {
     expect(compare.more).not.toBe(coverage.more);
   });
   it('are found by their own words', () => {
-    expect(search('compare chunk').map((hit) => hit.row?.id)).toContain('stt.compareChunk');
-    expect(search('compare chunk').map((hit) => hit.row?.id)).not.toContain('stt.chunk');
-    expect(search('coverage chunk').map((hit) => hit.row?.id)).toContain('stt.chunk');
-    expect(search('coverage chunk').map((hit) => hit.row?.id)).not.toContain('stt.compareChunk');
-    expect(search('whole file').map((hit) => hit.row?.id)).toContain('stt.chunk');
+    expect(search('compare chunk').map((hit) => hit.row.id)).toContain('stt.compareChunk');
+    expect(search('compare chunk').map((hit) => hit.row.id)).not.toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row.id)).toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row.id)).not.toContain('stt.compareChunk');
+    expect(search('whole file').map((hit) => hit.row.id)).toContain('stt.chunk');
   });
 });
 
@@ -126,7 +124,7 @@ describe('the Preview voice engine row (#2980)', () => {
     expect(row.more).toBeTruthy();
     for (const query of ['piper', 'preview voices', 'text to speech engine'])
       expect(
-        search(query).map((hit) => hit.row?.id),
+        search(query).map((hit) => hit.row.id),
         query,
       ).toContain(row.id);
   });
@@ -136,7 +134,7 @@ describe('app.debug', () => {
   it('is found by the words a narrator uses for the log and its folder (#2730)', () => {
     for (const query of ['logs', 'log folder', 'file manager', 'run.jsonl', 'explorer'])
       expect(
-        search(query).some((hit) => hit.row?.id === 'app.debug'),
+        search(query).some((hit) => hit.row.id === 'app.debug'),
         query,
       ).toBe(true);
   });
@@ -144,17 +142,17 @@ describe('app.debug', () => {
 
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
-    expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);
+    expect(search('whisper').some((hit) => hit.row.id === 'stt.model')).toBe(true);
   });
   it('needs every word to match', () => {
     expect(search('whisper nothingelse')).toEqual([]);
   });
-  it('finds a setting that moved to a page', () => {
-    expect(search('breath').some((hit) => hit.page?.id === 'ps.cleanup')).toBe(true);
-    expect(PAGE_SETTINGS.length).toBeGreaterThan(0);
+  it('finds a setting only one page reads under the topic it belongs to', () => {
+    const hit = search('breath').find((candidate) => candidate.row.id === 'editing.cleanup');
+    expect(hit?.cat).toBe('Recording & DAW');
   });
   it('leaves out a row the caller hides', () => {
-    expect(search('reaper', (row) => !row.needs).some((hit) => hit.row?.needs)).toBe(false);
+    expect(search('reaper', (row) => !row.needs).some((hit) => hit.row.needs)).toBe(false);
   });
 });
 

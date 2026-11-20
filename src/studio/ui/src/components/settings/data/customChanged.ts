@@ -13,7 +13,7 @@ import { useVoiceSetup } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
 import { onProjectDataChanged } from './projectDataSignal';
 import { needsProject } from '../registry/projectNeeds';
-import { rowOf } from '../registry/rows';
+import { ROWS, rowOf } from '../registry/rows';
 import { useHasProject } from '../row/SettingsHost';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
@@ -31,6 +31,13 @@ export type ProbeContext = {
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
+
+/** The host keys of `tool` that a row of its own draws. */
+const rowFieldKeys = (tool: string): ReadonlySet<string> => new Set(ROWS.flatMap((row) => (row.field?.tool === tool ? [row.field.key] : [])));
+
+/** Whether some field of `tool` that `wanted` accepts has a value of its own, in the computer's layer or this project's. */
+const someSet = (settings: ReadSettings, tool: string, wanted: (key: string) => boolean): boolean =>
+  [settings.global?.[tool], settings.project?.[tool]].some((fields) => fields?.some((field) => field.isSet && wanted(field.key)) === true);
 
 /**
  * A row with a custom body has no host field to compare with its default. It is listed here instead, with a probe that says whether the
@@ -57,6 +64,14 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
     const { globalDefault, shippedDefault } = await delivery();
     return globalDefault.id !== shippedDefault.id || (globalDefault.version ?? '') !== (shippedDefault.version ?? '');
   },
+  // The panels of the settings one page reads: some value of the tool's fields they draw was set, in either layer.
+  'stt.rules': ({ settings }) => someSet(settings, 'RecordingCoverage', (key) => !rowFieldKeys('RecordingCoverage').has(key)),
+  'stt.compareColours': ({ settings }) => someSet(settings, 'TranscriptCompare', (key) => key.startsWith('color_')),
+  'daw.fxFavourites': ({ settings }) => someSet(settings, 'DAW', (key) => key === 'fx_favourites'),
+  'daw.backups': ({ settings }) => someSet(settings, 'DAW', (key) => key.startsWith('backups.') || key.startsWith('backup_')),
+  'editing.cleanup': ({ settings }) => someSet(settings, 'Cleanup', () => true),
+  'proofing.preview': ({ settings }) => someSet(settings, 'Preview', () => true),
+  'project.stages': ({ settings }) => someSet(settings, 'StageRecommendations', () => true),
   // This project: the Story Bible's types are not the default six.
   'project.types': async ({ api }) => api.guideTypesChanged(),
   // This project: the Script page's mark types are not the default six (a read of the file only, so it never migrates old notes).

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /**
- * A category's title and blurb, the target of `settings-heading`. Loading, a category, Models & downloads and Set on a page draw the same
+ * A category's title and blurb, the target of `settings-heading`. Loading, a category and Models & downloads draw the same
  * block, so the title does not move when the settings arrive. It is a section title, smaller than the page's own "Settings" (one page
  * title, rule 2). `action` sits at the right of the title line (Reset to defaults).
  */

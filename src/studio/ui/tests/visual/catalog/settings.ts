@@ -22,7 +22,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'page-top',
     description:
-      'Settings arriving on Recording & DAW at its defaults: the Settings heading with Search settings and the All / Changed / In this project filter, the category list with its three groups and Set on a page, and the Recording tool section with "Record with" (REAPER, Audacity, Built-in recorder) and its connection card, then the Microphone',
+      'Settings arriving on Recording & DAW at its defaults: the Settings heading with Search settings and the All / Changed / In this project filter, the category list with its three groups, and the Recording tool section with "Record with" (REAPER, Audacity, Built-in recorder) and its connection card, then the Microphone',
     ...REFLOW,
   },
   {
@@ -659,23 +659,17 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
-    state: 'pages',
+    state: 'speech-rules',
     description:
-      'Settings, Set on a page: the index of settings that belong on one page, each with where it will be set, an Open <page> button and "Change it here for now" closed',
-    ...REFLOW,
-  },
-  {
-    page: 'settings',
-    state: 'pages-panel-open',
-    description: 'Settings, Set on a page with "Change it here for now" opened behind Recording check rules: the Recording check panel that always edited it',
+      'Settings, Speech to text scrolled to Recording check rules: the row for the rules a chapter is judged by, with its panel (Global / This project, the rule in one sentence and the fields no other row draws)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
-    state: 'pages-navigate-away-confirm',
+    state: 'speech-rules-navigate-away-confirm',
     description:
-      'Settings, Set on a page with a change typed into the Recording check panel and another page pressed in the navigation: the Unsaved changes confirm with its three actions, over the page',
+      'Settings, Speech to text with a change typed into the Recording check rules panel and another page pressed in the navigation: the Unsaved changes confirm with its three actions, over the page',
     ...REFLOW,
   },
   {
@@ -737,7 +731,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'folded-category-list',
     description:
-      "Settings at a width where the category list folds: the Category button names the current category and its list is open below it with the three groups and Set on a page (wider, the list is always open and this is the page's top)",
+      "Settings at a width where the category list folds: the Category button names the current category and its list is open below it with the three groups (wider, the list is always open and this is the page's top)",
     sameAs: {
       of: 'settings/page-top',
       reason: 'The category list folds only where the page is narrower than 760 px; wider, it is always open and this is the top of the page.',

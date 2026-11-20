@@ -2,7 +2,7 @@
 export const BACKUPS_TEXT = {
   none: 'No backups yet.',
   off: 'Backups are off.',
-  scope: 'These settings are for this project. In Settings, under Set on a page, you can also set them for every project.',
+  scope: 'These settings are for this project. In Settings, under Recording & DAW, you can also set them for every project.',
   window: 'Audio kept either side of a punch or an edit (s)',
   retention: 'Keep backups for (days)',
   restore: 'Put this back',

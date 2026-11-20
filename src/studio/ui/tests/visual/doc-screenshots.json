@@ -876,10 +876,10 @@
   },
   {
     "page": "settings",
-    "state": "pages-panel-open",
+    "state": "speech-rules",
     "viewport": "desktop",
-    "docName": "settings-pages",
-    "caption": "Settings - Set on a page, with the recording check rules opened"
+    "docName": "settings-speech-rules",
+    "caption": "Settings - Speech to text, Recording check rules: the row and its panel"
   },
   {
     "page": "global",

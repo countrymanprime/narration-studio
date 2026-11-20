@@ -51,6 +51,4 @@ export const CATEGORIES: readonly Category[] = [
   { id: 'app', label: 'App & updates', group: 'This computer', icon: 'gear', blurb: 'Updates, notifications and diagnostics.' },
 ];
 
-export const PAGES_CATEGORY = { id: 'pages', label: 'Set on a page', icon: 'openFullApp' } as const;
-
-export const categoryLabel = (id: string): string => CATEGORIES.find((category) => category.id === id)?.label ?? PAGES_CATEGORY.label;
+export const categoryLabel = (id: string): string => CATEGORIES.find((category) => category.id === id)?.label ?? id;

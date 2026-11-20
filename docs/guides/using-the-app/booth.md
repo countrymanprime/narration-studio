@@ -148,8 +148,8 @@ The menu reads it again when you come back to the window. It needs no switch: th
 ![Booth - the pre-roll's info note: what REAPER's pre-roll does and where to change it](../../images/ui/booth-levels-menu-preroll-about.webp)
 
 With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to
-10, in half seconds), for every project on this computer. It is the same setting as **Punch pre-roll** under **Set on a page** in
-[Settings](settings.md#set-on-a-page). The built-in recorder does not punch, so the menu has no Punch part.
+10, in half seconds), for every project on this computer. It is the same setting as **Punch pre-roll** under Recording & DAW in
+[Settings](settings.md#recording--daw). The built-in recorder does not punch, so the menu has no Punch part.
 
 ![Booth - the Record options menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll](../../images/ui/booth-levels-menu.webp)
 

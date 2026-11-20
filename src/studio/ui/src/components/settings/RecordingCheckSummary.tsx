@@ -37,7 +37,8 @@ export function cascadeRule(fields: readonly ScopedSettingField[]): string {
   return `The two-pass check is on: a fast first pass with ${first}, then anything it reports missing is re-checked with ${recheck}.`;
 }
 
-export function RecordingCheckSummary({ fields, scope }: { fields: readonly ScopedSettingField[]; scope: Scope }) {
+/** `cascade: false` leaves out the two-pass sentence, for a panel whose fields no longer include the cascade's (its rows say it). */
+export function RecordingCheckSummary({ fields, scope, cascade = true }: { fields: readonly ScopedSettingField[]; scope: Scope; cascade?: boolean }) {
   return (
     <div className="mb-4 space-y-1 rounded-md p-3 text-sm" style={{ background: 'var(--surface-2)' }}>
       <div className="flex items-center gap-2 font-medium">
@@ -47,9 +48,11 @@ export function RecordingCheckSummary({ fields, scope }: { fields: readonly Scop
         </HelpButton>
       </div>
       <div>{recordingRule(fields)}</div>
-      <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-        {cascadeRule(fields)}
-      </div>
+      {cascade && (
+        <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
+          {cascadeRule(fields)}
+        </div>
+      )}
     </div>
   );
 }
