@@ -182,6 +182,11 @@ var eventSpecs = map[string]eventSpec{
 	// arm_lane with monitor adds monitored (0 or 1: this call turned the lane's input monitoring on). monitor_restore (narration_monitor.lua):
 	// how many lanes' monitoring it put back and kept; waiting is 1 when REAPER was recording, so the rest is put back after the stop.
 	"MONITOR_RESTORED": {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("waiting")}},
+	// solo_chapter and solo_restore (narration_solo_chapter.lua, #3428): the chapter's folder track soloed in place (changed 0 when the narrator had it
+	// soloed already) and how many chapters were put back and kept; waiting is 1 when REAPER was recording or playing an isolated track, so the rest
+	// is done on REAPER's first tick after. A track that is gone answers TRACK_STALE.
+	"CHAPTER_SOLOED": {required: []fieldSpec{text("run"), text("guid"), count("changed"), count("waiting")}},
+	"SOLO_RESTORED":  {required: []fieldSpec{text("run"), count("restored"), count("kept"), count("waiting")}},
 	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
 	// REAPER records on now and the play position of the switch.
 	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},

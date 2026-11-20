@@ -46,6 +46,8 @@ type (
 	PlayPosition    = bridge.PlayPosition
 	PunchPreroll    = bridge.PunchPreroll
 	DawMeters       = bridge.DawMeters
+	ChapterSoloed   = bridge.ChapterSoloed
+	SoloReleased    = bridge.SoloReleased
 
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
@@ -444,6 +446,16 @@ type MonitorReleaser interface {
 	// KeepMonitor drops a release that waits for a recording to stop, for a narrator who is back in the Booth during the take. It is answered
 	// while the engine records and changes nothing else.
 	KeepMonitor(ctx context.Context) error
+}
+
+// ChapterSoloer is an optional role of follow_position: while the Booth is on a chapter, the engine soloes that chapter's track in place so the other
+// chapters go quiet, and puts the solo back when they leave (#3428). One write on one track: nothing inside the chapter and no other chapter is touched,
+// a solo the narrator already set is left as it is and is not put back, and a solo the narrator changed since is kept. It changes nothing while the
+// engine records or plays an isolated track (the answers say Waiting; the engine does it right after). A track that is gone is a stale error. Only an
+// engine that can solo a track in place without an undo step has it (REAPER); the others are not asked.
+type ChapterSoloer interface {
+	SoloChapter(ctx context.Context, trackID string) (ChapterSoloed, error)
+	SoloRestore(ctx context.Context) (SoloReleased, error)
 }
 
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),

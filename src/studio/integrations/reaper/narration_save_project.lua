@@ -10,6 +10,8 @@
 --   * when expected_path is not the open project's file (the narrator opened another project: saving would write to a
 --     project the app does not read), compared with slashes folded, and case too on Windows and macOS; a different spelling of the same file (a symlink, a mapped drive) is refused, which is the safe side; Windows not run;
 --   * when the project has never been saved;
+--   * when a chapter is soloed in place (narration_solo_chapter.lua) and still reads soloed while a record_start waits for REAPER or REAPER plays one
+--     isolated track, since the solo cannot be taken off for the write and the file would hold it;
 --   * when REAPER still reports the project as needing a save after the call (fake-only so far: a save REAPER cannot write blocks it
 --     before this line, see below, and a project that was already clean cannot show a failed save).
 -- A file REAPER cannot write is the host's check, before it sends this: REAPER 7.82 waits on its own error dialog and answers no
@@ -48,7 +50,7 @@ local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
 end
 
-local function save_project(session_dir, run_id, expected)
+local function save_project(registry, session_dir, run_id, expected)
   if not reaper.APIExists('Main_SaveProject') then
     event(session_dir, 'ERROR', run_id, CANNOT)
     return
@@ -70,7 +72,19 @@ local function save_project(session_dir, run_id, expected)
     event(session_dir, 'ERROR', run_id, OTHER_PROJECT)
     return
   end
-  reaper.Main_SaveProject(0, false)
+  -- A chapter soloed in place is put back around the write, so the file never holds the solo (narration_solo_chapter.lua).
+  local function write()
+    reaper.Main_SaveProject(0, false)
+  end
+  if registry.solo_around_save then
+    local saved, why = registry.solo_around_save(write)
+    if saved == false then
+      event(session_dir, 'ERROR', run_id, why)
+      return
+    end
+  else
+    write()
+  end
   if reaper.APIExists('IsProjectDirty') and reaper.IsProjectDirty(0) ~= 0 then
     event(session_dir, 'ERROR', run_id, NOT_SAVED)
     return
@@ -80,6 +94,6 @@ end
 
 return function(registry)
   registry.register('save_project', function(ctx, args)
-    save_project(ctx.session_dir, args[1] or '', args[2])
+    save_project(registry, ctx.session_dir, args[1] or '', args[2])
   end)
 end
