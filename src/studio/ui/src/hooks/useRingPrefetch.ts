@@ -28,10 +28,10 @@ export type RingPrefetch = {
 };
 
 /** The wait between two background reads unless the caller sets its own. */
-export const RING_GAP_MS = 150;
+const RING_GAP_MS = 150;
 /** How long a new run waits for the read an earlier run left out before it goes on beside it: a read that never ends must not end the
  * background reading for as long as the page is open. */
-export const RING_STALL_MS = 20_000;
+const RING_STALL_MS = 20_000;
 
 /**
  * Reads the data of every id in the background, nearest to `current` first (`ringOrder`), one read at a time with a wait between, so the
