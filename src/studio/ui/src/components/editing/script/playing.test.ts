@@ -24,7 +24,7 @@ describe('the playing word', () => {
 describe('selection-is-announced', () => {
   const keys = doc.items.map((i) => i.key);
   it('says how many words and from when to when', () => {
-    expect(announceSel(doc, { anchor: keys[0], head: keys[2] })).toMatch(/^3 words selected, \d+:\d\d to \d+:\d\d$/);
+    expect(announceSel(doc, { anchor: keys[0], head: keys[2] })).toMatch(/^3 words selected, \d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3}$/);
     expect(announceSel(doc, { anchor: keys[0], head: keys[0] })).toMatch(/^1 word selected/);
   });
   it('says "not in the script" when every word was said and is not in it', () => {

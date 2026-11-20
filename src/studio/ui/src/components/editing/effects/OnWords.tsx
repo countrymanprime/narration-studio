@@ -30,7 +30,7 @@ export function OnWords({
                 {f.chainName}
                 <br />
                 <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-                  “{f.text}” · {clock(at.start)}–{clock(at.end)}
+                  “{f.text}” · {clock(at.start, { full: true })}–{clock(at.end, { full: true })}
                   {f.stale ? ' · the words changed' : ''}
                 </span>
               </span>

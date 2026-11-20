@@ -3867,6 +3867,20 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await off.dawGoToChapter('c-0001', 'end', 0)).refused).toBe(refused.message);
   });
 
+  it('dawArmBoothVoice and dawReleaseBoothMonitor answer the arm on entering the Booth and the release on leaving it: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawResultSchema, readGolden('daw-arm-booth-voice-done.json'), 'daw-arm-booth-voice-done.json');
+    expectMatches(dawResultSchema, readGolden('daw-arm-booth-voice-refused.json'), 'daw-arm-booth-voice-refused.json');
+    expectMatches(dawResultSchema, readGolden('daw-release-booth-monitor-done.json'), 'daw-release-booth-monitor-done.json');
+
+    const api = createMockApi({}, { daw: {} });
+    expect(await api.dawArmBoothVoice('c-0001')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawReleaseBoothMonitor()).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+
+    // A DAW with no record capability (Audacity has no arm or monitoring to change, nothing built in answers) is left alone without a word.
+    const off = createMockApi({}, { daw: { reachable: false } });
+    expect(await off.dawArmBoothVoice('c-0001')).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
+  });
+
   it('dawSoloChapter and dawSoloRestore: the host goldens parse, and the mock solos one chapter, refuses as the host does and restores without the switch', async () => {
     for (const name of ['daw-solo-chapter-done.json', 'daw-solo-chapter-refused.json', 'daw-solo-restore-done.json'])
       expectMatches(dawResultSchema, readGolden(name), name);
@@ -4797,6 +4811,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawPunchPreroll',
       'dawPlace',
       'dawGoToChapter',
+      'dawArmBoothVoice',
+      'dawReleaseBoothMonitor',
       'dawSoloChapter',
       'dawSoloRestore',
       'dawTransportSync',

@@ -86,6 +86,8 @@ var realEvents = map[string][]string{
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// src/studio/integrations/reaper/tests/monitor_test.lua (monitor_restore; arm_lane with monitor adds the sixth field to ARMED).
+	"MONITOR_RESTORED": {"MONITOR_RESTORED", "m1", "1", "0", "0"},
 	// src/studio/integrations/reaper/tests/solo_chapter_test.lua (solo_chapter, solo_restore).
 	"CHAPTER_SOLOED": {"CHAPTER_SOLOED", "c1", "{00000001-0000-4000-8000-000000000001}", "1", "0"},
 	"SOLO_RESTORED":  {"SOLO_RESTORED", "r1", "1", "0", "0"},

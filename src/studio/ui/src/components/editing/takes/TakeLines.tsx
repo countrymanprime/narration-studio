@@ -108,7 +108,7 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
       </div>
       <div className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[12px] text-[var(--text-muted)]">
         {[
-          take.start === undefined ? null : clock(take.start),
+          take.start === undefined ? null : clock(take.start, { full: true }),
           `${clock(take.sourceLength)} long`,
           sourceLabel,
           take.evidence ? placedLabel(take.evidence.via) : null,
@@ -146,7 +146,7 @@ export function TakeLines(props: TakeLinesProps) {
     >
       {props.duplicateAt != null ? (
         <p data-dupnote className="m-0 text-[var(--text-muted)]">
-          This take reads the line twice. The second read starts at {clock(props.duplicateAt)}.
+          This take reads the line twice. The second read starts at {clock(props.duplicateAt, { full: true })}.
         </p>
       ) : null}
       <Suggested suggestion={suggestion} labelOf={labelOf} />

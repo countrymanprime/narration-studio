@@ -304,7 +304,7 @@ const chapterRoutes = [
   },
 ] as const;
 for (const route of chapterRoutes) {
-  test(`a DAW that went quiet, then ${route.via}: Stop and leave, the refusal and Leave anyway open the chapter with no second question`, async ({ page }) => {
+  test(`a DAW that went quiet, then ${route.via}: Stop and open, the refusal and Open anyway open the chapter with no second question`, async ({ page }) => {
     await page.addInitScript(NEVER_STOPS);
     await recording(page);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
@@ -312,12 +312,12 @@ for (const route of chapterRoutes) {
     await route.go(page);
     const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
     await expect(chapterQuestion).toBeVisible();
-    await chapterQuestion.getByRole('button', { name: 'Stop and leave' }).click();
+    await chapterQuestion.getByRole('button', { name: 'Stop and open' }).click();
     const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
     await expect(refused).toBeVisible({ timeout: 14_000 });
     // "Leave anyway" ignores a press for its first 0.4 s (a double click on the button it replaced).
     await page.waitForTimeout(600);
-    await refused.getByRole('button', { name: 'Leave anyway' }).click();
+    await refused.getByRole('button', { name: 'Open anyway' }).click();
     // The chapter is shown (the address is cleared once it is adopted), and nothing asks again.
     const picker = page.locator("[aria-label^='Chapter:']").first();
     await expect(picker).toHaveAttribute('aria-label', new RegExp(`^Chapter: ${route.expected}:`));
@@ -345,11 +345,11 @@ test('a stale yes does not open a chapter without asking: after Leave anyway, la
   const chapterQuestion = page.getByRole('alertdialog', { name: 'Open another chapter?' });
   await expect(chapterQuestion).toBeVisible();
   await link('chapter-2');
-  await chapterQuestion.getByRole('button', { name: 'Stop and leave' }).click();
+  await chapterQuestion.getByRole('button', { name: 'Stop and open' }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
   await expect(refused).toBeVisible({ timeout: 14_000 });
   await page.waitForTimeout(600);
-  await refused.getByRole('button', { name: 'Leave anyway' }).click();
+  await refused.getByRole('button', { name: 'Open anyway' }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   // Where the Booth landed is not this test's business (a link that arrives while a question is open is #3555's); what matters is that no yes is left for either link below.
   const shown = await picker.getAttribute('aria-label');
@@ -540,7 +540,7 @@ test.describe('at 320 x 300', () => {
       }
       await expect(asked).toBeVisible();
       await expect(asked).toContainText(destination === 'chapter' ? 'Opening another chapter tries to stop the take.' : 'Leaving tries to stop the take.');
-      for (const name of ['Stay', 'Stop and leave']) {
+      for (const name of ['Stay', destination === 'chapter' ? 'Stop and open' : 'Stop and leave']) {
         const button = asked.getByRole('button', { name });
         await expect(button).toBeVisible();
         const covered = await button.evaluate((el) => {

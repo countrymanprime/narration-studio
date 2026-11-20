@@ -81,6 +81,7 @@ var smokeReaperFiles = []string{
 	"narration_master_render.lua",
 	"narration_meters.lua",
 	"narration_media_file.lua",
+	"narration_monitor.lua",
 	"narration_navigation.lua",
 	"narration_pickups.lua",
 	"narration_preroll.lua",

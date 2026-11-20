@@ -72,12 +72,12 @@ describe('the right button scrolls', () => {
   it('right-drag drags the audio along, draws no range, and tells the page what is on screen', async () => {
     mount();
     await ready();
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
     fireEvent.pointerDown(surface(), { clientX: 500, button: 2, pointerId: 1 });
     fireEvent.pointerMove(surface(), { clientX: 800, pointerId: 1 });
     fireEvent.pointerUp(surface(), { clientX: 800, pointerId: 1, button: 2 });
     // 300 px of a 1000 px waveform showing 3.1 s brings 0.93 s of earlier audio in from the left.
-    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(label()).toBe('00:00:04.070 to 00:00:07.170');
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
     expect(page.state.view?.t0).toBeCloseTo(4.07, 6);
     expect(page.state.view?.t1).toBeCloseTo(7.17, 6);
@@ -90,7 +90,7 @@ describe('the right button scrolls', () => {
     fireEvent.pointerDown(surface(), { clientX: 500, button: 2, pointerId: 1 });
     fireEvent.pointerMove(surface(), { clientX: 497, pointerId: 1 });
     fireEvent.pointerUp(surface(), { clientX: 497, pointerId: 1, button: 2 });
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
     expect(page.state.view ?? null).toBeNull();
   });
 
@@ -100,10 +100,10 @@ describe('the right button scrolls', () => {
     fireEvent.pointerDown(surface(), { clientX: 0, button: 2, pointerId: 1 });
     fireEvent.pointerMove(surface(), { clientX: 1000, pointerId: 1 });
     fireEvent.pointerUp(surface(), { clientX: 1000, pointerId: 1, button: 2 });
-    expect(label()).toBe('0:01.90 to 0:05.00');
+    expect(label()).toBe('00:00:01.900 to 00:00:05.000');
     act(() => page.dispatch({ type: 'place', key: 'p-1:4' }));
     expect(page.state.view ?? null).toBeNull();
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
   });
 });
 
@@ -128,13 +128,13 @@ describe('a range moved after a scroll stays under the pointer', () => {
     await ready();
     drawRange(xAt(5.54), xAt(6.296));
     scrollBy(300);
-    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(label()).toBe('00:00:04.070 to 00:00:07.170');
     const before = page.state.span!;
     const at = (((before.start + before.end) / 2 - 4.07) / 3.1) * 1000;
     fireEvent.pointerDown(body(), { clientX: at, button: 0, pointerId: 3 });
     fireEvent.pointerMove(body(), { clientX: at + 100, pointerId: 3 });
     fireEvent.pointerUp(body(), { clientX: at + 100, pointerId: 3, button: 0 });
-    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(label()).toBe('00:00:04.070 to 00:00:07.170');
     expect(page.state.span!.start - before.start).toBeCloseTo(0.31, 3);
   });
 
@@ -160,7 +160,7 @@ describe('a range moved after a scroll stays under the pointer', () => {
     await ready();
     scrollBy(300);
     drawRange(xAt(5.54, { start: 4.07, len: 3.1 }), xAt(6.296, { start: 4.07, len: 3.1 }));
-    expect(label()).toBe('0:04.07 to 0:07.17');
+    expect(label()).toBe('00:00:04.070 to 00:00:07.170');
     expect(page.state.span!.start).toBeCloseTo(5.54, 2);
     expect(page.state.span!.end).toBeCloseTo(6.296, 2);
   });
@@ -177,7 +177,7 @@ describe('a right click without a drag opens the waveform’s own menu', () => {
     sent.mockClear();
     fireEvent.pointerUp(surface(), { clientX: xAt(6.35), pointerId: 1, button: 2 });
     expect(sent).toHaveBeenCalledTimes(1);
-    expect(item('play-here')?.label).toBe('Play from 0:06.35');
+    expect(item('play-here')?.label).toBe('Play from 00:00:06.350');
     expect(item('cursor-here')?.label).toBe('Put the cursor on “sitting”');
   });
 
@@ -207,11 +207,11 @@ describe('a right click without a drag opens the waveform’s own menu', () => {
     expect(page.state.cursor).toBe('p-1:4');
     // zoomed about 6.35 s, which stays where it was on screen
     act(() => item('zoom-in')!.onSelect());
-    expect(label()).toBe('0:05.48 to 0:07.48');
+    expect(label()).toBe('00:00:05.479 to 00:00:07.479');
     act(() => item('show-all')!.onSelect());
-    expect(label()).toBe('0:00.00 to 0:08.10');
+    expect(label()).toBe('00:00:00.000 to 00:00:08.100');
     act(() => item('show-line')!.onSelect());
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
   });
 
   it('offers to play and clear a range when there is one', async () => {
@@ -231,7 +231,7 @@ describe('a right click without a drag opens the waveform’s own menu', () => {
     await ready();
     fireEvent.contextMenu(surface(), { button: 0 });
     fireEvent.contextMenu(surface(), { clientX: 0, button: 2 });
-    expect(item('play-here')?.label).toBe('Play from 0:05.00');
+    expect(item('play-here')?.label).toBe('Play from 00:00:05.000');
     expect(item('play-here')?.unavailable).toBe('Nothing can play this chapter here.');
     expect(item('zoom-in')?.label).toBe('Zoom in');
   });
@@ -270,7 +270,7 @@ describe('touch', () => {
     touch('pointerUp', 2, 700);
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
     // the two fingers' middle moved 200 px: 0.62 s
-    expect(label()).toBe('0:04.38 to 0:07.48');
+    expect(label()).toBe('00:00:04.380 to 00:00:07.480');
   });
 });
 

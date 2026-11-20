@@ -315,8 +315,20 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Unlink' }));
 
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('read only'), 'error'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('The link could not be removed: the project is read only', 'error'));
     expect(screen.getByRole('button', { name: 'Unlink' })).toBeTruthy();
+  });
+
+  // #3365 (qa-breaker): an Unlink that worked and whose re-read failed said both "unlinked" and "could not be removed".
+  it('tells an Unlink that worked but whose re-read failed as a change that was made', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    const { notify } = renderPanel(api, link, track, vi.fn().mockRejectedValue(new Error('list unreadable')));
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Unlink' }));
+
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('The change was made, but the list could not be read again'), 'error'));
+    expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('could not be removed'), 'error');
   });
 
   it('names a plain phrase when the chapter that lost the track has no stored title (#3053)', async () => {

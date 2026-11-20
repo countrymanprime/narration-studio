@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "REAPER is already recording.",
+  "undoSteps": 0,
+  "refused": "REAPER is already recording."
+}

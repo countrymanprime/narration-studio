@@ -594,6 +594,13 @@ export interface DawPlaceApi {
   /** Select the chapter's linked track in the DAW and put its cursor at `where`. A time that is not a finite, non-negative number of seconds, a
    * chapter with no or several linked tracks, a track the DAW no longer has and a refused capability are refused with nothing moved. */
   dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
+  /** Entering the Booth on a chapter (src/studio/desktop/bindings_booth_arming.go): arm the track its next take records on and turn its input monitoring on when it
+   * is off. Nothing is changed, and nothing said, for a DAW with no armed tracks, a chapter with no one linked track and a take this app runs; a DAW that is
+   * recording, does not answer or no longer has the track is refused with the sentence. No undo step. */
+  dawArmBoothVoice(chapterId: string): Promise<DawResult>;
+  /** Leaving the Booth: put back the input monitoring `dawArmBoothVoice` and a voice choice turned on, only where the narrator has not changed it since. A DAW that is
+   * recording changes nothing and puts it back itself after the stop. */
+  dawReleaseBoothMonitor(): Promise<DawResult>;
   /** Solo the chapter's linked track in place while the narrator records it, so the other chapters go quiet and are not touched (`DawSoloChapter`,
    * src/studio/desktop/bindings_daw_solo.go). One change on one track; a solo or mute the narrator set stays. `changed` is false when nothing was
    * changed (the track was soloed already, or the DAW is recording and does it right after). A DAW that cannot do it answers done with nothing changed. */

@@ -69,7 +69,7 @@ describe('useBoothLeaveGuard', () => {
       const running = setup({ recording: true, endUnconfirmed: () => true });
       act(() => void running.hook.result.current.leave('/script', running.go));
       expect(running.dialog()?.spec.title).toBe('Stop recording?');
-      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
+      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it and saves the take.');
       act(() => running.dialog()!.answer(false));
     });
 
@@ -177,7 +177,7 @@ describe('useBoothLeaveGuard', () => {
       decide: expect.any(Function),
       ask: {
         title: 'Stop recording?',
-        body: 'Audacity is recording. Leaving the Booth for Proof stops it.',
+        body: 'Audacity is recording. Leaving the Booth for Proof stops it and saves the take.',
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
@@ -196,25 +196,27 @@ describe('useBoothLeaveGuard', () => {
     ['/somewhere-else', ''],
   ])('names where leaving goes: %s', (to, named) => {
     const { store } = setup();
-    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it.` } });
+    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it and saves the take.` } });
   });
 
   // #3529 (ux-reviewer): a chapter link into the Booth during a take is a move within the Booth: the take stops, the narrator does not leave, and the question says so.
   it('a destination that is the Booth itself reads as opening another chapter, not as leaving', () => {
     const { store } = setup();
-    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({ ask: { body: 'REAPER is recording. Opening another chapter stops it.' } });
+    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({
+      ask: { body: 'REAPER is recording. Opening another chapter stops it and saves the take.' },
+    });
   });
 
   it('the question the Booth asks for its own exit names the destination too', () => {
     const t = setup();
     act(() => void t.hook.result.current.leave('/proof', t.go));
-    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it and saves the take.');
     act(() => t.dialog()!.answer(false));
   });
 
   it('names the built-in recorder', () => {
     const { store } = setup({ daw: { name: 'the built-in recorder' } });
-    expect(store.checkLeave('/x')).toMatchObject({ ask: { body: 'The built-in recorder is recording. Leaving the Booth stops it.' } });
+    expect(store.checkLeave('/x')).toMatchObject({ ask: { body: 'The built-in recorder is recording. Leaving the Booth stops it and saves the take.' } });
   });
 
   it('keep-recording-stays-and-changes-nothing; the-take-is-held-while-the-question-is-open', async () => {
@@ -430,6 +432,19 @@ describe('useBoothLeaveGuard', () => {
         await waitFor(() => expect(go).toHaveBeenCalledWith('/script'));
       }
     });
+  });
+
+  it('a refused stop on a chapter question says it opens: Open anyway, and "open it anyway" in the sentence', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'Disk full.', undoSteps: 0, refused: 'Disk full.' };
+    const { go, hook, dialog } = setup({}, async () => refusal);
+    act(() => void hook.result.current.leave('/booth?chapter=chapter-2', go));
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    expect(dialog()?.spec.confirmLabel).toBe('Open anyway');
+    expect(dialog()?.spec.body).toContain('You can open it anyway, but it may keep recording.');
+    expect(dialog()?.spec.body).not.toContain('leave');
+    act(() => dialog()!.answer(false));
   });
 
   it('a refused stop does not trap the narrator: Leave anyway goes without a second stop', async () => {
@@ -1013,7 +1028,7 @@ describe('useBoothLeaveGuard', () => {
       hook.rerender({ ...session, recording: true, startPending: false });
       // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
       await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
-      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it and saves the take.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);

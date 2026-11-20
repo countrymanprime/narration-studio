@@ -29,7 +29,7 @@ export function FindingRow({
   onIgnore: () => void;
 }) {
   const inRouter = useInRouterContext();
-  const at = finding.seconds === null ? '—' : clock(finding.seconds);
+  const at = finding.seconds === null ? '—' : clock(finding.seconds, { full: true });
   const what = `${finding.type} at ${at}`;
   return (
     <li

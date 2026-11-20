@@ -99,7 +99,7 @@ export function FxDialog({
       {r && choice ? <FxPieces items={doc.items.filter((i) => i.pid === r.pid)} keys={r.keys} start={r.start} end={r.end} chain={choice.name} /> : null}
       <dl className={FACTS}>
         <Fact label="Splits at" className={FACT_VALUE_MONO} data-fx-split-at>
-          {r ? `${clock(r.start)} and ${clock(r.end)} · ${sec(r.end - r.start)} in the middle` : '—'}
+          {r ? `${clock(r.start, { full: true })} and ${clock(r.end, { full: true })} · ${sec(r.end - r.start)} in the middle` : '—'}
         </Fact>
         <SubWordRow span={span} items={sum.audible} attr="data-fx-subword" />
         {ends ? (

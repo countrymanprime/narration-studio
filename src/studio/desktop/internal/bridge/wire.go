@@ -174,11 +174,14 @@ var eventSpecs = map[string]eventSpec{
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during
 	// the recording (undo_last's record_take), was appended to both stop answers later: optional, so an older script's still reads.
-	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}},
+	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}, optional: []fieldSpec{count("monitored")}},
 	"RECORD_STARTED":  {required: []fieldSpec{text("run"), text("guid"), number("position")}},
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// arm_lane with monitor adds monitored (0 or 1: this call turned the lane's input monitoring on). monitor_restore (narration_monitor.lua):
+	// how many lanes' monitoring it put back and kept; waiting is 1 when REAPER was recording, so the rest is put back after the stop.
+	"MONITOR_RESTORED": {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("waiting")}},
 	// solo_chapter and solo_restore (narration_solo_chapter.lua, #3428): the chapter's folder track soloed in place (changed 0 when the narrator had it
 	// soloed already) and how many chapters were put back and kept; waiting is 1 when REAPER was recording or playing an isolated track, so the rest
 	// is done on REAPER's first tick after. A track that is gone answers TRACK_STALE.

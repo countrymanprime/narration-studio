@@ -40,7 +40,7 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
   const requestedQuery = requested ? boothQuery(requested) : null;
   const followed = useRef({ requested, current, recording, starting, endUnconfirmed, leave, adopt, choose });
   followed.current = { requested, current, recording, starting, endUnconfirmed, leave, adopt, choose };
-  // The chapter the narrator already said yes to (Stop and leave, or Leave anyway) in the question a change from the picker, Next or Previous asked: writing it to the address
+  // The chapter the narrator already said yes to (Stop and open, or Open anyway) in the question a change from the picker, Next or Previous asked: writing it to the address
   // brings it back here as a request, and it must open, not ask a second time. The answer belongs to that one request: it is read once, by the next request whatever it asks for,
   // and never beats a take that records or starts (a running take always asks).
   const confirmed = useRef<{ chapter: string; at: number } | null>(null);
@@ -66,7 +66,7 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
       return;
     }
     // A question this hook asked is still open (a stop that is waited on, a refusal on screen): a later chapter in the address replaces what that question opens, so
-    // Stop and leave or Leave anyway opens the chapter asked for last. The later request asks nothing and puts nothing back: the first question's answer does both.
+    // Stop and open or Open anyway opens the chapter asked for last. The later request asks nothing and puts nothing back: the first question's answer does both.
     if (pendingLeave.current) {
       pendingLeave.current.target = target;
       return;

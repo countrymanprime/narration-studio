@@ -31,6 +31,7 @@ M.FEATURE_FILES = {
   'narration_navigation.lua',
   'narration_track_state.lua',
   'narration_transport.lua',
+  'narration_monitor.lua',
   'narration_workspace.lua',
   'narration_punch.lua',
   'narration_regions.lua',
@@ -295,6 +296,9 @@ function M.run(session_dir, registry)
     -- After the transport's tick: a play's isolation is put right first (narration_solo_chapter.lua).
     if registry.solo_chapter_tick then
       registry.solo_chapter_tick()
+    end
+    if registry.monitor_tick then
+      registry.monitor_tick()
     end
     if timing then
       report_timing(started)

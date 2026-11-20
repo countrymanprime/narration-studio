@@ -22,7 +22,7 @@ export interface StackDialogProps {
 /** The dialog's title: what it does. */
 export const stackTitle = (direction: StackDirection): string => (direction === 'stack' ? STACK_TEXT.action : STACK_TEXT.unstack);
 
-const range = (at: number, len: number): string => `${clock(at)}–${clock(at + len)}`;
+const range = (at: number, len: number): string => `${clock(at, { full: true })}–${clock(at + len, { full: true })}`;
 
 /**
  * What stacking (or putting back) will do, before anything moves (the mock's `StackDialog`): the passages and their time ranges before and
@@ -41,7 +41,7 @@ export function StackDialog({ direction, plan, lines, how, onCancel, onConfirm }
         {plan.groups.map((g) => (
           <div key={g.passage.id} className="flex flex-col gap-0.5" data-stack-group={g.passage.id}>
             <div className="truncate" title={lines.get(g.passage.id)?.script}>
-              <b className="font-mono">{clock(g.before.start)}</b> {lines.get(g.passage.id)?.script}
+              <b className="font-mono">{clock(g.before.start, { full: true })}</b> {lines.get(g.passage.id)?.script}
             </div>
             <div className="font-mono text-sm text-[var(--text-muted)]" data-stack-span>
               {range(g.before.start, g.before.end - g.before.start)} → {range(g.after.start, g.after.end - g.after.start)}
@@ -67,7 +67,7 @@ export function StackDialog({ direction, plan, lines, how, onCancel, onConfirm }
           </ol>
           {stack && plan.region ? (
             <div className="font-mono text-sm text-[var(--text-muted)]" data-stack-backup>
-              Backup first: {clock(plan.region.start)}–{clock(plan.region.end)}
+              Backup first: {clock(plan.region.start, { full: true })}–{clock(plan.region.end, { full: true })}
             </div>
           ) : null}
         </>

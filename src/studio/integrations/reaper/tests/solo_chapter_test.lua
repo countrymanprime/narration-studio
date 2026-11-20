@@ -575,7 +575,7 @@ H.test('a solo that waited for the take and could not write its ledger stays pen
   s.fake.play_state = 0
   s:tick()
   H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'nothing is soloed without its ledger')
-  os.remove(s:path(LEDGER))
+  H.truthy(host.removedir(s:path(LEDGER)), 'the folder that stood for the ledger is gone')
   for _ = 1, 8 do
     s:tick()
   end
@@ -586,16 +586,22 @@ end)
 H.test('a ledger that still lists a chapter put back is not reported as removed, and is removed on a later tick', function()
   local s, t = new_session()
   s:send('solo_chapter', 'c1', t.ch1.guid)
-  os.remove(s:path(LEDGER))
-  host.makedirs(H.join(s:path(LEDGER), 'held'))
+  -- The file cannot be removed (held open by a backup or a scanner): os.remove fails and the file stays.
+  local real_remove = os.remove
+  os.remove = function(path)
+    if tostring(path):find(LEDGER, 1, true) then
+      return nil, 'in use'
+    end
+    return real_remove(path)
+  end
   s:send('solo_restore', 'r1')
   H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
-  H.truthy(host.listdir(s:path(LEDGER)), 'the file that cannot be removed is still there')
-  os.remove(H.join(s:path(LEDGER), 'held'))
+  H.eq(ledger(s), row(t.ch1), 'the file that cannot be removed is still there')
+  os.remove = real_remove
   for _ = 1, 8 do
     s:tick()
   end
-  H.eq(io.open(s:path(LEDGER), 'r'), nil, 'the retry removed it')
+  H.eq(ledger(s), nil, 'the retry removed it')
 end)
 
 -- the project in front changes while a chapter is soloed ---------------------------------------------------------
@@ -768,4 +774,32 @@ H.test('solo_restore also puts back a play isolation whose project was not in fr
   s.fake.tracks = tracks
   s:send('solo_restore', 'r2')
   H.eq(solos(s), { 0, 0, 0, 0, 0, 1 })
+end)
+
+-- limits the Booth guide names, pinned as they are today -------------------------------------------------------------
+
+H.test('a solo the narrator sets again on the chapter by hand is read as ours and taken away on the restore: the limit', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  t.ch1.solo = 0
+  t.ch1.solo = 2
+  s:events()
+  s:send('solo_restore', 'r1')
+  H.eq(s:events(), { { 'SOLO_RESTORED', 'r1', '1', '0', '0' } })
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+end)
+
+H.test('a leftover row turns off a solo the narrator made on that chapter after the crash: the limit', function()
+  local s, t = new_session()
+  H.write_file(s:path(LEDGER), row(t.ch1))
+  t.ch1.solo = 2
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+end)
+
+H.test('another chapter the narrator soloed by hand stays soloed beside ours: the limit', function()
+  local s, t = new_session()
+  t.ch2.solo = 1
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  H.eq(solos(s), { 2, 0, 0, 1, 0, 0 })
 end)

@@ -133,6 +133,7 @@ var commandCapability = map[string]dawport.Capability{
 	"watch_transport":            dawport.CapTransportSync,
 	"arm_only":                   dawport.CapRecord,
 	"arm_lane":                   dawport.CapRecord,
+	"monitor_restore":            dawport.CapRecord,
 	"solo_chapter":               dawport.CapFollowPosition,
 	"solo_restore":               dawport.CapFollowPosition,
 	"record_start":               dawport.CapRecord,
@@ -441,6 +442,7 @@ type puncher struct {
 }
 
 var _ dawport.LaneArmer = (*bridge.Actions)(nil)
+var _ dawport.MonitorReleaser = (*bridge.Actions)(nil)
 var _ dawport.VoiceSwitcher = (*bridge.Actions)(nil)
 
 var _ dawport.Puncher = puncher{}

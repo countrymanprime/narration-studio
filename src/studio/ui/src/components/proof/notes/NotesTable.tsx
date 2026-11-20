@@ -59,8 +59,8 @@ function FromCell({ row }: { row: NoteRow }) {
 }
 
 /** The columns' widths: Script vs heard takes what the others leave, so a sentence wraps only when that column is full, and the columns
- * stand in the same place in every chapter and filter (alignment audit XPF-4). */
-const NOTE_COLUMNS = ['5.25rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
+ * stand in the same place in every chapter and filter (alignment audit XPF-4). Time is wide enough for "00:00:12.400" (hh:mm:ss.fff, #3443). */
+const NOTE_COLUMNS = ['7.75rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
 
 /**
  * Under the table's 40 rem floor (the tablet width and the 390 reflow) a note is a block instead of a row that scrolls Resolution out of
@@ -73,9 +73,11 @@ const NARROW_ROW =
   '@max-[40rem]:grid! @max-[40rem]:col-span-full @max-[40rem]:grid-cols-subgrid @max-[40rem]:border-b @max-[40rem]:border-[var(--border)] @max-[40rem]:px-4 @max-[40rem]:py-2 @max-[40rem]:[&>td]:px-0! @max-[40rem]:[&>td]:py-0!';
 const NARROW_TIME = '@max-[40rem]:row-1 @max-[40rem]:col-1';
 const NARROW_TYPE = '@max-[40rem]:row-1 @max-[40rem]:col-2';
-const NARROW_RESOLUTION = '@max-[40rem]:row-1 @max-[40rem]:col-3 @max-[40rem]:justify-self-end';
-const NARROW_SENTENCE = '@max-[40rem]:row-2 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-1.5!';
-const NARROW_FROM = '@max-[40rem]:row-3 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-0.5!';
+// Below 24 rem Time (12 characters, #3443), Type and Resolution do not fit on one line: the Resolution pill goes to a row of its own and the sentence and its source move down one.
+const NARROW_RESOLUTION =
+  '@max-[40rem]:row-1 @max-[40rem]:col-3 @max-[40rem]:justify-self-end @max-[24rem]:row-2 @max-[24rem]:col-[1/-1] @max-[24rem]:justify-self-start @max-[24rem]:pt-1.5!';
+const NARROW_SENTENCE = '@max-[40rem]:row-2 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-1.5! @max-[24rem]:row-3';
+const NARROW_FROM = '@max-[40rem]:row-3 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-0.5! @max-[24rem]:row-4';
 const NARROW_GROUP = '@max-[40rem]:col-span-full @max-[40rem]:block @max-[40rem]:[&>td]:block @max-[40rem]:[&>td]:border-b @max-[40rem]:[&>td]:px-4!';
 
 /**

@@ -633,7 +633,7 @@ local function watch_tick(session_dir, state)
   event(session_dir, 'TRANSPORT', '', play_state, string.format('%.6f', reaper.GetPlayPosition() or 0), string.format('%.6f', cursor))
 end
 
-local function arm_only(session_dir, state, run_id, guid_text, keep)
+local function arm_only(session_dir, state, run_id, guid_text, keep, monitor_lane)
   if not reaper.APIExists('CountTracks') or not reaper.APIExists('SetMediaTrackInfo_Value') then
     event(session_dir, 'ERROR', run_id, 'This REAPER version cannot arm tracks.')
     return
@@ -680,6 +680,11 @@ local function arm_only(session_dir, state, run_id, guid_text, keep)
   if keep then
     -- arm_lane: the arms are the narrator's now, so nothing is put back at a stop.
     state.saved_arms = nil
+  end
+  if monitor_lane then
+    -- arm_lane with `monitor`: the lane's input monitoring is on too (narration_monitor.lua); the answer says whether this call turned it on.
+    event(session_dir, 'ARMED', run_id, target_guid, disarmed, changed and 1 or 0, monitor_lane(target))
+    return
   end
   event(session_dir, 'ARMED', run_id, target_guid, disarmed, changed and 1 or 0)
 end
@@ -974,7 +979,18 @@ return function(registry)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '')
   end)
   registry.register('arm_lane', function(ctx, args)
-    arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true)
+    -- A third argument `monitor` also turns the lane's input monitoring on when it is off (narration_monitor.lua). Any other one is refused, and
+    -- so is `monitor` when this bridge has no monitoring: a five-field answer would say the lane is not monitored as if the narrator had it on.
+    local mode = args[3] or ''
+    if mode ~= '' and mode ~= 'monitor' then
+      event(ctx.session_dir, 'ERROR', args[1] or '', 'Unsupported arm_lane argument.')
+      return
+    end
+    if mode == 'monitor' and not registry.monitor_lane then
+      event(ctx.session_dir, 'ERROR', args[1] or '', 'This bridge cannot monitor a lane.')
+      return
+    end
+    arm_only(ctx.session_dir, state, args[1] or '', args[2] or '', true, mode == 'monitor' and registry.monitor_lane or nil)
   end)
   registry.register('record_start', function(ctx, args)
     record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '')
