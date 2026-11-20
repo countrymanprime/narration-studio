@@ -497,7 +497,7 @@ describe('arming the Booth voice on entry (#3428)', () => {
     });
     const say = vi.fn();
     renderStrict(failing, say);
-    await waitFor(() => expect(say).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith("The DAW could not arm this chapter's voice. Arm it in the DAW yourself."));
   });
 
   it('says nothing once the page is gone, under StrictMode as well', async () => {
