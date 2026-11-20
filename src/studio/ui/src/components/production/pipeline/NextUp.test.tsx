@@ -25,7 +25,22 @@ const inputsFor = (recorded: ReturnType<typeof chapter>) => ({
 // #3443: Next up and the Record cell say the same percent for one chapter, at both ends: from the first second of audio, to a length that has reached or passed its estimate
 // (the cell never says 100 for a measured length, only the host's "complete" does, so Next up must not either).
 describe('Next up says the Record cell’s percent', () => {
-  it.each([0, 1, 18, 36, 1800, 3564, 3599, 3600, 3601, 4000, 7200])('for %s s recorded of a 3600 s estimate', (seconds) => {
+  // [seconds recorded of a 3600 s estimate, the percent both say]: any measured audio is at least 1% (0.001 s too), none is 0%, and a measured length is never 100.
+  it.each([
+    [0, 0],
+    [0.5, 1],
+    [1, 1],
+    [18, 1],
+    [35.99, 1],
+    [36, 1],
+    [1800, 50],
+    [3564, 99],
+    [3599, 99],
+    [3600, 99],
+    [3601, 99],
+    [4000, 99],
+    [7200, 99],
+  ])('for %s s recorded of a 3600 s estimate, both say %s%%', (seconds, percent) => {
     const c = chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: seconds });
     const cell = buildPipelineRows([c])[0]!.cells.record.text;
     render(<NextUp inputs={inputsFor(c)} onGo={vi.fn()} timer={{ running: false, onStart: vi.fn() }} />);
@@ -33,6 +48,8 @@ describe('Next up says the Record cell’s percent', () => {
     const visible = sub.cloneNode(true) as Element;
     visible.querySelectorAll('.sr-only').forEach((el) => el.remove());
     expect(visible.textContent).toContain(`${cell} recorded`);
+    expect(cell).toBe(`${percent}%`);
+    expect(visible.textContent).toContain(`${percent}% recorded`);
   });
 
   // A host that says 0% (the Go side can) is 0 on both, not 1: nothing is recorded.
@@ -44,6 +61,19 @@ describe('Next up says the Record cell’s percent', () => {
       recordedThrough: { paragraphId: 'p1', word: 0, percent: 0, complete: false, source: 'booth', confident: true },
     });
     expect(recordedPercent(c, WPH)).toBe(0);
+  });
+
+  // S2 (qa delta, a known cosmetic and not this PR's scope): with the host's "complete" the item still reads "Finish recording Chapter 1" above "100% recorded". Pinned as it is.
+  it('reads 100% under "Finish recording" when the host says complete (known cosmetic, not changed here)', () => {
+    const c = chapter('c1', {
+      status: 'recording',
+      wordCount: WPH,
+      recordedSeconds: 3600,
+      recordedThrough: { paragraphId: 'p1', word: 0, percent: 100, complete: true, source: 'booth', confident: true },
+    });
+    render(<NextUp inputs={inputsFor(c)} onGo={vi.fn()} timer={{ running: false, onStart: vi.fn() }} />);
+    expect(screen.getByText('Finish recording Chapter 1')).toBeTruthy();
+    expect(screen.getByText(/% recorded/).textContent).toBe('100% recorded');
   });
 
   // R1 (qa round 3): a chapter at or over its estimate has no time left to give: "99% recorded", not "99% recorded · about 0h 00m of finished audio left".

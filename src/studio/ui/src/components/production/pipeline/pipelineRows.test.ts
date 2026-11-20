@@ -285,3 +285,18 @@ describe('about-before-an-under-a-minute-estimate', () => {
     expect(normal!.recorded.label).toContain('of about 1 hour estimated');
   });
 });
+
+// S1 (qa delta): the Record cell never says 0% beside audio. A host 0 with audio on the track reads 1%; a host 0 with none reads 0%.
+describe('record-percent-with-a-host-zero', () => {
+  const zero = { paragraphId: 'p1', word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  it('reads 1% when the track holds audio and 0% when it holds none', () => {
+    const [withAudio] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 12, recordedThrough: zero })]);
+    expect(withAudio!.cells.record.text).toBe('1%');
+    const [none] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 0, recordedThrough: zero })]);
+    expect(none!.cells.record.text).toBe('0%');
+  });
+  it('reads 1% for a few seconds of audio against an hour, never 0%', () => {
+    const [few] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 5 })]);
+    expect(few!.cells.record.text).toBe('1%');
+  });
+});

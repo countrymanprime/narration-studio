@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RecordedThrough } from './api/contracts/manuscript';
-import { chapterRecordedDetail, recordedThroughLabel } from './recordedThrough';
+import { chapterRecordedDetail, recordedPercent, recordedThroughLabel } from './recordedThrough';
 
 const PARAGRAPHS = [
   { id: 'p1', text: 'Alice was beginning to get very tired.' },
@@ -60,5 +60,37 @@ describe('what the Booth says about how far a chapter is recorded', () => {
     expect(chapterRecordedDetail({ recordedThrough: through({ complete: true, percent: 100 }) })).toBe('Complete');
     expect(chapterRecordedDetail({ recordedThrough: through({ confident: false, source: 'daw', percent: 30 }) })).toBe('~30%');
     expect(chapterRecordedDetail({})).toBeUndefined();
+  });
+});
+
+// #3443: the one percent the Record cell and Next up show. 0 only with no measured audio; any audio is at least 1; only the host's complete is 100.
+describe('recordedPercent', () => {
+  const chapter = (recordedSeconds: number | null, recordedThrough?: RecordedThrough) => ({ recordedSeconds, wordCount: 9300, recordedThrough });
+  it('any measured audio is at least 1%, and none is 0%', () => {
+    for (const [seconds, percent] of [
+      [0, 0],
+      [0.001, 1],
+      [1, 1],
+      [18, 1],
+      [35.99, 1],
+      [36, 1],
+      [72, 2],
+      [3599, 99],
+      [3600, 99],
+      [7200, 99],
+    ] as const)
+      expect(recordedPercent(chapter(seconds), 9300), `${seconds} s of 3600 s`).toBe(percent);
+  });
+  it('is null when nothing is measured', () => {
+    expect(recordedPercent(chapter(null), 9300)).toBeNull();
+    expect(recordedPercent({ recordedSeconds: 10, wordCount: 0 }, 9300)).toBeNull();
+  });
+  it("takes the host's percent, 100 only when it says complete; a host 0 is 0 with no audio and 1 with audio on the track", () => {
+    expect(recordedPercent(chapter(null, through({ percent: 40 })), 9300)).toBe(40);
+    expect(recordedPercent(chapter(null, through({ percent: 100, complete: false })), 9300)).toBe(99);
+    expect(recordedPercent(chapter(null, through({ percent: 100, complete: true })), 9300)).toBe(100);
+    expect(recordedPercent(chapter(0, through({ percent: 0 })), 9300)).toBe(0);
+    expect(recordedPercent(chapter(null, through({ percent: 0 })), 9300)).toBe(0);
+    expect(recordedPercent(chapter(12, through({ percent: 0 })), 9300)).toBe(1);
   });
 });
