@@ -1,27 +1,59 @@
 import { useEffect, useState } from 'react';
 import type { WorkspacePeaks, WorkspacePeaksResult } from '../../../api/contracts/workspace';
+import { useRingPrefetch } from '../../../hooks/useRingPrefetch';
 import { usePort } from '../../../ports/usePort';
 import { docSpan, placePeaks, type DocPeaks, type ItemClocks } from './docClock';
 
 export type RibbonPeaks = { status: 'loading' } | { status: 'ready'; result: WorkspacePeaksResult } | { status: 'failed'; reason: string };
 
-type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult };
+type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number };
 type Workspace = { workspacePeaks: (chapterId: string) => Promise<WorkspacePeaksResult> };
 const reads = new WeakMap<object, Map<string, Shared>>();
 
-/** One host read per chapter and port, kept for the session and shared by every ribbon, strip and background read that asks: the ribbon
- * mounts again whenever the cursor reaches another paragraph, and each of those used to read the whole chapter's audio again. A failed read
- * is not kept. A change to the chapter's audio (a new take, a check that re-aligned it) calls `forgetPeaks`. */
-function sharedRead(workspace: Workspace, chapterId: string): Shared {
+/** How much waveform the page keeps: 16 MB of the host's peaks text, about 22 hours of audio (a chapter is about 0.7 MB an hour). The
+ * background read stops there, and a chapter the narrator opens past it puts out the kept chapter that is furthest from use. */
+export const PEAKS_BUDGET_BYTES = 16 * 1024 * 1024;
+
+const peaksBytes = (result: WorkspacePeaksResult): number =>
+  result.items.reduce((n, item) => n + (item.peaks ? item.peaks.minMax.length + (item.peaks.rms?.length ?? 0) : 0), 0);
+const keptBytes = (byChapter: Map<string, Shared>): number => [...byChapter.values()].reduce((n, entry) => n + entry.bytes, 0);
+
+/** One host read per chapter and port, kept and shared by every ribbon, strip and background read that asks: the ribbon mounts again
+ * whenever the cursor reaches another paragraph, and each of those used to read the whole chapter's audio again. A failed read is not
+ * kept. A change to the chapter's audio (a new take, a check that re-aligned it) calls `forgetPeaks`.
+ *
+ * The kept reads are in order of use, the first the furthest from it: a read the page asks for moves its chapter to the end, and one the
+ * background made goes to the front without moving the others, since the background reads outwards from the open chapter. When a read the
+ * page asked for takes the kept waveforms over `PEAKS_BUDGET_BYTES`, chapters leave from the front until they fit; the chapter just read
+ * always stays. A waveform on screen is held by its ribbon, so putting its chapter out blanks nothing. */
+function sharedRead(workspace: Workspace, chapterId: string, background = false): Shared {
   const byChapter = reads.get(workspace) ?? new Map<string, Shared>();
   reads.set(workspace, byChapter);
   const kept = byChapter.get(chapterId);
-  if (kept) return kept;
-  const entry: Shared = { promise: workspace.workspacePeaks(chapterId) };
-  byChapter.set(chapterId, entry);
+  if (kept) {
+    if (!background) {
+      byChapter.delete(chapterId);
+      byChapter.set(chapterId, kept);
+    }
+    return kept;
+  }
+  const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0 };
+  if (background) {
+    const rest = [...byChapter];
+    byChapter.clear();
+    byChapter.set(chapterId, entry);
+    for (const [id, other] of rest) byChapter.set(id, other);
+  } else byChapter.set(chapterId, entry);
   entry.promise.then(
     (result) => {
       entry.result = result;
+      if (byChapter.get(chapterId) !== entry) return;
+      entry.bytes = peaksBytes(result);
+      if (background) return;
+      for (const [id, other] of byChapter) {
+        if (keptBytes(byChapter) <= PEAKS_BUDGET_BYTES) break;
+        if (other !== entry && other.result) byChapter.delete(id);
+      }
     },
     () => {
       if (byChapter.get(chapterId) === entry) byChapter.delete(chapterId);
@@ -36,37 +68,19 @@ export function forgetPeaks(workspace: object, chapterId?: string): void {
   else reads.get(workspace)?.delete(chapterId);
 }
 
-/** How long the background read waits between chapters, so it never crowds a read the narrator is waiting for. */
-const PREFETCH_GAP_MS = 150;
-
 /**
- * Reads the peaks of the chapters next to `currentId` in the background (the one after it, then the one before), one at a time after the
- * current chapter's own, so a step to either is drawn at once. Only those: every chapter of a book was one host read a chapter, each
- * decoding that chapter's audio on a first visit, and its whole waveform kept in the page (about 12 MB for a 17 hour book, #3767). A chapter
- * the narrator opens stays kept as before. It stops when the page closes.
+ * Reads every chapter's peaks in the background, nearest the open chapter first (`useRingPrefetch`: the one after it, the one before, then
+ * two away, and on outwards), one at a time, so a step or a jump finds its waveform already there. A move to another chapter starts the
+ * run again from that chapter; chapters already kept are not read again. It stops when the kept waveforms reach `PEAKS_BUDGET_BYTES`, and
+ * when the page closes.
  */
 export function usePrefetchPeaks(chapterIds: readonly string[], currentId: string | undefined): void {
   const workspace = usePort('workspace');
-  const key = chapterIds.join('\0');
-  useEffect(() => {
-    if (!currentId || chapterIds.length < 2) return;
-    let live = true;
-    const at = chapterIds.indexOf(currentId);
-    if (at < 0) return;
-    const order = [currentId, chapterIds[at + 1], chapterIds[at - 1]].filter((id) => id !== undefined);
-    void (async () => {
-      for (const id of order) {
-        if (!live) return;
-        await sharedRead(workspace, id).promise.catch(() => undefined);
-        if (live) await new Promise((resolve) => setTimeout(resolve, PREFETCH_GAP_MS));
-      }
-    })();
-    return () => {
-      live = false;
-    };
-    // The list's contents are the dependency: a new array with the same ids is not a new job.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspace, key, currentId]);
+  useRingPrefetch(chapterIds, currentId, {
+    read: (id) => sharedRead(workspace, id, true).promise,
+    kept: (id) => reads.get(workspace)?.get(id)?.result !== undefined,
+    room: () => keptBytes(reads.get(workspace) ?? new Map<string, Shared>()) < PEAKS_BUDGET_BYTES,
+  });
 }
 
 /** The chapter's peaks through the workspace port. A refused or failed call is a state, not an error: the ribbon says there is no audio and the page goes on. */

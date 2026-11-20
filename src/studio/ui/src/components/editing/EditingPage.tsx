@@ -163,7 +163,7 @@ function EditingLoaded({
   useEffect(() => {
     if (projectFolder && shownId && chaptersOf === projectFolder) saveEditingChapter(projectFolder, shownId);
   }, [projectFolder, shownId, chaptersOf]);
-  // The next and the previous chapter's waveforms are read in the background, so a step to either is drawn at once.
+  // The other chapters' waveforms are read in the background, the nearest first, so a step or a jump is drawn at once.
   usePrefetchPeaks(
     list.map((c) => c.id),
     chapter?.id,
