@@ -368,6 +368,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/DialogueCueAttribution.tsx#1': no(RF),
   'src/components/storybible/DialogueCueAttribution.tsx#2': no(ED),
   'src/components/storybible/Guide.tsx#1': yes('The Story Bible entries read changes nothing; Retry reads them again.'),
+  'src/components/storybible/useBulkDelete.tsx#1': no(
+    'The toast names how many went and why the first refusal; the ticks are cleared and the list re-read, so pressing Delete on what is left is the retry.',
+  ),
   'src/components/storybible/GuideDetail.tsx#1': no(RF),
   'src/components/storybible/GuideDetail.tsx#2': no(ED),
   'src/components/storybible/GuideDetail.tsx#3': no(DS),
