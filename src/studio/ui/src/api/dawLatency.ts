@@ -120,6 +120,8 @@ const LONG_MS = ANSWER_MS + 20_000;
 const TRACKS_LIVE_MS = 7_000;
 /** How long the host keeps a track list it read (`liveTracksMaxAge`, tracks_cache.go). */
 const TRACKS_KEPT_MS = 10_000;
+/** How long the host still hands out a kept list past that while it reads a new one behind it (`liveTracksStaleAge`). */
+const TRACKS_STALE_MS = 30_000;
 
 const NOT_ANSWERING = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const NO_ANSWER = 'REAPER did not answer: check that REAPER is open; the app reconnects by itself';
@@ -192,11 +194,7 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   ),
   boothVoiceAdd: CREATE,
   chapterTrackCreate: CREATE,
-  dawArmBoothVoice: {
-    steps: [TRACKS, { limit: LONG_MS, fail: answer(refused(TOOK_NOT_CONFIRMED)) }],
-    deadline: ANSWER_MS,
-    overrun: answer(refused('REAPER did not confirm within 3 seconds. Nothing started.')),
-  },
+  dawArmBoothVoice: afterTracks(answer(refused(TOOK_NOT_CONFIRMED)), LONG_MS),
   dawPlace: one(answer({ ok: false, message: WITHIN_3S, chapterId: '', selected: 0, cursor: 0 })),
   dawGoToChapter: one(answer(refused(WITHIN_3S))),
   dawTransportSync: one(answer(refused(WITHIN_3S))),
@@ -312,17 +310,39 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
   let link = initial;
   let clock = new LinkClock(link, performance.now());
   let tracksReadAt = -Infinity;
+  let tracksRefreshing = false;
   window.__NARRATION_MOCK_DAW_LATENCY__ = (profile) => {
     link = parseDawLatency(profile);
     clock = new LinkClock(link, performance.now());
-    tracksReadAt = -Infinity;
   };
 
   async function run(name: string, call: HostCall, args: readonly unknown[], invoke: () => unknown): Promise<unknown> {
-    if (!slows(link)) return invoke();
+    if (!slows(link)) {
+      // A prompt host reads the list too, and keeps it when the link turns slow.
+      if (call.steps.includes(TRACKS)) tracksReadAt = performance.now();
+      return invoke();
+    }
     const began = performance.now();
     for (const [index, step] of call.steps.entries()) {
-      if (step === TRACKS && performance.now() - tracksReadAt < TRACKS_KEPT_MS) continue;
+      if (step === TRACKS) {
+        const age = performance.now() - tracksReadAt;
+        if (age < TRACKS_KEPT_MS) continue;
+        if (age < TRACKS_STALE_MS) {
+          // Stale while revalidate, as the host: this call has the kept list now, and one read behind it brings the next list.
+          if (!tracksRefreshing) {
+            tracksRefreshing = true;
+            const wait = clock.release(name, performance.now()) - performance.now();
+            setTimeout(
+              () => {
+                tracksRefreshing = false;
+                if (wait <= LONG_MS) tracksReadAt = performance.now();
+              },
+              Math.min(wait, LONG_MS),
+            );
+          }
+          continue;
+        }
+      }
       const release = clock.release(name, performance.now());
       const hold = release - performance.now();
       const left = call.deadline === undefined ? Infinity : began + call.deadline - performance.now();

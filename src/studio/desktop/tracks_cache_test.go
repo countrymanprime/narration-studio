@@ -151,25 +151,112 @@ func TestAHeartbeatWithNoCounterOrNoHeartbeatReadsEveryTime(t *testing.T) {
 	}
 }
 
-func TestAnAnswerIsNotReusedPastItsMaxAge(t *testing.T) {
-	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	cached, _ := cachedFor(inner, b)
-	read(t, cached)
-	tick := func(d time.Duration) { // heartbeats keep coming, as REAPER's do every 1.5 s
-		for ; d > 0; d -= time.Second {
-			b.advance(time.Second)
-			b.set(9)
+// tickBeat moves the clock on with heartbeats that keep coming, as REAPER's do every 1.5 s.
+func tickBeat(b *beat, count int, d time.Duration) {
+	for ; d > 0; d -= time.Second {
+		b.advance(time.Second)
+		b.set(count)
+	}
+}
+
+// waitForCalls waits until inner has been sent want requests: a refresh behind a stale answer is sent from a goroutine of its own.
+func waitForCalls(t *testing.T, inner *countedLister, want int32) {
+	t.Helper()
+	for deadline := time.Now().Add(30 * time.Second); inner.calls.Load() != want; time.Sleep(time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("%d requests, want %d", inner.calls.Load(), want)
 		}
 	}
-	tick(liveTracksMaxAge - time.Second)
+}
+
+// #3752: past its max age an answer the heartbeat still vouches for is handed out at once, while REAPER is asked again behind it, so a caller
+// on a slow DAW (a lane arm, the Booth's poll) no longer waits a round trip for the list. A change the counter missed is still seen: by the
+// next caller once that read answers. (Before, the first caller past the max age waited for the read itself.)
+func TestAnAnswerPastItsMaxAgeIsServedAtOnceAndReadAgainBehindIt(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, cache := cachedFor(inner, b)
+	read(t, cached)
+	tickBeat(b, 9, liveTracksMaxAge-time.Second)
 	read(t, cached)
 	if calls := inner.calls.Load(); calls != 1 {
 		t.Fatalf("%d requests inside the max age, want 1", calls)
 	}
-	tick(2 * time.Second)
+	tickBeat(b, 9, 2*time.Second)
+	// REAPER is slow: the refresh is held, and a change the counter missed (a third track) waits in it.
+	changed := twoTracks(9)
+	changed.Total, changed.Tracks = 3, append(changed.Tracks, dawport.LiveTrack{Index: 2, GUID: "{33333333-3333-3333-3333-333333333333}", Name: "Chapter III"})
+	inner.gate = make(chan struct{})
+	inner.set(changed, nil)
+	if got := read(t, cached); len(got.Tracks) != 2 {
+		t.Fatalf("the caller past the max age got %d tracks; want the 2 it had, at once", len(got.Tracks))
+	}
+	waitForCalls(t, inner, 2)
+	if got := read(t, cached); len(got.Tracks) != 2 || inner.calls.Load() != 2 {
+		t.Fatalf("a second caller during the refresh got %d tracks after %d requests; want the same 2 and no third request", len(got.Tracks), inner.calls.Load())
+	}
+	close(inner.gate)
+	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(time.Millisecond) {
+		cache.mu.Lock()
+		stored := len(cache.answer.Tracks)
+		cache.mu.Unlock()
+		if stored == 3 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the refresh's answer was never stored")
+		}
+	}
+	if got := read(t, cached); len(got.Tracks) != 3 || inner.calls.Load() != 2 {
+		t.Fatalf("after the refresh: %d tracks, %d requests; want 3 and 2", len(got.Tracks), inner.calls.Load())
+	}
+}
+
+// The age forgiven is bounded: past liveTracksStaleAge nothing old is shown as current, and the caller waits for REAPER's own answer.
+func TestAnAnswerPastItsStaleAgeIsNotServed(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
 	read(t, cached)
-	if calls := inner.calls.Load(); calls != 2 {
-		t.Fatalf("%d requests past the max age, want 2: a change the counter missed must be seen", calls)
+	tickBeat(b, 9, liveTracksStaleAge+time.Second)
+	changed := twoTracks(9)
+	changed.Total, changed.Tracks = 1, changed.Tracks[:1]
+	inner.set(changed, nil)
+	if got := read(t, cached); len(got.Tracks) != 1 || inner.calls.Load() != 2 {
+		t.Fatalf("past the stale age: %d tracks after %d requests; want REAPER's 1 track from a second request", len(got.Tracks), inner.calls.Load())
+	}
+}
+
+// A stale answer is only handed out while the heartbeat vouches for it: a counter that moved means the list changed, and the caller waits.
+func TestAStaleAnswerIsNotServedOnceTheCounterMoved(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	tickBeat(b, 10, liveTracksMaxAge+time.Second)
+	changed := twoTracks(10)
+	changed.Total, changed.Tracks = 1, changed.Tracks[:1]
+	inner.set(changed, nil)
+	if got := read(t, cached); len(got.Tracks) != 1 {
+		t.Fatalf("got %d tracks after the counter moved; want REAPER's 1", len(got.Tracks))
+	}
+}
+
+// A refresh REAPER never answers costs no caller anything: the stale answer is served until its bound, and then the caller reads for itself.
+func TestARefreshThatFailsLeavesTheStaleAnswerUntilItsBound(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	inner.set(dawport.LiveTracks{}, bridge.ErrNoAnswer)
+	if got := read(t, cached); len(got.Tracks) != 2 {
+		t.Fatalf("got %d tracks; want the stale 2", len(got.Tracks))
+	}
+	waitForCalls(t, inner, 2)
+	tickBeat(b, 9, 2*time.Second)
+	if got := read(t, cached); len(got.Tracks) != 2 {
+		t.Fatalf("after a failed refresh got %d tracks; want the stale 2 still", len(got.Tracks))
+	}
+	tickBeat(b, 9, liveTracksStaleAge)
+	if _, err := cached.ReadTracks(context.Background()); !errors.Is(err, bridge.ErrNoAnswer) {
+		t.Fatalf("past the stale age: err %v; want REAPER's own failure", err)
 	}
 }
 
