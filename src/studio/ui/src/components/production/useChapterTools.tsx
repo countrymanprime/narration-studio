@@ -14,6 +14,8 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
+import { destinationFor } from '../engine/destination';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
@@ -106,6 +108,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   // The links are read from the saved project; the tracks the Engine list and the Booth show are REAPER's now. A chapter linked to a track deleted or
   // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
   const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
+  const layout = useVoiceLayout();
   const trackLinks = useMemo(
     // Without the live list (loading, or it failed) the links still follow it as far as they can: several links are several, as in the panel.
     () => (savedLinks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
@@ -235,8 +238,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const checkGate = useCheckRecordingsGate();
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks, layout });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks, layout };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
@@ -257,7 +260,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const trackGuid = showableTrackGuid(entry);
         // Why Show in REAPER is off says what the link is (missing, several, only suggested, none), as the panel and the Engine row say.
         // Links not read yet is not "nothing linked": the menu says it does not know yet (the board's Rec. cell still reads Not linked then, as before).
-        const noTrack = links ? noShowableTrackReason(entry) : 'The chapter links are still loading';
+        const noTrack = links ? noShowableTrackReason(entry, latest.current.layout) : 'The chapter links are still loading';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
@@ -273,8 +276,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           },
           {
             key: 'track',
-            label: 'Chapter track…',
-            unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
+            label: `Chapter ${destinationFor(latest.current.layout).noun}…`,
+            unavailable: linked ? undefined : `No chapter ${destinationFor(latest.current.layout).noun} is known yet: link one from the audio engine panel`,
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener, near: neighboursOf(list, row.id) }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),
