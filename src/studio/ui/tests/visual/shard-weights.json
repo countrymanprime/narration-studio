@@ -14,6 +14,7 @@
     "booth-popovers.spec.ts": 8.3,
     "booth-text.spec.ts": 4.3,
     "crossPage.spec.ts": 2.7,
+    "daw-slow-link.spec.ts": 4.2,
     "delivery-layout.spec.ts": 3.1,
     "deliveryProfileHeader.spec.ts": 2.6,
     "editing-dock-overlap.spec.ts": 3.5,

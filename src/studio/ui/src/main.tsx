@@ -12,6 +12,7 @@ import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
 import { withCallLog } from './api/withCallLog';
+import { parseDawLatency, withDawLatency } from './api/dawLatency';
 import { withCoalescedReads } from './api/withCoalescedReads';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
@@ -733,7 +734,9 @@ const mockInitial = {
   ),
 };
 if (import.meta.env.VITE_USE_MOCK_API === '1') installMockAudioOutputs(mockAudioOutputs);
-const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
+// `?mockDawLatency=<profile>` puts the mock on a slow DAW link (api/dawLatency.ts, docs/architecture/reaper-bridge.md#a-slow-link-on-demand).
+const mockApi = () => withDawLatency(createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial), parseDawLatency(mockParams.get('mockDawLatency') ?? ''));
+const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? mockApi() : wailsClient;
 if (hostApi === wailsClient) {
   enableUiLog();
   installTracing(wailsClient);
