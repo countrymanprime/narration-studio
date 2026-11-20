@@ -46,15 +46,21 @@ type readFlights struct {
 	joins    atomic.Uint64
 }
 
-// sharedRead answers a read binding: with compute's answer, or, when a call with the same name, arguments, project
-// and generations is computing now, with that call's answer. compute must only read. No lock is held while it runs.
-func (h *Host) sharedRead(name string, compute func() (string, error), args ...any) (string, error) {
+// keyOf is the key of a read that arrives now.
+func (h *Host) keyOf(name string, args []any) readKey {
 	svc := h.services()
-	key := readKey{
+	return readKey{
 		name: name, args: fmt.Sprintf("%#v", args), // %#v: ("a", "b") and ("ab") are different reads
 		project: svc.config.projectFolder, manuscript: svc.manuscript, settings: svc.settings,
 		writes: persist.Generation(), events: eventGeneration.Load(),
 	}
+}
+
+// sharedRead answers a read binding: with compute's answer, or, when a call with the same name, arguments, project
+// and generations is computing now, with that call's answer. compute must read, or do only work that one call may do
+// for all of them (PickupsList also sends the done marks that waited for the DAW). No lock is held while it runs.
+func (h *Host) sharedRead(name string, compute func() (string, error), args ...any) (string, error) {
+	key := h.keyOf(name, args)
 	flights := &h.reads
 	flights.mu.Lock()
 	if flight, ok := flights.inFlight[key]; ok {

@@ -299,3 +299,20 @@ func TestAReadIssuedAfterALedgerWriteAnswersWithTheWrite(t *testing.T) {
 		t.Fatalf("records of the read that started before the write = %s, want 0", got)
 	}
 }
+
+// A project switch alone changes a read's key: the services of the new project, whatever the generations say.
+func TestAProjectSwitchChangesAReadsKey(t *testing.T) {
+	host := newReadHost(t)
+	before := host.keyOf("ManuscriptChapters", nil)
+	attachReadProject(t, host)
+	after := host.keyOf("ManuscriptChapters", nil)
+	before.writes, before.events = after.writes, after.events
+	if before == after {
+		t.Fatal("a read after a project switch has the key of a read before it")
+	}
+	previous := after
+	previous.project = before.project
+	if previous == before {
+		t.Fatal("the key tells two projects apart by the folder only, so the same folder attached again would share a read")
+	}
+}
