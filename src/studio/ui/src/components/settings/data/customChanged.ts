@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { usePort } from '../../../ports/usePort';
 import type { PortOf } from '../../../ports';
@@ -130,9 +130,13 @@ export const changedIsCovered = (row: { id: string; field?: unknown }): boolean 
 
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((id) => b.has(id));
 
+/** How long a pass of the probes may run before a new read of the settings starts it again: a host read takes well under this, a probe that never answers never ends. */
+export const PROBE_STUCK_MS = 5000;
+
 /**
- * The ids of the custom rows whose value differs from the default, read again when the host's fields change, when a window-kept setting is
- * written (the zoom body announces its change too), and on the events the bodies already raise for the engine, the delivery profiles and the
+ * The ids of the custom rows whose value differs from the default, read again when a command's keys change in the host's fields (the only fact the
+ * probes read from them), when a settings read follows a probe that failed, when a window-kept setting is written (the zoom body and the zoom
+ * keys announce their change too), and on the events the bodies already raise for the engine, the delivery profiles and the
  * Merriam-Webster key. A probe that fails counts as "not changed", so a host that cannot answer lists nothing wrongly. The set keeps its
  * identity when a pass finds the same ids. `usePort` answers the same object for the same api, so `api` below changes only with the api.
  * With no project open the probes of rows that need one are not run: they would read a project that is not there, and such a row cannot be
@@ -157,6 +161,15 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const tipsSeen = useTips().seen;
   const hasProject = useHasProject();
   const version = useBrowserSettingsVersion();
+  // The probes read the page's fields only for the one fact they use (a command's keys changed), so the effect below runs again when that fact moves, not on
+  // every read of a scope: each scope's answer used to start a whole pass of host reads again (#3658).
+  const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
+  const latestSettings = useRef(settings);
+  latestSettings.current = settings;
+  // The last pass of the probes: when it started, with which settings, and how it ended. A pass that failed, or has been out longer than
+  // `PROBE_STUCK_MS` (a probe that never answers), is asked again when the settings are read next, which is what the page's Retry does. A pass
+  // that is only running is not: the probes read nothing from the scope that arrives meanwhile.
+  const lastPass = useRef<{ settings: ReadSettings; startedAt: number; state: 'running' | 'ok' | 'failed' }>({ settings, startedAt: 0, state: 'ok' });
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
@@ -178,25 +191,37 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   useEffect(() => {
     let current = true;
     let profiles: Promise<DeliveryProfilesState> | undefined;
+    let failed = false;
+    const pass = { settings: latestSettings.current, startedAt: Date.now(), state: 'running' as 'running' | 'ok' | 'failed' };
+    lastPass.current = pass;
     const readDelivery = () => (profiles ??= api.deliveryProfiles());
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
         if (!hasProject && waitsForProject(id)) return undefined;
         try {
-          return (await probe({ api, settings, delivery: readDelivery })) ? id : undefined;
+          return (await probe({ api, settings: latestSettings.current, delivery: readDelivery })) ? id : undefined;
         } catch {
+          failed = true;
           return undefined;
         }
       }),
     ).then((ids) => {
       if (!current) return;
+      pass.state = failed ? 'failed' : 'ok';
       const next = new Set(ids.filter((id): id is string => id !== undefined));
       setChanged((previous) => (sameSet(previous, next) ? previous : next));
     });
     return () => {
       current = false;
     };
-  }, [api, settings, version, again, hasProject]);
+  }, [api, keymapSet, version, again, hasProject]);
+
+  // A new read of the settings while the last pass has not answered every probe asks the probes again (a pass that answered leaves nothing to ask).
+  useEffect(() => {
+    const pass = lastPass.current;
+    const stuck = pass.state === 'running' && Date.now() - pass.startedAt > PROBE_STUCK_MS;
+    if ((pass.state === 'failed' || stuck) && pass.settings !== settings) setAgain((n) => n + 1);
+  }, [settings]);
 
   const live = useMemo(
     () =>

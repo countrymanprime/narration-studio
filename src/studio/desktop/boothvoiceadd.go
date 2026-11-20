@@ -52,16 +52,22 @@ func cleanTrackName(name string) string {
 
 // boothVoiceAddIn adds a voice named name for characterIDs to chapterID's folder with creator (support says why it is nil), then
 // assigns the characters and chooses the voice. Everything it can check is checked before anything is sent.
-func (h *Host) boothVoiceAddIn(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (added BoothVoiceAdded, err error) {
+func (h *Host) boothVoiceAddIn(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (BoothVoiceAdded, error) {
+	return h.boothVoiceAddArming(ctx, svc, recorderFrom(svc), creator, support, chapterID, name, characterIDs)
+}
+
+// boothVoiceAddArming is boothVoiceAddIn with the recorder that arms the new voice's lane (#3670): the voice the Booth just added and chose is armed
+// and, with Booth.follow_chapter_in_daw on, monitored, as a voice chosen from the list is (armChosenLane).
+func (h *Host) boothVoiceAddArming(ctx context.Context, svc hostServices, recorder dawport.Recorder, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (added BoothVoiceAdded, err error) {
 	// One add at a time: the name check must see a track an add running now is making.
 	svc.boothVoices.whileAdding(func() {
-		added, err = h.boothVoiceAddOne(ctx, svc, creator, support, chapterID, name, characterIDs)
+		added, err = h.boothVoiceAddOne(ctx, svc, recorder, creator, support, chapterID, name, characterIDs)
 	})
 	return added, err
 }
 
 // boothVoiceAddOne is boothVoiceAddIn's work, run while no other add runs.
-func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (BoothVoiceAdded, error) {
+func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, recorder dawport.Recorder, creator dawport.TrackCreator, support dawport.Support, chapterID, name string, characterIDs []string) (BoothVoiceAdded, error) {
 	link, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil {
 		return BoothVoiceAdded{}, err
@@ -148,20 +154,39 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	svc.boothVoices.clearPending(link, name) // only now: a refusal after the lane was found (a take, no creator) leaves the mark for the next press
 	if _, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder, Reporter: h.persist}).AddTrackCharacters(added, characterIDs); err != nil {
 		// The track is in the DAW: the narrator is told the assignment did not save, and the voice is still chosen.
-		h.chooseAddedVoice(svc, chapterID, before, created.GUID)
+		armed := h.chooseAndArmAddedVoice(svc, recorder, engine, chapterID, before, created.GUID)
+		if armed.Message != "" {
+			return BoothVoiceAdded{}, fmt.Errorf("the track “%s” was added, but its characters were not saved (%w), and it was not armed: %s", added, err, armed.Message)
+		}
 		return BoothVoiceAdded{}, fmt.Errorf("the track “%s” was added, but its characters were not saved: %w", added, err)
 	}
-	h.chooseAddedVoice(svc, chapterID, before, created.GUID)
-	return BoothVoiceAdded{Outcome: "added", TrackGUID: created.GUID, Name: added}, nil
+	result := BoothVoiceAdded{Outcome: "added", TrackGUID: created.GUID, Name: added}
+	if armed := h.chooseAndArmAddedVoice(svc, recorder, engine, chapterID, before, created.GUID); armed.Reason != "" {
+		// The voice is added and chosen, but the DAW would not arm it: said, as for a voice chosen from the list.
+		result.Reason, result.Message = armed.Reason, armed.Message
+	}
+	return result, nil
+}
+
+// chooseAndArmAddedVoice chooses the new voice (chooseAddedVoice) and, only when it was chosen, arms its lane with monitoring as BoothVoiceSet does (#3670:
+// a created track is armed and monitored at once, not left for a second press). The arm is a fresh call, so a long create leaves it its own time.
+func (h *Host) chooseAndArmAddedVoice(svc hostServices, recorder dawport.Recorder, engine string, chapterID string, before int, guid string) BoothVoice {
+	if !h.chooseAddedVoice(svc, chapterID, before, guid) {
+		return BoothVoice{}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
+	defer cancel()
+	return armChosenLane(ctx, engine, recorder, guid, followChapterSetting(svc), &h.boothMonitorOwed)
 }
 
 // chooseAddedVoice chooses the voice just added unless something else moved while the create waited: a voice the narrator chose meanwhile
 // or a take that started keeps its place, and the new voice is only listed (#3645: a late add must not steal the selection).
-func (h *Host) chooseAddedVoice(svc hostServices, chapterID string, before int, guid string) {
+func (h *Host) chooseAddedVoice(svc hostServices, chapterID string, before int, guid string) bool {
 	if svc.boothVoices.choiceCount(chapterID) != before || h.readAloudRecordingActive() || h.recordStarting() {
-		return
+		return false
 	}
 	svc.boothVoices.choose(chapterID, guid)
+	return true
 }
 
 // adoptCreatedVoice reads chapter folder link back from REAPER and returns the voice named name that was not among before, the
@@ -184,7 +209,7 @@ func (h *Host) adoptCreatedVoice(svc hostServices, link, name string, before []t
 }
 
 // BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
-// Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
+// Bible ids) to it, chooses it for the next take and arms its lane with monitoring as a voice chosen from the list is (#3670). Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
 // runs. The DAW's undo takes the track back; the project is not saved.
 func (h *Host) BoothVoiceAdd(chapterID, name string, characterIDs []string) (string, error) {
 	svc := h.services()

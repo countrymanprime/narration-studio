@@ -46,5 +46,6 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - `src/components/settings/row/SettingRowView.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/VoiceDataPanel.tsx`
+- `src/components/storybible/useBulkDelete.tsx`
 - `src/components/storybible/voicesamples/useVoiceSampleActions.tsx`
 - `src/overlay/OverlayHost.tsx`

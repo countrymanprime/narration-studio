@@ -30,7 +30,14 @@ import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useSt
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
 const ROLL_LANDED_TOPIC = 'booth-roll-landed';
-import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import {
+  appTakeChapter,
+  appTakeRunIsWritten,
+  clearAppTakeRunWritten,
+  markAppTakeRunWritten,
+  useRecordControl,
+  type RecordBlock,
+} from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -888,7 +895,10 @@ export function useBoothPage(options: BoothPageOptions) {
       setPaused(false);
       setBrowse(false);
       takeBegan.current = now.at.cur;
-      if (place) writer.begin(place, takeAt.current);
+      // A take adopted from another chapter (opened with it still running) is that chapter's: it writes no run here (#3712).
+      const takeOf = appTakeChapter();
+      // The same chapter opened again with its take still running does not start a second run: the page that was left already wrote this take's (#3720).
+      if (place && (takeOf === undefined || takeOf === recordIdNow.current) && !appTakeRunIsWritten()) writer.begin(place, takeAt.current);
       // A take begun while a session runs (the DAW's own Record joins it, with no claim and no start) holds that session: a stop that failed before it is
       // not to be retried under it, nor its sentence kept.
       if (now.session.active) now.session.sessionJoined();
@@ -1118,13 +1128,24 @@ export function useBoothPage(options: BoothPageOptions) {
       clearTimeout(timer);
     };
   }, [overlay]);
-  const onGone = useRef({ stopRecording, flush: writer.flush });
-  onGone.current = { stopRecording, flush: writer.flush };
+  const onGone = useRef({ stopRecording, flush: writer.flush, unsent: writer.unsent });
+  onGone.current = { stopRecording, flush: writer.flush, unsent: writer.unsent };
   useEffect(
     () => () => {
       // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
       // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
-      if (!latest.current.recording || handled()) return;
+      if (!latest.current.recording) return;
+      // Left with the take still running by the narrator's choice ("Leave anyway", "Open anyway"): what this page saw of it is closed and written now, for this chapter,
+      // since the page that opens next is not this take's and writes none (#3712).
+      if (handled()) {
+        if (appTakeChapter() === recordIdNow.current) markAppTakeRunWritten();
+        const held = appTakeChapter() === recordIdNow.current;
+        // A run the host refuses stays unsent and dies with this page: the take is then not written, and the chapter opened again begins a run of its own.
+        void onGone.current.flush().then(() => {
+          if (held && onGone.current.unsent() > 0) clearAppTakeRunWritten();
+        });
+        return;
+      }
       if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },

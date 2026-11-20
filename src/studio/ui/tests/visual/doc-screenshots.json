@@ -302,6 +302,13 @@
   },
   {
     "page": "storybible",
+    "state": "entries-ticked",
+    "viewport": "desktop",
+    "docName": "storybible-entries-ticked",
+    "caption": "Story Bible - three entries ticked: the header row shows the count, Delete 3 entries and Clear the selection"
+  },
+  {
+    "page": "storybible",
     "state": "entity-selected",
     "viewport": "desktop",
     "docName": "storybible-entity",
@@ -432,6 +439,13 @@
     "viewport": "desktop",
     "docName": "booth-record-setup",
     "caption": "Booth - the REAPER not connected dialog, with the host's reason, the two steps, Open in REAPER and connect and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-starting",
+    "viewport": "desktop",
+    "docName": "booth-record-starting",
+    "caption": "Booth - the app opening REAPER on the linked project: the quiet Starting REAPER mark above the footer, and no dialog"
   },
   {
     "page": "booth",

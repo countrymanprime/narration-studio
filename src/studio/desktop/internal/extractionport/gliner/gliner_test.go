@@ -163,8 +163,9 @@ func TestTheSidecarsLinesBecomeEntrySuggestionsOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(raws) != 5 {
-		t.Fatalf("raws = %d, want the golden's 5 (logged %q)", len(raws), *logged)
+	// The golden's "grey mare" (an Item in lower case) is no name and is dropped (#3661), so 4 of its 5 lines are entries.
+	if len(raws) != 4 || len(*logged) != 1 || !strings.Contains((*logged)[0], "grey mare") {
+		t.Fatalf("raws = %d, want the golden's 4 names and one log line for grey mare (logged %q)", len(raws), *logged)
 	}
 	var types []string
 	for _, raw := range raws {
@@ -176,17 +177,18 @@ func TestTheSidecarsLinesBecomeEntrySuggestionsOnly(t *testing.T) {
 		}
 		types = append(types, raw.Payload.Type)
 	}
-	if want := []string{"Character", "Organization", "Place", "Item", "Character"}; !slices.Equal(types, want) {
+	if want := []string{"Character", "Organization", "Place", "Character"}; !slices.Equal(types, want) {
 		t.Errorf("types = %v, want %v", types, want)
 	}
 	if c := raws[0].Confidence; c == nil || *c != 0.93 {
 		t.Errorf("the model's score was not passed through: %v", c)
 	}
-	if raws[4].Confidence != nil {
-		t.Errorf("a span with no score must stay nil, got %v", *raws[4].Confidence)
+	if raws[3].Confidence != nil {
+		t.Errorf("a span with no score must stay nil, got %v", *raws[3].Confidence)
 	}
-	if raws[3].ChapterID != "c-0001" || raws[3].Quotes[0] != (extractionport.Quote{ParagraphID: "p-000002", Text: "Arelian rode the grey mare alone."}) {
-		t.Errorf("grey mare = %+v", raws[3])
+	if raws[2].Payload.Name != "Dawnspire" || raws[2].ChapterID != "c-0001" ||
+		raws[2].Quotes[0] != (extractionport.Quote{ParagraphID: "p-000001", Text: "Captain Arelian said the Council of Ash would meet in Dawnspire."}) {
+		t.Errorf("Dawnspire = %+v", raws[2])
 	}
 }
 

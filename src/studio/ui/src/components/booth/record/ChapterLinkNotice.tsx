@@ -1,6 +1,8 @@
 import type { ChapterTrackCreateResult } from '../../../api/contracts/chapterTrackMap';
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
+import { useMatchAhead } from '../../connection/chapterMatchCache';
+import { useChapterTrackProject } from '../../chapterTracks/ChapterTrackState';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
@@ -42,12 +44,19 @@ export function ChapterLinkNotice({
 }) {
   const dest = destinationFor(useVoiceLayout());
   const several = state === 'several';
-  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${state === 'unlinked' ? 'none' : state}`, hold, { forgetOnUnmount: true });
+  // The dialog does not open by itself on a list it cannot offer: it waits for the tracks read ahead (or for that read to end, or a short bound), with the chip on screen meanwhile.
+  const ahead = useMatchAhead(useChapterTrackProject(), chapterId);
+  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${state === 'unlinked' ? 'none' : state}`, hold || !ahead, { forgetOnUnmount: true });
   const { reopen } = dialog;
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <NoticeChip id="brec-link" label={several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip} onOpen={reopen} />
+      <NoticeChip
+        id="brec-link"
+        // While the dialog waits for the tracks the chip says so, so the narrator sees what is happening instead of a notice and a pause.
+        label={!ahead ? `Reading the ${dawName} tracks…` : several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip}
+        onOpen={reopen}
+      />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}
