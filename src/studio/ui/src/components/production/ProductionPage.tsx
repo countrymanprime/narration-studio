@@ -20,6 +20,7 @@ import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedShare } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
@@ -178,6 +179,7 @@ export function ProductionPage({
   const sessionIds = useMemo(() => (openLines ?? []).filter((line) => line.included).map((line) => line.id), [openLines]);
 
   const measured = useMeasured(measurements, '', sessionIds);
+  const layout = useVoiceLayout();
   const wph = effectiveWph(rateBasis, paceChapters(load.status === 'ready' ? load.overview.chapters : []), measured.answers?.chapterLengths);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
@@ -286,6 +288,7 @@ export function ProductionPage({
       proof: proofSource,
       master: masterSource,
       wph,
+      layout,
       pickups: pickupsByChapter,
       // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
       prep: prepSource,
@@ -296,7 +299,7 @@ export function ProductionPage({
         }),
       ),
     });
-  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph]);
+  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph, layout]);
 
   const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));

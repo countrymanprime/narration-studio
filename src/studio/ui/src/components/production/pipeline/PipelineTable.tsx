@@ -35,7 +35,7 @@ const cellStatus = (cell: PipelineCell): StatusId => {
 };
 /**
  * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge. Rec.
- * holds "1h 12m" (or "<0h 01m", or a two-word state) on one line and Est. its "0h 14m" (owner report, #2251: two columns, not one stacked), each with its
+ * holds "1h 12m" (or "<0h 01m", or "Not linked") on one line, a longer state word on two and Est. its "0h 14m" (owner report, #2251: two columns, not one stacked), each with its
  * info mark under a centred header. The mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter names to
  * two to five lines (alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
@@ -116,8 +116,16 @@ function StageCell({
 function RecordedCell({ figure }: { figure: RecordedFigure }) {
   return (
     <TooltipTarget text={figure.tip}>
-      <span role="img" aria-label={figure.label} data-recorded={figure.kind} className="inline-block whitespace-nowrap">
-        <span className={figure.kind === 'none' ? 'font-sans text-[0.75rem] text-[var(--text-muted)]' : undefined}>{figure.text}</span>
+      <span
+        role="img"
+        aria-label={figure.label}
+        data-recorded={figure.kind}
+        className={figure.kind === 'none' ? 'inline-block whitespace-normal' : 'inline-block whitespace-nowrap'}
+      >
+        {/* A state word ("Folder missing", "Several tracks") is two words wider than the column: it wraps to two lines and never runs into Est. */}
+        <span className={figure.kind === 'none' ? 'block font-sans text-[0.75rem] leading-[1.1] whitespace-normal text-[var(--text-muted)]' : undefined}>
+          {figure.text}
+        </span>
       </span>
     </TooltipTarget>
   );
@@ -238,7 +246,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                     <TitleSubtitle {...row.parts} />
                   )}
                 </TableCell>
-                <TableCell numeric align="center">
+                <TableCell numeric align="center" className={FIGURE_HEAD}>
                   <RecordedCell figure={row.recorded} />
                 </TableCell>
                 <TableCell numeric align="center">
