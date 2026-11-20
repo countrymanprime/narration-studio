@@ -77,7 +77,7 @@ test('Proof chapter / the Compare options controls share a right edge', async ({
   const dialog = page.getByRole('dialog');
   const select = (await dialog.getByRole('combobox').first().boundingBox())!;
   const hex = (await dialog
-    .getByRole('textbox', { name: /marker color$/ })
+    .getByRole('textbox', { name: /marker color hex$/ })
     .first()
     .boundingBox())!;
   expect(Math.abs(select.x + select.width - (hex.x + hex.width))).toBeLessThanOrEqual(1);

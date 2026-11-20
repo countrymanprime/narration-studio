@@ -434,6 +434,13 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText(/^Imported .* words$/).waitFor();
     await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
   },
+  // Entry types with the colour box of Place opened: its swatches in a popover over the row.
+  'project-type-colour': async (page) => {
+    await openSettings(page, 'Project');
+    await showSettingsRow(page, 'project.types');
+    await page.getByRole('button', { name: /^Colour for Place: / }).click();
+    await page.getByRole('radiogroup', { name: 'Colour for Place' }).waitFor();
+  },
   manuscript: async (page) => {
     await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();

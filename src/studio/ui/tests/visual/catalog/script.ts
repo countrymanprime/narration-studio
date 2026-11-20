@@ -142,7 +142,19 @@ export const scriptStates: StateEntry[] = [
     description: 'Script, the mark composer for a selected word: the mark’s type and its note',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
-  { page: 'script', state: 'define-marks', description: 'Script, the Define how you mark up dialog: each mark type with its name, colour and line' },
+  {
+    page: 'script',
+    state: 'define-marks',
+    description: 'Script, the Define how you mark up dialog: each mark type with its swatch, its name, a colour box that names the colour, and its line',
+  },
+  {
+    page: 'script',
+    state: 'define-marks-colour',
+    description:
+      'Script, the Define how you mark up dialog with the colour box of the first mark opened: a row of six swatches in a popover over the dialog, the chosen one ringed and checked',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
   {
     page: 'script',
     state: 'text-settings',
