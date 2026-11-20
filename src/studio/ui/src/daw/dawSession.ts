@@ -134,6 +134,10 @@ export function startedToast(daw: string, path: string): string {
   return `${daw} is starting (${path}). Record turns on here once it connects.`;
 }
 
+/** The word the top-bar engine chip shows, and its tooltip, while the host starts the DAW. */
+export const STARTING_WORD = 'Starting';
+export const STARTING_TIP = 'The app is starting it';
+
 /** The label of the connection mark, and the title of the dialog and the card badge: one word for the state wherever it is drawn. */
 export function startingLabel(daw: string): string {
   return `Starting ${daw}…`;
