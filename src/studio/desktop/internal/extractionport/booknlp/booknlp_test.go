@@ -68,6 +68,12 @@ func fakeSidecar(mode string) {
 		}
 	case "sample":
 		line(`{"source":"booknlp","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":["Miss Alice"],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
+	case "common-noun-with-lines":
+		line(`{"source":"booknlp","payload":{"kind":"entry","name":"the old man","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"speaker","quote":"“Who are you?”","speaker":"the old man"},"confidence":0.9,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"property","entry":"The Old Man","key":"Gender","value":"Male"},"confidence":0.9,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"alias","entry":"the old man","alias":"him"},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
+		line(`{"source":"booknlp","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"5-2","text":"“Who are you?” said the Caterpillar."}],"chapterId":"5"}`)
 	case "common-noun-character":
 		line(`{"source":"booknlp","payload":{"kind":"entry","name":"the old man","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
 	case "bad-quote":
@@ -224,6 +230,18 @@ func TestACharacterNamedByACommonNounPhraseIsDroppedWithALogLine(t *testing.T) {
 	}
 	if len(raws) != 0 || len(*logged) != 1 || !strings.Contains((*logged)[0], "the old man") {
 		t.Fatalf("raws = %+v, logged = %q", raws, *logged)
+	}
+}
+
+// The speaker lines, properties and aliases about a dropped character go with it: none could be applied to an entry that is not there.
+func TestTheLinesAboutADroppedCharacterAreDroppedWithIt(t *testing.T) {
+	source, logged := fake(t, "common-noun-with-lines")
+	raws, err := extract(t, source, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(raws) != 1 || raws[0].Payload.Name != "Alice" || len(*logged) != 4 {
+		t.Fatalf("raws = %+v, logged = %q; want only Alice, with a log line for each of the four dropped", raws, *logged)
 	}
 }
 

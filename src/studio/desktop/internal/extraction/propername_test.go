@@ -27,6 +27,16 @@ var spans = []nameCase{
 	{"van der Berg", "Character", true}, {"王芳", "Character", true}, {"Harbor Street", "Place", true}, {"Mount Rook", "Place", true},
 	{"Dawnspire", "Place", true}, {"Council of Ash", "Organization", true}, {"The Order of Dawn", "Organization", true}, {"the Order of Dawn", "Organization", true}, {"the Pigeon", "Character", true}, {"the Hatter", "Character", true}, {"the Caterpillar", "Character", true},
 	{"Lord Voldemort", "Character", true}, {"Will", "Character", true}, {"Will Graham", "Character", true}, {"Excalibur", "Item", true}, {"The Maltese Falcon", "Item", true},
+
+	// The qa-breaker's names (#3661): real names the rule first lost, and junk it first kept.
+	{"Do'Urden", "Character", true}, {"A'isha", "Character", true}, {"Be’lakor", "Character", true}, {"O'Neill", "Character", true}, {"M'Baku", "Character", true},
+	{"Dr. No", "Character", true}, {"Lord No", "Character", true}, {"Dr Who", "Character", true},
+	{"al-Rashid", "Character", true}, {"van-der-Berg", "Character", true}, {"Harun al-Rashid", "Character", true},
+	{"ნინო", "Character", true}, {"ნინო ჭავჭავაძე", "Character", true}, {"თბილისი", "Place", true},
+	{"\u200bMara", "Character", true}, {"\ufeffMara Voss", "Character", true}, {"S\u00adhe", "Character", false}, {"Some\u00adthing", "Item", false},
+	{"«Mara»", "Character", true}, {"—Mara", "Character", true}, {"*Mara*", "Character", true}, {"「王芳」", "Character", true}, {"_Mara_", "Character", true},
+	{"Don't", "Character", false}, {"Can't", "Character", false}, {"Wasn't", "Character", false}, {"Couldn't", "Character", false}, {"Let's", "Character", false},
+	{"Ma’am", "Character", false}, {"Iʼm", "Character", false}, {"I\u2032m", "Character", false}, {"She—", "Character", false}, {"I…", "Character", false}, {"The—", "Character", false},
 }
 
 func TestProperNameKeepsNamesAndDropsWordsThatOnlyLookLikeThem(t *testing.T) {

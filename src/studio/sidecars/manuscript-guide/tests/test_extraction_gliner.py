@@ -270,6 +270,38 @@ class ConfidenceIsTheModelsOwnTests(unittest.TestCase):
         self.assertEqual("p-000002", raw["quotes"][0]["paragraphId"])
 
 
+    def test_a_capitalised_spelling_is_kept_over_a_lower_case_one_that_scored_higher(self):
+        book = {
+            "paragraphs": [
+                {"id": "p-000001", "chapterId": "c-0001", "text": "Rose opened the door."},
+                {"id": "p-000002", "chapterId": "c-0001", "text": "A red rose lay on the table."},
+            ]
+        }
+
+        def answer(text):
+            return [span(text, "Rose", "character", 0.6)] if text.startswith("Rose") else [span(text, "rose", "object", 0.9)]
+
+        (raw,) = source_with(FakeModel(answer)).extractor().extract(book)
+
+        self.assertEqual("Rose", raw["payload"]["name"])
+        self.assertEqual("Character", raw["payload"]["type"])
+
+    def test_the_lower_case_spelling_does_not_replace_a_capitalised_one_found_later_either(self):
+        book = {
+            "paragraphs": [
+                {"id": "p-000001", "chapterId": "c-0001", "text": "A red rose lay on the table."},
+                {"id": "p-000002", "chapterId": "c-0001", "text": "Rose opened the door."},
+            ]
+        }
+
+        def answer(text):
+            return [span(text, "rose", "object", 0.9)] if text.startswith("A red") else [span(text, "Rose", "character", 0.6)]
+
+        (raw,) = source_with(FakeModel(answer)).extractor().extract(book)
+
+        self.assertEqual("Rose", raw["payload"]["name"])
+
+
 class NilConfidenceStaysNilTests(unittest.TestCase):
     def test_a_span_with_no_score_is_offered_with_null(self):
         model = FakeModel(lambda text: [span(text, "Arelian", "character", None)] if "Captain" in text else [])

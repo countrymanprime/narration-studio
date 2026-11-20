@@ -163,15 +163,33 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 	if err != nil {
 		return nil, err
 	}
-	raws := []extractionport.Raw{}
+	parsed := make([]extractionport.Raw, 0, len(lines))
 	for i, line := range lines {
 		raw, err := parse(line)
 		if err != nil {
 			return nil, fmt.Errorf("BookNLP gave a bad suggestion on line %d: %w", i+1, err)
 		}
+		parsed = append(parsed, raw)
+	}
+	// An entry that is no name is dropped with every line that is about it (its speaker lines, properties, aliases and relationships):
+	// none of them could be applied to an entry the Story Bible does not have (#3661).
+	notNames := map[string]bool{}
+	for _, raw := range parsed {
 		if raw.Payload.Kind == extraction.KindEntry && !extraction.ProperName(raw.Payload.Name) {
+			notNames[nameKey(raw.Payload.Name)] = true
+		}
+	}
+	raws := []extractionport.Raw{}
+	for _, raw := range parsed {
+		if raw.Payload.Kind == extraction.KindEntry && notNames[nameKey(raw.Payload.Name)] {
 			s.log(fmt.Sprintf("Dropped a BookNLP suggestion: %q is not a name.", raw.Payload.Name))
 			continue
+		}
+		if raw.Payload.Kind != extraction.KindEntry {
+			if about := aboutAName(raw.Payload, notNames); about != "" {
+				s.log(fmt.Sprintf("Dropped a BookNLP suggestion about %q, which is not a name.", about))
+				continue
+			}
 		}
 		if missing, ok := verified(in.Paragraphs, raw); !ok {
 			s.log(fmt.Sprintf("Dropped a BookNLP suggestion: its quote %q is not in paragraph %q.", missing.Text, missing.ParagraphID))
@@ -180,6 +198,19 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 		raws = append(raws, raw)
 	}
 	return raws, nil
+}
+
+// nameKey is a name as the dropped-names set holds it: trimmed and lower case.
+func nameKey(name string) string { return strings.ToLower(strings.Join(strings.Fields(name), " ")) }
+
+// aboutAName is the dropped name a suggestion that is not an entry names (its entry, its speaker, what it points to), or "".
+func aboutAName(p extraction.Payload, dropped map[string]bool) string {
+	for _, name := range []string{p.Entry, p.Speaker, p.To, p.Alias} {
+		if name != "" && dropped[nameKey(name)] {
+			return name
+		}
+	}
+	return ""
 }
 
 func (s Source) log(message string) {
