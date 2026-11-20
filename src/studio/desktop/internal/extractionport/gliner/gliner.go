@@ -146,6 +146,10 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 		if err != nil {
 			return nil, fmt.Errorf("GLiNER gave a bad suggestion on line %d: %w", i+1, err)
 		}
+		if !extraction.ProperName(raw.Payload.Name) {
+			s.log(fmt.Sprintf("Dropped a GLiNER suggestion: %q is not a name.", raw.Payload.Name))
+			continue
+		}
 		if missing, ok := verified(in.Paragraphs, raw); !ok {
 			s.log(fmt.Sprintf("Dropped a GLiNER suggestion: its quote %q is not in paragraph %q.", missing.Text, missing.ParagraphID))
 			continue
