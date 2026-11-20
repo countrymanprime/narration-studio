@@ -739,6 +739,7 @@ func (h *Host) configureLocked(next config) {
 				_ = h.log.Report(kind, message)
 				h.traceBridgeLog(kind)
 			})
+			slowDawLink(client, os.Getenv(bridge.SlowLinkEnv), h.log.Report)
 		}
 	}
 	h.tracer.SetProjectRoot(h.config.projectFolder)
