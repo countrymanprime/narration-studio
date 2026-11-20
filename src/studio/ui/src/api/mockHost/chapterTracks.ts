@@ -50,8 +50,11 @@ export function createChapterTracksMock(
   const startedAt = Date.now();
   const linkCounts = (link: TrackMapping) => initial.reaperState !== 'no_link' || (link.origin === 'manual' && Date.parse(link.confirmedAt) >= startedAt);
   const liveProject = (): TracksProject => ({ ...project, tracks: [...project.tracks, ...added] });
-  // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track.
-  if (initial.voiceFolders) {
+  // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track. A seed that made Chapter 1's
+  // link several or missing (`?mockChapterLink=ambiguous|missing`) stays, so those states can be seen in a Voice folders project.
+  const firstLinks = s.chapterTrackMappings.filter((link) => link.chapterId === WIRE_CHAPTERS[0].id);
+  const defaultSeed = firstLinks.length === 1 && project.tracks.some((track) => track.guid === firstLinks[0]!.trackGuid);
+  if (initial.voiceFolders && (firstLinks.length === 0 || defaultSeed)) {
     s.chapterTrackMappings = [
       ...s.chapterTrackMappings.filter((link) => link.chapterId !== WIRE_CHAPTERS[0].id),
       {
