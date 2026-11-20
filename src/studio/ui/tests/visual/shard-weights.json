@@ -535,6 +535,7 @@
     "app.spec.ts|settings / about-update-available": 5.5,
     "app.spec.ts|settings / about-update-ready": 5.6,
     "app.spec.ts|settings / app": 8.2,
+    "app.spec.ts|settings / app-capabilities": 4,
     "app.spec.ts|settings / app-diagnostics": 4,
     "app.spec.ts|settings / app-log-folder-refused": 5.9,
     "app.spec.ts|settings / appearance": 12.2,

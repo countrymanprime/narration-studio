@@ -1,6 +1,7 @@
 import type { ChapterLinkState } from '../../chapterTracks/chapterLink';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { recorderName, recorderNameCapital, wrongProjectReason } from '../../../studio/dawNames';
+import { recordingATakeNow } from './takeWords';
 
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
@@ -9,6 +10,18 @@ export type ChapterRecordState = {
   message: string;
   /** The DAW is already recording a take this app did not start (`recording_elsewhere`): a second start would fight it, so Record says so first. */
   elsewhere?: boolean;
+  /** With `elsewhere`: why the take is not followed, which the sentence says. */
+  notFollowed?: NotFollowedWhy | null;
+};
+
+/** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
+export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'no_project' | 'unread';
+/** The reason the Booth is not following the take, after "the DAW is recording", for the footer and the chip's tooltip (the chip words its own opener and the two reasons that are no clause). */
+export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, string> = {
+  other_track: 'on another track, so the Booth is not following it',
+  several_tracks: 'with several tracks armed, so the Booth is not following it',
+  no_track_armed: 'with no track armed, so the Booth is not following it',
+  no_project: 'while no project file is linked here',
 };
 
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
@@ -29,11 +42,18 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   }
   // A take goes into the project the DAW has open: if that is not the linked one it would land in the wrong project, so say so before it does.
   if (openProject === 'different') {
-    return { code: 'wrong_project', reason: wrongProjectReason(capabilities.daw) };
+    // A take running in it (the DAW recording in the other project) is part of what the narrator must know before fixing the project.
+    return {
+      code: 'wrong_project',
+      reason: `${wrongProjectReason(capabilities.daw)}${chapter.elsewhere ? ` ${recordingATakeNow(recorderNameCapital(capabilities.daw))}` : ''}`,
+    };
   }
   if (chapter.elsewhere) {
     const name = recorderNameCapital(capabilities.daw);
-    return { code: 'recording_elsewhere', reason: `${name} is already recording. Stop it in ${name} before recording here.` };
+    const why = chapter.notFollowed && chapter.notFollowed !== 'unread' ? ` ${NOT_FOLLOWED_CLAUSE[chapter.notFollowed]}` : '';
+    // With no project file linked, stopping the take does not make Record ready: linking does.
+    const next = chapter.notFollowed === 'no_project' ? 'Link a project file, then record here.' : `Stop it in ${name} before recording here.`;
+    return { code: 'recording_elsewhere', reason: `${name} is already recording${why}. ${next}` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };

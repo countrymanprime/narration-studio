@@ -1707,6 +1707,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(voice).toMatchObject({ outcome: 'selected', trackGuid: created.voice.guid });
   });
 
+  it("ChapterTrackCreate is refused while the DAW records a take, in the host's words: the Audio engine panel offers no create that REAPER would turn away (walkthrough 2)", async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', daw: { transport: { playing: true, recording: true, position: 12 } } });
+    const chapters = await ownChapters(api);
+    const refused = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, refused, 'mock chapter track create, DAW recording');
+    expect(refused).toMatchObject({ outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' });
+  });
+
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
     const chapters = await ownChapters(api);

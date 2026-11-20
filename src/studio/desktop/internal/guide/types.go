@@ -1,7 +1,6 @@
 package guide
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -37,20 +36,16 @@ const maxTypeName = 40
 // Types is the Story Bible's types, in order. A missing file or one without a list reads as DefaultTypes; a list that is not one of
 // rows with a name, a known colour and a speaks flag is refused.
 func (s *Service) Types() ([]Type, error) {
-	document, err := s.document()
+	values, err := s.sections()
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["types"]
-	if !present || raw == nil {
+	var types []Type
+	present, err := section(values, "types", &types)
+	if !present && err == nil {
 		return DefaultTypes(), nil
 	}
-	encoded, err := json.Marshal(raw)
-	if err != nil {
-		return nil, fmt.Errorf("the Story Bible types data is invalid")
-	}
-	var types []Type
-	if err := json.Unmarshal(encoded, &types); err != nil || len(types) == 0 {
+	if err != nil || len(types) == 0 {
 		return nil, fmt.Errorf("the Story Bible types data is invalid")
 	}
 	for _, row := range types {

@@ -30,6 +30,11 @@ export interface HoldScroll {
   cancel: () => void;
   /** One step with no pointer (a key press on the button). */
   step: (dir: 1 | -1) => void;
+  /**
+   * The view has come to the end the arrow points at, as far as the arrow can tell (it turns off a hair before the end, `canBack` and `canForward`).
+   * A step still gliding towards that end finishes there, so it is not left short by that hair; a hold, or a step heading elsewhere, ends where it is.
+   */
+  arrive: () => void;
 }
 
 const easeOut = (t: number): number => 1 - (1 - t) ** 3;
@@ -114,6 +119,13 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
     timer = null;
   };
 
+  function cancel(): void {
+    clearTimer();
+    pressed = 0;
+    holding = false;
+    stopMotion();
+  }
+
   return {
     press(dir) {
       clearTimer();
@@ -135,11 +147,12 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
         step(dir);
       }
     },
-    cancel() {
-      clearTimer();
-      pressed = 0;
-      holding = false;
-      stopMotion();
+    cancel,
+    arrive() {
+      // Only a step that was heading for the end finishes there; one heading mid-recording, with another input having put the view at the end meanwhile, is left where that input put it.
+      const to = unsubscribe !== null && target !== null ? target : null;
+      cancel();
+      if (to !== null && (to <= 0 || to >= max())) move(to);
     },
     step,
   };

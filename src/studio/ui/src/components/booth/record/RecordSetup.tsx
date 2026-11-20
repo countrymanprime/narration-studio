@@ -15,6 +15,8 @@ import { useDawConnecting, useReopenOnBridgeProblem } from '../../connection/use
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
+import { capitalised } from '../../../studio/dawNames';
+import { recordingATakeNow } from './takeWords';
 
 /** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
 const BOOTH_CONNECT_GRACE_MS = 20_000;
@@ -130,8 +132,8 @@ function OtherProject({
 }) {
   const link = useLinkDawFile();
   const [busy, run] = useBusy();
-  const { dawName } = plan;
-  const Name = dawName === 'the DAW' ? 'The DAW' : dawName;
+  const { dawName, recording } = plan;
+  const Name = capitalised(dawName);
   // A take would land in the wrong project: that is news, so the dialog opens by itself once, and on every press of Record.
   const dialog = useOpenOnce(`other-project:${dawName}`, false, { forgetOnUnmount: true });
   useReopenOnAsk(asked, dialog.reopen);
@@ -152,7 +154,7 @@ function OtherProject({
       {dialog.open && (
         <ResolveShell
           title={`${Name} has a different project open`}
-          description={`A take would not land in the project linked here. Open the linked project in ${dawName}, or link the one that is open now.`}
+          description={`${recording ? `${recordingATakeNow(Name)} ` : ''}A take would not land in the project linked here. Open the linked project in ${dawName}, or link the open project.`}
           onClose={dialog.close}
           primary={{ label: 'Link the open project', onPress: () => void linkOpen(), pending: busy }}
           secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}

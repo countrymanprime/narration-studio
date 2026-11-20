@@ -48,6 +48,18 @@ const tint = (token: string, percent: number) => `color-mix(in srgb, var(--${tok
 // its own kind here; see highlight-note below.
 const KINDS = ['character', 'place', 'org', 'review', 'lore', 'item', 'event'] as const;
 
+// The tokens a ColourField palette is given today: the entry-type and speaker hues (the speakers alias the kinds), and the mark colours.
+const COLOUR_FIELD_TOKENS = [
+  ...KINDS,
+  ...([1, 2, 3, 4, 5, 6, 7] as const).map((n) => `speaker-${n}` as const),
+  'accent',
+  'info',
+  'ok',
+  'warn',
+  'danger',
+] as const;
+const COLOUR_FIELD_SURFACES = ['bg', 'surface', 'surface-2'] as const;
+
 const PAIRS: PairSpec[] = [
   text('text', 'body text', 'var(--text)', SURFACES),
   text('text-muted', 'secondary text, labels, helper text', 'var(--text-muted)', SURFACES),
@@ -189,6 +201,20 @@ const PAIRS: PairSpec[] = [
       tint(`speaker-${n}`, 20),
     ),
   ),
+  // ColourField's palette (components/primitives/ColourField.tsx): every token the three palettes offer (entry types, marks, speakers). The chosen
+  // swatch carries a check in --surface, a mark read against the hue under it; the hue itself is a mark on the page, the card or a raised surface;
+  // and the chosen ring is a 2 px border in --text. A hue that fails the check row moves the check off the swatch, onto a --text badge.
+  ...COLOUR_FIELD_TOKENS.flatMap((token) => [
+    mark(
+      `colour-field-check-${token}`,
+      `ColourField: the chosen check in the surface colour on a ${token} swatch`,
+      'var(--surface)',
+      ['surface'],
+      `var(--${token})`,
+    ),
+    mark(`colour-field-swatch-${token}`, `ColourField: a ${token} swatch on the surface its row or popover sits on`, `var(--${token})`, COLOUR_FIELD_SURFACES),
+  ]),
+  mark('colour-field-ring', 'ColourField: the 2 px ring around the chosen swatch', 'var(--text)', COLOUR_FIELD_SURFACES),
 ];
 
 interface KnownFailure {

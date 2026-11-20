@@ -334,6 +334,18 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   recording: (page) => startTake(page),
+  // A take started in REAPER itself with this chapter's track the one armed: the Booth follows it, and Stop says where to stop it.
+  'recording-in-daw': async (page) => {
+    await readyToRecord(page);
+    await page.clock.install({ time: REC_START });
+    await page.clock.pauseAt(REC_START + 1_000);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await page.getByText('REC · REAPER', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /^Stop$/ }).click();
+    await page.getByText('REAPER started this take, so stop it in REAPER.').waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   // Stopped through Stop once the start guard has passed: the take is in the history, and the message offers its Undo.
   'take-saved': async (page) => {
     await startTake(page);

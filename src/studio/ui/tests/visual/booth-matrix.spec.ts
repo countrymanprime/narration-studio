@@ -425,11 +425,31 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
-  test('a take the narrator started in the DAW itself: Record says so in a sentence, and is offered again once it stops there', async ({ page }) => {
+  // #3666: with this chapter's track the one armed (the mock's default) a take started in the DAW is the Booth's to follow; with another track armed it is not.
+  test('a take the narrator started in the DAW itself with the chapter armed is followed: Stop is shown, and the DAW is never asked to stop it', async ({
+    page,
+  }) => {
     const errors = watch(page);
-    await openBooth(page);
+    await openBooth(page, '?mockCallLog=1');
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
-    await expect(page.getByText(/REAPER is already recording\. Stop it in REAPER before recording here\./).first()).toBeVisible();
+    await expect(stop(page)).toBeVisible({ timeout: 10_000 });
+    await stop(page).click();
+    await expect(page.getByText('REAPER started this take, so stop it in REAPER.')).toBeVisible();
+    expect(await page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length)).toBe(0);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    await expect(record(page)).toBeEnabled({ timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+
+  test('a take the narrator started in the DAW itself with another track armed: Record says so in a sentence, and is offered again once it stops there', async ({
+    page,
+  }) => {
+    const errors = watch(page);
+    await openBooth(page, '?mockReaperState=other_armed');
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
+    await expect(
+      page.getByText(/REAPER is already recording on another track, so the Booth is not following it\. Stop it in REAPER before recording here\./).first(),
+    ).toBeVisible();
     await expect(record(page)).toBeDisabled();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
     await expect(record(page)).toBeEnabled({ timeout: 10_000 });
@@ -437,11 +457,24 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
-  test('a reload mid-take: the take still runs in the DAW, and the Booth says so instead of offering a second start', async ({ page }) => {
+  test('a reload mid-take with another track armed: the take still runs in the DAW, and the Booth says so instead of offering a second start', async ({
+    page,
+  }) => {
+    const errors = watch(page);
+    await openBooth(page, `?mockDawRecording=1&mockReaperState=other_armed`, false);
+    await expect(
+      page.getByText(/REAPER is already recording on another track, so the Booth is not following it\. Stop it in REAPER before recording here\./).first(),
+    ).toBeVisible();
+    await expect(record(page)).toBeDisabled();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
+    await expect(record(page)).toBeEnabled({ timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+
+  test('a reload mid-take with the chapter armed: the Booth finds the take and follows it', async ({ page }) => {
     const errors = watch(page);
     await openBooth(page, `?mockDawRecording=1`, false);
-    await expect(page.getByText(/REAPER is already recording\. Stop it in REAPER before recording here\./).first()).toBeVisible();
-    await expect(record(page)).toBeDisabled();
+    await expect(stop(page)).toBeVisible({ timeout: 10_000 });
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
     await expect(record(page)).toBeEnabled({ timeout: 10_000 });
     expect(errors).toEqual([]);
@@ -449,7 +482,7 @@ test.describe('with a take running', () => {
 
   test('the same, with the event lost: the next read still tells the story', async ({ page }) => {
     const errors = watch(page);
-    await openBooth(page);
+    await openBooth(page, '?mockReaperState=other_armed');
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.dropEvents(true));
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));

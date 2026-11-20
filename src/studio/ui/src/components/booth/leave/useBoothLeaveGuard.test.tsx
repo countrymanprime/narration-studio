@@ -1068,3 +1068,28 @@ describe('useBoothLeaveGuard', () => {
     });
   });
 });
+
+describe('a take the DAW started (#3666)', () => {
+  it('asks Leave the Booth? with Stay (both answers leave the DAW recording) and stops nothing', () => {
+    const { store } = setup({ startedByApp: false });
+    expect(store.checkLeave('/script')).toMatchObject({ ask: { title: 'Leave the Booth?', cancelLabel: 'Stay', confirmLabel: 'Leave' } });
+  });
+
+  it('the foreign claim wins over an unconfirmed end: a take ended in a quiet DAW is still not the one the app stops', () => {
+    const { store } = setup({ startedByApp: false, recording: false, endUnconfirmed: () => true });
+    expect(store.checkLeave('/script')).toMatchObject({ ask: { title: 'Leave the Booth?' } });
+  });
+
+  it('the question goes when that take ends: the DAW no longer keeps recording after the narrator leaves', async () => {
+    const { overlay, go, hook, session, dialog } = setup({ startedByApp: false });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    expect(dialog()?.spec.title).toBe('Leave the Booth?');
+    hook.rerender({ ...session, recording: false });
+    await act(() => done);
+    expect(overlay.getSnapshot().dialogs).toHaveLength(0);
+    expect(go).not.toHaveBeenCalled();
+  });
+});
