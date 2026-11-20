@@ -6,8 +6,8 @@
 With NARRATION_DEBUG=1 the page writes one `ui.call.ok` line to the run log for every host call it gets an answer to, with the time
 the page waited for it. This presses each page's navigation button and reads those lines: how many calls the page made, when the
 first and the last answer came after the press, the calls' summed wait and the slowest one. A visit is over when, for --quiet
-seconds, no answer has come and neither the host process nor WebKit's page process has used the processor: a slow read in flight
-keeps the host busy, and drawing keeps the page busy. "Busy until" is the last moment either was. It prints a Markdown table: the
+seconds, no answer has come and the host process and WebKit's page process together have used under 40 % of one processor: a slow
+read in flight keeps the host busy, and drawing keeps the page busy. "Busy until" is the last moment either was. It prints a Markdown table: the
 launch (the landing page, read from the log's start), then a first and a second visit of every page. The Booth is visited once
 and last, since it covers the navigation.
 
@@ -25,6 +25,8 @@ from pathlib import Path
 
 import real_app
 
+# The app's folder under AppData (config/brand.json), where the run log is.
+DATA = json.loads((Path(__file__).resolve().parents[3] / "config/brand.json").read_text(encoding="utf-8"))["identity"]["dataFolder"]
 PAGES = ["Schedule", "Script", "Story Bible", "Editing", "Proof", "Pickups", "Master & QC", "Delivery", "Settings", "Production"]
 # Calls the shell repeats on a timer whatever page is open; they are no page's own.
 TIMER_CALLS = {"SystemTraceBatch", "DawCapabilities", "DawChoice"}
@@ -44,10 +46,13 @@ def calls(log: Path, since: float) -> list[Call]:
             continue  # a line the host is still writing
         if record.get("event") not in ("ui.call.ok", "ui.call.fail"):
             continue
-        binding, _, rest = record["msg"].partition(" ")
+        binding, _, rest = record.get("msg", "").partition(" ")
+        waited = rest.split("ms")[0]
+        if not waited.isdigit():
+            continue  # not "<binding> <n>ms": no call's line
         at = datetime.fromisoformat(record["ts"]).timestamp()
         if at >= since and binding not in TIMER_CALLS:
-            found.append((at - since, binding, float(rest.split("ms")[0])))
+            found.append((at - since, binding, float(waited)))
     return found
 
 
@@ -116,7 +121,9 @@ def main() -> None:
     parser.add_argument("--limit", type=float, default=900.0, help="seconds to wait for one page at most")
     parser.add_argument("--launch-only", action="store_true", help="print the launch row and stop")
     args = parser.parse_args()
-    log = args.state / "AppData/Roaming/narration-studio/logs/run.jsonl"
+    log = args.state / "AppData/Roaming" / DATA / "logs/run.jsonl"
+    if not log.exists():
+        parser.error(f"no run log at {log}: start the host with start-host.sh on this state folder first")
     started = next(json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if '"run.start"' in line)
     launch = datetime.fromisoformat(started["ts"]).timestamp()
 

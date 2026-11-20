@@ -30,6 +30,8 @@ var perfReads = []perfRead{
 	{"WorkspaceAlignment(c-0001)", func(h *Host) (string, error) { return h.WorkspaceAlignment(perfChapterID(0)) }},
 	{"StageRecommendations", (*Host).StageRecommendations},
 	{"ChapterTrackLinks", (*Host).ChapterTrackLinks},
+	{"TracksLive", (*Host).TracksLive},
+	{"VoiceTracksGet", (*Host).VoiceTracksGet},
 	{"GuideEntities", (*Host).GuideEntities},
 	{"GuideDialogueCues", (*Host).GuideDialogueCues},
 	{"MarksList", (*Host).MarksList},
@@ -73,7 +75,11 @@ func costOf(t *testing.T, host *Host, read perfRead) readCost {
 func freshPerfHost(t *testing.T, dir string) *Host {
 	t.Helper()
 	savedProjects.reset()
-	return perfHost(t, dir)
+	host := perfHost(t, dir)
+	// The counts are the whole process's: nothing the host started while attaching may still be running.
+	host.waitForBackground()
+	host.chapterSyncEmits.Wait()
+	return host
 }
 
 // perfReadsEnv turns TestPrintTheHostReadTable on, over the book NARRATION_PERF_BOOK names.
@@ -153,6 +159,10 @@ var budgetBook = perfBook{Chapters: 44, Paragraphs: 4, Items: 10, Checked: 44, C
 // readBudgets are the five reads every page waits for (docs/research/performance-architecture-2026-11.md). Decodes and
 // listings are what main costs today, exactly; allocations are that with half as much again, since the runtime's own vary.
 // A change that makes a read cheaper lowers its row; one that needs a row raised says why in its pull request.
+//
+// What the counts see: a decode is a file read through persist's Reporter.ReadJSON (the ledger, the stored results, the
+// findings, the links, the pickup list), and a listing is a folder listed through persist.ReadDir (the ledger, the evidence
+// cache, the findings). A file read with os.ReadFile or a folder listed with os.ReadDir is in the allocations only.
 var readBudgets = []readBudget{
 	{"ManuscriptChapters", workBudget{341, 178, 480000}, workBudget{298, 178, 440000}},
 	{"ProductionOverview", workBudget{391, 178, 510000}, workBudget{348, 178, 470000}},

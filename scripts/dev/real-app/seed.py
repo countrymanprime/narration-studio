@@ -122,7 +122,10 @@ def write_large(args: argparse.Namespace, project: Path, app: Path, manuscript: 
 
 
 def seed_checked(args: argparse.Namespace, project: Path) -> None:
-    """--checked: the Go seeder writes the whole book, so the checks are made by the host over the files it will read back."""
+    """--checked: the Go seeder writes the whole book, so the checks are made by the host over the files it will read back.
+
+    The book is flat (one track a chapter); --layout, --items and --chapter do not apply, and the project folder must be new or empty.
+    """
     size = {"chapters": args.chapters, "items": args.items_per_track or 100, "tracks": args.tracks}
     if args.checked >= 0:
         size["checked"] = args.checked

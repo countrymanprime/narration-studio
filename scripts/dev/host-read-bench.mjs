@@ -51,9 +51,16 @@ if (verb === 'seed') {
   goTest('TestSeedAPerfBook', { NARRATION_PERF_SEED: spec });
   console.log(`seeded ${resolve(folder)} (${spec}) in ${((Date.now() - started) / 1000).toFixed(1)} s`);
 } else {
-  for (let run = 0; run < Number(args.runs ?? 1); run++) {
+  const runs = Number(args.runs ?? 1);
+  if (!Number.isInteger(runs) || runs < 1) usage('--runs is a whole number of at least 1');
+  for (let run = 0; run < runs; run++) {
     const out = goTest('TestPrintTheHostReadTable', { NARRATION_PERF_READS: '1' });
     // The table is everything from its heading line to the blank line after its last row.
-    console.log(out.slice(out.indexOf('\nHost reads on ')).split('\n--- ')[0].trimEnd());
+    const at = out.indexOf('\nHost reads on ');
+    if (at < 0) {
+      console.error(out, '\nno read table in the test output: is the folder a seeded book?');
+      process.exit(1);
+    }
+    console.log(out.slice(at).split('\n--- ')[0].trimEnd());
   }
 }

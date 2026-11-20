@@ -29,25 +29,28 @@ Milliseconds, first call on a host that has read nothing | warm median.
 
 | Binding | 1 h | 17 h | 40 h | 300 chapters | Answer, 17 h / 40 h |
 | --- | --- | --- | --- | --- | --- |
-| `PickupsList` | 53 \| 19 | 1,049 \| 1,049 | 2,825 \| 2,435 | 3,329 \| 3,412 | 636.3 KB / 1.49 MB |
-| `ManuscriptChapters` | 38 \| 11 | 713 \| 685 | 1,638 \| 1,580 | 2,434 \| 2,161 | 64.1 KB / 149.6 KB |
-| `ProductionOverview` | 37 \| 10 | 806 \| 704 | 1,745 \| 1,685 | 2,422 \| 2,224 | 15.3 KB / 34.2 KB |
-| `ChapterSyncState` | 29 \| 5.6 | 368 \| 344 | 902 \| 767 | 1,210 \| 1,074 | 18.3 KB / 42.2 KB |
-| `FindingsList({})` | 3.6 \| 4.2 | 69 \| 60 | 159 \| 137 | 66 \| 64 | 3.21 MB / 7.51 MB |
-| `FindingsSummary` | 2.0 \| 2.6 | 36 \| 37 | 95 \| 81 | 53 \| 41 | 1.9 KB / 4.1 KB |
-| `WorkspaceAlignment(c-0001)` | 24 \| 9.5 | 61 \| 18 | 154 \| 32 | 294 \| 82 | 619.4 KB / 619.4 KB |
-| `StageRecommendations` | 3.0 \| 0.8 | 35 \| 9.0 | 70 \| 18 | 259 \| 54 | 6.3 KB / 14.6 KB |
-| `ChapterTrackLinks` | 4.2 \| 1.0 | 36 \| 9.3 | 90 \| 29 | 290 \| 158 | 55.0 KB / 128.2 KB |
-| `GuideEntities` | 0.6 \| 0.8 | 7.8 \| 8.9 | 28 \| 19 | 8.3 \| 8.8 | 295.7 KB / 695.1 KB |
-| `GuideDialogueCues` | 1.1 \| 1.0 | 7.5 \| 7.5 | 19 \| 18 | 7.9 \| 8.8 | 251.6 KB / 589.0 KB |
-| `MarksList` | 2.2 \| 0.8 | 18 \| 12 | 60 \| 42 | 21 \| 12 | 542.7 KB / 1.27 MB |
-| `Bootstrap` | 0.5 \| 0.4 | 5.1 \| 5.0 | 11 \| 11 | 5.4 \| 5.6 | 1.2 KB / 1.2 KB |
-| `ManuscriptParagraphs(c-0001)` | 0.7 \| 0.1 | 4.8 \| 0.1 | 15 \| 0.1 | 6.0 \| 0.0 | 27.1 KB / 27.1 KB |
-| `SystemSettingsForScope(project)` | 5.4 \| 4.4 | 4.0 \| 3.8 | 3.9 \| 3.8 | 6.7 \| 4.6 | 18.7 KB / 18.7 KB |
+| `PickupsList` | 52 \| 18 | 1,124 \| 956 | 2,736 \| 2,410 | 3,852 \| 3,489 | 636.3 KB / 1.49 MB |
+| `ManuscriptChapters` | 34 \| 9.5 | 712 \| 653 | 1,762 \| 1,514 | 2,378 \| 2,257 | 64.1 KB / 149.6 KB |
+| `ProductionOverview` | 37 \| 9.2 | 670 \| 652 | 1,631 \| 1,568 | 2,458 \| 2,444 | 15.3 KB / 34.2 KB |
+| `ChapterSyncState` | 28 \| 4.3 | 349 \| 318 | 872 \| 755 | 1,538 \| 1,188 | 18.3 KB / 42.2 KB |
+| `FindingsList({})` | 4.9 \| 3.6 | 70 \| 63 | 170 \| 139 | 68 \| 68 | 3.21 MB / 7.51 MB |
+| `FindingsSummary` | 3.0 \| 2.0 | 41 \| 36 | 77 \| 86 | 42 \| 41 | 1.9 KB / 4.1 KB |
+| `WorkspaceAlignment(c-0001)` | 21 \| 7.7 | 60 \| 19 | 126 \| 39 | 329 \| 87 | 619.4 KB / 619.4 KB |
+| `StageRecommendations` | 3.3 \| 0.7 | 32 \| 8.6 | 113 \| 23 | 203 \| 58 | 6.3 KB / 14.6 KB |
+| `ChapterTrackLinks` | 4.8 \| 0.7 | 33 \| 9.1 | 88 \| 30 | 304 \| 161 | 55.0 KB / 128.2 KB |
+| `TracksLive` | 1.8 \| 0.7 | 31 \| 10 | 80 \| 26 | 221 \| 84 | 1.61 MB / 3.76 MB |
+| `VoiceTracksGet` | 0.0 \| 0.0 | 0.0 \| 0.0 | 0.0 \| 0.0 | 0.0 \| 0.0 | 0.1 KB / 0.1 KB |
+| `GuideEntities` | 0.6 \| 0.6 | 8.8 \| 7.6 | 21 \| 19 | 11 \| 8.4 | 295.7 KB / 695.1 KB |
+| `GuideDialogueCues` | 0.7 \| 0.6 | 7.7 \| 8.0 | 26 \| 19 | 8.4 \| 8.2 | 251.6 KB / 589.0 KB |
+| `MarksList` | 1.1 \| 0.6 | 16 \| 12 | 54 \| 44 | 20 \| 13 | 542.7 KB / 1.27 MB |
+| `Bootstrap` | 0.5 \| 0.4 | 5.3 \| 4.7 | 14 \| 12 | 5.3 \| 5.7 | 1.2 KB / 1.2 KB |
+| `ManuscriptParagraphs(c-0001)` | 0.5 \| 0.1 | 6.5 \| 0.1 | 14 \| 0.1 | 5.5 \| 0.0 | 27.1 KB / 27.1 KB |
+| `SystemSettingsForScope(project)` | 6.0 \| 4.0 | 5.6 \| 5.7 | 4.0 \| 4.1 | 4.0 \| 4.0 | 18.7 KB / 18.7 KB |
 
 - The four reads every page waits for (`PickupsList`, `ManuscriptChapters`, `ProductionOverview`, `ChapterSyncState`) cost the same warm as cold: what they compute is not kept between calls.
-- At `710bd32`, before the ledger kept its decoded records ([#3759](https://github.com/countrymanprime/narration-studio/pull/3759)), the research for #3751 timed `ManuscriptChapters` at 3.6 s for 17 h, 16.4 s for 40 h and 111 s for 300 chapters. It is 0.71 s, 1.64 s and 2.43 s here.
-- After every read the host holds 2.8 MB (1 h), 10.0 MB (17 h), 21.0 MB (40 h) and 38.6 MB (300 chapters) more than a host that has read nothing.
+- At `710bd32`, before the ledger kept its decoded records ([#3759](https://github.com/countrymanprime/narration-studio/pull/3759)), the research for #3751 timed `ManuscriptChapters` at 3.6 s for 17 h, 16.4 s for 40 h and 111 s for 300 chapters. It is 0.71 s, 1.76 s and 2.38 s here.
+- After every read the host holds 1.9 to 2.6 MB (1 h), 9.1 to 9.9 MB (17 h), 18.8 MB (40 h) and 38.5 MB (300 chapters) more than a host that has read nothing.
+- `TracksLive` answers with every item of the saved project: 1.61 MB at 17 h and 3.76 MB at 40 h, the largest answer after the findings list.
 
 ### The work behind the slow reads
 
@@ -63,15 +66,15 @@ Files decoded (first call / warm), record folders listed, and allocations of the
 
 - One chapter-list read of a 44-chapter book decodes 298 files and lists 178 folders once the ledger is in memory: about 7 decodes and 4 listings a checked chapter.
 - A book checked in part pays for its checked chapters: 10 of 44 costs a quarter to a third of the full book's time.
-- Earlier checks of a chapter cost a decode each on the first read (88 more for 88 more records) and nothing after it; the time of the four reads is within about 10 % of the book checked once.
+- Earlier checks of a chapter cost a decode each on the first read (88 more for 88 more records) and nothing after it; the time of the four reads is within about 15 % of the book checked once, which is the spread between runs.
 
 | Binding | 17 h, every chapter checked | 10 of 44 checked | Checked three times |
 | --- | --- | --- | --- |
-| `PickupsList` | 1,049 \| 1,049 | 416 \| 297 | 1,161 \| 1,134 |
-| `ManuscriptChapters` | 713 \| 685 | 226 \| 176 | 743 \| 703 |
-| `ProductionOverview` | 806 \| 704 | 216 \| 188 | 768 \| 648 |
-| `ChapterSyncState` | 368 \| 344 | 166 \| 112 | 372 \| 330 |
-| `FindingsSummary` | 36 \| 37 | 36 \| 37 | 33 \| 33 |
+| `PickupsList` | 1,124 \| 956 | 332 \| 302 | 1,181 \| 1,084 |
+| `ManuscriptChapters` | 712 \| 653 | 221 \| 177 | 818 \| 688 |
+| `ProductionOverview` | 670 \| 652 | 216 \| 180 | 792 \| 682 |
+| `ChapterSyncState` | 349 \| 318 | 128 \| 102 | 384 \| 370 |
+| `FindingsSummary` | 41 \| 36 | 36 \| 35 | 38 \| 33 |
 
 ## The real app
 
@@ -121,11 +124,31 @@ The slowest call of each first visit, in seconds as the page waited for it:
 | Delivery | `PickupsList` 0.07 | `PickupsList` 1.14 | n/r | `PickupsList` 5.60 |
 | Settings | `PickupsList` 0.12 | `PickupsList` 1.68 | n/r | `PickupsList` 5.87 |
 
-- Every page's slowest call is the pickup list, which the shell reads on each page change. At 17 h it takes 1.1 to 4.0 s on most pages against 1.05 s on the host alone, and 9 to 16 s on Proof and Pickups, where it is asked for several times while findings are read.
+- Every page's slowest call is the pickup list, which the shell reads on each page change. At 17 h it takes 1.1 to 4.0 s on most pages against about 1 s on the host alone, and 9 to 16 s on Proof and Pickups, where it is asked for several times while findings are read.
 - A second visit costs what the first did: nothing a page reads is kept.
 - Proof, Pickups and the Booth make reads on timers and after delays, so their last answer at 1 h (6 to 20 s) is not load time; compare a page across sizes, not with another page.
 - **40 h.** After the first visit of Pickups the app did not go quiet within the 15 minute limit: its last answer came at 291 s, one `TracksLive` answer took 140 s, and the window then stopped answering the accessibility bus, so the rows after it are "n/r" (not reached). The pickup list at that size is 1.49 MB.
 - Editing at 300 chapters makes 406 calls over 122 s.
+
+## The pages on the mock
+
+`node scripts/dev/page-bench.mjs --hours 1,17,40 --runs 5` on the production mock build, where the host answers from memory. Milliseconds to the page's first change / until it is usable, cold (a new browser context on the page's address) | warm (a press on the navigation from another page). The warm Settings cell is filled: the script looked for Settings inside the navigation landmark, where it is not, and printed `NaN`.
+
+| Page | 1 h | 17 h | 40 h |
+| --- | --- | --- | --- |
+| Production | 431 / 540 \| 52 / 120 | 523 / 730 \| 65 / 246 | 438 / 691 \| 0 / 408 |
+| Schedule | 347 / 400 \| 44 / 73 | 478 / 590 \| 46 / 90 | 449 / 516 \| 39 / 73 |
+| Script | 347 / 499 \| 50 / 221 | 435 / 770 \| 266 / 268 | 391 / 822 \| 45 / 395 |
+| Story Bible | 499 / 615 \| 70 / 131 | 419 / 507 \| 69 / 138 | 408 / 553 \| 51 / 117 |
+| Booth | 410 / 924 \| 297 / 488 | 403 / 852 \| 45 / 457 | 439 / 963 \| 40 / 481 |
+| Editing | 462 / 706 \| 47 / 241 | 483 / 698 \| 64 / 270 | 446 / 637 \| 59 / 253 |
+| Proof | 433 / 602 \| 0 / 159 | 413 / 567 \| 51 / 154 | 457 / 615 \| 51 / 155 |
+| Pickups | 475 / 557 \| 64 / 120 | 508 / 628 \| 63 / 109 | 401 / 479 \| 59 / 97 |
+| Master & QC | 406 / 476 \| 84 / 118 | 422 / 497 \| 60 / 91 | 415 / 503 \| 69 / 118 |
+| Delivery | 556 / 625 \| 0 / 115 | 395 / 448 \| 49 / 78 | 393 / 452 \| 46 / 81 |
+| Settings | 480 / 640 \| 72 / 155 | 413 / 541 \| 87 / 152 | 466 / 584 \| 118 / 173 |
+
+A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
 
 ## Not measured
 
@@ -133,6 +156,6 @@ The slowest call of each first visit, in seconds as the page waited for it:
 - **A cold start**, with the operating system's file cache empty.
 - **The split of a call's wait between the host and the bridge to the page.** The page logs the whole wait; the host's share is the read table's, measured alone and not under the page's concurrent calls.
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
-- **The mock pages:** 300 chapters on the mock (it sizes a book in hours only), first paint at 1 h and 17 h, and the warm Settings cell of `scripts/dev/page-bench.mjs`.
+- **300 chapters on the mock**, which sizes a book in hours only.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.
