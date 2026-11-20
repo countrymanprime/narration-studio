@@ -123,14 +123,6 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
-    state: 'recording-sync-activity',
-    description:
-      'Settings, Recording & DAW with Advanced open (?mockChapterSync=activity): the Sync activity row under Chapter sync, newest first, with Undo on the link sync made',
-    ...REFLOW,
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'settings',
     state: 'recording-chapter-layout',
     description: 'Settings, Recording & DAW: the Chapter layout row under Chapter sync, Flat and Voice folders (the Engine panel switch, on its own row)',
     ...REFLOW,

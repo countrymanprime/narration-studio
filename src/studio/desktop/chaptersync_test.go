@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +12,7 @@ import (
 
 	"desktop/internal/chaptersync"
 	"desktop/internal/contractfile"
+	"desktop/internal/hostlog"
 	"desktop/internal/layout"
 	"desktop/internal/manuscript"
 	"desktop/internal/project"
@@ -316,5 +319,30 @@ func TestAnImportInAnAttachedProjectEndsAsAJobAndAsksToSync(t *testing.T) {
 		}
 	case <-time.After(20 * time.Second):
 		t.Fatal("the import did not reach chapter sync")
+	}
+}
+
+// The log of what each sync did is kept in the host log (#3671), counts only, and a sync that does nothing writes no line.
+func TestASyncThatLinkedSomethingIsOneLineInTheHostLog(t *testing.T) {
+	f := newSyncHost(t, true)
+	logPath := filepath.Join(t.TempDir(), "host.log")
+	f.host.log = hostlog.New(logPath, 0)
+
+	if _, err := f.host.chapterSyncSetEnabled(true); err != nil {
+		t.Fatal(err)
+	}
+	f.host.chapterSyncTrigger(syncTriggerImport)
+
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	// The whole line is pinned, so any name, path or GUID added to it fails here.
+	if len(lines) != 1 || !regexp.MustCompile(`^\S+ chapter_sync consent: linked 1, new tracks 0$`).MatchString(lines[0]) {
+		t.Fatalf("host log = %q", string(data))
+	}
+	if strings.Contains(string(data), "Chapter I") {
+		t.Fatalf("the log names a chapter: %q", string(data))
 	}
 }

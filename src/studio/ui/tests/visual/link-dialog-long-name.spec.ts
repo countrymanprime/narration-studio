@@ -38,3 +38,28 @@ for (const size of SIZES) {
     expect(measured.bottom).toBeLessThanOrEqual(measured.innerHeight);
   });
 }
+
+// #3605 item 1: the clamp and the compact chrome applied at 400 px or less, so at 401 px the 630-character title took the dialog (body 0 px at 401 to 402, 142 px at 400). Swept height by height
+// from 200 to 520 px at the two narrowest widths: the body always keeps room for the picker, and a title that long never grows the popup past the window.
+for (const width of [275, 320]) {
+  test(`the Link a track dialog's body keeps its room at every height from 200 to 520 px at ${width} px wide`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: 520 });
+    await page.goto('/editing/chapter-3?mockBooth=odd-titles&mockChapterLink=none');
+    const dialog = page.getByRole('dialog');
+    await dialog.waitFor({ timeout: 20_000 });
+    await expect(dialog.getByRole('button', { name: 'Link track' })).toBeVisible();
+    const problems: string[] = [];
+    for (let height = 520; height >= 200; height--) {
+      await page.setViewportSize({ width, height });
+      const measured = await page.evaluate(() => {
+        const popup = document.querySelector('[role=dialog]') as HTMLElement;
+        const body = popup.querySelector('[data-dialog-content]')?.parentElement as HTMLElement;
+        return { body: Math.round(body.getBoundingClientRect().height), bottom: popup.getBoundingClientRect().bottom, inner: window.innerHeight };
+      });
+      if (measured.body < 30) problems.push(`${width}x${height}: the body is ${measured.body} px`);
+      if (measured.bottom > measured.inner + 1) problems.push(`${width}x${height}: the popup ends at ${Math.round(measured.bottom)} px of ${measured.inner}`);
+    }
+    expect(problems).toEqual([]);
+  });
+}

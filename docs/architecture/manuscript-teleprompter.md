@@ -576,7 +576,8 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `src/studio/desktop/bindi
   A take the narrator leaves running ("Leave anyway", "Open anyway") is closed and sent when its Booth unmounts, for
   the chapter it began in and up to the moment of leaving (#3712): the page of the chapter opened next adopts the take but
   writes no run for it (`appTakeChapter()` in `useRecordControl.ts` names the chapter a take belongs to; a page that starts
-  a take claims it, a page that adopts one does not). The run is stamped when it is stored, mid-take, so it may carry the
+  a take claims it, a page that adopts one does not). That chapter opened again while the take still runs begins no second
+  run: the take is marked as already written (`markAppTakeRunWritten`) until it ends (#3720). The run is stamped when it is stored, mid-take, so it may carry the
   chapter's last item rather than the take's own.
 - **Stamping.** The UI never sends an id the DAW gave. When the run is stored, the host reads them: with the built-in
   recorder, the take's name (`Take 004`) for the item and every take; with the DAW, the chapter's one linked track through

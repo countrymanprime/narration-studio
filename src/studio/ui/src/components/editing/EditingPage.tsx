@@ -22,7 +22,7 @@ import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from '../connection/useDawStatus';
 import { useDawConnection } from '../connection/useDawConnection';
-import { DAW_CONNECT_GRACE_MS } from '../production/pipeline/dawConnectGrace';
+import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
 import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';

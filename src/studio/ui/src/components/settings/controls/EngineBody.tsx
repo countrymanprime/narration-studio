@@ -1,3 +1,4 @@
+import { startingDetail, startingLabel, startingSentence, startingTitle } from '../../../daw/dawSession';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
@@ -20,7 +21,7 @@ import { useSettingsHost } from '../row/SettingsHost';
 const choosingHelp = (daw: string) => `${daw} cannot record yet, but choosing it still switches this project to ${daw} and shows its connection card.`;
 
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
-function optionDescription(option: DawChoiceOption): ReactNode {
+function optionDescription(option: DawChoiceOption, starting: boolean): ReactNode {
   const lines: ReactNode[] = [];
   if (option.installed === false) {
     lines.push(
@@ -32,7 +33,9 @@ function optionDescription(option: DawChoiceOption): ReactNode {
     );
   }
   const { record } = option;
-  if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
+  // The host's "not connected, open it" sentence is wrong while the app is starting that DAW itself (#3668): the card below says so, and so does this line.
+  if (!record.available && starting) lines.push(<span key="record">{startingSentence(option.daw)}</span>);
+  else if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
   // The radio still switches the project (the link card and the other tools are behind it): a "?" says so, so the line is not instruction prose and does not go stale once chosen (#3339).
   if (!record.available && record.level === 'not_yet_available')
     lines.push(
@@ -52,7 +55,7 @@ function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<Choosable
   const linked = dawLinked(choice);
   return choice.options.map((option) => {
     const lastResort = linked && option.daw === 'Built-in';
-    const detail = optionDescription(option);
+    const detail = optionDescription(option, choice.state === 'starting' && option.daw === choice.daw);
     return {
       value: option.daw,
       label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,
@@ -107,8 +110,8 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
     const since = opts.startedFor === undefined ? '' : ` Opened ${opts.startedFor} s ago.`;
     return {
       tone: 'neutral',
-      title: `Starting ${daw}`,
-      detail: `${linked}The app opened ${daw} and connects on its own once ${daw} has the project open.${since}`,
+      title: startingTitle(daw),
+      detail: `${linked}${startingDetail(daw)}${since}`,
     };
   }
   const off = choice.launcherAutoStart ? '' : ` "Start the launcher script with REAPER" is off below, so ${daw} does not connect until it is on.`;
@@ -281,7 +284,7 @@ export function EngineBody() {
             )}
             {!notInstalled && linkedFile !== null && (state === 'linked' || state === 'not_running') && (
               <Button variant="secondary" size="sm" disabled={busy || starting} onClick={() => void start()}>
-                {starting ? `Starting ${daw}…` : `Start ${daw}`}
+                {starting ? startingLabel(daw) : `Start ${daw}`}
               </Button>
             )}
             {notInstalled && daw === 'REAPER' && (

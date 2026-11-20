@@ -1,0 +1,270 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { DawCapabilities, DawChoice } from '../api/contracts/daw';
+import { DAW_SETUPS } from '../fixtures/daw';
+import { createDawSession, DAW_CHOICE_READ_MS, presentCaps, type DawSessionApi } from './dawSession';
+
+const OFF: DawCapabilities = structuredClone(DAW_SETUPS['reaper-off']);
+const ON: DawCapabilities = structuredClone(DAW_SETUPS['reaper']);
+const choice = (state: string) => ({ hasProject: true, daw: 'REAPER', linkedFile: 'Alice.rpp', state, starting: null, bridge: null }) as unknown as DawChoice;
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+function host(caps: () => DawCapabilities, dawChoice: DawSessionApi['dawChoice']): DawSessionApi {
+  return {
+    dawCapabilities: async () => caps(),
+    dawChoice,
+    dawMeters: async () => ({ ok: false, message: '', reason: '' }) as never,
+    workspaceProjectFx: async () => ({ ok: true }) as never,
+    subscribeDawCapabilities: () => () => undefined,
+    subscribeDawTransport: () => () => undefined,
+  } as unknown as DawSessionApi;
+}
+
+afterEach(() => vi.useRealTimers());
+
+// What the connecting state reads (#3668): the host's account of a DAW that is not answering, and since when it has not been.
+describe("the session's DAW choice and offSince", () => {
+  it('reads the choice and starts the off clock when the DAW is not answering', async () => {
+    const dawChoice = vi.fn(async () => choice('starting'));
+    const session = createDawSession(host(() => OFF, dawChoice));
+    session.start();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    expect(session.getState().offSince).not.toBeNull();
+    session.stop();
+  });
+
+  it('does not ask the host while the DAW answers, and forgets the choice and the clock when it comes up', async () => {
+    let caps = OFF;
+    const dawChoice = vi.fn(async () => choice('linked'));
+    const session = createDawSession(host(() => caps, dawChoice));
+    session.start();
+    await settle();
+    expect(session.getState().choice).toBeDefined();
+    caps = ON;
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().choice).toBeUndefined();
+    expect(session.getState().offSince).toBeNull();
+    const reads = dawChoice.mock.calls.length;
+    await session.refreshCapabilities();
+    await settle();
+    expect(dawChoice.mock.calls.length).toBe(reads);
+    session.stop();
+  });
+
+  it("keeps the first off time across reports and starts it again when the project's DAW changes while off", async () => {
+    let answer = choice('linked');
+    const session = createDawSession(
+      host(
+        () => OFF,
+        async () => answer,
+      ),
+    );
+    session.start();
+    await settle();
+    const first = session.getState().offSince;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().offSince).toBe(first);
+    answer = { ...choice('linked'), linkedFile: 'Other.rpp' } as unknown as DawChoice;
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().offSince).toBeGreaterThan(first as number);
+    session.stop();
+  });
+
+  it('asks once more when a report arrives while a read is out, so the host\'s "starting" is not missed', async () => {
+    const answers: Array<(value: DawChoice) => void> = [];
+    const dawChoice = vi.fn(() => new Promise<DawChoice>((resolve) => answers.push(resolve)));
+    const session = createDawSession(host(() => OFF, dawChoice));
+    session.start();
+    await settle();
+    expect(dawChoice).toHaveBeenCalledTimes(1);
+    await session.refreshCapabilities();
+    await settle();
+    answers[0]?.(choice('linked'));
+    await settle();
+    expect(dawChoice).toHaveBeenCalledTimes(2);
+    answers[1]?.(choice('starting'));
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it('is null when the host cannot say, and an answer that comes after the DAW did is dropped', async () => {
+    const failing = createDawSession(
+      host(
+        () => OFF,
+        async () => Promise.reject(new Error('no')),
+      ),
+    );
+    failing.start();
+    await settle();
+    expect(failing.getState().choice).toBeNull();
+    failing.stop();
+
+    let late: (value: DawChoice) => void = () => undefined;
+    let caps = OFF;
+    const session = createDawSession(
+      host(
+        () => caps,
+        () => new Promise<DawChoice>((resolve) => (late = resolve)),
+      ),
+    );
+    session.start();
+    await settle();
+    caps = ON;
+    await session.refreshCapabilities();
+    await settle();
+    late(choice('starting'));
+    await settle();
+    expect(session.getState().choice).toBeUndefined();
+    session.stop();
+  });
+
+  it('keeps a "starting" it already heard through one failed read', async () => {
+    let answer: () => Promise<DawChoice> = async () => ({ ...choice('starting'), starting: { since: new Date().toISOString() } }) as unknown as DawChoice;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => answer(),
+      ),
+    );
+    session.start();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    answer = async () => Promise.reject(new Error('no'));
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it('gives up on a read the host never answers, and reads again with the next report', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => (++calls === 1 ? new Promise<DawChoice>(() => undefined) : Promise.resolve(choice('starting'))),
+      ),
+    );
+    session.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(calls).toBe(1);
+    await vi.advanceTimersByTimeAsync(DAW_CHOICE_READ_MS + 10);
+    expect(session.getState().choice).toBeNull();
+    await session.refreshCapabilities();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it("takes the host's answer that comes after the bound when nothing newer was heard", async () => {
+    vi.useFakeTimers();
+    let late: (value: DawChoice) => void = () => undefined;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => new Promise<DawChoice>((resolve) => (late = resolve)),
+      ),
+    );
+    session.start();
+    await vi.advanceTimersByTimeAsync(DAW_CHOICE_READ_MS + 10);
+    expect(session.getState().choice).toBeNull();
+    late({ ...choice('starting'), starting: { since: new Date().toISOString() } } as unknown as DawChoice);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it('drops an answer asked before the DAW last went off, and asks again', async () => {
+    const answers: Array<(value: DawChoice) => void> = [];
+    let caps = OFF;
+    const dawChoice = vi.fn(() => new Promise<DawChoice>((resolve) => answers.push(resolve)));
+    const session = createDawSession(host(() => caps, dawChoice));
+    session.start();
+    await settle();
+    caps = ON;
+    await session.refreshCapabilities();
+    await settle();
+    caps = OFF;
+    await session.refreshCapabilities();
+    await settle();
+    // The first read (the earlier episode) answers "starting" now: stale, so it must not show.
+    answers[0]?.(choice('starting'));
+    await settle();
+    expect(session.getState().choice?.state).not.toBe('starting');
+    expect(dawChoice.mock.calls.length).toBeGreaterThanOrEqual(2);
+    session.stop();
+  });
+
+  it('does not keep a heard "starting" through failed reads once the host\'s own start window has run out', async () => {
+    const old = new Date(Date.now() - 120_000).toISOString();
+    let answer: () => Promise<DawChoice> = async () => ({ ...choice('starting'), starting: { since: old } }) as unknown as DawChoice;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => answer(),
+      ),
+    );
+    session.start();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    answer = async () => Promise.reject(new Error('no'));
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().choice).toBeNull();
+    session.stop();
+  });
+
+  it('presents every unavailable capability as "starting" while the host starts the DAW, and nothing otherwise', async () => {
+    const starting = { ...choice('starting'), starting: { since: new Date().toISOString() } } as unknown as DawChoice;
+    const shown = presentCaps(OFF, starting);
+    const connectionOff = (entry: (typeof OFF.capabilities)[keyof typeof OFF.capabilities]) =>
+      !entry.available && entry.level !== 'unsupported' && !['not_yet', 'unsupported'].includes(entry.reason ?? '');
+    const off = Object.values(OFF.capabilities).filter(connectionOff);
+    expect(off.length).toBeGreaterThan(0);
+    for (const [key, entry] of Object.entries(shown?.capabilities ?? {})) {
+      const was = OFF.capabilities[key as keyof typeof OFF.capabilities];
+      if (connectionOff(was)) expect(entry.message).toBe('REAPER is starting. The app connects to it by itself.');
+      else expect(entry).toBe(was);
+    }
+    // A capability that is off for a reason other than the connection keeps the host's own sentence.
+    const withNotYet = structuredClone(OFF);
+    const [notYetKey] = Object.keys(withNotYet.capabilities);
+    withNotYet.capabilities[notYetKey as keyof typeof withNotYet.capabilities] = {
+      level: 'not_yet_available',
+      available: false,
+      reason: 'not_yet',
+      message: 'Not built yet.',
+    } as never;
+    expect(presentCaps(withNotYet, starting)?.capabilities[notYetKey as keyof typeof withNotYet.capabilities].message).toBe('Not built yet.');
+    expect(presentCaps(OFF, choice('linked'))).toBe(OFF);
+    expect(presentCaps(OFF, null)).toBe(OFF);
+    expect(presentCaps(ON, starting)).toBe(ON);
+    expect(presentCaps(null, starting)).toBeNull();
+
+    // And through the session: every reader of `caps` sees it, and it goes when the host stops saying starting.
+    let answer: DawChoice = starting;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        async () => answer,
+      ),
+    );
+    session.start();
+    await settle();
+    const sentence = (state: ReturnType<typeof session.getState>) =>
+      Object.values(state.caps?.capabilities ?? {}).find((entry) => !entry.available && entry.level !== 'unsupported')?.message;
+    expect(sentence(session.getState())).toBe('REAPER is starting. The app connects to it by itself.');
+    answer = choice('linked');
+    await session.refreshCapabilities();
+    await settle();
+    expect(sentence(session.getState())).not.toContain('is starting');
+    session.stop();
+  });
+});

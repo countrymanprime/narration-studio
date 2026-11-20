@@ -1,3 +1,4 @@
+import { startingLabel } from '../../daw/dawSession';
 import { useEffect, useState } from 'react';
 import type { AudacityLink } from '../../api/contracts/daw';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -99,7 +100,7 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
       <div className="flex flex-wrap items-center gap-2">
         {canStart && (
           <Button variant="primary" size="sm" disabled={busy !== undefined} onClick={() => void run('start', startAudacity)}>
-            {busy === 'start' ? 'Starting Audacity…' : 'Start Audacity'}
+            {busy === 'start' ? startingLabel('Audacity') : 'Start Audacity'}
           </Button>
         )}
         {link.action === 'enable_module' && (
