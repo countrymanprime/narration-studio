@@ -237,6 +237,42 @@ describe('arming the Booth voice on entry (#3428)', () => {
     expect(say).not.toHaveBeenCalled();
   });
 
+  // #3670: the chapter's track was just created or linked, so the arm is owed now, and it pays what an earlier refusal owed.
+  it('armNow arms the chapter once more, and a refusal the link then satisfies owes nothing at the next stop or reconnect', async () => {
+    const dawArmBoothVoice = vi
+      .fn<(chapterId: string) => Promise<typeof moved & { ok: boolean; refused?: string }>>()
+      .mockResolvedValueOnce({ ...moved, ok: false, message: 'No track is linked.', refused: 'No track is linked.' })
+      .mockResolvedValue(moved);
+    const say = vi.fn();
+    const props = { ...base, canArm: true, recording: false };
+    const { result, rerender } = renderHook((p) => useArmBoothOnOpen({ ...p, say }), { initialProps: props, wrapper: wrapperFor({ dawArmBoothVoice }) });
+    await waitFor(() => expect(say).toHaveBeenCalledTimes(1));
+    await act(async () => result.current());
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(2));
+    rerender({ ...props, recording: true });
+    rerender({ ...props, recording: false });
+    rerender({ ...props, canArm: false });
+    rerender({ ...props, canArm: true });
+    await act(async () => {});
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(2);
+    expect(say).toHaveBeenCalledTimes(1);
+  });
+
+  it('armNow says nothing for an older ask that is refused after the newer one answered ok', async () => {
+    let releaseFirst: (value: typeof moved & { ok: boolean; refused?: string }) => void = () => {};
+    const dawArmBoothVoice = vi
+      .fn<(chapterId: string) => Promise<typeof moved & { ok: boolean; refused?: string }>>()
+      .mockImplementationOnce(() => new Promise((resolve) => (releaseFirst = resolve)))
+      .mockResolvedValue(moved);
+    const say = vi.fn();
+    const { result } = renderHook((p) => useArmBoothOnOpen({ ...p, say }), { initialProps: base, wrapper: wrapperFor({ dawArmBoothVoice }) });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(1));
+    await act(async () => result.current());
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(2));
+    await act(async () => releaseFirst({ ...moved, ok: false, message: 'Late refusal.', refused: 'Late refusal.' }));
+    expect(say).not.toHaveBeenCalled();
+  });
+
   it('asks nothing while the switch is off or unread, the DAW cannot arm, a cold read runs or there is no chapter, and asks once each allows it', async () => {
     const dawArmBoothVoice = vi.fn(async () => moved);
     const { rerender } = renderHook((props) => useArmBoothOnOpen({ ...props, say: vi.fn() }), {
