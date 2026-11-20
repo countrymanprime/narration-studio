@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/extraction"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -51,6 +52,9 @@ type Service struct {
 	// fallbackDeclined is the lines the fallback was asked about and gave no kept answer for (rememberDeclined).
 	// +checklocks:fallbackMu
 	fallbackDeclined map[string]bool
+	// fallbackRetry is the lines the fallback broke on: asked again, after the lines it has not seen (rememberDeclined).
+	// +checklocks:fallbackMu
+	fallbackRetry map[string]bool
 	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
 	editMu sync.Mutex
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
@@ -430,7 +434,8 @@ type CueReason string
 func (r *CueReason) UnmarshalJSON(raw []byte) error {
 	var text string
 	if json.Unmarshal(raw, &text) == nil {
-		*r = CueReason(text)
+		// The file may have come from someone else: whatever it holds is read as one cleaned line of capped length.
+		*r = CueReason(extraction.CleanSentence(text, maxFallbackReasonRunes))
 	}
 	return nil
 }

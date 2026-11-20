@@ -379,7 +379,7 @@ func modelSuggested(prior *pyObject, speakers map[string]bool) bool {
 	if !ok {
 		return false
 	}
-	if reason, _ := evidence.values["reason"].(string); extraction.CleanSentence(reason, 0) == "" {
+	if reason, _ := evidence.values["reason"].(string); extraction.CleanSentence(reason, maxFallbackReasonRunes) == "" {
 		return false
 	}
 	speaker, _ := prior.values["speaker_entity_id"].(string)
@@ -404,15 +404,15 @@ func cueSpeakerIDs(entities any, speaking map[string]bool) map[string]bool {
 	return ids
 }
 
-// withoutOrphanSuggestions is cues with every local model's suggestion whose entry no longer speaks made unknown again, reason
-// removed: the cues a chapter refresh keeps from the file are not recomputed, and such a line would otherwise name nobody and
+// withoutOrphanSuggestions is cues with every local model's suggestion whose entry no longer speaks, or whose reason is gone,
+// made unknown again, reason removed: the cues a chapter refresh keeps from the file are not recomputed, and such a line would otherwise name nobody and
 // never be asked about again.
 func withoutOrphanSuggestions(cues []*pyObject, speakers map[string]bool) []*pyObject {
 	for i, cue := range cues {
 		if cue.values["speaker_source"] != cueSourceLocalModel || pyTruthy(cue.values["corrected"]) {
 			continue
 		}
-		if speaker, _ := cue.values["speaker_entity_id"].(string); speakers[speaker] {
+		if modelSuggested(cue, speakers) {
 			continue
 		}
 		copied := &pyObject{keys: slices.Clone(cue.keys), values: maps.Clone(cue.values)}

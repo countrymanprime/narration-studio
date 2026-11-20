@@ -690,3 +690,36 @@ func TestWithNoEntryThatSpeaksTheFallbackIsNotAsked(t *testing.T) {
 		t.Fatalf("asked %d times with nobody who could speak; result %+v", asked, result)
 	}
 }
+
+// A reason is cleaned and capped whenever the file is read, and a suggestion whose reason cleans to nothing is not kept by a
+// refresh of its own chapter, of another chapter, or of the whole book.
+func TestAReasonInTheFileIsCleanedOnEveryReadAndNeverCarriedEmpty(t *testing.T) {
+	raw := "Bo \u202egnp.exe\nsecond line " + strings.Repeat("x", 5000)
+	marksOnly := "e" + strings.Repeat("\u0301", 400) + " Bo said so"
+	for name, refresh := range map[string][]string{"no refresh": nil, "another chapter": {"c1"}, "its own chapter": {"c2"}, "the whole book": {}} {
+		t.Run(name, func(t *testing.T) {
+			s := fallbackProject(t, suggest("entity-bo", "Bo is in the hall."))
+			attributed(t, s)
+			s.SetSpeakerFallback(nil)
+			set := func(reason string) DialogueCue {
+				editGuide(t, s, func(document map[string]any) {
+					fileCue(t, document, "Who goes there?")["evidence"].(map[string]any)["reason"] = reason
+				})
+				if refresh != nil {
+					if _, err := s.RefreshCues(context.Background(), refresh...); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return cuesByQuote(t, s)["Who goes there?"]
+			}
+			if reason := string(set(raw).Evidence.Reason); len([]rune(reason)) != 300 || strings.ContainsAny(reason, "\u202e\n") {
+				t.Fatalf("read %d runes: %q", len([]rune(reason)), reason[:min(len(reason), 60)])
+			}
+			// Cut at 300 this one has no letter left: it is no reason, so any refresh drops the suggestion.
+			cue := set(marksOnly)
+			if cue.Evidence.Reason != "" || refresh != nil && cue.SpeakerSource != "unknown" {
+				t.Fatalf("cue %+v", cue)
+			}
+		})
+	}
+}

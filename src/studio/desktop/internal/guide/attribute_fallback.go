@@ -59,7 +59,10 @@ type CueSuggestion struct {
 type FallbackResult struct {
 	Suggestions []CueSuggestion
 	Asked       int
-	Note        string
+	// Failed is true when the last of the Asked lines ended the run because the model broke on it, not because it could not
+	// tell who speaks: that line is asked again, after the lines the model has not seen yet.
+	Failed bool
+	Note   string
 }
 
 // SpeakerFallback suggests speakers for lines the rules left unknown. An error means it suggested nothing. It writes nothing:
@@ -134,7 +137,7 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bo
 		}
 		byCue[suggestion.CueID] = suggestion
 	}
-	s.rememberDeclined(cues, characters, min(max(result.Asked, 0), len(cues)), byCue)
+	s.rememberDeclined(cues, characters, min(max(result.Asked, 0), len(cues)), result.Failed, byCue)
 	note = result.Note
 	if note == "" && result.Asked < len(cues) {
 		note = fmt.Sprintf("The local model was asked about %d of the %d lines the rules left unknown; run it again for the rest.", max(result.Asked, 0), len(cues))
@@ -229,33 +232,49 @@ func castKey(characters []FallbackCharacter) string {
 }
 
 // rememberDeclined records the asked lines that got no kept answer, so the next run's cap is spent on lines the model has not
-// seen instead of the same first ones. It lasts while the project is open; nothing is written.
-func (s *Service) rememberDeclined(cues []UnknownCue, characters []FallbackCharacter, asked int, kept map[string]CueSuggestion) {
+// seen instead of the same first ones. A line the model broke on (failed, the last asked) is not declined: it is asked again,
+// after the others, so one line the model cannot read does not hold up the rest and a model that was down is not taken to
+// have declined everything it was offered. It lasts while the project is open; nothing is written.
+func (s *Service) rememberDeclined(cues []UnknownCue, characters []FallbackCharacter, asked int, failed bool, kept map[string]CueSuggestion) {
 	cast := castKey(characters)
 	s.fallbackMu.Lock()
 	defer s.fallbackMu.Unlock()
 	if s.fallbackDeclined == nil {
 		s.fallbackDeclined = map[string]bool{}
+		s.fallbackRetry = map[string]bool{}
 	}
-	for _, cue := range cues[:asked] {
-		if _, ok := kept[cue.CueID]; !ok {
-			s.fallbackDeclined[declinedKey(cue, cast)] = true
+	for i, cue := range cues[:asked] {
+		key := declinedKey(cue, cast)
+		delete(s.fallbackRetry, key)
+		if _, ok := kept[cue.CueID]; ok {
+			continue
 		}
+		if failed && i == asked-1 {
+			s.fallbackRetry[key] = true
+			continue
+		}
+		s.fallbackDeclined[key] = true
 	}
 }
 
-// withoutDeclined is cues without the lines the model already declined with this passage and cast.
+// withoutDeclined is cues without the lines the model already declined with this passage and cast, and with the lines it
+// broke on moved to the end.
 func (s *Service) withoutDeclined(cues []UnknownCue, characters []FallbackCharacter) []UnknownCue {
 	cast := castKey(characters)
 	s.fallbackMu.Lock()
 	defer s.fallbackMu.Unlock()
-	kept := cues[:0]
+	var fresh, retry []UnknownCue
 	for _, cue := range cues {
-		if !s.fallbackDeclined[declinedKey(cue, cast)] {
-			kept = append(kept, cue)
+		key := declinedKey(cue, cast)
+		switch {
+		case s.fallbackDeclined[key]:
+		case s.fallbackRetry[key]:
+			retry = append(retry, cue)
+		default:
+			fresh = append(fresh, cue)
 		}
 	}
-	return kept
+	return append(fresh, retry...)
 }
 
 // fallbackQuestions is what a fallback is asked: the unknown, unconfirmed lines the model has not already declined, each with

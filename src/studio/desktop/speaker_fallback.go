@@ -44,7 +44,7 @@ func localModelSpeakerFallback(source localmodel.Source) guide.SpeakerFallback {
 		case err != nil:
 			return guide.FallbackResult{}, err
 		}
-		result := guide.FallbackResult{Asked: answers.Asked, Note: note}
+		result := guide.FallbackResult{Asked: answers.Asked, Failed: answers.Failed, Note: note}
 		for _, a := range answers.Kept {
 			// The source answers only with a name exactly one character has, so the name finds its entry.
 			if id, ok := entity[a.Raw.Payload.Speaker]; ok && a.Question < len(cues) {

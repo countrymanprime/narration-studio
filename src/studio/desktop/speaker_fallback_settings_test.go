@@ -190,7 +190,8 @@ func (f *failsOn) Ask(ctx context.Context, q localmodel.Question) (localmodel.An
 	return localmodeltest.Asker{}.Ask(ctx, q)
 }
 
-// A line the model fails on ends that run, but not every run after it: the next run starts with the lines after it.
+// A line the model fails on ends that run, but not every run after it: the next run starts with the lines after it and comes
+// back to the failed one last.
 func TestALineTheLocalModelFailsOnDoesNotBlockTheLinesAfterItForGood(t *testing.T) {
 	svc := speakerFallbackProject(t)
 	model := &failsOn{paragraph: "p3"}
@@ -199,7 +200,67 @@ func TestALineTheLocalModelFailsOnDoesNotBlockTheLinesAfterItForGood(t *testing.
 	svc.SetSpeakerFallback(localModelSpeakerFallback(source))
 	first := runAttribution(t, svc)
 	second := runAttribution(t, svc)
-	if got := strings.Join(model.asked, " "); got != "p3 p5 q1" || first.ModelFilled != 0 || first.ModelNote == "" || second.ModelFilled != 1 || speakerOf(cuesOf(t, svc)["p5"]) != "ada" {
+	if got := strings.Join(model.asked, " "); got != "p3 p5 q1 p3" || first.ModelFilled != 0 || first.ModelNote == "" || second.ModelFilled != 1 || speakerOf(cuesOf(t, svc)["p5"]) != "ada" {
 		t.Fatalf("asked %q; first %+v; second %+v", got, first, second)
+	}
+}
+
+// downThenUp fails every question while down, then answers like the fake.
+type downThenUp struct {
+	down  bool
+	asked []string
+}
+
+func (m *downThenUp) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer, error) {
+	m.asked = append(m.asked, q.ParagraphID)
+	if m.down {
+		return localmodel.Answer{}, errors.New("connection refused")
+	}
+	return localmodeltest.Asker{}.Ask(ctx, q)
+}
+
+// A model that was down did not decline the lines it failed on: once it is back, a run asks them again and fills them.
+func TestLinesAModelThatWasDownFailedOnAreAskedAgainOnceItIsBack(t *testing.T) {
+	svc := speakerFallbackProject(t)
+	model := &downThenUp{down: true}
+	source := fakeLocalModel(50)
+	source.Ask = model
+	svc.SetSpeakerFallback(localModelSpeakerFallback(source))
+	for range 3 {
+		if result := runAttribution(t, svc); result.ModelFilled != 0 || result.ModelNote == "" {
+			t.Fatalf("a run with the model down: %+v", result)
+		}
+	}
+	model.down = false
+	back := runAttribution(t, svc)
+	cues := cuesOf(t, svc)
+	if back.ModelFilled != 2 || speakerOf(cues["p3"]) != "bo" || speakerOf(cues["p5"]) != "ada" {
+		t.Fatalf("asked %v; result %+v", model.asked, back)
+	}
+}
+
+// panicsOn panics on the question of one paragraph and answers the rest like the fake.
+type panicsOn struct{ paragraph string }
+
+func (p panicsOn) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer, error) {
+	if q.ParagraphID == p.paragraph {
+		panic("the model adapter broke")
+	}
+	return localmodeltest.Asker{}.Ask(ctx, q)
+}
+
+// A model that panics on one line is a model that failed on it: what it answered before is kept, and later runs reach the rest.
+func TestAModelThatPanicsOnALineKeepsItsEarlierAnswersAndDoesNotBlockTheRest(t *testing.T) {
+	svc := speakerFallbackProject(t)
+	source := fakeLocalModel(50)
+	source.Ask = panicsOn{paragraph: "p5"}
+	svc.SetSpeakerFallback(localModelSpeakerFallback(source))
+	first := runAttribution(t, svc)
+	if first.ModelFilled != 1 || first.ModelNote == "" || speakerOf(cuesOf(t, svc)["p3"]) != "bo" {
+		t.Fatalf("first %+v", first)
+	}
+	second := runAttribution(t, svc)
+	if cues := cuesOf(t, svc); second.ModelFilled != 0 || speakerOf(cues["p5"]) != "" || cues["q1"].SpeakerSource != "unknown" {
+		t.Fatalf("second %+v", second)
 	}
 }

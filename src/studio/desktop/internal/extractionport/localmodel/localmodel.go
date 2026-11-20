@@ -143,6 +143,8 @@ type Answered struct {
 type Answers struct {
 	Kept  []Answered
 	Asked int
+	// Failed is true when the last question counted in Asked ended the run by failing: the model did not decline it, it broke on it.
+	Failed bool
 }
 
 // Extract is Answer without the questions' places. A cancelled ctx returns ctx.Err() and nothing else.
@@ -185,7 +187,7 @@ func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, e
 		if err := ctx.Err(); err != nil {
 			return answers, err
 		}
-		answer, err := s.Ask.Ask(ctx, q)
+		answer, err := s.ask(ctx, q)
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return answers, ctxErr
 		}
@@ -196,7 +198,7 @@ func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, e
 			}
 			// The question it failed on counts as asked, so a caller that remembers what was asked does not put the same
 			// question first on every later run and never reach the ones after it.
-			answers.Asked = i + 1
+			answers.Asked, answers.Failed = i+1, true
 			break
 		}
 		answers.Asked = i + 1
@@ -208,6 +210,17 @@ func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, e
 		return answers, err
 	}
 	return answers, nil
+}
+
+// ask is Ask with a panic in the model turned into its error, so what the model answered before it broke is kept like after
+// any other failure.
+func (s Source) ask(ctx context.Context, q Question) (answer Answer, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			answer, err = Answer{}, fmt.Errorf("the model panicked: %v", recovered)
+		}
+	}()
+	return s.Ask.Ask(ctx, q)
 }
 
 func (s Source) log(line string) {
