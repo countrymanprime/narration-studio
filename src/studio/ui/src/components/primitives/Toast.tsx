@@ -219,7 +219,7 @@ function useModalOpen(): boolean {
 
 // The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
 // While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
-// least 4.75rem above the bottom edge (`Dialog`, above 400 px of height; at 400 px and below it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row (alignment audit cause P), and the bars a toast
+// least 4.75rem above the bottom edge (`Dialog`, above 400 px of height; at 400 px and below it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row when it is no taller than that room (alignment audit cause P; a taller toast in a window up to 640 px tall can still cover it above 400 px, #3605), and the bars a toast
 // otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
 // A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
