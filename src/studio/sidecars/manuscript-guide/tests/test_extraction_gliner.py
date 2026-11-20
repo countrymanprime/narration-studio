@@ -269,7 +269,6 @@ class ConfidenceIsTheModelsOwnTests(unittest.TestCase):
         self.assertEqual(0.9, raw["confidence"])
         self.assertEqual("p-000002", raw["quotes"][0]["paragraphId"])
 
-
     def test_a_capitalised_spelling_is_kept_over_a_lower_case_one_that_scored_higher(self):
         book = {
             "paragraphs": [
