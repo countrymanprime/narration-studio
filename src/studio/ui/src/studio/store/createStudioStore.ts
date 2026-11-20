@@ -5,6 +5,7 @@
 import { parseWire } from '../../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../../api/wire/standardSchema';
 import { windowFocusSource, type FocusSource } from './focusSource';
+import { createKeyedCache, type KeyedCache, type KeyedConfig } from './keyedCache';
 
 /** One cross-page read model: how to read it, how to check it, and what makes it stale. */
 export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = {
@@ -33,6 +34,8 @@ export type StudioState<R extends SlotRegistry> = {
 
 export type StudioStoreOptions<R extends SlotRegistry> = {
   registry: R;
+  /** Keyed read models held beside the slots (the text of each chapter): each is a budgeted cache with the slots' invalidators. */
+  keyed?: Record<string, KeyedConfig>;
   /** The host's event bus: calls `handler` for each delivery of `event` and returns the unsubscribe. */
   subscribe: (event: string, handler: () => void) => () => void;
   /** Defaults to the window's focus and visibility. */
@@ -52,6 +55,8 @@ export type StudioStore<R extends SlotRegistry> = {
    * Rejects when the read it started or joined fails.
    */
   ensure(slot: keyof R & string): Promise<void>;
+  /** The keyed cache registered under `name` (the options' `keyed`); throws for a name nothing registered. */
+  keyed(name: string): KeyedCache;
   /** Wires the host events and window focus to the slots; returns the stop function. */
   start(): () => void;
   /**
@@ -72,6 +77,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     subscribeFocus = windowFocusSource(),
     onError = (slot, e) => console.error(`studio slot ${slot}:`, e),
   } = options;
+  const caches = new Map<string, KeyedCache>(Object.entries(options.keyed ?? {}).map(([name, config]) => [name, createKeyedCache(name, config)]));
+  const keyedConfigs = Object.entries(options.keyed ?? {});
   const empty: StudioState<R> = { slots: {}, errors: {} };
   let state = empty;
   let epoch = 0;
@@ -142,8 +149,14 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     },
     load,
     ensure,
+    keyed(name) {
+      const cache = caches.get(name);
+      if (!cache) throw new Error(`studio: no keyed cache named ${name}`);
+      return cache;
+    },
     publish(topic) {
       for (const name of Object.keys(registry) as Array<keyof R & string>) if (registry[name]!.topics?.includes(topic)) refresh(name);
+      for (const [name, config] of keyedConfigs) if (config.topics?.includes(topic)) caches.get(name)!.invalidate();
     },
     start() {
       const byEvent = new Map<string, Array<keyof R & string>>();
@@ -153,13 +166,23 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         for (const event of config.events ?? []) byEvent.set(event, [...(byEvent.get(event) ?? []), name]);
         if (config.refreshOnFocus) onFocus.push(name);
       }
+      // A keyed cache listens for the same events, topics and focus as a slot, and marks what it holds stale (the next ensure reads it again behind it).
+      const keyedByEvent = new Map<string, string[]>();
+      const keyedOnFocus: string[] = [];
+      for (const [name, config] of keyedConfigs) {
+        for (const event of config.events ?? []) keyedByEvent.set(event, [...(keyedByEvent.get(event) ?? []), name]);
+        if (config.refreshOnFocus) keyedOnFocus.push(name);
+      }
       const stops = [...byEvent].map(([event, names]) => subscribeEvent(event, () => names.forEach(refresh)));
+      for (const [event, names] of keyedByEvent) stops.push(subscribeEvent(event, () => names.forEach((name) => caches.get(name)!.invalidate())));
       if (onFocus.length > 0) stops.push(subscribeFocus(() => onFocus.forEach(refresh)));
+      if (keyedOnFocus.length > 0) stops.push(subscribeFocus(() => keyedOnFocus.forEach((name) => caches.get(name)!.invalidate())));
       return () => stops.forEach((stop) => stop());
     },
     reset() {
       epoch += 1;
       ensuring.clear();
+      caches.forEach((cache) => cache.clear());
       state = empty;
       emit();
     },

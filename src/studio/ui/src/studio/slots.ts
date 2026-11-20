@@ -7,7 +7,7 @@ import type { ChapterSyncApi } from '../api/contracts/chapterSync';
 import type { ManuscriptApi } from '../api/contracts/manuscript';
 import type { SystemApi } from '../api/contracts/system';
 import { bookmarksSchema } from '../api/schemas/bookmarks';
-import { chaptersSchema } from '../api/schemas/manuscript';
+import { chaptersSchema, paragraphsSchema } from '../api/schemas/manuscript';
 import { bindStudio } from './store/react';
 
 /**
@@ -36,6 +36,27 @@ export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, book
       refreshOnFocus: true,
     },
     bookmarks: { schema: bookmarksSchema, load: () => bookmarks.bookmarksList(), refreshOnFocus: true },
+  };
+}
+
+/**
+ * The most chapter text the store holds, in characters of JSON (about 8 MB: a 10 hour book's text), beyond which the least recently used chapters are dropped. Titles are
+ * never budgeted: the chapter list is one slot of all of them. The owner can set this (#3658).
+ */
+export const CHAPTER_TEXT_BUDGET = 8_000_000;
+
+/**
+ * The text of each chapter, keyed by chapter id, in the same store as the chapter list: stale when a job ends (an import or a re-split replaced the
+ * manuscript) and emptied by a project switch. A page reads it with `useChapterText`; the Script page, the Booth and Proof used to keep a copy each.
+ */
+export function createKeyedSlots(api: Pick<ManuscriptApi, 'manuscriptParagraphs'>) {
+  return {
+    chapterText: {
+      schema: paragraphsSchema,
+      load: (chapterId: string) => api.manuscriptParagraphs(chapterId),
+      budget: CHAPTER_TEXT_BUDGET,
+      events: ['job:ended'],
+    },
   };
 }
 

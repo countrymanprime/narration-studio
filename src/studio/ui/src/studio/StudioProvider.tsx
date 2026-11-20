@@ -4,7 +4,7 @@ import type { DawKind } from '../api/contracts/daw';
 import { useDawKind } from '../useDawKind';
 import { DAW_ACTION_KINDS } from '../api/contracts/daw';
 import { createJournal, type Journal } from './journal/createJournal';
-import { createHostEvents, createSlots, StudioStoreProvider, useStudio, type StudioRegistry } from './slots';
+import { createHostEvents, createKeyedSlots, createSlots, StudioStoreProvider, useStudio, type StudioRegistry } from './slots';
 import { createStudioStore, type StudioStore } from './store/createStudioStore';
 
 export { useStudio };
@@ -56,6 +56,7 @@ export function StudioProvider({
   const [createdStore] = useState(() =>
     createStudioStore({
       registry: createSlots(manuscript, bookmarks),
+      keyed: createKeyedSlots(manuscript),
       subscribe: createHostEvents({
         subscribeJobEnded: system.subscribeJobEnded,
         subscribeRecordEnded: (handler) => dawRef.current.subscribeRecordEnded?.(handler) ?? (() => undefined),
