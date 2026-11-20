@@ -44,7 +44,7 @@ const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
-/** How long the stop, the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order). */
+/** How long the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); the stop has `LEAVE_STOP_WAIT_MS`. */
 export const LEAVE_WAIT_MS = 8000;
 /**
  * How long the stop itself is given: just above the page's own stop limit (`PRESS_LIMITS_MS.recordStop`), so the page's limit ends a stop that never answers first, with its
@@ -212,8 +212,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             answered.current = true;
             return true;
           }
-          // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS, in the refusal question when it does not.
-          // Up for the whole of the waits (three, each at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
+          // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS (the stop's within LEAVE_STOP_WAIT_MS), in the refusal question when it does not.
+          // Up for the whole of the waits (three: two at most LEAVE_WAIT_MS and the stop at most LEAVE_STOP_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
           waiting.current = true;
           sayStopping();
           let sentence: string;
