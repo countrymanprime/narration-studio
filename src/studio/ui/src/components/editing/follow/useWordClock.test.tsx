@@ -2,6 +2,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { DawMockControl } from '../../../api/dawMock';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
@@ -10,7 +11,7 @@ import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { EXTRAPOLATE_MS } from './useDawTransportSync';
-import { useWordClock } from './useWordClock';
+import { useWordClock, WORD_TIMES_READ_LIMIT_MS } from './useWordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 
 const doc = marksDoc();
@@ -19,6 +20,7 @@ const tokens = wordTimesFor(doc, () => null).tokenOf;
 const table = (version: string, place: Parameters<typeof wordTimesFor>[1]) => wordTimesFor(doc, place, { version }).table;
 
 let daw: DawMockControl;
+let capsNow: DawCapabilities | null = DAW_SETUPS.reaper;
 
 class FakeAudio extends EventTarget {
   src = '';
@@ -29,8 +31,8 @@ class FakeAudio extends EventTarget {
 
 function Harness() {
   const page = useEditingPage();
-  const { clock, pending } = useWordClock('c1', doc, tokens, DAW_SETUPS.reaper);
-  useScriptPlayback({ playlist: [], mediaUrl: (f) => f, sync: { clock, caps: DAW_SETUPS.reaper } });
+  const { clock, pending } = useWordClock('c1', doc, tokens, capsNow);
+  useScriptPlayback({ playlist: [], mediaUrl: (f) => f, sync: { clock, caps: capsNow } });
   return (
     <div>
       <output data-testid="pending">{String(pending)}</output>
@@ -51,19 +53,21 @@ const lit = (): string | null => document.querySelector('[data-now]')?.getAttrib
 const mount = async (seed?: Parameters<typeof createMockApi>[1]) => {
   const api = createMockApi({}, seed ?? { daw: {} });
   daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
-  return {
-    api,
-    ...render(
-      <ApiProvider api={api}>
-        <EditingPageProvider doc={doc}>
-          <Harness />
-        </EditingPageProvider>
-      </ApiProvider>,
-    ),
-  };
+  const ui = () => (
+    <ApiProvider api={api}>
+      <EditingPageProvider doc={doc}>
+        <Harness />
+      </EditingPageProvider>
+    </ApiProvider>
+  );
+  const shown = render(ui());
+  /** Renders again with whatever `capsNow` is now. */
+  const again = () => shown.rerender(ui());
+  return { api, ...shown, again };
 };
 
 beforeEach(() => {
+  capsNow = DAW_SETUPS.reaper;
   vi.useFakeTimers();
   vi.stubGlobal('Audio', function () {
     return new FakeAudio();
@@ -172,6 +176,115 @@ describe('the page asks the host for where its words play', () => {
     await wait(2000);
     expect(asked.mock.calls.length).toBeLessThanOrEqual(2);
     expect(text('version')).toBe('rec@1');
+  });
+
+  it('reads again for an edit that came while the opening read, which then failed, was out (#3722)', async () => {
+    const { api } = await mount();
+    const real = api.workspaceWordTimes.bind(api);
+    let calls = 0;
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      calls += 1;
+      if (calls === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        throw new Error('The host did not answer.');
+      }
+      return real(id);
+    });
+    daw.setWordTimes(table('rec@1', linear(100)));
+    act(() => daw.editInDaw());
+    await wait(100);
+    daw.editInDaw();
+    await wait(2000);
+    expect(asked.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(text('version')).toBe('rec@1');
+  });
+
+  it('never has two reads in flight through a run of window flips (#3723)', async () => {
+    const { api } = await mount();
+    const real = api.workspaceWordTimes.bind(api);
+    let out = 0;
+    let most = 0;
+    vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      out += 1;
+      most = Math.max(most, out);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      out -= 1;
+      return real(id);
+    });
+    for (let i = 0; i < 20; i++) {
+      const state = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(i % 2 === 0 ? 'hidden' : 'visible');
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await wait(10);
+      state.mockRestore();
+    }
+    await wait(2000);
+    expect(most).toBe(1);
+  });
+
+  it('makes one read on a show after a read that ended while the window was hidden, with an edit waiting behind it', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const real = api.workspaceWordTimes.bind(api);
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return real(id);
+    });
+    daw.editInDaw();
+    await wait(100);
+    daw.editInDaw();
+    await wait(100);
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await wait(1500);
+    hidden.mockRestore();
+    const before = asked.mock.calls.length;
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await wait(3000);
+    expect(asked.mock.calls.length - before).toBe(1);
+  });
+
+  it('gives up on a read that never settles, so a later edit is read (#3664)', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const real = api.workspaceWordTimes.bind(api);
+    let calls = 0;
+    vi.spyOn(api, 'workspaceWordTimes').mockImplementation((id: string) => {
+      calls += 1;
+      return calls === 1 ? new Promise<never>(() => undefined) : real(id);
+    });
+    daw.setWordTimes(table('rec@2', linear(300)));
+    daw.editInDaw();
+    await wait(WORD_TIMES_READ_LIMIT_MS + 1000);
+    expect(text('version')).toBe('rec@1');
+    daw.editInDaw();
+    await wait(50);
+    expect(text('version')).toBe('rec@2');
+  });
+
+  it('drops the answer of a read that was out when the DAW stopped being able to make a table, and shows no map', async () => {
+    const { api, again } = await mount();
+    const real = api.workspaceWordTimes.bind(api);
+    vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return real(id);
+    });
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(100);
+    capsNow = null;
+    act(() => again());
+    await wait(1000);
+    expect(text('version')).toBe('none');
   });
 
   it('drops the map when the DAW can no longer make a table', async () => {

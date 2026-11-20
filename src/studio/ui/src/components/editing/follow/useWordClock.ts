@@ -5,15 +5,39 @@ import type { ChapterDoc } from '../model';
 import { buildWordClock, type WordClock } from './wordClock';
 import { useVisible } from './useDawPlayPosition';
 
+/** The word-table reads of one chapter: see `flight` in `useWordClock`. */
+type Flight = {
+  generation: number;
+  reading: boolean;
+  /** When the read in flight began (ms), and which read it is: a read out longer than `WORD_TIMES_READ_LIMIT_MS` is given up on. */
+  startedAt: number;
+  token: number;
+  again: boolean;
+  held: number;
+  active: boolean;
+  read: () => void;
+};
+
+/** How long a read may be out before a later one is made anyway (the host bounds its own read at 5 s; a binding that never settles must not stop every later read). */
+export const WORD_TIMES_READ_LIMIT_MS = 20_000;
+
+const freshFlight = (generation: number): Flight => ({
+  generation,
+  reading: false,
+  startedAt: 0,
+  token: 0,
+  again: false,
+  held: -1,
+  active: false,
+  read: () => undefined,
+});
+
 /**
  * The Editing page's map between its words and the DAW's project seconds: the host's word table (`WorkspaceWordTimes`) laid over the page's words. The
  * table is asked for on opening, when the window is shown, and each time the DAW reports an edit of the project (`daw_project_edited`, REAPER's change
  * counter), so a move, a trim, a rate change, a split or a deleted section is in it as soon as the host reads it. A read that fails keeps the table
  * the page has; a DAW that cannot make one (not answering, `track_state` off, no linked track) leaves the page with no map, and the DAW is not followed.
  */
-/** The word-table reads of one chapter: see `flight` in `useWordClock`. */
-type Flight = { generation: number; reading: boolean; again: boolean; held: number; active: boolean; read: () => void };
-
 export function useWordClock(
   chapterId: string,
   doc: ChapterDoc,
@@ -32,11 +56,11 @@ export function useWordClock(
    * flag of its own per run let a run of flips start a read each, many in flight together) and replaced when the chapter or the DAW's answer
    * changes (`generation`), so a late answer of the old one is dropped.
    */
-  const flight = useRef<Flight>({ generation: 0, reading: false, again: false, held: -1, active: false, read: () => undefined });
+  const flight = useRef<Flight>(freshFlight(0));
 
   // A new chapter, or a DAW that can or cannot make a table: nothing known, and any read still out is the old one's.
   useEffect(() => {
-    flight.current = { generation: flight.current.generation + 1, reading: false, again: false, held: -1, active: false, read: () => undefined };
+    flight.current = freshFlight(flight.current.generation + 1);
     setTable(null);
     setAnswered(false);
   }, [sync, chapterId, enabled]);
@@ -45,35 +69,37 @@ export function useWordClock(
     if (!enabled || !visible) return;
     const run = flight.current;
     const read = (): void => {
-      if (run.reading) {
+      if (run.reading && Date.now() - run.startedAt < WORD_TIMES_READ_LIMIT_MS) {
         run.again = true;
         return;
       }
+      // A read out longer than the limit is given up on (its answer, if it ever comes, is not used): the next one starts.
       run.reading = true;
+      run.startedAt = Date.now();
+      const token = ++run.token;
       // A read that fails and one that answers both end the read in flight; an edit that came meanwhile is read next either way, once (a read
       // that fails with nothing waiting is not repeated: that would be a hot loop on a DAW that cannot answer).
       const followUp = (): void => {
         run.reading = false;
         if (flight.current !== run) return;
-        // Whichever run of the effect is on now reads the follow-up (the one that started this read may be a hidden window's, long gone).
-        if (run.again && run.active) {
+        // What waited behind the read is read now by whichever run of the effect is on (the one that started this read may be a hidden
+        // window's, long gone); with the window hidden it is dropped, the next show reads anyway.
+        if (run.again) {
           run.again = false;
-          run.read();
+          if (run.active) run.read();
         }
       };
       sync.workspaceWordTimes(chapterId).then(
         (answer) => {
-          if (flight.current !== run) {
-            run.reading = false;
-            return;
-          }
+          if (flight.current !== run || run.token !== token) return;
           run.held = answer.available ? answer.changeCount : -1;
           setTable(answer.available ? answer : null);
           setAnswered(true);
           followUp();
         },
         () => {
-          if (flight.current === run) setAnswered(true);
+          if (flight.current !== run || run.token !== token) return;
+          setAnswered(true);
           followUp();
         },
       );
