@@ -470,8 +470,12 @@ func TestALookupAfterAFreshCheckAgreesWithTheCheckEvenForARewriteTheTimeHides(t 
 	if err := os.Chtimes(take, info.ModTime(), info.ModTime()); err != nil {
 		t.Fatal(err)
 	}
+	before := service.identities.Reads()
 	run(t, service, testRequest())
 
+	if got := service.identities.Reads() - before; got != 2 {
+		t.Fatalf("a check of two takes the cache already held read %d, want 2 (it writes their identities down, so it reads each)", got)
+	}
 	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
 		t.Fatalf("after a fresh check of the rewritten take the chapter is %q, want current", view.State)
 	}

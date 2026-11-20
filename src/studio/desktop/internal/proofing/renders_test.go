@@ -260,3 +260,21 @@ func TestEvaluateRenderAsksTheIdentityCacheAndAttestReadsAgain(t *testing.T) {
 		t.Fatalf("choosing the render again made %d reads in all, want 6 (it writes the answer down, so it reads)", got)
 	}
 }
+
+// A measurement is recorded for the render the file is now, so a file rewritten after it was chosen (its size and time kept, which the
+// identity cache alone cannot see) is no chapter's render and records nothing.
+func TestRecordRenderMeasurementsReadsTheFileWhateverTheCacheHolds(t *testing.T) {
+	f := newRenderFixture(t)
+	ageAudio(t, f.render)
+	view := f.savedView()
+	view.Identities = &evidence.IdentityCache{}
+	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
+		t.Fatal(err)
+	}
+	rewriteKeepingSizeAndTime(t, f.render)
+
+	recorded, err := RecordRenderMeasurements(f.ledger, f.store, view.Identities, testDocument, f.dir, f.render, wavReport(f.render), "", nil, attestedAt, attestedAt)
+	if err != nil || len(recorded) != 0 {
+		t.Fatalf("RecordRenderMeasurements() = %v, %v, want no record for a file that is no longer the chosen render", recorded, err)
+	}
+}
