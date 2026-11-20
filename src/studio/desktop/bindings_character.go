@@ -89,6 +89,17 @@ func (h *Host) GuideDialogueCues() (string, error) {
 	return encodeBinding(svc.DialogueCues())
 }
 
+// GuideDialogueCuesIn returns the dialogue cues of the given chapters only,
+// in the file's order: what a page that draws a few chapters reads instead
+// of the whole book's cues.
+func (h *Host) GuideDialogueCuesIn(chapterIDs []string) (string, error) {
+	svc := h.services().guide
+	if svc == nil {
+		return "", errNoProject
+	}
+	return encodeBinding(svc.DialogueCuesIn(chapterIDs))
+}
+
 // GuideCorrectCue records the narrator's own attribution for one dialogue
 // cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
 // rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).

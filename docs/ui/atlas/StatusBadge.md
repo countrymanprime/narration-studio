@@ -63,6 +63,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/ToolResult.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/engine/audacityLinkText.ts`
 - `src/components/layout/EngineChip.tsx`
 - `src/components/layout/HistoryPanel.tsx`

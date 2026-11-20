@@ -1144,6 +1144,17 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
   });
 
+  it("the dialogue cues of some chapters are the whole book's cues, filtered", async () => {
+    const api = createMockApi();
+    const all = await api.guideDialogueCues();
+    const chapterId = all[0]?.chapterId ?? '';
+    const some = await api.guideDialogueCuesIn([chapterId, 'not-a-real-chapter']);
+    expectMatches(guideDialogueCuesSchema, some, 'mock dialogue cues of some chapters');
+    expect(some.length).toBeGreaterThan(0);
+    expect(some).toEqual(all.filter((cue) => cue.chapterId === chapterId));
+    expect(await api.guideDialogueCuesIn([])).toEqual([]);
+  });
+
   it('attributing speakers fills only unconfirmed lines, reports what moved, and a re-run changes nothing', async () => {
     const api = createMockApi();
     const cueOf = async (id: string) => (await api.guideDialogueCues()).find((cue) => cue.id === id);
@@ -4697,6 +4708,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDeleteAll',
       'guidePreview',
       'guideDialogueCues',
+      'guideDialogueCuesIn',
       'guideAttributeSpeakers',
       'guideRestoreSpeakers',
       'guidePronunciationRestore',

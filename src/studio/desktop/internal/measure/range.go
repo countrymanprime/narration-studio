@@ -19,6 +19,10 @@ type Range struct {
 	LengthSeconds float64 `json:"length_seconds"`
 }
 
+// Validate is the check every reader of a range makes, for a caller that must refuse a bad range before it reads
+// the source.
+func (r Range) Validate() error { return r.validate() }
+
 func (r Range) validate() error {
 	finite := !math.IsNaN(r.StartSeconds) && !math.IsInf(r.StartSeconds, 0) &&
 		!math.IsNaN(r.LengthSeconds) && !math.IsInf(r.LengthSeconds, 0)

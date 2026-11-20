@@ -2650,16 +2650,46 @@
     "replace": ""
   },
   {
-    "name": "a chapter folder's Narrator child leaves the folder open",
+    "name": "a chapter folder's last child leaves the folder open",
     "file": "narration_track_create.lua",
-    "find": "  reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)\n",
-    "replace": ""
+    "find": "position == #child_names and -1 or 0",
+    "replace": "0"
   },
   {
     "name": "a chapter folder is inserted first instead of last",
     "file": "narration_track_create.lua",
     "find": "  local folder, index = core.append_track()",
     "replace": "  reaper.InsertTrackAtIndex(0, false)\n  local folder, index = reaper.GetTrack(0, 0), 0"
+  },
+  {
+    "name": "a chapter folder's second child closes the folder before the last",
+    "file": "narration_track_create.lua",
+    "find": "position == #child_names and -1 or 0",
+    "replace": "position >= 2 and -1 or 0"
+  },
+  {
+    "name": "a chapter folder accepts a blank child name",
+    "file": "narration_track_create.lua",
+    "find": "    if child_name == '' then\n      return nil, BLANK_CHILD\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder accepts two children with the same name",
+    "file": "narration_track_create.lua",
+    "find": "    if seen[key] then\n      return nil, SAME_CHILD\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder's further children are one track named with every name",
+    "file": "narration_track_create.lua",
+    "find": "    for line in (more_text .. '\\n'):gmatch('([^\\n]*)\\n') do\n      texts[#texts + 1] = line\n    end\n",
+    "replace": "    texts[#texts + 1] = more_text\n"
+  },
+  {
+    "name": "a chapter folder with a blank first child and more names adds a plain track",
+    "file": "narration_track_create.lua",
+    "find": " or more_text ~= '' then",
+    "replace": " then"
   },
   {
     "name": "a chapter folder's child gets no name",

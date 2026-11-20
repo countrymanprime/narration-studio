@@ -51,7 +51,7 @@ describe('footerHints', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
       { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
-      { keys: ['Right-click'], label: 'Start from here' },
+      { keys: ['Right-click'], label: 'Mark start' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
       { keys: ['←', '→'], label: 'Word', id: 'hint-booth.word.prev' },
       { keys: ['B'], label: 'Bookmark', id: 'hint-bookmark.here' },
@@ -125,9 +125,9 @@ describe('footerHints', () => {
       { id: 'booth.roll', label: 'Roll' },
       { id: 'booth.exit', label: 'Exit' },
     ];
-    expect(footerHints('booth', keymap, spec, [{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }])).toEqual([
+    expect(footerHints('booth', keymap, spec, [{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }])).toEqual([
       { keys: ['R'], label: 'Roll', id: 'hint-booth.roll' },
-      { keys: ['Right-click'], label: 'Start from here' },
+      { keys: ['Right-click'], label: 'Mark start' },
       { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
     ]);
   });
@@ -162,7 +162,7 @@ describe('nonKeyHints', () => {
   });
 
   it('lists the Booth right-click and no hint for a surface with none', () => {
-    expect(nonKeyHints('booth')).toEqual([{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }]);
+    expect(nonKeyHints('booth')).toEqual([{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }]);
     expect(nonKeyHints('proof')).toEqual([]);
   });
 });

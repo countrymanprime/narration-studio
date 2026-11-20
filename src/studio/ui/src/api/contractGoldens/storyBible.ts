@@ -27,6 +27,7 @@ export const storyBibleGoldens: Record<string, z.ZodType> = {
   'guide-pronunciation-restore.json': guidePronunciationSchema,
   'guide-preview-asset-required.json': guidePreviewSchema,
   'guide-dialogue-cues.json': guideDialogueCuesSchema,
+  'guide-dialogue-cues-in.json': guideDialogueCuesSchema,
   'guide-attribute-speakers.json': speakerAttributionSchema,
   'guide-types-default.json': guideTypesSchema,
   'guide-types-default-sidecar.json': guideTypesSchema,
