@@ -51,7 +51,7 @@ type readFlights struct {
 func (h *Host) sharedRead(name string, compute func() (string, error), args ...any) (string, error) {
 	svc := h.services()
 	key := readKey{
-		name: name, args: fmt.Sprint(args...),
+		name: name, args: fmt.Sprintf("%#v", args), // %#v: ("a", "b") and ("ab") are different reads
 		project: svc.config.projectFolder, manuscript: svc.manuscript, settings: svc.settings,
 		writes: persist.Generation(), events: eventGeneration.Load(),
 	}

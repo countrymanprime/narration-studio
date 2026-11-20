@@ -50,9 +50,9 @@ The key is the binding's name and arguments plus everything that makes an older 
 
 Rules for code that touches this:
 
-- **A store that removes a file a read answers from calls `persist.Advance()`** after the removal, because only `WriteFile` and `Rename` advance the generation by themselves. The ledger's `Retain`, the findings store's `RemoveAnalyzer` and the manuscript's `Clear` and replace do. A store that writes with `os.WriteFile` directly must switch to `persist.WriteFile` or call `Advance`.
+- **A store that removes a file a read answers from calls `persist.Advance()`** after the removal, because only `WriteFile` and `Rename` advance the generation by themselves. The ledger's `Retain`, the findings store's `RemoveAnalyzer`, the manuscript's `Clear` and replace, and the recording check's removal of its old results file do. A store that writes with `os.WriteFile` directly must switch to `persist.WriteFile` or call `Advance`.
 - **Only a binding that reads goes through `sharedRead`**, and its computation must not call the same binding again: the inner call would wait for the outer one.
-- A new cache of derived state needs nothing more as long as its files are written through `persist`.
+- A new cache of derived state that the host writes needs nothing more as long as its files are written through `persist`. A file a sidecar writes is covered by the event the host sends when the run ends.
 
 `readflights_test.go` holds a computation in flight and checks that each of the four bindings joins it, that three calls are one computation, and that a call after a ledger write, a ledger prune, a mapping write, a manuscript clear, a live event or a project switch computes its own answer.
 

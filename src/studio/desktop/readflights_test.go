@@ -198,12 +198,14 @@ func TestAReadAfterAChangeDoesNotJoinAnOlderComputation(t *testing.T) {
 // The same binding with other arguments is another read.
 func TestAReadWithOtherArgumentsDoesNotJoin(t *testing.T) {
 	host := newReadHost(t)
-	holdRead(t, host, "Paragraphs", "chapter-1")
-	got := answerOf(t, func() (string, error) {
-		return host.sharedRead("Paragraphs", func() (string, error) { return "own", nil }, "chapter-2")
-	})
-	if got != "own" {
-		t.Fatalf("answer = %q, want its own computation's", got)
+	holdRead(t, host, "Search", "a", "b")
+	for _, args := range [][]any{{"a", "c"}, {"ab"}, {"a b"}, {"a"}} {
+		got := answerOf(t, func() (string, error) {
+			return host.sharedRead("Search", func() (string, error) { return "own", nil }, args...)
+		})
+		if got != "own" {
+			t.Fatalf("arguments %#v: answer = %q, want its own computation's", args, got)
+		}
 	}
 }
 
@@ -263,5 +265,37 @@ func TestAPanickingReadReleasesItsWaiters(t *testing.T) {
 	}
 	if got, err := host.sharedRead("Read", func() (string, error) { return "fresh", nil }); got != "fresh" || err != nil {
 		t.Fatalf("after the panic = %q, %v; want a new computation", got, err)
+	}
+}
+
+// A read issued after ledger.Write answers with the record just written, while a read of the same name that started
+// before the write is still computing.
+func TestAReadIssuedAfterALedgerWriteAnswersWithTheWrite(t *testing.T) {
+	host := newReadHost(t)
+	ledger := evidence.NewLedgerStore(host.services().config.projectFolder)
+	records := func() (string, error) {
+		all, err := ledger.All()
+		return encodeBinding(len(all), err)
+	}
+	gate, started, before := make(chan struct{}), make(chan struct{}), make(chan string, 1)
+	go func() {
+		payload, _ := host.sharedRead("LedgerRecords", func() (string, error) {
+			payload, err := records() // read before the write, answered after it
+			close(started)
+			<-gate
+			return payload, err
+		})
+		before <- payload
+	}()
+	<-started
+	if _, err := ledger.Write(evidence.LedgerRecord{AnalyzerID: "coverage"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := answerOf(t, func() (string, error) { return host.sharedRead("LedgerRecords", records) }); got != "1" {
+		t.Fatalf("records after the write = %s, want 1", got)
+	}
+	close(gate)
+	if got := <-before; got != "0" {
+		t.Fatalf("records of the read that started before the write = %s, want 0", got)
 	}
 }
