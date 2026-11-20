@@ -188,6 +188,8 @@ func trackCreateError(name, title string, err error, noun string) chapterTrackCr
 		return trackCreateRefusedWith(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then create the %s.", name, noun))
 	case errors.Is(err, bridge.ErrUnavailable):
 		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonStandalone}, noun)
+	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
+		return trackCreateRefusedWith(refusedFailed, fmt.Sprintf("%s did not finish adding the %s in time. Look in %s: it may already be there.", name, noun, name))
 	case errors.Is(err, bridge.ErrAnswerLate):
 		// REAPER took the command and has not confirmed it (#3645): the track may exist, so "not answering" and a retry would be wrong.
 		return trackCreateRefusedWith(refusedFailed, fmt.Sprintf("%s took the command but has not confirmed the %s yet. Look in %s before trying again: it may already be there.", name, noun, name))

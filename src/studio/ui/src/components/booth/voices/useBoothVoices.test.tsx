@@ -871,6 +871,35 @@ describe('a lane armed in the DAW', () => {
     expect(hook.current.current?.name).toBe('Extras');
   });
 
+  // #3645: the add chooses the new voice but arms nothing, so the old lane is still the armed one: that is not the narrator arming it by hand.
+  it('does not follow the DAW back to the old lane after a voice was just added', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
+    let added = '';
+    api.readAloudReaperState = async () =>
+      added === ''
+        ? state({ status: 'ready', trackGuid: narrator, armedTrackGuids: [narrator] })
+        : state({ status: 'other_armed', trackGuid: added, armedTrackGuids: [narrator] });
+    const realAdd = api.boothVoiceAdd.bind(api);
+    api.boothVoiceAdd = async (...args: Parameters<typeof realAdd>) => {
+      const answer = await realAdd(...args);
+      added = answer.trackGuid ?? '';
+      return answer;
+    };
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const { hook } = await mount({}, false, api);
+    await settle();
+    await act(async () => {
+      await hook.current.add('Queen of Hearts', []);
+    });
+    for (let i = 0; i < 3; i++) {
+      await act(async () => hook.current.reload());
+      await settle();
+    }
+    expect(set).not.toHaveBeenCalled();
+    expect(hook.current.current?.name).toBe('Queen of Hearts');
+  });
+
   it('is followed when the old lane is still armed beside the new one, as a plain arm click leaves it', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
