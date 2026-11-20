@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
+import { useVoiceLayout } from '../engine/voiceLayout';
+import { destinationFor } from '../engine/destination';
 import { ShowInDawButton } from '../engine/ShowInDaw';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -79,6 +81,9 @@ export function ChapterTrackPanel({
   const trackState = useChapterTrackState({ when: open });
   const nameOf = useChapterNameOf(open);
   const tracks: Track[] | undefined = trackState.project?.tracks;
+  const layout = useVoiceLayout();
+  // What a chapter links to, in the project's words: a track, or a folder in a Voice folders project.
+  const { noun, Noun } = destinationFor(layout);
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -123,7 +128,7 @@ export function ChapterTrackPanel({
       await actions.unlink(chapterId);
       written = true;
       setUnlinkedFrom(linkRead);
-      notify('Track unlinked.');
+      notify(`${Noun} unlinked.`);
       await onChanged();
     } catch (error) {
       notify(linkFailureSentence(written ? 'unread' : 'unlink', error), 'error');
@@ -149,7 +154,7 @@ export function ChapterTrackPanel({
   // Several confirmed links, whatever the matcher's status (a link whose track is gone leaves it confirmed): the same test as the header word and the reason.
   const conflict = !!link && hasSeveralLinks(link);
   return (
-    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context('Track'))} onClose={onClose} returnFocus={returnFocus}>
+    <SlideOver open={open} title={chapterName({ title: chapterTitle, subtitle }, context(Noun))} onClose={onClose} returnFocus={returnFocus}>
       {!link ? (
         <p role="status">Reading the saved project…</p>
       ) : (
@@ -161,15 +166,16 @@ export function ChapterTrackPanel({
           {missing && (
             <InsetCard as="p" role="alert" tone="danger">
               <span style={{ color: 'var(--danger-text)' }}>
-                The linked track{link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or
-                the project saved elsewhere. Link another track below.
+                The linked {noun}
+                {link.track?.trackName ? ` “${trackName(link.track.trackName)}”` : ''} is not in the project now. It may have been deleted or the project saved
+                elsewhere. Link another {noun} below.
               </span>
             </InsetCard>
           )}
-          {state?.kind === 'suggested' && <p>Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.</p>}
+          {state?.kind === 'suggested' && <p>Not linked yet. This {noun} looks like the chapter; link it to use it for checks and recorded time.</p>}
           {link.status === 'ambiguous' && link.links.length <= 1 && link.candidates.length > 1 && (
             <InsetCard as="p" tone="warn">
-              {plural(link.candidates.length, 'track')} look like this chapter. Link the one it is recorded on.
+              {plural(link.candidates.length, noun)} look like this chapter. Link the one it is recorded on.
             </InsetCard>
           )}
           {trackSummary && (
@@ -226,7 +232,7 @@ export function ChapterTrackPanel({
                 )}
               </div>
               <ShowInDawButton
-                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link) }}
+                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link), reason: noShowableTrackReason(link, layout) }}
                 onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
               />
             </section>
@@ -234,7 +240,7 @@ export function ChapterTrackPanel({
           {conflict && (
             <section aria-labelledby="chapter-track-conflict" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-conflict">
-                Linked to {plural(link.links.length, 'track')}
+                Linked to {plural(link.links.length, noun)}
               </SectionLabel>
               <p style={{ color: 'var(--text-muted)' }}>Keep one link; the others will be cleared.</p>
               <ul className="space-y-2">
@@ -242,7 +248,7 @@ export function ChapterTrackPanel({
                   const summary = tracks?.find((track) => track.guid === mapping.trackGuid);
                   return (
                     <InsetCard as="li" key={mapping.trackGuid} className="flex items-center justify-between gap-2">
-                      <span>{summary ? trackName(summary.name, summary.index) : 'Track'}</span>
+                      <span>{summary ? trackName(summary.name, summary.index) : Noun}</span>
                       <Button variant="secondary" disabled={busy} pending={busy} onClick={() => void link_(mapping.trackGuid)}>
                         Keep this one
                       </Button>
@@ -255,7 +261,7 @@ export function ChapterTrackPanel({
           {link.candidates.length > 0 && !link.track && !conflict && (
             <section aria-labelledby="chapter-track-candidates" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-candidates">
-                Possible tracks
+                Possible {noun}s
               </SectionLabel>
               <ul className="space-y-2">
                 {link.candidates.map((candidate) => (
@@ -307,7 +313,7 @@ export function ChapterTrackPanel({
                   busy={busy}
                   onConfirm={(trackGuid) => void link_(trackGuid)}
                   onClear={() => void unlink()}
-                  changeLabel="Another track…"
+                  changeLabel={`Another ${noun}…`}
                   clearLabel="Unlink"
                 />
               )}
@@ -338,15 +344,16 @@ export function ChapterTrackPanel({
 }
 
 function Header({ chapterTitle, link, trackSummary }: { chapterTitle: string; link: ChapterTrackLink; trackSummary?: ChapterTrackSummary }) {
+  const folders = useVoiceLayout() === 'folders';
   const state = chapterTrackButtonState(link);
   const STATE_LABEL: Record<typeof state.kind, string> = {
-    linked: LINK_STATE_LABEL.linked,
+    linked: linkStateLabel('linked', folders),
     renamed: 'Linked, renamed',
     suggested: 'Suggested',
     // Several links to a chapter are "Several tracks", as the Engine says; only unconfirmed candidates are "Ambiguous".
-    ambiguous: hasSeveralLinks(link) ? LINK_STATE_LABEL.several : 'Ambiguous',
-    missing: LINK_STATE_LABEL.missing,
-    unlinked: LINK_STATE_LABEL.unlinked,
+    ambiguous: hasSeveralLinks(link) ? linkStateLabel('several', folders) : 'Ambiguous',
+    missing: linkStateLabel('missing', folders),
+    unlinked: linkStateLabel('unlinked', folders),
   };
   // The dot is always drawn, so the name starts at one x in every state (XPR1-22): the track's colour, or a hollow ring when there is no
   // track to colour it or the linked one is missing. The name and the state share a baseline.

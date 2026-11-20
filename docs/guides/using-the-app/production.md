@@ -108,7 +108,7 @@ The pipeline has one row per narration chapter. The cells are one stop in the Ta
 on the chapter's confirmed track in the saved project (`1h 12m`, or `<0h 01m` for under a minute), and **Est.** beside it (`1h 20m`) is the
 chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked** (no track is linked to the chapter: link one in the chapter's track panel), **Several tracks** (keep one in the track
-panel), **Track missing** (the linked track is no longer in the project), **No project** (no saved project could be read) or **Not
+panel), **Track missing** (the linked track is no longer in the project; in a Voice folders project these words say **Several folders** and **Folder missing**), **No project** (no saved project could be read) or **Not
 read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.

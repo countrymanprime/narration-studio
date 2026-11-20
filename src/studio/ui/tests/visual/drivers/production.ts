@@ -239,6 +239,14 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=ambiguous');
     await dialog.getByText('Linked to 2 tracks').waitFor();
   },
+  'chapter-track-panel-several-folders': async (page) => {
+    const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=ambiguous&mockVoiceFolders=1');
+    await dialog.getByText('Several folders', { exact: true }).waitFor();
+  },
+  'chapter-track-panel-missing-folders': async (page) => {
+    const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=missing&mockVoiceFolders=1');
+    await dialog.getByText('Folder missing', { exact: true }).waitFor();
+  },
   'chapter-track-panel-missing': async (page) => {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=missing');
     await dialog.getByText('Track missing', { exact: true }).waitFor();

@@ -7,7 +7,9 @@ import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
 import { plural } from '../../../plural';
-import { LINK_STATE_LABEL } from '../../chapterTracks/chapterLink';
+import { linkStateLabel } from '../../chapterTracks/chapterLink';
+import { destinationFor } from '../../engine/destination';
+import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
 
 /** The page a cell goes to (the mock's `cellAct`): Prep goes to the Script, Record to the Booth, Edit to Editing, Master and QC to Master. */
 export type GoTarget = 'script' | 'booth' | 'editing' | 'proof' | 'pickups' | 'master';
@@ -78,6 +80,8 @@ export type PipelineSources = {
   master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>;
   /** Words per finished hour of the schedule's basis (`useEffectiveWph`); the standard when absent. */
   wph?: number;
+  /** The project's Voice folders layout, for the words that name what a chapter links to (a track, or a folder); flat when absent. */
+  layout?: VoiceTracksLayout;
 };
 
 export const NOT_MEASURED = 'Not measured yet';
@@ -105,12 +109,22 @@ const unknown = (column: PipelineColumn, target: GoTarget, go = true): PipelineC
 
 const clockOf = (seconds: number): string => hm(seconds / 3600);
 
-/** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons). */
-const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = {
-  unlinked: { text: LINK_STATE_LABEL.unlinked, tip: 'No track is linked to this chapter, so nothing is measured. Link it from the chapter’s track panel' },
-  no_project: { text: 'No project', tip: 'No saved DAW project could be read, so nothing is measured' },
-  multiple_tracks: { text: LINK_STATE_LABEL.several, tip: 'Linked to more than one track, so nothing is measured. Keep one in the chapter’s track panel' },
-  track_missing: { text: LINK_STATE_LABEL.missing, tip: 'The linked track is no longer in the saved project, so nothing is measured' },
+/** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons), in the project's layout words. */
+const unavailable = (layout: VoiceTracksLayout): Record<RecordedUnavailable, { text: string; tip: string }> => {
+  const folders = layout === 'folders';
+  const { noun } = destinationFor(layout);
+  return {
+    unlinked: {
+      text: linkStateLabel('unlinked', folders),
+      tip: `No ${noun} is linked to this chapter, so nothing is measured. Link it from the chapter’s ${noun} panel`,
+    },
+    no_project: { text: 'No project', tip: 'No saved DAW project could be read, so nothing is measured' },
+    multiple_tracks: {
+      text: linkStateLabel('several', folders),
+      tip: `Linked to more than one ${noun}, so nothing is measured. Keep one in the chapter’s ${noun} panel`,
+    },
+    track_missing: { text: linkStateLabel('missing', folders), tip: `The linked ${noun} is no longer in the saved project, so nothing is measured` },
+  };
 };
 const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
 
@@ -137,13 +151,13 @@ function throughWords(through: RecordedThrough | undefined): ThroughWords | null
   };
 }
 
-function recordedFigure(name: string, chapter: ProductionChapter, estimate: string): RecordedFigure {
+function recordedFigure(name: string, chapter: ProductionChapter, estimate: string, layout: VoiceTracksLayout): RecordedFigure {
   const words = throughWords(chapter.recordedThrough);
-  const figure = measuredFigure(name, chapter, estimate);
+  const figure = measuredFigure(name, chapter, estimate, layout);
   return words ? { ...figure, label: `${figure.label}, ${words.label}`, tip: `${figure.tip} · ${words.tip}` } : figure;
 }
 
-function measuredFigure(name: string, chapter: ProductionChapter, estimate: string): RecordedFigure {
+function measuredFigure(name: string, chapter: ProductionChapter, estimate: string, layout: VoiceTracksLayout): RecordedFigure {
   const seconds = chapter.recordedSeconds;
   const of = estimate === DASH ? ', no estimate' : ` of about ${estimate} estimated`;
   if (seconds !== null && seconds > 0) {
@@ -152,20 +166,20 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
       kind: 'measured',
       text,
       label: `${name}: ${spokenMarked(text)} recorded${estimate === DASH ? ', no estimate' : ` of about ${spokenMarked(estimate)} estimated`}`,
-      tip: `${text} recorded${of} · on the linked track in the saved project, before editing`,
+      tip: `${text} recorded${of} · on the linked ${destinationFor(layout).noun} in the saved project, before editing`,
     };
   }
   const state =
     seconds === 0
-      ? { text: 'None yet', tip: 'Linked to its track, with nothing recorded on it yet' }
+      ? { text: 'None yet', tip: `Linked to its ${destinationFor(layout).noun}, with nothing recorded on it yet` }
       : chapter.recordedUnavailable
-        ? UNAVAILABLE[chapter.recordedUnavailable]
+        ? unavailable(layout)[chapter.recordedUnavailable]
         : NOT_READ;
   return { kind: 'none', text: state.text, label: `${name}: recorded ${state.text.toLowerCase()}`, tip: state.tip };
 }
 
-function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined, wph: number): PipelineCell {
-  const status = check ? chapterCheckStatusText(chapterName(chapter), check) : undefined;
+function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined, wph: number, layout: VoiceTracksLayout): PipelineCell {
+  const status = check ? chapterCheckStatusText(chapterName(chapter), check, undefined, layout) : undefined;
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
   const length = chapter.recordedSeconds !== null ? `${clockOf(chapter.recordedSeconds)} recorded` : '';
@@ -175,7 +189,13 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
     return done(
       'record',
       'booth',
-      withCheck(length ? `Recorded · ${length}` : noTrack ? 'Recorded · the chapter’s stage; no track is linked, so no length is measured' : 'Recorded'),
+      withCheck(
+        length
+          ? `Recorded · ${length}`
+          : noTrack
+            ? `Recorded · the chapter’s stage; no ${destinationFor(layout).noun} is linked, so no length is measured`
+            : 'Recorded',
+      ),
     );
   }
   const through = chapter.recordedThrough;
@@ -264,12 +284,13 @@ export function currentColumn(status: ChapterStatus, openPickups = 0): PipelineC
 /** One row per chapter of the overview, each cell drawn from the field that measures it and a dash where nothing does. */
 export function buildPipelineRows(chapters: readonly ProductionChapter[], sources: PipelineSources = {}): PipelineRow[] {
   const wph = sources.wph ?? WPH;
+  const layout = sources.layout ?? 'flat';
   return chapters.map((chapter) => {
     const open = sources.pickups?.[chapter.id];
     const review = sources.master?.[chapter.id];
     const cells: Record<PipelineColumn, PipelineCell> = {
       prep: prepCell(sources.prep?.[chapter.id]),
-      record: recordCell(chapter, sources.checks?.[chapter.id], wph),
+      record: recordCell(chapter, sources.checks?.[chapter.id], wph, layout),
       edit: editCell(chapter),
       proof: proofCell(chapter, sources.proof?.[chapter.id]),
       pickups: pickupsCell(chapter, open),
@@ -282,7 +303,7 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
       id: chapter.id,
       name,
       parts: chapterParts(chapter),
-      recorded: recordedFigure(name, chapter, estimate),
+      recorded: recordedFigure(name, chapter, estimate, layout),
       estimate,
       current: currentColumn(chapter.status, open),
       cells,

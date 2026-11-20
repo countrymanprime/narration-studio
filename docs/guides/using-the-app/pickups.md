@@ -51,7 +51,7 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
   a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
   still to do, and **Recorded** is green;
 - **Hear the original in context**, which plays the recording at this line with 3 seconds either side (press it again to
-  stop; it is off, with the reason in its tooltip, for a line that has no place in the recording yet and for a chapter that is not linked to a track). With REAPER linked it plays through
+  stop; it is off, with the reason in its tooltip, for a line that has no place in the recording yet and for a chapter that is not linked to a track, or to a folder in a Voice folders project). With REAPER linked it plays through
   REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
   nothing plays;
 - **Open in Booth at this line** (Enter on a selected line), **Show in REAPER** (**Show in Audacity** with Audacity: the same button as on Editing, Proof and Production), which selects the note the line came from in your DAW and puts the edit cursor on its spot, **Mark recorded** (or **Mark open again**) and, set apart after a
