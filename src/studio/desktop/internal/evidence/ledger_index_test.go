@@ -3,6 +3,7 @@ package evidence
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -10,9 +11,8 @@ import (
 
 // decodesOf is how many record files the store has read and decoded so far: the work the tests below guard (issue 3749).
 func decodesOf(store *LedgerStore) int {
-	store.index.mu.Lock()
-	defer store.index.mu.Unlock()
-	return store.index.decodes
+	_, decodes := store.Reads()
+	return decodes
 }
 
 // ledgerOf writes one record per chapter for chapters c-0001 up to count and returns a second store over the same folder,
@@ -179,4 +179,63 @@ func TestReadsThatArriveTogetherDecodeEachFileOnce(t *testing.T) {
 	if decodes := decodesOf(reader); decodes != 6 {
 		t.Fatalf("decoded %d files, want 6", decodes)
 	}
+}
+
+// A snapshot answers as the store does, from one listing, and does not see what is written after it was taken.
+func TestASnapshotAnswersAsTheStoreDoesFromOneListing(t *testing.T) {
+	store := NewLedgerStore(t.TempDir())
+	now := time.Now()
+	for _, record := range []LedgerRecord{
+		baseLedgerRecord("rc", "c-0001", now.Add(-2*time.Hour), LedgerComplete),
+		baseLedgerRecord("rc", "c-0001", now.Add(-time.Hour), LedgerFailed),
+		baseLedgerRecord("er", "c-0001", now, LedgerComplete),
+		baseLedgerRecord("rc", "c-0002", now, LedgerPartial),
+	} {
+		if _, err := store.Write(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	snapshot, err := store.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed, _ := store.Reads()
+	questions := map[string][2]string{
+		"one analyzer, one chapter": {"rc", "c-0001"}, "any analyzer": {"", "c-0001"}, "any chapter": {"rc", ""},
+		"everything": {"", ""}, "no match": {"rc", "c-0009"},
+	}
+	answers := map[string][]string{}
+	for name, question := range questions {
+		records, err := snapshot.List(question[0], question[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		answers[name] = recordIDs(records)
+	}
+	if after, _ := store.Reads(); after != listed {
+		t.Fatalf("five questions of one snapshot listed the folder %d more times, want none", after-listed)
+	}
+	for name, question := range questions {
+		records, err := store.List(question[0], question[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := recordIDs(records); !slices.Equal(answers[name], want) {
+			t.Errorf("%s: snapshot = %v, store = %v", name, answers[name], want)
+		}
+	}
+	if _, err := store.Write(baseLedgerRecord("rc", "c-0009", now, LedgerComplete)); err != nil {
+		t.Fatal(err)
+	}
+	if late, _ := snapshot.List("rc", "c-0009"); len(late) != 0 {
+		t.Fatalf("a snapshot showed a record written after it was taken: %v", recordIDs(late))
+	}
+}
+
+func recordIDs(records []LedgerRecord) []string {
+	ids := make([]string, len(records))
+	for i, record := range records {
+		ids[i] = record.ID
+	}
+	return ids
 }

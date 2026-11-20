@@ -30,26 +30,50 @@ func (s *Service) result(chapterID string, alignment AlignmentParams) (ChapterRe
 	if err != nil {
 		return ChapterResult{}, err
 	}
-	return s.evaluate(project, projectFile, basis, alignment)
+	return s.evaluate(s.ledger, project, projectFile, basis, alignment)
 }
 
 // ResultIn is Result against a saved project the caller already parsed (the
 // stage recommendations' shared EvidenceView), so evaluating every chapter
 // reads the .rpp once.
 func (s *Service) ResultIn(project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {
-	result, err := s.resultIn(project, projectFile, chapterID, alignment)
+	return s.resultIn(s.ledger, project, projectFile, chapterID, alignment)
+}
+
+// Pass is one read of every chapter of a book: its ResultIn answers each chapter from a single listing of the ledger,
+// where Service.ResultIn lists it for every chapter (issue 3749). Take one per read and drop it after: a record written
+// later is not in it.
+type Pass struct {
+	service *Service
+	ledger  evidence.LedgerReader
+}
+
+// Pass starts a read of many chapters. If the ledger cannot be listed, each chapter asks the store and reports that itself.
+func (s *Service) Pass() Pass {
+	snapshot, err := s.ledger.Snapshot()
+	if err != nil {
+		return Pass{service: s, ledger: s.ledger}
+	}
+	return Pass{service: s, ledger: snapshot}
+}
+
+// ResultIn is Service.ResultIn from the pass's listing of the ledger.
+func (p Pass) ResultIn(project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {
+	return p.service.resultIn(p.ledger, project, projectFile, chapterID, alignment)
+}
+
+func (s *Service) resultIn(ledger evidence.LedgerReader, project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {
+	basis, err := s.readableChapter(chapterID, alignment)
+	if err == nil {
+		var result ChapterResult
+		if result, err = s.evaluate(ledger, project, projectFile, basis, alignment); err == nil {
+			return result, nil
+		}
+	}
 	if reason, ok := ReasonOf(err); ok {
 		return ChapterResult{State: evidence.StateNever, Reasons: []string{string(reason)}}, nil
 	}
-	return result, err
-}
-
-func (s *Service) resultIn(project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {
-	basis, err := s.readableChapter(chapterID, alignment)
-	if err != nil {
-		return ChapterResult{}, err
-	}
-	return s.evaluate(project, projectFile, basis, alignment)
+	return ChapterResult{}, err
 }
 
 // readableChapter checks what every read needs before the saved project: an
@@ -117,7 +141,12 @@ func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
 	if s.config.Project == "" || alignment.validate() != nil {
 		return reports
 	}
-	chapters := s.checkedChapters()
+	// One listing of the ledger answers every chapter of the pass.
+	ledger, err := s.ledger.Snapshot()
+	if err != nil {
+		return reports
+	}
+	chapters := checkedChapters(ledger)
 	if len(chapters) == 0 {
 		return reports
 	}
@@ -130,7 +159,7 @@ func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
 		if err != nil {
 			continue
 		}
-		result, err := s.evaluate(project, projectFile, basis, alignment)
+		result, err := s.evaluate(ledger, project, projectFile, basis, alignment)
 		if err == nil && result.Current() {
 			reports[chapterID] = result.Result.Report
 		}
@@ -140,8 +169,8 @@ func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
 
 // checkedChapters lists the chapters with at least one complete coverage
 // record, each once.
-func (s *Service) checkedChapters() []string {
-	records, err := s.ledger.List(AnalyzerID, "")
+func checkedChapters(ledger evidence.LedgerReader) []string {
+	records, err := ledger.List(AnalyzerID, "")
 	if err != nil {
 		return nil
 	}
@@ -159,7 +188,7 @@ func (s *Service) checkedChapters() []string {
 
 // evaluate compares the chapter's newest complete run against the parsed
 // saved project, the confirmed track, the parameters and the manuscript.
-func (s *Service) evaluate(project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams) (ChapterResult, error) {
+func (s *Service) evaluate(ledger evidence.LedgerReader, project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams) (ChapterResult, error) {
 	if _, err := confirmedTrack(s.mapping, basis.DocumentID, basis.ChapterID); err != nil {
 		return ChapterResult{}, err
 	}
@@ -167,7 +196,7 @@ func (s *Service) evaluate(project tracks.Project, projectFile evidence.LedgerPr
 	if s.config.ChapterAudio != nil {
 		project = s.config.ChapterAudio(project)
 	}
-	evaluation, evaluationBasis, err := evidence.EvaluateChapter(s.ledger, s.mapping, evidence.ChapterEvaluationRequest{
+	evaluation, evaluationBasis, err := evidence.EvaluateChapter(ledger, s.mapping, evidence.ChapterEvaluationRequest{
 		Project: project, ProjectFolder: s.config.Project, ProjectFile: projectFile,
 		DocumentID: basis.DocumentID, ChapterID: basis.ChapterID,
 		AnalyzerID: AnalyzerID, AnalyzerVersion: AnalyzerVersion,
