@@ -83,14 +83,41 @@ describe("the Booth's voices", () => {
     const api = createMockApi({}, { voiceFolders: true });
     const { hook } = await mount({ voiceFolders: true }, false, api);
     await act(async () => new Promise((r) => setTimeout(r, 20)));
-    api.boothVoiceSet = async () => ({ outcome: 'refused', message: 'No.', reason: 'not_a_voice' }) as never;
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    api.boothVoiceSet = async () => {
+      await held;
+      return { outcome: 'refused', message: 'No.', reason: 'not_armed' } as never;
+    };
     const read = vi.spyOn(api, 'readAloudReaperState');
     await act(async () => {
       hook.current.byKey(1);
     });
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(read).not.toHaveBeenCalled();
+    release();
     await act(async () => new Promise((r) => setTimeout(r, 60)));
-    expect(read.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(read).toHaveBeenCalledTimes(1);
     expect(hook.current.current?.name).toBe('Narrator');
+  });
+
+  it('a cold read turned off during a choice reads the arms once the choice ends', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    const answer = api.boothVoiceSet.bind(api);
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    api.boothVoiceSet = async (...args: Parameters<typeof api.boothVoiceSet>) => {
+      await held;
+      return answer(...args);
+    };
+    await act(async () => {
+      hook.current.byKey(1);
+    });
+    release();
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(hook.current.arm.state).not.toBe('unknown');
   });
 
   it('a voice key chooses that voice through the host, and the next take records on it', async () => {
