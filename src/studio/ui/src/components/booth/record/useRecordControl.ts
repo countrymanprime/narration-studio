@@ -342,6 +342,11 @@ export function useRecordControl({
       setRecording(true);
     }
   }, [recording, project?.playState, inApp]);
+  // A page that reads the DAW as not recording, while it records nothing itself, holds no take: a claim left by a take that ended with no page to see it is stale, and would
+  // write off the next take this page adopts as another chapter's (#3712).
+  useEffect(() => {
+    if (!recording && project?.playState && project.playState !== 'recording') appTakeChapterId = undefined;
+  }, [recording, project?.playState]);
   // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
   const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
   const refusedForChapter =

@@ -311,6 +311,18 @@ describe('the chapter a take belongs to (#3712)', () => {
     await act(async () => void (await next.result.current.toggle()));
     expect(appTakeChapter(), 'the take the second page started is its own').toBe('c2');
   });
+
+  it('a page that reads the DAW as not recording drops the claim of a take that ended with no page to see it, so it adopts the next take as its own', async () => {
+    const first = mount({ chapterId: 'c1', start: () => Promise.resolve(OK) });
+    await ready(first);
+    await act(async () => void (await first.result.current.toggle()));
+    expect(appTakeChapter()).toBe('c1');
+    first.unmount();
+    expect(appTakeChapter(), 'held while no page has read the DAW').toBe('c1');
+    const next = mount({ chapterId: 'c2' });
+    await ready(next);
+    await waitFor(() => expect(appTakeChapter()).toBeUndefined());
+  });
 });
 
 describe('the Record control stop (#3320)', () => {
