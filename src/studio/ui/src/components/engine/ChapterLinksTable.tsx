@@ -134,7 +134,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
             <TableRow>
               <TableHeader>Chapter</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader>{folders ? 'Folder' : 'Track'}</TableHeader>
+              <TableHeader>{destinationFor(folders ? 'folders' : 'flat').Noun}</TableHeader>
               <TableHeader hiddenLabel="Actions" />
             </TableRow>
           </TableHead>
@@ -406,7 +406,7 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={pick} onChange={setChosen} fullWidth />
+          <TrackSelect label={destination.pickerLabel(short)} choices={choices} value={pick} onChange={setChosen} fullWidth />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link

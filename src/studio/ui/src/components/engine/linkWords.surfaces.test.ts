@@ -101,6 +101,8 @@ const SURFACES: Record<string, (layout: VoiceTracksLayout) => string[]> = {
     }),
   'Proof: why the check card has no recording to check': (layout) =>
     (['unlinked', 'multiple_tracks', 'track_missing', 'no_project'] as const).map((reason) => noRecordingWhy(reason, layout).text),
+  'Pickups: why the original cannot be played': (layout) => Object.values(destinationFor(layout).noOriginal),
+  'Engine: the pickers and the table header': (layout) => [destinationFor(layout).pickerLabel('Chapter 1'), destinationFor(layout).Noun],
   'Editing: the no-audio notice for an unlinked or missing chapter': (layout) =>
     [
       noAudioText({ kind: 'unlinked' }, 'Chapter 1', 'REAPER', layout),

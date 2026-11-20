@@ -25,12 +25,13 @@ export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
 export function destinationFor(layout: VoiceTracksLayout) {
   const folders = layout === 'folders';
   const noun = folders ? 'folder' : 'track';
+  const Noun = folders ? 'Folder' : 'Track';
   const a = folders ? 'a folder of voice tracks' : 'a track';
   return {
     folders,
     noun,
     /** The noun capitalised, for a label or a title ("Folder for Chapter 1"). */
-    Noun: folders ? 'Folder' : 'Track',
+    Noun,
     /** "a track" or "a folder of voice tracks". */
     a,
     notLinkedTitle: (chapter: string) => `${chapter} is not linked to a ${noun}`,
@@ -40,8 +41,13 @@ export function destinationFor(layout: VoiceTracksLayout) {
     severalChip: folders ? 'Linked to several folders' : 'Linked to several tracks',
     missingChip: linkStateLabel('missing', folders),
     linkButton: `Link ${noun}`,
-    pickerLabel: (chapter: string) => `${folders ? 'Folder' : 'Track'} for ${chapter}`,
+    pickerLabel: (chapter: string) => `${Noun} for ${chapter}`,
     /** The Engine row's and the mapping dialog's line for a link whose track the project no longer has. */
+    /** Why a pickup's original cannot be played: the chapter has no link, or its linked track is gone. */
+    noOriginal: {
+      unlinked: `This chapter is not linked to a ${noun}, so the original cannot be played.`,
+      missing: `This chapter’s linked ${noun} is no longer in the project, so the original cannot be played.`,
+    },
     linkedMissing: `Linked ${noun} is missing from this project`,
     /** Why a chapter has no measured recording, for the Proof check card. */
     noRecordingWhy: {
