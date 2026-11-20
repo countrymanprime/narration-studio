@@ -455,13 +455,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Booth',
     surfaces: ['help', 'settings'],
   },
-  // Alt+Space switches the main button to the other mode and starts it at once (Record to Cold read, Cold read to Record); nothing new while a take or a cold read runs.
-  // It is the one Alt+Space of the window: Windows opens the window menu on it, so the router's preventDefault is what keeps that menu shut.
+  // Ctrl+Alt+Space switches the main button to the other mode and starts it at once (Record to Cold read, Cold read to Record); nothing new while a take or a cold read runs.
+  // It was Alt+Space (#3445), which Windows keeps for the window menu: the menu opened whatever the page did with the key (#3744). A Booth key never uses a combination
+  // the system takes (`reservedKeys.guard.test.ts` lists them).
+
   {
     id: 'booth.mode.switch',
     label: 'Switch between Record and Cold read, and start',
     scope: 'booth',
-    defaults: [key('Space', ['Alt'])],
+    defaults: [key('Space', ['Alt', 'Ctrl'])],
     group: 'Booth',
     surfaces: ['help', 'settings'],
   },
