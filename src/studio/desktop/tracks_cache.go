@@ -81,13 +81,14 @@ type cachedTrackLister struct {
 	cache     *liveTracksCache
 	heartbeat dawport.Heartbeat
 	// staleOK lets this lister hand out an answer between liveTracksMaxAge and liveTracksStaleAge while it is read again (servingStale). It is
-	// off for a list a page shows or the narrator asked to refresh: that read waits for REAPER's own answer past liveTracksMaxAge, as before.
+	// off for every other read (a list a page shows or the narrator asked to refresh, a take, an edit): that read waits for REAPER's own
+	// answer past liveTracksMaxAge, as before.
 	staleOK bool
 }
 
-// servingStale is lister allowed to answer from a list up to liveTracksStaleAge old while REAPER is asked again behind it. It is for the
-// host's own decisions in the path of an action (which track a take, an arm or a voice choice is for), where a round trip on a slow DAW is
-// the narrator's wait and a track that has gone since is refused by its GUID. A lister with no cache is returned as it is.
+// servingStale is lister allowed to answer from a list up to liveTracksStaleAge old while REAPER is asked again behind it. It is for
+// liveSelectedProjectForLane alone: which lane a voice choice or the Booth's arm is for, where a round trip on a slow DAW is the narrator's
+// wait and a track that has gone since is refused by its GUID. A lister with no cache is returned as it is.
 func servingStale(lister dawport.TrackLister) dawport.TrackLister {
 	if cached, ok := lister.(cachedTrackLister); ok {
 		cached.staleOK = true

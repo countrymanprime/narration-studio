@@ -163,23 +163,37 @@ describe('withDawLatency', () => {
     expect(reached).toEqual(['boothVoiceSet', 'dawArmBoothVoice']);
   });
 
-  it('hands out a kept track list past its age while one read behind it brings the next, and never past the bound', async () => {
+  it('hands a lane command a kept track list past its age while one read behind it brings the next, and never past the bound', async () => {
     const { api } = host();
     const slow = slowed(api, '2s');
-    const state = () => watch(slow.readAloudReaperState('c1'));
-    const first = state();
-    await vi.advanceTimersByTimeAsync(4_000); // the list (2 s), then the state (2 s)
-    expect(first.answer).toEqual({ status: 'ready' });
+    const arm = () => watch(slow.dawArmBoothVoice('c1'));
+    const first = arm();
+    await vi.advanceTimersByTimeAsync(4_000); // the list (2 s), then the arm (2 s)
+    expect(first.answer).toEqual({ ok: true });
     await vi.advanceTimersByTimeAsync(11_000); // the list is 13 s old: past its age, inside the bound
-    const stale = state();
-    await vi.advanceTimersByTimeAsync(2_000); // the state alone: the list did not cost a round trip
-    expect(stale.answer).toEqual({ status: 'ready' });
+    const stale = arm();
+    await vi.advanceTimersByTimeAsync(2_000); // the arm alone: the list did not cost a round trip
+    expect(stale.answer).toEqual({ ok: true });
     await vi.advanceTimersByTimeAsync(40_000); // nothing read the list for longer than the bound
-    const cold = state();
+    const cold = arm();
     await vi.advanceTimersByTimeAsync(2_000);
     expect(cold.answer).toBeUndefined();
     await vi.advanceTimersByTimeAsync(2_000);
-    expect(cold.answer).toEqual({ status: 'ready' });
+    expect(cold.answer).toEqual({ ok: true });
+  });
+
+  it('makes every other call wait for the list once it is past its age', async () => {
+    const { api } = host();
+    const slow = slowed(api, '2s');
+    const first = watch(slow.readAloudReaperState('c1'));
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(first.answer).toEqual({ status: 'ready' });
+    await vi.advanceTimersByTimeAsync(11_000);
+    const later = watch(slow.readAloudReaperState('c1'));
+    await vi.advanceTimersByTimeAsync(2_000); // the list again: a read a page shows is never the stale one
+    expect(later.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(later.answer).toEqual({ status: 'ready' });
   });
 
   it('never delivers a dropped command', async () => {

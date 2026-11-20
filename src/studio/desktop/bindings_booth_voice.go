@@ -387,7 +387,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
 	// One read of REAPER's list serves the voices and the vanished-link check, so they see one snapshot and one wait.
-	project, err := liveSelectedProject(svc)
+	project, err := liveSelectedProjectForLane(svc)
 	if err != nil {
 		return BoothVoice{}, err
 	}

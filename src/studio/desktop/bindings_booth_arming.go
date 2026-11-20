@@ -70,7 +70,11 @@ func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recor
 		// A chapter with no or several tracks has the setup notice the Booth already shows.
 		return dawport.Result{OK: true}, nil
 	}
-	target, noVoices, err := recordTarget(svc, chapterID, link)
+	project, err := liveSelectedProjectForLane(svc)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	target, noVoices, err := recordTargetIn(svc, chapterID, link, &project)
 	if err != nil {
 		return dawport.Result{}, err
 	}

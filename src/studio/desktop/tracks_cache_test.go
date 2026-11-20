@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -229,6 +230,46 @@ func TestAPagesReadPastTheMaxAgeWaitsForREAPER(t *testing.T) {
 	}
 	if got := read(t, host); len(got.Tracks) != 1 || inner.calls.Load() != 2 {
 		t.Fatalf("the host's read after it: %d tracks after %d requests; want the same fresh list and no request", len(got.Tracks), inner.calls.Load())
+	}
+}
+
+// A page's read that arrives while the host's refresh is out waits on that one read and gets REAPER's answer: never the stale list, and no
+// second request.
+func TestAPagesReadJoinsTheRefreshInFlight(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	page, _ := cachedFor(inner, b)
+	host := servingStale(page)
+	read(t, page)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	changed := twoTracks(9)
+	changed.Total, changed.Tracks = 1, changed.Tracks[:1]
+	gate := make(chan struct{})
+	inner.gate = gate
+	inner.set(changed, nil)
+	t.Cleanup(func() {
+		select {
+		case <-gate:
+		default:
+			close(gate)
+		}
+	})
+	if got := read(t, host); len(got.Tracks) != 2 {
+		t.Fatalf("the host's read got %d tracks; want the stale 2 at once", len(got.Tracks))
+	}
+	waitForCalls(t, inner, 2)
+	got := make(chan dawport.LiveTracks, 1)
+	go func() {
+		answer, _ := page.ReadTracks(context.Background())
+		got <- answer
+	}()
+	select {
+	case answer := <-got:
+		t.Fatalf("the page's read was answered with %d tracks while REAPER had not answered", len(answer.Tracks))
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(gate)
+	if answer := <-got; len(answer.Tracks) != 1 || inner.calls.Load() != 2 {
+		t.Fatalf("the page's read: %d tracks after %d requests; want REAPER's 1 from the one refresh", len(answer.Tracks), inner.calls.Load())
 	}
 }
 
@@ -764,31 +805,47 @@ func TestARefreshThatPanicsEndsNothing(t *testing.T) {
 	}
 }
 
-// A track this app made while a refresh was out: the refresh's answer may predate it, so it is neither kept nor handed to the next caller,
-// who reads REAPER for itself (the rule Invalidate already holds for a caller's own read).
+// seqLister answers its n-th request with answers[n-1] (the last one for any later request); hold, when set, holds request number held
+// until it is closed.
+type seqLister struct {
+	calls   atomic.Int32
+	answers []dawport.LiveTracks
+	held    int32
+	hold    chan struct{}
+}
+
+func (l *seqLister) ReadTracks(context.Context) (dawport.LiveTracks, error) {
+	n := l.calls.Add(1)
+	if n == l.held {
+		<-l.hold
+	}
+	return l.answers[min(int(n), len(l.answers))-1], nil
+}
+
+// A track this app made while a refresh was out: the refresh's answer predates it, so it is neither handed to the next caller, who reads
+// REAPER for itself, nor kept over that caller's answer when it comes back later (the rule Invalidate already holds for a caller's own read).
 func TestARefreshInFlightWhenTheListWasInvalidatedIsNotKept(t *testing.T) {
-	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	strict, _ := cachedFor(inner, b)
+	withNew := twoTracks(9)
+	withNew.Total, withNew.Tracks = 3, append(slices.Clone(withNew.Tracks), dawport.LiveTrack{Index: 2, GUID: "{33333333-3333-3333-3333-333333333333}", Name: "Chapter III"})
+	// The first read, the refresh (held, and without the new track) and the read after the invalidation (with it).
+	inner := &seqLister{answers: []dawport.LiveTracks{twoTracks(9), twoTracks(9), withNew}, held: 2, hold: make(chan struct{})}
+	b := newBeat(9)
+	strict, cache := cachedFor(inner, b)
 	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 9, liveTracksMaxAge+time.Second)
-	gate := make(chan struct{})
-	inner.gate = gate
 	read(t, cached) // served stale; the refresh is held
-	waitForCalls(t, inner, 2)
-	strict.cache.Invalidate()
-	withNew := twoTracks(9)
-	withNew.Total, withNew.Tracks = 3, append(withNew.Tracks, dawport.LiveTrack{Index: 2, GUID: "{33333333-3333-3333-3333-333333333333}", Name: "Chapter III"})
-	inner.set(withNew, nil)
-	got := make(chan dawport.LiveTracks, 1)
-	go func() {
-		answer, _ := cached.ReadTracks(context.Background())
-		got <- answer
-	}()
-	waitForCalls(t, inner, 3) // the caller after the invalidation sent its own request and did not join the refresh
-	close(gate)
-	if answer := <-got; len(answer.Tracks) != 3 {
-		t.Fatalf("the read after the invalidation got %d tracks; want REAPER's 3", len(answer.Tracks))
+	for inner.calls.Load() != 2 {
+		time.Sleep(time.Millisecond)
+	}
+	cache.Invalidate()
+	if got := read(t, cached); len(got.Tracks) != 3 || inner.calls.Load() != 3 {
+		t.Fatalf("the read after the invalidation: %d tracks after %d requests; want REAPER's 3 from a request of its own", len(got.Tracks), inner.calls.Load())
+	}
+	close(inner.hold) // the refresh answers now, with the list from before the track was made
+	time.Sleep(20 * time.Millisecond)
+	if got := read(t, cached); len(got.Tracks) != 3 || inner.calls.Load() != 3 {
+		t.Fatalf("after the old refresh came back: %d tracks, %d requests; want the 3 still, from the cache", len(got.Tracks), inner.calls.Load())
 	}
 }
 
@@ -800,6 +857,7 @@ func TestStaleCallersAtTheSameTimeStartOneRefresh(t *testing.T) {
 	read(t, cached)
 	tickBeat(b, 9, liveTracksMaxAge+time.Second)
 	inner.gate = make(chan struct{})
+	t.Cleanup(func() { close(inner.gate) })
 	var group sync.WaitGroup
 	for range 20 {
 		group.Add(1)
@@ -816,5 +874,4 @@ func TestStaleCallersAtTheSameTimeStartOneRefresh(t *testing.T) {
 	if calls := inner.calls.Load(); calls != 2 {
 		t.Fatalf("%d requests; want the first read and one refresh", calls)
 	}
-	close(inner.gate)
 }
