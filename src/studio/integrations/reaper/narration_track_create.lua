@@ -23,11 +23,13 @@
 -- is never nested inside the chapter before it; that is the only change to a track that was there. It answers
 -- TRACK_CREATED|run|guid|index|name|childGuid|childIndex|childName. A parent and a child name together are refused.
 --
--- track_create|run|name||childName|more... adds the same folder with every further child name after the first as a sibling (#3748), in the
--- order given and in the same one undo block: the folder opens (I_FOLDERDEPTH 1), the children sit at 0 and the last closes it (-1). Each
--- child after the first is answered as TRACK_CHILD|run|guid|index|name before TRACK_CREATED, which still answers the folder and the first child,
--- so a host that reads only TRACK_CREATED sees the folder and its first child. Blank names, or two child names equal when compared without
--- case, are refused with ERROR and nothing is added. An older script ignores the names after the first.
+-- track_create|run|name||childName|more adds the same folder with every further child as a sibling (#3748): `more` is the further child names in
+-- one field, one name per line (the bridge reads at most eight fields, so a list of names is one field, and a name never holds a line break: it
+-- is cleaned to a space). The children sit in the order given, in the same one undo block: the folder opens (I_FOLDERDEPTH 1), the children sit at 0
+-- and the last closes it (-1). Each child after the first is answered as TRACK_CHILD|run|guid|index|name before TRACK_CREATED, which still answers
+-- the folder and the first child, so a host that reads only TRACK_CREATED sees the folder and its first child. A blank name (the first included
+-- when more follow), or two names equal when compared without case (ASCII letters only), is refused with ERROR and nothing is added; more names
+-- with a parent GUID are refused like a child name with one. An older script ignores `more`.
 --
 -- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_CHILD|run|guid|index|name, TRACK_STALE|run|parentGuid, or
 -- ERROR|run|message.
@@ -144,11 +146,17 @@ local function stored_name(track)
   return stored
 end
 
--- The cleaned child names of a folder create (the first, then any more), or nil and the sentence that refuses them: a blank name, or two names
--- that are the same without case.
-local function clean_children(child_text, more)
+-- The cleaned child names of a folder create (the first, then each line of `more_text`), or nil and the sentence that refuses them: a blank name,
+-- or two names that are the same without case.
+local function clean_children(child_text, more_text)
+  local texts = { child_text }
+  if more_text ~= '' then
+    for line in (more_text .. '\n'):gmatch('([^\n]*)\n') do
+      texts[#texts + 1] = line
+    end
+  end
   local names, seen = {}, {}
-  for _, text in ipairs({ child_text, table.unpack(more) }) do
+  for _, text in ipairs(texts) do
     local child_name = clean_name(text)
     if child_name == '' then
       return nil, BLANK_CHILD
@@ -163,7 +171,7 @@ local function clean_children(child_text, more)
   return names
 end
 
-local function track_create(session_dir, run_id, name_text, parent_text, child_text, more)
+local function track_create(session_dir, run_id, name_text, parent_text, child_text, more_text)
   local name = clean_name(name_text)
   if name == '' then
     event(session_dir, 'ERROR', run_id, NO_NAME)
@@ -174,12 +182,12 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
     return
   end
   local parent_guid = normalize_guid(parent_text)
-  if clean_name(child_text) ~= '' then
+  if clean_name(child_text) ~= '' or more_text ~= '' then
     if parent_guid ~= '' then
       event(session_dir, 'ERROR', run_id, BOTH)
       return
     end
-    local child_names, refusal = clean_children(child_text, more or {})
+    local child_names, refusal = clean_children(child_text, more_text)
     if child_names == nil then
       event(session_dir, 'ERROR', run_id, refusal)
       return
@@ -407,7 +415,7 @@ end
 
 return function(registry)
   registry.register('track_create', function(ctx, args)
-    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', { table.unpack(args, 5) })
+    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '')
   end)
   registry.register('chapter_folders', function(ctx, args)
     chapter_folders(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')

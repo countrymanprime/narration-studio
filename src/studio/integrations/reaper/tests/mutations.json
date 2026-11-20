@@ -2680,6 +2680,18 @@
     "replace": ""
   },
   {
+    "name": "a chapter folder's further children are one track named with every name",
+    "file": "narration_track_create.lua",
+    "find": "    for line in (more_text .. '\\n'):gmatch('([^\\n]*)\\n') do\n      texts[#texts + 1] = line\n    end\n",
+    "replace": "    texts[#texts + 1] = more_text\n"
+  },
+  {
+    "name": "a chapter folder with a blank first child and more names adds a plain track",
+    "file": "narration_track_create.lua",
+    "find": " or more_text ~= '' then",
+    "replace": " then"
+  },
+  {
     "name": "a chapter folder's child gets no name",
     "file": "narration_track_create.lua",
     "find": "  reaper.GetSetMediaTrackInfo_String(child, 'P_NAME', child_name, true)\n",

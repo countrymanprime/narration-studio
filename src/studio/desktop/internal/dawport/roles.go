@@ -342,7 +342,7 @@ type ChildTrackCreator interface {
 // FolderTrackCreator adds a chapter folder for a Voice folders project (#2840, #3748): a folder named name holding the children named children, in order, after
 // every other track, in one undo point, closing a folder left open at the end first so the new folder is not nested in the chapter before
 // it. Only an engine with folder tracks (REAPER) has it, on the same role as TrackCreator. A zero Child means the engine added Folder as a
-// plain track (a script older than the chapter folder). Like CreateTrack, it changes no other track, never saves and refuses while recording.
+// plain track (a script older than the chapter folder). A script from before #3748 adds the first child only and answers no error: a caller that asks for several compares len(Children()) with what it asked for. Like CreateTrack, it changes no other track, never saves and refuses while recording.
 type FolderTrackCreator interface {
 	CreateFolderTrack(ctx context.Context, name string, children ...string) (CreatedFolder, error)
 }

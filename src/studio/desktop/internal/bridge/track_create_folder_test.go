@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -84,8 +85,8 @@ func TestCreateFolderTrackSendsEveryChildInOrderAndReadsThemBack(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{
-			{"TRACK_CHILD", run(command), createdSecond, "4", command[6]},
-			{"TRACK_CHILD", run(command), createdThird, "5", command[7]},
+			{"TRACK_CHILD", run(command), createdSecond, "4", strings.Split(command[6], "\n")[0]},
+			{"TRACK_CHILD", run(command), createdThird, "5", strings.Split(command[6], "\n")[1]},
 			{"TRACK_CREATED", run(command), createdTrack, "2", command[3], createdChild, "3", command[5]},
 		}
 	})
@@ -94,7 +95,7 @@ func TestCreateFolderTrackSendsEveryChildInOrderAndReadsThemBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	commands := fake.commands()
-	if len(commands) != 1 || !reflect.DeepEqual(commands[0][3:], []string{"Chapter 2", "", "Narrator", "Mara", "Extras \U0001F409"}) {
+	if len(commands) != 1 || !reflect.DeepEqual(commands[0][3:], []string{"Chapter 2", "", "Narrator", "Mara\nExtras \U0001F409"}) {
 		t.Fatalf("commands = %v, want one track_create with the name, no parent and the three children in order", commands)
 	}
 	want := CreatedFolder{
@@ -151,5 +152,22 @@ func TestCreateFolderTrackRefusalFromTheScriptIsReportedAndAddsNothing(t *testin
 	var refusal *RefusalError
 	if !errors.As(err, &refusal) || refusal.Sentence != "Two tracks in a new chapter would have the same name, so nothing was added." {
 		t.Fatalf("err = %v, want the script's refusal", err)
+	}
+}
+
+func TestCreateFolderTrackSendsEveryChildAfterTheFirstInOneFieldWhateverTheirNumber(t *testing.T) {
+	// The bridge reads at most eight fields (src/studio/integrations/reaper/narration_ui_bridge.lua), so six children are the first in one field
+	// and the other five in one more, never one field each, and a line break inside a name cannot split it in two.
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_CREATED", run(command), createdTrack, "2", command[3], createdChild, "3", command[5]}}
+	})
+	if _, err := actions.CreateFolderTrack(context.Background(), "Chapter 2", "Narrator", "Mara", "Extras", "Dragon", "King\nGuard", "Page"); err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	want := []string{"Chapter 2", "", "Narrator", "Mara\nExtras\nDragon\nKing Guard\nPage"}
+	if len(commands) != 1 || !reflect.DeepEqual(commands[0][3:], want) {
+		t.Fatalf("commands = %v, want one track_create ending %q", commands, want)
 	}
 }

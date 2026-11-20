@@ -61,21 +61,33 @@ func (a *Actions) CreateChildTrack(ctx context.Context, name, parentGUID string)
 // undo point (#2840, #3748): the folder opens, the children sit one level down and the last closes it. A folder left open at the end of the
 // project is closed on its last track first, so the new folder is not nested in the chapter before it. It never saves the project, refuses
 // while REAPER records (ErrRecording), and is not idempotent. A blank name, no child or a blank child name is ErrTrackNameEmpty before anything
-// is sent; two child names equal without case are refused by the script with nothing added.
+// is sent; two child names equal without case (ASCII letters only) are refused by the script with nothing added.
+//
+// The children after the first travel in one field, a name a line: the bridge reads at most eight fields, so one field per name would merge
+// every name past the third into one track. A line break inside a name becomes a space here, as the script does, so no name can split in two.
+// A script from before #3748 reads the first child only: the answer then holds fewer children than asked for, with no error, and a caller that
+// sent several compares len(Children()) with what it asked for.
 func (a *Actions) CreateFolderTrack(ctx context.Context, name string, children ...string) (CreatedFolder, error) {
 	if len(children) == 0 {
 		return CreatedFolder{}, ErrTrackNameEmpty
 	}
-	rest := []string{""}
+	cleaned := make([]string, 0, len(children))
 	for _, child := range children {
-		child = strings.TrimSpace(child)
+		child = strings.TrimSpace(lineBreaks.Replace(child))
 		if child == "" {
 			return CreatedFolder{}, ErrTrackNameEmpty
 		}
-		rest = append(rest, child)
+		cleaned = append(cleaned, child)
+	}
+	rest := []string{"", cleaned[0]}
+	if len(cleaned) > 1 {
+		rest = append(rest, strings.Join(cleaned[1:], "\n"))
 	}
 	return a.create(ctx, name, rest...)
 }
+
+// lineBreaks is what the script turns into a space inside a track name (narration_track_create.lua, clean_name).
+var lineBreaks = strings.NewReplacer("\r", " ", "\n", " ", "\t", " ")
 
 func (a *Actions) createTrack(ctx context.Context, name string, parent ...string) (CreatedTrack, error) {
 	created, err := a.create(ctx, name, parent...)
