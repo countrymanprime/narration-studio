@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { CAPABILITY_GUIDE } from '../../daw/capabilityGuide';
 import { CAPABILITY_MATRIX, MATRIX_TOOLS, type MatrixCell } from '../../daw/capabilityMatrix';
@@ -8,7 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 
 // What takes the free width, one narrow column for each tool, and Now, which holds a badge and, when the tool cannot do it, the tool's own sentence.
-const COLUMNS = ['auto', '4.75rem', '4.75rem', '4.75rem', '4.75rem', '13rem'] as const;
+const COLUMNS = ['auto', '6rem', '6rem', '6rem', '6rem', '11rem'] as const;
+// In a narrow window the four tools fold into a line under each capability, so nothing scrolls sideways.
+const NARROW_COLUMNS = ['auto', '8.5rem'] as const;
 
 const LABELS = new Map<string, string>(DAW_CAPABILITIES.map(({ key, label }) => [key, label]));
 const LEVEL_WORD: Record<DawCapabilityLevel, string> = {
@@ -19,7 +22,7 @@ const LEVEL_WORD: Record<DawCapabilityLevel, string> = {
 };
 const CELL: Record<MatrixCell, { label: string; tone: 'success' | 'neutral' | 'warning'; icon: string }> = {
   yes: { label: 'Yes', tone: 'success', icon: '✓' },
-  soon: { label: 'Not yet', tone: 'warning', icon: '…' },
+  soon: { label: 'Not yet', tone: 'warning', icon: '' },
   no: { label: 'No', tone: 'neutral', icon: '✕' },
 };
 
@@ -58,6 +61,7 @@ export function availableCount(report: DawCapabilities | undefined): { available
  */
 export function CapabilityReference({ report, loadError, onRetry }: { report: DawCapabilities | undefined; loadError: string; onRetry: () => void }) {
   const keys = useMemo(() => keysOf(report), [report]);
+  const narrow = useLayoutClass().narrow;
   return (
     <div className="flex w-full flex-col gap-3">
       {loadError && !report && (
@@ -66,14 +70,12 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
           <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" onClick={onRetry} />
         </div>
       )}
-      <Table label="What the recording tools can do" columns={COLUMNS}>
+      <Table label="What the recording tools can do" columns={narrow ? NARROW_COLUMNS : COLUMNS}>
         <TableHead>
           <TableRow>
             <TableHeader>What</TableHeader>
-            {MATRIX_TOOLS.map((tool) => (
-              <TableHeader key={tool}>{tool === 'Built-in recorder' ? 'Built-in' : tool}</TableHeader>
-            ))}
-            <TableHeader>{`Now in ${toolName(report)}`}</TableHeader>
+            {!narrow && MATRIX_TOOLS.map((tool) => <TableHeader key={tool}>{tool === 'Built-in recorder' ? 'Built-in' : tool}</TableHeader>)}
+            <TableHeader>{narrow ? 'Now' : `Now in ${toolName(report)}`}</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -91,16 +93,22 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
                       {guide.used.length > 0 ? `Used by ${guide.used.join(', ')}` : 'Used by the app itself'}
                     </span>
                   )}
+                  {narrow && (
+                    <span className="block text-[0.8125rem] text-[var(--text-muted)]">
+                      {levels ? `Works with ${MATRIX_TOOLS.filter((_, index) => levels[index] === 'yes').join(', ') || 'no tool yet'}` : 'Not listed'}
+                    </span>
+                  )}
                 </TableCell>
-                {MATRIX_TOOLS.map((tool, index) => (
-                  <TableCell key={tool}>
-                    {levels ? (
-                      <StatusBadge shape="cell" tone={CELL[levels[index]].tone} icon={CELL[levels[index]].icon} label={CELL[levels[index]].label} />
-                    ) : (
-                      <span className="text-[var(--text-muted)]">Not listed</span>
-                    )}
-                  </TableCell>
-                ))}
+                {!narrow &&
+                  MATRIX_TOOLS.map((tool, index) => (
+                    <TableCell key={tool}>
+                      {levels ? (
+                        <StatusBadge shape="cell" tone={CELL[levels[index]].tone} icon={CELL[levels[index]].icon} label={CELL[levels[index]].label} />
+                      ) : (
+                        <span className="text-[var(--text-muted)]">Not listed</span>
+                      )}
+                    </TableCell>
+                  ))}
                 <TableCell>
                   <Now support={report?.capabilities[key]} />
                 </TableCell>
