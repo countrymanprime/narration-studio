@@ -4406,5 +4406,17 @@
     "file": "narration_solo_chapter.lua",
     "find": "    if #state.ghosts > 0 then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then",
     "replace": "    if false then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then"
+  },
+  {
+    "name": "a save while the bridge is busy ignores a ghost that still reads our solo",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if reads_ours(state.rows) or reads_ours(state.ghosts) or state.pending ~= nil or unread then",
+    "replace": "      if reads_ours(state.rows) or state.pending ~= nil or unread then"
+  },
+  {
+    "name": "the retry wait of a ledger that cannot be written never counts down",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.wait = state.wait - 1",
+    "replace": "        state.wait = state.wait"
   }
 ]

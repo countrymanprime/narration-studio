@@ -12,18 +12,19 @@ const inOrder = (call: () => Promise<unknown>) => {
 };
 
 /**
- * What this page knows of the solo, whichever page asked for it: `maySolo` is set when a solo was answered as done and cleared when a restore was; `owed`
+ * What this page knows of the solo, whichever page asked for it: `soloedFor` is the chapter a solo was answered as done for, cleared when a restore was; `owed`
  * when a restore that may have had something to take off failed; `told` once the narrator has been told (the host's sentence, said once per owed restore).
  * `held` is the chapter a Booth that is on a chapter wants soloed: the one owner of the order, so a restore sent late never takes off a solo in force.
  */
-let maySolo = false;
+let soloedFor: string | null = null;
+let dawName = 'the DAW';
 let owed = false;
 let told = false;
 let held: string | null = null;
 const TOLD_TOPIC = 'daw-solo-left';
 /** Said once when a restore could not reach the host at all (the host's own sentence is the only copy of the other case). */
-const NOT_REACHED =
-  "The solo could not be taken off the chapter's track, so the other chapters may stay silent. Unsolo it in the DAW if they are still silent.";
+const notReached = () =>
+  `${dawName} could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in ${dawName} if they are still silent.`;
 
 type Ui = { say: (sentence: string) => void; withdraw: () => void };
 
@@ -31,7 +32,7 @@ type Ui = { say: (sentence: string) => void; withdraw: () => void };
 const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
   inOrder(async () => {
     // A retry that finds a Booth on a chapter whose own solo was answered as done has nothing to take off: that solo is the one in force.
-    if (reassert && held !== null && maySolo) {
+    if (reassert && held !== null && soloedFor === held) {
       owed = false;
       if (told) ui.withdraw();
       told = false;
@@ -40,7 +41,7 @@ const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
     try {
       const answer = await place.dawSoloRestore();
       if (answer.ok) {
-        maySolo = false;
+        soloedFor = null;
         owed = false;
         if (told) ui.withdraw();
         told = false;
@@ -54,15 +55,15 @@ const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
       }
     } catch {
       // The call did not reach the host: what may be soloed stays owed, and the narrator is told once.
-      owed = maySolo || owed;
+      owed = soloedFor !== null || owed;
       if (owed && !told) {
         told = true;
-        ui.say(NOT_REACHED);
+        ui.say(notReached());
       }
     }
     if (reassert && held !== null) {
       const chapter = held;
-      if ((await place.dawSoloChapter(chapter)).ok) maySolo = true;
+      if ((await place.dawSoloChapter(chapter)).ok) soloedFor = chapter;
     }
   });
 
@@ -77,6 +78,7 @@ function useUi(): Ui {
 function useSoloActive(): boolean {
   const follow = useFollowChapterInDaw();
   const { caps } = useDawCapabilities();
+  if (caps?.daw === 'REAPER') dawName = 'REAPER';
   return follow === true && !!caps?.capabilities.follow_position?.available;
 }
 
@@ -113,7 +115,7 @@ export function useDawSoloesChapter(chapterId: string | undefined): void {
     held = wanted;
     sent.current = true;
     inOrder(async () => {
-      if ((await place.dawSoloChapter(wanted)).ok) maySolo = true;
+      if ((await place.dawSoloChapter(wanted)).ok) soloedFor = wanted;
     });
     return () => {
       held = null;
@@ -146,6 +148,7 @@ export function useRetryOwedSoloRestore(page: string): void {
     window.addEventListener('focus', again);
     return () => window.removeEventListener('focus', again);
   }, []);
+  if (caps?.daw === 'REAPER') dawName = 'REAPER';
   const reachable = !!caps?.capabilities.follow_position?.available;
   const uiRef = useRef(ui);
   uiRef.current = ui;
@@ -156,6 +159,8 @@ export function useRetryOwedSoloRestore(page: string): void {
 
 /** For tests only: forgets what the page knows of the solo, so one test's owed restore does not reach the next. */
 export function resetSoloDebtForTest(): void {
-  maySolo = owed = told = false;
+  soloedFor = null;
+  owed = told = false;
+  dawName = 'the DAW';
   held = null;
 }

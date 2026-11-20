@@ -266,9 +266,6 @@ return function(registry)
     return restored, kept
   end
 
-  -- Runs `save` (a function that writes the project to disk) with the chapter this bridge soloed put back, then soloes it again: an I_SOLO write
-  -- marks nothing unsaved, so a project saved while soloed would keep the solo on disk and the next open would read it as the narrator's own. The row
-  -- stays on the ledger throughout. The narrator's own save in REAPER cannot be intercepted (reaper.md).
   -- Whether a row in `list` is on a track that still reads the solo this file set.
   local function reads_ours(list)
     for _, row in ipairs(list) do
@@ -280,6 +277,9 @@ return function(registry)
     return false
   end
 
+  -- Runs `save` (a function that writes the project to disk) with the chapter this bridge soloed put back, then soloes it again: an I_SOLO write
+  -- marks nothing unsaved, so a project saved while soloed would keep the solo on disk and the next open would read it as the narrator's own. The row
+  -- stays on the ledger throughout. The narrator's own save in REAPER cannot be intercepted (reaper.md).
   registry.solo_around_save = function(save)
     if busy() then
       -- A record_start waits for REAPER (or a play's isolation is in place) and a chapter of ours still reads soloed, a solo waits to be applied, or a
@@ -439,6 +439,7 @@ return function(registry)
       if place ~= state.tried then
         state.tried = place
         local _, _, left = put_back(state.ghosts)
+        -- Stays although no test pins it: a record_start wait in the same tick after a save can leave a stale ghost, and the rewrite drops it.
         if #left ~= #state.ghosts then
           state.ghosts = {}
           add_ghosts(left)

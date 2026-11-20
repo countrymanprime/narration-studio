@@ -360,6 +360,24 @@ describe('a restore that did not reach the DAW', () => {
     restore();
   });
 
+  it('a solo answered for an earlier chapter does not let a retry skip the restore for the next one whose solo was refused', async () => {
+    const d = await daw('true', false);
+    const { told, restore } = await toasts();
+    const tree = renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await act(async () => {});
+    d.state.script.push('fail');
+    tree.rerender(<Shell chapter="" />);
+    await waitFor(() => expect(told).toHaveLength(1));
+    d.state.solo = 'refuse';
+    tree.rerender(<Shell chapter="c-2" />);
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    restore();
+  });
+
   it('tells the narrator once when the restore cannot reach the host at all', async () => {
     const d = await daw();
     const { told, restore } = await toasts();
@@ -369,6 +387,7 @@ describe('a restore that did not reach the DAW', () => {
     booth.unmount();
     await waitFor(() => expect(told).toHaveLength(1));
     expect(told[0]).toContain('may stay silent');
+    expect(told[0]).toContain('REAPER');
     restore();
   });
 

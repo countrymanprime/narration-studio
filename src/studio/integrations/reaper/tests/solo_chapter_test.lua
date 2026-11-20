@@ -1032,3 +1032,38 @@ H.test('solo_restore recovers a leftover play isolation before it writes a solo 
   end
   H.truthy(recovered and wrote and recovered < wrote, 'the transport recovers before our write')
 end)
+
+H.test('save_project while a record_start waits and a chapter is a ghost that still reads soloed is refused, writing nothing', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local tracks, book = s.fake.tracks, s.fake.project_path
+  s.fake.tracks, s.fake.project_path = {}, '/elsewhere/Other.rpp'
+  s:send('solo_restore', 'r1')
+  s.fake.tracks, s.fake.project_path = tracks, book
+  waiting_for_record(s, t)
+  local saves = s.fake.saves or 0
+  s:send('save_project', 's1', s.fake.project_path)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(s.fake.saves or 0, saves)
+end)
+
+H.test('a ledger that failed to be removed on consecutive ticks is retried by a later tick and the row is gone', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local real_remove = os.remove
+  os.remove = function(path)
+    if tostring(path):find(LEDGER, 1, true) then
+      return nil, 'in use'
+    end
+    return real_remove(path)
+  end
+  s:send('solo_restore', 'r1')
+  for _ = 1, 6 do
+    s:tick()
+  end
+  os.remove = real_remove
+  for _ = 1, 600 do
+    s:tick()
+  end
+  H.eq(ledger(s), nil, 'the countdown ended and the retry removed the file')
+end)
