@@ -200,21 +200,37 @@ describe('holding a waveform arrow', () => {
 
 describe('the view arriving at the end the arrow points at', () => {
   it('finishes a step still gliding where it was heading, not a hair short of it (#3756)', () => {
+    // 10 s from the end of the recording, so a 20 s step is clamped to it.
+    start = TOTAL - LEN - 10;
     const s = createHoldScroll(deps());
     s.step(1);
-    // The last frame before the arrow turns off lands in the final millisecond of the glide: the view is almost, not quite, at the target.
+    // The last frame before the arrow turns off lands in the final millisecond of the glide: the view is almost, not quite, at the end.
     clock = 0;
     for (const cb of [...frames]) cb(clock);
     clock += EASE_MS * 0.995;
     for (const cb of [...frames]) cb(clock);
-    expect(start).toBeLessThan(120);
+    expect(start).toBeLessThan(TOTAL - LEN);
     s.arrive();
-    expect(start).toBe(120);
+    expect(start).toBe(TOTAL - LEN);
     expect(frames.size).toBe(0);
     // Nothing is left gliding, so no later frame moves it again.
     const settled = moves.length;
     run(EASE_MS * 2);
     expect(moves.length).toBe(settled);
+  });
+
+  it('leaves a step heading mid-recording where another input put the view (#3756)', () => {
+    const s = createHoldScroll(deps());
+    s.step(1);
+    clock = 0;
+    for (const cb of [...frames]) cb(clock);
+    clock += EASE_MS * 0.5;
+    for (const cb of [...frames]) cb(clock);
+    // Something else (the End key, the wheel) takes the view to the end of the recording while the step is on its way to 120.
+    start = TOTAL - LEN;
+    s.arrive();
+    expect(start).toBe(TOTAL - LEN);
+    expect(frames.size).toBe(0);
   });
 
   it('ends a hold where it is, with no jump', () => {

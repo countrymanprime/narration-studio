@@ -32,7 +32,7 @@ export interface HoldScroll {
   step: (dir: 1 | -1) => void;
   /**
    * The view has come to the end the arrow points at, as far as the arrow can tell (it turns off a hair before the end, `canBack` and `canForward`).
-   * A step still gliding finishes where it was heading, so it is not left short by that hair; a hold ends where it is.
+   * A step still gliding towards that end finishes there, so it is not left short by that hair; a hold, or a step heading elsewhere, ends where it is.
    */
   arrive: () => void;
 }
@@ -149,9 +149,10 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
     },
     cancel,
     arrive() {
+      // Only a step that was heading for the end finishes there; one heading mid-recording, with another input having put the view at the end meanwhile, is left where that input put it.
       const to = unsubscribe !== null && target !== null ? target : null;
       cancel();
-      if (to !== null) move(to);
+      if (to !== null && (to <= 0 || to >= max())) move(to);
     },
     step,
   };
