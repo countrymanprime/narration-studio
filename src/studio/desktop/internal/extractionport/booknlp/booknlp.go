@@ -169,6 +169,10 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 		if err != nil {
 			return nil, fmt.Errorf("BookNLP gave a bad suggestion on line %d: %w", i+1, err)
 		}
+		if raw.Payload.Kind == extraction.KindEntry && !extraction.ProperName(raw.Payload.Name) {
+			s.log(fmt.Sprintf("Dropped a BookNLP suggestion: %q is not a name.", raw.Payload.Name))
+			continue
+		}
 		if missing, ok := verified(in.Paragraphs, raw); !ok {
 			s.log(fmt.Sprintf("Dropped a BookNLP suggestion: its quote %q is not in paragraph %q.", missing.Text, missing.ParagraphID))
 			continue

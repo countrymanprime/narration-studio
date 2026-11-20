@@ -24,8 +24,12 @@ func ProperName(name string) bool {
 	if !letters {
 		return false
 	}
+	// A leading article does not make a name lower case: the Hatter, the Caterpillar, a Dr. Vance. What follows it is judged.
+	for len(words) > 1 && leadingArticles[strings.ToLower(words[0])] {
+		words = words[1:]
+	}
 	first := []rune(words[0])[0]
-	if unicode.IsLower(first) && !surnameParticles[strings.ToLower(words[0])] {
+	if unicode.IsLower(first) && !(len(words) > 1 && surnameParticles[strings.ToLower(words[0])]) {
 		return false
 	}
 	for _, word := range words {
@@ -35,6 +39,9 @@ func ProperName(name string) bool {
 	}
 	return false
 }
+
+// leadingArticles are the words a group or a character may be introduced by, written in lower case in running text.
+var leadingArticles = map[string]bool{"the": true, "a": true, "an": true}
 
 // surnameParticles are the words a surname may begin with in lower case.
 var surnameParticles = map[string]bool{
@@ -54,7 +61,7 @@ var notNameWords = wordSet(
 	"the", "a", "an", "and", "or", "but", "nor", "so", "yet", "for", "of", "to", "in", "on", "at", "by", "with", "from", "as", "if",
 	"then", "than", "when", "while", "where", "why", "how", "because", "though", "although", "however", "also", "not", "no", "yes",
 	"all", "any", "some", "each", "every", "both", "either", "neither", "many", "much", "more", "most", "other", "another", "such",
-	"is", "was", "are", "were", "be", "been", "am", "do", "did", "does", "have", "had", "has", "will", "would", "can", "could",
+	"is", "was", "are", "were", "be", "been", "am", "do", "did", "does", "have", "had", "has", "would", "could",
 	"mr", "mrs", "ms", "miss", "sir", "madam", "ma'am", "dr", "lord", "lady",
 )
 

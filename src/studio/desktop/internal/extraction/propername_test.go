@@ -9,22 +9,22 @@ type nameCase struct {
 	valid bool
 }
 
-// spans is what GLiNER's zero-shot labels gave on a modern novel with the owner's kind of prose (#3661): the lower-case words and
-// pronouns it called characters and objects, next to the names it got right. The first block is the owner's own examples.
+// spans is a fixture built from the issue's own examples (#3661) and the false positives GLiNER's documentation names: the lower-case
+// words and pronouns a zero-shot labeller calls characters and objects, next to real names. It is not model output and not the owner's text.
 var spans = []nameCase{
 	{"she", "Character", false}, {"map", "Item", false}, {"concrete", "Item", false},
 	{"She", "Character", false}, {"he", "Character", false}, {"He", "Character", false}, {"her", "Character", false},
 	{"they", "Character", false}, {"I", "Character", false}, {"we", "Character", false}, {"it", "Item", false}, {"someone", "Character", false},
-	{"nothing", "Item", false}, {"the hedgehog", "Character", false}, {"grey mare", "Item", false}, {"the door", "Item", false},
-	{"the water", "Item", false}, {"a flashlight", "Item", false}, {"the van", "Item", false}, {"his mother", "Character", false},
+	{"nothing", "Item", false}, {"the hedgehog", "Character", false}, {"a flashlight", "Item", false}, {"grey mare", "Item", false}, {"the door", "Item", false},
+	{"the water", "Item", false}, {"the van", "Item", false}, {"his mother", "Character", false},
 	{"the old man", "Character", false}, {"the city", "Place", false}, {"the road", "Place", false}, {"the others", "Organization", false},
 	{"The", "Character", false}, {"Mr", "Character", false}, {"Sir", "Character", false}, {"Of the", "Place", false}, {"...", "Item", false},
 	{"However", "Character", false}, {"Because", "Character", false},
 	{"Mara", "Character", true}, {"Mara Voss", "Character", true}, {"Dr. Vance", "Character", true}, {"Mr Darcy", "Character", true},
 	{"Captain Arelian", "Character", true}, {"O'Neill", "Character", true}, {"St. Clair", "Character", true}, {"de la Cruz", "Character", true},
 	{"van der Berg", "Character", true}, {"王芳", "Character", true}, {"Harbor Street", "Place", true}, {"Mount Rook", "Place", true},
-	{"Dawnspire", "Place", true}, {"Council of Ash", "Organization", true}, {"The Order of Dawn", "Organization", true},
-	{"Lord Voldemort", "Character", true}, {"Excalibur", "Item", true}, {"The Maltese Falcon", "Item", true},
+	{"Dawnspire", "Place", true}, {"Council of Ash", "Organization", true}, {"The Order of Dawn", "Organization", true}, {"the Order of Dawn", "Organization", true}, {"the Pigeon", "Character", true}, {"the Caterpillar", "Character", true},
+	{"Lord Voldemort", "Character", true}, {"Will", "Character", true}, {"Will Graham", "Character", true}, {"Excalibur", "Item", true}, {"The Maltese Falcon", "Item", true},
 }
 
 func TestProperNameKeepsNamesAndDropsWordsThatOnlyLookLikeThem(t *testing.T) {

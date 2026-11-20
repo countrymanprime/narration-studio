@@ -68,6 +68,8 @@ func fakeSidecar(mode string) {
 		}
 	case "sample":
 		line(`{"source":"booknlp","payload":{"kind":"entry","name":"Alice","type":"Character","aliases":["Miss Alice"],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
+	case "common-noun-character":
+		line(`{"source":"booknlp","payload":{"kind":"entry","name":"the old man","type":"Character","aliases":[],"description":"","appearsIn":[]},"confidence":null,"quotes":[{"paragraphId":"1-1","text":"Alice was beginning to get very tired of sitting by her sister on the bank."}],"chapterId":"1"}`)
 	case "bad-quote":
 		line(`{"source":"booknlp","payload":{"kind":"speaker","quote":"“Who are yuo?”","speaker":"Caterpillar"},"confidence":0.95,"quotes":[{"paragraphId":"5-2","text":"“Who are yuo?”"}],"chapterId":"5"}`)
 	case "relationship":
@@ -209,6 +211,18 @@ func TestAQuoteThatIsNotInItsParagraphIsDroppedWithALogLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(raws) != 0 || len(*logged) != 1 || !strings.Contains((*logged)[0], "yuo") {
+		t.Fatalf("raws = %+v, logged = %q", raws, *logged)
+	}
+}
+
+// BookNLP names a character with no proper name by its commonest noun phrase; that is no name (#3661).
+func TestACharacterNamedByACommonNounPhraseIsDroppedWithALogLine(t *testing.T) {
+	source, logged := fake(t, "common-noun-character")
+	raws, err := extract(t, source, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(raws) != 0 || len(*logged) != 1 || !strings.Contains((*logged)[0], "the old man") {
 		t.Fatalf("raws = %+v, logged = %q", raws, *logged)
 	}
 }
