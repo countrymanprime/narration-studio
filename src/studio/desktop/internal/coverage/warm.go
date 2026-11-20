@@ -27,6 +27,14 @@ func (s *Service) Warm(alignment AlignmentParams, stop func() bool) {
 	var workers sync.WaitGroup
 	for range min(warmWorkers, len(chapters)) {
 		workers.Go(func() {
+			// A chapter that cannot be evaluated here is left to the page's own read, which reports it; the worker
+			// keeps draining so the sender is never left blocked.
+			defer func() {
+				if recover() != nil {
+					for range queue {
+					}
+				}
+			}()
 			for chapterID := range queue {
 				if stop() {
 					continue // drain: the sender must not block on a pool that stopped

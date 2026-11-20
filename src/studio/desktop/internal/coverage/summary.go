@@ -3,6 +3,7 @@ package coverage
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -121,7 +122,12 @@ func (s *summaryStore) write(summary ResultSummary) error {
 	if err != nil {
 		return err
 	}
-	if err := writeAtomically(path, encoded); err != nil {
+	// A temporary file of its own name: a fill still running for a project that was closed and opened again writes
+	// through another store, which this store's lock does not cover.
+	if err := os.MkdirAll(s.dir, 0o755); err != nil {
+		return fmt.Errorf("could not store the coverage result summary: %w", err)
+	}
+	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not store the coverage result summary: %w", err)
 	}
 	return nil
