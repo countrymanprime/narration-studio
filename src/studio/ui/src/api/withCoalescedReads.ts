@@ -40,7 +40,7 @@ export const KEPT_WRITERS: ReadonlySet<string> = new Set(['saveSettings', 'switc
 export const KEPT_DROPPING_EVENTS: ReadonlySet<string> = new Set(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded']);
 export const KEPT_REVALIDATE_MS = 5_000;
 export const KEPT_MAX_AGE_MS = 60_000;
-type Kept = { answer: unknown; at: number; seq: number; keptEpoch: number; revalidating: boolean };
+type Kept = { answer: unknown; at: number; seq: number; keptEpoch: number; revalidating: number | false };
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
   return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
@@ -226,12 +226,12 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
         const age = held ? Date.now() - held.at : 0;
         // A clock set back (a negative age) is an expired answer, not one that never ages.
         if (held && held.keptEpoch === keptEpoch && age >= 0 && age < KEPT_MAX_AGE_MS) {
-          if (age >= KEPT_REVALIDATE_MS && !held.revalidating) {
+          if (age >= KEPT_REVALIDATE_MS && (held.revalidating === false || Date.now() - held.revalidating >= KEPT_REVALIDATE_MS)) {
             // Serve the kept answer now and read again for the next reader. The re-read never rejects or throws into a reader, and one that does not answer
             // leaves the kept answer serving until it expires.
-            held.revalidating = true;
+            held.revalidating = Date.now();
             const retry = () => {
-              held.revalidating = false;
+              held.revalidating = false; // the next reader asks again
             };
             try {
               Promise.resolve(fresh()).then(undefined, retry);

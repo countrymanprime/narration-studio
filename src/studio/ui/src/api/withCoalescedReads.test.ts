@@ -584,6 +584,34 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     }
   });
 
+  it('starts another background re-read when the first has been out longer than the revalidate age', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      const read = api.settingsForScope as unknown as ReturnType<typeof vi.fn>;
+      read.mockClear();
+      read.mockImplementationOnce(() => new Promise(() => undefined));
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      await wrapped.settingsForScope('global'); // the re-read that hangs
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      await wrapped.settingsForScope('global'); // abandons it and asks again
+      expect(read).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps nothing while a kept writer has not answered (it fails safe: every read goes to the host)', async () => {
+    const { api, reads } = counting();
+    (api as unknown as { saveSettings: unknown }).saveSettings = vi.fn(() => new Promise(() => undefined));
+    const wrapped = withCoalescedReads(api);
+    void wrapped.saveSettings('tool', 'global', {});
+    for (let i = 0; i < 5; i += 1) await wrapped.settingsForScope('global');
+    expect(reads()).toBe(5);
+  });
+
   it('pins what is kept and what drops it: a new entry is a deliberate edit', () => {
     expect([...KEPT_READS]).toEqual(['settingsForScope']);
     expect([...KEPT_WRITERS]).toEqual(['saveSettings', 'switchProject', 'createProject']);
