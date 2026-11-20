@@ -1,5 +1,5 @@
 import { aboutHours } from '../productionFormat';
-import { recordedPercent } from '../../../recordedThrough';
+import { recordedPercent, throughPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
@@ -137,13 +137,17 @@ type ThroughWords = { label: string; tip: string };
  * "Recorded through ¶ 12 (38%)" or "Recorded to the end", with "about" for the track-length estimate. A host that sends no paragraph
  * number gets the share alone. The cells draw no extra line for it, so the rows keep their height.
  */
-function throughWords(through: RecordedThrough | undefined): ThroughWords | null {
+/** Whether the track holds measured audio: the one thing that lifts a host 0% to 1% (`throughPercent`). */
+const hasAudio = (chapter: { recordedSeconds: number | null }): boolean => chapter.recordedSeconds !== null && chapter.recordedSeconds > 0;
+
+function throughWords(through: RecordedThrough | undefined, audio: boolean): ThroughWords | null {
   if (!through) return null;
   const about = through.confident ? '' : 'about ';
   const from = through.confident ? '' : ', from the track’s length';
   if (through.complete) return { label: `recorded ${about}to the end`, tip: `Recorded ${about}to the end${from}` };
-  const share = `${through.confident ? '' : '~'}${through.percent}%`;
-  if (through.paragraph === undefined) return { label: `recorded through ${about}${through.percent}%`, tip: `Recorded through ${share}${from}` };
+  const percent = throughPercent(through, audio);
+  const share = `${through.confident ? '' : '~'}${percent}%`;
+  if (through.paragraph === undefined) return { label: `recorded through ${about}${percent}%`, tip: `Recorded through ${share}${from}` };
   return {
     label: `recorded through ${about}paragraph ${through.paragraph} (${share})`,
     tip: `Recorded through ${about}¶ ${through.paragraph} (${share}${from})`,
@@ -151,7 +155,7 @@ function throughWords(through: RecordedThrough | undefined): ThroughWords | null
 }
 
 function recordedFigure(name: string, chapter: ProductionChapter, estimate: string, layout: VoiceTracksLayout): RecordedFigure {
-  const words = throughWords(chapter.recordedThrough);
+  const words = throughWords(chapter.recordedThrough, hasAudio(chapter));
   const figure = measuredFigure(name, chapter, estimate, layout);
   return words ? { ...figure, label: `${figure.label}, ${words.label}`, tip: `${figure.tip} · ${words.tip}` } : figure;
 }
@@ -198,9 +202,10 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
     );
   }
   const through = chapter.recordedThrough;
-  const words = throughWords(through);
+  const words = throughWords(through, hasAudio(chapter));
   if (through && words) {
-    // The one value the Booth resumes at, so the board's percent and the Booth's agree.
+    // One percent for every page: `recordedPercent` is what the Record cell, its tip, the Rec. name, Next up, the Booth chip, position line and chapter lists, the
+    // Editing and Proof chapter lists and the Companion print (a host 0 reads 1 with audio on the track; the Booth resumes at the same place).
     const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
     const percent = recordedPercent(chapter, wph) ?? 0;
     return cell('record', 'booth', 'progress', `${percent}%`, `${percent}% recorded`, withCheck(`${words.tip}${length ? ` · ${length}` : ''}${stageNote}`));

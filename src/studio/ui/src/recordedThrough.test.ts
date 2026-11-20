@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RecordedThrough } from './api/contracts/manuscript';
+import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
+import { chapter as productionChapter } from './components/production/pipeline/pipelineFixtures';
 import { chapterRecordedDetail, recordedPercent, recordedThroughLabel } from './recordedThrough';
 
 const PARAGRAPHS = [
@@ -19,7 +21,7 @@ const through = (over: Partial<RecordedThrough> = {}): RecordedThrough => ({
 
 describe('what the Booth says about how far a chapter is recorded', () => {
   it('quotes the last recorded line and the share', () => {
-    expect(recordedThroughLabel(through(), PARAGRAPHS)).toEqual({
+    expect(recordedThroughLabel(through(), PARAGRAPHS, false)).toEqual({
       short: '45%',
       text: 'Recorded through “So she was considering” (45%)',
       complete: false,
@@ -27,7 +29,7 @@ describe('what the Booth says about how far a chapter is recorded', () => {
   });
 
   it('says Complete for the whole chapter', () => {
-    expect(recordedThroughLabel(through({ percent: 100, complete: true }), PARAGRAPHS)).toEqual({
+    expect(recordedThroughLabel(through({ percent: 100, complete: true }), PARAGRAPHS, false)).toEqual({
       short: 'Complete',
       text: 'Recorded: complete',
       complete: true,
@@ -35,24 +37,24 @@ describe('what the Booth says about how far a chapter is recorded', () => {
   });
 
   it('says about for an estimate from the track’s length', () => {
-    expect(recordedThroughLabel(through({ word: 5, source: 'daw', confident: false, percent: 30 }), PARAGRAPHS)).toMatchObject({
+    expect(recordedThroughLabel(through({ word: 5, source: 'daw', confident: false, percent: 30 }), PARAGRAPHS, false)).toMatchObject({
       short: '~30%',
       text: 'Recorded through about “…was considering in her” (~30%, from the track’s length)',
     });
-    expect(recordedThroughLabel(through({ source: 'daw', confident: false, percent: 100, complete: true }), PARAGRAPHS)).toMatchObject({
+    expect(recordedThroughLabel(through({ source: 'daw', confident: false, percent: 100, complete: true }), PARAGRAPHS, false)).toMatchObject({
       short: 'Complete?',
       text: 'Recorded: about complete (from the track’s length)',
     });
   });
 
   it('says only the share when the line is not in the text any more, and nothing with nothing recorded', () => {
-    expect(recordedThroughLabel(through({ paragraphId: 'gone' }), PARAGRAPHS)).toMatchObject({ text: 'Recorded through 45% of the chapter' });
-    expect(recordedThroughLabel(undefined, PARAGRAPHS)).toBeNull();
+    expect(recordedThroughLabel(through({ paragraphId: 'gone' }), PARAGRAPHS, false)).toMatchObject({ text: 'Recorded through 45% of the chapter' });
+    expect(recordedThroughLabel(undefined, PARAGRAPHS, false)).toBeNull();
   });
 
   it('keeps emoji and right-to-left words whole in the quote', () => {
     const rtl = [{ id: 'r1', text: 'שלום 👋🏽 עולם יפה מאוד' }];
-    expect(recordedThroughLabel(through({ paragraphId: 'r1', word: 2 }), rtl)?.text).toBe('Recorded through “שלום 👋🏽 עולם” (45%)');
+    expect(recordedThroughLabel(through({ paragraphId: 'r1', word: 2 }), rtl, false)?.text).toBe('Recorded through “שלום 👋🏽 עולם” (45%)');
   });
 
   it('gives a chapter list the short note, the same for every page', () => {
@@ -93,4 +95,48 @@ describe('recordedPercent', () => {
     expect(recordedPercent(chapter(null, through({ percent: 0 })), 9300)).toBe(0);
     expect(recordedPercent(chapter(12, through({ percent: 0 })), 9300)).toBe(1);
   });
+});
+
+// #3443: one synchronized state across pages. Every printer of a chapter's recorded percent prints the number `recordedPercent` gives: the Booth chip (`.short`) and its position
+// line (`.text`), the chapter lists (`chapterRecordedDetail`: Booth, Editing, Proof), the Record cell and its tip, and the Rec. figure's tip and spoken name. A host 0 with audio on
+// the track is the case that used to differ (the cell said 1%, the rest 0%).
+describe('every page prints the same recorded percent', () => {
+  const hosts: Array<[string, Partial<RecordedThrough>]> = [
+    ['host 0', { percent: 0 }],
+    ['host 1', { percent: 1 }],
+    ['host 50', { percent: 50 }],
+    ['host 99', { percent: 99 }],
+    ['complete', { percent: 100, complete: true }],
+  ];
+  const measured = [null, 0, 12, 7200] as const;
+  for (const [name, over] of hosts) {
+    for (const seconds of measured) {
+      it(`${name} with ${seconds === null ? 'no measured length' : `${seconds} s measured`}`, () => {
+        const recordedThrough = through({ paragraphId: 'p1', word: 1, ...over });
+        const c = productionChapter('c1', {
+          status: 'recording',
+          wordCount: 9300,
+          recordedSeconds: seconds,
+          recordedThrough: { ...recordedThrough, paragraph: 1 },
+        });
+        const percent = recordedPercent(c, 9300)!;
+        const printed = `${percent}%`;
+        const audio = seconds !== null && seconds > 0;
+        const label = recordedThroughLabel(c.recordedThrough, PARAGRAPHS, audio)!;
+        if (over.complete) {
+          expect(label.short).toBe('Complete');
+          expect(percent).toBe(100);
+          return;
+        }
+        expect(label.short).toBe(printed);
+        expect(label.text).toContain(`(${printed})`);
+        expect(chapterRecordedDetail(c)).toBe(printed);
+        const row = buildPipelineRows([c])[0]!;
+        expect(row.cells.record.text).toBe(printed);
+        expect(row.cells.record.tip).toContain(`(${printed}`);
+        expect(row.recorded.tip).toContain(`(${printed}`);
+        expect(row.recorded.label).toContain(`(${printed})`);
+      });
+    }
+  }
 });

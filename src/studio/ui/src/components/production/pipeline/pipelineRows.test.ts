@@ -300,3 +300,20 @@ describe('record-percent-with-a-host-zero', () => {
     expect(few!.cells.record.text).toBe('1%');
   });
 });
+
+// T1 (qa delta): a host 0 with audio on the track says one percent everywhere on the row: the cell, its tip and the Rec. figure's tip and name (the cell said 1%, the tips 0%).
+describe('a-host-zero-with-audio-says-one-percent', () => {
+  const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  it('prints 1% in the cell, its tip, the Rec. tip and the Rec. name when audio is on the track, and 0% in all four when it is not', () => {
+    const [withAudio] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 12, recordedThrough: zero })]);
+    expect(withAudio!.cells.record.text).toBe('1%');
+    expect(withAudio!.cells.record.state).toBe('1% recorded');
+    expect(withAudio!.cells.record.tip).toContain('(1%)');
+    expect(withAudio!.recorded.tip).toContain('(1%)');
+    expect(withAudio!.recorded.label).toContain('(1%)');
+    expect(`${withAudio!.cells.record.tip} ${withAudio!.recorded.tip} ${withAudio!.recorded.label}`).not.toMatch(/\(0%/);
+    const [none] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 0, recordedThrough: zero })]);
+    expect(none!.cells.record.text).toBe('0%');
+    expect(none!.cells.record.tip).toContain('(0%)');
+  });
+});

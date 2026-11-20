@@ -2,6 +2,7 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { ManuscriptParagraph, TeleprompterSpan } from '../../../types';
 import { estimatedSpans, headingParagraphs, scriptWordAt } from '../page/readingSource';
 import { resumeStart } from '../resume/resumeStart';
+import { throughPercent } from '../../../recordedThrough';
 
 /** Where the Companion offers to begin: the script word `Start` takes, a short quote starting at it, and how far the chapter is recorded. */
 export type RecordedStart = { word: number; label: string; percent: number; estimate: boolean };
@@ -15,7 +16,7 @@ const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
  * or the script does not follow it; the prompt then asks the recording itself (`teleprompterLocate`) as before.
  */
 export function recordedStart(args: {
-  chapter: { title: string; subtitle?: string };
+  chapter: { title: string; subtitle?: string; recordedSeconds?: number };
   paragraphs: readonly Pick<ManuscriptParagraph, 'id' | 'text'>[] | undefined;
   spans: readonly TeleprompterSpan[] | undefined;
   recorded: RecordedThrough | undefined;
@@ -30,5 +31,5 @@ export function recordedStart(args: {
   const text = paragraphs.find((paragraph) => paragraph.id === start.place?.paragraphId)?.text ?? '';
   const tail = wordsOf(text).slice(start.place.word);
   const label = `…${tail.slice(0, CHIP_WORDS).join(' ')}${tail.length > CHIP_WORDS ? '…' : ''}`;
-  return { word, label, percent: recorded.percent, estimate: !recorded.confident };
+  return { word, label, percent: throughPercent(recorded, (chapter.recordedSeconds ?? 0) > 0), estimate: !recorded.confident };
 }
