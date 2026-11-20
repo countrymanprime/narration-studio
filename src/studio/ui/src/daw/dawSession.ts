@@ -119,9 +119,14 @@ const INITIAL: DawSessionState = {
  * capability that is off is off because the DAW is not up yet, so its sentence says that instead of "Open REAPER" (#3668). Done here, once, so the
  * twenty places that read a capability's message from the session all say the same, whichever way they read it.
  */
+/** The one sentence for a capability or setting that is off only because the host is starting the DAW (#3668). */
+export function startingSentence(daw: string): string {
+  return `${daw} is starting. The app connects to it by itself.`;
+}
+
 export function presentCaps(caps: DawCapabilities | null, choice: DawChoice | null | undefined): DawCapabilities | null {
   if (!caps || caps.reachable || caps.daw === 'none' || choice?.state !== 'starting') return caps;
-  const message = `${caps.daw} is starting. The app connects to it by itself.`;
+  const message = startingSentence(caps.daw);
   const capabilities = Object.fromEntries(
     Object.entries(caps.capabilities).map(([key, entry]) => [
       key,

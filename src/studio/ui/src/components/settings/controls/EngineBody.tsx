@@ -1,3 +1,4 @@
+import { startingSentence } from '../../../daw/dawSession';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
@@ -33,7 +34,7 @@ function optionDescription(option: DawChoiceOption, starting: boolean): ReactNod
   }
   const { record } = option;
   // The host's "not connected, open it" sentence is wrong while the app is starting that DAW itself (#3668): the card below says so, and so does this line.
-  if (!record.available && starting) lines.push(<span key="record">{`${option.daw} is starting. The app connects to it by itself.`}</span>);
+  if (!record.available && starting) lines.push(<span key="record">{startingSentence(option.daw)}</span>);
   else if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
   // The radio still switches the project (the link card and the other tools are behind it): a "?" says so, so the line is not instruction prose and does not go stale once chosen (#3339).
   if (!record.available && record.level === 'not_yet_available')
