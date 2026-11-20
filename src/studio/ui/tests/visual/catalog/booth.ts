@@ -193,6 +193,14 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'recording-in-daw',
+    description:
+      "Booth, a take the narrator started in REAPER itself (this chapter's track armed, the mock's default; the page clock paused): the Booth follows it, so Stop and the REC pill show, the footer's Record / stop and Punch and roll hints are struck through, and Stop was pressed once: \"REAPER started this take, so stop it in REAPER.\" (#3666)",
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'take-saved',
     description:
       'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; a second, quieter message offers Check recordings for the chapter; the take is in the undo history as "Recorded a take of <chapter>"',

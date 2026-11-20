@@ -8,6 +8,7 @@ import { PRESS_NOTE_TOPIC } from '../record/pressLimits';
 import { sentenceOr } from '../record/sentenceOr';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
+import { HELD_TOPIC, heldInDawSentence } from '../record/useRecordControl';
 import { clampPhrase } from './startFromHere';
 import { createTakeHold, type TakeControls } from './takeHold';
 
@@ -18,6 +19,8 @@ type RollFn = (phrase: number, options: { confirmed: boolean }) => Promise<DawRe
 export type RollSession = {
   capabilities: DawCapabilities | null;
   recording: boolean;
+  /** False for a take the DAW started (adopted): the bridge rolls only a take it started, so R says where to roll and sends nothing. */
+  startedByApp?: boolean;
   phraseCount: number;
   /** The phrase the reading position is on. */
   phrase: number;
@@ -137,6 +140,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const rollFrom = useCallback(
     async (from: number) => {
       const s = sessionRef.current;
+      if (s.recording && s.startedByApp === false) return actionsRef.current.notify(heldInDawSentence(s.capabilities?.daw, 'roll again'), HELD_TOPIC);
       const to = clampPhrase(from, s.phraseCount);
       const plan = rollPlan(s.capabilities);
       if (plan.kind === 'refused') return actionsRef.current.refuse(plan.reason);

@@ -86,6 +86,16 @@ describe('the history row', () => {
   });
 });
 
+describe('Ctrl+Alt chords and text fields', () => {
+  it('every default that is Ctrl+Alt (what AltGr sends on Windows) leaves a text field its own key', () => {
+    const chords = COMMAND_CATALOG.filter((row) =>
+      row.defaults.some((gesture) => gesture.modifiers.includes('Alt') && gesture.modifiers.includes('Ctrl') && gesture.code === 'Space'),
+    );
+    expect(chords.map((row) => row.id)).toEqual(['booth.mode.switch']);
+    for (const row of chords) expect(row.fieldsKeep, row.id).toBe(true);
+  });
+});
+
 describe('the undo row', () => {
   it('undo-last-row: Mod+Z, global, listed in the sheet and Settings (the jump menu lists it as the provider\'s "Undo: <label>"), and a text field keeps its own', () => {
     const row = findCommand('undo.last');
@@ -105,7 +115,7 @@ describe('the Booth rows', () => {
       'booth.phrase.prev': ['ArrowUp', 'Backspace'],
       'booth.word.next': ['ArrowRight'],
       'booth.word.prev': ['ArrowLeft'],
-      'booth.mode.switch': ['Alt+Space'],
+      'booth.mode.switch': ['Alt+Ctrl+Space'],
       'booth.roll': ['KeyR'],
       'booth.view.down': ['PageDown'],
       'booth.view.up': ['PageUp'],
@@ -135,7 +145,7 @@ describe('the Booth rows', () => {
     // Space stays the first gesture (the footer hint draws it); Enter and numpad Enter are the same action for the numpad (#3039).
     expect(codes('reading.toggle')).toEqual(['Space', 'Enter', 'NumpadEnter']);
     for (const code of ['Space', 'Enter', 'NumpadEnter']) {
-      // A plain press: Alt+Space is a different gesture, the mode switch (#3445), checked below.
+      // A plain press: Ctrl+Alt+Space is a different gesture, the mode switch (#3445), checked below.
       const rows = COMMAND_CATALOG.filter(
         (row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === code && gesture.modifiers.length === 0),
       );
@@ -147,12 +157,12 @@ describe('the Booth rows', () => {
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
   });
 
-  it('alt-space-switches-the-mode: Alt+Space is the one booth row with a modified Space, the Record / Cold read switch (#3445)', () => {
+  it('ctrl-alt-space-switches-the-mode: Ctrl+Alt+Space is the one booth row with a modified Space, the Record / Cold read switch (#3445)', () => {
     const rows = COMMAND_CATALOG.filter(
       (row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === 'Space' && gesture.modifiers.length > 0),
     );
     expect(rows.map((row) => row.id)).toEqual(['booth.mode.switch']);
-    expect(findCommand('booth.mode.switch')?.defaults).toEqual([expect.objectContaining({ code: 'Space', modifiers: ['Alt'] })]);
+    expect(findCommand('booth.mode.switch')?.defaults).toEqual([expect.objectContaining({ code: 'Space', modifiers: ['Alt', 'Ctrl'] })]);
   });
 
   it('no-f-or-p-bindings: no booth row binds F or P, so nothing is flagged or sent to Pickups from the Booth', () => {
@@ -168,10 +178,13 @@ describe('the Booth rows', () => {
     expect(codes('reading.toggle')?.at(0)).toBe('Space');
   });
 
-  it('typing-and-ctrl-are-ignored: no booth row defaults to Ctrl or Meta', () => {
+  it('typing-and-ctrl-are-ignored: no booth row defaults to Ctrl or Meta, except the Record / Cold read switch, which is Ctrl+Alt+Space (#3744)', () => {
+    // The app's Ctrl chords (Ctrl+K, Ctrl+Z, Ctrl+,) are never a Booth key. The one exception is the owner's choice for the mode switch: Alt+Space is the window menu's, and Ctrl
+    // with Alt is what no system shortcut of Windows takes (`reservedKeys.guard.test.ts`). Meta and `Mod` stay out of the Booth for every row.
     for (const row of COMMAND_CATALOG.filter((r) => r.scope === 'booth')) {
       for (const gesture of row.defaults) {
-        for (const held of ['Ctrl', 'Meta', 'Mod'] as const) expect(gesture.modifiers as string[], `${row.id} ${held}`).not.toContain(held);
+        for (const held of ['Meta', 'Mod'] as const) expect(gesture.modifiers as string[], `${row.id} ${held}`).not.toContain(held);
+        if (row.id !== 'booth.mode.switch') expect(gesture.modifiers as string[], `${row.id} Ctrl`).not.toContain('Ctrl');
       }
     }
   });

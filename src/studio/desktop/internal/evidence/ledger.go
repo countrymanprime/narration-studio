@@ -155,6 +155,7 @@ type LedgerStore struct {
 	dir      string
 	mu       sync.Mutex
 	Reporter *persist.Reporter
+	index    ledgerIndex
 }
 
 // NewLedgerStore returns a LedgerStore rooted at project's ledger directory.
@@ -233,29 +234,13 @@ func (s *LedgerStore) List(analyzerID, chapterID string) ([]LedgerRecord, error)
 	return matched, nil
 }
 
-// All returns every readable record in the store, in no particular order.
+// All returns every readable record in the store, in no particular order. A record is decoded once and kept while its file
+// is unchanged (ledgerIndex), so the records share their maps and slices with later reads: read them, never change them.
 // An unreadable or wrong-schema file is skipped, not reported as an error:
 // the store is meant to survive a corrupt neighbour (these are derived
 // facts a re-analysis can always replace, persist.Disposable's class).
 func (s *LedgerStore) All() ([]LedgerRecord, error) {
-	entries, err := os.ReadDir(s.dir)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("could not list the analysis ledger: %w", err)
-	}
-	records := make([]LedgerRecord, 0, len(entries))
-	for _, entry := range entries {
-		id, ok := recordID(entry.Name())
-		if !ok {
-			continue
-		}
-		if record, ok := s.readRecord(s.recordPath(id)); ok {
-			records = append(records, record)
-		}
-	}
-	return records, nil
+	return s.index.refresh(s.dir, func(id string) (LedgerRecord, persist.Outcome) { return s.decodeRecord(s.recordPath(id)) })
 }
 
 // Retain prunes the ledger to its retention rule: the latest record per
@@ -328,6 +313,12 @@ func (s *LedgerStore) recordPath(id string) string {
 }
 
 func (s *LedgerStore) readRecord(path string) (LedgerRecord, bool) {
+	record, outcome := s.decodeRecord(path)
+	return record, outcome == persist.Loaded
+}
+
+// decodeRecord reads and decodes one record file, with how the read went: only persist.Loaded carries a record.
+func (s *LedgerStore) decodeRecord(path string) (LedgerRecord, persist.Outcome) {
 	var record LedgerRecord
 	outcome := s.Reporter.ReadJSON(path, "analysis ledger record", persist.Disposable, func(raw []byte) error {
 		var decoded LedgerRecord
@@ -340,7 +331,7 @@ func (s *LedgerStore) readRecord(path string) (LedgerRecord, bool) {
 		record = decoded
 		return nil
 	})
-	return record, outcome == persist.Loaded
+	return record, outcome
 }
 
 // recordID reports the record ID a ledger file's name carries: any name

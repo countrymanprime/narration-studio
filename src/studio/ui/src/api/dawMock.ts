@@ -466,8 +466,10 @@ export interface DawMockControl {
   endTakeInDaw(undoSteps?: number): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
-  /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
+  /** Whether the DAW is recording, whoever started it. */
   recording(): boolean;
+  /** Whether the recording that runs is one this app started: the bridge stops and rolls only that one (`RECORD_NOT_OURS` otherwise). */
+  ownTake(): boolean;
   /** While true, events (capabilities, transport, project state) are not delivered; reads still answer. */
   dropEvents(on: boolean): void;
   /** The next record start (or stop) is refused with this sentence, as a full disk or a locked file would. */
@@ -705,6 +707,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       publish();
     },
     recording: () => isRecording() && !!currentCapabilities(live).reachable,
+    ownTake: () => isRecording() && appTake !== null,
     dropEvents: (on) => {
       dropped = on;
     },
@@ -766,6 +769,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return { reason: 'unavailable', message };
       }
       if (kind === 'stop') {
+        // The bridge stops only a take it started.
+        if (isRecording() && appTake === null)
+          return { reason: 'unavailable', message: 'REAPER is not recording anything this app started, so nothing was stopped.' };
         if (!isRecording() && !caps.reachable) return { reason: 'standalone', message: record?.message ?? MESSAGE_NOT_RUNNING_REAPER };
         live.transport = { playing: false, recording: false };
         later(HEARTBEAT_MS, publish);

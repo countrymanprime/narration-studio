@@ -157,7 +157,7 @@ describe('docs/design/component-selection.md', () => {
   test('the-readers-find-what-is-there', () => {
     expect(primitiveNames.has('TooltipTarget')).toBe(true);
     expect(componentNames.has('Switch')).toBe(true);
-    expect(proposed.has('ColourField')).toBe(true);
+    expect(proposed.has('TimeField')).toBe(true);
     expect(inPrimitives('look="segmented"')).toBe(true);
     expect(inPrimitives('look="nope"')).toBe(false);
     expect(inPrimitives('noSuchProp')).toBe(false);

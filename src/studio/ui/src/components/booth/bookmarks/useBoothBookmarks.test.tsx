@@ -321,11 +321,20 @@ describe('no-chapter-change-during-a-take', () => {
   const mine = () => held('y', chapters[0].id, paragraphs[2].id, indexes.get(paragraphs[2].id)!, 0);
   const theirs = () => held('x', chapters[1].id, 'q1', 99, 3);
 
+  it('a bookmark in another chapter during a take the DAW started says to stop it there (UX 1)', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    const why = 'REAPER started this take, so stop it in REAPER.';
+    await setup({ recording: true, whileRecording: why }, { paragraphId: paragraphs[2].id, word: 0 }, [mine(), theirs()]);
+    press('BracketRight', ['Alt']);
+    expect(toast).toHaveBeenCalledWith(why, { topic: 'daw-held' });
+    expect(goToChapter).not.toHaveBeenCalled();
+  });
+
   it('stepping to another chapter while recording is refused with the existing sentence', async () => {
     const toast = vi.spyOn(overlay, 'toast');
     await setup({ recording: true }, { paragraphId: paragraphs[2].id, word: 0 }, [mine(), theirs()]);
     press('BracketRight', ['Alt']);
-    expect(toast).toHaveBeenCalledWith('Stop recording first.');
+    expect(toast).toHaveBeenCalledWith('Not while recording. Stop the take first.', { topic: 'daw-held' });
     expect(goToChapter).not.toHaveBeenCalled();
     expect(seek).not.toHaveBeenCalled();
   });

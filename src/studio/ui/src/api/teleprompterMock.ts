@@ -69,7 +69,16 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged' | 'checked';
 
 /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status). */
-export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable'] as const;
+export const MOCK_REAPER_SEEDS = [
+  'ready',
+  'not_armed',
+  'other_armed',
+  'several_armed',
+  'no_link',
+  'recording_here',
+  'recording_elsewhere',
+  'unavailable',
+] as const;
 export type MockReaperSeed = (typeof MOCK_REAPER_SEEDS)[number];
 
 /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (unset: REAPER records from the first microphone listed). */
@@ -155,7 +164,7 @@ type Deps = {
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers; unset, REAPER records from the first microphone listed. */
   reaperInput?: MockReaperInputSeed;
   /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
-  /** Whether the mock DAW is recording, whoever started it: the host's `recording_elsewhere` answers for any take. */
+  /** Whether the mock DAW is recording, whoever started it: the host answers `recording_here` for a take on the chapter's armed lane (the app's own too), else `recording_elsewhere`. */
   dawRecording?: () => boolean;
   /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
   linked?: (chapterId: string) => boolean;
@@ -189,6 +198,8 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
       return asked('other_armed', 1, `Another track is armed in REAPER, not the one for "${title}".`);
     case 'several_armed':
       return asked('several_armed', 3, `3 tracks are armed in REAPER. Only the track for "${title}" should be.`);
+    case 'recording_here':
+      return asked('recording_here', 1, `REAPER is recording on the track for "${title}".`, true);
     case 'recording_elsewhere':
       return asked('recording_elsewhere', 1, 'REAPER is already recording. Stop it in REAPER before recording with reading.', true);
     case 'no_link':
@@ -208,6 +219,14 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
         recording: false,
       };
   }
+}
+
+// What the DAW answers while it records, per seed: the lane armed alone is the chapter's own (`ready`); any other arming is a take elsewhere, with the count of
+// tracks the seed arms (none, another one, several), which the Booth words as the reason it does not follow the take.
+const ARMED_WHILE_RECORDING: Partial<Record<MockReaperSeed, number>> = { not_armed: 0, other_armed: 1, several_armed: 3 };
+function mockRecordingState(seed: MockReaperSeed, title: string): ReadAloudReaperState {
+  if (seed === 'ready') return mockReaperState('recording_here', title);
+  return { ...mockReaperState('recording_elsewhere', title), armedCount: ARMED_WHILE_RECORDING[seed] ?? 1 };
 }
 
 // `?mockReaper=` doubles as ReadAloudRecordStart/ReadAloudRecordStop's mock, so a story or test that sets up a chapter as `not_armed` sees
@@ -233,6 +252,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'start' | 'stop', ti
     case 'other_armed':
     case 'several_armed':
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
+    case 'recording_here':
     case 'recording_elsewhere':
       return { outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' };
     default:
@@ -731,7 +751,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       await deps.ready;
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
-      if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', target.title);
+      // A take on the chapter's armed lane (the seed `ready`: its track is the one armed) is one the Booth follows; any other arming is "elsewhere".
+      if (deps.dawRecording?.()) return mockRecordingState(seedFor(chapterId), target.title);
       return mockReaperState(seedFor(chapterId), target.title);
     },
     readAloudRecordStart: async (chapterId) => {
