@@ -14,14 +14,17 @@
 package evidence
 
 import (
+	"bytes"
 	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"desktop/internal/chaptermatch"
@@ -153,8 +156,28 @@ func MappingFile(project string) string {
 type MappingStore struct {
 	path     string
 	mu       sync.Mutex
-	Reporter *persist.Reporter
+	Reporter *persist.Reporter // +checklocksignore: set once, before the store is used; read under mu by chance
 	now      func() time.Time
+	// last is the file as last decoded, with the bytes it was decoded from (readMappingFile); the zero value is nothing decoded yet.
+	// +checklocks:mu
+	last mappingRead
+	// decodes counts how often a read had to decode the file, for the tests of mappingRead.
+	decodes atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while mu is held
+}
+
+// mappingRead is a decoded mapping file and the bytes it came from. A chapter list asks for the links once or twice per chapter, and
+// each read decoded the whole file (#3768); a read still reads the file every time and decodes it only when its bytes differ, so
+// another writer's change is never missed.
+type mappingRead struct {
+	raw  []byte
+	file mappingFileShape
+}
+
+// copyOf is the decoded file with slices of its own: the store's writers sort, append to and filter them in place.
+func (r mappingRead) copyOf() mappingFileShape {
+	file := r.file
+	file.Mappings, file.Rejected, file.Previous = slices.Clone(file.Mappings), slices.Clone(file.Rejected), slices.Clone(file.Previous)
+	return file
 }
 
 // NewMappingStore returns a MappingStore rooted at project's mapping file.
@@ -396,7 +419,7 @@ func (s *MappingStore) Carry(documentID string, carry CarryOver) error {
 // to, for a re-import to carry forward before resetDerived deletes it. A
 // missing or unreadable file carries nothing.
 func ReadCarryOver(project string) CarryOver {
-	decoded, ok := readMappingFile(nil, MappingFile(project))
+	decoded, ok := readMappingFile(nil, MappingFile(project), nil, nil)
 	if !ok {
 		return CarryOver{}
 	}
@@ -438,8 +461,10 @@ func (s *MappingStore) clock() time.Time {
 // schema version, or a stored DocumentID that does not match documentID all
 // read as an empty shape for documentID - the same "unknown reads as
 // absent" rule LedgerStore.readRecord and CacheStore.readEnvelope follow.
+//
+// +checklocks:s.mu
 func (s *MappingStore) readLocked(documentID string) mappingFileShape {
-	decoded, ok := readMappingFile(s.Reporter, s.path)
+	decoded, ok := readMappingFile(s.Reporter, s.path, &s.last, &s.decodes)
 	if !ok || decoded.DocumentID != documentID {
 		return mappingFileShape{SchemaVersion: mappingSchemaVersion, DocumentID: documentID}
 	}
@@ -448,10 +473,16 @@ func (s *MappingStore) readLocked(documentID string) mappingFileShape {
 
 // readMappingFile decodes a mapping file of any document, reporting false
 // for a missing, unreadable, corrupt or newer-version one. Links with no
-// origin (version 1) come back manual.
-func readMappingFile(reporter *persist.Reporter, path string) (mappingFileShape, bool) {
+// origin (version 1) come back manual. With last, a file whose bytes are the
+// ones last decoded is answered from it, as a copy, and decodes counts the
+// others; only a file that loaded is kept.
+func readMappingFile(reporter *persist.Reporter, path string, last *mappingRead, decodes *atomic.Int64) (mappingFileShape, bool) {
 	var decoded mappingFileShape
 	outcome := reporter.ReadJSON(path, "chapter-track mapping", persist.Disposable, func(raw []byte) error {
+		if last != nil && last.raw != nil && bytes.Equal(raw, last.raw) {
+			decoded = last.copyOf()
+			return nil
+		}
 		var candidate mappingFileShape
 		if err := json.Unmarshal(raw, &candidate); err != nil {
 			return err
@@ -459,14 +490,19 @@ func readMappingFile(reporter *persist.Reporter, path string) (mappingFileShape,
 		if candidate.SchemaVersion > mappingSchemaVersion {
 			return fmt.Errorf("schema version %d newer than supported %d", candidate.SchemaVersion, mappingSchemaVersion)
 		}
+		normalizeOrigins(candidate.Mappings)
+		normalizeOrigins(candidate.Previous)
 		decoded = candidate
+		if last != nil {
+			decodes.Add(1)
+			*last = mappingRead{raw: raw, file: candidate}
+			decoded = last.copyOf()
+		}
 		return nil
 	})
 	if outcome != persist.Loaded {
 		return mappingFileShape{}, false
 	}
-	normalizeOrigins(decoded.Mappings)
-	normalizeOrigins(decoded.Previous)
 	return decoded, true
 }
 
