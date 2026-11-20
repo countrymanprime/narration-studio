@@ -203,7 +203,8 @@ export const ChapterReadFailed: Story = {
     await expect((await within(open).findByRole('alert')).textContent).toContain('The project file could not be read.');
     // Nothing to pick from: creating the track in the DAW (which needs no saved project) is the primary action.
     await expect(within(open).queryByRole('button', { name: 'Link track' })).toBeNull();
-    await expect(within(open).getByRole('button', { name: 'Create a new track' })).not.toHaveAttribute('aria-disabled');
+    // Create is held for a moment after it replaces the dead Link button, so a press meant for Link does not add a track.
+    await waitFor(() => expect(within(open).getByRole('button', { name: 'Create a new track' })).not.toHaveAttribute('aria-disabled'));
   },
 };
 
