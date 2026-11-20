@@ -28,8 +28,9 @@ var resourceKeyShape = regexp.MustCompile(`^v1-[0-9a-f]{24}$`)
 
 // memoizedResourceKey answers resourceKeyFor(source) for the resources embedded in executable. A release embeds about 400 MB, and
 // hashing it took over a second of every launch before the window could load (#3769); the key is now hashed once for each executable
-// and kept under userCache. A memo that is missing, unreadable or of another executable is ignored and replaced.
-func memoizedResourceKey(source fs.FS, userCache, executable string) (string, error) {
+// and kept under userCache. A memo that is missing, unreadable or of another executable is ignored and replaced; a memo that cannot
+// be written is reported and the launch goes on.
+func memoizedResourceKey(source fs.FS, userCache, executable string, report func(kind, message string)) (string, error) {
 	path := filepath.Join(userCache, brand.DataFolder, "runtime", resourceKeyMemoFile)
 	info, statErr := os.Stat(executable)
 	current := resourceKeyMemo{Executable: executable}
@@ -48,8 +49,15 @@ func memoizedResourceKey(source fs.FS, userCache, executable string) (string, er
 		return key, err
 	}
 	current.Key = key
-	if bytes, err := json.Marshal(current); err == nil && os.MkdirAll(filepath.Dir(path), 0o755) == nil {
-		_ = persist.WriteFile(path, bytes, 0o600) // best effort: without the memo the next launch hashes again
+	bytes, err := json.Marshal(current)
+	if err == nil {
+		if err = os.MkdirAll(filepath.Dir(path), 0o755); err == nil {
+			err = persist.WriteFile(path, bytes, 0o600)
+		}
+	}
+	if err != nil {
+		// The key is still right; without the memo the next launch hashes again, so the log says why launches stay slow.
+		report("resource_key_memo_unwritable", err.Error())
 	}
 	return key, nil
 }
