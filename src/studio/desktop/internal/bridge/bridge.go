@@ -59,6 +59,8 @@ type Client struct {
 	counter uint64
 	events  events
 	poll    fastPoll
+	// remove deletes a command file; os.Remove, except in a test that needs a removal that fails.
+	remove func(string) error
 }
 
 // restrictFolder is restrictToCurrentUser; a variable only so a test can make the call fail.
@@ -96,7 +98,35 @@ func (c *Client) Send(action string, fields []string) (string, error) {
 // the cut, the recording or the gain change the host has already reported as not done. It answers whether the file was still there,
 // which is to say REAPER had not taken the command; one REAPER already read cannot be taken back, and Retract says so by answering false.
 func (c *Client) Retract(target string) bool {
-	return os.Remove(target) == nil
+	return c.retract(target) == retractRemoved
+}
+
+// retractResult is what taking a command file back found.
+type retractResult int
+
+const (
+	// retractRemoved: the file was there and the host removed it, so REAPER had not read it (when it did not delete it yet).
+	retractRemoved retractResult = iota
+	// retractGone: the file was already gone: REAPER read and deleted it, or something else did.
+	retractGone
+	// retractFailed: the file could not be removed and may still be there (a read-only folder, a sharing violation); REAPER can still run it.
+	retractFailed
+)
+
+func (c *Client) retract(target string) retractResult {
+	remove := c.remove
+	if remove == nil {
+		remove = os.Remove
+	}
+	err := remove(target)
+	switch {
+	case err == nil:
+		return retractRemoved
+	case os.IsNotExist(err):
+		return retractGone
+	default:
+		return retractFailed
+	}
 }
 
 func percentDecode(value string) (string, error) {
