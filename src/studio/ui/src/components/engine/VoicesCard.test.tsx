@@ -279,6 +279,26 @@ describe('the Voices card', () => {
     expect(screen.getByRole('button', { name: 'Choose who Track 2 records' })).toBeTruthy();
   });
 
+  it('an unmarked blank-named track has the same name on its edit button, and toggling the switch does not rename it', () => {
+    const blank = [track('folder', 'Ch 8', 0, true), track('b1', '   ', 1)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={[{ chapterId: 'ch8', trackGuid: 'folder' }] as never}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('switch', { name: 'Track 2 counts as a voice' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose who Track 2 records' })).toBeTruthy();
+  });
+
   it('a Flat folder with a chapter-linked child and a music bed lists only the music bed', async () => {
     const part = [track('part', 'Part 1', 0, true), track('c8', 'Chapter 8', 1), track('bed', 'Music bed', 1)];
     const handlers = { onNotAVoice: vi.fn() };

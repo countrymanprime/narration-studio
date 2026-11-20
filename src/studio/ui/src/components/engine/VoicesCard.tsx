@@ -117,13 +117,13 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '9rem', '3.5rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', 'clamp(4.5rem, 26%, 9rem)', '3.5rem']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>
                     <TableHeader>Track</TableHeader>
                     <TableHeader>Characters</TableHeader>
-                    <TableHeader className="whitespace-nowrap">Counts as voice</TableHeader>
+                    <TableHeader className="min-[48rem]:whitespace-nowrap">Counts as voice</TableHeader>
                     <TableHeader hiddenLabel="Actions" />
                   </TableRow>
                 </TableHead>
@@ -259,7 +259,11 @@ function CharacterPicker({
     const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
     return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
   }
-  const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${shortName(voice.name.trim())} track records`;
+  const label = voice.narrator
+    ? 'Choose the character the Narrator track also voices'
+    : voice.name.trim() === ''
+      ? `Choose who ${placeName} records`
+      : `Choose who the ${shortName(voice.name.trim())} track records`;
   if (!voice.narrator && !savable(voice.name)) {
     const reason =
       voice.name.trim() === ''
