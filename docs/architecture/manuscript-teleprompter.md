@@ -573,6 +573,11 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `src/studio/desktop/bindi
   A run the host refuses is kept, its sentence is toasted once, and it is sent again, in order, at the next stop.
   `useBoothLeaveGuard` calls `flush()` after a confirmed stop and before navigating, so a take stopped by leaving is
   logged too.
+  A take the narrator leaves running ("Leave anyway", "Open anyway") is closed and sent when its Booth unmounts, for
+  the chapter it began in and up to the moment of leaving (#3712): the page of the chapter opened next adopts the take but
+  writes no run for it (`appTakeChapter()` in `useRecordControl.ts` names the chapter a take belongs to; a page that starts
+  a take claims it, a page that adopts one does not). The run is stamped when it is stored, mid-take, so it may carry the
+  chapter's last item rather than the take's own.
 - **Stamping.** The UI never sends an id the DAW gave. When the run is stored, the host reads them: with the built-in
   recorder, the take's name (`Take 004`) for the item and every take; with the DAW, the chapter's one linked track through
   the track state role (as Read Aloud does), its last item's GUID on every mark and that item's active take GUID. Mark `i`

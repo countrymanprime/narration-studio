@@ -643,7 +643,11 @@ export function useRecordControl({
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
           if (!starting) stopAccepted.current = true;
-          if (starting) lastStartAt = Date.now();
+          if (starting) {
+            lastStartAt = Date.now();
+            // A take this page starts is this chapter's, whatever claim a take it never saw end left behind (the Booth was left while it ran, and it ended with no page to see it).
+            appTakeChapterId = chapterId;
+          }
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;
           if (starting) {
