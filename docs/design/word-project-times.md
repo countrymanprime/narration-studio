@@ -25,7 +25,7 @@ The answer also carries `version` (`<stored check>@<change count>`) and `changeC
 
 ## Freshness
 
-The host's existing tick already reads the heartbeat's change counter (it makes `unsavedChanges`). When the counter differs from the last one it emits `daw_project_edited {changeCount}`. The page reads a new table on that event, on opening and when the window is shown again; a read in flight is followed by one more if another event came meanwhile. No timer polls the items. An edit that arrives between the event and the new table is followed by the old table for that moment (at most the host tick plus one read).
+The host's existing tick already reads the heartbeat's change counter (it makes `unsavedChanges`). When the counter differs from the last one it emits `daw_project_edited {changeCount}`. The page reads a new table on that event, on opening and when the window is shown again; a read in flight is followed by one more if another event came meanwhile, and the edit-driven reads are at least 600 ms apart (`WORD_TIMES_MIN_GAP_MS`): the first after a quiet spell is at once, a burst is answered by one read when the gap has passed. No timer polls the items. An edit that arrives between the event and the new table is followed by the old table for that moment (at most the host tick plus one read).
 
 ## The page
 

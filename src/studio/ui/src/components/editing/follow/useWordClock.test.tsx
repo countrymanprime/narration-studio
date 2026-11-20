@@ -10,7 +10,7 @@ import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { EXTRAPOLATE_MS } from './useDawTransportSync';
-import { useWordClock } from './useWordClock';
+import { useWordClock, WORD_TIMES_MIN_GAP_MS } from './useWordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 
 const doc = marksDoc();
@@ -99,7 +99,7 @@ describe('the page asks the host for where its words play', () => {
     await mount();
     daw.setWordTimes(table('rec@1', linear(100)));
     daw.editInDaw();
-    await wait(10);
+    await wait(WORD_TIMES_MIN_GAP_MS);
     daw.setWordTimes(table('rec@2', linear(300)));
     daw.editInDaw();
     await wait(10);
@@ -111,7 +111,7 @@ describe('the page asks the host for where its words play', () => {
     const { api } = await mount();
     daw.setWordTimes(table('rec@1', linear(100)));
     daw.editInDaw();
-    await wait(10);
+    await wait(WORD_TIMES_MIN_GAP_MS);
     const asked = vi.spyOn(api, 'workspaceWordTimes');
     daw.reportProjectCount();
     daw.reportProjectCount();
@@ -122,11 +122,56 @@ describe('the page asks the host for where its words play', () => {
     expect(asked).toHaveBeenCalledTimes(1);
   });
 
+  it('reads at once for the first edit after a quiet spell, and a burst of edits after it is answered by one read when the gap has passed', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    await wait(WORD_TIMES_MIN_GAP_MS);
+    const asked = vi.spyOn(api, 'workspaceWordTimes');
+    daw.editInDaw();
+    await wait(5);
+    expect(asked).toHaveBeenCalledTimes(1);
+    expect(text('version')).toBe('rec@1');
+    daw.setWordTimes(table('rec@2', linear(200)));
+    for (let i = 0; i < 20; i++) {
+      daw.editInDaw();
+      await wait(20);
+    }
+    expect(asked).toHaveBeenCalledTimes(1);
+    await wait(WORD_TIMES_MIN_GAP_MS);
+    expect(asked).toHaveBeenCalledTimes(2);
+    expect(text('version')).toBe('rec@2');
+    await wait(WORD_TIMES_MIN_GAP_MS * 3);
+    expect(asked).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads a fresh edit at once once the gap since the last one has passed', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(WORD_TIMES_MIN_GAP_MS);
+    const asked = vi.spyOn(api, 'workspaceWordTimes');
+    daw.editInDaw();
+    await wait(5);
+    expect(asked).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads nothing late after the page is left with an edit waiting', async () => {
+    const { api, unmount } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(5);
+    daw.editInDaw();
+    const asked = vi.spyOn(api, 'workspaceWordTimes');
+    unmount();
+    await wait(WORD_TIMES_MIN_GAP_MS * 2);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
   it('drops the map when the DAW can no longer make a table', async () => {
     await mount();
     daw.setWordTimes(table('rec@1', linear(100)));
     daw.editInDaw();
-    await wait(10);
+    await wait(WORD_TIMES_MIN_GAP_MS);
     daw.setWordTimes(null);
     daw.editInDaw();
     await wait(10);

@@ -10,7 +10,14 @@ import { useVisible } from './useDawPlayPosition';
  * table is asked for on opening, when the window is shown, and each time the DAW reports an edit of the project (`daw_project_edited`, REAPER's change
  * counter), so a move, a trim, a rate change, a split or a deleted section is in it as soon as the host reads it. A read that fails keeps the table
  * the page has; a DAW that cannot make one (not answering, `track_state` off, no linked track) leaves the page with no map, and the DAW is not followed.
+ *
+ * Each read makes REAPER list the chapter's items, which costs in proportion to the chapter, and REAPER's counter moves on every undo point, so a
+ * nudge or a drag moves it many times a second. The first edit after a quiet spell is read at once; edits that follow within `WORD_TIMES_MIN_GAP_MS`
+ * of the last edit-driven read wait and are answered by one read when the gap has passed (#3664).
  */
+/** The least time between two reads the DAW's edits ask for: a burst of edits is answered by one read at the end of it. */
+export const WORD_TIMES_MIN_GAP_MS = 600;
+
 export function useWordClock(
   chapterId: string,
   doc: ChapterDoc,
@@ -32,6 +39,9 @@ export function useWordClock(
     let reading = false;
     let again = false;
     let held = -1;
+    /** When the last read an edit asked for began (ms, `Date.now()`), and the timer of the one waiting for the gap to pass. */
+    let editReadAt = -Infinity;
+    let waiting: ReturnType<typeof setTimeout> | undefined;
     const read = (): void => {
       if (reading) {
         again = true;
@@ -58,11 +68,25 @@ export function useWordClock(
       );
     };
     read();
+    const readForEdit = (): void => {
+      if (waiting !== undefined) return;
+      const wait = editReadAt + WORD_TIMES_MIN_GAP_MS - Date.now();
+      if (wait <= 0) {
+        editReadAt = Date.now();
+        read();
+        return;
+      }
+      waiting = setTimeout(() => {
+        waiting = undefined;
+        if (alive) readForEdit();
+      }, wait);
+    };
     const stop = sync.subscribeDawProjectEdited((edit) => {
-      if (edit.changeCount !== held) read();
+      if (edit.changeCount !== held) readForEdit();
     });
     return () => {
       alive = false;
+      clearTimeout(waiting);
       stop();
     };
   }, [sync, chapterId, enabled, visible]);
