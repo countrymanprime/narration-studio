@@ -75,6 +75,7 @@ import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs,
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { useDawSoloesChapter } from '../../../hooks/useDawSoloesChapter';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
@@ -494,6 +495,8 @@ function BoothSession({
   });
   useDawPullBack(chapterId, moving);
 
+  // While the narrator is on this chapter the DAW soloes it in place so the other chapters are quiet; leaving the Booth takes it off (a pickup session is recorded here too).
+  useDawSoloesChapter(chapterId);
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,
     units,
