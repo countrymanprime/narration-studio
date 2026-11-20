@@ -117,6 +117,24 @@ describe('useRingPrefetch', () => {
     expect(seen.order).toEqual(['c-5', 'c-6']);
   });
 
+  it('a read that never ends does not stop the next run for good', async () => {
+    const { seen, read, kept, release } = held();
+    const view = renderHook(({ at }) => useRingPrefetch(book, at, { read, kept, gapMs: 1, stallMs: 40 }), { initialProps: { at: 'c-1' } });
+    await waitFor(() => expect(seen.order).toEqual(['c-1']));
+    view.rerender({ at: 'c-8' }); // c-1's read is never released
+    await waitFor(() => expect(seen.order).toEqual(['c-1', 'c-8']));
+    release('c-8');
+    await waitFor(() => expect(seen.order).toEqual(['c-1', 'c-8', 'c-9']));
+  });
+
+  it('reads an id the list repeats once a run, even with no `kept`', async () => {
+    const { seen, read } = reader(1);
+    renderHook(() => useRingPrefetch(['a', 'b', 'a', 'c', 'b'], 'a', { read, gapMs: 1 }));
+    await waitFor(() => expect(seen.order).toHaveLength(3));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(seen.order).toEqual(['a', 'b', 'c']);
+  });
+
   it('reads nothing for a list of one, a current the list does not have, or none', async () => {
     const { seen, read } = reader();
     renderHook(() => useRingPrefetch(['only'], 'only', { read, gapMs: 1 }));

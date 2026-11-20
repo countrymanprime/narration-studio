@@ -9,51 +9,58 @@ export type RibbonPeaks = { status: 'loading' } | { status: 'ready'; result: Wor
 type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number };
 type Workspace = { workspacePeaks: (chapterId: string) => Promise<WorkspacePeaksResult> };
 const reads = new WeakMap<object, Map<string, Shared>>();
+/** The page's chapters and the one that is open, per port: what "far" means when a kept waveform has to leave. `fullAt` is how far the
+ * nearest chapter was that had to leave since the narrator came to `current`: the background reads nothing that far out or further, or it
+ * would read chapters only to put them out again. */
+const places = new WeakMap<object, { ids: readonly string[]; current: string; fullAt: number }>();
 
-/** How much waveform the page keeps: 16 MB of the host's peaks text, about 22 hours of audio (a chapter is about 0.7 MB an hour). The
- * background read stops there, and a chapter the narrator opens past it puts out the kept chapter that is furthest from use. */
+/** How much waveform the page keeps: 16 MB of the host's peaks text, about 22 hours of audio (a chapter is about 0.7 MB an hour). Past
+ * it the kept chapter furthest from the open one leaves. */
 export const PEAKS_BUDGET_BYTES = 16 * 1024 * 1024;
 
 const peaksBytes = (result: WorkspacePeaksResult): number =>
   result.items.reduce((n, item) => n + (item.peaks ? item.peaks.minMax.length + (item.peaks.rms?.length ?? 0) : 0), 0);
 const keptBytes = (byChapter: Map<string, Shared>): number => [...byChapter.values()].reduce((n, entry) => n + entry.bytes, 0);
 
+/** How many chapters `id` is from the open one; a chapter the page's list does not have (or no page has said its list) is furthest. */
+function distance(workspace: object, id: string): number {
+  const place = places.get(workspace);
+  const at = place ? place.ids.indexOf(id) : -1;
+  return place && at >= 0 ? Math.abs(at - place.ids.indexOf(place.current)) : Infinity;
+}
+
+/** Puts kept waveforms out, the furthest from the open chapter first (the longest kept first among equals), until the rest fit the
+ * budget. The open chapter and `asked` (the one just read for the page) stay, and so does a read still out. A waveform on screen is held
+ * by its ribbon, so putting its chapter out blanks nothing. */
+function trim(workspace: object, byChapter: Map<string, Shared>, asked?: string): void {
+  const place = places.get(workspace);
+  const current = place?.current;
+  const leaving = [...byChapter]
+    .filter(([id, entry]) => entry.result && id !== asked && id !== current)
+    .sort(([a], [b]) => distance(workspace, b) - distance(workspace, a));
+  for (const [id] of leaving) {
+    if (keptBytes(byChapter) <= PEAKS_BUDGET_BYTES) return;
+    byChapter.delete(id);
+    if (place) place.fullAt = Math.min(place.fullAt, distance(workspace, id));
+  }
+}
+
 /** One host read per chapter and port, kept and shared by every ribbon, strip and background read that asks: the ribbon mounts again
  * whenever the cursor reaches another paragraph, and each of those used to read the whole chapter's audio again. A failed read is not
- * kept. A change to the chapter's audio (a new take, a check that re-aligned it) calls `forgetPeaks`.
- *
- * The kept reads are in order of use, the first the furthest from it: a read the page asks for moves its chapter to the end, and one the
- * background made goes to the front without moving the others, since the background reads outwards from the open chapter. When a read the
- * page asked for takes the kept waveforms over `PEAKS_BUDGET_BYTES`, chapters leave from the front until they fit; the chapter just read
- * always stays. A waveform on screen is held by its ribbon, so putting its chapter out blanks nothing. */
+ * kept. A change to the chapter's audio (a new take, a check that re-aligned it) calls `forgetPeaks`. What is kept is bounded (`trim`). */
 function sharedRead(workspace: Workspace, chapterId: string, background = false): Shared {
   const byChapter = reads.get(workspace) ?? new Map<string, Shared>();
   reads.set(workspace, byChapter);
   const kept = byChapter.get(chapterId);
-  if (kept) {
-    if (!background) {
-      byChapter.delete(chapterId);
-      byChapter.set(chapterId, kept);
-    }
-    return kept;
-  }
+  if (kept) return kept;
   const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0 };
-  if (background) {
-    const rest = [...byChapter];
-    byChapter.clear();
-    byChapter.set(chapterId, entry);
-    for (const [id, other] of rest) byChapter.set(id, other);
-  } else byChapter.set(chapterId, entry);
+  byChapter.set(chapterId, entry);
   entry.promise.then(
     (result) => {
       entry.result = result;
       if (byChapter.get(chapterId) !== entry) return;
       entry.bytes = peaksBytes(result);
-      if (background) return;
-      for (const [id, other] of byChapter) {
-        if (keptBytes(byChapter) <= PEAKS_BUDGET_BYTES) break;
-        if (other !== entry && other.result) byChapter.delete(id);
-      }
+      trim(workspace, byChapter, background ? undefined : chapterId);
     },
     () => {
       if (byChapter.get(chapterId) === entry) byChapter.delete(chapterId);
@@ -71,15 +78,25 @@ export function forgetPeaks(workspace: object, chapterId?: string): void {
 /**
  * Reads every chapter's peaks in the background, nearest the open chapter first (`useRingPrefetch`: the one after it, the one before, then
  * two away, and on outwards), one at a time, so a step or a jump finds its waveform already there. A move to another chapter starts the
- * run again from that chapter; chapters already kept are not read again. It stops when the kept waveforms reach `PEAKS_BUDGET_BYTES`, and
- * when the page closes.
+ * run again from that chapter; chapters already kept are not read again. Once the kept waveforms fill `PEAKS_BUDGET_BYTES` the furthest
+ * kept chapter leaves for each nearer one read, and the run stops at the distance where chapters had to leave: what is kept is the
+ * chapters around the narrator. It stops when the page closes.
  */
 export function usePrefetchPeaks(chapterIds: readonly string[], currentId: string | undefined): void {
   const workspace = usePort('workspace');
+  const key = chapterIds.join('\0');
+  // Before the run of the same change starts (effects run in order), and before any read it makes can end.
+  useEffect(() => {
+    if (currentId === undefined) return;
+    places.set(workspace, { ids: chapterIds, current: currentId, fullAt: Infinity });
+    const byChapter = reads.get(workspace);
+    if (byChapter) trim(workspace, byChapter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace, key, currentId]);
   useRingPrefetch(chapterIds, currentId, {
     read: (id) => sharedRead(workspace, id, true).promise,
     kept: (id) => reads.get(workspace)?.get(id)?.result !== undefined,
-    room: () => keptBytes(reads.get(workspace) ?? new Map<string, Shared>()) < PEAKS_BUDGET_BYTES,
+    room: (id) => distance(workspace, id) < (places.get(workspace)?.fullAt ?? Infinity),
   });
 }
 

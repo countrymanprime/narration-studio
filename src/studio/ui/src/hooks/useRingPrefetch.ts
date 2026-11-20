@@ -16,22 +16,28 @@ export function ringOrder<T>(ids: readonly T[], current: T): T[] {
 export type RingPrefetch = {
   /** Reads one id's data and keeps it wherever the caller keeps it. A failure is the caller's to record; the ring goes on. */
   read: (id: string) => Promise<unknown>;
-  /** True for an id whose data is already kept: it is passed over without a read or a wait. */
+  /** True for an id whose data is already kept: it is passed over without a read or a wait. Without it every run reads every id. */
   kept?: (id: string) => boolean;
-  /** False once the caller's memory budget is spent: the ring stops there, and starts again from the next `current`. */
-  room?: () => boolean;
+  /** False when the caller has no room for `id`'s data (its memory budget is spent): the ring stops there, since every later id is
+   * further away, and starts again from the next `current`. */
+  room?: (id: string) => boolean;
   /** The wait after each read, so a read the narrator is waiting for is never queued behind a run of these. */
   gapMs?: number;
+  /** `RING_STALL_MS` unless set. */
+  stallMs?: number;
 };
 
 /** The wait between two background reads unless the caller sets its own. */
 export const RING_GAP_MS = 150;
+/** How long a new run waits for the read an earlier run left out before it goes on beside it: a read that never ends must not end the
+ * background reading for as long as the page is open. */
+export const RING_STALL_MS = 20_000;
 
 /**
  * Reads the data of every id in the background, nearest to `current` first (`ringOrder`), one read at a time with a wait between, so the
  * page the narrator is on is never behind these and the pages next to it are ready first. A change of `current` (a navigation) or of the
- * list stops the run where it is and starts a new one from the new place: a read already out is left to finish, the new run waits for it, and
- * no other is started for the old place. The page closing stops it. `current`'s own read is the first of the run, shared with the page's own when `read` shares.
+ * list stops the run where it is and starts a new one from the new place: a read already out is left to finish, the new run waits for it (for
+ * `stallMs` at most), and no other is started for the old place. The page closing stops it. `current`'s own read is the first of the run, shared with the page's own when `read` shares.
  */
 export function useRingPrefetch(ids: readonly string[], current: string | undefined, prefetch: RingPrefetch): void {
   const latest = useRef(prefetch);
@@ -43,12 +49,14 @@ export function useRingPrefetch(ids: readonly string[], current: string | undefi
     if (current === undefined || ids.length < 2) return;
     let live = true;
     void (async () => {
+      const asked = new Set<string>();
       for (const id of ringOrder(ids, current)) {
-        await flight.current;
+        await Promise.race([flight.current, new Promise((resolve) => setTimeout(resolve, latest.current.stallMs ?? RING_STALL_MS))]);
         if (!live) return;
         const { read, kept, room, gapMs = RING_GAP_MS } = latest.current;
-        if (kept?.(id)) continue;
-        if (id !== current && room && !room()) return;
+        if (asked.has(id) || kept?.(id)) continue;
+        asked.add(id);
+        if (id !== current && room && !room(id)) return;
         flight.current = read(id).catch(() => undefined);
         await flight.current;
         if (live) await new Promise((resolve) => setTimeout(resolve, gapMs));

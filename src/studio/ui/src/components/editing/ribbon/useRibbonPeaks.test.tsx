@@ -115,33 +115,71 @@ describe('usePrefetchPeaks', () => {
     expect(workspacePeaks.mock.calls.map(([id]) => id)).toEqual(['p-1', 'p-2']);
   });
 
-  it('stops reading in the background when the kept waveforms reach the budget', async () => {
+  /** The chapters whose waveform is kept: asking for one that is not makes a new host call, so this asks through a counting copy. */
+  const keptOf = (api: ReturnType<typeof createMockApi>, ids: readonly string[]) =>
+    ids.filter((id) => renderHook(() => useRibbonPeaks(id), { wrapper: withApi(api) }).result.current.status === 'ready');
+
+  it('keeps the chapters nearest the open one within the budget, and stops reading where chapters had to leave', async () => {
     expect(PEAKS_BUDGET_BYTES).toBe(16 * 1024 * 1024);
     const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, 6));
     const api = { ...createMockApi(), workspacePeaks };
-    renderHook(() => usePrefetchPeaks(book, 'p-5'), { wrapper: withApi(api) });
-    // 6 + 6 + 6 MB is past 16 MB: the third read is the last.
+    const view = renderHook(({ at }) => usePrefetchPeaks(book, at), { wrapper: withApi(api), initialProps: { at: 'p-5' } });
+    // 6 + 6 + 6 MB is past 16 MB: the third read puts a neighbour out, and nothing further out is read.
     await waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(3), { timeout: 3000 });
     await settle();
     expect(workspacePeaks.mock.calls.map(([id]) => id)).toEqual(['p-5', 'p-6', 'p-4']);
+    view.unmount();
+    expect(keptOf(api, ['p-4', 'p-5']).sort()).toEqual(['p-4', 'p-5']);
   });
 
-  it('puts out the chapter furthest from use when one the narrator opens goes past the budget, never the one just opened', async () => {
+  it('walking the whole book never keeps more than the budget, and the chapter the narrator is on is always kept', async () => {
+    const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, 5));
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(
+      ({ at }) => {
+        usePrefetchPeaks(book, at);
+        return useRibbonPeaks(at);
+      },
+      { wrapper: withApi(api), initialProps: { at: 'p-1' } },
+    );
+    for (const at of [...book, ...[...book].reverse()]) {
+      view.rerender({ at });
+      await waitFor(() => expect(view.result.current.status).toBe('ready'), { timeout: 3000 });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    await settle();
+    view.unmount();
+    const calls = workspacePeaks.mock.calls.length;
+    const kept = keptOf(api, book);
+    // 5 MB a chapter under 16 MB: three chapters at most, the first chapter (where the walk ended) among them.
+    expect(kept.length).toBeLessThanOrEqual(3);
+    expect(kept).toContain('p-1');
+    expect(calls).toBeGreaterThan(9); // chapters that left were read again on the way back
+  });
+
+  it('a jump past the budget trades the furthest kept chapters for the ones around the new place', async () => {
+    const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, 5));
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(({ at }) => usePrefetchPeaks(book, at), { wrapper: withApi(api), initialProps: { at: 'p-1' } });
+    await settle();
+    view.rerender({ at: 'p-8' });
+    await settle();
+    await settle();
+    view.unmount();
+    const kept = keptOf(api, book);
+    expect(kept).toContain('p-8');
+    expect(kept.some((id) => id === 'p-7' || id === 'p-9')).toBe(true);
+    expect(kept).not.toContain('p-1');
+  });
+
+  it('with no page list, a chapter the page opens past the budget puts out the longest kept, never the one just opened', async () => {
     const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, 6));
     const api = { ...createMockApi(), workspacePeaks };
-    const open = (id: string) => renderHook(() => useRibbonPeaks(id), { wrapper: withApi(api) });
-    for (const id of ['p-1', 'p-2', 'p-3']) await waitFor(() => expect(open(id).result.current.status).toBe('ready'));
-    // 18 MB was read and 16 are allowed: p-1, the longest unused, left; p-2 and p-3 are still there.
-    expect(open('p-3').result.current.status).toBe('ready');
-    expect(open('p-2').result.current.status).toBe('ready');
-    expect(workspacePeaks).toHaveBeenCalledTimes(3);
-    const again = open('p-1');
-    expect(again.result.current.status).toBe('loading');
-    await waitFor(() => expect(again.result.current.status).toBe('ready'));
-    expect(workspacePeaks).toHaveBeenCalledTimes(4);
-    // p-3 was the longest unused then (p-2 was asked for after it), so p-3 left and p-2 stayed.
-    expect(open('p-2').result.current.status).toBe('ready');
-    expect(workspacePeaks).toHaveBeenCalledTimes(4);
+    for (const id of ['q-1', 'q-2', 'q-3']) {
+      const view = renderHook(() => useRibbonPeaks(id), { wrapper: withApi(api) });
+      await waitFor(() => expect(view.result.current.status).toBe('ready'));
+    }
+    expect(keptOf(api, ['q-3', 'q-2', 'q-1'])).toEqual(['q-3', 'q-2']);
   });
 
   it('keeps one chapter larger than the whole budget while it is the open one', async () => {
