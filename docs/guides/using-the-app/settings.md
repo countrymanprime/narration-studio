@@ -88,7 +88,7 @@ the default: the host's settings, what this window keeps (Theme, Motion, Start t
 Shortcuts, the Merriam-Webster key, the recording tool (anything but REAPER), the delivery profiles (your own, or one chosen for this project), the default delivery profile
 (when it is not the one the app ships with), the Story Bible types and the mark types (when they are not the six each starts with), and the credits (when a
 shipped template was edited, deleted or added to, or this project has credit values of its own). It does not list
-the rows that are not settings with a default: the capabilities report, the sync log, the manuscript, the Story Bible data and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
+the rows that are not settings with a default: the capabilities list, the sync log, the manuscript, the Story Bible data and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
 when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
@@ -123,8 +123,7 @@ and the device, with what REAPER records from and plays on) and needs nothing se
 microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each. **Ask REAPER again** asks once more and then shows when it last got an answer ("Checked 3:42:07 PM"), even when the answer is the same. **Test sound** is busy for the half second the tone plays.
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
-for Audacity or the built-in recorder); and, under Advanced for any recorder,
-**Capabilities**. **DAW follows your chapter** (on by default) makes the DAW select a chapter's track, and the tracks inside it, when you go to that chapter in the Booth, on Editing, or on Pickups with one chapter chosen, and, in the Booth, arms only your voice and turns its input monitoring on until you leave ([how](booth.md#where-the-booth-opens-in-your-daw)); off, the DAW stays where you put it and nothing is quieted. The Booth puts the DAW's cursor at the end of what is recorded (or at the line you went to); Editing and Pickups put it where the chapter's audio starts. With REAPER, while the Booth is on a chapter it also quiets the other chapters; the [Booth](booth.md#where-the-booth-opens-in-your-daw) guide says more. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the app's chapter and your cursor stays. After a restart the Booth and Editing take the DAW to the chapter you were on (the Booth tries for about 20 seconds after it opens; a DAW that starts later is brought back the next time the app window gets focus). Nothing moves while the DAW records or is not connected. Master & QC has no chapter in view, so it follows nothing. These are settings of this computer; a project has no override for them. **Voice sample output** names the
+for Audacity or the built-in recorder). **DAW follows your chapter** (on by default) makes the DAW select a chapter's track, and the tracks inside it, when you go to that chapter in the Booth, on Editing, or on Pickups with one chapter chosen, and, in the Booth, arms only your voice and turns its input monitoring on until you leave ([how](booth.md#where-the-booth-opens-in-your-daw)); off, the DAW stays where you put it and nothing is quieted. The Booth puts the DAW's cursor at the end of what is recorded (or at the line you went to); Editing and Pickups put it where the chapter's audio starts. With REAPER, while the Booth is on a chapter it also quiets the other chapters; the [Booth](booth.md#where-the-booth-opens-in-your-daw) guide says more. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the app's chapter and your cursor stays. After a restart the Booth and Editing take the DAW to the chapter you were on (the Booth tries for about 20 seconds after it opens; a DAW that starts later is brought back the next time the app window gets focus). Nothing moves while the DAW records or is not connected. Master & QC has no chapter in view, so it follows nothing. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
@@ -164,7 +163,7 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)
 
-![Settings - Recording & DAW: the capabilities and the REAPER path under Advanced](../../images/ui/settings-daw.webp)
+![Settings - Recording & DAW: the REAPER path under Advanced](../../images/ui/settings-daw.webp)
 
 ### Choose REAPER
 
@@ -198,10 +197,6 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Start the launcher script with REAPER** (on by default): the app keeps its bridge in REAPER's Scripts folder and
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
-- **Capabilities** (Advanced): a table, titled with the linked tool's name ("What REAPER can do"), of what the app can ask the
-  recording tool to do, each with a **Now** column: **Available**, or **Unavailable** with the tool's own reason beside it
-  (REAPER not answering, or something that DAW cannot do, such as "Audacity cannot set an audio interface's input gain").
-  Nothing in it turns a capability on or off: what the linked DAW can do is on, all the time.
 
 The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
@@ -407,6 +402,12 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 **First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and the lightbulb icon button (**Show tips again**) forgets them all, so each shows once more. It is the same list for every project on this computer, and the icon is off while none are dismissed, with the reason in its tooltip. If the list cannot be read, the row says so and offers **Retry**.
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and the Show tips again icon](../../images/ui/settings-first-use-tips.webp)
+
+### Capabilities
+
+The **Capabilities** row (under **Recording tool**) says in one line how much of what the app asks of a recording tool the linked tool does now ("REAPER does 36 of 42 things the app asks of it now."). **See what each tool can do** opens the whole list in a dialog; the **Show what each recording tool can do** icon button at the top of the [audio engine panel](navigation.md#the-audio-engine-panel) opens the same one. Each row is one thing the app can ask a recording tool to do, with a sentence on what it is for and the pages that use it, a **Yes**, **Not yet** or **No** for REAPER, Audacity 3, Audacity 4 and the built-in recorder, and a **Now** column for the linked tool: **Available**, or **Unavailable** with the tool's own reason beside it (REAPER not answering, or something that tool cannot do, such as "Audacity cannot set an audio interface's input gain"). Nothing in it turns a capability on or off: what the linked tool can do is on, all the time. If the list cannot be read, the dialog says so and offers **Retry**; the columns for each tool still show.
+
+![Settings - App & updates, Capabilities: the dialog that lists what each recording tool can do](../../images/ui/settings-capabilities.webp)
 
 ### Diagnostics
 

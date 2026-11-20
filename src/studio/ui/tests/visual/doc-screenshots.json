@@ -655,7 +655,14 @@
     "state": "recording-advanced",
     "viewport": "desktop",
     "docName": "settings-daw",
-    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program and the capabilities table"
+    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program path"
+  },
+  {
+    "page": "settings",
+    "state": "app-capabilities",
+    "viewport": "desktop",
+    "docName": "settings-capabilities",
+    "caption": "Settings - App & updates, Capabilities: the dialog that lists what each recording tool can do"
   },
   {
     "page": "settings",

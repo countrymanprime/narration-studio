@@ -125,7 +125,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-advanced',
     description:
-      'Settings, Recording & DAW with Advanced open: the REAPER program path box and the Capabilities table (each capability and what the linked recording tool reports now, with no control to turn one on or off)',
+      'Settings, Recording & DAW with Advanced open: the REAPER program path box (the Capabilities table moved to its own dialog, opened from App & updates and the audio engine panel)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -552,6 +552,13 @@ export const settingsStates: StateEntry[] = [
     state: 'app',
     description:
       'Settings, App & updates, nothing checked yet: the This version panel (the version, "Not checked yet.", Check for updates), Updates, Notifications and Diagnostics',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'app-capabilities',
+    description:
+      'Settings, App & updates, after "See what each tool can do" in the Capabilities row: the dialog with one row per capability (what it is for and where the app uses it, whether REAPER, Audacity 3, Audacity 4 and the built-in recorder do it, and what the linked tool reports now)',
     ...REFLOW,
   },
   {
