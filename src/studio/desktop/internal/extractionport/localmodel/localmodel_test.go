@@ -298,11 +298,8 @@ func TestASuggestionWithABlankQuoteOrSpeakerIsNeverEmitted(t *testing.T) {
 	blankName.Characters = []localmodel.Character{{Name: "", Aliases: []string{"Mira"}}}
 	for name, q := range map[string]localmodel.Question{"blank quote": blankQuote, "character with no name": blankName} {
 		t.Run(name, func(t *testing.T) {
-			raws := extract(t, source(answering(good()), q))
-			for _, raw := range raws {
-				if raw.Payload.Quote == "" || raw.Payload.Speaker == "" {
-					t.Fatalf("emitted %+v", raw.Payload)
-				}
+			if raws := extract(t, source(answering(good()), q)); len(raws) != 0 {
+				t.Fatalf("emitted %+v", raws)
 			}
 		})
 	}

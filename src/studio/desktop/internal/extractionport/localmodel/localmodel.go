@@ -4,10 +4,13 @@
 // deterministic fake in localmodeltest there; this package sends nothing anywhere and has no network code.
 //
 // The model only proposes. Code decides what is kept. The speaker must be one listed character, by name or by an alias no other
-// character shares; that name must be written, as a whole word, in the passage the model was shown; the evidence must be found
-// in the manuscript (extraction.VerifyEvidence), must name the speaker, and must come from outside the quote itself; and a
-// reason sentence must come with it. An answer that fails any of these is dropped, so the line stays unknown. A confidence at or
-// above extraction.VerifyBelow is lowered under it, so a model's guess is never accepted without the narrator.
+// character shares; the evidence must be found in the passage the model was shown (extraction.VerifyEvidence) on whole words,
+// must name the speaker outside the quote itself and not only as part of a longer listed name ("John" in "Little John"), must say
+// more than the bare name, and must not overlap the quote; and a reason of at least three words that names the speaker must come
+// with it. An answer that fails any of these is dropped, so the line stays unknown. A confidence at or
+// above extraction.VerifyBelow is lowered under it, so a model's guess is never accepted without the narrator. Not enforced: that the
+// reason says something true (it only has to name the speaker), and a quote repeated word for word in one paragraph is cut out once
+// when the evidence is placed against it, and in full only when the name is looked for.
 //
 // This source replaces the registry's local-model row once the host registers it. It differs from that row on purpose: it is
 // scored, because an answer carries the model's confidence, and it names the analysis tool its files come from. It is not
@@ -34,6 +37,9 @@ const AssetID = "local-llm"
 
 // MaxReasonRunes caps the reason sentence a model gives; the rest is cut.
 const MaxReasonRunes = 300
+
+// MinReasonWords is the fewest words a reason may have to be a sentence the narrator can read.
+const MinReasonWords = 3
 
 // MaxEvidenceRunes is the longest evidence the source keeps; longer is not a sentence that supports an answer, so the answer is
 // dropped.
@@ -166,6 +172,9 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 			raws = append(raws, raw)
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return raws, nil
 }
 
@@ -182,17 +191,16 @@ func accept(q Question, a Answer) (extractionport.Raw, bool) {
 	if strings.TrimSpace(q.Quote) == "" {
 		return extractionport.Raw{}, false
 	}
-	name, names, ok := character(q.Characters, a.Speaker)
-	if !ok || !namedIn(outsideTheQuote(q), names) {
+	name, names, others, ok := character(q.Characters, a.Speaker)
+	if !ok {
 		return extractionport.Raw{}, false
 	}
 	reason := cleanReason(a.Reason)
-	if reason == "" || !namedIn([]extraction.Paragraph{{Text: reason}}, names) {
+	if len(strings.Fields(reason)) < MinReasonWords || !mentions(reason, names, others) {
 		return extractionport.Raw{}, false
 	}
 	evidence, ok := extraction.VerifyEvidence(q.Passage, a.Evidence, extraction.QuoteHint{ParagraphID: q.ParagraphID, ChapterID: q.ChapterID})
-	if !ok || utf8.RuneCountInString(evidence.Text) > MaxEvidenceRunes || !namedIn([]extraction.Paragraph{{Text: evidence.Text}}, names) ||
-		strings.Contains(foldString(q.Quote), foldString(evidence.Text)) {
+	if !ok || utf8.RuneCountInString(evidence.Text) > MaxEvidenceRunes || !supports(q, evidence, names, others) {
 		return extractionport.Raw{}, false
 	}
 	return extractionport.Raw{
@@ -216,54 +224,49 @@ func capped(c *float64) *float64 {
 	return &v
 }
 
-// character resolves what the model called the speaker to one listed character, by name or alias with the folds NameSpans makes,
-// and gives that character's name and every name it goes by. ok is false for an empty answer, a name nobody has, or one that two
-// characters share: the line then stays unknown rather than going to whichever is listed first.
-func character(characters []Character, said string) (name string, names []string, ok bool) {
+// character resolves what the model called the speaker to one listed character, by name or alias with the folds NameSpans makes.
+// It gives that character's name, every name it goes by, and every name the other characters go by. ok is false for an empty
+// answer, a name nobody has, or one that more than one listed character has (two entries with the same name included): the line
+// then stays unknown rather than going to whichever is listed first. A character with a blank name is not listed.
+func character(characters []Character, said string) (name string, names []string, others [][]string, ok bool) {
 	want := string(foldRunes(said))
 	if want == "" {
-		return "", nil, false
+		return "", nil, nil, false
 	}
 	found := -1
 	for i, c := range characters {
-		if strings.TrimSpace(c.Name) == "" {
+		if strings.TrimSpace(c.Name) == "" || !slices.ContainsFunc(append([]string{c.Name}, c.Aliases...), func(n string) bool { return string(foldRunes(n)) == want }) {
 			continue
 		}
-		if !slices.ContainsFunc(append([]string{c.Name}, c.Aliases...), func(n string) bool { return string(foldRunes(n)) == want }) {
-			continue
+		if found >= 0 {
+			return "", nil, nil, false
 		}
-		if found >= 0 && string(foldRunes(characters[found].Name)) != string(foldRunes(c.Name)) {
-			return "", nil, false
-		}
-		if found < 0 {
-			found = i
-		}
+		found = i
 	}
 	if found < 0 {
-		return "", nil, false
+		return "", nil, nil, false
+	}
+	for i, c := range characters {
+		if i != found && strings.TrimSpace(c.Name) != "" {
+			others = append(others, append([]string{c.Name}, c.Aliases...))
+		}
 	}
 	c := characters[found]
-	return c.Name, append([]string{c.Name}, c.Aliases...), true
+	return c.Name, append([]string{c.Name}, c.Aliases...), others, true
 }
 
-// outsideTheQuote is the passage with the quote itself taken out of its paragraph, so a name the quote only speaks (an address, "Where
-// are you, Toby?") does not count as the speaker being in the scene.
-func outsideTheQuote(q Question) []extraction.Paragraph {
-	out := make([]extraction.Paragraph, len(q.Passage))
-	for i, p := range q.Passage {
-		if p.ID == q.ParagraphID && q.Quote != "" {
-			p.Text = strings.Replace(p.Text, q.Quote, " ", 1)
+// mentions reports whether any of names is written as a whole word in text, not counting a hit that sits inside a longer name
+// another character goes by.
+func mentions(text string, names []string, others [][]string) bool {
+	var longer [][2]int
+	for _, group := range others {
+		for _, n := range group {
+			longer = append(longer, NameSpans(text, n)...)
 		}
-		out[i] = p
 	}
-	return out
-}
-
-// namedIn reports whether any of names is written as a whole word in the paragraphs.
-func namedIn(paragraphs []extraction.Paragraph, names []string) bool {
-	for _, p := range paragraphs {
-		for _, n := range names {
-			if len(NameSpans(p.Text, n)) > 0 {
+	for _, n := range names {
+		for _, span := range NameSpans(text, n) {
+			if !slices.ContainsFunc(longer, func(o [2]int) bool { return o[0] <= span[0] && span[1] <= o[1] && o != span }) {
 				return true
 			}
 		}
@@ -271,8 +274,63 @@ func namedIn(paragraphs []extraction.Paragraph, names []string) bool {
 	return false
 }
 
-// cleanReason is a model's reason as one line of valid text: control characters and runs of white space become one space, format characters (a right-to-left override among them) are removed, and the
-// rest is cut at MaxReasonRunes.
+// supports reports whether the evidence backs the answer: it names the speaker outside the quote and says more than the name, it
+// begins and ends on whole words, and it does not overlap the quote where the quote stands.
+func supports(q Question, ev extraction.Evidence, names []string, others [][]string) bool {
+	var paragraph string
+	for _, p := range q.Passage {
+		if p.ID == ev.ParagraphID {
+			paragraph = p.Text
+			break
+		}
+	}
+	from, to := byteOffset(paragraph, ev.Start), byteOffset(paragraph, ev.End)
+	if from > to || to > len(paragraph) || !wholeWords(paragraph, from, to) {
+		return false
+	}
+	if quote, ok := extraction.VerifyEvidence([]extraction.Paragraph{{ID: ev.ParagraphID, Text: paragraph}}, q.Quote, extraction.QuoteHint{}); ok &&
+		ev.Start < quote.End && quote.Start < ev.End {
+		return false
+	}
+	text := withoutQuote(ev.Text, q.Quote)
+	if !mentions(text, names, others) {
+		return false
+	}
+	for _, n := range names {
+		spans := NameSpans(text, n)
+		for i := len(spans) - 1; i >= 0; i-- {
+			text = text[:spans[i][0]] + " " + text[spans[i][1]:]
+		}
+	}
+	return strings.ContainsFunc(text, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) })
+}
+
+// wholeWords reports whether text[from:to] begins and ends on word edges of text.
+func wholeWords(text string, from, to int) bool {
+	if from == to {
+		return false
+	}
+	first, _ := utf8.DecodeRuneInString(text[from:to])
+	last, _ := utf8.DecodeLastRuneInString(text[from:to])
+	return (!isWordRune(first) || !wordBefore(text, from)) && (!isWordRune(last) || !wordAfter(text, to))
+}
+
+// withoutQuote is text with each copy of quote cut out and a space left, up to twenty copies. The quote is found as VerifyEvidence
+// finds it, so curly and straight quotes and no-break spaces do not hide it.
+func withoutQuote(text, quote string) string {
+	for i := 0; i < 20; i++ {
+		ev, ok := extraction.VerifyEvidence([]extraction.Paragraph{{ID: "x", Text: text}}, quote, extraction.QuoteHint{})
+		if !ok {
+			break
+		}
+		from, to := byteOffset(text, ev.Start), byteOffset(text, ev.End)
+		text = text[:from] + " " + text[to:]
+	}
+	return text
+}
+
+// cleanReason is a model's reason as one line of valid text: control characters and runs of white space become one space, format
+// characters (a right-to-left override among them) are removed, and the rest is cut at MaxReasonRunes.
 func cleanReason(s string) string {
 	s = strings.ToValidUTF8(s, "")
 	s = strings.Map(func(r rune) rune {
@@ -290,5 +348,3 @@ func cleanReason(s string) string {
 	}
 	return s
 }
-
-func foldString(s string) string { return string(foldRunes(s)) }

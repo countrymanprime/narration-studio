@@ -104,3 +104,29 @@ func TestTheFakeReturnsTheContextErrorOnceCancelled(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestTheFakeTakesTheFirstListedOnATieAndKnowsAliases(t *testing.T) {
+	tie := localmodel.Question{ChapterID: "c", ParagraphID: "p2", Quote: "\"Hi.\"",
+		Characters: []localmodel.Character{{Name: "Sam"}, {Name: "Samuel", Aliases: []string{"Sam"}}},
+		Passage:    []extraction.Paragraph{{ID: "p1", ChapterID: "c", Text: "Sam sat."}, {ID: "p2", ChapterID: "c", Text: "\"Hi.\""}}}
+	if got := ask(t, tie); got.Speaker != "Sam" {
+		t.Fatalf("got %+v, want the first listed on a tie", got)
+	}
+	alias := localmodel.Question{ChapterID: "c", ParagraphID: "p2", Quote: "\"Hi.\"",
+		Characters: []localmodel.Character{{Name: "Captain Arelian", Aliases: []string{"Arelian"}}},
+		Passage:    []extraction.Paragraph{{ID: "p1", ChapterID: "c", Text: "Arelian sat."}, {ID: "p2", ChapterID: "c", Text: "\"Hi.\""}}}
+	if got := ask(t, alias); got.Speaker != "Captain Arelian" {
+		t.Fatalf("got %+v, want the character the alias belongs to", got)
+	}
+}
+
+func TestTheFakesEvidenceIsOneSentenceAndNeverJoinsParagraphs(t *testing.T) {
+	if got := ask(t, scene("Mira sat down. Then it rained.", "\"Hi.\"", "", "Mira")); got.Evidence != "Mira sat down." {
+		t.Fatalf("evidence = %q, want the one sentence", got.Evidence)
+	}
+	q := localmodel.Question{ChapterID: "c", ParagraphID: "p3", Quote: "\"Hi.\"", Characters: []localmodel.Character{{Name: "Mira"}},
+		Passage: []extraction.Paragraph{{ID: "p1", ChapterID: "c", Text: "Toby left"}, {ID: "p2", ChapterID: "c", Text: "Mira sat"}, {ID: "p3", ChapterID: "c", Text: "\"Hi.\""}}}
+	if got := ask(t, q); got.Evidence != "Mira sat" {
+		t.Fatalf("evidence = %q, want only the paragraph that names Mira", got.Evidence)
+	}
+}
