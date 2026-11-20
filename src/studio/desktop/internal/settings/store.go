@@ -66,6 +66,8 @@ var closedChoices = map[string]map[string][]string{
 	"VoiceSamples": {"storage": {"project", "daw", "both"}},
 	// Teleprompter.input_source is whose microphone the Booth listens to while a DAW records (app.go's settings schema).
 	"Teleprompter": {"input_source": {"daw", "chosen"}},
+	// ManuscriptGuide.speaker_fallback_model is the local model that suggests a speaker for the lines the rules leave unknown (#3743).
+	"ManuscriptGuide": {"speaker_fallback_model": {"qwen3-4b"}},
 }
 
 // DefinitionSources is Script.definition_source's choices, in the order Settings lists them.
@@ -77,10 +79,11 @@ func DefinitionSources() []string {
 // whole number, is skipped like an unknown choice, so the setting reads as the layer below. Editing.fx_cap_pct is the share of a
 // chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default). Booth.words_per_page
 // is how many words the Booth counts to a page. Editing.replace_target_lufs is the loudness Replace audio sets another narrator's
-// stretch to.
+// stretch to. ManuscriptGuide.speaker_fallback_max_quotes is how many unknown lines one run may put to the local model.
 var wholeNumbers = map[string]map[string][2]int{
-	"Booth":   {"words_per_page": {50, 1000}},
-	"Editing": {"fx_cap_pct": {1, 100}, "replace_target_lufs": {-40, -10}},
+	"ManuscriptGuide": {"speaker_fallback_max_quotes": {1, 200}},
+	"Booth":           {"words_per_page": {50, 1000}},
+	"Editing":         {"fx_cap_pct": {1, 100}, "replace_target_lufs": {-40, -10}},
 }
 
 func known(tool, key, value string) bool {
@@ -112,7 +115,8 @@ var builtinDefaults = map[string]Values{
 	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false", "activity_trace": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
-	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
+	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask",
+		"speaker_fallback": "false", "speaker_fallback_model": "qwen3-4b", "speaker_fallback_max_quotes": "20"},
 	// definition_source defaults to web: the Words tab opens the dictionary site and shows nothing inline until the narrator picks
 	// the local dictionary or the online service.
 	"Script": {"definition_source": "web"},

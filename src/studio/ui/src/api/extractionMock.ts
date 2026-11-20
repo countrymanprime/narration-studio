@@ -165,11 +165,13 @@ const SEEDS: Seed[] = [
   },
 ];
 
-/** The sources of a fresh install, as the host's extraction-sources golden has them. */
+/** The sources of a fresh install, as the host's extraction-sources golden has them, but for the local model: here a deterministic
+ * stand-in is installed (mockHost/speakerFallbackFake.ts), so its row is available and Settings can turn it on. It is not started
+ * from a scan on either side. */
 const SOURCES: ExtractionSource[] = [
   { id: 'rules', label: 'Rules', icon: 'auto', runs: true, available: true },
   { id: 'imported', label: 'Imported file', icon: 'import', runs: false, available: false, reason: 'Imported file is not available yet.' },
-  { id: 'local-model', label: 'Local model', icon: 'globe', runs: true, available: false, reason: 'No local model is installed.' },
+  { id: 'local-model', label: 'Local model', icon: 'globe', runs: false, available: true },
   { id: 'gliner', label: 'GLiNER', icon: 'locate', runs: true, available: false, reason: 'GLiNER is not downloaded.' },
   { id: 'booknlp', label: 'BookNLP', icon: 'dictionary', runs: true, available: false, reason: 'BookNLP is not downloaded.' },
 ];

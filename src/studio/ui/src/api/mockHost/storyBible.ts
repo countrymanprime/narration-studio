@@ -1,3 +1,4 @@
+import { suggestUnknownSpeakers, type SpeakerFallbackSetting } from './speakerFallbackFake';
 // The mock host (mockApi.ts): the Story Bible.
 import type { MergeEvents } from './mergeEvents';
 import { parseWireJson } from '../wire/parseWire';
@@ -85,6 +86,8 @@ export function createStoryBibleMock(
   manuscriptReady: Promise<void>,
   { ttsInstalled, mockVoiceIdentity, mockVoice }: Pick<AssetsMock, 'ttsInstalled' | 'mockVoiceIdentity' | 'mockVoice'>,
   merges?: MergeEvents,
+  /** The narrator's settings for the local model, read at each run; absent, no model is asked. */
+  speakerFallback?: () => SpeakerFallbackSetting,
 ) {
   // The sidecar's rules (manuscript_guide.py set_pronunciation): the narrator's own and a dictionary's pronunciation sit
   // side by side, the one not in use kept as the alternate; an author confirmation is withdrawn when the IPA in use changes.
@@ -358,6 +361,23 @@ export function createStoryBibleMock(
         else changed += 1;
         return { ...cue, speaker_entity_id: speaker, speaker_source: speaker ? 'tag' : 'unknown' };
       });
+      // Then the local model's stand-in, when Settings turned it on: the lines the rules left unknown take its suggestion.
+      const speaking = new Set(types.filter((type) => type.speaks).map((type) => type.name));
+      const run = suggestUnknownSpeakers(
+        s.dialogueCues,
+        s.entities.filter((entity) => speaking.has(entity.category)),
+        speakerFallback?.() ?? { on: false, maxLines: 0 },
+      );
+      for (const cue of run.cues) {
+        const before = s.dialogueCues.find((row) => row.id === cue.id);
+        if (!before || before.speaker_source === cue.speaker_source || cue.speaker_source !== 'local-model') continue;
+        // A line the rules had just blanked is already in `previous`; a line that was unknown before the run is new to it.
+        if (!previous.some((row) => row.cueId === cue.id)) {
+          previous.push({ cueId: cue.id, speakerEntityId: null, speakerSource: 'unknown' });
+          filled += 1;
+        }
+      }
+      s.dialogueCues = run.cues;
       return {
         cues: s.dialogueCues.length,
         attributed: s.dialogueCues.filter((cue) => cue.speaker_entity_id !== null).length,
@@ -365,9 +385,8 @@ export function createStoryBibleMock(
         changed,
         keptConfirmed: s.dialogueCues.filter((cue) => cue.corrected || cue.speaker_source === 'correction').length,
         previous,
-        // No local model is switched on here, as in the app by default: the rules' answer is the whole result.
-        modelFilled: 0,
-        modelNote: '',
+        modelFilled: run.filled,
+        modelNote: run.note,
       };
     },
     guideRestoreSpeakers: async (previous) => {
@@ -376,9 +395,12 @@ export function createStoryBibleMock(
         const row = previous.find((item) => item.cueId === cue.id);
         if (!row || cue.corrected || cue.speaker_source === 'correction') return cue;
         restored += 1;
-        // As the host: a model's reason is not kept for undo, so a line that had its suggestion goes back to unknown.
+        // As the host: a model's reason goes with its suggestion, and is not kept for undo, so a line that had a model's
+        // suggestion before the run goes back to unknown.
+        const evidence = { ...cue.evidence };
+        delete evidence.reason;
         const model = row.speakerSource === 'local-model';
-        return { ...cue, speaker_entity_id: model ? null : row.speakerEntityId, speaker_source: model ? 'unknown' : row.speakerSource };
+        return { ...cue, evidence, speaker_entity_id: model ? null : row.speakerEntityId, speaker_source: model ? 'unknown' : row.speakerSource };
       });
       return restored;
     },

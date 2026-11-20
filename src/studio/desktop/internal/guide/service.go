@@ -44,8 +44,9 @@ type Service struct {
 	findingsStore atomic.Pointer[findings.Store]
 	// wiktextractIndex answers the installed Wiktextract index's path, or "" (SetWiktextractIndex); nil until app.go sets it.
 	wiktextractIndex atomic.Pointer[func() string]
-	// speakerFallback suggests speakers for the lines the rules leave unknown (SetSpeakerFallback); nil, the default, is none.
-	speakerFallback atomic.Pointer[SpeakerFallback]
+	// speakerFallback answers, at each run, the fallback that suggests speakers for the lines the rules leave unknown
+	// (SetSpeakerFallbackProvider); nil, the default, is none.
+	speakerFallback atomic.Pointer[func() SpeakerFallback]
 	fallbackMu      sync.Mutex
 	// fallbackDeclined is the lines the fallback was asked about and gave no kept answer for (rememberDeclined).
 	// +checklocks:fallbackMu

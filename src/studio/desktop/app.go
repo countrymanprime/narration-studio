@@ -36,6 +36,7 @@ import (
 	"desktop/internal/extraction/apply"
 	"desktop/internal/extraction/importer"
 	"desktop/internal/extractionport"
+	"desktop/internal/extractionport/localmodel"
 	"desktop/internal/findings"
 	"desktop/internal/guide"
 	"desktop/internal/hostlog"
@@ -163,7 +164,10 @@ type Host struct {
 	// +checklocks:mu
 	removing map[string]bool
 	guide    *guide.Service
-	guideJob *workJob
+	// speakerModel is the local model asked about the lines the rules leave unknown (speaker_fallback_settings.go); nil on this
+	// build, where none ships. Set before the first configure, never after.
+	speakerModel localmodel.Asker
+	guideJob     *workJob
 	// extractionJob is the Story Bible's scan for suggestions (extraction_job.go); h.mu guards the pointer, the job its fields.
 	extractionJob *extractionScanJob
 	// measureJob measures the narrator's picked audio files (measure_job.go); measurePicked is every path the picker
@@ -725,6 +729,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
 	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
+	// Asked at each run, so the narrator's setting as it stands then decides whether a model is asked at all.
+	h.guide.SetSpeakerFallbackProvider(speakerFallbackProvider(h.settings, h.speakerModel))
 	// An older project's Script page words move to their Story Bible names before anything reads either file (scriptwords_migrate.go).
 	migrateScriptWordsOnOpen(h.config.projectFolder, h.manuscript, h.guide, h.persist, h.log)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
@@ -1813,6 +1819,11 @@ var fieldSchemas = map[string][]fieldSchema{
 		// again". Global only (saveSettings refuses it at project scope): a narrator preference, not a per-project one.
 		{"analysis_prompt", "Offer better analysis tools", "choice", []string{"ask", "basic"}},
 		{"default_pronunciation_source", "Default pronunciation source", "choice", append([]string{""}, pronunciationport.FallbackOrder("")...)},
+		// The local model that suggests a speaker for the lines the rules leave unknown (#3743): off unless the narrator turns it on,
+		// which model, and how many lines one run may put to it (speaker_fallback_settings.go).
+		{"speaker_fallback", "Ask a local model about unknown speakers", "bool", nil},
+		{"speaker_fallback_model", "Local model for unknown speakers", "choice", []string{"qwen3-4b"}},
+		{"speaker_fallback_max_quotes", "Lines the local model may take per run", "number", nil},
 	},
 	// definition_source is where the Script page's Words tab reads a word's definition: web (the dictionary site, nothing inline), local
 	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
@@ -2105,6 +2116,11 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "ManuscriptGuide" && scope != "global" {
 		if _, ok := values["analysis_prompt"]; ok {
 			return fmt.Errorf("the analysis prompt preference is global: it is the narrator's choice, not this project's")
+		}
+		for _, key := range []string{"speaker_fallback", "speaker_fallback_model", "speaker_fallback_max_quotes"} {
+			if _, ok := values[key]; ok {
+				return fmt.Errorf("the local model for unknown speakers is global: it is installed on this computer, not in this project")
+			}
 		}
 	}
 	valid := map[string]fieldSchema{}

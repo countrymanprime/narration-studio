@@ -21,8 +21,16 @@ import (
 // speakerFallbackProject is a project whose rules attribute one line and leave three unknown, two of which read the same.
 func speakerFallbackProject(t *testing.T) *guide.Service {
 	t.Helper()
+	svc, _ := speakerFallbackProjectWithSettings(t)
+	return svc
+}
+
+// speakerFallbackProjectWithSettings is speakerFallbackProject with the settings store the service reads.
+func speakerFallbackProjectWithSettings(t *testing.T) (*guide.Service, *settings.Store) {
+	t.Helper()
 	project := t.TempDir()
-	svc := guide.New(project, "", "", settings.New(project, project), nil)
+	store := settings.New(t.TempDir(), project)
+	svc := guide.New(project, "", "", store, nil)
 	write := func(path string, value any) {
 		t.Helper()
 		bytes, err := json.Marshal(value)
@@ -60,7 +68,7 @@ func speakerFallbackProject(t *testing.T) *guide.Service {
 			map[string]any{"id": "bo", "canonical_name": "Bo", "category": "Character", "aliases": []any{}},
 		},
 	})
-	return svc
+	return svc, store
 }
 
 func fakeLocalModel(maxQuotes int) localmodel.Source {

@@ -76,7 +76,17 @@ func (s *Service) SetSpeakerFallback(fallback SpeakerFallback) {
 		s.speakerFallback.Store(nil)
 		return
 	}
-	s.speakerFallback.Store(&fallback)
+	s.SetSpeakerFallbackProvider(func() SpeakerFallback { return fallback })
+}
+
+// SetSpeakerFallbackProvider gives AttributeSpeakers a function it asks at the start of each run for that run's fallback, so a
+// setting the narrator changed since the project opened counts. A nil answer means the run asks no fallback.
+func (s *Service) SetSpeakerFallbackProvider(provider func() SpeakerFallback) {
+	if provider == nil {
+		s.speakerFallback.Store(nil)
+		return
+	}
+	s.speakerFallback.Store(&provider)
 }
 
 // fillUnknownSpeakers asks the fallback about every unknown, unconfirmed line and writes what it suggests as suggestions:
@@ -84,7 +94,11 @@ func (s *Service) SetSpeakerFallback(fallback SpeakerFallback) {
 // for an entry that still speaks then. It returns the ids of the lines it filled and a sentence for the narrator when the
 // fallback stopped, failed or was not asked about every line. It never fails the run: the rules' result is already written.
 func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bool, note string) {
-	fallback := s.speakerFallback.Load()
+	provider := s.speakerFallback.Load()
+	if provider == nil {
+		return nil, ""
+	}
+	fallback := (*provider)()
 	if fallback == nil {
 		return nil, ""
 	}
@@ -96,7 +110,7 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bo
 	if len(cues) == 0 || len(characters) == 0 {
 		return nil, ""
 	}
-	result, err := (*fallback)(ctx, cues, characters)
+	result, err := fallback(ctx, cues, characters)
 	if err != nil {
 		slog.Warn("the speaker fallback failed", "error", err)
 		return nil, fallbackFailed
