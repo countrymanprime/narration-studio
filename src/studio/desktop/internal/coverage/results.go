@@ -78,7 +78,7 @@ const resultCacheSize = 4
 
 // resultCache keeps the decoded stored results of the latest reads, each valid for the file's size and modification time. A stored result is
 // written once, atomically, under its record's id, so a read of an unchanged file is the same answer; decoding it is most of the cost of
-// reading a chapter's alignment (23 ms of 35 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
+// reading a chapter's alignment (about 23 of the 25 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
 type resultCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
@@ -100,8 +100,13 @@ func (c *resultCache) get(recordID string, info os.FileInfo) (StoredResult, bool
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, entry := range c.entries {
+	for i, entry := range c.entries {
 		if entry.recordID == recordID && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+			// The entry read last is the one kept longest: a sweep over other chapters must not push out the one the page is on.
+			reordered := make([]resultCacheEntry, 0, resultCacheSize+1)
+			reordered = append(reordered, c.entries[:i]...)
+			reordered = append(reordered, c.entries[i+1:]...)
+			c.entries = append(reordered, entry)
 			return entry.result.cloned(), true
 		}
 	}
@@ -115,10 +120,12 @@ func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.dropLocked(recordID)
-	c.entries = append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
-	if len(c.entries) > resultCacheSize {
-		c.entries = c.entries[len(c.entries)-resultCacheSize:]
+	entries := append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
+	if len(entries) > resultCacheSize {
+		entries = entries[len(entries)-resultCacheSize:]
 	}
+	// A slice of its own, so an entry that left is not kept alive by the backing array.
+	c.entries = append(make([]resultCacheEntry, 0, resultCacheSize+1), entries...)
 }
 
 func (c *resultCache) drop(recordID string) {
@@ -132,7 +139,7 @@ func (c *resultCache) drop(recordID string) {
 
 // +checklocks:c.mu
 func (c *resultCache) dropLocked(recordID string) {
-	kept := c.entries[:0]
+	kept := make([]resultCacheEntry, 0, resultCacheSize+1)
 	for _, entry := range c.entries {
 		if entry.recordID != recordID {
 			kept = append(kept, entry)
@@ -188,11 +195,13 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		return StoredResult{}, false
 	}
 	info, statErr := os.Stat(path)
-	if statErr != nil {
-		s.cache.drop(recordID)
-	} else if cached, ok := s.cache.get(recordID, info); ok {
-		return cached, true
+	if statErr == nil {
+		if cached, ok := s.cache.get(recordID, info); ok {
+			return cached, true
+		}
 	}
+	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
+	s.cache.drop(recordID)
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult

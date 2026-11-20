@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -87,4 +88,81 @@ func TestWritingAStoredResultDropsItsCachedCopy(t *testing.T) {
 	if !ok || after.Model != "other-model" || len(after.Report.Tokens) != 2 {
 		t.Fatalf("after a write: %v, model %q, %d tokens", ok, after.Model, len(after.Report.Tokens))
 	}
+}
+
+// The result read last is the one kept longest: a sweep over other chapters' results does not push out the one the page is on.
+func TestTheResultReadMostRecentlyOutlivesASweepOfOthers(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: alignedResults})
+	run(t, service, testRequest())
+	id := alignmentOf(t, service).RecordID
+	info, err := os.Stat(mustPath(t, service, id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := service.results.cache
+	result, _ := service.results.read(id)
+	for i := 0; i < resultCacheSize+2; i++ {
+		cache.put(fmt.Sprintf("other-%d", i), info, result)
+		// The page reads its own chapter between the sweep's reads.
+		if _, ok := cache.get(id, info); !ok {
+			t.Fatalf("after %d other results the one read in between was pushed out", i+1)
+		}
+	}
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	if len(cache.entries) > resultCacheSize {
+		t.Fatalf("%d entries, want at most %d", len(cache.entries), resultCacheSize)
+	}
+}
+
+// A file that changed after a cached read is read afresh and its old entry is not served again, even if the old size and time come back.
+func TestAChangedResultFileDropsItsCachedEntry(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: alignedResults})
+	run(t, service, testRequest())
+	id := alignmentOf(t, service).RecordID
+	path := mustPath(t, service, id)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := service.results.read(id); !ok {
+		t.Fatal("no result")
+	}
+	if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := service.results.read(id); ok {
+		t.Fatal("a corrupt file was answered")
+	}
+	// The old bytes and time come back: it is read from the file (it decodes), not from an entry that should have gone.
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	service.results.cache.mu.Lock()
+	left := len(service.results.cache.entries)
+	service.results.cache.mu.Unlock()
+	if left != 0 {
+		t.Fatalf("%d entries kept after the file changed", left)
+	}
+	if _, ok := service.results.read(id); !ok {
+		t.Fatal("the restored file did not read")
+	}
+}
+
+func mustPath(t *testing.T, service *Service, id string) string {
+	t.Helper()
+	path, err := service.results.path(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
