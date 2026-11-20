@@ -69,7 +69,16 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged' | 'checked';
 
 /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status). */
-export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable'] as const;
+export const MOCK_REAPER_SEEDS = [
+  'ready',
+  'not_armed',
+  'other_armed',
+  'several_armed',
+  'no_link',
+  'recording_here',
+  'recording_elsewhere',
+  'unavailable',
+] as const;
 export type MockReaperSeed = (typeof MOCK_REAPER_SEEDS)[number];
 
 /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (unset: REAPER records from the first microphone listed). */
@@ -189,6 +198,8 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
       return asked('other_armed', 1, `Another track is armed in REAPER, not the one for "${title}".`);
     case 'several_armed':
       return asked('several_armed', 3, `3 tracks are armed in REAPER. Only the track for "${title}" should be.`);
+    case 'recording_here':
+      return asked('recording_here', 1, `REAPER is recording on the track for "${title}".`, true);
     case 'recording_elsewhere':
       return asked('recording_elsewhere', 1, 'REAPER is already recording. Stop it in REAPER before recording with reading.', true);
     case 'no_link':
@@ -233,6 +244,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'start' | 'stop', ti
     case 'other_armed':
     case 'several_armed':
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };
+    case 'recording_here':
     case 'recording_elsewhere':
       return { outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' };
     default:
@@ -731,7 +743,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       await deps.ready;
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
-      if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', target.title);
+      // A take on the chapter's armed lane (the seed `ready`: its track is the one armed) is one the Booth follows; any other arming is "elsewhere".
+      if (deps.dawRecording?.()) return mockReaperState(seedFor(chapterId) === 'ready' ? 'recording_here' : 'recording_elsewhere', target.title);
       return mockReaperState(seedFor(chapterId), target.title);
     },
     readAloudRecordStart: async (chapterId) => {

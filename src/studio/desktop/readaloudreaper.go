@@ -21,7 +21,8 @@ const (
 	readAloudOtherArmed         = "other_armed"         // one track is armed, not the chapter's
 	readAloudSeveralArmed       = "several_armed"       // more than one track is armed
 	readAloudNoLink             = "no_link"             // the chapter has no single linked track in REAPER
-	readAloudRecordingElsewhere = "recording_elsewhere" // REAPER is already recording
+	readAloudRecordingHere      = "recording_here"      // REAPER records and the chapter's track is the one track armed: a take the Booth can follow
+	readAloudRecordingElsewhere = "recording_elsewhere" // REAPER records on some other arming: nothing the Booth can follow
 	readAloudUnavailable        = "unavailable"         // REAPER could not be asked
 )
 
@@ -182,7 +183,8 @@ func readAloudRefusal(err error, title, guid string) readAloudReaperState {
 }
 
 // classifyReadAloud compares REAPER's arms with the chapter's track: ready only when it is the one track armed and
-// REAPER is not recording.
+// REAPER is not recording. A recording on that same one armed track is recording_here (Record was pressed in REAPER on the lane the Booth
+// armed, and the Booth follows it); any other recording is recording_elsewhere.
 func classifyReadAloud(state bridge.TrackState, title, guid string) readAloudReaperState {
 	armed := state.ArmedCount
 	answer := readAloudReaperState{TrackGUID: guid, ArmedCount: &armed, Playing: state.Playing, Recording: state.Recording}
@@ -190,6 +192,8 @@ func classifyReadAloud(state bridge.TrackState, title, guid string) readAloudRea
 		answer.ArmedTrackGUIDs = state.ArmedGUIDs
 	}
 	switch {
+	case state.Recording && armed == 1 && state.TrackArmed:
+		answer.Status, answer.Message = readAloudRecordingHere, fmt.Sprintf("REAPER is recording on the track for %q.", title)
 	case state.Recording:
 		answer.Status, answer.Message = readAloudRecordingElsewhere, "REAPER is already recording. Stop it in REAPER before recording with reading."
 	case armed == 0:

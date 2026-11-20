@@ -21,6 +21,8 @@ export const READY_POLL_MS = 15_000;
 
 /** How long after a take starts that a press is not taken for Stop: a double click or a key repeat must not start and end a take at once. */
 export const START_GUARD_MS = 1000;
+/** What the Booth says when Stop is pressed on a take the DAW started: the app never stops a take it did not start (#3666). */
+export const heldInDawSentence = (daw: DawKind | undefined) => `${recorderNameCapital(daw)} started this take, so stop it in ${recorderName(daw)}.`;
 /** What the Booth says when a press inside that guard is ignored. */
 export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
 
@@ -50,7 +52,7 @@ export type RecordControlState = {
   endConfirmed: () => Promise<boolean>;
   /** True while a take that has ended is not yet known to have ended with the DAW answering: leaving is then not allowed silently. */
   endUnconfirmed: () => boolean;
-  /** False when the DAW was already recording and this app did not start the take; the leave guard reads it. */
+  /** False for a take started in the DAW itself and adopted (#3666): the app never stops it, and the leave guard says so. */
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
@@ -332,8 +334,64 @@ export function useRecordControl({
       setRecording(true);
     }
   }, [recording, project?.playState, inApp]);
-  // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
-  const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
+  // A take the DAW holds that this app neither pressed nor can claim: the narrator pressed Record in the DAW itself (#3666). It is the Booth's running take
+  // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), read fresh now, as a press reads it;
+  // any other is "elsewhere". Nothing but this app starts a take of its own recorder, so none is "elsewhere" there.
+  const heldInDaw = !recording && !adopt && !inApp && project?.playState === 'recording';
+  const [heldHere, setHeldHere] = useState<boolean | null>(null);
+  // Whether the running take was started in the DAW (adopted): the app never stops it and the leave guard says so.
+  const [startedInDaw, setStartedInDaw] = useState(false);
+  const startedInDawRef = useRef(false);
+  startedInDawRef.current = startedInDaw;
+  const transportNow = useRef<{ position?: number } | null>(null);
+  useEffect(() => {
+    if (!heldInDaw || !readsTracks) {
+      setHeldHere(null);
+      return;
+    }
+    let live = true;
+    void Promise.all([
+      limited(
+        'projectCheck',
+        system.bootstrap().catch(() => null),
+      ),
+      limited(
+        'projectCheck',
+        teleprompter.readAloudReaperState(chapterId).catch(() => null),
+      ),
+    ]).then(([open, state]) => {
+      if (!live) return;
+      const fresh = open.timedOut ? null : open.value;
+      if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) setLink((last) => ({ ...last, open: 'different' }));
+      const sameProject = !!fresh && fresh.dawFileLinked && fresh.dawReachable && fresh.dawProjectMatches;
+      setHeldHere(sameProject && !state.timedOut && state.value?.status === 'recording_here');
+    });
+    return () => {
+      live = false;
+    };
+  }, [heldInDaw, readsTracks, chapterId, reads, system, teleprompter]);
+  useEffect(() => {
+    if (!heldInDaw || !heldHere) return;
+    heardRecording.current = true;
+    endCheck.current = null;
+    endOpen.current = false;
+    setStartedInDaw(true);
+    startedInDawRef.current = true;
+    // Where the take began, as a press's answer gives it: the roll and the passage map count from there.
+    startedRef.current?.({
+      ok: true,
+      changed: false,
+      undoSteps: 0,
+      message: '',
+      ...(transportNow.current?.position === undefined ? {} : { position: transportNow.current.position }),
+    });
+    recordingRef.current = true;
+    setRecording(true);
+  }, [heldInDaw, heldHere]);
+  useEffect(() => {
+    if (!recording) setStartedInDaw(false);
+  }, [recording]);
+  const takeElsewhere = heldInDaw && !heldHere;
   const refusedForChapter =
     takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
@@ -446,9 +504,10 @@ export function useRecordControl({
   // The transport is pushed on a change: a take the narrator starts or stops in the DAW itself is heard here at once, not at the next read.
   useEffect(
     () =>
-      daw.subscribeTransport?.((transport) =>
-        setProject((last) => (last ? { ...last, playState: transport.recording ? 'recording' : transport.playing ? 'playing' : 'stopped' } : last)),
-      ),
+      daw.subscribeTransport?.((transport) => {
+        transportNow.current = transport;
+        setProject((last) => (last ? { ...last, playState: transport.recording ? 'recording' : transport.playing ? 'playing' : 'stopped' } : last));
+      }),
     [daw],
   );
 
@@ -546,6 +605,11 @@ export function useRecordControl({
       if (busy.current) return false;
       if (!recordingRef.current && gateRef.current) {
         block(gateRef.current);
+        return false;
+      }
+      if (recordingRef.current && startedInDawRef.current) {
+        // A take the DAW started is stopped there, never from here; the end of the chapter ends only the listening (#3666).
+        if (!how?.automatic) notify(heldInDawSentence(capabilitiesRef.current?.daw));
         return false;
       }
       if (recordingRef.current && !how?.automatic && Date.now() - lastStartAt < START_GUARD_MS) {
@@ -749,7 +813,7 @@ export function useRecordControl({
     appStop,
     stopping,
     stop,
-    startedByApp: true,
+    startedByApp: !startedInDaw,
     reason,
     gate,
     disabled: !recording && (!!check || blind),
