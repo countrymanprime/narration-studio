@@ -6,7 +6,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { cachedMatch, rememberMatch } from './chapterMatchCache';
+import { cachedMatch, rememberMatch, useCachedMatch } from './chapterMatchCache';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { useSecondsSince } from '../layout/CheckLine';
@@ -91,6 +91,11 @@ export function ChapterLinkDialog({
     return ahead ? { status: 'ready', match: ahead.match, at: ahead.at } : { status: 'loading' };
   });
   const [asked, setAsked] = useState(0);
+  // A read ahead that lands while this dialog is still reading is taken at once, not waited for twice.
+  const landed = useCachedMatch(projectNow, chapterId);
+  useEffect(() => {
+    if (landed) setRead((now) => (now.status === 'loading' ? { status: 'ready', match: landed.match, at: landed.at } : now));
+  }, [landed]);
   // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
   const nameOf = useChapterNameOf(true, asked);
   const nameOfRef = useRef(nameOf);
@@ -107,6 +112,7 @@ export function ChapterLinkDialog({
   shownRef.current = read.status;
   useEffect(() => {
     let live = true;
+    const askedAt = Date.now();
     // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
     // A links read that fails is this dialog's read failing: it says so, as a failed match does, and Check again tries both again.
     // A links read that fails after the match answered leaves the picker as it was, with the failure said under it, not the whole dialog failed.
@@ -120,7 +126,7 @@ export function ChapterLinkDialog({
     ]).then(
       ([match, fresh]) => {
         if (!live) return;
-        rememberMatch(projectNow, chapterId, match);
+        rememberMatch(projectNow, chapterId, match, askedAt);
         setRead({ status: 'ready', match, at: Date.now() });
         if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
@@ -224,19 +230,27 @@ export function ChapterLinkDialog({
   // Why Create is off sits on its tooltip, not in the page (#3365); while a link is out it is off with no reason of its own.
   const createOffWhy = create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`;
   // The read behind tracks already on screen can turn the primary action from Link into Create or back; a press that lands just then would do the other thing, so the button is busy for a moment after it changes (#3669).
+  // What a press would do right now: Link on the chosen track, Create, or nothing yet. A change of it after the narrator could have aimed (tracks shown, or a dead Link that
+  // turns into Create as the read fails) holds the press for a moment; the first arrival of tracks does not.
   const kind = createFirst ? 'create' : 'link';
-  const shownKind = useRef<string | null>(null);
+  const intent = read.status === 'ready' ? `${kind}:${picked ?? ''}` : read.status === 'failed' ? 'create' : 'reading';
+  const shownIntent = useRef<string | null>(null);
+  const shownRead = useRef(read);
   const [settling, setSettling] = useState(false);
   useEffect(() => {
-    if (read.status !== 'ready') return;
-    if (shownKind.current !== null && shownKind.current !== kind) {
-      setSettling(true);
-      const timer = setTimeout(() => setSettling(false), 700);
-      shownKind.current = kind;
-      return () => clearTimeout(timer);
-    }
-    shownKind.current = kind;
-  }, [kind, read.status]);
+    const before = shownIntent.current;
+    shownIntent.current = intent;
+    // Only a change the read made: the narrator's own pick is not something to hold a press for.
+    const byRead = shownRead.current !== read;
+    shownRead.current = read;
+    if (before === null || before === intent || !byRead) return;
+    // "link:" with no track is Link before anything is chosen: nothing to aim at yet.
+    const aimed = (before.includes(':') && before !== 'link:') || (before === 'reading' && intent === 'create');
+    if (!aimed) return;
+    setSettling(true);
+    const timer = setTimeout(() => setSettling(false), 700);
+    return () => clearTimeout(timer);
+  }, [intent, read]);
   const createAction = {
     label: createLabel,
     onPress: createTrack,

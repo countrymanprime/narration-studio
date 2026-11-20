@@ -665,7 +665,7 @@ function BoothSession({
   // Again when the DAW comes back (it may have restarted with other tracks); a read newer than 30 s is not repeated.
   const dawReachable = capabilities?.reachable === true;
   useEffect(() => {
-    if (recordId) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId));
+    if (recordId) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId), dawReachable);
   }, [trackMap, linkProject, recordId, dawReachable]);
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);

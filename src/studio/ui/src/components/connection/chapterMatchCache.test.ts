@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
-import { cachedMatch, forgetMatches, prefetchMatch } from './chapterMatchCache';
+import { cachedMatch, forgetMatches, prefetchMatch, rememberMatch } from './chapterMatchCache';
 
 const match = { chapterId: 'c1', tracks: [] } as unknown as ChapterTrackMatch;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -48,5 +48,22 @@ describe('the tracks read ahead', () => {
     prefetchMatch(null, 'c1', async () => match);
     await settle();
     expect(cachedMatch(null, 'c1')).toBeUndefined();
+  });
+
+  it('an older answer of the dialog does not replace a newer read ahead', async () => {
+    const asked = Date.now() - 1_000;
+    prefetchMatch('p', 'c1', async () => ({ ...match, chapterId: 'new' }) as ChapterTrackMatch);
+    await settle();
+    rememberMatch('p', 'c1', { ...match, chapterId: 'old' } as ChapterTrackMatch, asked - 500);
+    expect(cachedMatch('p', 'c1')?.match.chapterId).toBe('new');
+  });
+
+  it('reads again at once when forced, as when the DAW comes back, even while the answer is fresh', async () => {
+    const read = vi.fn(async () => match);
+    prefetchMatch('p', 'c1', read);
+    await settle();
+    prefetchMatch('p', 'c1', read, true);
+    await settle();
+    expect(read).toHaveBeenCalledTimes(2);
   });
 });

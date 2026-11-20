@@ -34,19 +34,22 @@ export function cachedMatch(project: string | null, chapterId: string): CachedMa
   return key ? matches.get(key) : undefined;
 }
 
-export function rememberMatch(project: string | null, chapterId: string, match: ChapterTrackMatch, at = Date.now()): void {
+/** Keeps an answer from the dialog's own read, unless a newer one is already in: `askedAt` is when this read was asked. */
+export function rememberMatch(project: string | null, chapterId: string, match: ChapterTrackMatch, askedAt = Date.now(), at = Date.now()): void {
   const key = keyOf(project, chapterId);
   if (!key) return;
+  const have = matches.get(key);
+  if (have && have.at > askedAt) return;
   matches.set(key, { match, at });
   tell();
 }
 
-/** Reads the match in the background, once at a time per chapter and not again while it is fresh; a failed read leaves nothing behind, so the dialog reads for itself. */
-export function prefetchMatch(project: string | null, chapterId: string, read: () => Promise<ChapterTrackMatch>): void {
+/** Reads the match in the background, once at a time per chapter and not again while it is fresh (unless `force`: the DAW has just come back); a failed read leaves nothing behind, so the dialog reads for itself. */
+export function prefetchMatch(project: string | null, chapterId: string, read: () => Promise<ChapterTrackMatch>, force = false): void {
   const key = keyOf(project, chapterId);
   if (!key || reading.has(key)) return;
   const have = matches.get(key);
-  if (have && Date.now() - have.at < MATCH_FRESH_MS) return;
+  if (!force && have && Date.now() - have.at < MATCH_FRESH_MS) return;
   settled.delete(key);
   const startedAt = Date.now();
   // A read the host never answers ends after MATCH_READ_MS, so it cannot block the next read ahead for the app's life.
@@ -83,7 +86,22 @@ export function useMatchAhead(project: string | null, chapterId: string): boolea
     };
   }, [project, chapterId]);
   const key = keyOf(project, chapterId);
-  return key === null || waited || matches.has(key) || settled.has(key) || !reading.has(key);
+  if (key === null || waited || !reading.has(key)) return true;
+  // A read is on its way: an older match is not a reason to open on it.
+  const have = matches.get(key);
+  return !!have && Date.now() - have.at < MATCH_FRESH_MS;
+}
+
+/** The cached match for a chapter, following the cache: an open dialog that is still reading takes the read ahead the moment it lands. */
+export function useCachedMatch(project: string | null, chapterId: string): CachedMatch | undefined {
+  const [, wake] = useReducer((count: number) => count + 1, 0);
+  useEffect(() => {
+    listeners.add(wake);
+    return () => {
+      listeners.delete(wake);
+    };
+  }, []);
+  return cachedMatch(project, chapterId);
 }
 
 /** For tests: nothing carries over from one to the next. */
