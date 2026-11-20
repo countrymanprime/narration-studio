@@ -64,8 +64,8 @@ export function Panel({
     >
       {title && <PanelHeader title={title} titleId={titleId} titleStyle={titleStyle} subtitle={subtitle} leading={leading} actions={actions} />}
       <div
-        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? 'min-h-0 flex-1 overflow-y-auto' : fill ? 'min-h-0 flex-1' : ''}`}
-        // A scrolling body is a tab stop, so the keyboard can scroll it when nothing inside it takes focus.
+        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? 'min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-2' : fill ? 'min-h-0 flex-1' : ''}`}
+        // A scrolling body is a tab stop, so the keyboard can scroll it when nothing inside it takes focus. Its focus ring is drawn inside it: the frame clips, and a ring outside the body was never seen (#3605 item 3).
         {...(scroll ? { tabIndex: 0, role: 'group', 'aria-labelledby': title ? titleId : undefined, 'aria-label': title ? undefined : label } : {})}
       >
         {children}
