@@ -117,7 +117,7 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', 'clamp(4.5rem, 26%, 9rem)', '3.5rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['2.75rem', 'auto', 'auto', 'clamp(3.75rem, 20%, 9rem)', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>

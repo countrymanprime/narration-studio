@@ -257,7 +257,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'project',
     def: '',
     desc: 'Who each voice track records.',
-    more: 'With the Voice folders layout, each chapter folder holds one track per voice; with Flat, a chapter is one track and there is nothing to choose here. With Voice folders, you choose the one character the Narrator track also voices and the characters each other track records, from the Story Bible’s characters. The Engine panel’s Voices card changes the same choices.',
+    more: 'With the Voice folders layout, each chapter folder holds one track per voice; with Flat, a chapter is one track, except that a chapter linked to a folder with tracks of its own lists those tracks here too. In either layout the Counts as voice switch on a row turns a track that is not a voice (a music bed) off, and the Booth never records on it. With Voice folders, you choose the one character the Narrator track also voices and the characters each other track records, from the Story Bible’s characters. The Engine panel’s Voices card changes the same choices.',
     used: ['booth', 'editing'],
     also: 'Engine panel › Voices',
     needs: 'reaper',
