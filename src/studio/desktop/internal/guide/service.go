@@ -271,7 +271,11 @@ func (s *Service) Entities() ([]map[string]any, error) {
 		return nil, err
 	}
 	var raw any
-	if present, _ := section(values, "entities", &raw); !present { // the file's syntax was checked when it was split
+	present, err := section(values, "entities", &raw)
+	if err != nil { // the syntax was checked when the file was split: this is a number no float64 holds
+		return nil, fmt.Errorf("the Story Bible entities data is invalid")
+	}
+	if !present {
 		return []map[string]any{}, nil
 	}
 	items, ok := raw.([]any)
@@ -420,7 +424,20 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 	}
 	var cues []DialogueCue
 	if _, err := section(values, "dialogue_cues", &cues); err != nil {
-		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		// A file another program wrote may hold a whole number as 1.0 or 2e1, which only reads through a float64, as every read did
+		// before the file was split.
+		var loose any
+		if _, err := section(values, "dialogue_cues", &loose); err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
+		encoded, err := json.Marshal(loose)
+		if err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
+		cues = nil
+		if err := json.Unmarshal(encoded, &cues); err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
 	}
 	if cues == nil {
 		cues = []DialogueCue{}

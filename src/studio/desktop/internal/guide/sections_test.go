@@ -1,6 +1,8 @@
 package guide
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -82,5 +84,37 @@ func TestAnAbsentOrNullListReadsAsItsDefault(t *testing.T) {
 	}
 	if types, err := s.Types(); err != nil || len(types) != len(DefaultTypes()) {
 		t.Fatalf("Types() = %v, %v", types, err)
+	}
+}
+
+// A whole number another program wrote as a float reads as it did when every read went through a float64.
+func TestACueNumberWrittenAsAFloatStillReads(t *testing.T) {
+	project := t.TempDir()
+	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := `{"schema_version": 2, "dialogue_cues": [{"id": "cue-1", "quote_start": 1.0, "quote_end": 2e1}]}`
+	if err := os.WriteFile(path, []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cues, err := New(project, "", "", nil, nil).DialogueCues()
+	if err != nil || len(cues) != 1 || cues[0].QuoteStart != 1 || cues[0].QuoteEnd != 20 {
+		t.Fatalf("DialogueCues() = %+v, %v", cues, err)
+	}
+}
+
+// A number no float64 holds is refused, never read as 0.
+func TestAnEntryNumberOutOfRangeIsRefused(t *testing.T) {
+	project := t.TempDir()
+	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"schema_version": 2, "entities": [{"id": "e1", "occurrence_count": 1e400}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if entities, err := New(project, "", "", nil, nil).Entities(); err == nil {
+		t.Fatalf("Entities() = %v, want the file refused", entities)
 	}
 }
