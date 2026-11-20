@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterTrackCreateResult, ChapterTrackMatch } from '../../../api/contracts/chapterTrackMap';
@@ -200,6 +200,8 @@ describe('an unlinked chapter in the Booth', () => {
     const before = dawArmBoothVoice.mock.calls.length;
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
     await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBeGreaterThan(before));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
     expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
   });
 
