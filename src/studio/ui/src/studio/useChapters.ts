@@ -1,0 +1,47 @@
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import type { ManuscriptChapter } from '../types';
+import { usePort } from '../ports/usePort';
+import { useOptionalStoreHandle } from './StudioProvider';
+
+const noSubscribe = () => () => undefined;
+
+/**
+ * The chapter list every page reads, from the store's `chapters` slot (#3658): loaded once, shared by whoever mounts, and read again when what it holds
+ * changes (a job ends, a chapter's status or kind, a track link, a layout, a DAW, a sync, a record end, or the window gaining focus). Mounting a page
+ * does not read it again. `undefined` until the first read answers; a failed read keeps the last list and sets `error`.
+ *
+ * A caller that asks for the list again (a dialog's Check again) bumps `refreshKey`: the slot is read now, not served.
+ *
+ * Without a <StudioProvider> (a component rendered alone in a test) it reads the port itself, once per mount, as every reader did before the slot.
+ */
+export function useChapters(enabled = true, refreshKey = 0): { chapters: readonly ManuscriptChapter[] | undefined; error: Error | undefined } {
+  const store = useOptionalStoreHandle();
+  const manuscript = usePort('manuscript');
+  const held = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.getState().slots.chapters,
+    () => undefined,
+  );
+  const error = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.getState().errors.chapters,
+    () => undefined,
+  );
+  const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
+  useEffect(() => {
+    if (!enabled) return;
+    if (store) {
+      void (refreshKey > 0 ? store.load('chapters') : store.ensure('chapters')).catch(() => undefined);
+      return;
+    }
+    let live = true;
+    manuscript
+      .manuscriptChapters()
+      .then((chapters) => live && setOwn(chapters))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [store, manuscript, enabled, refreshKey]);
+  return { chapters: store ? held : own, error };
+}

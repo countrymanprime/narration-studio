@@ -102,6 +102,11 @@ export function useJournalOrOwn(): Journal {
   return provided ?? own!;
 }
 
+/** The store, or null where no <StudioProvider> is above (a unit render of one component): a reader that can fall back to its own read uses this. */
+export function useOptionalStoreHandle(): StudioStore<StudioRegistry> | null {
+  return useContext(StoreContext);
+}
+
 /** The store itself, for a caller that asks a slot to load (`load('chapters')`); a page reads a slot with `useStudio`. */
 export function useStoreHandle(): StudioStore<StudioRegistry> {
   const store = useContext(StoreContext);
