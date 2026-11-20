@@ -1,5 +1,5 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
-import type { ChapterFolderMove, ChapterFolders } from '../contracts/chapterTrackMap';
+import type { ChapterCreateOptions, ChapterFolderMove, ChapterFolders } from '../contracts/chapterTrackMap';
 import type { Track, TracksProject } from '../contracts/tracks';
 import type { VoiceTracksLayout } from '../contracts/voiceTracks';
 import type {
@@ -56,6 +56,11 @@ export function createChapterTracksMock(
   let noExtras = false;
   const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
   const voicesOffered = async () => (await knownVoices()).filter((name) => !sameName(name, 'Narrator') && !sameName(name, 'Extras'));
+  const chapterCreateOptionsNow = async (): Promise<ChapterCreateOptions> => {
+    if ((await voiceLayout()) !== 'folders') return { folders: false, narrator: 'Narrator', voices: [], extras: { name: '', checked: false } };
+    const voices = (await voicesOffered()).map((name) => ({ name, checked: !skipVoices.some((skipped) => sameName(skipped, name)) }));
+    return wireClone({ folders: true, narrator: 'Narrator', voices, extras: { name: 'Extras', checked: !noExtras } });
+  };
   /** True when the project assigns characters to a track called Extras: that track is a voice, never the not-a-voice one the create adds. */
   const extrasIsVoice = async () => (await knownVoices()).some((name) => sameName(name, 'Extras'));
   // `?mockReaperState=no_link` stages a chapter with no link: as the Booth's read does (mockApi's `linked`), only a link the narrator made
@@ -313,10 +318,12 @@ export function createChapterTracksMock(
     // REAPER. The new track (a folder with a Narrator child in a Voice folders project) joins REAPER's live list (TracksLive) at once; the saved
     // project the matcher reads has it only after a save, so it is not added there.
     // ChapterCreateOptions (chaptercreateoptions.go): the known voices and Extras, ticked unless the last create left them out.
-    chapterCreateOptions: async () => {
-      if ((await voiceLayout()) !== 'folders') return { folders: false, narrator: 'Narrator', voices: [], extras: { name: '', checked: false } };
-      const voices = (await voicesOffered()).map((name) => ({ name, checked: !skipVoices.some((skipped) => sameName(skipped, name)) }));
-      return wireClone({ folders: true, narrator: 'Narrator', voices, extras: { name: 'Extras', checked: !noExtras } });
+    chapterCreateOptions: async () => chapterCreateOptionsNow(),
+    chapterCreateDefaultSet: async (choice) => {
+      const offered = await voicesOffered();
+      skipVoices = offered.filter((name) => !choice.voices.some((picked) => sameName(picked, name)));
+      noExtras = !choice.extras;
+      return chapterCreateOptionsNow();
     },
     chapterTrackCreate: async (chapterId, choice) => {
       await manuscriptReady;

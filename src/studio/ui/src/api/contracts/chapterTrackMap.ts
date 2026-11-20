@@ -276,6 +276,8 @@ export interface ChapterTrackMapApi {
   chapterTrackCreate(chapterId: string, choice?: ChapterCreateChoice): Promise<ChapterTrackCreateResult>;
   /** What a new chapter folder can be made with (#3748). */
   chapterCreateOptions(): Promise<ChapterCreateOptions>;
+  /** Keeps what a new chapter folder is made with from now on (the Settings row); answers the options as they now read. */
+  chapterCreateDefaultSet(choice: ChapterCreateChoice): Promise<ChapterCreateOptions>;
   /** Asks the DAW whether a linked chapter's track sits inside another linked chapter's folder, and what a repair would move; writes nothing. */
   chapterFoldersCheck(): Promise<ChapterFolders>;
   /** Moves the chapters a check listed (its `expected`) out of those folders, in one DAW undo point, only when the DAW plans the same moves. */

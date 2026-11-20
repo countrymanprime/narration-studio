@@ -9,6 +9,7 @@ import { SampleOutputBody } from './SampleOutputBody';
 import { SampleStorageBody } from './SampleStorageBody';
 import { MwKeyBody } from './MwKeyBody';
 import { SyncEnabledBody } from './SyncEnabledBody';
+import { NewChapterTracksBody } from './NewChapterTracksBody';
 import { VoicesBody } from './VoicesBody';
 import { TakeToneRowBody } from './TakeToneBody';
 
@@ -23,6 +24,7 @@ export const RECORDING_CONTROLS: Record<string, ComponentType> = {
   'daw.layout': ChapterLayoutBody,
   'daw.sync': SyncEnabledBody,
   'daw.voices': VoicesBody,
+  'daw.newChapter': NewChapterTracksBody,
   'voice.dict': DefinitionsBody,
   'voice.mwKey': MwKeyBody,
   'delivery.profile': DeliveryProfileBody,

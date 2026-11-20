@@ -253,6 +253,14 @@ export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
 }
 
 /**
+ * ChapterCreateDefaultSet keeps what a new chapter folder is made with from now on, a JSON chapterCreateChoice, as the Settings row sets it
+ * (#3748); it answers the options as they now read. A project with no folders answers Folders false but keeps the choice for when it has them.
+ */
+export function ChapterCreateDefaultSet(choice: string): $CancellablePromise<string> {
+    return $Call.ByID(99651976, choice);
+}
+
+/**
  * ChapterCreateOptions lists what a new chapter folder can be made with (chaptercreateoptions.go): the Narrator, the known voices and Extras,
  * each ticked unless the remembered choice left it out, in the order the folder gets them. A project with no folders answers Folders false.
  */

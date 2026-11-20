@@ -275,3 +275,30 @@ func TestContractChapterCreateOptions(t *testing.T) {
 	}
 	contractfile.Check(t, "chapter-create-options-flat", payload)
 }
+
+func TestChapterCreateDefaultSetKeepsThePickAndAnswersTheOptionsAsTheyNowRead(t *testing.T) {
+	host, _ := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	assignVoices(t, host, "Mara", "Dragon")
+	raw, err := host.ChapterCreateDefaultSet(`{"voices":["Mara"],"extras":false}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var options chapterCreateOptions
+	if err := json.Unmarshal([]byte(raw), &options); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, voice := range options.Voices {
+		got[voice.Name] = voice.Checked
+	}
+	if !got["Mara"] || got["Dragon"] || options.Extras.Checked {
+		t.Fatalf("options = %+v, want Mara ticked, Dragon and Extras not", options)
+	}
+	if _, err := host.ChapterCreateDefaultSet(""); err == nil {
+		t.Fatal("no pick was accepted")
+	}
+	if _, err := host.ChapterCreateDefaultSet("{not json"); err == nil {
+		t.Fatal("a pick that is not JSON was accepted")
+	}
+}

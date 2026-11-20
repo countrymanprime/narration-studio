@@ -944,6 +944,21 @@ func (h *Host) ChapterCreateOptions() (string, error) {
 	return encodeBinding(chapterCreateOptionsIn(svc, creator))
 }
 
+// ChapterCreateDefaultSet keeps what a new chapter folder is made with from now on, a JSON chapterCreateChoice, as the Settings row sets it
+// (#3748); it answers the options as they now read. A project with no folders answers Folders false but keeps the choice for when it has them.
+func (h *Host) ChapterCreateDefaultSet(choice string) (string, error) {
+	svc := h.services()
+	picked, err := parseCreateChoice(choice)
+	if err != nil || picked == nil {
+		return encodeBinding(nil, fmt.Errorf("choose the tracks a new chapter folder is made with"))
+	}
+	if note := rememberCreateChoice(svc, picked); note != "" {
+		return encodeBinding(nil, fmt.Errorf("%s", note))
+	}
+	creator, _ := trackCreatorFrom(svc)
+	return encodeBinding(chapterCreateOptionsIn(svc, creator))
+}
+
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits
 // regions (chapterregions.go): Preview plans one region per linked
 // chapter, plus the opening and closing credits when their tracks are given

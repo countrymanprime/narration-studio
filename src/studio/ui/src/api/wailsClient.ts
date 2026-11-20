@@ -808,6 +808,7 @@ export const wailsClient: NarrationApi = {
   chapterTrackCreate: (chapterId, choice) =>
     decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId, choice ? JSON.stringify(choice) : '')),
   chapterCreateOptions: () => decode(chapterCreateOptionsSchema, 'ChapterCreateOptions', host.ChapterCreateOptions()),
+  chapterCreateDefaultSet: (choice) => decode(chapterCreateOptionsSchema, 'ChapterCreateDefaultSet', host.ChapterCreateDefaultSet(JSON.stringify(choice))),
   chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
   chapterFoldersRepair: (expected) => decode(chapterFoldersSchema, 'ChapterFoldersRepair', host.ChapterFoldersRepair(expected)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),
