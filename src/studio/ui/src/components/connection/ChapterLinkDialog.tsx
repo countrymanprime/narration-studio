@@ -35,6 +35,9 @@ function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<
   });
 }
 
+/** The creates still out, by chapter: a dialog closed while one runs and opened again shows it busy and sends no second one (the Engine panel holds the same guard for its button). */
+const pendingCreates = new Map<string, Promise<unknown>>();
+
 type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; at: number };
 
 export type ChapterLinkDialogProps = {
@@ -104,13 +107,25 @@ export function ChapterLinkDialog({
   const [chosen, setChosen] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => pendingCreates.has(chapterId));
   // In a Voice folders project the host makes a folder with a Narrator track for the chapter (ChapterTrackCreate), so the words say folder.
   const dest = destinationFor(useVoiceLayout());
   const folders = dest.folders;
+  // A create pressed before this dialog was closed and opened again is still out: this one is busy until it ends.
+  useEffect(() => {
+    const earlier = pendingCreates.get(chapterId);
+    if (!earlier) return;
+    let live = true;
+    void earlier.finally(() => live && setCreating(false));
+    return () => {
+      live = false;
+    };
+  }, [chapterId]);
   // What the new folder is made with besides the Narrator: the known voices and Extras, ticked by the last pick (#3748); only a folder has them.
   const newTracks = useNewChapterPick(folders && create?.available !== false, actions.createOptions);
   // A list that cannot be read is said once as a toast; Create still works, with the last pick the host remembers.
+  const waitingForList = newTracks.loading;
+  const reloadList = newTracks.reload;
   const listFailed = newTracks.failed;
   useEffect(() => {
     if (listFailed) overlay.toast('The tracks a new folder is made with could not be read, so Create uses the last choice.', { tone: 'error' });
@@ -180,8 +195,9 @@ export function ChapterLinkDialog({
     setRefused(null);
     setRead({ status: 'loading' });
     setAsked((n) => n + 1);
+    reloadList();
     onCheckedAgain?.();
-  }, [onCheckedAgain]);
+  }, [onCheckedAgain, reloadList]);
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
   const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId, nameOf) : []), [read, links, chapterId, nameOf]);
@@ -210,10 +226,16 @@ export function ChapterLinkDialog({
 
   // One press adds one track: a second press while the first is out is ignored, so a double click never makes two.
   const createTrack = () => {
-    if (creating || linking || create?.available === false) return;
+    if (creating || linking || create?.available === false || waitingForList) return;
     setCreating(true);
     setRefused(null);
-    actions.create(chapterId, newTracks.choice).then(
+    const request = actions.create(chapterId, newTracks.choice);
+    pendingCreates.set(chapterId, request);
+    const settled = () => {
+      if (pendingCreates.get(chapterId) === request) pendingCreates.delete(chapterId);
+    };
+    void request.then(settled, settled);
+    request.then(
       (result) => {
         setCreating(false);
         if (result.outcome === 'created') {
@@ -263,8 +285,9 @@ export function ChapterLinkDialog({
     label: createLabel,
     onPress: createTrack,
     pending: creating || settling,
-    disabled: createOff || linking,
-    disabledReason: createOff ? createOffWhy : '',
+    // A Voice folders create waits for the list of what the folder is made with: a press before it is there would make tracks the dialog never showed.
+    disabled: createOff || linking || waitingForList,
+    disabledReason: createOff ? createOffWhy : waitingForList ? `Reading what the ${dest.noun} is made with…` : '',
   };
   const title = missing ? dest.missingTitle(chapterName) : several ? dest.severalTitle(chapterName) : dest.notLinkedTitle(chapterName);
   return (

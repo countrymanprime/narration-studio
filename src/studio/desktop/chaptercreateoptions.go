@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"desktop/internal/dawport"
 	"desktop/internal/voicetracks"
@@ -34,25 +36,54 @@ type chapterCreateOptions struct {
 	Narrator string               `json:"narrator"`
 	Voices   []chapterCreateVoice `json:"voices"`
 	Extras   chapterCreateVoice   `json:"extras"`
+	// Omitted is how many known voices the list leaves off at the cap (maxCreateVoices); 0 when it holds them all.
+	Omitted int `json:"omitted,omitempty"`
 }
 
 // chapterCreateChoice is the narrator's pick: the voices to add after the Narrator (in the order given) and whether to add Extras. A nil choice at
 // the press means the remembered one.
 type chapterCreateChoice struct {
 	Voices []string `json:"voices"`
-	Extras bool     `json:"extras"`
+	// Skipped are the voices the narrator was shown and left unticked: what is remembered as left out. A voice in neither list was not shown (it
+	// became known after the list was read) and is neither made nor remembered as left out. Absent from a caller that does not send it.
+	Skipped []string `json:"skipped,omitempty"`
+	Extras  bool     `json:"extras"`
 }
 
-// parseCreateChoice reads the binding's argument: "" is the remembered choice (nil), anything else is a chapterCreateChoice.
+// parseCreateChoice reads the binding's argument: "" is the remembered choice (nil), anything else is a chapterCreateChoice that names its voices
+// (an empty list is a choice of none; "null" or "{}" is not a choice and is refused).
 func parseCreateChoice(raw string) (*chapterCreateChoice, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, nil
 	}
-	var choice chapterCreateChoice
-	if err := json.Unmarshal([]byte(raw), &choice); err != nil {
+	var wire struct {
+		Voices  *[]string `json:"voices"`
+		Skipped []string  `json:"skipped"`
+		Extras  *bool     `json:"extras"`
+	}
+	if err := json.Unmarshal([]byte(raw), &wire); err != nil {
 		return nil, fmt.Errorf("the chosen tracks are not readable: %w", err)
 	}
-	return &choice, nil
+	if wire.Voices == nil || wire.Extras == nil {
+		return nil, fmt.Errorf("the chosen tracks are not readable: they name no voices or no Extras")
+	}
+	return &chapterCreateChoice{Voices: *wire.Voices, Skipped: wire.Skipped, Extras: *wire.Extras}, nil
+}
+
+// maxVoiceNameRunes bounds a voice name the list offers: a child of a folder can have any name in the engine, and one longer than this is not a name
+// a narrator ticks.
+const maxVoiceNameRunes = 1000
+
+// cleanVoiceName is a track name as the create sends and the list shows it: one line (oneLineName), with the control and invisible format characters
+// (a NUL, a zero-width space, a right-to-left override) taken out, so a name cannot reverse its neighbours or be a box with no label.
+func cleanVoiceName(name string) string {
+	kept := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			return -1
+		}
+		return r
+	}, oneLineName(name))
+	return strings.TrimSpace(kept)
 }
 
 // extrasIsVoice reports whether the project assigns characters to a track named Extras: that track is a voice, not the non-voice track this adds.
@@ -68,16 +99,21 @@ func extrasIsVoice(setup voicetracks.State) bool {
 // knownVoiceNames is the voices of the project in the order a new chapter folder gets them: the children of the folders the chapters are linked
 // to, first seen first, then the tracks the voice setup assigns characters to that none of those has, by name. The Narrator and Extras are not
 // voices of this list, and a track marked as not a voice is not one either (chapterVoicesIn leaves it out). Compared without case, once each.
-func knownVoiceNames(svc hostServices, setup voicetracks.State) []string {
+func knownVoiceNames(svc hostServices, setup voicetracks.State) ([]string, int) {
 	var names []string
+	omitted := 0
 	seen := map[string]bool{strings.ToLower(narratorVoice): true, strings.ToLower(extrasName): true}
 	add := func(name string) {
-		name = oneLineName(name)
+		name = cleanVoiceName(name)
 		key := strings.ToLower(name)
-		if name == "" || seen[key] || len(names) >= maxCreateVoices {
+		if name == "" || seen[key] || utf8.RuneCountInString(name) > maxVoiceNameRunes {
 			return
 		}
 		seen[key] = true
+		if len(names) >= maxCreateVoices {
+			omitted++
+			return
+		}
 		names = append(names, name)
 	}
 	if documentID, store, err := mappingContext(svc); err == nil {
@@ -98,7 +134,7 @@ func knownVoiceNames(svc hostServices, setup voicetracks.State) []string {
 	for _, assignment := range setup.Tracks {
 		add(assignment.Track)
 	}
-	return names
+	return names, omitted
 }
 
 // chapterCreateOptionsIn lists what a new chapter folder is made with: the known voices and Extras, each ticked unless the remembered choice left
@@ -122,7 +158,9 @@ func chapterCreateOptionsIn(svc hostServices, creator dawport.TrackCreator) (cha
 	if err != nil {
 		return out, err
 	}
-	for _, name := range knownVoiceNames(svc, setup) {
+	names, omitted := knownVoiceNames(svc, setup)
+	out.Omitted = omitted
+	for _, name := range names {
 		out.Voices = append(out.Voices, chapterCreateVoice{Name: name, Checked: !containsFold(remembered.SkipVoices, name)})
 	}
 	out.Extras = chapterCreateVoice{Name: extrasName, Checked: !remembered.NoExtras}
@@ -130,13 +168,15 @@ func chapterCreateOptionsIn(svc hostServices, creator dawport.TrackCreator) (cha
 }
 
 // createChildren is the children a new chapter folder is made with, in order: the Narrator, the chosen voices and then Extras when asked. A nil
-// choice is the remembered one. A name is cleaned like a track's name, kept once without case, and the Narrator and Extras are never added twice.
+// choice is the remembered one. A name is cleaned like a track's name and kept once without case; the Narrator and Extras are never added twice, and
+// a chosen name the project does not know (the list the narrator ticked is older than the project) is left out, never made.
 func createChildren(svc hostServices, choice *chapterCreateChoice) ([]string, error) {
 	voices := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder})
 	setup, err := voices.Get()
 	if err != nil {
 		return nil, err
 	}
+	known, _ := knownVoiceNames(svc, setup)
 	var picked []string
 	extras := true
 	if choice == nil {
@@ -144,20 +184,25 @@ func createChildren(svc hostServices, choice *chapterCreateChoice) ([]string, er
 		if err != nil {
 			return nil, err
 		}
-		for _, name := range knownVoiceNames(svc, setup) {
+		for _, name := range known {
 			if !containsFold(remembered.SkipVoices, name) {
 				picked = append(picked, name)
 			}
 		}
 		extras = !remembered.NoExtras
 	} else {
-		picked, extras = choice.Voices, choice.Extras
+		for _, name := range choice.Voices {
+			if containsFold(known, name) {
+				picked = append(picked, name)
+			}
+		}
+		extras = choice.Extras
 	}
 	children := []string{narratorVoice}
 	seen := map[string]bool{strings.ToLower(narratorVoice): true, strings.ToLower(extrasName): true}
 	for _, name := range picked {
-		name = oneLineName(name)
-		if name == "" || seen[strings.ToLower(name)] || len(children) > maxCreateVoices {
+		name = cleanVoiceName(name)
+		if name == "" || seen[strings.ToLower(name)] {
 			continue
 		}
 		seen[strings.ToLower(name)] = true
@@ -169,8 +214,10 @@ func createChildren(svc hostServices, choice *chapterCreateChoice) ([]string, er
 	return children, nil
 }
 
-// rememberCreateChoice keeps what the narrator picked for the next new chapter: the known voices left out and whether Extras was. It reports the
-// reason as a sentence when the file could not be written, so the create can say so without failing.
+// rememberCreateChoice keeps what the narrator picked for the next new chapter: the voices left out and whether Extras was. The voices left out are
+// the ones the narrator was shown and unticked (choice.Skipped; from a caller that sends none, the known voices not chosen), plus what was left out
+// before for a voice this list did not show, so a voice that is unknown for a moment keeps its tick. It reports the reason as a sentence when the
+// file could not be written, so the create can say so without failing.
 func rememberCreateChoice(svc hostServices, choice *chapterCreateChoice) string {
 	if choice == nil {
 		return ""
@@ -178,13 +225,31 @@ func rememberCreateChoice(svc hostServices, choice *chapterCreateChoice) string 
 	voices := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder})
 	setup, err := voices.Get()
 	if err == nil {
-		var skip []string
-		for _, name := range knownVoiceNames(svc, setup) {
-			if !containsFold(choice.Voices, name) {
-				skip = append(skip, name)
+		var remembered voicetracks.NewChapter
+		if remembered, err = voices.NewChapter(); err == nil {
+			skipped := choice.Skipped
+			if skipped == nil {
+				known, _ := knownVoiceNames(svc, setup)
+				for _, name := range known {
+					if !containsFold(choice.Voices, name) {
+						skipped = append(skipped, name)
+					}
+				}
 			}
+			var skip []string
+			for _, name := range skipped {
+				if name = cleanVoiceName(name); name != "" && !containsFold(skip, name) {
+					skip = append(skip, name)
+				}
+			}
+			// Left out before, for a voice this choice did not show: still left out.
+			for _, before := range remembered.SkipVoices {
+				if !containsFold(choice.Voices, before) && !containsFold(skipped, before) && !containsFold(skip, before) {
+					skip = append(skip, before)
+				}
+			}
+			_, err = voices.SetNewChapter(skip, !choice.Extras)
 		}
-		_, err = voices.SetNewChapter(skip, !choice.Extras)
 	}
 	if err != nil {
 		return "The chosen tracks could not be remembered for the next chapter: " + strings.TrimRight(strings.TrimSpace(err.Error()), ".") + "."
@@ -194,9 +259,9 @@ func rememberCreateChoice(svc hostServices, choice *chapterCreateChoice) string 
 
 // containsFold reports whether names has name, compared as a track name (cleaned, without case).
 func containsFold(names []string, name string) bool {
-	want := oneLineName(name)
+	want := cleanVoiceName(name)
 	for _, have := range names {
-		if strings.EqualFold(oneLineName(have), want) {
+		if strings.EqualFold(cleanVoiceName(have), want) {
 			return true
 		}
 	}

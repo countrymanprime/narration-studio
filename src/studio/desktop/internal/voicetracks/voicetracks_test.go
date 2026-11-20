@@ -487,7 +487,7 @@ func TestTheNewChapterChoiceIsEveryVoiceAndExtrasUntilOneIsMadeAndThenKept(t *te
 
 func TestTheNewChapterChoiceRefusesABlankOrHugeNameAndWritesNothing(t *testing.T) {
 	service, project := newService(t)
-	for _, bad := range [][]string{{""}, {"  "}, {strings.Repeat("x", MaxTrackName+1)}} {
+	for _, bad := range [][]string{{""}, {"  "}, {strings.Repeat("x", MaxSkipName+1)}} {
 		if _, err := service.SetNewChapter(bad, false); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("%q: err = %v, want ErrInvalid", bad, err)
 		}

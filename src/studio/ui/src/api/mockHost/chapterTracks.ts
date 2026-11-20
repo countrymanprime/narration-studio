@@ -56,6 +56,12 @@ export function createChapterTracksMock(
   let noExtras = false;
   const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
   const voicesOffered = async () => (await knownVoices()).filter((name) => !sameName(name, 'Narrator') && !sameName(name, 'Extras'));
+  /** What a pick leaves out: the voices it showed and the narrator unticked (the host's `skipped`), plus what was left out before for a voice it did not show. */
+  const rememberedSkips = (offered: string[], choice: { voices: string[]; skipped?: string[] }) => {
+    const shown = choice.skipped ?? offered.filter((name) => !choice.voices.some((picked) => sameName(picked, name)));
+    const before = skipVoices.filter((name) => !choice.voices.some((picked) => sameName(picked, name)) && !shown.some((skipped) => sameName(skipped, name)));
+    return [...shown, ...before];
+  };
   const chapterCreateOptionsNow = async (): Promise<ChapterCreateOptions> => {
     if ((await voiceLayout()) !== 'folders') return { folders: false, narrator: 'Narrator', voices: [], extras: { name: '', checked: false } };
     const voices = (await voicesOffered()).map((name) => ({ name, checked: !skipVoices.some((skipped) => sameName(skipped, name)) }));
@@ -321,7 +327,7 @@ export function createChapterTracksMock(
     chapterCreateOptions: async () => chapterCreateOptionsNow(),
     chapterCreateDefaultSet: async (choice) => {
       const offered = await voicesOffered();
-      skipVoices = offered.filter((name) => !choice.voices.some((picked) => sameName(picked, name)));
+      skipVoices = rememberedSkips(offered, choice);
       noExtras = !choice.extras;
       return chapterCreateOptionsNow();
     },
@@ -370,7 +376,9 @@ export function createChapterTracksMock(
       if (folders) {
         // The Narrator, then the chosen voices and Extras (the last pick when none is sent), each a child of the folder, in order.
         const offered = await voicesOffered();
-        const picked = choice ? choice.voices : offered.filter((name) => !skipVoices.some((skipped) => sameName(skipped, name)));
+        const picked = choice
+          ? choice.voices.filter((name) => offered.some((known) => sameName(known, name)))
+          : offered.filter((name) => !skipVoices.some((skipped) => sameName(skipped, name)));
         const withExtras = choice ? choice.extras : !noExtras;
         const names: string[] = ['Narrator'];
         for (const name of picked.map((entry) => entry.trim().replace(/[\r\n\t]+/g, ' ')))
@@ -384,7 +392,7 @@ export function createChapterTracksMock(
         }
         voice = { guid: children[0].guid, name: children[0].name, index: children[0].index };
         if (choice) {
-          skipVoices = offered.filter((name) => !choice.voices.some((picked) => sameName(picked, name)));
+          skipVoices = rememberedSkips(offered, choice);
           noExtras = !choice.extras;
         }
       }

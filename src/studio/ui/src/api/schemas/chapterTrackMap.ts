@@ -103,6 +103,7 @@ export const chapterCreateOptionsSchema = z.object({
   narrator: z.string().min(1),
   voices: z.array(chapterCreateVoiceSchema),
   extras: chapterCreateVoiceSchema,
+  omitted: z.number().int().min(0).optional(),
 }) satisfies z.ZodType<ChapterCreateOptions>;
 
 export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [

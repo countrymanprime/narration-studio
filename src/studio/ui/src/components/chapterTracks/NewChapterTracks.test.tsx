@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { NewChapterTracks, type NewChapterPick } from './NewChapterTracks';
+import { NewChapterTracks, choiceOf, mergePick, type NewChapterPick } from './NewChapterTracks';
 
 afterEach(cleanup);
 
@@ -74,5 +74,45 @@ describe('the checklist of a new chapter folder (#3748)', () => {
     expect(list.className).toContain('overflow-y-auto');
     // The buttons below stay reachable: Extras is outside the scrolling list.
     expect(list.contains(screen.getByRole('checkbox', { name: 'Extras' }))).toBe(false);
+  });
+
+  // qa-breaker B9: a list cut at its cap says how many voices it leaves off.
+  it('says how many voices are not listed when the list is cut at its cap', () => {
+    render(<Harness initial={{ voices: [voice('Mara'), voice('Dragon')], extras: voice('Extras'), omitted: 7 }} />);
+    expect(screen.getByText('7 more voices not listed.')).toBeTruthy();
+    cleanup();
+    render(<Harness initial={{ voices: [voice('Mara'), voice('Dragon')], extras: voice('Extras'), omitted: 1 }} />);
+    expect(screen.getByText('1 more voice not listed.')).toBeTruthy();
+    cleanup();
+    render(<Harness initial={{ voices: [voice('Mara')], extras: voice('Extras') }} />);
+    expect(screen.queryByText(/not listed/)).toBeNull();
+  });
+
+  // qa-breaker B2: what Create sends is what the list showed: the ticked voices, and the unticked ones as what is left out.
+  it('the choice names the ticked voices and the unticked ones the list showed', () => {
+    expect(choiceOf({ voices: [voice('Mara'), voice('Dragon', false), voice('King')], extras: voice('Extras', false) })).toEqual({
+      voices: ['Mara', 'King'],
+      skipped: ['Dragon'],
+      extras: false,
+    });
+  });
+
+  it("a list read again keeps the ticks made and takes the host's for a voice that is new", () => {
+    const merged = mergePick(
+      { voices: [voice('Mara'), voice('Dragon'), voice('King', false)], extras: voice('Extras') },
+      { voices: [voice('Mara', false), voice('Dragon')], extras: voice('Extras', false) },
+    );
+    expect(merged).toEqual({ voices: [voice('Mara', false), voice('Dragon'), voice('King', false)], extras: voice('Extras', false) });
+  });
+
+  // qa-breaker B5: a name with no break in it wraps inside the list instead of widening it.
+  it('lets a long unbroken name wrap anywhere, and keeps the label and the list shrinkable', () => {
+    const long = 'W'.repeat(200);
+    render(<Harness initial={{ voices: [voice(long), voice('Mara')], extras: voice('Extras') }} />);
+    const name = screen.getByTitle(long);
+    expect(name.className).toContain('[overflow-wrap:anywhere]');
+    expect(screen.getByRole('list').className).toContain('min-w-0');
+    expect(name.closest('label')?.className).toContain('min-w-0');
+    expect(name.parentElement?.className).toContain('min-w-0');
   });
 });

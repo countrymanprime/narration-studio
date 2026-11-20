@@ -112,9 +112,21 @@ export type CreatedChild = CreatedTrack & { notVoice: boolean };
  * last choice left it out, in the order the folder gets them (#3748). `folders` is false for a project that records one track a chapter: there is
  * nothing to choose and the lists are empty. */
 export type ChapterCreateVoice = { name: string; checked: boolean };
-export type ChapterCreateOptions = { folders: boolean; narrator: string; voices: ChapterCreateVoice[]; extras: ChapterCreateVoice };
+export type ChapterCreateOptions = {
+  folders: boolean;
+  narrator: string;
+  voices: ChapterCreateVoice[];
+  extras: ChapterCreateVoice;
+  /** How many known voices the list leaves off at its cap; absent when it holds them all. */
+  omitted?: number;
+};
 /** The pick sent with the create: the voices to add after the Narrator, in order, and whether to add Extras. Omitted, the host uses the last pick. */
-export type ChapterCreateChoice = { voices: string[]; extras: boolean };
+export type ChapterCreateChoice = {
+  voices: string[];
+  /** The voices the list showed and the narrator left unticked: what is remembered as left out. A voice in neither list was not shown. */
+  skipped?: string[];
+  extras: boolean;
+};
 export type ChapterTrackCreateResult =
   | (ChapterTrackSetResult & {
       outcome: 'created';

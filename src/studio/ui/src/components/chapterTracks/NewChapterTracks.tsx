@@ -1,13 +1,37 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChapterCreateChoice, ChapterCreateOptions, ChapterCreateVoice } from '../../api/contracts/chapterTrackMap';
 import { plural } from '../../plural';
 import { Checkbox } from '../primitives/Checkbox';
 import { SectionLabel } from '../primitives/SectionLabel';
 
-/** The tracks a new chapter folder is made with besides the Narrator: the project's known voices and Extras, ticked or not, in the order the folder gets them (#3748). */
-export type NewChapterPick = { voices: ChapterCreateVoice[]; extras: ChapterCreateVoice };
+/** The tracks a new chapter folder is made with besides the Narrator: the project's known voices and Extras, ticked or not, in the order the folder gets them (#3748). `omitted` is how many known voices the list leaves off at its cap. */
+export type NewChapterPick = { voices: ChapterCreateVoice[]; extras: ChapterCreateVoice; omitted?: number };
 
-/** The pick the host sent (the last one made, or every voice and Extras), as the checklist starts; null while it is not read or the project makes no folders. */
+/** The pick the host answered, with the ticks the narrator already made kept for the voices still in it: a read again never undoes a tick, and a voice that is new takes the host's. */
+export function mergePick(host: NewChapterPick, mine: NewChapterPick | null): NewChapterPick {
+  if (!mine) return host;
+  const ticked = new Map(mine.voices.map((voice) => [voice.name, voice.checked]));
+  return {
+    ...host,
+    voices: host.voices.map((voice) => ({ ...voice, checked: ticked.get(voice.name) ?? voice.checked })),
+    extras: { ...host.extras, checked: mine.extras.checked },
+  };
+}
+
+/** The pick sent with Create: the ticked voices, the unticked ones the list showed (what is remembered as left out), and Extras. */
+export function choiceOf(pick: NewChapterPick): ChapterCreateChoice {
+  return {
+    voices: pick.voices.filter((voice) => voice.checked).map((voice) => voice.name),
+    skipped: pick.voices.filter((voice) => !voice.checked).map((voice) => voice.name),
+    extras: pick.extras.checked,
+  };
+}
+
+/**
+ * The pick the host sent (the last one made, or every voice and Extras), as the checklist starts; null while it is not read or the project makes no
+ * folders. `loading` is true until the first answer or failure, so a Create pressed before the list is there can wait for it; `reload` reads it again
+ * (Check again, the window regaining focus) and keeps the ticks already made.
+ */
 export function useNewChapterPick(
   enabled: boolean,
   read: () => Promise<ChapterCreateOptions>,
@@ -15,6 +39,8 @@ export function useNewChapterPick(
   pick: NewChapterPick | null;
   setPick: (pick: NewChapterPick) => void;
   failed: boolean;
+  loading: boolean;
+  reload: () => void;
   choice: ChapterCreateChoice | undefined;
   /** The Narrator's track name as the host sends it, the first track the folder is made with. */
   narrator: string;
@@ -22,6 +48,8 @@ export function useNewChapterPick(
   const [pick, setPick] = useState<NewChapterPick | null>(null);
   const [narrator, setNarrator] = useState('Narrator');
   const [failed, setFailed] = useState(false);
+  const [answered, setAnswered] = useState(false);
+  const [again, setAgain] = useState(0);
   useEffect(() => {
     if (!enabled) return;
     let live = true;
@@ -29,22 +57,30 @@ export function useNewChapterPick(
       (options) => {
         if (!live) return;
         setFailed(false);
+        setAnswered(true);
         setNarrator(options.narrator);
-        setPick(options.folders ? { voices: options.voices, extras: options.extras } : null);
+        const host = options.folders ? { voices: options.voices, extras: options.extras, omitted: options.omitted } : null;
+        setPick((mine) => (host ? mergePick(host, mine) : null));
       },
       () => {
-        if (live) setFailed(true);
+        if (!live) return;
+        setFailed(true);
+        setAnswered(true);
       },
     );
     return () => {
       live = false;
     };
-  }, [enabled, read]);
-  const choice = useMemo(
-    () => (pick ? { voices: pick.voices.filter((voice) => voice.checked).map((voice) => voice.name), extras: pick.extras.checked } : undefined),
-    [pick],
-  );
-  return { pick, setPick, failed, choice, narrator };
+  }, [enabled, read, again]);
+  const reload = useCallback(() => setAgain((n) => n + 1), []);
+  // The list is read again when the window regains focus: the project may have changed behind it (a voice added, the pick set in Settings).
+  useEffect(() => {
+    if (!enabled) return;
+    window.addEventListener('focus', reload);
+    return () => window.removeEventListener('focus', reload);
+  }, [enabled, reload]);
+  const choice = useMemo(() => (pick ? choiceOf(pick) : undefined), [pick]);
+  return { pick, setPick, failed, loading: enabled && !answered, reload, choice, narrator };
 }
 
 /**
@@ -67,7 +103,7 @@ export function NewChapterTracks({
   const setVoice = (name: string, checked: boolean) =>
     onChange({ ...pick, voices: pick.voices.map((voice) => (voice.name === name ? { ...voice, checked } : voice)) });
   return (
-    <div role="group" aria-label="Tracks in the new folder" className="flex flex-col gap-1">
+    <div role="group" aria-label="Tracks in the new folder" className="flex min-w-0 flex-col gap-1">
       <SectionLabel as="p">Tracks in the new folder, in this order</SectionLabel>
       <p className="text-sm">{narrator} (always)</p>
       {many && (
@@ -81,11 +117,11 @@ export function NewChapterTracks({
         </Checkbox>
       )}
       {pick.voices.length > 0 && (
-        <ul className="m-0 flex max-h-32 list-none flex-col gap-0 overflow-y-auto p-0 pl-6">
+        <ul className="m-0 flex max-h-32 min-w-0 list-none flex-col gap-0 overflow-y-auto p-0 pl-6">
           {pick.voices.map((voice) => (
             <li key={voice.name} className="min-w-0">
               <Checkbox checked={voice.checked} disabled={disabled} onChange={(checked) => setVoice(voice.name, checked)}>
-                <span dir="auto" className="break-words" title={voice.name}>
+                <span dir="auto" className="[overflow-wrap:anywhere]" title={voice.name}>
                   {voice.name}
                 </span>
               </Checkbox>
@@ -93,6 +129,7 @@ export function NewChapterTracks({
           ))}
         </ul>
       )}
+      {pick.omitted ? <p className="text-sm text-[var(--text-muted)]">{plural(pick.omitted, 'more voice')} not listed.</p> : null}
       {pick.extras.name !== '' && (
         <Checkbox checked={pick.extras.checked} disabled={disabled} onChange={(checked) => onChange({ ...pick, extras: { ...pick.extras, checked } })}>
           {pick.extras.name}

@@ -42,7 +42,9 @@ const (
 
 // The limits on what is stored, in runes.
 const (
-	MaxTrackName   = 120
+	MaxTrackName = 120
+	// MaxSkipName bounds a voice name left out of a new chapter folder: a child of a folder can have any name in the engine, longer than a name assigned here.
+	MaxSkipName    = 1000
 	MaxCharacterID = 120
 	MaxCharacters  = 200
 	MaxTracks      = 500
@@ -283,7 +285,7 @@ func (s *Service) SetNewChapter(skipVoices []string, noExtras bool) (State, erro
 	kept := make([]string, 0, len(skipVoices))
 	for _, name := range skipVoices {
 		name = strings.TrimSpace(name)
-		if !validText(name, MaxTrackName) {
+		if !validText(name, MaxSkipName) {
 			return State{}, fmt.Errorf("%w: a voice name", ErrInvalid)
 		}
 		if !slices.ContainsFunc(kept, func(have string) bool { return strings.EqualFold(have, name) }) {
@@ -399,7 +401,7 @@ func (f voiceFile) valid() bool {
 			return false
 		}
 		for _, name := range f.NewChapter.SkipVoices {
-			if name != strings.TrimSpace(name) || !validText(name, MaxTrackName) {
+			if name != strings.TrimSpace(name) || !validText(name, MaxSkipName) {
 				return false
 			}
 		}

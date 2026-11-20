@@ -50,7 +50,7 @@ describe('the new chapter folder setting (#3748)', () => {
     const dragon = await screen.findByRole('checkbox', { name: 'Dragon 🐉' });
     expect(dragon.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(dragon);
-    await waitFor(() => expect(save).toHaveBeenCalledWith({ voices: ['Mara'], extras: true }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ voices: ['Mara'], skipped: ['Dragon 🐉'], extras: true }));
     expect((await api.chapterCreateOptions()).voices).toEqual([
       { name: 'Dragon 🐉', checked: false },
       { name: 'Mara', checked: true },
@@ -98,5 +98,47 @@ describe('the new chapter folder setting (#3748)', () => {
     expect(await CUSTOM_CHANGED['daw.newChapter']!(context)).toBe(true);
     await api.chapterCreateDefaultSet({ voices: ['Mara', 'Dragon 🐉'], extras: true });
     expect(await CUSTOM_CHANGED['daw.newChapter']!(context)).toBe(false);
+  });
+
+  // qa-breaker B3: ticks made while a save is out are saved one at a time in the order made, and the row shows what the host holds.
+  it('saves ticks made while a save is out in order, and shows what the host holds after the last', async () => {
+    const api = await foldersApi();
+    const answers: Array<() => void> = [];
+    const real = api.chapterCreateDefaultSet.bind(api);
+    const calls: string[][] = [];
+    vi.spyOn(api, 'chapterCreateDefaultSet').mockImplementation(
+      (choice) =>
+        new Promise((resolve, reject) => {
+          calls.push(choice.skipped ?? []);
+          answers.push(() => real(choice).then(resolve, reject));
+        }),
+    );
+    mount(api);
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Dragon 🐉' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mara' }));
+    // The second save is not sent until the first has answered.
+    expect(calls).toEqual([['Dragon 🐉']]);
+    answers[0]!();
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1]).toEqual(['Dragon 🐉', 'Mara']);
+    answers[1]!();
+    await waitFor(async () => expect((await api.chapterCreateOptions()).voices.every((voice) => !voice.checked)).toBe(true));
+    expect(screen.getByRole('checkbox', { name: 'Dragon 🐉' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('checkbox', { name: 'Mara' }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('shows what the host holds when the last save fails after an earlier one was kept', async () => {
+    const api = await foldersApi();
+    const real = api.chapterCreateDefaultSet.bind(api);
+    let attempt = 0;
+    vi.spyOn(api, 'chapterCreateDefaultSet').mockImplementation((choice) => (++attempt === 2 ? Promise.reject(new Error('disk full')) : real(choice)));
+    mount(api);
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Dragon 🐉' }));
+    await waitFor(() => expect(attempt).toBe(1));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Mara' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('disk full'), 'error'));
+    // The host kept the first tick only, and the row says so.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mara' }).getAttribute('aria-checked')).toBe('true'));
+    expect(screen.getByRole('checkbox', { name: 'Dragon 🐉' }).getAttribute('aria-checked')).toBe('false');
   });
 });

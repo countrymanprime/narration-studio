@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { NewChapterTracks, useNewChapterPick, type NewChapterPick } from '../../chapterTracks/NewChapterTracks';
+import { NewChapterTracks, choiceOf, useNewChapterPick, type NewChapterPick } from '../../chapterTracks/NewChapterTracks';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -33,17 +33,25 @@ function Checklist() {
   useEffect(() => {
     if (failed) notify('The tracks a new chapter folder is made with could not be read.', 'error');
   }, [failed, notify]);
+  // Each tick saves the whole pick, one save at a time and in the order ticked, so two quick ticks cannot land the other way round. The row shows the
+  // host's own answer once the last save is in, and what the host holds after a save that failed: never a pick the host does not hold.
+  const saves = useRef(Promise.resolve());
+  const latest = useRef(0);
   if (!pick) return null;
   const change = (next: NewChapterPick) => {
-    const before = pick;
     setPick(next);
-    trackMap
-      .chapterCreateDefaultSet({ voices: next.voices.filter((voice) => voice.checked).map((voice) => voice.name), extras: next.extras.checked })
-      .catch((reason: unknown) => {
-        // Not kept: the list goes back to what is, so it never shows a choice the next chapter will not get.
-        setPick(before);
+    const mine = ++latest.current;
+    saves.current = saves.current.then(async () => {
+      try {
+        const options = await trackMap.chapterCreateDefaultSet(choiceOf(next));
+        if (mine === latest.current && options.folders) setPick({ voices: options.voices, extras: options.extras, omitted: options.omitted });
+      } catch (reason: unknown) {
         notify(describeApiError(reason), 'error');
-      });
+        if (mine !== latest.current) return;
+        const held = await trackMap.chapterCreateOptions().catch(() => null);
+        if (mine === latest.current && held?.folders) setPick({ voices: held.voices, extras: held.extras, omitted: held.omitted });
+      }
+    });
   };
   return <NewChapterTracks narrator={narrator} pick={pick} onChange={change} />;
 }

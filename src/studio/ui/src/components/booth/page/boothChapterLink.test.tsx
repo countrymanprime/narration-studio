@@ -227,7 +227,7 @@ describe('an unlinked chapter in the Booth', () => {
     await userEvent.click(within(group).getByRole('checkbox', { name: 'Dragon 🐉' }));
     await userEvent.click(within(group).getByRole('checkbox', { name: 'Extras' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create a new folder' }));
-    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1', { voices: ['Mara', 'Dragon 🐉'], extras: false });
+    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1', { voices: ['Mara', 'Dragon 🐉'], skipped: [], extras: false });
   });
 
   it('a create that was partly done says what is left in the toast that says it was made (#3748)', async () => {
@@ -268,6 +268,86 @@ describe('an unlinked chapter in the Booth', () => {
           .join(' '),
       ).toContain(`Save the REAPER project to keep it. ${message}`),
     );
+  });
+
+  // qa-breaker B1: a Create pressed before the list is there would make tracks the dialog never showed, so it waits for the list.
+  it('Create waits for the list of what the folder is made with, and says so on its tooltip', async () => {
+    let answer: (options: typeof foldersOptions) => void = () => {};
+    const { chapterTrackCreate } = renderUnlinked(
+      { chapterCreateOptions: () => new Promise<typeof foldersOptions>((resolve) => (answer = resolve)) } as Partial<NarrationApi>,
+      'folders',
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    const create = await within(dialog).findByRole('button', { name: 'Create a new folder' });
+    expect(create.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.click(create);
+    expect(chapterTrackCreate).not.toHaveBeenCalled();
+    answer(foldersOptions);
+    await within(dialog).findByRole('group', { name: 'Tracks in the new folder' });
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Create a new folder' }).getAttribute('aria-disabled')).not.toBe('true'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create a new folder' }));
+    expect(chapterTrackCreate).toHaveBeenCalledTimes(1);
+  });
+
+  // qa-breaker B2: Check again, and the window regaining focus, read what the folder is made with again, keeping the ticks already made.
+  it('Check again reads the list again', async () => {
+    const read = vi.fn(async () => foldersOptions);
+    renderUnlinked({ chapterCreateOptions: read } as Partial<NarrationApi>, 'folders');
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    await within(dialog).findByRole('group', { name: 'Tracks in the new folder' });
+    const before = read.mock.calls.length;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
+  });
+
+  it('the window regaining focus reads the list again, keeps the ticks made, and Create sends the new voice too', async () => {
+    let options = foldersOptions;
+    const read = vi.fn(async () => options);
+    const { chapterTrackCreate } = renderUnlinked({ chapterCreateOptions: read } as Partial<NarrationApi>, 'folders');
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    const group = await within(dialog).findByRole('group', { name: 'Tracks in the new folder' });
+    await userEvent.click(within(group).getByRole('checkbox', { name: 'Mara' }));
+    const before = read.mock.calls.length;
+    options = { ...foldersOptions, voices: [...foldersOptions.voices, { name: 'King', checked: true }] };
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
+    await within(group).findByRole('checkbox', { name: 'King' });
+    expect(within(group).getByRole('checkbox', { name: 'Mara' }).getAttribute('aria-checked')).toBe('false');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create a new folder' }));
+    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1', { voices: ['King'], skipped: ['Mara', 'Dragon 🐉'], extras: true });
+  });
+
+  // qa-breaker B8: a dialog closed while a create is out and opened again shows it busy and sends no second create.
+  it('a dialog reopened while a create is out shows it busy and sends no second create', async () => {
+    let finish: () => void = () => {};
+    const link = {
+      trackGuid: '{NEW}',
+      chapterId: 'c1',
+      chapterTitle: 'Chapter 1',
+      confirmedAt: '2026-10-23T10:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const slow = vi.fn(
+      () =>
+        new Promise<ChapterTrackCreateResult>((resolve) => {
+          finish = () =>
+            resolve({ outcome: 'created', documentId: 'doc', link, displaced: null, mappings: [link], track: { guid: '{NEW}', name: 'Chapter 1', index: 0 } });
+        }),
+    );
+    renderUnlinked({ chapterCreateOptions: async () => foldersOptions, chapterTrackCreate: slow } as Partial<NarrationApi>, 'folders');
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new folder' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Not linked to a folder. Show details', hidden: true }));
+    const again = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    const create = await within(again).findByRole('button', { name: 'Create a new folder' });
+    await userEvent.click(create);
+    expect(slow).toHaveBeenCalledTimes(1);
+    act(() => finish());
   });
 
   it('a create dialog whose list cannot be read still creates, with the last pick the host remembers', async () => {

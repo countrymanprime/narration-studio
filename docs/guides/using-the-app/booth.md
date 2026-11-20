@@ -204,7 +204,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
   project's known voices, and **Extras**, a track for sound that is not a voice (a crowd, a door, music). Untick any voice or Extras to leave it out;
   with two or more voices **All N voices** ticks or clears them together, and a long list scrolls inside its own box so the buttons stay in view. What
   you leave out is remembered for the next chapter, and a voice that appears later starts ticked; the same list is a row in [Settings](settings.md).
-  Extras is not a voice: the Booth never arms it and the chapter's record progress does not ask for a take on it (the Engine panel's **Create a folder
+  Extras is not a voice: the Booth never arms it and the chapter's record progress does not ask for a take on it (a project that already gives characters to a track named Extras keeps it as a voice, so nothing already set up changes). The list holds up to 60 voices, and a line under it says how many more are not listed. The list is read again when you press **Check again** or return to the window, and keeps your ticks. (The Engine panel's **Create a folder
   for this chapter** button makes the folder with the choice you made last).
 
   ![Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder](../../images/ui/booth-record-unlinked-folders.webp)

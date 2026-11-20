@@ -4,7 +4,9 @@ import (
 	"context"
 	"desktop/internal/contractfile"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -164,6 +166,8 @@ func TestChapterTrackCreateWithAChoiceMakesOnlyThatAndRemembersIt(t *testing.T) 
 func TestChapterTrackCreateKeepsHostileChoicesToNamesThatMakeTracks(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
 	setLayout(t, host, voicetracks.LayoutFolders)
+	// The names the narrator can tick are the project's own voices (a chosen name the project does not know is left out, below).
+	assignVoices(t, host, "Dragon 🐉", "مرحبا", "Line Break")
 	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
 	many := make([]string, 0, 200)
 	for i := 0; i < 200; i++ {
@@ -300,5 +304,121 @@ func TestChapterCreateDefaultSetKeepsThePickAndAnswersTheOptionsAsTheyNowRead(t 
 	}
 	if _, err := host.ChapterCreateDefaultSet("{not json"); err == nil {
 		t.Fatal("a pick that is not JSON was accepted")
+	}
+}
+
+// qa-breaker B2: a choice is made from a list the narrator saw. A name the project does not know is not made, and a voice the list did not show is
+// neither made nor remembered as left out.
+func TestChapterTrackCreateLeavesOutAChosenVoiceTheProjectDoesNotKnow(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	assignVoices(t, host, "Mara")
+	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
+	createTrackWith(t, host, creator, ids[1], `{"voices":["Ghost","Mara"],"extras":true}`)
+	if want := []string{"Chapter II: The Pool of Tears", "Narrator", "Mara", "Extras"}; !reflect.DeepEqual(creator.asked[0], want) {
+		t.Fatalf("asked = %q, want %q: a voice the project does not know is never made", creator.asked[0], want)
+	}
+}
+
+func TestChapterTrackCreateRemembersOnlyTheVoicesTheChoiceWasShown(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	assignVoices(t, host, "Mara", "Dragon")
+	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
+	// The list showed only Mara (ticked); Dragon became known after it was read.
+	createTrackWith(t, host, creator, ids[1], `{"voices":["Mara"],"skipped":[],"extras":true}`)
+	remembered, err := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder}).NewChapter()
+	if err != nil || len(remembered.SkipVoices) != 0 || remembered.NoExtras {
+		t.Fatalf("remembered = %+v, %v: a voice that was never shown must not be remembered as left out", remembered, err)
+	}
+	options, _ := chapterCreateOptionsIn(host.services(), &fakeFolderCreator{})
+	for _, voice := range options.Voices {
+		if !voice.Checked {
+			t.Fatalf("%q starts unticked", voice.Name)
+		}
+	}
+}
+
+// qa-breaker B4: a voice left out stays left out while it is unknown for a moment.
+func TestAVoiceLeftOutStaysLeftOutWhileItIsNotKnown(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	assignVoices(t, host, "Mara", "Dragon")
+	service := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder})
+	if _, err := service.SetNewChapter([]string{"Dragon"}, false); err != nil {
+		t.Fatal(err)
+	}
+	// Dragon is not shown by this list (its assignment is gone for a moment), and Mara is unticked.
+	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
+	createTrackWith(t, host, creator, ids[1], `{"voices":[],"skipped":["Mara"],"extras":true}`)
+	remembered, _ := service.NewChapter()
+	if !reflect.DeepEqual(remembered.SkipVoices, []string{"Mara", "Dragon"}) {
+		t.Fatalf("skip = %q, want Mara and the earlier Dragon", remembered.SkipVoices)
+	}
+}
+
+// qa-breaker B6: a known voice with a long name can be left out.
+func TestAKnownVoiceLongerThanATrackNameCanBeLeftOut(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	long := strings.Repeat("W", 300)
+	service := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder})
+	if _, err := service.SetNewChapter([]string{long}, false); err != nil {
+		t.Fatalf("a long name was refused: %v", err)
+	}
+	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
+	result := createTrackWith(t, host, creator, ids[1], `{"voices":[],"skipped":["`+long+`"],"extras":true}`)
+	if message, _ := result["message"].(string); message != "" {
+		t.Fatalf("message = %q, want the pick kept without a complaint", message)
+	}
+}
+
+// qa-breaker B9: a list cut at the cap says how many voices it left off.
+func TestChapterCreateOptionsSayHowManyVoicesAreLeftOffTheList(t *testing.T) {
+	host, _ := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	names := make([]string, 0, maxCreateVoices+7)
+	for i := 0; i < maxCreateVoices+7; i++ {
+		names = append(names, fmt.Sprintf("Voice %03d", i))
+	}
+	assignVoices(t, host, names...)
+	options, err := chapterCreateOptionsIn(host.services(), &fakeFolderCreator{})
+	if err != nil || len(options.Voices) != maxCreateVoices || options.Omitted != 7 {
+		t.Fatalf("voices %d, omitted %d, %v: want %d listed and 7 said to be left off", len(options.Voices), options.Omitted, err, maxCreateVoices)
+	}
+}
+
+// qa-breaker B10 and B11: a name with control or invisible characters is cleaned, and one with nothing visible is not a name.
+func TestChapterTrackCreateCleansControlAndInvisibleCharactersFromNames(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	setLayout(t, host, voicetracks.LayoutFolders)
+	assignVoices(t, host, "\u202eevil", "\u200b", "Narrator\u200b", "Mara")
+	options, err := chapterCreateOptionsIn(host.services(), &fakeFolderCreator{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, voice := range options.Voices {
+		names = append(names, voice.Name)
+	}
+	sort.Strings(names)
+	if want := []string{"Mara", "evil"}; !reflect.DeepEqual(names, want) {
+		t.Fatalf("listed %q, want %q: control and invisible characters taken out, an empty name and the Narrator in disguise dropped", names, want)
+	}
+	creator := &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}
+	createTrackWith(t, host, creator, ids[1], `{"voices":["A\u0000B","\u202eevil","Extras\u200b"],"extras":false}`)
+	if want := []string{"Chapter II: The Pool of Tears", "Narrator", "evil"}; !reflect.DeepEqual(creator.asked[0], want) {
+		t.Fatalf("asked = %q, want %q", creator.asked[0], want)
+	}
+}
+
+func TestParseCreateChoiceRefusesWhatIsNotAChoice(t *testing.T) {
+	for _, bad := range []string{"null", "{}", `{"voices":[]}`, `{"extras":true}`, "[]", `"x"`} {
+		if choice, err := parseCreateChoice(bad); err == nil {
+			t.Errorf("%s was accepted as %+v", bad, choice)
+		}
+	}
+	if choice, err := parseCreateChoice(`{"voices":[],"extras":false}`); err != nil || len(choice.Voices) != 0 || choice.Extras {
+		t.Fatalf("an empty pick is a pick of none: %+v, %v", choice, err)
 	}
 }

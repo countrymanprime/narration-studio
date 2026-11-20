@@ -45,9 +45,9 @@ export function Checkbox({ checked, onChange, disabled, indeterminate, children,
   );
   if (children === undefined) return box;
   return (
-    <label className="flex items-start gap-2 py-0.5 text-sm">
+    <label className="flex min-w-0 items-start gap-2 py-0.5 text-sm">
       {box}
-      <span>{children}</span>
+      <span className="min-w-0">{children}</span>
     </label>
   );
 }
