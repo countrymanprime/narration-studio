@@ -476,9 +476,11 @@ describe('the not-linked dialog', () => {
         },
       });
       await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      expect(screen.queryByText(/could not be read/)).toBeNull();
+      // The failure is said, with the last tracks still on screen; Check again tries again.
+      expect(await screen.findByText(/tracks could not be read again: REAPER did not answer\. The last ones are shown\./)).toBeTruthy();
       expect(screen.getByRole('combobox', { name: 'Track for Chapter 3' })).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+      expect(await screen.findByText(/The REAPER tracks could not be read: REAPER did not answer/)).toBeTruthy();
     });
   });
 

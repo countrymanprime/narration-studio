@@ -88,7 +88,7 @@ export function ChapterLinkDialog({
   const projectNow = useChapterTrackProject();
   const [read, setRead] = useState<Read>(() => {
     const ahead = cachedMatch(projectNow, chapterId);
-    return ahead ? { status: 'ready', match: ahead, at: Date.now() } : { status: 'loading' };
+    return ahead ? { status: 'ready', match: ahead.match, at: ahead.at } : { status: 'loading' };
   });
   const [asked, setAsked] = useState(0);
   // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
@@ -103,6 +103,8 @@ export function ChapterLinkDialog({
   const dest = destinationFor(useVoiceLayout());
   const folders = dest.folders;
 
+  const shownRef = useRef(read.status);
+  shownRef.current = read.status;
   useEffect(() => {
     let live = true;
     // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
@@ -129,7 +131,18 @@ export function ChapterLinkDialog({
         );
       },
       // A failed read behind tracks already on screen keeps them: they are what the narrator can act on, and Check again tries again.
-      (error: unknown) => live && setRead((now) => (now.status === 'ready' && asked === 0 ? now : { status: 'failed', message: apiErrorMessage(error) })),
+      (error: unknown) => {
+        if (!live) return;
+        // A failed read behind tracks already on screen keeps them, and says so: they are the last ones heard, shown with when they were read.
+        setRead((now) => (now.status === 'ready' && asked === 0 ? now : { status: 'failed', message: apiErrorMessage(error) }));
+        setRefused(
+          (now) =>
+            now ??
+            (shownRef.current === 'ready' && asked === 0
+              ? `The ${dawName} tracks could not be read again: ${apiErrorMessage(error)}. The last ones are shown.`
+              : now),
+        );
+      },
     );
     return () => {
       live = false;

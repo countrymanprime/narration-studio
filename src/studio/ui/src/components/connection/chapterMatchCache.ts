@@ -1,41 +1,88 @@
+import { useEffect, useReducer } from 'react';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 
 /**
  * The DAW's tracks matched to one chapter, kept for the project that was open when it was read (#3669). The Booth reads it ahead, as soon as
  * it knows the chapter, so the dialog that links an unlinked chapter opens with the tracks to choose from instead of reading them while the
- * narrator waits. The dialog still reads again behind what it shows; a cached match is a starting point, never the last word.
+ * narrator waits. The dialog still reads again behind them: a cached match is a starting point, never the last word, and it keeps the time
+ * it was read so "Last checked" never claims more than it knows.
  */
-const matches = new Map<string, ChapterTrackMatch>();
+export interface CachedMatch {
+  match: ChapterTrackMatch;
+  /** When the host answered. */
+  at: number;
+}
+
+/** A match read ahead is read again when it is older than this: the DAW's tracks change while the app is open. */
+export const MATCH_FRESH_MS = 30_000;
+/** How long the not-linked dialog's automatic opening waits for the read ahead before it opens and reads for itself. */
+export const MATCH_WAIT_MS = 2_500;
+
+const matches = new Map<string, CachedMatch>();
 const reading = new Map<string, Promise<unknown>>();
+/** Keys whose read ahead has ended, answered or failed: nothing more is coming for them. */
+const settled = new Set<string>();
+const listeners = new Set<() => void>();
+const tell = () => listeners.forEach((listener) => listener());
 
 const keyOf = (project: string | null, chapterId: string) => (project ? `${project}\u0000${chapterId}` : null);
 
-export function cachedMatch(project: string | null, chapterId: string): ChapterTrackMatch | undefined {
+export function cachedMatch(project: string | null, chapterId: string): CachedMatch | undefined {
   const key = keyOf(project, chapterId);
   return key ? matches.get(key) : undefined;
 }
 
-export function rememberMatch(project: string | null, chapterId: string, match: ChapterTrackMatch): void {
+export function rememberMatch(project: string | null, chapterId: string, match: ChapterTrackMatch, at = Date.now()): void {
   const key = keyOf(project, chapterId);
-  if (key) matches.set(key, match);
+  if (!key) return;
+  matches.set(key, { match, at });
+  tell();
 }
 
-/** Reads the match in the background, once at a time per chapter; a failed read leaves nothing behind, so the dialog reads for itself. */
+/** Reads the match in the background, once at a time per chapter and not again while it is fresh; a failed read leaves nothing behind, so the dialog reads for itself. */
 export function prefetchMatch(project: string | null, chapterId: string, read: () => Promise<ChapterTrackMatch>): void {
   const key = keyOf(project, chapterId);
-  if (!key || matches.has(key) || reading.has(key)) return;
+  if (!key || reading.has(key)) return;
+  const have = matches.get(key);
+  if (have && Date.now() - have.at < MATCH_FRESH_MS) return;
+  settled.delete(key);
   const work = read().then(
     (match) => {
-      matches.set(key, match);
+      matches.set(key, { match, at: Date.now() });
     },
     () => undefined,
   );
   reading.set(key, work);
-  void work.finally(() => reading.delete(key));
+  void work.finally(() => {
+    reading.delete(key);
+    settled.add(key);
+    tell();
+  });
+}
+
+/**
+ * Whether the not-linked dialog may open now: the tracks are in, or the read ahead ended without them (the dialog then reads for itself), or
+ * `MATCH_WAIT_MS` has run out. Until then the notice's chip is on screen and the dialog is not, so it never opens on a list it cannot offer (#3669).
+ */
+export function useMatchAhead(project: string | null, chapterId: string): boolean {
+  const [, wake] = useReducer((count: number) => count + 1, 0);
+  const [waited, giveUp] = useReducer(() => true, false);
+  useEffect(() => {
+    listeners.add(wake);
+    const timer = setTimeout(giveUp, MATCH_WAIT_MS);
+    return () => {
+      listeners.delete(wake);
+      clearTimeout(timer);
+    };
+  }, [project, chapterId]);
+  const key = keyOf(project, chapterId);
+  return key === null || waited || matches.has(key) || settled.has(key) || !reading.has(key);
 }
 
 /** For tests: nothing carries over from one to the next. */
 export function forgetMatches(): void {
   matches.clear();
   reading.clear();
+  settled.clear();
+  tell();
 }

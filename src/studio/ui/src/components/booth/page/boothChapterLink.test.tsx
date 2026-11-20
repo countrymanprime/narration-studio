@@ -126,6 +126,29 @@ describe('an unlinked chapter in the Booth', () => {
     expect(chapterTrackMatch.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
+  // The owner's reported order: the link check answers first, the tracks come a moment later. The dialog waits for them instead of opening on nothing to pick.
+  it('does not open its dialog on an empty list when the link check answers before the tracks: the chip shows, then the dialog opens with the picker ready', async () => {
+    const withTracks: ChapterTrackMatch = {
+      ...EMPTY_PROJECT,
+      status: 'matched',
+      tracks: [{ guid: '{T-1}', name: 'Chapter 1', index: 0, depth: 0, isFolder: false, hasAudio: true }],
+      candidates: [{ trackGuid: '{T-1}', trackName: 'Chapter 1', trackIndex: 0, score: 1, source: 'track-name', region: null }],
+    };
+    renderUnlinked({ chapterTrackMatch: () => new Promise<ChapterTrackMatch>((resolve) => setTimeout(() => resolve(withTracks), 500)) });
+    expect(await screen.findByRole('button', { name: 'Not linked to a track. Show details' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' }, { timeout: 4000 });
+    expect(within(dialog).queryByText(/Reading the REAPER tracks/)).toBeNull();
+    expect(within(dialog).getByRole('combobox')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it('opens the dialog anyway, reading for itself, when the host never answers the tracks', async () => {
+    renderUnlinked({ chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' }, { timeout: 5000 });
+    expect(within(dialog).getByText(/Reading the REAPER tracks/)).toBeTruthy();
+  }, 15000);
+
   it('the top-bar setup chip warns while the chapter has no track, and is plain again once a track is linked', async () => {
     renderUnlinked();
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });

@@ -658,14 +658,13 @@ function BoothSession({
     complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
-  // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter and the DAW are known: the
+  // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter is known: the
   // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
   const trackMap = usePort('chapterTrackMap');
   const linkProject = useChapterTrackProject();
-  const dawReachable = capabilities?.reachable === true;
   useEffect(() => {
-    if (recordId && dawReachable) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId));
-  }, [trackMap, linkProject, recordId, dawReachable]);
+    if (recordId) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId));
+  }, [trackMap, linkProject, recordId]);
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
