@@ -7,8 +7,8 @@ local H = require('harness')
 local LEDGER = 'narration_solo_ledger.txt'
 
 -- Chapter 1 is a folder of two voices, Chapter 2 a folder of one, and Pickups a plain track.
-local function new_session()
-  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+local function new_session(options)
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp'), setup = options and options.setup })
   local fake = s.fake
   local t = {
     ch1 = fake:add_track('Chapter 1'),
@@ -88,7 +88,7 @@ H.test('solo_chapter accepts the guid without braces and in lower case, and answ
   H.eq(s:events(), { { 'CHAPTER_SOLOED', 'c1', t.ch1.guid, '1', '0' } })
 end)
 
-H.test('solo_chapter on a track that is gone answers TRACK_STALE and changes nothing', function()
+H.test('solo_chapter on a track that is gone answers TRACK_STALE and, with nothing soloed before, changes nothing', function()
   local s = new_session()
   s:send('solo_chapter', 'c1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}')
   H.eq(s:events(), { { 'TRACK_STALE', 'c1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
@@ -802,4 +802,123 @@ H.test('another chapter the narrator soloed by hand stays soloed beside ours: th
   t.ch2.solo = 1
   s:send('solo_chapter', 'c1', t.ch1.guid)
   H.eq(solos(s), { 2, 0, 0, 1, 0, 0 })
+end)
+
+-- review round: stale, waiting, ordering and save ----------------------------------------------------------------
+
+local STALE = '{FFFFFFFF-0000-4000-8000-00000000FFFF}'
+
+H.test('a stale solo_chapter while REAPER records writes no solo, and the chapter before is put back on the tick after the stop', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s.fake.play_state = 5
+  s.fake.calls = {}
+  s:send('solo_chapter', 'c2', STALE)
+  H.eq(writes(s), {}, 'nothing is written while REAPER records')
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 })
+  s.fake.play_state = 0
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'the waited restore ran')
+  H.eq(ledger(s), nil)
+end)
+
+H.test('a stale solo_chapter under a play isolation writes no solo of its own', function()
+  local s, t = new_session()
+  with_audio(s, t)
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:send('play_from', 'p1', '10', t.ch2.guid)
+  s.fake.calls = {}
+  s:send('solo_chapter', 'c3', STALE)
+  H.eq(writes(s), {}, "only the play's isolation is in place")
+  s:send('stop_play', 'sp1')
+  s:tick()
+  s:tick()
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
+  H.eq(ledger(s), nil)
+end)
+
+H.test('a chapter whose ledger cannot be written puts the chapter soloed before back', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  os.remove(s:path(LEDGER))
+  host.makedirs(s:path(LEDGER))
+  s:events()
+  s:send('solo_chapter', 'c2', t.ch2.guid)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(solos(s), { 0, 0, 0, 0, 0, 0 }, 'neither chapter is left soloed')
+end)
+
+H.test('a solo that waited and whose track is gone at the stop puts the previous chapter back', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s.fake.play_state = 5
+  s:send('solo_chapter', 'c2', t.ch2.guid)
+  table.remove(s.fake.tracks, 4)
+  table.remove(s.fake.tracks, 4)
+  s.fake.play_state = 0
+  s:tick()
+  s:tick()
+  H.eq(t.ch1.solo, 0)
+  H.eq(ledger(s), nil)
+end)
+
+H.test('solo_restore asks the transport to recover a play isolation first', function()
+  local registry
+  local s, t = new_session({
+    setup = function(r)
+      registry = r
+    end,
+  })
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local calls = 0
+  local real = registry.transport_recover
+  registry.transport_recover = function(...)
+    calls = calls + 1
+    return real(...)
+  end
+  s:send('solo_restore', 'r1')
+  H.truthy(calls >= 1, 'the restore recovers a leftover isolation before it writes')
+end)
+
+H.test('save_project before the first tick puts a leftover chapter back, so the file does not hold it', function()
+  local s, t = new_session()
+  H.write_file(s:path(LEDGER), row(t.ch1))
+  t.ch1.solo = 2
+  local on_disk
+  local real = reaper.Main_SaveProject
+  reaper.Main_SaveProject = function(...)
+    on_disk = solos(s)
+    return real(...)
+  end
+  s:send('save_project', 's1', s.fake.project_path)
+  reaper.Main_SaveProject = real
+  H.eq(on_disk, { 0, 0, 0, 0, 0, 0 })
+end)
+
+H.test('save_project while a play isolation is in place and a chapter is soloed is refused, writing nothing', function()
+  local s, t = new_session()
+  with_audio(s, t)
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:send('play_from', 'p1', '10', t.ch2.guid)
+  s:events()
+  local saves = s.fake.saves or 0
+  s:send('save_project', 's1', s.fake.project_path)
+  local event = s:events()[1]
+  H.eq(event[1], 'ERROR')
+  H.truthy(event[3]:find('not saved', 1, true))
+  H.eq(s.fake.saves or 0, saves)
+end)
+
+H.test('save_project puts the chapter back even when the write raises, and the error still reaches the bridge', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local real = reaper.Main_SaveProject
+  reaper.Main_SaveProject = function()
+    error('disk gone')
+  end
+  pcall(function()
+    s:send('save_project', 's1', s.fake.project_path)
+  end)
+  reaper.Main_SaveProject = real
+  H.eq(solos(s), { 2, 0, 0, 0, 0, 0 }, 'the chapter is soloed again')
 end)

@@ -1,4 +1,4 @@
--- Solo in place on the chapter the narrator records (REAPER's I_SOLO; the commands are in docs/architecture/reaper-bridge.md), loaded by narration_ui_bridge.lua, which passes the shared helpers as the
+-- Solo in place on the chapter the Booth is on (REAPER's I_SOLO; the commands are in docs/architecture/reaper-bridge.md), loaded by narration_ui_bridge.lua, which passes the shared helpers as the
 -- chunk argument. The Booth sends solo_chapter with the chapter's folder track while the narrator works on that chapter, and solo_restore when they
 -- leave. A solo on a folder keeps its voices audible (docs/reference/daw/reaper.md, "Recording on folder children") and silences every other chapter,
 -- with one write on one track: no track of the chapter and no other chapter is touched, so a mute the narrator set is never read or changed here.
@@ -25,7 +25,7 @@
 -- never restore each other's state. While REAPER records, or a record_start waits for REAPER to report recording, it touches nothing either: a
 -- request waits and is applied on the first tick after the take. Both wait answers say waiting 1.
 --
--- solo_chapter answers CHAPTER_SOLOED|run|guid|changed|waiting, or TRACK_STALE|run|guid for a track that is gone (nothing changed).
+-- solo_chapter answers CHAPTER_SOLOED|run|guid|changed|waiting, or TRACK_STALE|run|guid for a track that is gone (nothing is soloed, and the chapter soloed before is put back).
 -- solo_restore answers SOLO_RESTORED|run|restored|kept|waiting.
 
 local core = ...
@@ -35,6 +35,8 @@ local LEDGER_FILE = 'narration_solo_ledger.txt'
 local SOLO_IN_PLACE = 2
 local MAX_ROWS = 64
 local MAX_RETRY_WAIT = 256
+local SAVE_WHILE_BUSY =
+  'The project was not saved because a chapter is soloed while REAPER plays one track or waits to record, and the file would hold the solo. Save again once it stops.'
 local NO_LEDGER = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so the other chapters stay as they were."
 
 local function normalize_guid(guid)
@@ -229,7 +231,12 @@ return function(registry)
     state.rows = { mine or (needs and { guid = guid, was = 0 }) or nil }
     local written = persist()
     if needs and not mine and not written then
-      state.rows = before
+      -- The chapter before is put back all the same, so the other chapters are not left quiet for one that could not be soloed; the ledger that
+      -- could not be written is tried again on the ticks.
+      local _, _, away = put_back(before)
+      state.rows = {}
+      add_ghosts(away)
+      persist()
       return 0, false
     end
     local _, _, left = put_back(others)
@@ -237,6 +244,7 @@ return function(registry)
       add_ghosts(left)
       persist()
     end
+    -- The next tick looks again at which project holds the rows (a chapter soloed now may be in another tab by then).
     state.rows_seen = nil
     if needs then
       reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)
@@ -262,8 +270,19 @@ return function(registry)
   -- marks nothing unsaved, so a project saved while soloed would keep the solo on disk and the next open would read it as the narrator's own. The row
   -- stays on the ledger throughout. The narrator's own save in REAPER cannot be intercepted (reaper.md).
   registry.solo_around_save = function(save)
-    if #state.rows == 0 or busy() then
-      return save()
+    if busy() then
+      -- A play's isolation or a record_start that waits is in place: the solo cannot be lifted for the write, so a save would hold it. Refused.
+      if #state.rows > 0 then
+        return false, SAVE_WHILE_BUSY
+      end
+      save()
+      return true
+    end
+    -- A leftover a closed REAPER left is put back first, so the file does not hold it either.
+    recover()
+    if #state.rows == 0 then
+      save()
+      return true
     end
     local lifted = {}
     for _, row in ipairs(state.rows) do
@@ -283,6 +302,7 @@ return function(registry)
     if not ok then
       error(err, 0)
     end
+    return true
   end
 
   registry.register('solo_chapter', function(ctx, args)
@@ -376,7 +396,9 @@ return function(registry)
           state.pending = nil
         end
       else
+        -- The chapter that waited is gone by the stop: the one soloed before is put back, as for a stale answer.
         state.pending = nil
+        release()
       end
     end
     if state.waiting then

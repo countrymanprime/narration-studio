@@ -4254,8 +4254,8 @@
   {
     "name": "a save leaves the chapter soloed in the file",
     "file": "narration_solo_chapter.lua",
-    "find": "    if #state.rows == 0 or busy() then\n      return save()",
-    "replace": "    if true then\n      return save()"
+    "find": "    if #state.rows == 0 then\n      save()\n      return true\n    end",
+    "replace": "    if true then\n      save()\n      return true\n    end"
   },
   {
     "name": "a save does not put the chapter back before it writes",
@@ -4304,5 +4304,53 @@
     "file": "narration_solo_chapter.lua",
     "find": "    if left then\n      left:close()\n      return false\n    end\n",
     "replace": ""
+  },
+  {
+    "name": "a stale answer writes a solo while REAPER records or a play isolates",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if busy() then\n        state.waiting = #state.rows > 0\n      else\n        release()\n      end\n      event(ctx.session_dir, 'TRACK_STALE'",
+    "replace": "      release()\n      event(ctx.session_dir, 'TRACK_STALE'"
+  },
+  {
+    "name": "a stale answer during a take forgets the restore that waits",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.waiting = #state.rows > 0\n      else\n        release()",
+    "replace": "        state.waiting = false\n      else\n        release()"
+  },
+  {
+    "name": "a chapter whose ledger cannot be written leaves the chapter before soloed",
+    "file": "narration_solo_chapter.lua",
+    "find": "      local _, _, away = put_back(before)",
+    "replace": "      local away = {}"
+  },
+  {
+    "name": "a waiting solo whose track is gone leaves the chapter before soloed",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.pending = nil\n        release()\n",
+    "replace": "        state.pending = nil\n"
+  },
+  {
+    "name": "a restore does not recover a play isolation first",
+    "file": "narration_solo_chapter.lua",
+    "find": "  local function release()\n    recover()\n    if registry.transport_recover then\n      registry.transport_recover()\n    end\n",
+    "replace": "  local function release()\n    recover()\n"
+  },
+  {
+    "name": "a save before the first tick leaves a leftover chapter soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    -- A leftover a closed REAPER left is put back first, so the file does not hold it either.\n    recover()\n",
+    "replace": ""
+  },
+  {
+    "name": "a save during a play isolation writes the chapter's solo into the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if #state.rows > 0 then\n        return false, SAVE_WHILE_BUSY\n      end\n",
+    "replace": ""
+  },
+  {
+    "name": "a save whose write raises leaves the chapter put back",
+    "file": "narration_solo_chapter.lua",
+    "find": "    local ok, err = pcall(save)",
+    "replace": "    local ok, err = true, save()"
   }
 ]

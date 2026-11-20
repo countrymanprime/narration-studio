@@ -75,7 +75,11 @@ local function save_project(registry, session_dir, run_id, expected)
     reaper.Main_SaveProject(0, false)
   end
   if registry.solo_around_save then
-    registry.solo_around_save(write)
+    local saved, why = registry.solo_around_save(write)
+    if saved == false then
+      event(session_dir, 'ERROR', run_id, why)
+      return
+    end
   else
     write()
   end

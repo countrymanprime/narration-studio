@@ -41,6 +41,7 @@ import type { ChapterSyncPreview } from './api/contracts/chapterSync';
 import { useAppHistory } from './hooks/useAppHistory';
 import { useSettingsOrigin } from './hooks/useSettingsOrigin';
 import { useZoom } from './hooks/useZoom';
+import { useRetryOwedSoloRestore } from './hooks/useDawSoloesChapter';
 import { notificationForJobEnd, shouldNotifyForJobEnd, shouldQueueJobEndAnnouncement, toastForJobEnd, type JobEndFollow } from './jobEnded';
 import { useBoothRecording } from './components/booth/useBoothRecording';
 import { ConfirmDialog } from './components/primitives/ConfirmDialog';
@@ -328,6 +329,8 @@ function AppRoutes() {
   const history = useAppHistory();
   const settingsOrigin = useSettingsOrigin();
   const zoom = useZoom(api);
+  // An owed restore of the chapter solo is sent again whenever the DAW can follow again, whichever page is open (hooks/useDawSoloesChapter.ts).
+  useRetryOwedSoloRestore();
   const journal = useJournal();
   const overlay = useOverlay();
   const dawKind = useDawKind();

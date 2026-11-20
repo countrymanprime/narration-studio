@@ -437,6 +437,10 @@ export interface DawMockControl {
   refuseNextLevel(sentence: string): void;
   /** The next put-back of the Booth's monitoring (`dawReleaseBoothMonitor`) fails with this sentence, as the host says it only when a monitoring is owed. */
   refuseNextRelease(sentence: string): void;
+  /** The next take-off of the chapter solo (`dawSoloRestore`) fails with this sentence, as the host says it only when a solo may be on. */
+  refuseNextRestore(sentence: string): void;
+  /** The chapter has no linked track in the DAW, so `dawSoloChapter` refuses it as the host does. */
+  unlinkChapter(chapterId: string): void;
   /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
@@ -506,6 +510,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let monitorLevel = 60;
   let refuseLevel: string | null = null;
   let refuseRelease: string | null = null;
+  let refuseRestore: string | null = null;
+  const unlinked = new Set<string>();
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
@@ -694,6 +700,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuseNextRelease: (sentence) => {
       refuseRelease = sentence;
     },
+    refuseNextRestore: (sentence) => {
+      refuseRestore = sentence;
+    },
+    unlinkChapter: (chapterId) => {
+      unlinked.add(chapterId);
+    },
     syncCalls: () => sync.calls.map((call) => ({ ...call })),
     moveInDaw: ({ cursor, head, playing, recording }) => {
       if (recording !== undefined) sync.recording = recording;
@@ -829,11 +841,24 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     dawSoloChapter: async (chapterId) => {
       const refusal = followRefusal();
       if (refusal !== null) return refusedMove(refusal);
+      if (unlinked.has(chapterId)) {
+        // The host puts the chapter before back and refuses the one without a linked track.
+        solo.chapterId = '';
+        return refusedMove('This chapter has no linked track in the DAW.');
+      }
+      // While the DAW records it touches nothing and does it right after the stop: done, nothing changed yet.
+      if (currentTransport(live, currentCapabilities(live)).recording) return { ok: true, changed: false, message: '', undoSteps: 0 };
       const changed = solo.chapterId !== chapterId;
       solo.chapterId = chapterId;
       return { ok: true, changed, message: '', undoSteps: 0 };
     },
     dawSoloRestore: async () => {
+      if (refuseRestore !== null) {
+        const sentence = refuseRestore;
+        refuseRestore = null;
+        // The host (bindings_daw_solo.go) refuses only when a solo may be on; with nothing soloed a failed restore answers done, silently.
+        if (solo.chapterId !== '') return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+      }
       const changed = solo.chapterId !== '';
       solo.chapterId = '';
       solo.restores += 1;

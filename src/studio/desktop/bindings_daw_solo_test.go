@@ -142,7 +142,7 @@ func TestRestoreSoloOnShutdownAsksTheRoleOnceAndDoesNothingWithoutOne(t *testing
 	if role.restores != 0 {
 		t.Fatalf("restores = %d for a session that never soloed, want none", role.restores)
 	}
-	host.solo.sent.Store(true)
+	host.solo.start()
 	host.restoreSoloOnShutdown()
 	if role.restores != 1 {
 		t.Fatalf("restores = %d, want 1", role.restores)
@@ -154,16 +154,92 @@ func TestAFailedRestoreIsOwedUntilARestoreIsAnswered(t *testing.T) {
 	if debt.mayBeSoloed() {
 		t.Fatal("nothing is owed before anything is soloed")
 	}
-	debt.sent.Store(true)
+	debt.start()
 	role := &fakeSoloer{restoreErr: bridge.ErrNoAnswer}
-	debt.restored(dawSoloRestoreIn(t.Context(), "REAPER", role))
-	if !debt.owed.Load() || !debt.mayBeSoloed() {
-		t.Fatal("a restore the DAW did not answer must stay owed")
+	got := debt.restore(t.Context(), "REAPER", role)
+	if got.OK || !strings.Contains(got.Refused, "may stay silent") || !debt.owed.Load() || !debt.mayBeSoloed() {
+		t.Fatalf("a restore the DAW did not answer must stay owed and say so: %+v", got)
 	}
 	role.restoreErr = nil
-	debt.restored(dawSoloRestoreIn(t.Context(), "REAPER", role))
+	debt.restore(t.Context(), "REAPER", role)
 	if debt.owed.Load() || debt.mayBeSoloed() {
 		t.Fatal("an answered restore clears what was owed")
+	}
+}
+
+func TestARestoreThatReachedNoSoloerKeepsWhatMayBeSoloed(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		follower dawport.PlaceFollower
+	}{{"no follower", nil}, {"a follower without the role", &fakePlaceFollower{}}} {
+		for _, owed := range []bool{false, true} {
+			var debt soloDebt
+			if owed {
+				debt.owed.Store(true)
+			} else {
+				debt.start()
+			}
+			got := debt.restore(t.Context(), "REAPER", c.follower)
+			if got.OK || !strings.Contains(got.Refused, "Unsolo") || !debt.mayBeSoloed() {
+				t.Errorf("%s, owed=%v: %+v, may be soloed %v; want a refusal and the debt kept", c.name, owed, got, debt.mayBeSoloed())
+			}
+		}
+	}
+}
+
+func TestDawSoloRestoreSaysNothingWhenNothingMayBeSoloed(t *testing.T) {
+	var debt soloDebt
+	for _, follower := range []dawport.PlaceFollower{nil, &fakePlaceFollower{}, &fakeSoloer{restoreErr: bridge.ErrNoAnswer}, &fakeSoloer{restoreErr: bridge.ErrRecording}} {
+		if got := debt.restore(t.Context(), "REAPER", follower); !got.OK || got.Refused != "" {
+			t.Errorf("%T: %+v, want done and silent", follower, got)
+		}
+		if debt.owed.Load() {
+			t.Error("nothing was soloed, so nothing is owed")
+		}
+	}
+}
+
+// blockedSoloer holds its restore until released, so a solo can start while it is in flight.
+type blockedSoloer struct {
+	fakeSoloer
+	entered, release chan struct{}
+}
+
+func (b *blockedSoloer) SoloRestore(ctx context.Context) (dawport.SoloReleased, error) {
+	close(b.entered)
+	<-b.release
+	return b.fakeSoloer.SoloRestore(ctx)
+}
+
+func TestARestoreAnsweredAfterALaterSoloKeepsTheSoloOwed(t *testing.T) {
+	var debt soloDebt
+	debt.start()
+	role := &blockedSoloer{entered: make(chan struct{}), release: make(chan struct{})}
+	done := make(chan dawport.Result)
+	go func() { done <- debt.restore(t.Context(), "REAPER", role) }()
+	<-role.entered
+	debt.start() // a chapter soloed while the restore is in flight
+	close(role.release)
+	if got := <-done; !got.OK {
+		t.Fatalf("restore = %+v", got)
+	}
+	if !debt.mayBeSoloed() {
+		t.Fatal("the later solo was forgotten by the restore that was asked before it")
+	}
+}
+
+func TestASoloTheHostRefusedBeforeAskingTheDawIsNotCounted(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	var debt soloDebt
+	role := &fakeSoloer{}
+	if got, _ := dawSoloChapterWith(t.Context(), host.services(), "REAPER", dawport.Support{Message: "off"}, role, ids[0], &debt); got.OK {
+		t.Fatal("capability off must refuse")
+	}
+	if got, _ := dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[1], &debt); got.OK {
+		t.Fatal("an unlinked chapter must refuse")
+	}
+	if debt.mayBeSoloed() {
+		t.Fatal("a solo that never reached the DAW is not owed")
 	}
 }
 
