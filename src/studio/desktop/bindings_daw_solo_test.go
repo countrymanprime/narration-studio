@@ -298,7 +298,9 @@ func TestASoloTheDawAnsweredWithAnErrorIsNotOwed(t *testing.T) {
 		t.Fatal("a solo REAPER answered with an error soloed nothing")
 	}
 	role.soloErr = bridge.ErrNoAnswer
-	dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[0], &debt)
+	if got, err := dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[0], &debt); err != nil || got.OK {
+		t.Fatalf("a solo with no answer = %+v, %v; want a refusal", got, err)
+	}
 	if !debt.mayBeSoloed() {
 		t.Fatal("a solo that got no answer may still have landed")
 	}
