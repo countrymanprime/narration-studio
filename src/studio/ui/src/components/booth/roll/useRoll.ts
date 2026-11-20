@@ -235,7 +235,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, [rollFrom]);
 
   /**
-   * Start from here (right-click on a phrase) only marks the start (#3319): the text moves to the phrase and its first word is highlighted. It sends
+   * Mark the start here (right-click on a phrase) only marks the start (#3319): the text moves to the phrase and its first word is highlighted. It sends
    * the DAW nothing, arms nothing and records nothing; Record (or its key) starts the take from the mark, and R is the press that marks and starts.
    */
   const startFromHere = useCallback(

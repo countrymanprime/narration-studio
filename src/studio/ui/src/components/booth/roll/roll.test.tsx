@@ -1194,6 +1194,8 @@ describe('Start from here only marks the start (#3319)', () => {
     expect(actions.moveTo).not.toHaveBeenCalled();
     expect(actions.notify).not.toHaveBeenCalled();
     expect(actions.resume).not.toHaveBeenCalled();
+    expect(actions.chooseVoice).not.toHaveBeenCalled();
+    expect(actions.pause).not.toHaveBeenCalled();
   });
 
   it('no lookup of where the phrase was recorded runs on choosing it: that waits for Record', async () => {
