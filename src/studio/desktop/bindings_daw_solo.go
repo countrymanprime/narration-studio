@@ -25,10 +25,13 @@ const soloLeftSentence = "%s could not take the solo off the chapter's track, so
 // a solo the DAW answered it did not do is cancelled. owed is set when a restore that may have had something to take off failed or reached no DAW that
 // can do it. The shutdown restore is sent only when something may be soloed, so a session that never used the feature asks the DAW for nothing.
 type soloDebt struct {
-	mu      sync.Mutex
-	next    int64
+	mu sync.Mutex
+	// +checklocks:mu
+	next int64
+	// +checklocks:mu
 	pending map[int64]bool
-	owed    bool
+	// +checklocks:mu
+	owed bool
 }
 
 func (d *soloDebt) mayBeSoloed() bool {
