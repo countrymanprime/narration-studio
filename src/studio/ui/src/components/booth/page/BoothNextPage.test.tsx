@@ -860,7 +860,7 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     expect(at).toBeLessThan(45);
   });
 
-  it('after a take stops, Start from here still starts the next take from the chosen place', async () => {
+  it('after a take stops, Mark the start here only marks: the take starts when Record is pressed, from the chosen place (#3319)', async () => {
     const page = renderPage();
     await record(page);
     await space();
@@ -869,9 +869,12 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
-    // Not recording, Start from here moves the place there and starts the take at once (useRoll.startFromHere).
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
     await waitFor(() => expect(current()).toBe('3'));
+    // Choosing the start sends the DAW nothing: the one take so far is the first one.
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
+    await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
     expect(current()).toBe('3');
   });
@@ -886,7 +889,7 @@ describe('start-from-here-and-record-from-here', () => {
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
     await waitFor(() => expect(current()).toBe('3'));
     expect(screen.getByText(/Next roll starts from ¶ 2/)).toBeTruthy();
   });
@@ -1375,7 +1378,7 @@ describe('bookmarks on the page', () => {
     const labels = within(menu)
       .getAllByRole('menuitem')
       .map((item) => item.textContent);
-    expect(labels.slice(0, 2)).toEqual(['Start from here', 'Bookmark here']);
+    expect(labels.slice(0, 2)).toEqual(['Mark the start here', 'Bookmark here']);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(ribbons()).toHaveLength(1));
@@ -1604,7 +1607,7 @@ describe('the right-click menu', () => {
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
     ).toEqual([
-      'Start from here',
+      'Mark the start here',
       'Bookmark here',
       'Read to here',
       'Next phrase',
@@ -3111,7 +3114,9 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await act(async () => {
         fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
       });
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+      // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+      await space();
     };
     const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
     const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
@@ -3142,7 +3147,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       expect(boothVoiceSet).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
       expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
-      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
+      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(0);
       holder.release();
       await waitFor(() => expect(stopButton()).toBeTruthy());
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
@@ -3197,7 +3202,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await act(async () => lookup.answer(FOUND));
       await settle();
       await waitFor(() => expect(stopButton()).toBeTruthy());
-      expect(said(page).filter((text) => text.includes('The take starts from the end of what is already there'))).toHaveLength(1);
+      expect(said(page).filter((text) => text.includes('Recording from the end of what is already there instead'))).toHaveLength(1);
       expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
       expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
@@ -3244,7 +3249,9 @@ describe('while a press is under way the reading stays where the press chose, so
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+    await space();
   };
   const menuItem = async (name: string) => {
     const word = document.querySelector('[data-unit="5"] [data-word]')!;
@@ -3494,12 +3501,14 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
   const START = '?chapter=c1&para=p3&at=28';
   const refusedStart = { ok: false as const, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' };
   const nextRoll = () => screen.queryByText(/Next roll starts from/);
-  const startFromUnit = async (unit: number) => {
+  const startFromUnit = async (unit: number, andRecord = true) => {
     const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+    if (andRecord) await space();
   };
   const idle = () => waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
 
@@ -3599,12 +3608,12 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
     it('during a take an arrow key that cannot move the reading keeps Start from here, and R rolls from it again', async () => {
       const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => FOUND), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
       await record(page);
-      await startFromUnit(3);
-      await waitFor(() => expect(current()).toBe('3'));
-      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
+      await startFromUnit(3, false);
+      // During a take the voice keeps the cursor, and choosing the start only marks it (#3319): no roll yet.
+      await waitFor(() => expect(nextRoll()?.textContent).toMatch(/¶ 2/));
+      expect(page.daw.roll).not.toHaveBeenCalled();
       // A word step inside the phrase leaves the reading on the same phrase: nothing to replace.
       await press('ArrowRight');
-      expect(current()).toBe('3');
       expect(nextRoll()?.textContent).toMatch(/¶ 2/);
       await press('r', 'KeyR');
       await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
