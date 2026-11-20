@@ -187,7 +187,8 @@ const Section = memo(function Section(props: SectionProps) {
           </>
         )}
       </div>
-      {drawn ? (
+      {/* A chapter whose text is not read yet keeps the estimated height, so the chapters after it do not start inside the reader and get drawn and read for nothing. */}
+      {drawn && paragraphs ? (
         rows.map((paragraph) => (
           <Para
             key={paragraph.id}

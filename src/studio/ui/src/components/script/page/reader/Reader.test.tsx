@@ -476,6 +476,14 @@ describe('a long book', () => {
 });
 
 describe('the chapter card slot', () => {
+  // Three cards with no text under them fit one screen, so the fourth chapter started inside the reader and was drawn and read on every load.
+  it('holds the estimated height of a drawn chapter until its text is read', () => {
+    const { rerender } = render(<Reader {...props({ paragraphsOf: () => undefined })} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(3);
+    rerender(<Reader {...props()} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(0);
+  });
+
   it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
     const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);
