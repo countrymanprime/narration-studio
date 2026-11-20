@@ -186,8 +186,9 @@ func TestTheSidecarsLinesBecomeEntrySuggestionsOnly(t *testing.T) {
 	if raws[3].Confidence != nil {
 		t.Errorf("a span with no score must stay nil, got %v", *raws[3].Confidence)
 	}
-	if raws[2].Payload.Name != "Dawnspire" || raws[2].ChapterID != "c-0001" || raws[2].Quotes[0].ParagraphID == "" || raws[2].Quotes[0].Text == "" {
-		t.Errorf("Dawnspire = %+v, want its paragraph id and quote kept", raws[2])
+	if raws[2].Payload.Name != "Dawnspire" || raws[2].ChapterID != "c-0001" ||
+		raws[2].Quotes[0] != (extractionport.Quote{ParagraphID: "p-000001", Text: "Captain Arelian said the Council of Ash would meet in Dawnspire."}) {
+		t.Errorf("Dawnspire = %+v", raws[2])
 	}
 }
 

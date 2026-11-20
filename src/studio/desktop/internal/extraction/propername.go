@@ -1,6 +1,7 @@
 package extraction
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -14,16 +15,6 @@ func ProperName(name string) bool {
 	if len(words) == 0 {
 		return false
 	}
-	letters := false
-	for _, r := range name {
-		if unicode.IsLetter(r) {
-			letters = true
-			break
-		}
-	}
-	if !letters {
-		return false
-	}
 	// A leading article does not make a name lower case: the Hatter, the Caterpillar, a Dr. Vance. What follows it is judged.
 	for len(words) > 1 && leadingArticles[strings.ToLower(words[0])] {
 		words = words[1:]
@@ -32,12 +23,26 @@ func ProperName(name string) bool {
 	if unicode.IsLower(first) && !(len(words) > 1 && surnameParticles[strings.ToLower(words[0])]) {
 		return false
 	}
-	for _, word := range words {
-		if !notNameWords[strings.ToLower(strings.Trim(word, ".,;:!?\"'“”‘’()[]"))] {
-			return true
-		}
+	// Something in it must be the name itself: a word with a capital (or no case) that is not a pronoun, an article or another word
+	// that opens a sentence. "ten men", "al dente", "His mother" and "She said" have none; "de la Cruz" and "Mr Darcy" do.
+	return slices.ContainsFunc(words, isNameWord)
+}
+
+// isNameWord reports whether word can be the name, or a part of it: it begins with a capital or with a letter that has no case, and
+// is not a pronoun, article or other word that is no name (also with a contraction cut off: I'm, She's, We'll).
+func isNameWord(word string) bool {
+	trimmed := strings.Trim(word, ".,;:!?\"'“”‘’()[]")
+	if trimmed == "" || !unicode.IsLetter([]rune(trimmed)[0]) || unicode.IsLower([]rune(trimmed)[0]) {
+		return false
 	}
-	return false
+	lower := strings.ToLower(trimmed)
+	if notNameWords[lower] {
+		return false
+	}
+	if cut := strings.IndexAny(lower, "'’"); cut > 0 && notNameWords[lower[:cut]] {
+		return false
+	}
+	return true
 }
 
 // leadingArticles are the words a group or a character may be introduced by, written in lower case in running text.

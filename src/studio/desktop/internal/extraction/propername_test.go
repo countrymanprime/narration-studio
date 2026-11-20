@@ -19,11 +19,13 @@ var spans = []nameCase{
 	{"the water", "Item", false}, {"the van", "Item", false}, {"his mother", "Character", false},
 	{"the old man", "Character", false}, {"the city", "Place", false}, {"the road", "Place", false}, {"the others", "Organization", false},
 	{"The", "Character", false}, {"Mr", "Character", false}, {"Sir", "Character", false}, {"Of the", "Place", false}, {"...", "Item", false},
-	{"However", "Character", false}, {"Because", "Character", false},
+	{"However", "Character", false}, {"ten men", "Organization", false}, {"al dente", "Item", false}, {"the van door", "Item", false},
+	{"de la", "Character", false}, {"His mother", "Character", false}, {"She said", "Character", false}, {"I'm", "Character", false}, {"She's", "Character", false},
+	{"We'll", "Character", false}, {"It's", "Item", false}, {"Because", "Character", false},
 	{"Mara", "Character", true}, {"Mara Voss", "Character", true}, {"Dr. Vance", "Character", true}, {"Mr Darcy", "Character", true},
 	{"Captain Arelian", "Character", true}, {"O'Neill", "Character", true}, {"St. Clair", "Character", true}, {"de la Cruz", "Character", true},
 	{"van der Berg", "Character", true}, {"王芳", "Character", true}, {"Harbor Street", "Place", true}, {"Mount Rook", "Place", true},
-	{"Dawnspire", "Place", true}, {"Council of Ash", "Organization", true}, {"The Order of Dawn", "Organization", true}, {"the Order of Dawn", "Organization", true}, {"the Pigeon", "Character", true}, {"the Caterpillar", "Character", true},
+	{"Dawnspire", "Place", true}, {"Council of Ash", "Organization", true}, {"The Order of Dawn", "Organization", true}, {"the Order of Dawn", "Organization", true}, {"the Pigeon", "Character", true}, {"the Hatter", "Character", true}, {"the Caterpillar", "Character", true},
 	{"Lord Voldemort", "Character", true}, {"Will", "Character", true}, {"Will Graham", "Character", true}, {"Excalibur", "Item", true}, {"The Maltese Falcon", "Item", true},
 }
 
