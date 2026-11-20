@@ -21,7 +21,7 @@ describe('chapterTrackButtonState', () => {
   it('reads a confirmed link with no warnings as linked', () => {
     const link: ChapterTrackLink = { ...base, status: 'confirmed', track };
     expect(chapterTrackButtonState(link)).toEqual({ kind: 'linked', trackName: 'CHAPTER SIX', trackGuid: '{T}' });
-    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState(link))).toBe('Track for Chapter 6: CHAPTER SIX, linked');
+    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState(link), 'flat')).toBe('Track for Chapter 6: CHAPTER SIX, linked');
   });
 
   it('reads a confirmed link with a rename warning as renamed', () => {
@@ -34,7 +34,7 @@ describe('chapterTrackButtonState', () => {
       const link: ChapterTrackLink = { ...base, status, track };
       expect(chapterTrackButtonState(link)).toEqual({ kind: 'suggested', trackName: 'CHAPTER SIX', trackGuid: '{T}' });
     }
-    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState({ ...base, status: 'matched', track }))).toBe(
+    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState({ ...base, status: 'matched', track }), 'flat')).toBe(
       'Track for Chapter 6: suggested CHAPTER SIX, not confirmed',
     );
   });
@@ -58,12 +58,12 @@ describe('chapterTrackButtonState', () => {
   it('reads a confirmed-track-missing warning as missing, even over a confirmed status', () => {
     const link: ChapterTrackLink = { ...base, status: 'confirmed', track, warnings: ['confirmed-track-missing'] };
     expect(chapterTrackButtonState(link)).toEqual({ kind: 'missing' });
-    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'missing' })).toBe('Track for Chapter 6: linked track is missing');
+    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'missing' }, 'flat')).toBe('Track for Chapter 6: linked track is missing');
   });
 
   it('reads a none status with no candidates as not linked', () => {
     expect(chapterTrackButtonState(base)).toEqual({ kind: 'unlinked' });
-    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'unlinked' })).toBe('Track for Chapter 6: not linked');
+    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'unlinked' }, 'flat')).toBe('Track for Chapter 6: not linked');
   });
 });
 
@@ -152,22 +152,25 @@ describe('every surface says the same about a track renamed or deleted in REAPER
 describe('noShowableTrackReason (#3363)', () => {
   const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
   it('says what the link is, not just that none is linked', () => {
-    expect(noShowableTrackReason(base)).toMatch(/^No chapter track is linked/);
-    expect(noShowableTrackReason(undefined)).toMatch(/^No chapter track is linked/);
-    expect(noShowableTrackReason({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] })).toMatch(
+    expect(noShowableTrackReason(base, 'flat')).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason(undefined, 'flat')).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] }, 'flat')).toMatch(
       /missing from the project/,
     );
-    expect(noShowableTrackReason({ ...base, status: 'matched', track })).toMatch(/only a suggestion: link it first/);
-    expect(noShowableTrackReason({ ...base, status: 'ambiguous', candidates: [track, track] })).toMatch(/More than one track could be/);
+    expect(noShowableTrackReason({ ...base, status: 'matched', track }, 'flat')).toMatch(/only a suggestion: link it first/);
+    expect(noShowableTrackReason({ ...base, status: 'ambiguous', candidates: [track, track] }, 'flat')).toMatch(/More than one track could be/);
     // Several confirmed links are several links, not candidates.
     expect(
-      noShowableTrackReason({
-        ...base,
-        status: 'confirmed',
-        track,
-        links: [mapping, { ...mapping, trackGuid: '{U}' }],
-        warnings: ['confirmed-links-conflict'],
-      }),
+      noShowableTrackReason(
+        {
+          ...base,
+          status: 'confirmed',
+          track,
+          links: [mapping, { ...mapping, trackGuid: '{U}' }],
+          warnings: ['confirmed-links-conflict'],
+        },
+        'flat',
+      ),
     ).toMatch(/linked to more than one track/);
   });
 });

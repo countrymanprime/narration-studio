@@ -79,8 +79,8 @@ A chapter shows its **Recording check** card and its recording:
   is recorded against the script's estimate; and what the check counted, against the script and in the audio. **Check
   recordings** runs it (with **Stop checking** while it runs). Under **Last check** it says what the last check found and when. It is off, with the reason, when the chapter has no recording or
   no text, or the DAW is not reachable. A chapter with no measured recording shows no check result, only why (no track
-  linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
-  where it can be fixed. **Show the findings** lists what the check found, each with the suggested
+  linked, more than one, the linked track not in the saved project, or no saved project; a Voice folders project says folder
+  for track), with the audio engine panel where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered. Words that say the script beside them again (a retake or a restart) are listed as **Said twice**, with the
   words said again and **Fix in edit**, not as extra words: they are a second take. **Open in Editing** opens the line on

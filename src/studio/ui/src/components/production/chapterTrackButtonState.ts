@@ -2,6 +2,8 @@
 // the state out loud, since colour is never the only signal (WCAG 1.4.1).
 import type { ChapterTrackLink } from '../../types';
 import { plural } from '../../plural';
+import { destinationFor } from '../engine/destination';
+import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
 export type ChapterTrackButtonState =
   | { kind: 'linked'; trackName: string; trackGuid: string }
@@ -64,38 +66,42 @@ export const hasSeveralLinks = (link: ChapterTrackLink): boolean => link.links.l
 /**
  * Why REAPER cannot be asked to show a track for this chapter, by what the link is: gone from the project, several links, several candidates,
  * only suggested, or nothing. One sentence for the row menu and the chapter track panel, each of which has a Show in REAPER that is off (#3363).
+ * It names what a chapter links to by the project's layout: a track, or a folder in a Voice folders project (#3271).
  */
-export function noShowableTrackReason(link: ChapterTrackLink | undefined): string {
+export function noShowableTrackReason(link: ChapterTrackLink | undefined, layout: VoiceTracksLayout): string {
+  const { noun } = destinationFor(layout);
   const state = link && chapterTrackButtonState(link);
   switch (state?.kind) {
     case 'missing':
-      return 'The track linked to this chapter is missing from the project: choose another from the audio engine panel';
+      return `The ${noun} linked to this chapter is missing from the project: choose another from the audio engine panel`;
     case 'ambiguous':
       // No place is named: the chapter track panel and the board each have their own remedy next to this sentence.
       return link && hasSeveralLinks(link)
-        ? 'This chapter is linked to more than one track: keep one first'
-        : 'More than one track could be this chapter’s: link the right one first';
+        ? `This chapter is linked to more than one ${noun}: keep one first`
+        : `More than one ${noun} could be this chapter’s: link the right one first`;
     case 'suggested':
-      return 'The track found for this chapter is only a suggestion: link it first';
+      return `The ${noun} found for this chapter is only a suggestion: link it first`;
     default:
-      return 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
+      return `No chapter ${noun} is linked to this chapter yet: link one from the audio engine panel`;
   }
 }
 
-/** The button's accessible name (Solution Detail's examples: "Track for Chapter 6: CHAPTER SIX, linked"). */
-export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrackButtonState): string {
+/** The button's accessible name (Solution Detail's examples: "Track for Chapter 6: CHAPTER SIX, linked"; a folder in a Voice folders project). */
+export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrackButtonState, layout: VoiceTracksLayout): string {
+  const { noun, pickerLabel } = destinationFor(layout);
+  const head = pickerLabel(chapterTitle);
   switch (state.kind) {
     case 'linked':
-      return `Track for ${chapterTitle}: ${state.trackName}, linked`;
+      return `${head}: ${state.trackName}, linked`;
     case 'renamed':
-      return `Track for ${chapterTitle}: linked, track renamed to ${state.trackName}`;
+      return `${head}: linked, ${noun} renamed to ${state.trackName}`;
     case 'suggested':
-      return `Track for ${chapterTitle}: suggested ${state.trackName}, not confirmed`;
+      return `${head}: suggested ${state.trackName}, not confirmed`;
     case 'ambiguous':
-      return `Track for ${chapterTitle}: ${plural(state.count, 'possible track')}, choose one`;
+      return `${head}: ${plural(state.count, `possible ${noun}`)}, choose one`;
     case 'missing':
-      return `Track for ${chapterTitle}: linked track is missing`;
+      return `${head}: linked ${noun} is missing`;
     case 'unlinked':
-      return `Track for ${chapterTitle}: not linked`;
+      return `${head}: not linked`;
   }
 }

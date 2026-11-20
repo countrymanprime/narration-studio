@@ -10,17 +10,20 @@ import type { CreditsRow } from '../credits/useCreditsRows';
 import { addressPath } from '../../navigation/address';
 import { clock } from '../../clock';
 import { plural } from '../../plural';
+import { destinationFor } from '../engine/destination';
+import { useVoiceLayout } from '../engine/voiceLayout';
 
 const MUTED = { color: 'var(--text-muted)' };
 
 // Why a row has no Recorded length, in the panel's own words (mirrors productionFormat.ts's UNRECORDED, actual-
 // 's reasons).
-const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, string> = {
-  unlinked: 'No track linked yet',
-  multiple_tracks: 'Linked to more than one track',
-  track_missing: 'Linked track is missing',
-  no_project: 'No REAPER project open',
-};
+const unrecordedText = (reason: NonNullable<CreditsRow['recordedUnavailable']>, noun: string): string =>
+  ({
+    unlinked: `No ${noun} linked yet`,
+    multiple_tracks: `Linked to more than one ${noun}`,
+    track_missing: `Linked ${noun} is missing`,
+    no_project: 'No REAPER project open',
+  })[reason];
 
 // A single unresolved token reads as its own name; several as a count and list.
 const unresolvedWarning = (unresolved: string[]): string | undefined => {
@@ -49,6 +52,7 @@ export function CreditsRowPanel({
   /** Where focus goes on close when what opened it is gone (the row menu's item): the chapter's row. */
   returnFocus?: () => HTMLElement | null;
 }) {
+  const noun = destinationFor(useVoiceLayout()).noun;
   const warning = unresolvedWarning(row.unresolved);
   return (
     <SlideOver open={open} title={label} onClose={onClose} returnFocus={returnFocus}>
@@ -76,7 +80,9 @@ export function CreditsRowPanel({
             onChange={(value) => onStatus(value as ChapterStatus)}
           />
         </div>
-        <p style={MUTED}>Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : clock(row.recordedSeconds)}</p>
+        <p style={MUTED}>
+          Recorded: {row.recordedSeconds === undefined ? unrecordedText(row.recordedUnavailable ?? 'unlinked', noun) : clock(row.recordedSeconds)}
+        </p>
         {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
