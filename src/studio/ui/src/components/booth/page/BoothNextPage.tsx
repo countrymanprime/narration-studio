@@ -697,14 +697,22 @@ function BoothSession({
     if (control.recording) overlay.dismissTopic(LINKED_TOPIC);
   }, [overlay, control.recording]);
   // The chapter's track appears while the Booth is on it (made or linked here, or by the Engine panel or Chapter links): the entry arm found nothing to arm,
-  // so the new voice is armed and monitored now (#3670), with the switch on, and never for another chapter: only this chapter's own link counts.
+  // so the new voice is armed and monitored now (#3670), with the switch on, and never for another chapter: only this chapter's own link counts. "Unlinked" is
+  // remembered until the DAW answers with a track for the chapter, so a failed read, a DAW that went away or one recording by itself neither counts as the
+  // track appearing nor forgets that it was missing; a take of this app holds the arm until it stops.
   const unlinkedNow = control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks' || control.gate?.cause === 'track_missing';
-  const wasUnlinked = useRef({ chapterId, unlinked: false });
+  const hasTrackNow =
+    !unlinkedNow &&
+    (control.dawStatus === 'ready' || control.dawStatus === 'not_armed' || control.dawStatus === 'other_armed' || control.dawStatus === 'several_armed');
+  const sawUnlinked = useRef({ chapterId, unlinked: false });
   useEffect(() => {
-    const before = wasUnlinked.current;
-    wasUnlinked.current = { chapterId, unlinked: unlinkedNow };
-    if (before.chapterId === chapterId && before.unlinked && !unlinkedNow && control.gate !== undefined && !control.recording) armNow();
-  }, [chapterId, unlinkedNow, control.gate, control.recording, armNow]);
+    if (sawUnlinked.current.chapterId !== chapterId) sawUnlinked.current = { chapterId, unlinked: false };
+    if (unlinkedNow) sawUnlinked.current.unlinked = true;
+    else if (hasTrackNow && sawUnlinked.current.unlinked && !control.recording) {
+      sawUnlinked.current.unlinked = false;
+      armNow();
+    }
+  }, [chapterId, unlinkedNow, hasTrackNow, control.recording, armNow]);
   const linked = (created?: Created) => {
     control.refresh();
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.

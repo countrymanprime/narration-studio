@@ -225,6 +225,50 @@ describe('an unlinked chapter in the Booth', () => {
     expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
   });
 
+  // qa-breaker: "unlinked" is remembered until the DAW answers with a track, so a read that fails or a DAW that is recording by itself between the two is not
+  // taken for the track appearing, and does not make the arm be lost either.
+  it.each([
+    ['a failed read', { status: 'unavailable', reason: 'failed', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+    ['a DAW that is not running', { status: 'unavailable', reason: 'not_running', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+    ['a DAW recording by itself', { status: 'recording_elsewhere', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+  ])('arms once, at the link, when %s comes between the missing track and the appearing one', async (_name, between) => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let answer: ReadAloudReaperState = UNLINKED;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => answer } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    const refocus = async () => {
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 40)));
+    };
+    answer = between;
+    await refocus();
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before);
+    answer = READY;
+    await refocus();
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1));
+    await refocus();
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+  });
+
+  it('a chapter that stays unlinked asks nothing however the DAW comes and goes', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let answer: ReadAloudReaperState = UNLINKED;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => answer } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    for (const next of [{ ...UNLINKED, status: 'unavailable', reason: 'not_running' } as ReadAloudReaperState, UNLINKED, UNLINKED]) {
+      answer = next;
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 40)));
+    }
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before);
+  });
+
   it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {
     const message = 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.';
     const { overlay } = renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
