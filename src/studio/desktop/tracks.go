@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"desktop/internal/dawport"
@@ -229,6 +230,9 @@ type projectCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	entries []projectCacheEntry // oldest first
+	// reads counts the calls of read, for the tests that guard how often one binding asks for the saved project: each call looks up
+	// every take's source file on disk, whatever the cache holds.
+	reads atomic.Int64
 }
 
 type projectCacheEntry struct {
@@ -241,6 +245,7 @@ type projectCacheEntry struct {
 // read answers path's parse from the cache, or parses it (parse) and keeps it. A file that cannot be examined is parsed, so the parser
 // reports why.
 func (c *projectCache) read(path string, parse func(string) (tracks.Project, error)) (tracks.Project, error) {
+	c.reads.Add(1)
 	info, err := os.Stat(path)
 	if err != nil {
 		return parse(path)

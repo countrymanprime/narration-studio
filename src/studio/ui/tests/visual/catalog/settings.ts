@@ -1,7 +1,15 @@
 // The `settings` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: one page of eight categories and an index of what
 // moved to a page (src/studio/ui/src/components/settings), then the states of the page itself (search, a deep link, loading, unreadable, save failed).
 import type { StateEntry } from '../lib/types';
-import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, TOAST_FADES_OUT, wholePage } from './shared';
+import {
+  REFLOW,
+  KEEPS_DESKTOP_SCROLL,
+  FOLDS_WITH_THE_PAGE_WIDTH,
+  FREEZES_THE_CLOCK,
+  TOAST_FADES_OUT,
+  wholePage,
+  POPUP_ANCHORED_AT_FIRST_WIDTH,
+} from './shared';
 
 export const settingsStates: StateEntry[] = [
   {
@@ -117,15 +125,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-advanced',
     description:
-      'Settings, Recording & DAW with Advanced open: the REAPER program path box and the Capabilities table (each capability and what the linked recording tool reports now, with no control to turn one on or off)',
-    ...REFLOW,
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'settings',
-    state: 'recording-sync-activity',
-    description:
-      'Settings, Recording & DAW with Advanced open (?mockChapterSync=activity): the Sync activity row under Chapter sync, newest first, with Undo on the link sync made',
+      'Settings, Recording & DAW with Advanced open: the REAPER program path box (the Capabilities table moved to its own dialog, opened from App & updates and the audio engine panel)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -351,6 +351,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'project-type-colour',
+    description:
+      'Settings, Project scrolled to Entry types with the colour box of Place opened: a row of six swatches in a popover under the box, Blue ringed and checked',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'import-choose',
     description:
       'Settings, Project with Replace manuscript… pressed: step 1 of 2, "Choose your manuscript", with the drop zone, Choose a file… and the read-only note',
@@ -544,6 +552,13 @@ export const settingsStates: StateEntry[] = [
     state: 'app',
     description:
       'Settings, App & updates, nothing checked yet: the This version panel (the version, "Not checked yet.", Check for updates), Updates, Notifications and Diagnostics',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'app-capabilities',
+    description:
+      'Settings, App & updates, after "See what each tool can do" in the Capabilities row: the dialog with one row per capability (what it is for and where the app uses it, whether REAPER, Audacity 3, Audacity 4 and the built-in recorder do it, and what the linked tool reports now)',
     ...REFLOW,
   },
   {

@@ -41,7 +41,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'sync-needs-you',
     description:
-      'The engine panel after an automatic link was undone in Settings > Recording & DAW > Sync activity (?mockChapterSync=activity): Chapter sync\'s "Needs you" list with that chapter, its track picker and Link',
+      'The engine panel after an automatic link was undone (?mockChapterSync=needs-you): Chapter sync\'s "Needs you" list with that chapter, its track picker and Link',
   },
   {
     page: 'engine',

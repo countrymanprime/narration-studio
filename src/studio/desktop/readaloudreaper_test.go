@@ -78,7 +78,10 @@ func TestTheArmsDecideTheStatus(t *testing.T) {
 		{"another track armed", bridge.TrackState{ArmedCount: 1}, readAloudOtherArmed, "Another track is armed"},
 		{"another two armed", bridge.TrackState{ArmedCount: 2}, readAloudSeveralArmed, "2 tracks are armed"},
 		{"this and another armed", bridge.TrackState{TrackArmed: true, ArmedCount: 2}, readAloudSeveralArmed, "2 tracks are armed"},
-		{"already recording", bridge.TrackState{TrackArmed: true, ArmedCount: 1, Recording: true, PlayState: 5, Playing: true}, readAloudRecordingElsewhere, "already recording"},
+		{"recording on this chapter's lane", bridge.TrackState{TrackArmed: true, ArmedCount: 1, Recording: true, PlayState: 5, Playing: true}, readAloudRecordingHere, "is recording on the track"},
+		{"recording on another lane", bridge.TrackState{ArmedCount: 1, Recording: true, PlayState: 5, Playing: true}, readAloudRecordingElsewhere, "already recording"},
+		{"recording with several armed", bridge.TrackState{TrackArmed: true, ArmedCount: 2, Recording: true, PlayState: 5, Playing: true}, readAloudRecordingElsewhere, "already recording"},
+		{"recording with nothing armed", bridge.TrackState{Recording: true, PlayState: 5, Playing: true}, readAloudRecordingElsewhere, "already recording"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -240,6 +243,7 @@ func TestContractReadAloudReaperStates(t *testing.T) {
 		"several_armed_named": {state: bridge.TrackState{TrackArmed: true, ArmedCount: 2, ArmedGUIDs: []string{"{AAAAAAAA-0000-4000-8000-0000000000B7}", "{AAAAAAAA-0000-4000-8000-0000000000B8}"}}},
 		"several_armed":       {state: bridge.TrackState{TrackArmed: true, ArmedCount: 3}},
 		"recording_elsewhere": {state: bridge.TrackState{ArmedCount: 1, Recording: true, Playing: true, PlayState: 5}},
+		"recording_here":      {state: bridge.TrackState{TrackArmed: true, ArmedCount: 1, Recording: true, Playing: true, PlayState: 5}},
 		"track_missing":       {err: &bridge.TrackStaleError{GUID: readAloudTrack}},
 	} {
 		answers[name] = readState(t, host, reader, ids[0])

@@ -40,6 +40,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/App.tsx#3': no(BT),
   'src/App.tsx#4': no(BT),
   'src/App.tsx#5': no(BT),
+  'src/hooks/useDawSoloesChapter.ts#1': no(
+    'The restore is sent again by itself on the next report from the DAW, the next page change and when the window gets focus, and the sentence says what to do by hand in the DAW; a button here would have nothing more to retry.',
+  ),
   'src/components/production/report/ReportDialog.tsx#1': yes(
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
@@ -229,7 +232,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterLinksTable.tsx#2': no(
     'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
   ),
-  'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useChapterLinks.ts#1': no(ED),
   'src/components/engine/useChapterLinks.ts#2': no(ED),
   'src/components/engine/useChapterLinks.ts#3': no(ED),

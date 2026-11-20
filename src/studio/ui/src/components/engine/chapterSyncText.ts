@@ -2,7 +2,6 @@ import { plural } from '../../plural';
 import { trackName as readable } from '../tracks/trackName';
 import type {
   ChapterSyncBackgroundWait,
-  ChapterSyncBatch,
   ChapterSyncChapter,
   ChapterSyncNeedsYou,
   ChapterSyncPickupTrack,
@@ -72,7 +71,7 @@ export function chapterSyncPanelNotChaptersText(unmatched: ChapterSyncTrackRef[]
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** When a sync ran, as the Sync activity dates it: "10:42" today, "Yesterday", then "22 Sep" (with the year when it is not this one). */
+/** When a sync ran, as the panel's last-sync line dates it: "10:42" today, "Yesterday", then "22 Sep" (with the year when it is not this one). */
 export function chapterSyncTimeLabel(iso: string, now: Date = new Date()): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return '';
@@ -141,38 +140,4 @@ export function chapterSyncBackgroundWaitText(background: { enabled: boolean; wa
     model: 'Waiting for the Whisper model.',
   };
   return REASONS[background.wait] ?? '';
-}
-
-/** One line of the Sync activity list. `undoTrackGuid` is the automatic link Undo would remove ('' for a line with no Undo). */
-export type ChapterSyncActivityRow = { key: string; at: string; text: string; undoTrackGuid: string };
-
-/**
- * The Sync activity list newest first as the host keeps it: the first
- * sync as one line ("First sync: 8 chapters linked"), then a line per link a later sync made ("Linked “Ch. 11” to Chapter 11",
- * with Undo) and per new track that is not a chapter. A batch with neither (an Undo's own sync) adds no line.
- */
-export function chapterSyncActivityRows(activity: ChapterSyncBatch[], trackName: (guid: string) => string): ChapterSyncActivityRow[] {
-  return activity.flatMap((batch, index) => {
-    if (batch.trigger === 'consent') {
-      return batch.linked.length > 0
-        ? [{ key: `${index}:first`, at: batch.at, text: `First sync: ${plural(batch.linked.length, 'chapter')} linked`, undoTrackGuid: '' }]
-        : [];
-    }
-    const linked = batch.linked.map((link) => {
-      const name = trackName(link.trackGuid);
-      return {
-        key: `${index}:link:${link.trackGuid}`,
-        at: batch.at,
-        text: name ? `Linked “${readable(name)}” to ${link.chapterTitle}` : `Linked a track to ${link.chapterTitle}`,
-        undoTrackGuid: link.origin === 'auto' ? link.trackGuid : '',
-      };
-    });
-    const added = batch.newTracks.map((track) => ({
-      key: `${index}:new:${track.guid}`,
-      at: batch.at,
-      text: `New track “${readable(track.name, track.index)}”, not a chapter`,
-      undoTrackGuid: '',
-    }));
-    return [...linked, ...added];
-  });
 }

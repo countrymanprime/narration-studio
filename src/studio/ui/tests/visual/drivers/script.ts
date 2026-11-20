@@ -247,6 +247,19 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('menuitem', { name: 'Define marks…' }).click();
     await page.getByRole('dialog', { name: 'Define how you mark up' }).waitFor();
   },
+  // The Colour box of the first mark, opened: its swatches in a popover over the dialog.
+  'define-marks-colour': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Define marks…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Define how you mark up' });
+    await dialog
+      .getByRole('button', { name: /^Colour: / })
+      .first()
+      .click();
+    await page.getByRole('radiogroup', { name: 'Colour' }).waitFor();
+  },
   'text-settings': async (page) => {
     await goToPage(page, 'Script');
     await page.getByRole('button', { name: /^Text settings: / }).click();

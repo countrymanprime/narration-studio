@@ -69,6 +69,8 @@ for (const rows of AREAS) {
 export const SILENT_CATCHES: Record<string, string> = {
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
+  'src/hooks/useDawSoloesChapter.ts#1':
+    "The DAW's quiet around the chapter the Booth is on (dawSoloChapter and dawSoloRestore, Booth.follow_chapter_in_daw): a call that fails leaves the DAW as it was or leaves the chapter soloed, never anything else, and the DAW's own ledger puts a solo it could not be told to put back at the bridge's next start. The one rejection is swallowed so the next call in the order still runs; the page's own DAW notices say whether the DAW answers, and a narrator's action never waits on it.",
   'src/components/editing/lastChapter.ts#1':
     'Reads the chapter Editing last showed from browser storage: storage that is missing or blocked is the same as nothing kept, and Editing opens on its first chapter as it did before the app remembered one.',
   'src/hooks/useDawPullBack.ts#1':

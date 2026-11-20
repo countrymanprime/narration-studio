@@ -13,6 +13,7 @@ import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { AudacityLinkCard } from './AudacityLinkCard';
 import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
+import { CapabilityReferenceButton } from './CapabilityReferenceButton';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { LayoutToggle, VoicesCard } from './VoicesCard';
 import { VoiceLayoutContext } from './voiceLayout';
@@ -178,7 +179,8 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <CapabilityReferenceButton />
           <IconButton action="gear" label="Recording settings" onClick={onOpenRecordingSettings} />
         </div>
         {forAudacity ? (

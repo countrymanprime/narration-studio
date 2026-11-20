@@ -3,7 +3,6 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { HIT_AREA } from './hitArea';
 
 export type ToastTone = 'info' | 'error';
@@ -55,7 +54,11 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
   return Math.min(message.tone === 'error' ? Math.max(own, base) : own, TOAST_MAX_MS);
 }
 
-function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {
+// The cue that a toast's capped text has more above or below, in the toast's own colours, drawn only while the text scrolls: on text that fits it left two grey blocks in the scrollbar gutter.
+const TEXT_SCROLL_CUE =
+  '[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
+
+function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessage; dismiss: (id: number) => void; waiting?: boolean }) {
   const [leaving, setLeaving] = useState(false);
   // A message taller than the toast may be is read by scrolling its text, which then needs the keyboard too: it takes focus only while it overflows.
   const text = useRef<HTMLSpanElement>(null);
@@ -77,6 +80,13 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
+  // A toast that goes behind a newer one over a dialog (`waiting`) is not drawn, so the pointer or focus that held it has left without saying so: its time runs on.
+  useEffect(() => {
+    if (!waiting) return;
+    hover.current = false;
+    focused.current = false;
+    setHeld(false);
+  }, [waiting]);
   // The time gone, in whole seconds, for the stepped bar drawn under reduced motion (below): it starts again from nothing whenever the hold changes, as the timers do.
   const [elapsedMs, setElapsedMs] = useState(0);
   useEffect(() => {
@@ -119,6 +129,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   return (
     <div
       data-tone={message.tone}
+      hidden={waiting}
       onPointerEnter={() => ((hover.current = true), hold())}
       onPointerLeave={() => ((hover.current = false), hold())}
       onFocus={(event) => {
@@ -135,7 +146,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative flex min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`relative ${waiting ? 'hidden' : 'flex'} min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
@@ -166,7 +177,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className="max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:299px)]:[:root[data-modal-open]_&]:max-h-10 [@media(max-height:299px)]:[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]"
+        className={`max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
       >
         {message.text}
       </span>
@@ -201,8 +212,6 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   );
 }
 
-/** A window this short has no room for a stack of toasts beside a dialog's title, field and buttons: while a dialog is open the region shows only the newest toast (#3605, #3629). */
-const SHORT_WINDOW_QUERY = '(max-height: 299px)';
 /** Whether a modal dialog is open: `useToastsClearOfModal` sets the root's attribute while one is. */
 function useModalOpen(): boolean {
   const [open, setOpen] = useState(() => typeof document !== 'undefined' && document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE));
@@ -219,7 +228,7 @@ function useModalOpen(): boolean {
 
 // The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
 // While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
-// least 4.75rem above the bottom edge (`Dialog`, down to 300 px of height; below that it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row (alignment audit cause P), and the bars a toast
+// least 4.75rem above the bottom edge (`Dialog`, above 400 px of height; at 400 px and below it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row when it is no taller than that room (alignment audit cause P; over a dialog the newest toast shows alone with its text held to two lines, so it is never taller than that room, #3605), and the bars a toast
 // otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
 // A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
@@ -239,7 +248,7 @@ export function useToastsClearOfModal(active: boolean): void {
 /** Brings the focused control of the topmost dialog into view inside the popup's own scrolling areas (the body and any area in it), innermost first. The popup itself is never scrolled: it clips, and the header and action row stay put. */
 function keepFocusInDialog(): void {
   // Only where the rule applies: in a taller window the room does not change with the toast, and a resize must not move a narrator's place in a long dialog.
-  if (window.innerHeight >= 300) return;
+  if (window.innerHeight > 400) return;
   const popup = [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop();
   const focused = document.activeElement;
   if (!popup || !(focused instanceof HTMLElement) || focused === popup || !popup.contains(focused)) return;
@@ -257,7 +266,7 @@ export const TOAST_HEIGHT_PROPERTY = '--toast-h';
 
 /**
  * While a toast shows over an open modal dialog, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top. `Dialog` reads it in a window
- * under 300 px tall and takes what is left above the toasts, so a toast does not sit on its content or its focused control (#3605, #3601; `DIALOG_TOAST_ROOM`). With no toast, or no dialog open, the
+ * 400 px tall or less and takes what is left above the toasts, so a toast does not sit on its content or its focused control (#3605, #3601; `DIALOG_TOAST_ROOM`). With no toast, or no dialog open, the
  * property is not set, so nothing in a normal window changes. It follows the region's height, a resize of the window and a dialog opening or closing.
  */
 function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
@@ -324,11 +333,16 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
-  // In a window under 300 px tall with a dialog open only the newest toast shows; the older ones stay queued, unmounted, so their time starts when they appear, after the newest goes.
+  // With a dialog open only the newest toast shows, at every window size, and its text is held to two lines: a toast that size fits the 4.75rem every dialog leaves under it, so it covers
+  // no button and the dialog does not move when it comes or goes (#3605; a stack, or a message of three lines, was taller than that room at any width).
+  // The older ones stay queued, unmounted, so their time starts when they appear, after the newest goes. An older information toast with an action is the exception: what its
+  // action can still do is timed from when it was raised (the picker sends a removal 6 s after Remove), so it stays mounted, not drawn, with its clock running, and comes back
+  // with the time it has left or not at all; shown afresh, its Undo answered "already removed" (qa on #3745).
   // With no dialog open there is no chrome to keep, and an older error with its Retry is not hidden by a newer message.
-  const short = useMediaQuery(SHORT_WINDOW_QUERY, false);
   const modal = useModalOpen();
-  const messages = short && modal ? queued.slice(-1) : queued;
+  const messages = modal ? queued.slice(-1) : queued;
+  const waits = (message: ToastMessage) => !messages.includes(message);
+  const mounted = queued.filter((message) => !waits(message) || (message.tone === 'info' && message.action !== undefined));
   const showing = messages.length > 0;
   useToastHeightPublished(region, showing);
   // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
@@ -354,17 +368,17 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
-        {messages
+        {mounted
           .filter((message) => message.tone === 'error')
           .map((message) => (
             <ToastItem key={message.id} message={message} dismiss={dismiss} />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
-        {messages
+        {mounted
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} />
           ))}
       </div>
     </div>,

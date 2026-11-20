@@ -10,6 +10,7 @@ import (
 
 	"desktop/internal/brand"
 	"desktop/internal/contractfile"
+	"desktop/internal/preview"
 )
 
 // manuscriptPathIn is the canonical manuscript file manuscript import writes in projectFolder
@@ -259,5 +260,62 @@ func TestSavingAnOutOfRangePreviewTargetIsRejected(t *testing.T) {
 	}
 	if value, source := host.settings.Effective("Preview", "target_seconds", ""); value != "600" || source != "project" {
 		t.Fatalf("Effective() = %q from %s, want 600 from project", value, source)
+	}
+}
+
+// previewBook is coverageProject with four more narration chapters, none of them linked to a track.
+func previewBook(t *testing.T) string {
+	t.Helper()
+	project := coverageProject(t)
+	chapters, paragraphs := []string{}, []string{}
+	for i := 1; i <= 5; i++ {
+		chapters = append(chapters, fmt.Sprintf(`{"id":"c-%04d","title":"Chapter %d","contentKind":"narration"}`, i, i))
+		paragraphs = append(paragraphs, fmt.Sprintf(`{"id":"p-%06d","chapterId":"c-%04d","index":0,"text":"Alice."}`, i, i))
+	}
+	manuscriptJSON := fmt.Sprintf(`{"schemaVersion":1,"documentId":"doc-1","chapters":[%s],"paragraphs":[%s]}`, strings.Join(chapters, ","), strings.Join(paragraphs, ","))
+	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(manuscriptJSON), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return project
+}
+
+// Each read of the saved project looks up every take's source file on disk, so a read per chapter cost a 44 chapter book of 4,400
+// takes about a second on every Proof load (issue 3766). One read serves the book.
+func TestPreviewCandidatesReadsTheSavedProjectOnceForTheBook(t *testing.T) {
+	host := coverageHost(t, previewBook(t), true, fakeCoverageSidecar(10))
+	checkRecording(t, host)
+	host.chapterSyncEmits.Wait() // the finished check's own read of the project is not this binding's
+	before := savedProjects.reads.Load()
+	if _, err := host.PreviewCandidates(); err != nil {
+		t.Fatal(err)
+	}
+	if got := savedProjects.reads.Load() - before; got != 1 {
+		t.Fatalf("PreviewCandidates read the saved project %d times for 5 chapters, want 1", got)
+	}
+}
+
+// One read of the saved project answers what a read per chapter answered: the checked, complete chapter is met and a chapter with no
+// link or no check stays unknown.
+func TestPreviewAudioEvidenceAnswersEachChapterFromTheOneRead(t *testing.T) {
+	host := coverageHost(t, previewBook(t), true, fakeCoverageSidecar(10))
+	checkRecording(t, host)
+	svc := host.services()
+	chapters := []preview.Chapter{{ID: "c-0001"}, {ID: "c-0002"}, {ID: "c-0005"}}
+	got := previewAudioEvidence(svc, chapters, svc.manuscript)
+	settings := coverageSettings(svc.settings)
+	for _, chapter := range chapters {
+		result, err := svc.coverage.Result(chapter.ID, settings.Alignment)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := previewCoverageSignal(result, settings); got[chapter.ID].Coverage != want {
+			t.Errorf("%s coverage = %+v, want %+v", chapter.ID, got[chapter.ID].Coverage, want)
+		}
+		if want := previewPaceSignal(result); got[chapter.ID].Pace != want {
+			t.Errorf("%s pace = %+v, want %+v", chapter.ID, got[chapter.ID].Pace, want)
+		}
+	}
+	if got["c-0001"].Coverage.State != preview.AudioMet || got["c-0002"].Coverage.State != preview.AudioUnknown {
+		t.Fatalf("evidence = %+v", got)
 	}
 }

@@ -5,8 +5,8 @@ import { settlePage } from '../helpers/settle';
 
 // The Story Bible's own overlays (components/storybible/): the hint on the header's menu button and the menu it opens, the kind menu of an entry in Edit, the menu of a
 // voice sample and its Rename, Move and Delete dialogs, the right-click menu of an entry row, and the dialogs, the voice prompt and the Voice data panel that the catalog's
-// state drivers already reach. Not driven: the speaker-colour select (native selects, whose popup the browser draws outside
-// the page where `elementFromPoint` cannot see it), the pronunciation source menu and the review slide-over (each needs a chain of
+// state drivers already reach. The speaker colour of an entry in Edit is a row of swatches in the page, not an overlay; the hint on one of
+// its swatches is driven. Not driven: the pronunciation source menu and the review slide-over (each needs a chain of
 // steps the mock reaches only inside a driver), and a toast raised while a dialog is open, which the guard would fail today (the
 // toast sits under dialogs: see the Story Bible PR).
 
@@ -64,6 +64,20 @@ export const storyBibleCases: OverlayCase[] = [
         .getByRole('button', { name: /^(Character|Place|Organization|Lore|Item|Event)\b/ })
         .first()
         .click();
+    },
+  },
+  {
+    // The name of a speaker-colour swatch, shown when the pointer rests on it (ColourField's palette row).
+    name: 'hint on a speaker colour swatch',
+    kind: 'tooltip',
+    scrolled: false,
+    open: async (page) => {
+      const entry = page.locator('section', { has: page.getByRole('button', { name: 'Find in the manuscript' }) });
+      await entry.getByRole('button', { name: 'Edit this entry' }).click();
+      const swatch = page.getByRole('radiogroup', { name: 'Speaker colour' }).getByRole('radio', { name: 'Rose' });
+      await swatch.scrollIntoViewIfNeeded();
+      await swatch.hover();
+      await page.locator('[role="tooltip"]:visible').last().waitFor({ timeout: 4000 });
     },
   },
   fromState('storybible', 'delete-confirm'),

@@ -119,6 +119,7 @@ export function TooltipTarget({
   style,
   inline = false,
   hoverDelayMs = HOVER_DELAY_MS,
+  showOnArrival = false,
 }: {
   text: string;
   children: ReactNode;
@@ -127,6 +128,11 @@ export function TooltipTarget({
   inline?: boolean;
   /** How long the pointer rests before the hint opens (keyboard focus is always at once). Only for a control whose reason is its one cue, such as a locked rail item. */
   hoverDelayMs?: number;
+  /**
+   * Shows the hint when `text` goes from empty to set while keyboard focus is on the target, as it would have shown had the text been there when
+   * focus arrived: for a hint that is the reason a box was just marked invalid. Off by default, since a hint that opens takes the next Escape.
+   */
+  showOnArrival?: boolean;
 }) {
   const disabledChild = isValidElement(children) && Boolean((children.props as { disabled?: boolean }).disabled);
   const host = useRef<HTMLSpanElement>(null);
@@ -136,6 +142,18 @@ export function TooltipTarget({
   const signature = useRef('');
   const touched = useRef(false);
   const pendingFocus = useRef<ReactFocusEvent<HTMLElement> | null>(null);
+  const [open, setOpen] = useState(false);
+
+  // `showOnArrival`: no focus event follows a refusal to open the hint, and a narrator at the keyboard has no pointer to rest on the box.
+  const hadText = useRef(text !== '');
+  useEffect(() => {
+    const arrived = !hadText.current && text !== '';
+    hadText.current = text !== '';
+    if (text === '') setOpen(false);
+    if (!showOnArrival || !arrived || !lastInputWasKeyboard() || !host.current?.contains(document.activeElement)) return;
+    setArmed(true);
+    setOpen(true);
+  }, [text, showOnArrival]);
 
   const onProps = useCallback((split: { handlers: string[]; attributes: Record<string, unknown> }) => {
     const next = JSON.stringify([split.handlers, split.attributes]);
@@ -221,7 +239,7 @@ export function TooltipTarget({
         {children}
       </span>
       {armed && (
-        <BaseTooltip.Root disabled={text === ''}>
+        <BaseTooltip.Root disabled={text === ''} open={open} onOpenChange={setOpen}>
           <BaseTooltip.Trigger
             delay={hoverDelayMs}
             render={(props) => <TriggerBridge props={props as TriggerProps} host={host} latest={latest} onProps={onProps} />}

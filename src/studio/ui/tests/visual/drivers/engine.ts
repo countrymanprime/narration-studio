@@ -1,7 +1,7 @@
 // How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip,
 // and the REAPER tools' dialogs opened from it.
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, openAdvanced, openEditingCheckFromEngine, openEnginePanel, openSettings, showSettingsRow } from './shared';
+import { type Driver, clickVisible, openEditingCheckFromEngine, openEnginePanel } from './shared';
 
 export const engineDrivers: Record<string, Driver> = {
   default: async (page) => {
@@ -27,21 +27,12 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await page.getByText(/Waiting: REAPER is recording/).waitFor();
   },
-  // Chapter sync's "Needs you" list: undoing an automatic link in the sync activity log (Settings > Recording & DAW > Advanced) leaves that
-  // chapter for the narrator to link, and no seed starts there.
+  // Chapter sync's "Needs you" list: an automatic link that was undone leaves its chapter for the narrator to link (the `needs-you` seed).
   'sync-needs-you': async (page) => {
-    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
-    await openAdvanced(page);
-    const row = await showSettingsRow(page, 'daw.syncActivity');
-    await row
-      .getByRole('button', { name: /^Undo: Linked/ })
-      .first()
-      .click();
+    await page.goto('/?mockChapterSync=needs-you');
+    await settlePage(page);
     await openEnginePanel(page);
     await page.getByRole('heading', { name: /^Needs you \(\d+\)$/ }).waitFor();
-    // The undo answers with "Link undone." over the Tracks table: the picture is the panel.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
-    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   // An Audacity project: its card replaces the REAPER project section.
   'audacity-linked': async (page) => {
