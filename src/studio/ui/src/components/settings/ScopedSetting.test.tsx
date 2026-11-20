@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ScopedSettingField } from '../../api/contracts/system';
 import { TooltipProvider } from '../primitives/Tooltip';
@@ -98,6 +99,61 @@ describe('ScopedSetting controls', () => {
     expect(box.value).toBe('4D5E6');
     expect(box.getAttribute('aria-invalid')).toBe('true');
     expect((screen.getByLabelText('Note color') as HTMLInputElement).value).toBe('#808080');
+  });
+
+  // R5 (#3680): the form's value was tidied a second time before it was judged, and " abcdef" then read as a colour.
+  it.each([' abcdef', 'abcdef ', '#abcdef', '# abcdef', 'GGGGGG', 'ﬀﬀﬀ'])('refused text held by the form is marked, whatever it normalises to: %j', (held) => {
+    renderSetting({ ...colourField('FFD54F'), value: held });
+    const box = screen.getByRole('textbox', { name: 'Note color hex' }) as HTMLInputElement;
+    expect(box.value).toBe(held);
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+    expect((screen.getByLabelText('Note color') as HTMLInputElement).value).toBe('#808080');
+  });
+
+  it.each(['# abcdef', ' # abcdef', '##abcdef'])('hands %j to the form as text that is not a colour', (typed) => {
+    const change = renderSetting(colourField('FFD54F'));
+    const box = screen.getByRole('textbox', { name: 'Note color hex' });
+    fireEvent.change(box, { target: { value: typed } });
+    fireEvent.blur(box);
+    expect(change).toHaveBeenCalledTimes(1);
+    expect(change.mock.calls[0]![0]).toBe(typed.trim());
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  function HeldByForm({ onChange }: { onChange: (value: string) => void }) {
+    const [value, setValue] = useState('FFD54F');
+    return (
+      <TooltipProvider>
+        <ScopedSetting
+          field={colourField('FFD54F')}
+          scope="global"
+          value={value}
+          change={(next) => {
+            onChange(next);
+            setValue(next);
+          }}
+          onClearOverride={() => undefined}
+        />
+      </TooltipProvider>
+    );
+  }
+
+  it('Escape in a refused box puts the stored colour back', () => {
+    const onChange = vi.fn();
+    render(<HeldByForm onChange={onChange} />);
+    const box = screen.getByRole('textbox', { name: 'Note color hex' }) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: 'GGGGGG' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(box.value).toBe('GGGGGG');
+    // A second refusal over the first does not make the first the colour to go back to.
+    fireEvent.change(box, { target: { value: 'red' } });
+    fireEvent.blur(box);
+    fireEvent.keyDown(box, { key: 'Escape' });
+    expect(onChange.mock.calls).toEqual([['GGGGGG'], ['red'], ['FFD54F']]);
+    expect(box.value).toBe('FFD54F');
+    expect(box.getAttribute('aria-invalid')).toBeNull();
+    fireEvent.keyDown(box, { key: 'Escape' });
+    expect(onChange).toHaveBeenCalledTimes(3);
   });
 
   it('a draft does not follow a scope switch', () => {

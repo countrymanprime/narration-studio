@@ -34,8 +34,8 @@ export type ValueControlProps = {
   describedBy?: string;
   invalid?: boolean;
   disabled?: boolean;
-  /** The narrator settled on a value. An emptied number is `''`. */
-  onChange: (value: string) => void;
+  /** The narrator settled on a value. An emptied number is `''`. May return the save it starts, resolving to `false` when the host refused it. */
+  onChange: (value: string) => void | Promise<unknown>;
   /** A number the narrator settled on is refused (true) or fine (false); the row uses it to drop a "Saved" mark that belongs to an earlier value (#2989). */
   onDraftProblem?: (refused: boolean) => void;
 };
@@ -55,7 +55,7 @@ function SettledBox({
   className,
 }: {
   value: string;
-  onSettle: (value: string) => void;
+  onSettle: (value: string) => void | Promise<unknown>;
   label: string;
   id: string;
   describedBy?: string;
@@ -144,7 +144,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
             className={NUMBER_WIDTH}
             onSettle={(next) => {
               setTyped(next);
-              if (!numberProblem(field.number!, next.trim())) onChange(next.trim());
+              return numberProblem(field.number!, next.trim()) ? undefined : onChange(next.trim());
             }}
           />
           {(row.unit ?? field.number.unit) && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.unit ?? field.number.unit}</span>}

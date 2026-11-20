@@ -110,7 +110,7 @@ it('Discard & continue drops the refused draft: the other scope shows its own co
 
 it('Save & continue that the host refuses stays in the scope, with the draft still in its box', async () => {
   const api = createMockApi();
-  // The host's own sentence for a colour that is not six hex digits (validateSettingValue in app.go); the mock accepts anything.
+  // The host's own sentence for a colour that is not six hex digits (validateSettingValue in app.go).
   const saved = vi.fn(async () => {
     throw new Error('setting color_misread must be a six-digit color');
   });
@@ -126,4 +126,106 @@ it('Save & continue that the host refuses stays in the scope, with the draft sti
   expect(screen.getByText('Global defaults')).toBeTruthy();
   expect((await misread()).value).toBe('4D5E6');
   expect(screen.getByText('Unsaved changes')).toBeTruthy();
+});
+
+/** A host that answers a save only when told to, with the saves it was sent. */
+function slowHost() {
+  const api = createMockApi();
+  const answers: (() => void)[] = [];
+  const save = api.saveSettings;
+  const saved = vi.fn(
+    (...sent: Parameters<typeof save>) => new Promise<Awaited<ReturnType<typeof save>>>((resolve) => answers.push(() => resolve(save(...sent)))),
+  );
+  api.saveSettings = saved;
+  return { api, saved, answer: () => act(async () => answers.splice(0).forEach((send) => send())) };
+}
+const form = (box: HTMLElement) => box.closest('form')!;
+/** Enter in a text box of a form, as a browser does it: the key, then the form's submit unless the key was cancelled. */
+function pressEnter(box: HTMLElement) {
+  if (fireEvent.keyDown(box, { key: 'Enter' })) fireEvent.submit(form(box));
+}
+
+// R4 (#3680): Enter in the hex box submits the form, and every submit sent the values again while the first save was out.
+it('a second submit while a save is out sends nothing', async () => {
+  const { api, saved, answer } = slowHost();
+  drawCompare(api);
+  const box = await misread();
+  fireEvent.change(box, { target: { value: 'AA0001' } });
+  pressEnter(box);
+  for (let repeat = 0; repeat < 20; repeat += 1) pressEnter(box);
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await act(async () => undefined);
+  expect(saved).toHaveBeenCalledExactlyOnceWith('TranscriptCompare', 'global', { color_misread: 'AA0001' });
+  await answer();
+  expect((await misread()).value).toBe('AA0001');
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+it('a save made after the first was answered is sent', async () => {
+  const { api, saved, answer } = slowHost();
+  drawCompare(api);
+  const box = await misread();
+  fireEvent.change(box, { target: { value: 'AA0001' } });
+  pressEnter(box);
+  await answer();
+  fireEvent.change(await misread(), { target: { value: 'AA0002' } });
+  pressEnter(await misread());
+  await answer();
+  expect(saved.mock.calls.map((call) => call[2])).toEqual([{ color_misread: 'AA0001' }, { color_misread: 'AA0002' }]);
+});
+
+// R5 (#3680): the form holds refused text as its unsaved value, and Enter in the box sent it to the host at once.
+it.each(['GGGGGG', 'red', '# abcdef', '##abcdef', '<img src=x onerror=alert(1)>', 'ﬀﬀﬀ', 'A'.repeat(10_000)])(
+  'Enter in a box holding refused text does not submit it: %j',
+  async (text) => {
+    const api = createMockApi();
+    const saved = vi.fn(api.saveSettings);
+    api.saveSettings = saved;
+    drawCompare(api);
+    const box = await misread();
+    fireEvent.change(box, { target: { value: text } });
+    // The Enter that refuses it, and those that follow while it is in the box.
+    for (let press = 0; press < 3; press += 1) pressEnter(await misread());
+    await act(async () => undefined);
+    expect(saved).not.toHaveBeenCalled();
+    expect((await misread()).getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByText('Unsaved changes')).toBeTruthy();
+  },
+);
+
+it('Enter on a colour saves it through the form, as before', async () => {
+  const notify = vi.fn();
+  const api = createMockApi();
+  render(
+    <ApiProvider api={api}>
+      <SettingsFormsProvider notify={vi.fn()} onDirtyChange={vi.fn()} registerActions={vi.fn()}>
+        <ScopedFieldsPanel id="compare" title="Compare" tool="TranscriptCompare" scopes={['global', 'project']} notify={notify} />
+      </SettingsFormsProvider>
+    </ApiProvider>,
+  );
+  const box = await misread();
+  fireEvent.change(box, { target: { value: ' #aa0003' } });
+  pressEnter(box);
+  await act(async () => undefined);
+  expect(notify).toHaveBeenCalledWith('Global settings saved.');
+  expect((await api.settingsForScope('global')).TranscriptCompare?.find((field) => field.key === 'color_misread')?.value).toBe('AA0003');
+});
+
+it('Escape in a refused box puts the stored colour back, and Save then has nothing to send', async () => {
+  const api = createMockApi();
+  const saved = vi.fn(api.saveSettings);
+  api.saveSettings = saved;
+  drawCompare(api);
+  const box = await misread();
+  const stored = box.value;
+  fireEvent.change(box, { target: { value: 'GGGGGG' } });
+  pressEnter(box);
+  expect((await misread()).value).toBe('GGGGGG');
+  fireEvent.keyDown(await misread(), { key: 'Escape' });
+  expect((await misread()).value).toBe(stored);
+  expect((await misread()).getAttribute('aria-invalid')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await act(async () => undefined);
+  expect(saved).not.toHaveBeenCalled();
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
 });

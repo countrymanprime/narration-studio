@@ -82,8 +82,9 @@ Select words in the reader and a dark toolbar appears over them:
 - **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), adds a word for its
   pronunciation (**Pronunciation (a word)**, below), or opens **Define marks…**, where you name your marks and choose each
   one's colour, its line and whether it **Asks** (tracks a reply), and **Add a mark** adds one. A mark's **Colour** box shows
-  its swatch and the colour's name; press it and press one of the six swatches it opens (Copper, Blue, Green, Amber, Red,
-  Violet), or choose with the arrow keys and close them with Enter. Escape closes the swatches and leaves the dialog open.
+  its swatch and the colour's name; press it and press a swatch to choose (Copper, Blue, Green, Amber, Red, Violet). The
+  box shows your choice and the swatches stay open; press outside them or press Escape to close them, which leaves the
+  dialog open. With the keyboard, choose with the arrow keys and close them with Enter, Escape or Tab.
   The note dialog is titled **Mark** and the words you selected.
 - **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
   including any you added there.

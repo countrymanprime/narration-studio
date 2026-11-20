@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useSettledDraft } from './settledDraft';
 
 afterEach(cleanup);
 
-function Box({ value, onSettle }: { value: string; onSettle: (draft: string) => void }) {
+function Box({ value, onSettle }: { value: string; onSettle: (draft: string) => void | Promise<unknown> }) {
   const box = useSettledDraft(value, onSettle);
   return <input aria-label="Name" value={box.draft} onChange={(event) => box.setDraft(event.target.value)} {...box.boxProps} />;
 }
@@ -93,5 +93,84 @@ describe('useSettledDraft', () => {
     await userEvent.type(input(), ' Liddell');
     rerender(<Box value="The Queen" onSettle={() => undefined} />);
     expect(input().value).toBe('The Queen');
+  });
+
+  // R3 (#3680): the answer to a save wiped what the narrator had typed since.
+  describe('a save that settle returns', () => {
+    function slowSave() {
+      let answer: (kept: boolean) => void = () => undefined;
+      const save = new Promise<boolean>((resolve) => {
+        answer = resolve;
+      });
+      return { save, answer };
+    }
+
+    it('a draft typed after a settle stands when the settled value arrives', async () => {
+      const { save, answer } = slowSave();
+      const { rerender } = render(<Box value="BB0001" onSettle={() => save} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'CC00');
+      rerender(<Box value="BB0002" onSettle={() => save} />);
+      expect(input().value).toBe('CC00');
+      await act(async () => answer(true));
+      await userEvent.type(input(), '03');
+      expect(input().value).toBe('CC0003');
+    });
+
+    it('that draft is then an edit of the new value: it settles, and Escape puts the new value back', async () => {
+      const { save } = slowSave();
+      const onSettle = vi.fn(() => save);
+      const { rerender } = render(<Box value="BB0001" onSettle={onSettle} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'CC00');
+      rerender(<Box value="BB0002" onSettle={onSettle} />);
+      await userEvent.type(input(), '{Enter}');
+      expect(onSettle.mock.calls).toEqual([['BB0002'], ['CC00']]);
+      await userEvent.type(input(), '{Escape}');
+      expect(input().value).toBe('BB0002');
+    });
+
+    it('it stands through one change only: the next value from outside replaces it', async () => {
+      const { save } = slowSave();
+      const { rerender } = render(<Box value="BB0001" onSettle={() => save} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'CC00');
+      rerender(<Box value="BB0002" onSettle={() => save} />);
+      rerender(<Box value="DD0004" onSettle={() => save} />);
+      expect(input().value).toBe('DD0004');
+    });
+
+    it('a draft typed once the save has ended is replaced by a new value, as any draft is', async () => {
+      const { save, answer } = slowSave();
+      const { rerender } = render(<Box value="BB0001" onSettle={() => save} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await act(async () => answer(false));
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'CC00');
+      rerender(<Box value="DD0004" onSettle={() => save} />);
+      expect(input().value).toBe('DD0004');
+    });
+
+    it('a save that fails ends the same way', async () => {
+      let fail: (why: Error) => void = () => undefined;
+      const save = new Promise<never>((_, reject) => {
+        fail = reject;
+      });
+      const { rerender } = render(<Box value="BB0001" onSettle={() => save} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await act(async () => fail(new Error('read-only')));
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'CC00');
+      rerender(<Box value="DD0004" onSettle={() => save} />);
+      expect(input().value).toBe('DD0004');
+    });
   });
 });

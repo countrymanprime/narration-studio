@@ -356,7 +356,7 @@ Large model doesn't support Auto).
 **Jump to or run** (Ctrl+K) has **Open Compare options**, a dialog with this project's defaults for a run: the **chunk length** a run starts
 with and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
 each a colour picker and a box of six hex digits). A colour you type is saved when you press Enter or leave the box, and text
-that is not six hex digits stays in the box with a red edge and is not saved; point at the box to read what it takes. A change is saved at once for this project; **Reset** appears on one this project
+that is not six hex digits stays in the box with a red edge and is not saved; a hint on the box says what it takes. A change is saved at once for this project; **Reset** appears on one this project
 changes and hands it back to the computer-wide value or the built-in default. Settings under **Set on a page** has the same
 values with a **Global** / **This project** switch, and **Compare chunk length** under Speech to text in Settings sets the
 computer-wide value. The setup starts on that chunk length, or on the longest the chosen model can take when it cannot take it. A stored length that is not one of the choices (30 s, 1m, 5m, 10m) is not used: the setup starts on 1m and a notice says so. The transcription model is not here: it is the

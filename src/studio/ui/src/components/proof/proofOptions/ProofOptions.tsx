@@ -10,7 +10,7 @@ import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
 
-function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => void }) {
+function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
@@ -22,7 +22,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
           min={range.min ?? undefined}
           max={range.max ?? undefined}
           step={range.step ?? undefined}
-          onValueChange={(n) => onSet(field.key, String(n))}
+          onValueChange={(n) => void onSet(field.key, String(n))}
         />
         {range.unit ? <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{range.unit}</span> : null}
       </span>
@@ -33,13 +33,13 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
         className="w-[10.75rem]"
         value={field.effectiveValue}
         options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
-        onChange={(value) => onSet(field.key, value)}
+        onChange={(value) => void onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
       <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
-    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => onSet(field.key, null)}>
+    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => void onSet(field.key, null)}>
       Reset
     </Button>
   ) : null;
@@ -47,7 +47,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
   if (field.kind === 'bool')
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <Switch checked={field.effectiveValue === 'true'} onChange={(on) => onSet(field.key, String(on))}>
+        <Switch checked={field.effectiveValue === 'true'} onChange={(on) => void onSet(field.key, String(on))}>
           {field.label}
         </Switch>
         {reset}

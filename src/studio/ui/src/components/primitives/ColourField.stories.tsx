@@ -123,10 +123,10 @@ export const PaletteRowWrapsInANarrowColumn: Story = {
 // The select-like box for a table cell, at the 130 px the Entry types row gives it: the swatch, the name and the caret at the control height.
 export const PalettePopoverClosed: Story = { args: { form: 'popover', className: 'w-[130px]' } };
 
-// A narrower box clips the name with an ellipsis; the full name is the box's title and part of its accessible name.
+// A narrower box has no room for the name and draws the swatch alone; the name is the box's hint and part of its accessible name.
 export const PalettePopoverNarrow: Story = { args: { form: 'popover', className: 'w-[100px]', value: null, automatic: { resolvesTo: 'violet' } } };
 
-export const PalettePopoverPicksClosesAndReturnsFocus: Story = {
+export const PalettePopoverPicksStaysOpenAndEscapeReturnsFocus: Story = {
   args: { form: 'popover', className: 'w-[130px]' },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
@@ -137,8 +137,11 @@ export const PalettePopoverPicksClosesAndReturnsFocus: Story = {
     await userEvent.keyboard('{ArrowRight}');
     await expect(args.onChange).toHaveBeenLastCalledWith('violet');
     await expect(row).toBeVisible();
+    // A pointer press picks and leaves the row open too: nothing closes under the pointer for a second press to fall through.
     await userEvent.click(within(row).getByRole('radio', { name: 'Teal' }));
     await expect(args.onChange).toHaveBeenLastCalledWith('teal');
+    await expect(row).toBeVisible();
+    await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
     await waitFor(() => expect(canvas.getByRole('button', { name: 'Colour for Character: Teal' })).toHaveFocus());
   },

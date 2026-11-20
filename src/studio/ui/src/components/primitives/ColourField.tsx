@@ -1,8 +1,7 @@
 import { Radio as BaseRadio } from '@base-ui/react/radio';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactElement } from 'react';
-import { absorbEchoAt } from './echoGuard';
-import { isStoredHex, normaliseHex, toPickerValue } from './colourHex';
+import { isHexColour, isStoredHex, normaliseHex, toPickerValue } from './colourHex';
 import { Icon } from './Icon';
 import { Popover } from './Popover';
 import { COLOUR_BOX_CLASSES } from './selectBox';
@@ -35,8 +34,12 @@ type FreeProps = Common & {
   mode: 'free';
   /** Six capital hex digits with no `#`, or '' for no colour. */
   value: string;
-  /** Called with six capital hex digits, or with '' when `allowUnset` and the box was emptied. Never with anything else. */
-  onChange: (hex: string) => void;
+  /**
+   * Called with six capital hex digits, or with '' when `allowUnset` and the box was emptied. Never with anything else. A caller that saves at
+   * once returns the save's promise: until it ends the box shows the colour sent and is `aria-busy`, and the same colour entered again is not
+   * sent again. A promise that resolves to `false`, or rejects, is a refused save, and the box shows `value` again; the caller says why.
+   */
+  onChange: (hex: string) => void | Promise<unknown>;
   allowUnset?: boolean;
   /**
    * For a form that saves later: called with the text of a box left holding what is not a colour, so the form holds it as its unsaved value
@@ -123,12 +126,10 @@ function Palette<V extends string>({
   const chosen = entries.find((entry) => entry.key === checkedKey);
   const shownName = chosen?.name ?? 'None';
   const popover: PopoverHandlers = {
-    // A press or Space has already checked the swatch through the group; Enter checks nothing in a radio group, so it is reported here.
-    pick: (key, how, spot) => {
+    // Space has already checked the swatch through the group; Enter checks nothing in a radio group, so it is reported here.
+    pickAndClose: (key, how) => {
       if (pending) return;
       if (how === 'enter' && key !== checkedKey) report(key);
-      // The swatches are gone before the second press of a double click, which would land on the row under them.
-      if (spot) absorbEchoAt(spot);
       setOpen(false);
     },
     close: () => setOpen(false),
@@ -164,8 +165,12 @@ function Palette<V extends string>({
   );
 }
 
-/** What a swatch does when its row is the content of a popover. `spot` is the swatch's box, given for a pointer press. */
-type PopoverHandlers = { pick: (key: string, how: 'press' | 'enter', spot?: DOMRect) => void; close: () => void };
+/**
+ * What a swatch does when its row is the content of a popover. A key that picks (Enter, Space) also closes the swatches; a pointer press only
+ * picks, and they stay open until Escape, Tab or a press outside. Were they to close under the pointer, the second press of a double click, or
+ * any press that follows, would land on whatever they covered (a row's Remove, a switch).
+ */
+type PopoverHandlers = { pickAndClose: (key: string, how: 'space' | 'enter') => void; close: () => void };
 
 // 28 px square (over the 24 px press target) around an 18 px swatch. The chosen one is told by shape, a 2 px ring in the text colour and a
 // check on the swatch, never by colour alone; the ring is a border, so the keyboard focus outline (the global one) is drawn outside it.
@@ -182,19 +187,25 @@ function SwatchRadio({ entry, pending, popover }: { entry: Entry; pending: boole
         onMouseDown={(event: MouseEvent) => {
           if (pending) event.preventDefault();
         }}
-        // `detail` is 0 for the click a Space press makes, which no second press follows.
-        onClick={(event: MouseEvent<HTMLElement>) =>
-          popover?.pick(entry.key, 'press', event.detail > 0 ? event.currentTarget.getBoundingClientRect() : undefined)
-        }
+        // `detail` is 0 for the click a Space press makes, and at least 1 for a pointer's.
+        onClick={(event: MouseEvent) => {
+          if (event.detail === 0) popover?.pickAndClose(entry.key, 'space');
+        }}
         onKeyDown={(event: KeyboardEvent) => {
           // While a save runs the group checks nothing, but it would still move focus on an arrow key, leaving focus on one swatch and the
           // check on another. The key stops here, so focus stays on the swatch being saved and the next key after the answer starts from it.
           if (pending && event.key.startsWith('Arrow')) event.stopPropagation();
-          if (event.key === 'Enter') popover?.pick(entry.key, 'enter');
+          if (!popover) return;
+          if (event.key === 'Enter') popover.pickAndClose(entry.key, 'enter');
           // One Escape closes the swatches. Left to the libraries, the first would only dismiss the focused swatch's hint; stopped here, it
           // does not reach the dialog the box may sit in either.
-          if (event.key === 'Escape' && popover) {
+          if (event.key === 'Escape') {
             event.stopPropagation();
+            popover.close();
+          }
+          // The swatches hold focus while they are open, so Tab is the way out: it closes them and focus is on the box again.
+          if (event.key === 'Tab') {
+            event.preventDefault();
             popover.close();
           }
         }}
@@ -236,37 +247,72 @@ function Free({
 }: FreeProps) {
   const hintId = useId();
   const names = freeNames(label);
+  const acceptable = (hex: string) => isStoredHex(hex) || (hex === '' && allowUnset);
+
+  // The colour sent to a caller that saves at once. The box and the picker show it from the moment it is sent, so a slow save does not read as
+  // "not taken"; a refused save ends it at once, an accepted one when the caller's `value` changes.
+  const [sent, setSent] = useState<{ hex: string; over: string; answered: boolean } | null>(null);
+  if (sent?.answered && sent.over !== value) setSent(null);
+  const shown = sent ? sent.hex : value;
+  const saving = sent !== null && !sent.answered;
+  const send = (hex: string): void | Promise<unknown> => {
+    if (hex === shown) return undefined;
+    const save = onChange(hex);
+    if (!(save instanceof Promise)) return undefined;
+    const mine = { hex, over: value, answered: false };
+    setSent(mine);
+    const end = (kept: unknown) => setSent((current) => (current !== mine ? current : kept === false ? null : { ...mine, answered: true }));
+    // The caller shows why a save failed; here a failure only gives the box back to `value`.
+    save.then(end, () => end(false));
+    return save;
+  };
+
   // The draft that was refused. It stands while that text is in the box, so typing, Escape or a new value ends it.
   const [refusedDraft, setRefusedDraft] = useState<string | null>(null);
-  const box = useSettledDraft(value, (draft) => {
+  // The last colour the caller held before it was handed refused text (`onRefused`), for Escape to put back.
+  const beforeRefusal = useRef<string | null>(null);
+  const box = useSettledDraft(shown, (draft) => {
     const hex = normaliseHex(draft);
-    if (!isStoredHex(hex) && !(hex === '' && allowUnset)) {
+    if (!acceptable(hex)) {
       setRefusedDraft(draft);
+      if (onRefused && (value === '' || isHexColour(value))) beforeRefusal.current = value;
       onRefused?.(hex);
-      return;
+      return undefined;
     }
-    if (hex !== value) onChange(hex);
-    // The box shows the stored colour from here on: the new one once the caller holds it, the old one if the save is refused. A draft kept
-    // until the answer would read as stored after a refusal.
+    const save = send(hex);
+    // The box shows `shown` from here on: the colour sent, or the stored one when nothing was (a draft that spelled it another way).
     box.reset();
+    return save;
   });
-  const refused = refusedDraft !== null && box.draft === refusedDraft && box.draft !== value;
-  // A value that is not a colour (a form holding refused text, a file edited by hand) is marked the same way.
-  const notAColour = refused || (value !== '' && !isStoredHex(normaliseHex(value)));
+  const refused = refusedDraft !== null && box.draft === refusedDraft && box.draft !== shown;
+  // A value that is not a colour as it stands (a form holding refused text, a file edited by hand) is marked the same way.
+  const valueIsNoColour = value !== '' && !isHexColour(value);
+  const notAColour = refused || valueIsNoColour;
+
+  const onBoxKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape' && onRefused && valueIsNoColour && beforeRefusal.current !== null) {
+      // The form holds the refused text as its value, so putting the colour back is a change to report.
+      onChange(beforeRefusal.current);
+      beforeRefusal.current = null;
+    }
+    box.boxProps.onKeyDown(event);
+    // Enter in a form's text box also submits the form. A box that holds no colour, or whose colour is still being saved, has nothing to submit.
+    if (event.key === 'Enter' && (saving || !acceptable(normaliseHex(box.draft)))) event.preventDefault();
+  };
 
   // The picker reports once, when the narrator closes it: React's `onChange` on a colour input is the DOM `input` event, which fires on every
   // step of a drag, and each would be a save. The DOM `change` event is the one that fires on close, so it is heard directly.
   const picker = useRef<HTMLInputElement>(null);
   const [dragged, setDragged] = useState<string | null>(null);
-  const latest = useRef({ value, onChange });
-  latest.current = { value, onChange };
+  const latestSend = useRef(send);
+  latestSend.current = send;
   useEffect(() => {
     const input = picker.current;
     if (!input) return;
     const settle = () => {
       const hex = normaliseHex(input.value);
       setDragged(null);
-      if (isStoredHex(hex) && hex !== latest.current.value) latest.current.onChange(hex);
+      if (isStoredHex(hex)) void latestSend.current(hex);
     };
     input.addEventListener('change', settle);
     return () => input.removeEventListener('change', settle);
@@ -274,9 +320,10 @@ function Free({
 
   return (
     <span className={`flex items-center gap-2 ${className}`}>
-      <TextField ref={picker} type="color" label={names.picker} value={dragged ?? toPickerValue(value)} disabled={disabled} onChange={setDragged} />
-      {/* The reason a box is marked, for a narrator who sees it: a hint on the box, which takes no room in the row. It is empty, so off, otherwise. */}
-      <TooltipTarget text={notAColour ? HEX_HINT : ''} className={hexClassName || 'min-w-0 flex-1'}>
+      <TextField ref={picker} type="color" label={names.picker} value={dragged ?? toPickerValue(shown)} disabled={disabled} onChange={setDragged} />
+      {/* The reason a box is marked, for a narrator who sees it: a hint on the box, which takes no room in the row and opens at the refusal
+          when the keyboard is in the box. It is empty, so off, otherwise. */}
+      <TooltipTarget text={notAColour ? HEX_HINT : ''} className={hexClassName || 'min-w-0 flex-1'} showOnArrival>
         <TextField
           id={id}
           label={names.hex}
@@ -287,11 +334,13 @@ function Free({
           className="min-w-0"
           aria-describedby={[notAColour ? hintId : '', describedBy ?? ''].filter(Boolean).join(' ') || undefined}
           aria-invalid={notAColour || invalid ? true : undefined}
+          aria-busy={saving ? true : undefined}
           onChange={(text) => {
             setRefusedDraft(null);
             box.setDraft(text);
           }}
-          {...box.boxProps}
+          onBlur={box.boxProps.onBlur}
+          onKeyDown={onBoxKeyDown}
         />
       </TooltipTarget>
       {notAColour && (

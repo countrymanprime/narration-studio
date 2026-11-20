@@ -97,27 +97,39 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     if (!editing.current) setValues(Object.fromEntries((read ?? []).map((field) => [field.key, field.value])));
   }, [read, dirty]);
 
-  const save = useCallback(async (): Promise<boolean> => {
-    if (!tool || !read) return true;
-    try {
-      const changed = changedValues(read, values);
-      // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
-      if (Object.keys(changed).length > 0) {
-        await system.saveSettings(tool, scope, changed);
-        notify(`${scope === 'global' ? 'Global' : 'Project'} settings saved.`);
+  // The save that is out. A second submit before it answers (Enter held in a box, Save pressed twice) joins it instead of sending the same values again.
+  const saveOut = useRef<Promise<boolean>>(undefined);
+  const save = useCallback((): Promise<boolean> => {
+    if (saveOut.current) return saveOut.current;
+    const send = async (): Promise<boolean> => {
+      if (!tool || !read) return true;
+      try {
+        const changed = changedValues(read, values);
+        // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
+        if (Object.keys(changed).length > 0) {
+          await system.saveSettings(tool, scope, changed);
+          notify(`${scope === 'global' ? 'Global' : 'Project'} settings saved.`);
+        }
+        setDirty(false);
+        await reload();
+        return true;
+      } catch (failure) {
+        // This save has ended before the toast is up, so its Retry starts a new one. Saving the same edit again sets the same values, so it is safe to repeat.
+        saveOut.current = undefined;
+        notify(
+          describeApiError(failure),
+          'error',
+          retryAction(() => void save()),
+        );
+        return false;
       }
-      setDirty(false);
-      await reload();
-      return true;
-    } catch (failure) {
-      // Saving the same edit again sets the same values, so it is safe to repeat.
-      notify(
-        describeApiError(failure),
-        'error',
-        retryAction(() => void save()),
-      );
-      return false;
-    }
+    };
+    const out = send().then((saved) => {
+      if (saveOut.current === out) saveOut.current = undefined;
+      return saved;
+    });
+    saveOut.current = out;
+    return out;
   }, [system, notify, read, reload, scope, tool, values, setDirty]);
   const discard = useCallback(async () => {
     setDirty(false);

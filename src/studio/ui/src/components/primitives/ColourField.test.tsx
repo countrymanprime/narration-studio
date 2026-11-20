@@ -3,14 +3,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ECHO_WINDOW_MS, forgetEchoClicks } from './echoGuard';
 import { ColourField, freeNames, type ColourChoice } from './ColourField';
 import { TooltipProvider } from './Tooltip';
 
-afterEach(() => {
-  cleanup();
-  forgetEchoClicks();
-});
+afterEach(cleanup);
 
 type Hue = 'green' | 'blue' | 'violet';
 const CHOICES: readonly ColourChoice<Hue>[] = [
@@ -273,83 +269,90 @@ describe('ColourField palette, as a popover', () => {
     expect((await screen.findByRole('tooltip')).textContent).toBe('Blue');
   });
 
-  // B1 (#3680): the swatches are gone before the second press of a double click, which then landed on the row under them.
-  describe('the second press of a double click', () => {
-    const SPOT = { left: 100, top: 200, right: 128, bottom: 228, width: 28, height: 28, x: 100, y: 200, toJSON: () => ({}) };
-    const at = (x: number, y: number) => ({ clientX: x, clientY: y, detail: 1, bubbles: true, cancelable: true });
+  // B1, R1 (#3680): swatches that closed under the pointer left the second press of a double click, or any press after it, to land on the row
+  // they covered. A pointer press picks and they stay.
+  describe('a pointer press on a swatch', () => {
+    const press = { detail: 1, bubbles: true, cancelable: true };
 
-    async function pickViolet(under: () => void) {
+    async function openOver(under: () => void, onChange: (value: Hue | null) => void = () => undefined) {
       render(
         <>
-          <Palette start="blue" form="popover" />
-          <button type="button" onPointerDown={under} onMouseDown={under} onClick={under}>
-            Remove the next row
-          </button>
-        </>,
-      );
-      await userEvent.click(trigger('Colour for Character: Blue'));
-      const violet = await screen.findByRole('radio', { name: 'Violet' });
-      // jsdom lays nothing out, so the swatch is given the box it would have.
-      violet.getBoundingClientRect = () => SPOT;
-      fireEvent.click(violet, at(110, 210));
-      await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
-      return screen.getByRole('button', { name: 'Remove the next row' });
-    }
-
-    it('a second click that follows a pick lands on nothing', async () => {
-      const under = vi.fn();
-      const below = await pickViolet(under);
-      for (const type of ['pointerDown', 'mouseDown', 'pointerUp', 'mouseUp', 'click', 'dblClick'] as const) {
-        expect(fireEvent[type](below, at(112, 212)), `${type} is cancelled`).toBe(false);
-      }
-      expect(under).not.toHaveBeenCalled();
-      expect(trigger('Colour for Character: Violet')).toBeTruthy();
-    });
-
-    it('a press somewhere else goes through at once', async () => {
-      const under = vi.fn();
-      const below = await pickViolet(under);
-      fireEvent.click(below, at(300, 400));
-      expect(under).toHaveBeenCalledTimes(1);
-    });
-
-    it('a press at the same spot goes through once the double-click interval has passed', async () => {
-      const under = vi.fn();
-      const below = await pickViolet(under);
-      await new Promise((resolve) => setTimeout(resolve, ECHO_WINDOW_MS + 20));
-      fireEvent.click(below, at(112, 212));
-      expect(under).toHaveBeenCalledTimes(1);
-    });
-
-    it('a pick by Space guards nothing: no second press follows a key', async () => {
-      const under = vi.fn();
-      render(
-        <>
-          <Palette start="blue" form="popover" />
+          <Palette start="blue" form="popover" onChange={onChange} />
           <button type="button" onClick={under}>
             Remove the next row
           </button>
         </>,
       );
       await userEvent.click(trigger('Colour for Character: Blue'));
-      const violet = await screen.findByRole('radio', { name: 'Violet' });
-      violet.getBoundingClientRect = () => SPOT;
-      violet.focus();
-      await userEvent.keyboard(' ');
+      return screen.findByRole('radio', { name: 'Violet' });
+    }
+
+    it('picks, shows the choice in the box and leaves the swatches open', async () => {
+      const onChange = vi.fn();
+      const violet = await openOver(() => undefined, onChange);
+      fireEvent.click(violet, press);
+      expect(onChange).toHaveBeenCalledExactlyOnceWith('violet');
+      expect(screen.getByRole('radiogroup')).toBeTruthy();
+      expect(checked('Violet')).toBe('true');
+      // The page behind an open popover is hidden from the accessibility tree, the box with it.
+      expect(screen.getByRole('button', { name: 'Colour for Character: Violet', hidden: true }).textContent).toBe('Violet');
+    });
+
+    it.each([2, 3, 5])('a %i-fold click picks once and nothing under the swatches is pressed', async (presses) => {
+      const onChange = vi.fn();
+      const under = vi.fn();
+      const violet = await openOver(under, onChange);
+      for (let nth = 1; nth <= presses; nth += 1) fireEvent.click(violet, { ...press, detail: nth });
+      expect(onChange).toHaveBeenCalledExactlyOnceWith('violet');
+      expect(under).not.toHaveBeenCalled();
+      expect(screen.getByRole('radiogroup')).toBeTruthy();
+    });
+
+    it('a second press long after the first lands on the swatch again', async () => {
+      const onChange = vi.fn();
+      const under = vi.fn();
+      const violet = await openOver(under, onChange);
+      fireEvent.click(violet, press);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      fireEvent.click(screen.getByRole('radio', { name: 'Violet' }), press);
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(under).not.toHaveBeenCalled();
+      expect(screen.getByRole('radiogroup')).toBeTruthy();
+    });
+
+    it('another swatch can be picked without opening the box again', async () => {
+      const onChange = vi.fn();
+      const violet = await openOver(() => undefined, onChange);
+      fireEvent.click(violet, press);
+      fireEvent.click(screen.getByRole('radio', { name: 'Green' }), press);
+      expect(onChange.mock.calls).toEqual([['violet'], ['green']]);
+      expect(screen.getByRole('radiogroup')).toBeTruthy();
+    });
+
+    it('Escape after a pick closes the swatches and returns focus to the box', async () => {
+      const violet = await openOver(() => undefined);
+      await userEvent.click(violet);
+      await userEvent.keyboard('{Escape}');
       await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
-      fireEvent.click(screen.getByRole('button', { name: 'Remove the next row' }), at(112, 212));
-      expect(under).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(document.activeElement).toBe(trigger('Colour for Character: Violet')));
+    });
+
+    it('a press outside closes the swatches', async () => {
+      const violet = await openOver(() => undefined);
+      await userEvent.click(violet);
+      await userEvent.click(document.body);
+      await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
+      expect(trigger('Colour for Character: Violet')).toBeTruthy();
     });
   });
 
-  it('a click picks, closes and returns focus to the box', async () => {
-    const onChange = vi.fn();
-    render(<Palette start="blue" form="popover" onChange={onChange} />);
+  it('Tab closes the swatches and returns focus to the box', async () => {
+    render(<Palette start="blue" form="popover" />);
     await userEvent.click(trigger('Colour for Character: Blue'));
-    await userEvent.click(await screen.findByRole('radio', { name: 'Violet' }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith('violet');
+    await waitFor(() => expect(document.activeElement).toBe(radio('Blue')));
+    await userEvent.tab();
     await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
-    await waitFor(() => expect(document.activeElement).toBe(trigger('Colour for Character: Violet')));
+    await waitFor(() => expect(document.activeElement).toBe(trigger('Colour for Character: Blue')));
   });
 
   it('arrow keys check without closing; Enter then closes without a second report', async () => {
@@ -595,6 +598,185 @@ describe('ColourField free', () => {
     await userEvent.tab();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(hexBox().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  // R2, R3 (#3680): a caller that saves at once hands back the save, and the box shows the colour sent until it is answered.
+  describe('while a save is out', () => {
+    /** A caller whose host answers when told to: `kept` true stores the colour, false refuses it. */
+    function AnsweredLater({ sent, start = 'B5473C' }: { sent: { hex: string; answer: (kept: boolean) => void }[]; start?: string }) {
+      const [value, setValue] = useState(start);
+      return (
+        <TooltipProvider>
+          <ColourField
+            mode="free"
+            label="Note color"
+            value={value}
+            onChange={(hex) =>
+              new Promise<boolean>((resolve) => {
+                sent.push({
+                  hex,
+                  answer: (kept) => {
+                    if (kept) setValue(hex);
+                    resolve(kept);
+                  },
+                });
+              })
+            }
+          />
+        </TooltipProvider>
+      );
+    }
+    const answer = (save: { answer: (kept: boolean) => void }, kept: boolean) => act(async () => save.answer(kept));
+
+    it('while a save is out the box shows the code entered, and says it is saving', async () => {
+      const sent: { hex: string; answer: (kept: boolean) => void }[] = [];
+      render(<AnsweredLater sent={sent} />);
+      await userEvent.clear(hexBox());
+      await userEvent.type(hexBox(), 'aa0001{Enter}');
+      expect(hexBox().value).toBe('AA0001');
+      expect(picker().value).toBe('#aa0001');
+      expect(hexBox().getAttribute('aria-busy')).toBe('true');
+      expect(hexBox().getAttribute('aria-invalid')).toBeNull();
+      await answer(sent[0]!, true);
+      expect(hexBox().value).toBe('AA0001');
+      expect(hexBox().getAttribute('aria-busy')).toBeNull();
+    });
+
+    it('a refused save puts the stored colour back in the box and the picker', async () => {
+      const sent: { hex: string; answer: (kept: boolean) => void }[] = [];
+      render(<AnsweredLater sent={sent} />);
+      await userEvent.clear(hexBox());
+      await userEvent.type(hexBox(), 'AA0001{Enter}');
+      await answer(sent[0]!, false);
+      expect(hexBox().value).toBe('B5473C');
+      expect(picker().value).toBe('#b5473c');
+      expect(hexBox().getAttribute('aria-busy')).toBeNull();
+      // The refused colour can be tried again.
+      await userEvent.clear(hexBox());
+      await userEvent.type(hexBox(), 'AA0001{Enter}');
+      expect(sent.map((save) => save.hex)).toEqual(['AA0001', 'AA0001']);
+    });
+
+    it('a save that rejects is a refused save', async () => {
+      let fail: (why: Error) => void = () => undefined;
+      const save = new Promise<never>((_, reject) => {
+        fail = reject;
+      });
+      render(<ColourField mode="free" label="Note color" value="B5473C" onChange={() => save} />);
+      await userEvent.clear(hexBox());
+      await userEvent.type(hexBox(), 'AA0001{Enter}');
+      expect(hexBox().value).toBe('AA0001');
+      await act(async () => fail(new Error('The settings file is read-only.')));
+      expect(hexBox().value).toBe('B5473C');
+    });
+
+    it('the same code entered again while pending is sent once', async () => {
+      const sent: { hex: string; answer: (kept: boolean) => void }[] = [];
+      render(<AnsweredLater sent={sent} />);
+      for (const spelling of ['AA0004', 'aa0004', ' #AA0004 ']) {
+        await userEvent.clear(hexBox());
+        await userEvent.type(hexBox(), `${spelling}{Enter}`);
+      }
+      await userEvent.tab();
+      act(() => {
+        fireEvent.input(picker(), { target: { value: '#aa0004' } });
+        picker().dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      expect(sent.map((save) => save.hex)).toEqual(['AA0004']);
+      expect(hexBox().value).toBe('AA0004');
+    });
+
+    it('a code typed while the save is out stands when the answer lands, kept or refused', async () => {
+      for (const kept of [true, false]) {
+        const sent: { hex: string; answer: (kept: boolean) => void }[] = [];
+        const { unmount } = render(<AnsweredLater sent={sent} />);
+        await userEvent.clear(hexBox());
+        await userEvent.type(hexBox(), 'BB0002{Enter}');
+        await userEvent.clear(hexBox());
+        await userEvent.type(hexBox(), 'CC00');
+        await answer(sent[0]!, kept);
+        expect(hexBox().value, kept ? 'kept' : 'refused').toBe('CC00');
+        await userEvent.type(hexBox(), '03{Enter}');
+        expect(sent.map((save) => save.hex)).toEqual(['BB0002', 'CC0003']);
+        unmount();
+      }
+    });
+
+    it('Enter while the save is out submits no form', async () => {
+      const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+      const sent: { hex: string; answer: (kept: boolean) => void }[] = [];
+      render(
+        <form onSubmit={onSubmit}>
+          <AnsweredLater sent={sent} />
+        </form>,
+      );
+      await userEvent.clear(hexBox());
+      await userEvent.type(hexBox(), 'AA0001{Enter}{Enter}');
+      expect(fireEvent.keyDown(hexBox(), { key: 'Enter' }), 'the key is cancelled').toBe(false);
+      await answer(sent[0]!, true);
+      expect(fireEvent.keyDown(hexBox(), { key: 'Enter' }), 'the key is left alone').toBe(true);
+    });
+  });
+
+  // R5 (#3680): Enter in a text box submits the form it is in, and a box that holds no colour has nothing to submit.
+  it.each(['zzz', 'B547', '# abcdef', ''])('Enter on %j is cancelled, so no form is submitted with it', async (text) => {
+    render(<Free start="B5473C" onRefused={() => undefined} />);
+    await userEvent.clear(hexBox());
+    if (text) await userEvent.type(hexBox(), text);
+    expect(fireEvent.keyDown(hexBox(), { key: 'Enter' })).toBe(false);
+    expect(fireEvent.keyDown(hexBox(), { key: 'Enter' })).toBe(false);
+  });
+
+  it('Enter on a colour is left to the form', async () => {
+    render(<Free start="B5473C" />);
+    await userEvent.clear(hexBox());
+    await userEvent.type(hexBox(), 'AA0001');
+    expect(fireEvent.keyDown(hexBox(), { key: 'Enter' })).toBe(true);
+  });
+
+  // R6 (#3680): the hint showed on hover, or on focusing the box again, and not at the refusal.
+  it('a hex refused with focus in the box shows the hint', async () => {
+    render(
+      <TooltipProvider>
+        <Free start="B5473C" />
+      </TooltipProvider>,
+    );
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(hexBox());
+    await userEvent.clear(hexBox());
+    await userEvent.keyboard('B547');
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    await userEvent.keyboard('{Enter}');
+    expect(document.activeElement).toBe(hexBox());
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Six hex digits, like B5473C');
+  });
+
+  it('the hint goes when the narrator types again, with Escape, and when focus leaves', async () => {
+    render(
+      <TooltipProvider>
+        <Free start="B5473C" />
+        <button type="button">Next</button>
+      </TooltipProvider>,
+    );
+    const refuse = async () => {
+      await userEvent.clear(hexBox());
+      await userEvent.keyboard('B547{Enter}');
+      await screen.findByRole('tooltip');
+    };
+    await userEvent.tab();
+    await userEvent.tab();
+    await refuse();
+    await userEvent.keyboard('3');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    await refuse();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    expect(hexBox().value).toBe('B5473C');
+    await refuse();
+    await userEvent.tab();
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    expect(hexBox().getAttribute('aria-invalid')).toBe('true');
   });
 
   // B7 (#3680): a form that saves later holds refused text as its own unsaved value.

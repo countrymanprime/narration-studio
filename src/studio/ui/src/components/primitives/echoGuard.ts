@@ -40,36 +40,8 @@ export function useEchoGuard(enabled: boolean | undefined): (event: MouseEvent) 
   };
 }
 
-const guards = new Set<() => void>();
-const PRESS_EVENTS = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'dblclick'] as const;
-
-/**
- * For a press that closes the layer it was made on (a swatch in a popover). A double click lands its second press on whatever the layer
- * covered, which may delete a row or flip a switch, so for `ECHO_WINDOW_MS` every pointer press inside `spot` (the pressed control's box
- * as it was) reaches nothing. A press anywhere else goes through, and so does a key. A control that is not laid out (no area) guards nothing.
- */
-export function absorbEchoAt(spot: DOMRect): void {
-  if (spot.width <= 0 || spot.height <= 0) return;
-  const swallow = (event: globalThis.MouseEvent) => {
-    const inside = event.clientX >= spot.left && event.clientX <= spot.right && event.clientY >= spot.top && event.clientY <= spot.bottom;
-    if (!inside) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  };
-  // On the window, in the capture phase: before the page, React and any library hear the press.
-  for (const type of PRESS_EVENTS) window.addEventListener(type, swallow, true);
-  const end = () => {
-    clearTimeout(timer);
-    guards.delete(end);
-    for (const type of PRESS_EVENTS) window.removeEventListener(type, swallow, true);
-  };
-  const timer = setTimeout(end, ECHO_WINDOW_MS);
-  guards.add(end);
-}
-
-/** Forgets the clicks seen so far and ends every guard: a test's last click is not the echo of the next test's first. */
+/** Forgets the clicks seen so far: a test's last click is not the echo of the next test's first. */
 export function forgetEchoClicks() {
   current = undefined;
   previous = undefined;
-  for (const end of [...guards]) end();
 }
