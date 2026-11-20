@@ -327,6 +327,27 @@ The mastering port's DAW row ([Provider ports](provider-ports.md)). `master_chai
 
 `project_state` (the change-driven re-compare indicator) is a Could-tier, on-demand check: it reads `GetProjectStateChangeCount(0)`, REAPER's own coarse edit counter, and the current project's saved-file path (the same `EnumProjects(-1, '')` call `prepare_compare` already makes). It never mutates the project (no undo block, nothing selected or moved) and reads nothing but those two values. The host (`src/studio/desktop/internal/projectstate`) stats the reported path itself for the saved `.rpp`'s modification time - Lua has no portable file-stat call - and exposes a pure `ChangedSince(current, baseline)` comparison so any feature that already has a saved-file-mtime-based staleness basis can add this as one more, optional live hint on top of it, never a replacement: nothing here decides what "stale" means for another feature, and nothing re-runs an analysis automatically.
 
+## A slow link on demand
+
+A fresh REAPER answers a command in tens of milliseconds, so a slow or stalling DAW has to be produced to be tested (#3752). `bridge.SlowLink` (`src/studio/desktop/internal/bridge/slowlink.go`) is that slowness as data, and `Client.SetSlowLink` applies it to one session:
+
+| Part of a profile | What it does |
+| --- | --- |
+| `delay=1s`, or a bare `1s` | Holds every command that long before REAPER can read it |
+| `jitter=200ms` | Adds up to that much more, different for each command and the same on every run |
+| `stall=8s`, `stall=8s/30s` | Nothing reaches REAPER and no event is delivered for 8 s, from the moment the profile is set (and again every 30 s). Commands sent meanwhile are released together when it ends, and so are the events. `stall-recover` is `stall=8s` |
+| `drop=1` | The first command never reaches REAPER, so it is never answered |
+| `only=tracks_read+arm_lane` | Limits the delay, the jitter and the drop to these commands. A stall holds every command |
+
+Parts are joined with commas: `delay=1s,jitter=200ms,only=tracks_read`.
+
+- **What the host sees.** A held command's file is not in `commands/` yet, so the host reads it as taken at once and counts the hold as REAPER's time (`reaper_ms` in `bridge.slow`). A wait that ends finds nothing to take back, as with a REAPER that read the command and is still at work: a command in `mayRunLong` gets the late wait, and any other reports no answer and **still reaches REAPER when the hold ends**.
+- **Order.** Commands reach REAPER in the order they were sent, whatever each one's hold.
+- **In a Go test:** `client.SetSlowLink(bridge.SlowLink{Delay: 150 * time.Millisecond})` on a session with a fake REAPER. `slowlink_test.go` runs the six profiles the issue names, scaled down.
+- **In a development run:** set `NARRATION_DAW_LATENCY` to a profile before starting the app. It works against a real REAPER and the host log gets one `bridge.slow_link` line saying the link is slowed on purpose. Use a project made for the test: a command the app gave up on still runs.
+
+The cases the Go parser and the UI mock's parser (`src/studio/ui/src/api/dawLatency.ts`) must read alike are in `src/studio/desktop/internal/bridge/testdata/slowlink_profiles.json`.
+
 ## The harness
 
 `src/studio/integrations/reaper/tests/` runs the bridge and the launcher under **Lua 5.4** with a **fake `reaper` table**, through the same file protocol the host uses. Run it with `pnpm exec nx run reaper:test` (it is also part of `pnpm check` and the `quality / lua` CI job on Linux and Windows).

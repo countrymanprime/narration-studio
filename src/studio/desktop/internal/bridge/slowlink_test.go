@@ -2,34 +2,48 @@ package bridge
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
 
+// The profiles in testdata/slowlink_profiles.json are read here and by the UI mock's parser (src/studio/ui/src/api/dawLatency.test.ts), so
+// one profile means the same slowness on both sides.
 func TestParseSlowLink(t *testing.T) {
-	cases := map[string]SlowLink{
-		"":              {},
-		"0ms":           {},
-		"300ms":         {Delay: 300 * time.Millisecond},
-		"10s":           {Delay: 10 * time.Second},
-		"stall-recover": {StallFor: 8 * time.Second},
-		"delay=1s, jitter=200ms,stall=8s/30s,drop=1,only=tracks_read+arm_lane": {
-			Delay: time.Second, Jitter: 200 * time.Millisecond, StallFor: 8 * time.Second, StallEvery: 30 * time.Second, Drop: 1,
-			Only: []string{"tracks_read", "arm_lane"},
-		},
-	}
-	for text, want := range cases {
-		got, err := ParseSlowLink(text)
-		if err != nil || !reflect.DeepEqual(got, want) {
-			t.Errorf("%q: got %+v, %v; want %+v", text, got, err, want)
+	var fixture struct {
+		Valid []struct {
+			Text                                        string
+			DelayMs, JitterMs, StallForMs, StallEveryMs int64
+			Drop                                        int
+			Only                                        []string
 		}
-		if got.Slows() != (text != "" && text != "0ms") {
-			t.Errorf("%q: Slows() = %v", text, got.Slows())
+		Invalid []string
+	}
+	content, err := os.ReadFile(filepath.Join("testdata", "slowlink_profiles.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(content, &fixture); err != nil || len(fixture.Valid) == 0 || len(fixture.Invalid) == 0 {
+		t.Fatalf("the fixture did not load: %v", err)
+	}
+	ms := func(n int64) time.Duration { return time.Duration(n) * time.Millisecond }
+	for _, want := range fixture.Valid {
+		got, err := ParseSlowLink(want.Text)
+		same := got.Delay == ms(want.DelayMs) && got.Jitter == ms(want.JitterMs) && got.StallFor == ms(want.StallForMs) &&
+			got.StallEvery == ms(want.StallEveryMs) && got.Drop == want.Drop && strings.Join(got.Only, "+") == strings.Join(want.Only, "+")
+		if err != nil || !same {
+			t.Errorf("%q: got %+v, %v; want %+v", want.Text, got, err, want)
+		}
+		if got.Slows() != (want.DelayMs+want.JitterMs+want.StallForMs+int64(want.Drop) > 0) {
+			t.Errorf("%q: Slows() = %v", want.Text, got.Slows())
 		}
 	}
-	for _, text := range []string{"fast", "delay=-1s", "stall=8s/8s", "stall=8s/x", "drop=-1", "drop=one", "speed=1s", "jitter=soon"} {
+	for _, text := range fixture.Invalid {
 		if got, err := ParseSlowLink(text); err == nil {
 			t.Errorf("%q parsed as %+v; want an error", text, got)
 		}
