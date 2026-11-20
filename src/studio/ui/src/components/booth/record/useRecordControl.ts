@@ -132,6 +132,15 @@ let appTakeRunning = false;
 let appTakeChapterId: string | undefined;
 /** The chapter the take this app started and has not seen end began in; undefined when there is none. */
 export const appTakeChapter = (): string | undefined => appTakeChapterId;
+// Whether the claiming page already wrote this take's passage-map run (it was left mid-take by the narrator's choice and flushed). The chapter opened again with the take
+// still running does not start a second, overlapping run for the same take (#3720); the claim ending, or a new claim, resets it.
+let appTakeRunWritten = false;
+/** True when the take this app started and has not seen end already has its run written, by the page that was left. */
+export const appTakeRunIsWritten = (): boolean => appTakeRunWritten;
+/** The page that began the take was left mid-take and wrote its run. */
+export const markAppTakeRunWritten = (): void => {
+  appTakeRunWritten = true;
+};
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
 // The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
@@ -145,6 +154,7 @@ export const forgetAppTake = (): void => {
   runningStart = 0;
   appTakeRunning = false;
   appTakeChapterId = undefined;
+  appTakeRunWritten = false;
   lastStartAt = 0;
 };
 /** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
@@ -330,6 +340,7 @@ export function useRecordControl({
     } else if (wasRecording.current) {
       appTakeRunning = false;
       appTakeChapterId = undefined;
+      appTakeRunWritten = false;
     }
     wasRecording.current = recording;
   }, [recording, chapterId]);
@@ -345,7 +356,10 @@ export function useRecordControl({
   // A page that reads the DAW as not recording, while it records nothing itself, holds no take: a claim left by a take that ended with no page to see it is stale, and would
   // write off the next take this page adopts as another chapter's (#3712).
   useEffect(() => {
-    if (!recording && project?.playState && project.playState !== 'recording') appTakeChapterId = undefined;
+    if (!recording && project?.playState && project.playState !== 'recording') {
+      appTakeChapterId = undefined;
+      appTakeRunWritten = false;
+    }
   }, [recording, project?.playState]);
   // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
   const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
@@ -652,6 +666,7 @@ export function useRecordControl({
             lastStartAt = Date.now();
             // A take this page starts is this chapter's, whatever claim a take it never saw end left behind (the Booth was left while it ran, and it ended with no page to see it).
             appTakeChapterId = chapterId;
+            appTakeRunWritten = false;
           }
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;
