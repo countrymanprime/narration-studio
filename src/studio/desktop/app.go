@@ -502,6 +502,8 @@ type Host struct {
 	writableOK bool
 	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator.
 	persist *persist.Reporter
+	// reads shares one computation between identical read bindings in flight (readflights.go).
+	reads readFlights
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
 	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
 	notifySender   notificationSender
