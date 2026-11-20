@@ -2,6 +2,7 @@ import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
 import { reached } from '../../../chapterStatus';
+import { spokenMarked } from '../../../clock';
 import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
@@ -34,9 +35,9 @@ export type PipelineCell = {
 export type RecordedFigure = {
   /** `measured` for a length the host read, `none` for a state word. */
   kind: 'measured' | 'none';
-  /** A clock ("1:12"), "<0:01" for under a minute, or a short state ("None yet", "No track"). */
+  /** Hours and minutes ("1h 12m"), "<0h 01m" for under a minute, or a short state ("None yet", "No track"). */
   text: string;
-  /** The accessible name: "<chapter>: 1:12 recorded of about 1:20 estimated", or the state in words. */
+  /** The accessible name: "<chapter>: 1 hour 12 minutes recorded of about 1 hour 20 minutes estimated" (spelled out for a screen reader), or the state in words. */
   label: string;
   tip: string;
 };
@@ -127,8 +128,8 @@ const unavailable = (layout: VoiceTracksLayout): Record<RecordedUnavailable, { t
 };
 const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
 
-/** A recorded length as h:mm; under a minute is "<0:01", so a few seconds of audio never reads as nothing. */
-const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0:01' : clockOf(seconds));
+/** A recorded length as hours and minutes; under a minute is "<0h 01m", so a few seconds of audio never reads as nothing. */
+const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0h 01m' : clockOf(seconds));
 
 type ThroughWords = { label: string; tip: string };
 
@@ -164,7 +165,7 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
     return {
       kind: 'measured',
       text,
-      label: `${name}: ${text} recorded${of}`,
+      label: `${name}: ${spokenMarked(text)} recorded${estimate === DASH ? ', no estimate' : ` of about ${spokenMarked(estimate)} estimated`}`,
       tip: `${text} recorded${of} · on the linked ${destinationFor(layout).noun} in the saved project, before editing`,
     };
   }

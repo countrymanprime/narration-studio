@@ -1859,6 +1859,10 @@ function Fake:add_lane_api(api)
       return track.armed and 1 or 0
     elseif key == 'I_RECINPUT' then
       return track.rec_input or 0
+    elseif key == 'I_RECMON' then
+      -- 0 off, 1 on, 2 on but silent while recording; read back as set, and setting it adds no undo point and does not move the change
+      -- count (REAPER 7.82, docs/research/2026-11-16-booth-arms-and-monitors.md). A track REAPER's own CI helper inserted read 1, so a test sets it.
+      return track.rec_mon or 0
     elseif key == 'B_MUTE' then
       return track.muted and 1 or 0
     elseif key == 'I_SOLO' then
@@ -1921,6 +1925,8 @@ function Fake:add_lane_api(api)
       track.folder_depth = value
     elseif key == 'I_RECINPUT' then
       track.rec_input = value
+    elseif key == 'I_RECMON' then
+      track.rec_mon = value
     elseif key == 'I_RECMODE' then
       track.rec_mode = value
     elseif not lane then

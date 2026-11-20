@@ -41,7 +41,7 @@ export const beforeCut: BeforeCutStep[] = [];
 
 /** The history entry's name: "Deleted 3 words and their audio at 0:12", or "Muted 3 words at 0:12". */
 function cutLabel(n: number, start: number, mute: boolean): string {
-  return `${mute ? 'Muted' : 'Deleted'} ${plural(n, 'word', 'words')}${mute ? '' : ' and their audio'} at ${clock(start)}`;
+  return `${mute ? 'Muted' : 'Deleted'} ${plural(n, 'word', 'words')}${mute ? '' : ' and their audio'} at ${clock(start, { full: true })}`;
 }
 
 /** Why these words cannot be cut, in words; '' when they can. */

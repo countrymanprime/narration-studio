@@ -245,6 +245,7 @@
     "app.spec.ts|engine / link-chapters-error": 6,
     "app.spec.ts|engine / voice-folders-link-several": 15,
     "app.spec.ts|engine / voice-folders-link-missing": 15,
+    "app.spec.ts|engine / link-chapters-several": 15,
     "app.spec.ts|engine / link-chapters-preview": 9.8,
     "app.spec.ts|engine / link-chapters-success": 6.4,
     "app.spec.ts|engine / live-tracks-saved": 6.1,

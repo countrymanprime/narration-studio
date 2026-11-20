@@ -151,7 +151,7 @@ voice sample…**); **Takes** (show or keep the line's takes, hide the others, a
 take reads it twice); then copy. A row's key, such as **T** or **H**, is drawn at its right end.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
-(with ", not in the script" for a word that was only said), or "3 words selected, 0:23 to 0:24" for a selection, and "Selection cleared"
+(with ", not in the script" for a word that was only said), or "3 words selected, 00:00:23.100 to 00:00:24.050" for a selection, and "Selection cleared"
 when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
 cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
 (**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
@@ -218,7 +218,7 @@ its audio while the view moves; there is no scrollbar. With the waveform focused
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
-the waveform where you scrolled it.
+the waveform where you scrolled it. Positions on the waveform and the timeline strip (the window's span, a range's edges, **Play from**) are written to the millisecond, `hh:mm:ss.fff` ("00:00:05.540"), with a dot before the milliseconds so they are not read as frames.
 
 **The waveform's menu.** A right click without a drag (a long press on a touch screen, or the menu key or **Shift+F10** with the waveform
 focused) opens its own menu: **Play from** that moment, **Play the range** and **Clear the range** when there is one, **Put the cursor on**

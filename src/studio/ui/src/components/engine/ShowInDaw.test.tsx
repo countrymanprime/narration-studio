@@ -16,7 +16,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function setup(target: ShowInDawTarget, setupId: DawSetupId = 'reaper', props: { disabled?: boolean } = {}) {
+function setup(target: ShowInDawTarget, setupId: DawSetupId = 'reaper', props: { disabled?: boolean; when?: (seconds: number) => string } = {}) {
   const api = createMockApi();
   const goTo = vi.spyOn(api, 'workspaceGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 74 });
   const findingGoTo = vi.spyOn(api, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 221 });
@@ -61,6 +61,12 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     await userEvent.click(await button('Show in REAPER'));
     expect(t.findingGoTo).toHaveBeenCalledWith('f9');
     await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
+  });
+
+  it("writes the place with the caller's formatter when it gives one, and as a plain clock when it does not", async () => {
+    const t = setup({ kind: 'passage', chapterId: 'c1', token: 42 }, 'reaper', { when: (seconds) => `at ${seconds} s` });
+    await userEvent.click(await button('Show in REAPER'));
+    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to at 74 s in REAPER.'));
   });
 
   it('a chapter selects its linked track', async () => {

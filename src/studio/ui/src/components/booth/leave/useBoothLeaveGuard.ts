@@ -3,7 +3,7 @@ import type { DawResult } from '../../../api/contracts/daw';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { pageNameFor } from '../../layout/railPages';
-import { stopRecordingSpec } from './stopRecordingSpec';
+import { CHAPTER_OPEN_ANYWAY, stopRecordingSpec } from './stopRecordingSpec';
 
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
 export type BoothLeaveSession = {
@@ -276,8 +276,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             // The labels of the question as the DAW is now: a take that went quiet after "Keep recording" was offered offers "Stay", as the unconfirmed question does.
             ...stopRecordingSpec(now.daw.name, startedByApp, false, destination, unconfirmedEnd(sessionRef.current)),
             title: 'Could not stop the take',
-            body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can leave anyway, but it may keep recording.`.trim(),
-            confirmLabel: 'Leave anyway',
+            body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can ${destination === 'Booth' ? 'open it' : 'leave'} anyway, but it may keep recording.`.trim(),
+            confirmLabel: destination === 'Booth' ? CHAPTER_OPEN_ANYWAY : 'Leave anyway',
             // A double-click on "Stop and leave" must not land on the "Leave anyway" that replaces it before the sentence can be read.
             armAfterMs: LEAVE_ANYWAY_ARM_MS,
           };

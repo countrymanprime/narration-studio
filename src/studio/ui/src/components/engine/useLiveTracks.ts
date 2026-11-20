@@ -7,6 +7,10 @@ import { retryAction, type Notify } from '../primitives/Toast';
 
 /** How often the panel reads REAPER's tracks again while the window is visible. */
 export const LIVE_TRACKS_POLL_MS = 5_000;
+/** The longest the timer waits between reads while REAPER does not answer: each failed automatic read doubles the wait (5 s, 10 s, 20 s, 40 s, then this), a good read ends it.
+ * The wait is counted in timer ticks, so a clock set back or forward changes nothing, and it is about this long from the failure: the read's own time (up to
+ * LIVE_TRACKS_TIMEOUT_MS) and the tick's phase come on top. */
+export const LIVE_TRACKS_BACKOFF_MAX_MS = 60_000;
 /** The topic of a tracks read's toast: a read's answer replaces the failure (or the earlier answer) it follows, so two opposite messages never stand together (#3339). */
 export const TRACKS_READ_TOPIC = 'tracks-read';
 
@@ -58,7 +62,7 @@ function withinLimit(read: Promise<TracksLive>): Promise<TracksLive> {
  * saved .rpp with why (`TracksLive`). It reads when the panel opens and when `readKey` changes (the linked file, Check again), on window
  * focus, every LIVE_TRACKS_POLL_MS while the window is visible, and on `refresh`. A newer read always wins: an older one that answers late is
  * dropped, and an automatic read waits while one is in flight. A read unanswered after LIVE_TRACKS_TIMEOUT_MS counts as failed, so the poll
- * goes on. A failure is a toast with Retry: once for a run of automatic failures, and again on each press. After a good read the tracks are
+ * goes on, less often while REAPER keeps not answering (LIVE_TRACKS_BACKOFF_MAX_MS). A failure is a toast with Retry: once for a run of automatic failures, and again on each press. After a good read the tracks are
  * kept and marked stale. Disabled (an Audacity project, whose tracks come from its snapshot), it never reads.
  */
 export function useLiveTracks({
@@ -93,6 +97,11 @@ export function useLiveTracks({
   const mounted = useRef(true);
   // Whether the last read failed, so a run of failed automatic reads toasts once.
   const failing = useRef(false);
+  // Consecutive automatic reads that failed, and the timer ticks still to let pass before it reads again (not focus, Refresh or a new read key): a
+  // REAPER that is closed or stalled costs each read up to its limit, so the timer asks less often until it answers (#3647). A failed press does
+  // not count: the narrator pressing Retry must not lengthen the wait for the first automatic read after REAPER is back.
+  const failures = useRef(0);
+  const skipTicks = useRef(0);
   const hasProject = useRef(false);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
@@ -115,6 +124,8 @@ export function useLiveTracks({
           if (!mounted.current) return { failed: false };
           if (id !== latest.current) return newest.current ?? { failed: false };
           failing.current = false;
+          failures.current = 0;
+          skipTicks.current = 0;
           hasProject.current = true;
           setState({
             project: answer.project,
@@ -141,6 +152,11 @@ export function useLiveTracks({
               TRACKS_READ_TOPIC,
             );
           failing.current = true;
+          if (!pressed && !force) {
+            failures.current += 1;
+            const ticks = Math.min(2 ** Math.min(failures.current - 1, 10), LIVE_TRACKS_BACKOFF_MAX_MS / LIVE_TRACKS_POLL_MS);
+            skipTicks.current = ticks - 1;
+          }
           // The toast above keeps describeApiError's wording; the line a panel draws is the bare message, without the "Error: " prefix.
           setState((previous) => ({ ...previous, stale: hasProject.current, error: apiErrorMessage(reason) }));
           return { failed: true };
@@ -175,7 +191,12 @@ export function useLiveTracks({
     const onVisible = () => {
       if (document.visibilityState === 'visible') auto();
     };
-    const timer = window.setInterval(onVisible, LIVE_TRACKS_POLL_MS);
+    // The timer keeps the backoff; coming back to the window (focus, visibility) is the narrator, and reads at once.
+    const onTimer = () => {
+      if (skipTicks.current > 0) skipTicks.current -= 1;
+      else onVisible();
+    };
+    const timer = window.setInterval(onTimer, LIVE_TRACKS_POLL_MS);
     window.addEventListener('focus', auto);
     document.addEventListener('visibilitychange', onVisible);
     return () => {

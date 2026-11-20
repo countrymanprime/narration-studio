@@ -22,7 +22,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
   // answer it unread (#3349). A click and Escape are not held back.
   const enterArmed = useArmed(entry.kind === 'confirm' ? entry.spec.ignoreEnterAfterMs : undefined);
   if (entry.kind === 'confirm') {
-    const { title, body, confirmLabel, confirmVariant, cancelLabel, safeDefault } = entry.spec;
+    const { title, body, confirmLabel, confirmVariant, cancelLabel, safeDefault, returnFocus } = entry.spec;
     return (
       <ConfirmDialog
         title={title}
@@ -32,6 +32,7 @@ function Layer({ entry }: { entry: DialogEntry }) {
         cancelLabel={cancelLabel}
         focusCancel={safeDefault}
         stayOnBody={safeDefault}
+        returnFocus={returnFocus}
         holdEnter={!enterArmed}
         confirm={() => {
           if (armed) entry.answer(true);

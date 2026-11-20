@@ -124,7 +124,7 @@ describe('the list, the words and the inspector', () => {
     render(<OnWords effects={MANY} cuts={[]} onSelect={select} onRemove={remove} />);
     const row = document.querySelector('[data-wfx="fx1"]') as HTMLElement;
     expect(row.textContent).toContain('Podcast Voice');
-    expect(row.textContent).toContain('“The first” · 0:10–0:22');
+    expect(row.textContent).toContain('“The first” · 00:00:10.000–00:00:22.000');
     expect(screen.getByText('On words · 3')).toBeTruthy();
     fireEvent.click(within(row).getByRole('button', { name: 'Select the words' }));
     expect(select).toHaveBeenCalledWith(MANY[0]);
@@ -139,7 +139,7 @@ describe('the list, the words and the inspector', () => {
     render(<EffectsList effects={MANY} cuts={[]} total={TOTAL} selectedId="fx2" onSelect={() => {}} />);
     const rows = [...document.querySelectorAll('[data-fxr]')];
     expect(rows.map((r) => r.getAttribute('data-fxr'))).toEqual(['fx1', 'fx2', 'fx3']);
-    expect(rows[0].closest('tr')?.textContent).toContain('0:10–0:22');
+    expect(rows[0].closest('tr')?.textContent).toContain('00:00:10.000–00:00:22.000');
     expect(rows[0].closest('tr')?.textContent).toContain('6.0%');
     expect(rows[1].getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('Effects · 3')).toBeTruthy();
@@ -339,7 +339,7 @@ describe('the tab', () => {
     fireEvent.click(document.querySelector('button[data-fx="fx3"]') as HTMLElement);
     expect(within(inspector()).getByText('De-ess', { selector: 'h3' })).toBeTruthy();
     expect(within(inspector()).getByText('“Second”')).toBeTruthy();
-    expect(within(inspector()).getByText('1:40–1:44')).toBeTruthy();
+    expect(within(inspector()).getByText('00:01:40.000–00:01:44.000')).toBeTruthy();
     expect(within(inspector()).getByText('2.0% of this chapter')).toBeTruthy();
   });
   // Alignment audit R3ED-7: with words selected the inspector showed the first effect, not the one on the selection.

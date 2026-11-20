@@ -1,5 +1,6 @@
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
+import { SpokenFigure } from '../../primitives/SpokenFigure';
 import { hm } from '../../schedule/dates';
 import type { WeekFigures } from '../measured/measured.selectors';
 import { NOT_MEASURED } from './overviewFigures';
@@ -17,14 +18,32 @@ export function WeekCard({ figures }: { figures: WeekFigures }) {
         <div className="flex items-baseline justify-between gap-3 text-[0.875rem]">
           <span>Recorded this week</span>
           <span className={MONO} data-week>
-            {week.ok ? hm(week.value / HOUR) + (target != null ? ` / ${hm(target / HOUR)}` : '') : NOT_MEASURED}
+            {week.ok ? (
+              <>
+                <SpokenFigure text={hm(week.value / HOUR)} />
+                {target != null && (
+                  <>
+                    {' / '}
+                    <SpokenFigure text={hm(target / HOUR)} />
+                  </>
+                )}
+              </>
+            ) : (
+              NOT_MEASURED
+            )}
           </span>
         </div>
         {share !== null && <ProgressBar label="Recorded this week" value={Math.round(share)} size="thin" />}
         <div className="flex items-baseline justify-between gap-3 text-[0.875rem]">
           <span>Voice rest (last 24 h)</span>
           <span className={MONO} data-rest>
-            {last24h.ok ? `${hm(last24h.value / HOUR)} recorded` : NOT_MEASURED}
+            {last24h.ok ? (
+              <>
+                <SpokenFigure text={hm(last24h.value / HOUR)} /> recorded
+              </>
+            ) : (
+              NOT_MEASURED
+            )}
           </span>
         </div>
       </div>
