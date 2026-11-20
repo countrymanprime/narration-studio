@@ -46,6 +46,12 @@ export type StudioStore<R extends SlotRegistry> = {
   subscribe(listener: () => void): () => void;
   /** Reads one slot now. Rejects when the loader fails or the payload has the wrong shape; the failure is also recorded. */
   load(slot: keyof R & string): Promise<void>;
+  /**
+   * Makes sure one slot holds a value: resolves at once when it is loaded (what makes it stale refreshes it in the background), joins a load of it
+   * already in flight, and otherwise reads it. A page that needs the list calls this on mount instead of `load`, so mounting does not read what is held.
+   * Rejects when the read it started or joined fails.
+   */
+  ensure(slot: keyof R & string): Promise<void>;
   /** Wires the host events and window focus to the slots; returns the stop function. */
   start(): () => void;
   /**
@@ -115,6 +121,19 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
 
   const refresh = (name: keyof R & string) => void attempt(name);
 
+  // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
+  const ensuring = new Map<string, Promise<void>>();
+  function ensure(name: keyof R & string): Promise<void> {
+    if (state.slots[name] !== undefined) return Promise.resolve();
+    const running = ensuring.get(name);
+    if (running) return running;
+    const read = load(name).finally(() => {
+      if (ensuring.get(name) === read) ensuring.delete(name);
+    });
+    ensuring.set(name, read);
+    return read;
+  }
+
   return {
     getState: () => state,
     subscribe(listener) {
@@ -122,6 +141,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       return () => void listeners.delete(listener);
     },
     load,
+    ensure,
     publish(topic) {
       for (const name of Object.keys(registry) as Array<keyof R & string>) if (registry[name]!.topics?.includes(topic)) refresh(name);
     },
@@ -139,6 +159,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     },
     reset() {
       epoch += 1;
+      ensuring.clear();
       state = empty;
       emit();
     },

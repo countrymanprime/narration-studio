@@ -302,3 +302,56 @@ describe('publish-refreshes-the-slots-that-list-the-topic', () => {
     expect(store.getState().slots.chapters).toBeUndefined();
   });
 });
+
+describe('ensure: a mounting page does not read what the store holds (#3658)', () => {
+  it('reads an empty slot once for callers that mount together, and answers at once afterwards', async () => {
+    const gate = deferred<unknown>();
+    const load = vi.fn(() => gate.promise);
+    const { store } = make({ jobs: { schema: isCount, load } });
+    const first = store.ensure('jobs');
+    const second = store.ensure('jobs');
+    expect(load).toHaveBeenCalledTimes(1);
+    gate.resolve({ count: 3 });
+    await Promise.all([first, second]);
+    await store.ensure('jobs');
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(store.getState().slots.jobs).toEqual({ count: 3 });
+  });
+
+  it('serves a loaded slot while what made it stale refreshes it in the background', async () => {
+    const refresh = deferred<unknown>();
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockReturnValueOnce(refresh.promise);
+    const { store, events } = make({ jobs: { schema: isCount, load, events: ['job:ended'] } });
+    store.start();
+    await store.ensure('jobs');
+    events.emit('job:ended');
+    await store.ensure('jobs'); // answers at once from the held value, the refresh still out
+    expect(store.getState().slots.jobs).toEqual({ count: 1 });
+    refresh.resolve({ count: 2 });
+    await flush();
+    expect(store.getState().slots.jobs).toEqual({ count: 2 });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects every caller that joined a failed read, then reads again for the next one', async () => {
+    const load = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ count: 5 });
+    const { store } = make({ jobs: { schema: isCount, load } });
+    const a = store.ensure('jobs');
+    const b = store.ensure('jobs');
+    await expect(a).rejects.toThrow('offline');
+    await expect(b).rejects.toThrow('offline');
+    await store.ensure('jobs');
+    expect(store.getState().slots.jobs).toEqual({ count: 5 });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads again after reset (a project switch), not from the old project', async () => {
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 9 });
+    const { store } = make({ jobs: { schema: isCount, load } });
+    await store.ensure('jobs');
+    store.reset();
+    await store.ensure('jobs');
+    expect(store.getState().slots.jobs).toEqual({ count: 9 });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+});
