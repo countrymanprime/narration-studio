@@ -166,3 +166,74 @@ describe('useChapterText with a store of its own (#3658)', () => {
     expect(result.current.loading).toBe(false);
   });
 });
+
+describe('useChapterText with many readers and swaps (#3658)', () => {
+  it("asks for each chapter once and does not redraw a reader for another chapter's read", async () => {
+    const api = createMockApi();
+    const chapters = await api.manuscriptChapters();
+    const ids = chapters.slice(0, 8).map((chapter) => chapter.id);
+    const real = api.manuscriptParagraphs.bind(api);
+    // Each answer lands in its own tick.
+    vi.spyOn(api, 'manuscriptParagraphs').mockImplementation(async (id) => {
+      await new Promise((resolve) => setTimeout(resolve, 5 * (ids.indexOf(id) + 1)));
+      return real(id);
+    });
+    let renders = 0;
+    const { wrapper, store } = (() => {
+      const keyed = createKeyedSlots(api);
+      const created = createStudioStore({
+        registry: createSlots(api, { bookmarksList: async () => [] }),
+        keyed: keyed,
+        subscribe: () => () => undefined,
+        subscribeFocus: () => () => undefined,
+        onError: () => undefined,
+      });
+      return {
+        store: created,
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <ApiProvider api={api}>
+            <StudioProvider store={created}>{children}</StudioProvider>
+          </ApiProvider>
+        ),
+      };
+    })();
+    const ensure = vi.spyOn(store.keyed('chapterText'), 'ensure');
+    const { result } = renderHook(
+      () => {
+        renders += 1;
+        return ids.map((id) => useChapterText(id));
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.every((entry) => entry.paragraphs !== undefined)).toBe(true));
+    // N readers answered one per tick: each asks once on mount and redraws about twice (mount, its own answer), not once for each other reader's answer.
+    expect(ensure.mock.calls.length).toBeLessThanOrEqual(ids.length * 2);
+    expect(renders).toBeLessThanOrEqual(ids.length * 3);
+  });
+
+  it('two readers that swap chapters in one commit read neither again', async () => {
+    const api = createMockApi();
+    const [one, two] = await api.manuscriptChapters();
+    const read = vi.spyOn(api, 'manuscriptParagraphs');
+    const keyed = createKeyedSlots(api);
+    const store = createStudioStore({
+      registry: createSlots(api, { bookmarksList: async () => [] }),
+      keyed: { chapterText: { ...keyed.chapterText, budget: 10 } },
+      subscribe: () => () => undefined,
+      subscribeFocus: () => () => undefined,
+      onError: () => undefined,
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider store={store}>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result, rerender } = renderHook(({ ids }) => ids.map((id) => useChapterText(id)), { wrapper, initialProps: { ids: [one!.id, two!.id] } });
+    await waitFor(() => expect(result.current.every((entry) => entry.paragraphs !== undefined)).toBe(true));
+    expect(read).toHaveBeenCalledTimes(2);
+    rerender({ ids: [two!.id, one!.id] });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(result.current.every((entry) => entry.paragraphs !== undefined)).toBe(true);
+  });
+});

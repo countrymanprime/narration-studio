@@ -100,12 +100,14 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // Reads one slot and settles with the failure, if any, after recording and reporting it. It never rejects, so an event or
   // focus reload with no caller to hear a rejection needs no catch.
   // The read in flight for each slot, whoever started it (a load, an event, an ensure), so an ensure joins it instead of starting another.
-  const flights = new Map<string, Promise<Error | undefined>>();
+  // A read out longer than `STUCK_READ_MS` is not joined and does not hold back the next one (a host call that never answers must not freeze the slot).
+  const STUCK_READ_MS = 5000;
+  const flights = new Map<string, { promise: Promise<Error | undefined>; at: number }>();
   function attempt(name: keyof R & string): Promise<Error | undefined> {
     const flight = run(name);
-    flights.set(name, flight);
+    flights.set(name, { promise: flight, at: Date.now() });
     void flight.finally(() => {
-      if (flights.get(name) === flight) flights.delete(name);
+      if (flights.get(name)?.promise === flight) flights.delete(name);
     });
     return flight;
   }
@@ -139,16 +141,18 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
 
   // A burst of events (a sync that updates many times, a write and the event it raises) is one read in flight and at most one trailing read: what the slot
   // holds is read after the last of them, and the ones between add nothing.
-  const refreshing = new Map<string, { again: boolean }>();
+  const refreshing = new Map<string, { again: boolean; at: number }>();
   function refresh(name: keyof R & string): void {
     const running = refreshing.get(name);
-    if (running) {
+    if (running && Date.now() - running.at < STUCK_READ_MS) {
       running.again = true;
       return;
     }
-    const entry = { again: false };
+    const entry = { again: false, at: Date.now() };
     refreshing.set(name, entry);
     void attempt(name).finally(() => {
+      // Only the refresh that is current clears itself: one that a reset or a newer refresh replaced must not release its successor.
+      if (refreshing.get(name) !== entry) return;
       refreshing.delete(name);
       if (entry.again) refresh(name);
     });
@@ -162,7 +166,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     if (running) return running;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.
     const flight = flights.get(name);
-    const read = (flight ?? attempt(name)).then((error) => {
+    const joinable = flight && Date.now() - flight.at < STUCK_READ_MS ? flight.promise : undefined;
+    const read = (joinable ?? attempt(name)).then((error) => {
       if (error) throw error;
     });
     const settled = read.finally(() => {

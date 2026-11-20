@@ -151,6 +151,7 @@ describe('createKeyedCache: reads that overlap, pins and bad sizes (#3658)', () 
     expect(cache.get('a')).toBeDefined();
     expect(cache.get('b')).toBeDefined();
     release();
+    await flush(); // the release evicts after the commit that takes the new pins
     expect(cache.get('a')).toBeUndefined(); // over budget again and no longer pinned: the older one goes
     expect(cache.held()).toBe(10);
   });
@@ -163,8 +164,10 @@ describe('createKeyedCache: reads that overlap, pins and bad sizes (#3658)', () 
     await cache.ensure('b');
     one();
     one(); // releasing the same pin twice releases nothing more
+    await flush();
     expect(cache.get('a')).toBeDefined();
     two();
+    await flush();
     expect(cache.get('a')).toBeUndefined();
   });
 
@@ -177,6 +180,36 @@ describe('createKeyedCache: reads that overlap, pins and bad sizes (#3658)', () 
     expect(cache.error('c1')).toBeUndefined();
     await cache.ensure('c1');
     expect(cache.held()).toBe(JSON.stringify('ok').length);
+  });
+});
+
+describe('createKeyedCache: one key redraws only for itself, and a release evicts whatever the key is called (#3658)', () => {
+  it("tells a key's subscriber about that key and about changes to everything, not about other keys", async () => {
+    const cache = createKeyedCache('text', { schema: textSchema, load: async (key: string) => key, size: length });
+    const one = vi.fn();
+    const two = vi.fn();
+    cache.subscribe(one, 'c1');
+    cache.subscribe(two, 'c2');
+    await cache.ensure('c1');
+    expect(one).toHaveBeenCalledTimes(1);
+    expect(two).not.toHaveBeenCalled();
+    const before = cache.version('c2');
+    await cache.ensure('c3');
+    expect(cache.version('c2')).toBe(before);
+    cache.invalidate();
+    expect(two).toHaveBeenCalledTimes(1);
+    expect(cache.version('c2')).toBeGreaterThan(before);
+  });
+
+  it('evicts a released key even when it is called the empty string', async () => {
+    const cache = createKeyedCache('text', { schema: textSchema, load: async (key: string) => `x${key}`.repeat(10), size: length, budget: 10 });
+    const release = cache.pin('');
+    await cache.ensure('');
+    await cache.ensure('b');
+    release();
+    await flush();
+    expect(cache.get('')).toBeUndefined();
+    expect(cache.held()).toBeLessThanOrEqual(20);
   });
 });
 

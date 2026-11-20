@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptParagraph } from '../types';
 import { usePort } from '../ports/usePort';
 import { useOptionalStoreHandle } from './StudioProvider';
@@ -21,9 +21,13 @@ export function useChapterText(chapterId: string | undefined): {
   const manuscript = usePort('manuscript');
   const cache = store?.keyed('chapterText');
   // Read to redraw on any change of the cache, and to ask again when what this reader shows has gone (a project switch), gone stale (a job ended) or was never answered.
+  const subscribe = useCallback(
+    (listener: () => void) => (cache && chapterId !== undefined ? cache.subscribe(listener, chapterId) : noSubscribe()),
+    [cache, chapterId],
+  );
   const version = useSyncExternalStore(
-    cache ? cache.subscribe : noSubscribe,
-    () => cache?.version() ?? 0,
+    subscribe,
+    () => (cache && chapterId !== undefined ? cache.version(chapterId) : 0),
     () => 0,
   );
   const [own, setOwn] = useState<{ id: string; paragraphs: readonly ManuscriptParagraph[] }>();

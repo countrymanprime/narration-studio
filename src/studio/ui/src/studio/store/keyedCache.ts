@@ -43,9 +43,10 @@ export type KeyedCache<V = unknown> = {
   clear(): void;
   /** How much is held, in the unit of `budget`. */
   held(): number;
-  subscribe(listener: () => void): () => void;
-  /** A number that changes whenever something held or failed does; what a hook reads to redraw. */
-  version(): number;
+  /** Tells `listener` when something held or failed changes: any key, or only `key` (and a change to everything) when one is given. */
+  subscribe(listener: () => void, key?: string): () => void;
+  /** A number that changes whenever something held or failed does (for one key, when given: its own changes and changes to everything); what a hook reads to redraw. */
+  version(key?: string): number;
 };
 
 const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
@@ -81,18 +82,32 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
   /** Bumped by `invalidate`: a value read before it is stale. */
   let changed = 0;
   let count = 0;
+  // A reader of one key is told about that key and about changes to everything (a project switch, an invalidate), not about every other key's read.
+  const keyListeners = new Map<string, Set<() => void>>();
+  const keyCounts = new Map<string, number>();
+  let allChanges = 0;
+  const changesToAll = () => allChanges;
   const emit = () => {
+    allChanges += 1;
     count += 1;
     listeners.forEach((listener) => listener());
+    keyListeners.forEach((set) => set.forEach((listener) => listener()));
+  };
+  const emitKey = (key: string) => {
+    count += 1;
+    keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+    listeners.forEach((listener) => listener());
+    keyListeners.get(key)?.forEach((listener) => listener());
   };
 
-  const evict = (keep: string) => {
+  const evict = (keep: string | undefined) => {
     if (config.budget === undefined) return;
     for (const [key, entry] of entries) {
       if (total <= config.budget) return;
       if (key === keep || pins.has(key)) continue;
       entries.delete(key);
       total -= entry.size;
+      emitKey(key);
     }
   };
 
@@ -116,11 +131,11 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
         total += cost;
         errors.delete(key);
         evict(key);
-        emit();
+        emitKey(key);
       } catch (e) {
         if (!current()) return;
         errors.set(key, toError(e));
-        emit();
+        emitKey(key);
         throw errors.get(key);
       }
     })().finally(() => {
@@ -163,7 +178,8 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
         const left = (pins.get(key) ?? 1) - 1;
         if (left > 0) pins.set(key, left);
         else pins.delete(key);
-        evict('');
+        // After the commit that releases a pin also takes its new ones (a reader that moves to another chapter), not in the middle of it.
+        queueMicrotask(() => evict(undefined));
       };
     },
     invalidate() {
@@ -182,10 +198,18 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
       emit();
     },
     held: () => total,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => void listeners.delete(listener);
+    subscribe(listener, key) {
+      if (key === undefined) {
+        listeners.add(listener);
+        return () => void listeners.delete(listener);
+      }
+      const set = keyListeners.get(key) ?? keyListeners.set(key, new Set()).get(key)!;
+      set.add(listener);
+      return () => {
+        set.delete(listener);
+        if (set.size === 0 && keyListeners.get(key) === set) keyListeners.delete(key);
+      };
     },
-    version: () => count,
+    version: (key) => (key === undefined ? count : (keyCounts.get(key) ?? 0) + changesToAll()),
   };
 }

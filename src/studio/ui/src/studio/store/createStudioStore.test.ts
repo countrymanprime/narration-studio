@@ -383,3 +383,44 @@ describe('a burst of events and an ensure beside other reads (#3658)', () => {
     expect(store.getState().slots.jobs).toEqual({ count: 4 });
   });
 });
+
+describe('a read that never answers does not freeze a slot (#3658)', () => {
+  it('reads again for an event after a refresh has been out longer than the stuck age, and an ensure does not join it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const never = new Promise<unknown>(() => undefined);
+      const load = vi.fn().mockReturnValueOnce(never).mockResolvedValue({ count: 2 });
+      const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+      store.start();
+      events.emit('sync');
+      for (let i = 0; i < 100; i += 1) events.emit('sync');
+      expect(load).toHaveBeenCalledTimes(1);
+      vi.setSystemTime(Date.now() + 5001);
+      events.emit('sync');
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(store.getState().slots.jobs).toEqual({ count: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a refresh dropped by a reset does not release the refresh of the new project', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockResolvedValue({ count: 3 });
+    const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+    store.start();
+    events.emit('sync'); // R0
+    store.reset();
+    events.emit('sync'); // R1, the new project's
+    first.resolve({ count: 1 }); // R0 answers late and ends
+    await flush();
+    for (let i = 0; i < 5; i += 1) events.emit('sync');
+    expect(load).toHaveBeenCalledTimes(2); // no third read while R1 is out
+    second.resolve({ count: 2 });
+    await flush();
+    await flush();
+  });
+});
