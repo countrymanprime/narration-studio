@@ -109,6 +109,16 @@ func (f *resumeFollower) stepWith(state dawport.TrackState, items func() (dawpor
 			return nil, false
 		}
 		full = got
+		// The items were read a moment after the cursor was: REAPER may have started to play or record, or the cursor may have moved on, meanwhile.
+		// What the full read says first wins, so the event is never judged at a cursor it does not carry.
+		switch {
+		case full.Recording:
+			return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followRecording}, true
+		case full.Playing:
+			return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followPlaying}, true
+		case !nearCursor(full.EditCursor, cursor):
+			return nil, false // the next tick reads the cursor where it is now
+		}
 	}
 	f.baseline, f.pending = cursor, nil
 	if _, at, ok := liveRecordedEnd(full, f.saved, f.span, f.folder); ok && at == liveAtCursor {

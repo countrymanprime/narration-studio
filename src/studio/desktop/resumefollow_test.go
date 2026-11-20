@@ -325,6 +325,8 @@ type lightTrackState struct {
 	cursors     []float64 // the cursor of each tick, the last repeated
 	light, full int
 	failFull    bool
+	// adjustFull, when set, changes the full read's state: REAPER moved on between the itemless read and the items.
+	adjustFull func(*dawport.TrackState)
 }
 
 func (s *lightTrackState) state(guid string, withItems bool) dawport.TrackState {
@@ -352,11 +354,12 @@ func (s *lightTrackState) ChapterTrackState(_ context.Context, guid string) (daw
 		return dawport.TrackState{}, context.DeadlineExceeded
 	}
 	// The cursor of the tick that asked: light has counted it already.
-	return func() dawport.TrackState {
-		state := followState(s.cursors[max(min(s.light-1, len(s.cursors)-1), 0)])
-		state.TrackGUID = guid
-		return state
-	}(), nil
+	state := followState(s.cursors[max(min(s.light-1, len(s.cursors)-1), 0)])
+	state.TrackGUID = guid
+	if s.adjustFull != nil {
+		s.adjustFull(&state)
+	}
+	return state, nil
 }
 
 func (s *lightTrackState) counts() (light, full int) {
@@ -422,5 +425,38 @@ func TestResumeFollowLoopTriesTheItemsAgainWhenTheirReadFailed(t *testing.T) {
 	<-done
 	if events := emitter.all(); len(events) != 1 || events[0].Reason != followCursorMoved {
 		t.Fatalf("events = %+v, want the settled cursor reported once the items read", events)
+	}
+}
+
+// REAPER may start to play between the itemless read that settled the cursor and the read of the items: the prompt is dismissed, not told about a cursor.
+func TestResumeFollowLoopReportsPlayingThatStartedBetweenTheTwoReads(t *testing.T) {
+	reader := &lightTrackState{cursors: []float64{0, 5, 5}, adjustFull: func(state *dawport.TrackState) { state.Playing = true }}
+	emitter := &recordingEmitter{}
+	runFollow(t, reader, func() bool { return len(emitter.all()) >= 1 }, emitter)
+	if events := emitter.all(); len(events) != 1 || events[0].Reason != followPlaying {
+		t.Fatalf("events = %+v, want one playing", events)
+	}
+}
+
+// The cursor moved on while the items were read: the settle is not reported at a cursor the items were not read at; the next ticks settle again.
+func TestResumeFollowLoopDoesNotReportACursorTheItemsWereNotReadAt(t *testing.T) {
+	var mu sync.Mutex
+	moved := true
+	reader := &lightTrackState{cursors: []float64{0, 5, 5, 5, 5}, adjustFull: func(state *dawport.TrackState) {
+		mu.Lock()
+		defer mu.Unlock()
+		if moved {
+			moved = false
+			state.EditCursor = 25 // the first items read finds the cursor elsewhere
+		}
+	}}
+	emitter := &recordingEmitter{}
+	runFollow(t, reader, func() bool { return len(emitter.all()) >= 1 }, emitter)
+	events := emitter.all()
+	if len(events) != 1 || events[0].Reason != followCursorMoved || events[0].EditCursor == nil || *events[0].EditCursor != 5 {
+		t.Fatalf("events = %+v, want one cursor_moved at 5 once the items were read at that cursor", events)
+	}
+	if _, full := reader.counts(); full < 2 {
+		t.Fatalf("%d full reads, want the first (cursor moved) and a second at the settle", full)
 	}
 }
