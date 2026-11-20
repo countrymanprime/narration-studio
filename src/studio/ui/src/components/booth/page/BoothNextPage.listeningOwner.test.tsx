@@ -1522,7 +1522,8 @@ describe('a press the narrator left behind by changing chapter, whose take still
   });
 
   it.each([
-    ['9.9 s', 9_900, true],
+    // 9.5 s, not 9.9: a take REAPER started is adopted after the reads that follow it (milliseconds, more on a slow runner), and the fake clock also runs with the real one.
+    ['9.5 s', 9_500, true],
     ['10.1 s', 10_100, false],
   ])('a report waits 10 s for the page to adopt the take: adopted at %s, then the session settles', async (_name, wait, spoken) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
