@@ -103,10 +103,15 @@ func (b *Bundle) File(name string) []byte { return b.files[name] }
 var runKeys = map[string]bool{
 	"ts": true, "level": true, "event": true, "run": true, "tool": true, "outcome": true, "duration_ms": true,
 	"kind": true, "mode": true, "first_output_ms": true, "total_ms": true, "exit_code": true, "cid": true,
-	// A bridge.timing or bridge.slow record (bridge_timing.go): a REAPER command's name and the milliseconds it took, split into the command
-	// file waiting for REAPER and REAPER's own time. The name is one of the bridge's fixed command words and still has to pass safeString.
-	"command": true, "elapsed_ms": true, "queue_ms": true, "reaper_ms": true,
 }
+
+// bridgeKeys are kept only on the bridge's own records (bridgeEvents), never on another event that happens to use the same word: a REAPER
+// command's name and the milliseconds a step took, split into the command file waiting for REAPER and REAPER's own time (bridge_timing.go).
+// Only the bridge writes them, from the fixed words its callers pass; keying on the event keeps a later record that logs a `command` of its own
+// (a file or a title) out of the bundle, and the value still has to pass safeString.
+var bridgeKeys = map[string]bool{"command": true, "elapsed_ms": true, "queue_ms": true, "reaper_ms": true}
+
+var bridgeEvents = map[string]bool{"bridge.timing": true, "bridge.slow": true}
 
 // safeString is the only shape a kept run-log string may have: a word, an id or a timestamp.
 var safeString = regexp.MustCompile(`^[A-Za-z0-9_.:+-]{1,64}$`)
@@ -297,8 +302,9 @@ func filterRunLog(lines [][]byte) [][]byte {
 			continue
 		}
 		kept := map[string]any{}
+		event, _ := record["event"].(string)
 		for key, value := range record {
-			if !runKeys[key] {
+			if !runKeys[key] && !(bridgeKeys[key] && bridgeEvents[event]) {
 				continue
 			}
 			switch typed := value.(type) {
