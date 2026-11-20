@@ -25,4 +25,22 @@ describe('WorkedOut', () => {
     const left = screen.getByText('Work left', { selector: 'dt' }).parentElement!.querySelector('dd')!;
     expect(left.querySelector('.sr-only')!.textContent).toBe('11 hours 24 minutes');
   });
+
+  // #3443: an hours figure under a minute reads "<0h 01m" and is spoken "less than a minute".
+  it('draws under a minute as <0h 01m, spoken as less than a minute', () => {
+    const k = {
+      recLeft: 0.004,
+      editLeft: 0.004,
+      proofLeft: 0.004,
+      pickH: 0.004,
+      remain: 0.016,
+      days: 1,
+      finish: new Date(2026, 9, 5),
+      daysLeft: null,
+    } as unknown as Calc;
+    render(<WorkedOut k={k} />);
+    const value = screen.getByText('Pickups', { selector: 'dt' }).parentElement!.querySelector('dd')!;
+    expect(value.querySelector('[aria-hidden="true"]')!.textContent).toBe('<0h 01m');
+    expect(value.querySelector('.sr-only')!.textContent).toBe('less than a minute');
+  });
 });

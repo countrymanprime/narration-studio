@@ -96,6 +96,18 @@ describe('clock, marked', () => {
     expect(clock(0, { marked: true })).toBe('0h 00m');
     expect(clock(60, { marked: true })).toBe('0h 01m');
   });
+  it('is never ahead of the time: 59.99994 s is under a minute and 3599.99995 s is still 0h 59m', () => {
+    expect(clock(59.99994, { marked: true })).toBe('<0h 01m');
+    expect(clock(3599.99995, { marked: true })).toBe('0h 59m');
+    expect(clock(7199.9999, { marked: true })).toBe('1h 59m');
+  });
+  it('reads back every whole minute up to 2000 hours written in hours, exactly', () => {
+    for (let minutes = 1; minutes <= 120000; minutes += 1) {
+      const text = `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
+      if (clock((minutes / 60) * 3600, { marked: true }) !== text)
+        throw new Error(`${minutes} min read ${clock((minutes / 60) * 3600, { marked: true })}, not ${text}`);
+    }
+  });
   it('does not read a whole number of minutes in hours one short for the double', () => {
     for (const minutes of [1, 7, 35, 59, 61, 275, 6042])
       expect(clock((minutes / 60) * 3600, { marked: true })).toBe(`${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`);
