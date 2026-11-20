@@ -40,11 +40,42 @@ type ChapterBasis struct {
 // paragraphs or is not narration (Front Matter and reference sections are
 // not targets) is an UnknownError.
 func chapterBasis(data map[string]any, chapterID string) (ChapterBasis, error) {
-	documentID, _ := data["documentId"].(string)
-	if documentID == "" {
+	return indexManuscript(data).basis(chapterID)
+}
+
+// manuscriptIndex is a loaded manuscript with its chapters and their paragraphs found by chapter id, from one sweep. A read
+// of every chapter takes one, where chapterBasis per chapter swept the whole book's paragraphs for each (issue 3801).
+type manuscriptIndex struct {
+	documentID string
+	chapters   map[string]map[string]any
+	paragraphs map[string][]map[string]any
+}
+
+func indexManuscript(data map[string]any) manuscriptIndex {
+	index := manuscriptIndex{chapters: map[string]map[string]any{}, paragraphs: map[string][]map[string]any{}}
+	index.documentID, _ = data["documentId"].(string)
+	chapters, _ := data["chapters"].([]any)
+	for _, raw := range chapters {
+		chapter, _ := raw.(map[string]any)
+		id, _ := chapter["id"].(string)
+		if _, seen := index.chapters[id]; !seen && id != "" { // the first chapter with an id answers for it
+			index.chapters[id] = chapter
+		}
+	}
+	paragraphs, _ := data["paragraphs"].([]any)
+	for _, raw := range paragraphs {
+		paragraph, _ := raw.(map[string]any)
+		owner, _ := paragraph["chapterId"].(string)
+		index.paragraphs[owner] = append(index.paragraphs[owner], paragraph)
+	}
+	return index
+}
+
+func (index manuscriptIndex) basis(chapterID string) (ChapterBasis, error) {
+	if index.documentID == "" {
 		return ChapterBasis{}, unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
 	}
-	chapter, ok := findChapter(data, chapterID)
+	chapter, ok := index.chapters[chapterID]
 	if !ok {
 		return ChapterBasis{}, unknown(ReasonChapterNotFound, fmt.Sprintf("chapter %s is not in the manuscript", chapterID))
 	}
@@ -59,23 +90,17 @@ func chapterBasis(data map[string]any, chapterID string) (ChapterBasis, error) {
 	write(chapterID)
 	write(title)
 	write(subtitle)
-	paragraphs := 0
-	rawParagraphs, _ := data["paragraphs"].([]any)
-	for _, raw := range rawParagraphs {
-		paragraph, _ := raw.(map[string]any)
-		if owner, _ := paragraph["chapterId"].(string); owner != chapterID {
-			continue
-		}
+	paragraphs := index.paragraphs[chapterID]
+	for _, paragraph := range paragraphs {
 		id, _ := paragraph["id"].(string)
 		text, _ := paragraph["text"].(string)
 		write(id)
 		write(text)
-		paragraphs++
 	}
-	if paragraphs == 0 {
+	if len(paragraphs) == 0 {
 		return ChapterBasis{}, unknown(ReasonChapterNotFound, fmt.Sprintf("chapter %s has no paragraphs", chapterID))
 	}
-	return ChapterBasis{DocumentID: documentID, ChapterID: chapterID, Title: title, Hash: hex.EncodeToString(hash.Sum(nil))}, nil
+	return ChapterBasis{DocumentID: index.documentID, ChapterID: chapterID, Title: title, Hash: hex.EncodeToString(hash.Sum(nil))}, nil
 }
 
 func findChapter(data map[string]any, chapterID string) (map[string]any, bool) {

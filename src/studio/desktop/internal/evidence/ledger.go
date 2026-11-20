@@ -249,18 +249,57 @@ type LedgerReader interface {
 // answers each chapter from it, where asking the store lists the folder for every question (issue 3749). It is for one
 // pass: take a new one for the next read, so a record written since is seen.
 type LedgerSnapshot struct {
-	records []LedgerRecord
+	// newestFirst is every record, sorted once; byChapter is the same records in the same order, grouped, so a chapter's
+	// question reads its own records and not the book's (issue 3801).
+	newestFirst []LedgerRecord
+	byChapter   map[string][]LedgerRecord
 }
 
 // Snapshot lists the ledger once and returns what it holds now.
 func (s *LedgerStore) Snapshot() (LedgerSnapshot, error) {
 	all, err := s.All()
-	return LedgerSnapshot{records: all}, err
+	return newLedgerSnapshot(all), err
+}
+
+func newLedgerSnapshot(all []LedgerRecord) LedgerSnapshot {
+	sorted := matchingRecords(all, "", "")
+	byChapter := map[string][]LedgerRecord{}
+	for _, record := range sorted {
+		byChapter[record.Scope.ChapterID] = append(byChapter[record.Scope.ChapterID], record)
+	}
+	return LedgerSnapshot{newestFirst: sorted, byChapter: byChapter}
+}
+
+// SnapshotWhenAsked is a reader that takes one Snapshot at its first question and answers every later one from it, so a
+// read that turns out to ask nothing lists nothing. It is for one pass, as a LedgerSnapshot is; a ledger that cannot be
+// listed is the error of every question.
+func (s *LedgerStore) SnapshotWhenAsked() LedgerReader {
+	return askedSnapshot(sync.OnceValues(s.Snapshot))
+}
+
+type askedSnapshot func() (LedgerSnapshot, error)
+
+func (asked askedSnapshot) List(analyzerID, chapterID string) ([]LedgerRecord, error) {
+	snapshot, err := asked()
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.List(analyzerID, chapterID)
 }
 
 // List answers as LedgerStore.List does, from the records the snapshot was taken with.
 func (snapshot LedgerSnapshot) List(analyzerID, chapterID string) ([]LedgerRecord, error) {
-	return matchingRecords(snapshot.records, analyzerID, chapterID), nil
+	records := snapshot.newestFirst
+	if chapterID != "" {
+		records = snapshot.byChapter[chapterID]
+	}
+	matched := make([]LedgerRecord, 0, len(records))
+	for _, record := range records {
+		if analyzerID == "" || record.AnalyzerID == analyzerID {
+			matched = append(matched, record)
+		}
+	}
+	return matched, nil
 }
 
 // All returns every readable record in the store, in no particular order. A record is decoded once and kept while its file
@@ -294,6 +333,7 @@ func (s *LedgerStore) Reads() (listings, decodes int) {
 func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer persist.Advance()
 
 	referenced := make(map[string]bool, len(referencedIDs))
 	for _, id := range referencedIDs {
@@ -364,6 +404,10 @@ func (s *LedgerStore) decodeRecord(path string) (LedgerRecord, persist.Outcome) 
 		}
 		if decoded.SchemaVersion > ledgerSchemaVersion {
 			return fmt.Errorf("schema version %d newer than supported %d", decoded.SchemaVersion, ledgerSchemaVersion)
+		}
+		// A record is found by its file's name and by the id inside it; a file copied or renamed by hand would answer for both.
+		if id, _ := recordID(filepath.Base(path)); decoded.ID != id {
+			return fmt.Errorf("record id %q does not match its file name", decoded.ID)
 		}
 		record = decoded
 		return nil

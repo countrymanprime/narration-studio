@@ -90,7 +90,7 @@ type ItemStaleness struct {
 // one item, or a different one, is never a match for this item) and
 // compares its fingerprint, analyzer version and parameter hash against
 // in's current ones.
-func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion, paramHash string, in ItemScopeInput) (ItemStaleness, error) {
+func CurrentItemRecord(ledger evidence.LedgerReader, analyzerID, analyzerVersion, paramHash string, in ItemScopeInput) (ItemStaleness, error) {
 	records, err := ledger.List(analyzerID, in.ChapterID)
 	if err != nil {
 		return ItemStaleness{}, err

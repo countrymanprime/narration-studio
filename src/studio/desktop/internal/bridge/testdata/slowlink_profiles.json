@@ -1,0 +1,25 @@
+{
+  "valid": [
+    { "text": "", "delayMs": 0, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "0ms", "delayMs": 0, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "300ms", "delayMs": 300, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "1s", "delayMs": 1000, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "3s", "delayMs": 3000, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "10s", "delayMs": 10000, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "1.5s", "delayMs": 1500, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "1m30s", "delayMs": 90000, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "stall-recover", "delayMs": 0, "jitterMs": 0, "stallForMs": 8000, "stallEveryMs": 0, "drop": 0, "only": [] },
+    { "text": "stall=2s/30s", "delayMs": 0, "jitterMs": 0, "stallForMs": 2000, "stallEveryMs": 30000, "drop": 0, "only": [] },
+    { "text": "drop=2", "delayMs": 0, "jitterMs": 0, "stallForMs": 0, "stallEveryMs": 0, "drop": 2, "only": [] },
+    {
+      "text": "delay=1s, jitter=200ms,stall=8s/30s,drop=1,only=tracks_read+arm_lane",
+      "delayMs": 1000,
+      "jitterMs": 200,
+      "stallForMs": 8000,
+      "stallEveryMs": 30000,
+      "drop": 1,
+      "only": ["tracks_read", "arm_lane"]
+    }
+  ],
+  "invalid": ["fast", "delay=-1s", "delay=1", "delay=", "stall=8s/8s", "stall=8s/x", "drop=-1", "drop=one", "drop=1.5", "speed=1s", "jitter=soon", "1s 2s", "only=", "only=tracks_read+"]
+}

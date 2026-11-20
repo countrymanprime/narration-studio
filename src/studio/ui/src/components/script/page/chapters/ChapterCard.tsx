@@ -49,6 +49,36 @@ export function EndOf({ ended }: { ended: Ended }) {
   );
 }
 
+/** The card's heading: the chapter's label over its title. A jump focuses it. */
+function CardHeading({ chapter }: { chapter: ManuscriptChapter }) {
+  return (
+    <h2
+      tabIndex={-1}
+      // A title of only spaces draws nothing, but a jump still focuses this heading, so it keeps a name.
+      aria-label={headingName(chapter).trim() ? undefined : 'Untitled chapter'}
+      className="m-0 min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+    >
+      <TitleSubtitle layout="stacked" {...chapterParts(chapter)} />
+    </h2>
+  );
+}
+
+/** The height held for the card of a chapter away from the view: a card is 188 to 284 px from a 1440 px window down to a 420 px one. */
+const HELD_CARD_PX = 200;
+
+/**
+ * The card of a chapter away from the reader's view: its heading alone in a block of a card's height, so the chapter keeps its place, its
+ * name for a search of the page and its heading for a screen reader, without the card's controls and facts. The reader asks for the
+ * whole card once the chapter is near (`Reader`, `renderChapterCard`).
+ */
+export function HeldChapterCard({ chapter }: { chapter: ManuscriptChapter }) {
+  return (
+    <div data-chapter-id={chapter.id} data-held-card="" className="px-4 pt-3" style={{ minHeight: HELD_CARD_PX }}>
+      <CardHeading chapter={chapter} />
+    </div>
+  );
+}
+
 // The mock's chapter boundary in the reader: "End of {previous} · N words", then the card with the label and Record in Booth, the
 // title, the words, the finished minutes and the facts line and the "My prep" control. Record in Booth is the
 // host's: no `onRecord`, no button (a chapter that is not narration).
@@ -65,7 +95,6 @@ export function ChapterCard({
   onRecord?: (chapterId: string) => void;
 }) {
   const facts = useChapterFacts();
-  const parts = chapterParts(chapter);
   return (
     <div data-chapter-id={chapter.id} className="flex flex-col">
       {previous ? <EndOf ended={{ name: endedName(previous), words: previous.wordCount }} /> : ended && <EndOf ended={ended} />}
@@ -77,14 +106,7 @@ export function ChapterCard({
         className="@container/card flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >
         <div className="flex items-start justify-between gap-2">
-          <h2
-            tabIndex={-1}
-            // A title of only spaces draws nothing, but a jump still focuses this heading, so it keeps a name.
-            aria-label={headingName(chapter).trim() ? undefined : 'Untitled chapter'}
-            className="m-0 min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
-          >
-            <TitleSubtitle layout="stacked" {...parts} />
-          </h2>
+          <CardHeading chapter={chapter} />
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}
         </div>
         <CardFacts facts={cardFacts(chapter.wordCount, facts(chapter.id))} />

@@ -7,7 +7,7 @@ import { overlay } from '../../../../overlay/overlayService';
 import { StudioProvider } from '../../../../studio/StudioProvider';
 import { WPH } from '../../../schedule/estimates';
 import { CREDITS, ONE, TWO, chapterHost } from './chapterFixtures';
-import { ChapterCard } from './ChapterCard';
+import { ChapterCard, HeldChapterCard } from './ChapterCard';
 
 /** The facts paragraph, whose facts are separate unbreakable spans (alignment audit XSC-10), matched on its whole text. */
 const factsLine = (pattern: RegExp) => (_: string, element: Element | null) =>
@@ -107,5 +107,21 @@ describe('chapter card', () => {
     await vi.waitFor(() => expect(within(group).getByRole('button', { name: 'Prepped' }).getAttribute('aria-pressed')).toBe('true'));
     expect(within(group).getByRole('button', { name: 'Not started' }).getAttribute('aria-pressed')).toBe('false');
     expect(announce).toHaveBeenCalledWith('Chapter 2: Prepped');
+  });
+});
+
+// A chapter away from the reader's view holds its place with its heading alone (#3766): no data is read and no control is drawn.
+describe('held chapter card', () => {
+  it('draws the same heading as the card, with no controls, and needs no page data', () => {
+    render(<HeldChapterCard chapter={TWO} />);
+    const heading = screen.getByRole('heading', { level: 2, name: 'Chapter 2: The Salt Marsh' });
+    expect(heading.closest('[data-chapter-id]')?.getAttribute('data-chapter-id')).toBe(TWO.id);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('region')).toBeNull();
+  });
+
+  it('names the heading of a chapter with no title, as the card does', () => {
+    render(<HeldChapterCard chapter={{ ...TWO, title: '   ', subtitle: undefined }} />);
+    expect(screen.getByRole('heading', { level: 2, name: 'Untitled chapter' })).toBeTruthy();
   });
 });
