@@ -86,12 +86,25 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	if err := voicetracks.CheckAssignment(name, characterIDs); err != nil {
 		return boothVoiceAddRefused(boothVoiceInvalid, fmt.Sprintf("That track name or list of characters is too long (at most %d characters in a name and %d characters on a track).", voicetracks.MaxTrackName, voicetracks.MaxCharacters)), nil
 	}
+	adopted := false
+	var created bridge.CreatedTrack
+	if svc.boothVoices.isPending(link, name) {
+		// An earlier create of this name was not confirmed (#3645): look before sending another. The list is read again, never the cached one,
+		// and a voice of this name that has landed since is the one REAPER made (nothing in the folder had it when the create was sent).
+		svc.tracksCache.Invalidate()
+		if found, ok := h.adoptCreatedVoice(svc, link, name, nil); ok {
+			created, adopted = found, true
+			svc.boothVoices.clearPending(link, name)
+		} else {
+			return boothVoiceAddRefused(refusedFailed, fmt.Sprintf("%s took an earlier request for a track named “%s” and has not confirmed it. Look in %s: it may already be there. If it is not, try again in two minutes.", engine, name, engine)), nil
+		}
+	}
 	for _, voice := range voices {
-		if strings.EqualFold(cleanTrackName(voice.Name), name) {
+		if !adopted && strings.EqualFold(cleanTrackName(voice.Name), name) {
 			return boothVoiceAddRefused(boothVoiceNameTaken, fmt.Sprintf("This chapter already has a track named “%s”. Choose it, or give the new track another name.", cleanTrackName(voice.Name))), nil
 		}
 	}
-	if h.readAloudRecordingActive() {
+	if h.readAloudRecordingActive() || h.recordStarting() {
 		return boothVoiceAddRefused(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then add the track.", engine)), nil
 	}
 	if creator == nil {
@@ -102,20 +115,12 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	if !ok {
 		return boothVoiceAddRefused(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track inside a folder from this app. Add a track named “%s” inside the chapter's folder in %s.", engine, name, engine)), nil
 	}
-	before := svc.boothVoices.For(chapterID)
-	var created bridge.CreatedTrack
-	adopted := false
-	if svc.boothVoices.isPending(link, name) {
-		// An earlier create of this name was not confirmed: look before sending another (#3645). The list is read again, never the cached one.
-		svc.tracksCache.Invalidate()
-		if found, ok := h.adoptCreatedVoice(svc, link, name, voices); ok {
-			created, adopted = found, true
-			svc.boothVoices.clearPending(link, name)
-		} else {
-			return boothVoiceAddRefused(refusedFailed, fmt.Sprintf("%s took an earlier request for a track named “%s” and has not confirmed it. Look in %s: it may already be there. If it is not, try again in a minute.", engine, name, engine)), nil
-		}
-	}
+	before := svc.boothVoices.choiceCount(chapterID)
 	if !adopted {
+		if ctx.Err() != nil {
+			// A call that waited its turn behind a slow add has no time left: nothing was sent, so nothing can have been made.
+			return boothVoiceAddRefused(refusedFailed, fmt.Sprintf("The earlier track is still being added in %s. Try again in a moment.", engine)), nil
+		}
 		created, err = child.CreateChildTrack(ctx, name, link)
 		svc.tracksCache.Invalidate() // a create that timed out may still have made the track: the read-back below reads REAPER again
 	}
@@ -152,8 +157,8 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 
 // chooseAddedVoice chooses the voice just added unless something else moved while the create waited: a voice the narrator chose meanwhile
 // or a take that started keeps its place, and the new voice is only listed (#3645: a late add must not steal the selection).
-func (h *Host) chooseAddedVoice(svc hostServices, chapterID, before, guid string) {
-	if svc.boothVoices.For(chapterID) != before || h.readAloudRecordingActive() || h.recordStarting() {
+func (h *Host) chooseAddedVoice(svc hostServices, chapterID string, before int, guid string) {
+	if svc.boothVoices.choiceCount(chapterID) != before || h.readAloudRecordingActive() || h.recordStarting() {
 		return
 	}
 	svc.boothVoices.choose(chapterID, guid)

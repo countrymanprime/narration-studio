@@ -214,8 +214,13 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		a.logFailure(command, runID, "no answer within "+timeout.String()+" (command taken back)")
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
+		retracted := a.client.Retract(target)
 		a.report(command, "cancelled", started)
-		a.logFailure(command, runID, "cancelled"+retractNote(a.client.Retract(target)))
+		a.logFailure(command, runID, "cancelled"+retractNote(retracted))
+		if !retracted && mayRunLong[command] {
+			// The caller's deadline ended after REAPER read the command: it may have done it, as for a late answer.
+			return nil, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
+		}
 		return nil, ctx.Err()
 	}
 }

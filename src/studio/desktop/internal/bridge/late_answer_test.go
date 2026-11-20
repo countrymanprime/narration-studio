@@ -130,3 +130,16 @@ func TestSwitchVoiceAnsweredAfterTheUsualWaitIsStillAnswered(t *testing.T) {
 		t.Fatalf("got %+v", got)
 	}
 }
+
+// A caller's deadline that ends after REAPER read the command is late too, not a plain deadline: the caller reads back instead of retrying.
+func TestACreateREAPERReadWhoseCallerDeadlineEndsIsErrAnswerLate(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
+	actions.SetTimeout(10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 400*time.Millisecond)
+	defer cancel()
+	_, err := actions.CreateTrack(ctx, "Alice")
+	if !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want ErrAnswerLate wrapping the deadline", err)
+	}
+}

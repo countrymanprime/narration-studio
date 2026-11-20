@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -116,5 +117,72 @@ func TestAnAddLandingAfterATakeStartedDoesNotChooseItsLane(t *testing.T) {
 	got := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
 	if got.Outcome != "added" || host.boothVoices.For(ids[0]) == addedVoiceTrack {
 		t.Fatalf("got %+v, chosen %q: a take started, the add must not move its voice", got, host.boothVoices.For(ids[0]))
+	}
+}
+
+// A lane that lands after the pending mark is adopted by the next press of its name, with its characters, not refused as name_taken.
+func TestALaneThatLandsAfterThePendingMarkIsAdoptedOnRetry(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	creator := &fakeChildCreator{childErr: bridge.ErrAnswerLate}
+	if first := boothVoiceAdd(t, host, creator, ids[0], "King", []string{"king"}); first.Outcome != "refused" {
+		t.Fatalf("first = %+v", first)
+	}
+	late := &lateConfirmCreator{host: host, t: t}
+	extra := fmt.Sprintf("  <TRACK %s\n    NAME %q\n    ISBUS 0 0\n    TRACKID %s\n  >\n", lateVoiceTrack, "King", lateVoiceTrack)
+	writeProject(t, host, strings.Replace(voiceFolderRpp, "  <TRACK "+voiceNarratorTrack, extra+"  <TRACK "+voiceNarratorTrack, 1))
+	got := boothVoiceAdd(t, host, late, ids[0], "King", []string{"king"})
+	if got.Outcome != "added" || got.TrackGUID != lateVoiceTrack || late.calls != 0 {
+		t.Fatalf("got %+v after %d creates, want the landed lane adopted with no create", got, late.calls)
+	}
+}
+
+func TestThePendingBlockFoldsCaseAsTheNameCheckDoes(t *testing.T) {
+	c := newBoothVoiceChoices()
+	c.markPending("{F}", "Miſs")
+	if !c.isPending("{f}", "MISS") {
+		t.Fatal("MISS is not the pending Miſs")
+	}
+}
+
+func TestAnExpiredPendingBlockIsDropped(t *testing.T) {
+	c := newBoothVoiceChoices()
+	c.mu.Lock()
+	c.pending[pendingKey("{F}", "King")] = time.Now().Add(-pendingVoiceFor - time.Second)
+	c.mu.Unlock()
+	if c.isPending("{F}", "King") || len(c.pending) != 0 {
+		t.Fatal("an expired mark is kept")
+	}
+}
+
+func TestAnAddWhileATakeIsStartingIsRefused(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	host.mu.Lock()
+	host.readAloudStarting++
+	host.mu.Unlock()
+	creator := &fakeChildCreator{}
+	got := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if got.Outcome != "refused" || len(creator.children) != 0 {
+		t.Fatalf("got %+v, %d creates", got, len(creator.children))
+	}
+}
+
+func TestAChoiceOfTheSameVoiceMadeDuringTheWaitStands(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	host.boothVoices.choose(ids[0], voiceNarratorTrack)
+	creator := &choosingCreator{during: func() { host.boothVoices.choose(ids[0], voiceNarratorTrack) }}
+	boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if chosen := host.boothVoices.For(ids[0]); chosen != voiceNarratorTrack {
+		t.Fatalf("chosen = %q, want the voice pressed during the wait", chosen)
+	}
+}
+
+func TestAQueuedAddWithNoTimeLeftSendsNothing(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	creator := &fakeChildCreator{}
+	got, err := host.boothVoiceAddIn(ctx, host.services(), creator, createAvailable(), ids[0], "King", nil)
+	if err != nil || got.Outcome != "refused" || len(creator.children) != 0 {
+		t.Fatalf("got %+v err %v, %d creates", got, err, len(creator.children))
 	}
 }

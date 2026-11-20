@@ -252,13 +252,17 @@ type boothVoiceChoices struct {
 	// the same name is not sent again (#3645, a retry would make a second track).
 	// +checklocks:mu
 	pending map[string]time.Time
+	// How many times each chapter's voice was chosen, so a choice that repeats the current voice still counts as a choice (#3645).
+	// +checklocks:mu
+	choices map[string]int
 }
 
 // pendingVoiceFor is how long an unconfirmed create blocks a second add of its name.
 const pendingVoiceFor = 2 * time.Minute
 
 func pendingKey(folderGUID, name string) string {
-	return strings.ToUpper(folderGUID) + "|" + strings.ToLower(name)
+	// Folded as the name check folds (strings.EqualFold): upper then lower, so "Miſs" and "MISS" are one name.
+	return strings.ToUpper(folderGUID) + "|" + strings.ToLower(strings.ToUpper(name))
 }
 
 func (c *boothVoiceChoices) markPending(folderGUID, name string) {
@@ -285,12 +289,17 @@ func (c *boothVoiceChoices) isPending(folderGUID, name string) bool {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	at, ok := c.pending[pendingKey(folderGUID, name)]
-	return ok && time.Since(at) < pendingVoiceFor
+	key := pendingKey(folderGUID, name)
+	at, ok := c.pending[key]
+	if ok && time.Since(at) >= pendingVoiceFor {
+		delete(c.pending, key)
+		return false
+	}
+	return ok
 }
 
 func newBoothVoiceChoices() *boothVoiceChoices {
-	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}, pending: map[string]time.Time{}}
+	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}, pending: map[string]time.Time{}, choices: map[string]int{}}
 }
 
 // whileAdding runs one add's checks, its track_create and its answer while no other add runs. A nil one runs it unguarded.
@@ -342,6 +351,17 @@ func (c *boothVoiceChoices) choose(chapterID, guid string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.byChapter[chapterID] = guid
+	c.choices[chapterID]++
+}
+
+// choiceCount is how many choices chapterID has had.
+func (c *boothVoiceChoices) choiceCount(chapterID string) int {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.choices[chapterID]
 }
 
 func (h *Host) readAloudRecordingActive() bool {
