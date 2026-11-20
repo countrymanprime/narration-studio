@@ -388,11 +388,11 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	}
 	// One read of REAPER's list serves the voices and the vanished-link check, so they see one snapshot and one wait. A choice made during
 	// a take moves the take (switch_voice), so it waits for REAPER's own list; an idle choice only arms, and may use the list being re-read.
-	readProject := liveSelectedProjectForLane
+	liveRead := liveSelectedProjectForLane
 	if h.readAloudRecordingFor(chapterID) {
-		readProject = liveSelectedProject
+		liveRead = liveSelectedProject
 	}
-	project, err := readProject(svc)
+	project, err := liveRead(svc)
 	if err != nil {
 		return BoothVoice{}, err
 	}
