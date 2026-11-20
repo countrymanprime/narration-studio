@@ -224,3 +224,27 @@ func (c *Client) DropHeld() {
 	}
 	c.slow = slowState{closed: true}
 }
+
+// SlowFromEnv slows this client's link when profile (the value of SlowLinkEnv) names a slowness, and says so in the host log (SetLog), so
+// a run slowed on purpose is never mistaken for a slow DAW. It is a development aid for reproducing a slow DAW (#3752): a command the app
+// gave up on still reaches the DAW later, as it does on a slow machine, so it is for a project made for the test. A profile that does not
+// parse slows nothing and is logged. A release build (development false) never slows its link: it logs that the variable was ignored.
+func (c *Client) SlowFromEnv(profile string, development bool) {
+	if profile == "" {
+		return
+	}
+	if !development {
+		c.report("bridge.slow_link", SlowLinkEnv+" is set and was ignored: only a development build slows its DAW link.")
+		return
+	}
+	link, err := ParseSlowLink(profile)
+	if err != nil {
+		c.report("bridge.slow_link", SlowLinkEnv+" was not understood, so the DAW link is not slowed: "+err.Error())
+		return
+	}
+	if !link.Slows() {
+		return
+	}
+	c.SetSlowLink(link)
+	c.report("bridge.slow_link", "The DAW link is slowed on purpose by "+SlowLinkEnv+"="+profile+". Commands reach the DAW late, or not at all with drop=.")
+}

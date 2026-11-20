@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -258,4 +259,44 @@ func TestAReplacedClientsHeldCommandsNeverReachTheDAW(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, func() bool { return len(fake.commands()) == 2 })
+}
+
+func TestSlowFromEnvSlowsADevelopmentBuildAndSaysSoInTheHostLog(t *testing.T) {
+	cases := []struct {
+		profile     string
+		development bool
+		slowed      bool
+		logged      string
+	}{
+		{"", true, false, ""},
+		{"0ms", true, false, ""},
+		{"1s", true, true, "slowed on purpose by NARRATION_DAW_LATENCY=1s"},
+		{"quick", true, false, "was not understood"},
+		// A release build: the narrator's commands are never held or dropped by a variable left in the environment.
+		{"1s", false, false, "was ignored"},
+		{"", false, false, ""},
+	}
+	for _, test := range cases {
+		t.Run(fmt.Sprint(test.profile, test.development), func(t *testing.T) {
+			client, err := New(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(client.DropHeld)
+			var lines []string
+			client.SetLog(func(kind, message string) { lines = append(lines, kind+": "+message) })
+			client.SlowFromEnv(test.profile, test.development)
+			if (test.logged == "") != (len(lines) == 0) || (test.logged != "" && !strings.Contains(lines[0], "bridge.slow_link: ")) || (test.logged != "" && !strings.Contains(lines[0], test.logged)) {
+				t.Fatalf("host log %q; want a line holding %q", lines, test.logged)
+			}
+			target, err := client.Send("ping", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// A held command is not in the commands folder, so there is nothing to take back.
+			if held := !client.Retract(target); held != test.slowed {
+				t.Fatalf("command held = %v; want %v", held, test.slowed)
+			}
+		})
+	}
 }
