@@ -205,7 +205,7 @@ export function ChapterSyncPanel({
                     />
                     <Button
                       pending={linkingChapterId === item.chapterId}
-                      disabledReason={selected ? '' : 'Choose a track for this chapter first.'}
+                      disabledReason={selected ? '' : `Choose a ${destinationFor(voiceLayout).noun} for this chapter first.`}
                       onClick={() => void link(item.chapterId, selected)}
                     >
                       Link

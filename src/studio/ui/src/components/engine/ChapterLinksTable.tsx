@@ -449,9 +449,7 @@ function ChapterLinkRow({
                 label={pick && pick === checkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
                 variant={pick && pick !== checkedGuid ? 'primary' : 'default'}
-                disabledReason={
-                  !pick ? `Choose a ${folders ? 'folder' : 'track'} first` : creating ? `Wait for the ${folders ? 'folder' : 'track'} being added` : undefined
-                }
+                disabledReason={!pick ? destination.chooseFirst : creating ? `Wait for the ${folders ? 'folder' : 'track'} being added` : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {
                   if (pick !== checkedGuid) return onConfirm(pick);

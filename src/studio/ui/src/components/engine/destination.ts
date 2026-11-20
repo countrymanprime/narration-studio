@@ -42,12 +42,14 @@ export function destinationFor(layout: VoiceTracksLayout) {
     missingChip: linkStateLabel('missing', folders),
     linkButton: `Link ${noun}`,
     pickerLabel: (chapter: string) => `${Noun} for ${chapter}`,
-    /** The Engine row's and the mapping dialog's line for a link whose track the project no longer has. */
+    /** The Link button's reason beside a picker with nothing chosen. */
+    chooseFirst: `Choose a ${noun} first`,
     /** Why a pickup's original cannot be played: the chapter has no link, or its linked track is gone. */
     noOriginal: {
       unlinked: `This chapter is not linked to a ${noun}, so the original cannot be played.`,
       missing: `This chapter’s linked ${noun} is no longer in the project, so the original cannot be played.`,
     },
+    /** The Engine row's and the mapping dialog's line for a link whose track the project no longer has. */
     linkedMissing: `Linked ${noun} is missing from this project`,
     /** Why a chapter has no measured recording, for the Proof check card. */
     noRecordingWhy: {
