@@ -30,6 +30,11 @@ export interface HoldScroll {
   cancel: () => void;
   /** One step with no pointer (a key press on the button). */
   step: (dir: 1 | -1) => void;
+  /**
+   * The view has come to the end the arrow points at, as far as the arrow can tell (it turns off a hair before the end, `canBack` and `canForward`).
+   * A step still gliding finishes where it was heading, so it is not left short by that hair; a hold ends where it is.
+   */
+  arrive: () => void;
 }
 
 const easeOut = (t: number): number => 1 - (1 - t) ** 3;
@@ -114,6 +119,13 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
     timer = null;
   };
 
+  function cancel(): void {
+    clearTimer();
+    pressed = 0;
+    holding = false;
+    stopMotion();
+  }
+
   return {
     press(dir) {
       clearTimer();
@@ -135,11 +147,11 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
         step(dir);
       }
     },
-    cancel() {
-      clearTimer();
-      pressed = 0;
-      holding = false;
-      stopMotion();
+    cancel,
+    arrive() {
+      const to = unsubscribe !== null && target !== null ? target : null;
+      cancel();
+      if (to !== null) move(to);
     },
     step,
   };
