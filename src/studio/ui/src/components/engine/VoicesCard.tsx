@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
 import type { TrackMapping } from '../../api/contracts/chapterTrackMap';
@@ -28,6 +28,15 @@ const LAYOUTS = [
 
 /** A marked child's name, muted (a token that holds contrast in both themes, not an opacity): the row is still there, and so are the badge and the switch that turns it back on, at full strength. */
 const DIMMED = 'text-[var(--text-muted)]';
+
+/** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
+const NARROW = '(max-width: 30rem)';
+const subscribeNarrow = (notify: () => void) => {
+  const query = window.matchMedia?.(NARROW);
+  query?.addEventListener('change', notify);
+  return () => query?.removeEventListener('change', notify);
+};
+const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -85,7 +94,13 @@ export function VoicesCard({
   const [picked, setPicked] = useState('');
   const current = links.find((link) => link.chapter.id === picked) ?? links[0];
   // A blank-named track is named by its place in the project, as Chapter links names it, not by its place in the folder.
+  const narrow = useSyncExternalStore(subscribeNarrow, narrowNow, () => false);
   const projectPlace = (guid: string) => tracks.findIndex((track) => track.guid === guid);
+  const voiceSwitch = (voice: Voice) => (
+    <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
+      <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
+    </Switch>
+  );
   const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
@@ -117,32 +132,36 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['2.75rem', 'auto', 'auto', 'clamp(3.75rem, 20%, 9rem)', '3rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '5.5rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
-                    <TableHeader>Key</TableHeader>
-                    <TableHeader>Track</TableHeader>
-                    <TableHeader>Characters</TableHeader>
-                    <TableHeader className="min-[48rem]:whitespace-nowrap">Counts as voice</TableHeader>
-                    <TableHeader hiddenLabel="Actions" />
+                    {!narrow && <TableHeader>Key</TableHeader>}
+                    <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
+                    {!narrow && <TableHeader>Characters</TableHeader>}
+                    {!narrow && <TableHeader>Voice</TableHeader>}
+                    <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {voices.map((voice) => (
                     <TableRow key={voice.guid}>
-                      <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
+                      {!narrow && <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>}
                       <TableCell className={`[overflow-wrap:anywhere] ${voice.notVoice ? DIMMED : ''}`}>
                         <bdi>{trackName(voice.name, projectPlace(voice.guid))}</bdi>
+                        {narrow && (
+                          <div className="mt-1 font-normal text-[var(--text)]">
+                            <VoiceCharacters voice={voice} />
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <VoiceCharacters voice={voice} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
-                          <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
-                        </Switch>
-                      </TableCell>
+                      {!narrow && (
+                        <TableCell>
+                          <VoiceCharacters voice={voice} />
+                        </TableCell>
+                      )}
+                      {!narrow && <TableCell align="center">{voiceSwitch(voice)}</TableCell>}
                       <TableCell align="right">
+                        {narrow && <span className="mr-1 inline-flex align-middle">{voiceSwitch(voice)}</span>}
                         <CharacterPicker
                           voice={voice}
                           placeName={trackName(voice.name, projectPlace(voice.guid))}

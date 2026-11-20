@@ -6,16 +6,34 @@ import { openEnginePanel, openSettings, showSettingsRow } from './drivers/shared
 
 const table = (scope: Page | Locator) => scope.getByRole('table', { name: /^Voices of / });
 
-/** What the table draws: the Track column's width, the tallest row, and whether any two headers overlap. */
+/**
+ * What the table draws: a cell whose text runs out of it (a header printed over its neighbour), and a name or chip word that is broken mid-word because its
+ * column is too narrow. Header and cell boxes cannot overlap in a table, so overflow is measured on the text.
+ */
 async function measure(box: Locator) {
   return box.evaluate((el) => {
-    const headers = [...el.querySelectorAll('th')].map((th) => th.getBoundingClientRect());
-    const overlap = headers.some((a, i) =>
-      headers.slice(i + 1).some((b) => a.width > 0 && b.width > 0 && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom && b.top < a.bottom),
-    );
-    const track = [...el.querySelectorAll('tbody tr')].map((row) => row.querySelectorAll('td')[1]?.getBoundingClientRect().width ?? 0);
+    const overflowing = [...el.querySelectorAll('th, td')]
+      .filter((cell) => cell.scrollWidth > cell.clientWidth + 1)
+      .map((cell) => (cell.textContent ?? '').trim().slice(0, 30) || 'a cell');
+    const broken: string[] = [];
+    for (const cell of el.querySelectorAll('tbody td')) {
+      const style = getComputedStyle(cell);
+      const room = cell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const words: string[] = [];
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode())
+        if (!node.parentElement?.closest('.sr-only')) words.push(...(node.textContent ?? '').split(/\\s+/).filter(Boolean));
+      for (const word of words) {
+        const probe = document.createElement('span');
+        probe.textContent = word;
+        probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${style.font};letter-spacing:${style.letterSpacing};text-transform:${style.textTransform}`;
+        cell.append(probe);
+        if (probe.getBoundingClientRect().width > room + 1) broken.push(word);
+        probe.remove();
+      }
+    }
     const rows = [...el.querySelectorAll('tbody tr')].map((row) => row.getBoundingClientRect().height);
-    return { overlap, trackMin: Math.min(...track), tallest: Math.max(...rows), wide: el.scrollWidth > el.clientWidth + 1 };
+    return { overflowing, broken, tallest: Math.max(...rows), wide: el.scrollWidth > el.clientWidth + 1 };
   });
 }
 
@@ -31,8 +49,8 @@ for (const { width, height } of [
     const voices = table(panel);
     await voices.getByRole('row', { name: /Extras/ }).waitFor();
     const m = await measure(voices);
-    expect(m.overlap).toBe(false);
-    expect(m.trackMin).toBeGreaterThanOrEqual(width < 340 ? 48 : 56);
+    expect(m.overflowing).toEqual([]);
+    expect(m.broken).toEqual([]);
     expect(m.tallest).toBeLessThan(110);
     expect(m.wide).toBe(false);
   });
@@ -44,8 +62,8 @@ for (const { width, height } of [
     const voices = table(row);
     await voices.getByRole('row', { name: /Extras/ }).waitFor();
     const m = await measure(voices);
-    expect(m.overlap).toBe(false);
-    expect(m.trackMin).toBeGreaterThanOrEqual(width < 340 ? 48 : 56);
+    expect(m.overflowing).toEqual([]);
+    expect(m.broken).toEqual([]);
     expect(m.tallest).toBeLessThan(110);
     expect(m.wide).toBe(false);
   });
