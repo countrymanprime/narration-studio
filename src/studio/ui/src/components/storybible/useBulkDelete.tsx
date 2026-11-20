@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { formatCount, plural, pluralWord } from '../../plural';
+import { usePort } from '../../ports/usePort';
 import type { GuideEntity } from '../../types';
 import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -32,7 +32,7 @@ export function useBulkDelete({
   notify: Notify;
   guarded: (action: () => void) => void;
 }): { bar: ReactNode; dialog: ReactNode } {
-  const api = useApi();
+  const storyBible = usePort('storyBible');
   const [asking, setAsking] = useState(false);
   const [pending, setPending] = useState(false);
   const byId = useMemo(() => new Map(entries.map((entry) => [entry.id, entry])), [entries]);
@@ -60,7 +60,7 @@ export function useBulkDelete({
     let why: string | undefined;
     for (const entry of targets) {
       try {
-        await api.guideDelete(entry.id);
+        await storyBible.guideDelete(entry.id);
         done += 1;
       } catch (error) {
         failed += 1;
