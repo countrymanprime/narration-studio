@@ -104,7 +104,7 @@ describe('the-list-is-a-filter-menu-over-a-table-of-entries', () => {
 });
 
 describe('the-type-colour-tints-the-rows', () => {
-  const swatchOf = (element: Element) => element.querySelector<HTMLElement>('[aria-hidden="true"]')!.style.background;
+  const swatchOf = (element: Element) => element.querySelector<HTMLElement>('[aria-hidden="true"][style*="background"]')!.style.background;
 
   it('colours each row from the type colour', async () => {
     await renderGuide({}, async (api) => api.guideTypeSetColour('Character', 'rose'));

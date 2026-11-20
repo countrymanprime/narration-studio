@@ -15,6 +15,7 @@ import { useCommand } from '../../input/useCommand';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
 import { Highlight } from '../primitives/Highlight';
+import { Checkbox } from '../primitives/Checkbox';
 import { IconButton } from '../primitives/IconButton';
 import { hearNameAction } from '../../icons.catalog';
 import { Swatch } from '../primitives/Swatch';
@@ -59,6 +60,16 @@ export type EntryTableProps = {
   /** The entry whose pronunciation is playing, and the one the host is still rendering. */
   playingId?: string;
   loadingId?: string;
+  /**
+   * Ticking rows (#3662): a column of boxes before the name. `ticked` is the ids ticked among `rows`; `bar` is what takes the header row (the sort buttons) while any row is ticked,
+   * in the same height, so nothing under the pointer moves when the first box is ticked. Without it the table has no such column.
+   */
+  selection?: {
+    ticked: ReadonlySet<string>;
+    onToggle: (id: string, range: boolean) => void;
+    onToggleAll: () => void;
+    bar: ReactNode;
+  };
 };
 
 export type EntryTableHandle = { focusFirst: () => void };
@@ -87,6 +98,7 @@ export function EntryTable({
   onHear,
   playingId,
   loadingId,
+  selection,
 }: EntryTableProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string>();
@@ -202,7 +214,7 @@ export function EntryTable({
   const looseStop = loose.find((suggestion) => suggestion.id === looseId)?.id ?? null;
   const stopId = looseStop ? undefined : (rows.find((row) => row.id === focusedId)?.id ?? rows.find((row) => row.id === openId)?.id ?? rows[0]?.id);
   const firstLooseStop = looseStop ?? (stopId ? null : (loose[0]?.id ?? null));
-  const columns = COLUMNS.length + 1;
+  const columns = COLUMNS.length + 1 + (selection ? 1 : 0);
   const nothing = rows.length === 0 && loose.length === 0;
 
   return (
@@ -215,6 +227,7 @@ export function EntryTable({
     >
       <Table label="Story Bible entries" rowCount={windowed ? rows.length + loose.length + 1 : undefined} className="table-fixed">
         <colgroup>
+          {selection && <col className="w-[2.25rem]" />}
           {COLUMNS.map((column) => (
             <col key={column.key} className={COL_WIDTH[column.key] ?? ''} />
           ))}
@@ -222,16 +235,38 @@ export function EntryTable({
         </colgroup>
         <TableHead sticky>
           <TableRow>
-            {COLUMNS.map((column) => (
-              <TableHeader key={column.key} sorted={sortAria(sort, column.key)} onSort={() => onSort(column.key)}>
-                {column.label}
-              </TableHeader>
-            ))}
-            <TableHeader hiddenLabel="Pronunciation" />
+            {selection && (
+              <TableHeader
+                className="px-0"
+                custom={
+                  <span className="flex justify-center">
+                    <Checkbox
+                      aria-label="Select every entry"
+                      checked={rows.length > 0 && selection.ticked.size === rows.length}
+                      indeterminate={selection.ticked.size > 0 && selection.ticked.size < rows.length}
+                      disabled={rows.length === 0}
+                      onChange={selection.onToggleAll}
+                    />
+                  </span>
+                }
+              />
+            )}
+            {selection && selection.ticked.size > 0 ? (
+              <TableHeader colSpan={COLUMNS.length + 1} custom={selection.bar} />
+            ) : (
+              <>
+                {COLUMNS.map((column) => (
+                  <TableHeader key={column.key} sorted={sortAria(sort, column.key)} onSort={() => onSort(column.key)}>
+                    {column.label}
+                  </TableHeader>
+                ))}
+                <TableHeader hiddenLabel="Pronunciation" />
+              </>
+            )}
           </TableRow>
         </TableHead>
         <TableBody navigable onKeyDown={onKeyDown} onFocus={onFocus}>
-          <LooseSuggestionRows suggestions={loose} selectedId={looseId} tabStopId={firstLooseStop} onSelect={onOpenLoose} />
+          <LooseSuggestionRows suggestions={loose} selectedId={looseId} tabStopId={firstLooseStop} onSelect={onOpenLoose} leadingCell={Boolean(selection)} />
           {start > 0 && <TableSpacer height={start * ROW_PX} columns={columns} />}
           {drawn.map((row, offset) => (
             <EntryRow
@@ -244,6 +279,7 @@ export function EntryTable({
               tabStop={row.id === stopId}
               words={words}
               onOpen={() => onOpen(row.id)}
+              select={selection ? { checked: selection.ticked.has(row.id), onToggle: (range) => selection.onToggle(row.id, range) } : undefined}
               hear={
                 onHear && hasPronunciation(row) ? { playing: playingId === row.id, loading: loadingId === row.id, onPress: () => onHear(row.id) } : undefined
               }
@@ -273,6 +309,7 @@ function EntryRow({
   words,
   onOpen,
   hear,
+  select,
 }: {
   entry: GuideEntity;
   types: readonly GuideType[];
@@ -283,7 +320,9 @@ function EntryRow({
   words: readonly string[];
   onOpen: () => void;
   hear?: { playing: boolean; loading: boolean; onPress: () => void };
+  select?: { checked: boolean; onToggle: (range: boolean) => void };
 }) {
+  const shift = useRef(false);
   const alias = matchedAlias(entry, words);
   const kind = kindLabel(entry);
   return (
@@ -295,6 +334,34 @@ function EntryRow({
       onActivate={onOpen}
       className={changed ? CHANGE_HIGHLIGHT_CLASSES : ''}
     >
+      {select && (
+        <TableCell className="p-0!">
+          {/* A press on the box, or anywhere else in its cell, ticks the row and opens nothing; Space and Enter on it tick it and do not play or open the row. Shift on the press ticks the range from the last one pressed. */}
+          <span
+            className="flex min-h-[calc(var(--row-height)-1px)] items-center justify-center"
+            onMouseDown={(event) => {
+              // A Shift press would otherwise select the page text between the two rows.
+              if (event.shiftKey) event.preventDefault();
+            }}
+            onClickCapture={(event) => (shift.current = event.shiftKey)}
+            onClick={(event) => {
+              event.stopPropagation();
+              // The cell around the 24 px box ticks too, so a near miss does not open the entry.
+              if (event.target === event.currentTarget) select.onToggle(shift.current);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+            }}
+          >
+            <Checkbox
+              aria-label={`Select ${entry.canonical_name}`}
+              checked={select.checked}
+              tabIndex={tabStop ? 0 : -1}
+              onChange={() => select.onToggle(shift.current)}
+            />
+          </span>
+        </TableCell>
+      )}
       <TableCell className="overflow-hidden">
         <span className="block truncate" title={alias !== undefined ? `${entry.canonical_name} (also “${alias}”)` : entry.canonical_name}>
           <span dir="auto" data-entry-name="" className="font-semibold">

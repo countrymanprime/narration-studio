@@ -302,6 +302,13 @@
   },
   {
     "page": "storybible",
+    "state": "entries-ticked",
+    "viewport": "desktop",
+    "docName": "storybible-entries-ticked",
+    "caption": "Story Bible - three entries ticked: the header row shows the count, Delete 3 entries and Clear the selection"
+  },
+  {
+    "page": "storybible",
     "state": "entity-selected",
     "viewport": "desktop",
     "docName": "storybible-entity",

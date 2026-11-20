@@ -150,6 +150,11 @@ const lostInDaw = (daw: DawKind | undefined) => {
 // reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. Only a press's
 // own answer claims a take: one the DAW started (adopted, #3666) never does, so a Booth opened again finds it like a new one. A page reload forgets this.
 let appTakeRunning = false;
+// The chapter that take began in, claimed by the first page that records it: a page for another chapter that adopts the take (the narrator opened it with the take still
+// running) is not the take's, and writes no passage-map run of its own for it (#3712).
+let appTakeChapterId: string | undefined;
+/** The chapter the take this app started and has not seen end began in; undefined when there is none. */
+export const appTakeChapter = (): string | undefined => appTakeChapterId;
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
 // The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
@@ -162,6 +167,7 @@ export const forgetAppTake = (): void => {
   startsSent = 0;
   runningStart = 0;
   appTakeRunning = false;
+  appTakeChapterId = undefined;
   lastStartAt = 0;
 };
 /** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
@@ -371,10 +377,16 @@ export function useRecordControl({
   const wasRecording = useRef(false);
   // In this order: a take that just ended clears the flag before the next effect asks whether to take one back.
   useEffect(() => {
-    if (recording) recordedHere.current = true;
-    else if (wasRecording.current && reachableRef.current !== false) appTakeRunning = false;
+    if (recording) {
+      // The chapter the take began in, claimed by the first page that records it (#3712); a claim on the take itself is only a press's (`appTakeRunning`).
+      appTakeChapterId ??= chapterId;
+      recordedHere.current = true;
+    } else if (wasRecording.current) {
+      appTakeChapterId = undefined;
+      if (reachableRef.current !== false) appTakeRunning = false;
+    }
     wasRecording.current = recording;
-  }, [recording]);
+  }, [recording, chapterId]);
   useEffect(() => {
     // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
     if (!recording && answering && projectHeard && inApp && !recordedHere.current && project?.playState === 'recording') {
@@ -384,6 +396,11 @@ export function useRecordControl({
       setRecording(true);
     }
   }, [recording, project?.playState, inApp, answering, projectHeard]);
+  // A page that reads the DAW as not recording, while it records nothing itself, holds no take: a claim left by a take that ended with no page to see it is stale, and would
+  // write off the next take this page adopts as another chapter's (#3712).
+  useEffect(() => {
+    if (!recording && project?.playState && project.playState !== 'recording') appTakeChapterId = undefined;
+  }, [recording, project?.playState]);
   // A take the DAW holds that this app neither pressed nor can claim: the narrator pressed Record in the DAW itself (#3666). It is the Booth's running take
   // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), as the reads above (`link`, `match`) say
   // once they have been made after the take was seen (`readSeq`); any other is "elsewhere". Nothing but this app starts a take of its own recorder.
@@ -865,6 +882,8 @@ export function useRecordControl({
           }
           if (starting) {
             lastStartAt = Date.now();
+            // A take this page starts is this chapter's, whatever claim a take it never saw end left behind (the Booth was left while it ran, and it ended with no page to see it).
+            appTakeChapterId = chapterId;
             // Only a press's own answer claims a take for the app, and a take it started is never one the DAW did.
             appTakeRunning = true;
             setStartedInDaw(false);

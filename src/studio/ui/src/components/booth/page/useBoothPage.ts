@@ -30,7 +30,7 @@ import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useSt
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
 const ROLL_LANDED_TOPIC = 'booth-roll-landed';
-import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { appTakeChapter, useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -897,7 +897,9 @@ export function useBoothPage(options: BoothPageOptions) {
       setPaused(false);
       setBrowse(false);
       takeBegan.current = now.at.cur;
-      if (place) writer.begin(place, takeAt.current);
+      // A take adopted from another chapter (opened with it still running) is that chapter's: it writes no run here (#3712).
+      const takeOf = appTakeChapter();
+      if (place && (takeOf === undefined || takeOf === recordIdNow.current)) writer.begin(place, takeAt.current);
       // A take begun while a session runs (the DAW's own Record joins it, with no claim and no start) holds that session: a stop that failed before it is
       // not to be retried under it, nor its sentence kept.
       if (now.session.active) now.session.sessionJoined();
@@ -1133,9 +1135,18 @@ export function useBoothPage(options: BoothPageOptions) {
     () => () => {
       // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
       // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
-      if (!latest.current.recording || handled()) return;
-      // A take REAPER started is never the app's to stop, however the page goes (#3666).
-      if (!latest.current.startedByApp) return;
+      if (!latest.current.recording) return;
+      // Left with the take still running by the narrator's choice ("Leave anyway", "Open anyway"): what this page saw of it is closed and written now, for this chapter,
+      // since the page that opens next is not this take's and writes none (#3712).
+      if (handled()) {
+        void onGone.current.flush();
+        return;
+      }
+      // A take REAPER started is never the app's to stop, however the page goes (#3666): only what this page saw of it is written.
+      if (!latest.current.startedByApp) {
+        void onGone.current.flush();
+        return;
+      }
       if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },

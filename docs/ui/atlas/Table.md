@@ -14,6 +14,7 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - Matches The Mock
 - Fixed Columns
 - Tree
+- Custom Header Span
 
 ## Used by
 

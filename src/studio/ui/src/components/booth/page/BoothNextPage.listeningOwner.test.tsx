@@ -1244,6 +1244,22 @@ describe('a press the narrator left behind by changing chapter, whose take still
     expect(screen.queryByText(/Recording did not start/)).toBeNull();
   });
 
+  // #3712: the next chapter's page finds the DAW still recording, as it would a take of its own, and wrote a run of the chapter it opened for it, none for the one recorded.
+  it('a take left recording by Open anyway is written as a run of the chapter it began in, never of the chapter opened', async () => {
+    const host = fakeHost();
+    const runs = vi.fn(async (_chapterId: string, _marks: unknown) => {});
+    host.api.passageMapRecordRun = runs as never;
+    const { push } = await changeChapterDuringStart('refused', host);
+    // The next chapter's page adopts the take, and the take ends in the DAW some time later.
+    await push(true);
+    await settle();
+    await push(false);
+    await settle();
+    const chapters = runs.mock.calls.map(([chapterId]) => chapterId);
+    expect(chapters, 'a run of the chapter opened').not.toContain('c2');
+    expect(chapters, 'the chapter the take began in gets what the Booth saw of it').toContain('c1');
+  });
+
   it('says it when the host reads idle and the start is refused in the same turn (the page reads its own session when it settles)', async () => {
     const host = fakeHost();
     host.quietFailures();

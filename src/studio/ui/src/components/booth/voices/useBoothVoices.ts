@@ -221,6 +221,11 @@ export function useBoothVoices({
       setReaper(null);
       return;
     }
+    // A voice being chosen is not read: the host is arming the lane, and the read would wait in REAPER's queue beside the arm itself and answer
+    // before the arm lands, so what it says is the DAW's word on the voice being left, not the one chosen. The choice bumps the epoch again as it
+    // ends, which drops such a read from the arm-by-hand follow; the arm dot would still have shown it. The read after the answer is the one that
+    // counts (#3647); the dot keeps its last state until then (the host bounds a choice at its lane command timeout).
+    if (choosing) return;
     let live = true;
     // What the Booth had when this read began: a read taken during a take, or before the voice changed, is not the DAW's word on the Booth's voice now.
     const stamp = { voice: hostVoice.guid, recording, asking, epoch };
@@ -242,7 +247,7 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, teleprompter, hostVoice.guid, recording, asking, coldRead, epoch, revision, trackState.readAt]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, asking, coldRead, choosing, epoch, revision, trackState.readAt]);
 
   const askingBefore = useRef(asking);
   useEffect(() => {

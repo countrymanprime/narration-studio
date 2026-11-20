@@ -371,6 +371,7 @@ export const CATALOG = {
   reject: action(faXmark, 'close', 'Reject this suggestion'),
   dismiss: action(faXmark, 'close', 'Dismiss'),
   cancelEdit: action(faXmark, 'close', 'Cancel the edit'),
+  clearSelection: action(faXmark, 'close', 'Clear the selection'),
   cancelDownload: action(faXmark, 'close', 'Cancel the download'),
   // Where a pronunciation or an extracted suggestion came from (PronSource, Suggested, the Analysis tools list).
   sourceAuto: action(faWandMagicSparkles, 'source:rules', 'Use the automatic source'),

@@ -10,7 +10,7 @@
 //   nodes    DOM nodes in the page
 // Each cell is the median of --runs runs (default 5). Usage:
 //   node scripts/dev/page-bench.mjs [--hours 1,5,17,40] [--runs 5] [--pages Production,Script] [--out table.md] [--json out.json]
-// Build first: `pnpm --dir src/studio/ui run build:mock`. Serves node_modules/.cache/mock-build on UI_APP_PORT (default 4391).
+// Build first: `pnpm --dir src/studio/ui run build:mock`. Serves node_modules/.cache/mock-build (or UI_BUILD_DIR, relative to the UI project) on UI_APP_PORT (default 4391).
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
@@ -96,7 +96,7 @@ async function measureWarm(browser, hours, name) {
 }
 
 // The mock build is static files: serve them here (an unknown path gets index.html, as `vite preview` does) rather than start another tool.
-const root = join(ui, 'node_modules/.cache/mock-build');
+const root = join(ui, process.env.UI_BUILD_DIR ?? 'node_modules/.cache/mock-build');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.wav': 'audio/wav', '.png': 'image/png' };
 const server = createServer((request, response) => {
   const path = join(root, decodeURIComponent(new URL(request.url, ORIGIN).pathname));
