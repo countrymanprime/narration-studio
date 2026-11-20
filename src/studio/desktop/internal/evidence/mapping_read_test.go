@@ -71,3 +71,29 @@ func TestAWriteNeverChangesWhatTheNextReadAnswersFrom(t *testing.T) {
 		t.Fatalf("after a second link List() = %v, %v, want both", links, err)
 	}
 }
+
+// A file that stops being readable after a good decode reads as absent, never as the links last decoded.
+func TestAFileThatBecomesUnreadableIsNeverAnsweredFromTheLastDecode(t *testing.T) {
+	for name, content := range map[string]string{
+		"corrupt":        `{"schemaVersion": 2, "documentId": "doc", "mappings": [`,
+		"newer version":  `{"schemaVersion": 99, "documentId": "doc", "mappings": [{"trackGuid": "{T9}", "chapterId": "c-0009"}]}`,
+		"other document": `{"schemaVersion": 2, "documentId": "another", "mappings": [{"trackGuid": "{T9}", "chapterId": "c-0009"}]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			store := NewMappingStore(project)
+			if _, err := store.Confirm("doc", "{T1}", "c-0001", "Chapter 1"); err != nil {
+				t.Fatal(err)
+			}
+			if links, err := store.List("doc"); err != nil || len(links) != 1 {
+				t.Fatalf("List() = %v, %v", links, err)
+			}
+			if err := os.WriteFile(MappingFile(project), []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if links, err := store.List("doc"); err != nil || len(links) != 0 {
+				t.Fatalf("List() = %v, %v, want no links", links, err)
+			}
+		})
+	}
+}

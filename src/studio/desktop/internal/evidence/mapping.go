@@ -174,6 +174,7 @@ type mappingRead struct {
 }
 
 // copyOf is the decoded file with slices of its own: the store's writers sort, append to and filter them in place.
+// A link's Match pointer is shared with the kept decode: nothing writes through it.
 func (r mappingRead) copyOf() mappingFileShape {
 	file := r.file
 	file.Mappings, file.Rejected, file.Previous = slices.Clone(file.Mappings), slices.Clone(file.Rejected), slices.Clone(file.Previous)
