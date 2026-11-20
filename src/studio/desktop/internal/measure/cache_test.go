@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"desktop/internal/evidence"
 )
@@ -153,5 +154,51 @@ func TestCachedPeaksFileStopsWhenCancelled(t *testing.T) {
 	cancel()
 	if _, err := CachedPeaksFile(ctx, store, identityOf(t, path), path, nil, 50); !errors.Is(err, context.Canceled) {
 		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+// A click repaired in place leaves the file's length and its first, middle and last 64 KB as they were, so the cache
+// key does not move: the entry's own modification time is what tells the waveform is from before the edit (#3778).
+func TestCachedPeaksFileComputesAgainWhenTheFileWasEditedInPlace(t *testing.T) {
+	wav := encodeWAV(t, 1, 8000, 16, false, sine(8000, 60, 220, -6, 0)) // 960 KB: the hashed blocks leave most of it unread
+	path := writeWAVFile(t, wav)
+	project := t.TempDir()
+	store := evidence.NewCacheStore(project)
+	before, err := CachedPeaksFile(context.Background(), store, identityOf(t, path), path, nil, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Ten seconds in, half a second of silence over the tone, and the file saved a minute later.
+	edited := append([]byte(nil), wav...)
+	at := 44 + 10*8000*2
+	clear(edited[at : at+8000])
+	if err := os.WriteFile(path, edited, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	later := identityOf(t, path).ModTime.Add(time.Minute)
+	if err := os.Chtimes(path, later, later); err != nil {
+		t.Fatal(err)
+	}
+	identity := identityOf(t, path)
+	if was := identityOf(t, writeWAVFile(t, wav)); was.PartialHash != identity.PartialHash || was.Size != identity.Size {
+		t.Fatal("the edit moved the hash or the size: this test needs an edit the key cannot see")
+	}
+
+	after, err := CachedPeaksFile(context.Background(), store, identity, path, nil, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bucket := 10*50 + 5
+	if before.MinMax[2*bucket+1] == 0 || after.MinMax[2*bucket] != 0 || after.MinMax[2*bucket+1] != 0 {
+		t.Fatalf("bucket %d: before max %d, after min %d max %d; want the tone before and silence after", bucket, int8(before.MinMax[2*bucket+1]), int8(after.MinMax[2*bucket]), int8(after.MinMax[2*bucket+1]))
+	}
+	// The edited file's entry is written over the old one, and is then read, not computed a third time.
+	misses := store.Misses()
+	if _, err := CachedPeaksFile(context.Background(), store, identity, path, nil, 50); err != nil || store.Misses() != misses {
+		t.Fatalf("err = %v, misses %d -> %d; want the edited file's entry read from the cache", err, misses, store.Misses())
+	}
+	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 1 {
+		t.Fatalf("%d cache files, want the one entry written over", len(entries))
 	}
 }
