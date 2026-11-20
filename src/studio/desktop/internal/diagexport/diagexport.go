@@ -304,7 +304,8 @@ func filterRunLog(lines [][]byte) [][]byte {
 		kept := map[string]any{}
 		event, _ := record["event"].(string)
 		for key, value := range record {
-			if !runKeys[key] && !(bridgeKeys[key] && bridgeEvents[event]) {
+			allowed := runKeys[key] || (bridgeKeys[key] && bridgeEvents[event])
+			if !allowed {
 				continue
 			}
 			switch typed := value.(type) {
