@@ -36,8 +36,9 @@ describe('a toast with an action in a window of 24 rem or less (#3322)', () => {
     expect(withAction.className).toContain('max-[24rem]:[--toast-action-row:2.75rem]');
     // The cap subtracts the row (zero where the action sits beside the text).
     expect(screen.getByText('Long refusal').className).toContain('var(--toast-action-row,0rem)');
-    // The text takes the width the glyph leaves of the first row, so the buttons wrap under it and no earlier.
-    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:basis-[calc(100%-1.75rem)]');
+    // The text is capped at what the glyph leaves of the row, not forced to it: a short text stays beside the buttons, a long one fills the row and sends them under it.
+    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:max-w-[calc(100%-1.75rem)]');
+    expect(screen.getByText('Long refusal').className).not.toContain('basis');
   });
 });
 
@@ -55,7 +56,7 @@ describe('a stack of toasts keeps every action beside its text (#3322)', () => {
     );
     for (const word of ['First', 'Second']) {
       expect(screen.getByText(word).closest('[data-tone]')!.className).not.toContain('flex-wrap');
-      expect(screen.getByText(word).className).not.toContain('max-[24rem]:basis');
+      expect(screen.getByText(word).className).not.toContain('max-[24rem]:max-w');
     }
   });
 });

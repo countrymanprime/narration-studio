@@ -72,7 +72,7 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
   const isError = message.tone === 'error';
   const { id } = message;
   // In a window of 24rem or less a message that is the only one showing and has an action puts it, and Dismiss, on a row under the text, so the text keeps the width of the toast instead
-  // of the sliver left beside two buttons (#3322); a stack keeps the buttons beside the text, because rows of buttons under each of several messages would not fit a short window; the text's basis is what the glyph leaves of the row, so the buttons wrap under it and no earlier.
+  // of the sliver left beside two buttons (#3322); a stack keeps the buttons beside the text, because rows of buttons under each of several messages would not fit a short window; the row wraps only when the text does not fit beside the buttons (a short message with an action stays on one row), so the text's width is capped at what the glyph leaves of the row (a long one fills the first row and the buttons wrap under it; a short one keeps them beside it).
   const withAction = message.action !== undefined && alone;
   const glyph = isError || message.icon !== undefined;
   const stays = toastLifetimeMs(message);
@@ -170,7 +170,7 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className={`${withAction ? (glyph ? 'max-[24rem]:basis-[calc(100%-1.75rem)]' : 'max-[24rem]:basis-full') : ''} max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 [@media(max-height:400px)]:[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]`}
+        className={`${withAction ? (glyph ? 'max-[24rem]:max-w-[calc(100%-1.75rem)]' : 'max-[24rem]:max-w-full') : ''} max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 [@media(max-height:400px)]:[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]`}
       >
         {message.text}
       </span>

@@ -213,6 +213,31 @@ for (const { width, height } of [
   });
 }
 
+// A short message with an action ("Bookmark added." and Undo) fits beside its buttons even in a small window, so it stays on one row: the action row under the text is only for a text that
+// does not fit beside them (#3322).
+for (const { width, height } of [
+  { width: 320, height: 300 },
+  { width: 360, height: 500 },
+]) {
+  test(`${width}x${height}: a short lone toast with an action stays on one row`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await showChapterTop(page);
+    await page.keyboard.press('b');
+    const toast = page.locator('[data-toast-region] [data-tone]').filter({ has: page.getByRole('button', { name: 'Undo' }) });
+    await expect(toast).toBeVisible();
+    await page.waitForTimeout(400);
+    const box = await toast.boundingBox();
+    const text = await toast.locator('[data-toast-text]').boundingBox();
+    const undo = await toast.getByRole('button', { name: 'Undo' }).boundingBox();
+    expect(box && box.height).toBeLessThan(60);
+    // The buttons sit beside the text, not under it.
+    expect(undo && text && undo.y).toBeLessThan((text?.y ?? 0) + (text?.height ?? 0));
+  });
+}
+
 // A refusal that draws nothing (a control character, a format character, a lone combining mark) still ends the press with a sentence (#3322).
 for (const [name, invisible] of [
   ['a control character', '\u007F'],
