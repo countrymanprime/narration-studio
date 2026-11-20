@@ -1,8 +1,8 @@
-// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window 400 px tall or less or 440 px wide or less (#3605 items 1 and 2, #3601, #3549).
-// In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
+// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, at any window size (#3605 items 1 and 2, #3601, #3549).
+// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem (a quarter of the window less 4rem where that is more) while
 // a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
 // wide and the sampled heights at 275, 360 and 400 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
-// not under the toast. A window over 400 px tall keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
+// not under the toast. With no toast the dialog's size is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { clickVisible } from './drivers/shared';
@@ -115,17 +115,17 @@ const SIZES: [number, number][] = [
   [400, 261],
   [400, 340],
   [400, 400],
-  // #3605: above 400 px of height a narrow window (up to 440 px wide) has the same rule; the toast was taller than the dialog's static 4.75rem room (401-800 px tall at 275-400 wide).
-  ...[275, 320, 360, 400].flatMap((width) => Array.from({ length: 20 }, (_, step): [number, number] => [width, 401 + step * 20])),
+  // #3605: above 400 px of height a toast taller than the dialog's static 4.75rem room covered its buttons (401-800 px tall at 275-400 wide; two stacked toasts at 441 wide and more).
+  ...[275, 320, 360, 400, 441, 480, 560, 640].flatMap((width) => Array.from({ length: 14 }, (_, step): [number, number] => [width, 401 + step * 31])),
+  [900, 420],
+  [1440, 900],
   ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
 ];
 
 for (const c of CASES) {
-  test(`a toast never covers or hides the dialog's title, focused field or buttons under 400 px of height: ${c.name}`, async ({ page }) => {
+  test(`a toast never covers or hides the dialog's title, focused field or buttons: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
-    // The stack the case raised is whole in a tall window; at 400 px or less only the newest shows.
-    expect(await shown(page).count(), `${c.toasts} toast(s) raised`).toBe(c.toasts);
     const problems: string[] = [];
     for (const [width, height] of SIZES) {
       await page.setViewportSize({ width, height });
@@ -137,10 +137,12 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside 2.5rem (40 px) over a dialog, so it never takes the dialog's room.
+      // A long message scrolls inside 2.5rem (40 px; a quarter of the window less 4rem where that is more) over a dialog, so it never takes the dialog's room.
+      const cap = Math.max(40, height / 4 - 64);
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
-      if (text > 41) problems.push(`${width}x${height}: the toast's text is ${text} px high, over 2.5rem`);
-      if (c.longText) {
+      if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
+      // A wider window fits the long error in two lines.
+      if (c.longText && cap === 40 && width <= 400) {
         const scrolls = await page.evaluate(() => {
           const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
           return el.scrollHeight > el.clientHeight + 1;
@@ -164,10 +166,9 @@ for (const c of CASES) {
 }
 
 // The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('at 400 px of height or less the older toast waits for the newest to go', async ({ page }) => {
+test('over a dialog the older toast waits for the newest to go', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
-  expect(await shown(page).count(), 'a tall window shows the stack').toBe(2);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
@@ -179,15 +180,15 @@ test('at 400 px of height or less the older toast waits for the newest to go', a
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
 });
 
-// The rule is for a window with a dialog open, where the dialog needs its chrome: a taller window shows the whole stack again, and with no dialog open an older error and its Retry are not hidden by a newer message.
-test('the whole stack shows in a taller window and when no dialog is open', async ({ page }) => {
+// The rule is for a window with a dialog open, where the dialog needs its chrome, at any size: with no dialog open an older error and its Retry are not hidden by a newer message.
+test('the newest toast alone shows over a dialog at any size, and the whole stack when no dialog is open', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
-  await page.setViewportSize({ width: 600, height: 500 });
-  await expect(shown(page)).toHaveCount(2);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(shown(page)).toHaveCount(1);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   expect(await shown(page).first().innerText(), 'the same newest toast again').toBe(first);
@@ -197,7 +198,7 @@ test('the whole stack shows in a taller window and when no dialog is open', asyn
 });
 
 // A toast is inverted (`--toast-bg` is `--text`): a cover or shadow painted in `--surface` on its text box puts a light band under light text (the shared `scroll-y-edges` did, on every toast).
-// In both themes the text box of a toast keeps no `--surface` colour, in a tall window (no scroll cue at all) and in a short one with a dialog open (the cue is in the toast's own colours).
+// In both themes the text box of a toast keeps no `--surface` colour, with a dialog open at any size (the cue is in the toast's own colours) and with none open (no scroll cue at all).
 for (const colorScheme of ['light', 'dark'] as const) {
   test(`a toast's text box never carries the surface colour, ${colorScheme} theme`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
@@ -220,7 +221,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(shown(page)).toHaveCount(1);
       const background = await image();
       expect(background, `${width}x${height}: the text box's background image`).not.toContain(surface);
-      if (height > 400) expect(background, 'a tall window draws no scroll cue').toBe('none');
     }
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await image(), 'no dialog open draws no scroll cue').toBe('none');
   });
 }
