@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -200,5 +201,95 @@ func TestCachedPeaksFileComputesAgainWhenTheFileWasEditedInPlace(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 1 {
 		t.Fatalf("%d cache files, want the one entry written over", len(entries))
+	}
+}
+
+func cacheFiles(t *testing.T, project string) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	entries, _ := os.ReadDir(evidence.CacheDir(project))
+	for _, entry := range entries {
+		raw, err := os.ReadFile(filepath.Join(evidence.CacheDir(project), entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[entry.Name()] = string(raw)
+	}
+	return files
+}
+
+// The stored entry of a file that has not changed is read, not computed and written again: its bytes (which carry
+// the time it was written) are the same after a second read.
+func TestCachedPeaksFileDoesNotRewriteAnUnchangedFilesEntry(t *testing.T) {
+	path := writeWAVFile(t, encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0)))
+	project := t.TempDir()
+	store := evidence.NewCacheStore(project)
+	first, err := CachedPeaksFile(context.Background(), store, identityOf(t, path), path, nil, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	written := cacheFiles(t, project)
+	if len(written) != 1 {
+		t.Fatalf("%d cache files after the first read, want 1", len(written))
+	}
+	time.Sleep(2 * time.Millisecond) // a rewrite would carry a later writtenAt
+
+	second, err := CachedPeaksFile(context.Background(), store, identityOf(t, path), path, nil, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again := cacheFiles(t, project); len(again) != 1 || again[firstKey(written)] != written[firstKey(written)] {
+		t.Fatal("the unchanged file's entry was written again")
+	}
+	if string(second.MinMax) != string(first.MinMax) {
+		t.Fatal("the stored peaks differ from the computed ones")
+	}
+}
+
+func firstKey(files map[string]string) string {
+	for name := range files {
+		return name
+	}
+	return ""
+}
+
+// The caller identified the file, and it was saved again before its audio was read: the peaks are answered and
+// nothing is stored, since the entry would carry the earlier time over the later audio.
+func TestCachedPeaksFileDoesNotStoreWhenTheFileMovedAfterItWasIdentified(t *testing.T) {
+	path := writeWAVFile(t, encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0)))
+	identity := identityOf(t, path)
+	later := identity.ModTime.Add(time.Minute)
+	if err := os.Chtimes(path, later, later); err != nil {
+		t.Fatal(err)
+	}
+	project := t.TempDir()
+
+	peaks, err := CachedPeaksFile(context.Background(), evidence.NewCacheStore(project), identity, path, nil, 50)
+
+	if err != nil || peaks.Buckets != 100 {
+		t.Fatalf("peaks = %d buckets, err = %v", peaks.Buckets, err)
+	}
+	if files := cacheFiles(t, project); len(files) != 0 {
+		t.Fatalf("%d cache files, want none", len(files))
+	}
+}
+
+// A stored entry whose bytes are fewer than its bucket count says is computed again, not cut past its end.
+func TestCachedPeaksFileComputesAgainWhenTheEntryIsInconsistent(t *testing.T) {
+	path := writeWAVFile(t, encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0)))
+	identity := identityOf(t, path)
+	store := evidence.NewCacheStore(t.TempDir())
+	short, err := json.Marshal(peaksBlob{SchemaVersion: peaksBlobVersion, SourceModTime: identity.ModTime, Peaks: Peaks{BucketsPerSecond: 50, Buckets: 3000, MinMax: []byte{1, 2}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Write(peaksCacheKey(identity, 50), short); err != nil {
+		t.Fatal(err)
+	}
+
+	peaks, err := CachedPeaksFile(context.Background(), store, identity, path, &Range{StartSeconds: 1, LengthSeconds: 1}, 50)
+
+	if err != nil || peaks.Buckets != 50 || len(peaks.MinMax) != 100 {
+		t.Fatalf("peaks = %d buckets, %d bytes, err = %v; want the second second computed from the audio", peaks.Buckets, len(peaks.MinMax), err)
 	}
 }
