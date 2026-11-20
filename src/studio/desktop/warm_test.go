@@ -25,7 +25,7 @@ func TestAChapterListReadDuringTheBackgroundFillOfAColdHostDecodesNothingTwice(t
 	if err != nil || len(records) == 0 {
 		t.Fatalf("the fixture's ledger: %d records, %v", len(records), err)
 	}
-	checked.waitForBackground()
+	checked.chapterSyncEmits.Wait() // the finished check's own chaptersync:state read
 	for round := 0; round < 8; round++ {
 		if err := os.RemoveAll(filepath.Join(coverage.Dir(project), "summaries")); err != nil {
 			t.Fatal(err)
@@ -70,5 +70,19 @@ func TestTheBackgroundFillOfNoProjectReturns(t *testing.T) {
 	host.warmProject()
 	if listings, _ := host.services().coverage.LedgerReads(); listings != 0 {
 		t.Fatalf("the fill of a project with no manuscript listed the ledger %d times", listings)
+	}
+}
+
+// A fill that panics is logged and ends there: the caller, and the app, go on.
+func TestABackgroundFillThatPanicsIsLoggedAndTheHostGoesOn(t *testing.T) {
+	host := coverageHost(t, coverageProject(t), true, fakeCoverageSidecar(8))
+	checkRecording(t, host)
+	host.chapterSyncEmits.Wait()
+	host.mu.Lock()
+	host.settings = nil // warmProject reads the coverage settings through it: a nil store panics
+	host.mu.Unlock()
+	host.warmProject()
+	if _, err := host.ManuscriptChapters(); err != nil {
+		t.Fatalf("after a failed fill the chapter list answers %v", err)
 	}
 }

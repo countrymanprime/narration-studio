@@ -1,6 +1,9 @@
 package coverage
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // warmWorkers is how many chapters Warm evaluates at once: the measured gain of a pool flattens there (issue 3806).
 const warmWorkers = 4
@@ -9,7 +12,8 @@ const warmWorkers = 4
 // project's parse, each source file's identity and the summary of each checked chapter's result, rebuilding a summary
 // that is missing. It goes through the caches the reads use, so a read that arrives meanwhile waits for the same work
 // or finds it done, and it changes no answer. It evaluates up to warmWorkers chapters at once and returns early once
-// stop reports true (the project was closed). It starts no check.
+// stop reports true (the project was closed). It starts no check. A panic while evaluating a chapter ends the fill and
+// is raised from Warm itself once the workers are done.
 func (s *Service) Warm(alignment AlignmentParams, stop func() bool) {
 	if s.config.Project == "" || alignment.validate() != nil {
 		return
@@ -25,12 +29,14 @@ func (s *Service) Warm(alignment AlignmentParams, stop func() bool) {
 	}
 	queue := make(chan string)
 	var workers sync.WaitGroup
+	var failed atomic.Pointer[any] // the first panic of a worker, raised again once every worker is done
 	for range min(warmWorkers, len(chapters)) {
 		workers.Go(func() {
-			// A chapter that cannot be evaluated here is left to the page's own read, which reports it; the worker
-			// keeps draining so the sender is never left blocked.
+			// A worker that panics keeps draining, so the sender is never left blocked, and what it hit is raised again
+			// below, on the caller's goroutine, where the caller can log it.
 			defer func() {
-				if recover() != nil {
+				if failure := recover(); failure != nil {
+					failed.CompareAndSwap(nil, &failure)
 					for range queue {
 					}
 				}
@@ -50,4 +56,7 @@ func (s *Service) Warm(alignment AlignmentParams, stop func() bool) {
 	}
 	close(queue)
 	workers.Wait()
+	if failure := failed.Load(); failure != nil {
+		panic(*failure)
+	}
 }

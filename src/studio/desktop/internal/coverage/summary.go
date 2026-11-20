@@ -59,9 +59,6 @@ type summaryStore struct {
 	mu       sync.Mutex
 	// +checklocks:mu
 	held map[string]ResultSummary
-	// writing keeps one file write at a time: a finished check and a read that rebuilds the same summary would share
-	// writeAtomically's temporary file.
-	writing sync.Mutex
 	// +checklocks:mu
 	building map[string]*summaryBuild
 }
@@ -71,6 +68,8 @@ type summaryBuild struct {
 	done    chan struct{}
 	summary ResultSummary
 	ok      bool
+	// finished is false when the rebuild panicked: it has no answer, and a waiter rebuilds for itself.
+	finished bool
 }
 
 // build runs rebuild for recordID once however many readers ask at the same time: the first runs it, the others wait for
@@ -80,6 +79,9 @@ func (s *summaryStore) build(recordID string, rebuild func() (ResultSummary, boo
 	if running, found := s.building[recordID]; found {
 		s.mu.Unlock()
 		<-running.done
+		if !running.finished {
+			return s.build(recordID, rebuild)
+		}
 		return running.summary, running.ok
 	}
 	if held, found := s.held[recordID]; found { // built between the caller's miss and here
@@ -100,6 +102,7 @@ func (s *summaryStore) build(recordID string, rebuild func() (ResultSummary, boo
 		close(running.done)
 	}()
 	running.summary, running.ok = rebuild()
+	running.finished = true
 	return running.summary, running.ok
 }
 
@@ -116,8 +119,6 @@ func (s *summaryStore) write(summary ResultSummary) error {
 	}
 	summary.SchemaVersion, summary.ResultVersion = resultSummaryVersion, storedResultVersion
 	s.hold(summary)
-	s.writing.Lock()
-	defer s.writing.Unlock()
 	encoded, err := json.Marshal(summary)
 	if err != nil {
 		return err

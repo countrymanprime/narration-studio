@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"desktop/internal/tracks"
 )
 
 // warmFixture is a project with two checked chapters whose summaries are gone, as a book checked before summaries
@@ -134,5 +136,54 @@ func TestReadersOfOneMissingSummaryShareItsRebuild(t *testing.T) {
 	}
 	if got := rebuilds.Load(); got != 1 {
 		t.Fatalf("%d rebuilds for 8 readers of one record, want 1", got)
+	}
+}
+
+// A rebuild that panics has no answer to share: a reader that waited on it rebuilds for itself, and is not told the
+// result is missing.
+func TestAReaderWaitingOnARebuildThatPanicsRebuildsForItself(t *testing.T) {
+	store := &summaryStore{dir: t.TempDir()}
+	entered, release := make(chan struct{}), make(chan struct{})
+	var first, second sync.WaitGroup
+	first.Go(func() {
+		defer func() { _ = recover() }()
+		_, _ = store.build("abc", func() (ResultSummary, bool) {
+			close(entered)
+			<-release
+			panic("the result could not be summarized")
+		})
+	})
+	<-entered
+	var got ResultSummary
+	var ok bool
+	second.Go(func() {
+		got, ok = store.build("abc", func() (ResultSummary, bool) { return ResultSummary{RecordID: "abc", ChapterID: "c-0001"}, true })
+	})
+	close(release)
+	first.Wait()
+	second.Wait()
+	if !ok || got.ChapterID != "c-0001" {
+		t.Fatalf("the waiting reader got %+v, %v; want its own rebuild's answer", got, ok)
+	}
+	store.mu.Lock()
+	left := len(store.building)
+	store.mu.Unlock()
+	if left != 0 {
+		t.Fatalf("%d rebuilds are still marked as running", left)
+	}
+}
+
+// A panic while a chapter is evaluated ends the fill and comes out of Warm, on the caller's goroutine, after every
+// worker is done: the caller logs it, and nothing is left running or blocked.
+func TestAPanicInTheFillComesOutOfWarmOnceTheWorkersAreDone(t *testing.T) {
+	service, _ := warmFixture(t)
+	service.config.ChapterAudio = func(tracks.Project) tracks.Project { panic("a chapter could not be read") }
+	var failure any
+	func() {
+		defer func() { failure = recover() }()
+		service.Warm(DefaultAlignmentParams, notClosed)
+	}()
+	if failure != "a chapter could not be read" {
+		t.Fatalf("Warm raised %v, want the worker's panic", failure)
 	}
 }
