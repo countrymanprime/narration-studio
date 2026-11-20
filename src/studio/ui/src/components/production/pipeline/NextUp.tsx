@@ -51,6 +51,9 @@ function Rendered({ item, onGo, timer }: Omit<Props, 'inputs'> & { item: NextIte
       const left =
         item.hoursLeft === null ? (
           'recording in progress'
+        ) : item.hoursLeft <= 0 ? (
+          // The measured length has reached the estimate: there is no time left to give (the percent stays under 100, as the Record cell's does).
+          `${item.percent ?? 0}% recorded`
         ) : (
           <>
             {item.percent ?? 0}% recorded · {leftText === '<0h 01m' ? '' : 'about '}

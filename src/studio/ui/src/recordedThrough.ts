@@ -49,9 +49,11 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
  * only the host says so). Null when nothing is measured.
  */
 export function recordedPercent(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
-  const clamp = (percent: number): number => Math.min(99, Math.max(1, percent));
+  // Nothing recorded is 0 (the host's 0, or 0 s measured), never 1; any audio is at least 1, and only the host's "complete" is 100.
+  const clamp = (percent: number): number => (percent <= 0 ? 0 : Math.min(99, Math.max(1, percent)));
   if (chapter.recordedThrough) return chapter.recordedThrough.complete ? 100 : clamp(chapter.recordedThrough.percent);
   if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
+  if (chapter.recordedSeconds <= 0) return 0;
   return clamp(Math.floor((chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600)) * 100));
 }
 

@@ -271,3 +271,17 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     expect(credits!.cells.edit).toMatchObject({ kind: plain!.cells.edit.kind, text: plain!.cells.edit.text, state: plain!.cells.edit.state });
   });
 });
+
+// R3 (qa round 3): "about" never stands before "<0h 01m", in the Rec. figure's name or the Record cell's tip.
+describe('about-before-an-under-a-minute-estimate', () => {
+  it('says "of <0h 01m estimated" in the tip and "of less than a minute estimated" in the name, and keeps "about" before any other figure', () => {
+    const [tiny] = rowsOf([chapter('c1', { status: 'recording', wordCount: 3, recordedSeconds: 1 })]);
+    expect(tiny!.cells.record.tip).toContain('of <0h 01m');
+    expect(tiny!.cells.record.tip).not.toMatch(/about <0h/);
+    expect(tiny!.recorded.label).toContain('of less than a minute estimated');
+    expect(tiny!.recorded.label).not.toMatch(/about less than/);
+    const [normal] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 1800 })]);
+    expect(normal!.cells.record.tip).toContain('of about 1h 00m');
+    expect(normal!.recorded.label).toContain('of about 1 hour estimated');
+  });
+});

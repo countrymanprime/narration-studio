@@ -1,3 +1,4 @@
+import { aboutHours } from '../productionFormat';
 import { recordedPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
@@ -157,13 +158,13 @@ function recordedFigure(name: string, chapter: ProductionChapter, estimate: stri
 
 function measuredFigure(name: string, chapter: ProductionChapter, estimate: string, layout: VoiceTracksLayout): RecordedFigure {
   const seconds = chapter.recordedSeconds;
-  const of = estimate === DASH ? ', no estimate' : ` of about ${estimate} estimated`;
+  const of = estimate === DASH ? ', no estimate' : ` of ${aboutHours(estimate)} estimated`;
   if (seconds !== null && seconds > 0) {
     const text = clockOf(seconds);
     return {
       kind: 'measured',
       text,
-      label: `${name}: ${spokenMarked(text)} recorded${estimate === DASH ? ', no estimate' : ` of about ${spokenMarked(estimate)} estimated`}`,
+      label: `${name}: ${spokenMarked(text)} recorded${estimate === DASH ? ', no estimate' : ` of ${spokenMarked(aboutHours(estimate))} estimated`}`,
       tip: `${text} recorded${of} · on the linked ${destinationFor(layout).noun} in the saved project, before editing`,
     };
   }
@@ -218,7 +219,7 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
         'progress',
         `${percent}%`,
         `${percent}% recorded`,
-        withCheck(`${percent}% recorded · ${length} of about ${clockOf(finished)}${stageNote}`),
+        withCheck(`${percent}% recorded · ${length} of ${aboutHours(clockOf(finished))}${stageNote}`),
       );
     }
     return underWay('record', 'booth', withCheck(`Recording in progress${stageNote}`));
