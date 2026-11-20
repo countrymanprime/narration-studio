@@ -335,10 +335,10 @@ function EntryRow({
       className={changed ? CHANGE_HIGHLIGHT_CLASSES : ''}
     >
       {select && (
-        <TableCell className="p-0">
+        <TableCell className="p-0!">
           {/* A press on the box, or anywhere else in its cell, ticks the row and opens nothing; Space and Enter on it tick it and do not play or open the row. Shift on the press ticks the range from the last one pressed. */}
           <span
-            className="flex min-h-[var(--row-height)] items-center justify-center"
+            className="flex min-h-[calc(var(--row-height)-1px)] items-center justify-center"
             onMouseDown={(event) => {
               // A Shift press would otherwise select the page text between the two rows.
               if (event.shiftKey) event.preventDefault();

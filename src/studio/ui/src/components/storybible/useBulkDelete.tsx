@@ -100,7 +100,7 @@ export function useBulkDelete({
   const dialog = asking ? (
     <ConfirmDialog
       title={`Delete ${plural(targets.length, 'entry', 'entries')}`}
-      body={`Delete the ${plural(targets.length, 'entry', 'entries')} you ticked, with ${pluralWord(targets.length, 'its', 'their')} aliases, evidence, and relationships? This cannot be undone.${
+      body={`Delete the ${plural(targets.length, 'entry', 'entries')} you ticked, with ${targets.length === 1 ? 'its' : 'their'} aliases, evidence, and relationships? This cannot be undone.${
         kept > 0 ? ` ${plural(kept, 'locked entry', 'locked entries')} ${pluralWord(kept, 'is', 'are')} kept.` : ''
       }`}
       confirmLabel={`Delete ${plural(targets.length, 'entry', 'entries')}`}

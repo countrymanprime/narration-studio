@@ -230,6 +230,11 @@ export const storybibleDrivers: Record<string, Driver> = {
     const boxes = page.getByRole('checkbox', { name: /^Select (?!every)/ });
     for (let i = 0; i < 3; i++) await boxes.nth(i).click();
     await page.getByRole('button', { name: /^Delete \d+ entr/ }).waitFor();
+    // The box's cell must not make a row taller than --row-height (39 px): the list's window and its scroll-to-row count rows at that height.
+    const height = await entryRows(page)
+      .first()
+      .evaluate((row) => row.getBoundingClientRect().height);
+    if (Math.abs(height - 39) > 0.5) throw new Error(`an entry row is ${height}px tall with the tick column on, not 39`);
   },
   'bulk-delete-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
