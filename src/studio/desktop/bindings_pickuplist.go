@@ -62,6 +62,8 @@ func (h *Host) pickupList() *pickuplist.Service {
 		view := sync.OnceValue(func() stages.EvidenceView {
 			return svc.coverage.EvidenceView(context.Background(), manuscriptDocumentID(svc.manuscript))
 		})
+		// One listing of the ledger answers every chapter of a build.
+		pass := sync.OnceValue(svc.coverage.Pass)
 		config.Speech = func(chapterID string) pickuplist.Speech {
 			current := view()
 			if current.ProjectErr != nil {
@@ -71,7 +73,7 @@ func (h *Host) pickupList() *pickuplist.Service {
 				}
 				return pickuplist.Speech{State: string(evidence.StateNever), Reasons: []string{string(reason)}}
 			}
-			result, err := svc.coverage.ResultIn(current.Project, current.ProjectFile, chapterID, alignment)
+			result, err := pass().ResultIn(current.Project, current.ProjectFile, chapterID, alignment)
 			if err != nil {
 				return pickuplist.Speech{State: "unreadable", Reasons: []string{err.Error()}}
 			}
