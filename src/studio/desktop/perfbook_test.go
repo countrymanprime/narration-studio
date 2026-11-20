@@ -159,7 +159,10 @@ func writePerfBookBase(dir string, book perfBook) error {
 	rpp.WriteString(">\n")
 
 	manuscript, err := json.Marshal(map[string]any{
-		"schemaVersion": 1, "documentId": documentID, "importedAt": "2026-01-01T00:00:00+00:00", "importer": "dict", "source": "dict",
+		"schemaVersion": 1, "documentId": documentID, "importedAt": "2026-01-01T00:00:00+00:00",
+		// As an import from Markdown writes them: the page refuses a book whose format and source name it cannot read.
+		"importer": map[string]any{"format": "markdown", "version": 1},
+		"source":   map[string]any{"fileName": "perf-book.md", "sha256": strings.Repeat("0", 64), "storedPath": "manuscript/sources/perf-book.md"},
 		"chapters": chapters, "paragraphs": paragraphs,
 	})
 	if err != nil {
@@ -488,6 +491,10 @@ func TestASeededBookHoldsTheChecksFindingsBibleMarksAndPickupsItWasAskedFor(t *t
 	// The chapter list also holds the opening and closing credits the host adds.
 	if first, third := fractions[perfChapterID(0)], fractions[perfChapterID(2)]; first == nil || *first != 1 || third != nil {
 		t.Errorf("recorded fractions: chapter 1 %v, chapter 3 %v; want 1 and none", derefFloat(first), third)
+	}
+	// The page refuses to start on a book whose import it cannot name (wire_invalid on Bootstrap).
+	if book, _ := host.Bootstrap()["manuscript"].(map[string]any); book["format"] != "markdown" || book["sourceName"] != "perf-book.md" {
+		t.Errorf("Bootstrap's manuscript = %v, want its format and source name", host.Bootstrap()["manuscript"])
 	}
 	var summary struct {
 		Total int `json:"total"`

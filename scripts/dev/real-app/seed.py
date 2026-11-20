@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Seeds a project folder the real desktop host and a real REAPER can both open (docs/operations/real-app-driver.md, "Real host plus real REAPER").
 
-    seed.py <project-dir> [--layout flat|folders] [--tracks N] [--items N] [--chapter c-0002] [--chapters N [--items-per-track N]]
+    seed.py <project-dir> [--layout flat|folders] [--tracks N] [--items N] [--chapter c-0002] [--chapters N [--items-per-track N] [--checked [N]]]
 
 Writes the manuscript, the project link to <project-dir>/Book.rpp, the chapter link, and Book.rpp itself: the chapter's track (a folder
 of voices with --layout folders: Chapter One > Narrator > Main, the takes on Main), --tracks extra empty tracks, and --items synthetic
 tone takes (<project-dir>/Media/take-N.wav, 5 s each, end to end) on the chapter's track. Every track carries a TRACKID line: without
 one REAPER gives the track its own GUID and the host's link answers TRACK_STALE. Prints the GUIDs as JSON.
+
+With --chapters, --checked hands the whole seed to scripts/dev/host-read-bench.mjs, which writes the same book through the host's
+own code and adds what a narrator's work leaves: a recording check on each chapter (or the first N), findings, a Story Bible, marks
+and a pickup list. A book without them reads in a fraction of the time a worked-on one takes (#3803).
 """
 
 from __future__ import annotations
@@ -15,6 +19,7 @@ import argparse
 import json
 import math
 import struct
+import subprocess
 import wave
 from pathlib import Path
 
@@ -116,6 +121,16 @@ def write_large(args: argparse.Namespace, project: Path, app: Path, manuscript: 
     print(json.dumps({"project": str(project), "rpp": str(rpp), "chapters": len(links), "items": n, "tracks": len(links) + args.tracks}))
 
 
+def seed_checked(args: argparse.Namespace, project: Path) -> None:
+    """--checked: the Go seeder writes the whole book, so the checks are made by the host over the files it will read back."""
+    size = {"chapters": args.chapters, "items": args.items_per_track or 100, "tracks": args.tracks}
+    if args.checked >= 0:
+        size["checked"] = args.checked
+    options = [part for name, value in size.items() for part in (f"--{name}", str(value))]
+    subprocess.run(["node", str(ROOT / "scripts/dev/host-read-bench.mjs"), "seed", str(project), *options], check=True, stdout=subprocess.DEVNULL)
+    print(json.dumps({"project": str(project), "rpp": str(project / "Book.rpp"), "chapters": args.chapters, "checked": True}))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("project", type=Path)
@@ -130,8 +145,21 @@ def main() -> None:
         help="a book of this many chapters, each linked to a track of its own (a 17 hour book is about 44); replaces --chapter",
     )
     parser.add_argument("--items-per-track", type=int, default=0, help="with --chapters, takes on each chapter's track; one wav is shared by every take")
+    parser.add_argument(
+        "--checked",
+        type=int,
+        nargs="?",
+        const=-1,
+        default=None,
+        help="with --chapters, seed through the host with a recording check on the first N chapters (all without N), findings, a Story Bible, marks and pickups",
+    )
     args = parser.parse_args()
     project = args.project.resolve()
+    if args.checked is not None:
+        if not args.chapters:
+            parser.error("--checked needs --chapters")
+        seed_checked(args, project)
+        return
     app = project / APP
     (app / "manuscript").mkdir(parents=True, exist_ok=True)
     (project / "Media").mkdir(exist_ok=True)
