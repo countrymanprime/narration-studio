@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Listbox, listboxOptionId, type ListboxOption } from '../../../../primitives/Listbox';
 import { Swatch, type SwatchColour } from '../../../../primitives/Swatch';
 import { TextField } from '../../../../primitives/TextField';
+import { suggestionReasonLine } from '../../../../manuscript/dialogueCues.selectors';
 import type { Phrase } from '../../data/script.selectors';
 import { searchSpeakers, speakerColourIndexOf, type SpeakerChoice } from './speakerChoices';
 
@@ -40,6 +41,7 @@ export function SpeakerPicker({
   const term = search.trim();
   const { speaker, state } = phrase;
   const rows: Row[] = [];
+  const reason = phrase.reason?.trim() ? suggestionReasonLine(phrase.reason.trim()) : undefined;
   if (!term && speaker && state === 'suggested') {
     rows.push({
       id: `confirm:${speaker.id}`,
@@ -47,7 +49,12 @@ export function SpeakerPicker({
       option: {
         id: `confirm:${speaker.id}`,
         label: `Confirm “${speaker.canonical_name}”`,
-        description: phrase.reason ? `Suggested by the local model: ${phrase.reason}` : undefined,
+        // Three lines at most, so the speakers below stay in view; the whole sentence is in the tooltip.
+        description: reason && (
+          <span className="line-clamp-3" title={reason}>
+            {reason}
+          </span>
+        ),
         leading: swatch(speakerColourIndexOf(speaker)),
       },
     });

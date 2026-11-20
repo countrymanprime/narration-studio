@@ -408,9 +408,11 @@ export function useScriptCommands() {
         const { filled, changed, keptConfirmed, modelFilled, modelNote } = done.value;
         const moved = filled + changed;
         const kept = keptConfirmed ? ` ${formatCount(keptConfirmed)} confirmed ${pluralWord(keptConfirmed, 'line')} left as they were.` : '';
-        const model = `${modelFilled ? ` The local model suggested ${formatCount(modelFilled)} of them.` : ''}${modelNote ? ` ${modelNote}` : ''}`;
-        if (moved === 0) overlay.toast(`No new speakers found.${kept}${model}`);
-        else undoOffer(`Attributed ${plural(moved, 'line')}.${kept}${model}`, done.entryId);
+        // The model's count follows the lines it is a part of, before the confirmed ones, so "of them" has one reading.
+        const model = modelFilled ? ` The local model suggested ${formatCount(modelFilled)} of them.` : '';
+        const note = modelNote ? ` ${modelNote}` : '';
+        if (moved === 0) overlay.toast(`No new speakers found.${kept}${note}`);
+        else undoOffer(`Attributed ${plural(moved, 'line')}.${model}${kept}${note}`, done.entryId);
         return true;
       },
       confirmSpeaker: async (cueId: string, entryId: string) => said(await commands.confirmSpeaker(env, cueId, entryId)) !== null,

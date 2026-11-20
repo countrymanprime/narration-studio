@@ -1144,6 +1144,14 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
   });
 
+  it("undo never restores a local model's suggestion: the reason is not kept, so the line goes back to unknown, as the host does", async () => {
+    const api = createMockApi();
+    await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: 'alice', speakerSource: 'local-model' }]);
+    const cue = (await api.guideDialogueCues()).find((row) => row.id === 'cue-1');
+    expect(cue).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(cue?.evidence.reason).toBeUndefined();
+  });
+
   it('attributing speakers fills only unconfirmed lines, reports what moved, and a re-run changes nothing', async () => {
     const api = createMockApi();
     const cueOf = async (id: string) => (await api.guideDialogueCues()).find((cue) => cue.id === id);

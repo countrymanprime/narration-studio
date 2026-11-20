@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dialogueCueSchema } from '../../api/schemas/dialogueCue';
 import type { GuideEntity, ManuscriptParagraph } from '../../types';
 import { recordedDemoDialogueCues, speakerLabelForParagraph, type DialogueCue } from './dialogueCues';
-import { cueIsConfirmed, cueSpeakerEntries, cueSpeakerState, cueSuggestionReason } from './dialogueCues.selectors';
+import { cueIsConfirmed, cueSpeakerEntries, cueSpeakerState, cueSuggestionReason, suggestionReasonLine } from './dialogueCues.selectors';
 
 const entity = (id: string, canonical_name: string): GuideEntity => ({ id, canonical_name, aliases: [], category: 'Character' }) as unknown as GuideEntity;
 const entitiesById = new Map([
@@ -123,6 +123,7 @@ describe('the speaker chip rule every page shares', () => {
     };
     expect(cueSpeakerState(modelCue, of('Character'))).toBe('suggested');
     expect(cueSuggestionReason(modelCue)).toBe('Bo is the last character named.');
+    expect(suggestionReasonLine('Bo is the last character named.')).toBe('Suggested by the local model: Bo is the last character named.');
     expect(cueSuggestionReason({ ...modelCue, corrected: true })).toBeUndefined();
     expect(cueSuggestionReason({ ...modelCue, speaker_source: 'correction' })).toBeUndefined();
     expect(cueSuggestionReason({ ...modelCue, speaker_source: 'tag' })).toBeUndefined();

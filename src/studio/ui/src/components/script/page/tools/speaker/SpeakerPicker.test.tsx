@@ -88,6 +88,13 @@ describe('speaker-picker-suggests-this-chapters-people-first', () => {
     const confirm = screen.getAllByRole('option')[0];
     expect(confirm?.textContent).toContain('Suggested by the local model: The Hatter <b>spoke</b> just before.');
     expect(confirm?.querySelector('b')).toBeNull();
+    // Clamped to three lines so the speakers below stay in view; the whole sentence is the tooltip.
+    const line = screen.getByText('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    expect(line.className).toContain('line-clamp-3');
+    expect(line.getAttribute('title')).toBe('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    cleanup();
+    picker({ ...suggested, reason: '   ' });
+    expect(screen.queryByText(/Suggested by the local model/)).toBeNull();
     cleanup();
     picker();
     expect(screen.queryByText(/Suggested by the local model/)).toBeNull();

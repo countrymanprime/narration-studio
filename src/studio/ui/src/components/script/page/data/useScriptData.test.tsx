@@ -369,10 +369,11 @@ describe('attribute-speakers', () => {
       previous: [{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' as const }],
     };
     const run = vi.spyOn(api, 'guideAttributeSpeakers');
-    run.mockResolvedValueOnce({ ...result, modelFilled: 1, modelNote: 'The local model stopped before it finished.' });
+    run.mockResolvedValueOnce({ ...result, keptConfirmed: 3, modelFilled: 1, modelNote: 'The local model stopped before it finished.' });
     await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    // "of them" follows the attributed lines, never the confirmed ones.
     expect(toastUndo).toHaveBeenLastCalledWith(
-      'Attributed 2 lines. The local model suggested 1 of them. The local model stopped before it finished.',
+      'Attributed 2 lines. The local model suggested 1 of them. 3 confirmed lines left as they were. The local model stopped before it finished.',
       expect.any(Function),
       { entry: expect.any(Number) },
     );

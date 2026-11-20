@@ -376,7 +376,9 @@ export function createStoryBibleMock(
         const row = previous.find((item) => item.cueId === cue.id);
         if (!row || cue.corrected || cue.speaker_source === 'correction') return cue;
         restored += 1;
-        return { ...cue, speaker_entity_id: row.speakerEntityId, speaker_source: row.speakerSource };
+        // As the host: a model's reason is not kept for undo, so a line that had its suggestion goes back to unknown.
+        const model = row.speakerSource === 'local-model';
+        return { ...cue, speaker_entity_id: model ? null : row.speakerEntityId, speaker_source: model ? 'unknown' : row.speakerSource };
       });
       return restored;
     },

@@ -24,3 +24,6 @@ export function cueSpeakerEntries<E extends Pick<GuideEntity, 'category'>>(entri
  * line. It is the model's own words: draw it as plain text, never as markup. */
 export const cueSuggestionReason = (cue: Pick<GuideDialogueCue, 'corrected' | 'speaker_source' | 'evidence'>): string | undefined =>
   !cueIsConfirmed(cue) && cue.speaker_source === 'local-model' ? cue.evidence.reason?.trim() || undefined : undefined;
+
+/** The one line every page shows for a local model's reason (`cueSuggestionReason`). */
+export const suggestionReasonLine = (reason: string): string => `Suggested by the local model: ${reason}`;
