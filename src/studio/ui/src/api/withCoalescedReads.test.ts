@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { createMockApi } from './mockApi';
-import { COALESCED_READS, withCoalescedReads } from './withCoalescedReads';
+import { COALESCED_READS, KEPT_MAX_AGE_MS, KEPT_READS, KEPT_REVALIDATE_MS, KEPT_WRITERS, withCoalescedReads } from './withCoalescedReads';
 import type { NarrationApi } from '../types';
 
 /** An api whose methods answer when the test says so, counting the calls that reach it. */
@@ -17,6 +17,7 @@ function gated() {
     manuscriptChapters: method('manuscriptChapters'),
     settingsForScope: method('settingsForScope'),
     manuscriptSetChapterStatus: method('manuscriptSetChapterStatus'),
+    saveSettings: method('saveSettings'),
     subscribeJobEnded: vi.fn(() => () => undefined),
   } as unknown as NarrationApi;
   return { api, calls, waiting };
@@ -253,5 +254,143 @@ describe('withCoalescedReads', () => {
     expect(
       [...COALESCED_READS].filter((name) => /^(set|save|delete|remove|create|add|start|stop|cancel|clear|apply|commit|import|write|reset)[A-Z]/.test(name)),
     ).toEqual([]);
+  });
+});
+
+describe('withCoalescedReads: kept reads (#3658)', () => {
+  /** An api whose settings answer at once with a counter, so a repeat reads a different value than the first. */
+  function counting() {
+    const handlers: ((event: unknown) => void)[] = [];
+    let reads = 0;
+    const api = {
+      settingsForScope: vi.fn(async (_scope: string) => ({ n: [{ value: String(++reads) }] })),
+      saveSettings: vi.fn(async () => ({})),
+      subscribeJobEnded: vi.fn((handler: (event: unknown) => void) => {
+        handlers.push(handler);
+        return () => undefined;
+      }),
+      subscribeRecorderLevel: vi.fn((handler: (event: unknown) => void) => {
+        handlers.push(handler);
+        return () => undefined;
+      }),
+    } as unknown as NarrationApi;
+    return { api, handlers, reads: () => reads };
+  }
+  const value = async (answer: Promise<unknown>) => ((await answer) as { n: { value: string }[] }).n[0]!.value;
+
+  it('answers a settings read the page already has from what the first read answered, with no second host call', async () => {
+    const { api, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+    expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+    expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+    expect(reads()).toBe(1);
+  });
+
+  it('keeps each scope on its own', async () => {
+    const { api, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('global');
+    await wrapped.settingsForScope('project');
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(2);
+  });
+
+  it('reads again after saveSettings, so a page never sees a value older than its own save', async () => {
+    const { api, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('global');
+    await wrapped.saveSettings('tool', 'global', { a: 'b' });
+    expect(await value(wrapped.settingsForScope('global'))).toBe('2');
+    expect(reads()).toBe(2);
+  });
+
+  it('does not keep an answer read while a save was running', async () => {
+    const { api, reads } = counting();
+    let finish: () => void = () => undefined;
+    (api as unknown as { saveSettings: unknown }).saveSettings = vi.fn(() => new Promise((resolve) => (finish = () => resolve({}))));
+    const wrapped = withCoalescedReads(api);
+    const saving = wrapped.saveSettings('tool', 'global', {});
+    await wrapped.settingsForScope('global');
+    finish();
+    await saving;
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(2);
+  });
+
+  it('reads again after a project or job event, but not after a recorder event', async () => {
+    const { api, handlers, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    wrapped.subscribeJobEnded(() => undefined);
+    wrapped.subscribeRecorderLevel(() => undefined);
+    await wrapped.settingsForScope('global');
+    handlers[1]!({});
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(1);
+    handlers[0]!({});
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(2);
+  });
+
+  it('reads again after the window is focused', async () => {
+    const { api, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('global');
+    window.dispatchEvent(new Event('focus'));
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(2);
+  });
+
+  it('serves a kept answer past the revalidate age and reads again in the background for the next reader', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, reads } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(reads()).toBe(2);
+      expect(await value(wrapped.settingsForScope('global'))).toBe('2');
+      expect(reads()).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('asks the host once the kept answer is past its maximum age', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, reads } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      vi.setSystemTime(Date.now() + KEPT_MAX_AGE_MS + 1);
+      expect(await value(wrapped.settingsForScope('global'))).toBe('2');
+      expect(reads()).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps a failed read out, and gives each reader its own copy of a kept answer', async () => {
+    const { api, reads } = counting();
+    const failing = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('no'))
+      .mockImplementation(async () => ({ n: [{ value: String(reads()) }] }));
+    (api as unknown as { settingsForScope: unknown }).settingsForScope = failing;
+    const wrapped = withCoalescedReads(api);
+    await expect(wrapped.settingsForScope('global')).rejects.toThrow('no');
+    const first = (await wrapped.settingsForScope('global')) as unknown as { n: { value: string }[] };
+    first.n[0]!.value = 'edited';
+    const second = (await wrapped.settingsForScope('global')) as unknown as { n: { value: string }[] };
+    expect(second.n[0]!.value).toBe('0');
+    expect(failing).toHaveBeenCalledTimes(2);
+  });
+
+  it('pins what is kept and what drops it: a new entry is a deliberate edit', () => {
+    expect([...KEPT_READS]).toEqual(['settingsForScope']);
+    expect([...KEPT_WRITERS]).toEqual(['saveSettings']);
+    for (const name of KEPT_READS) expect(COALESCED_READS.has(name)).toBe(true);
   });
 });

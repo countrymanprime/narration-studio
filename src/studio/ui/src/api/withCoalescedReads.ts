@@ -24,13 +24,31 @@ export const COALESCED_READS: ReadonlySet<string> = new Set([
   'workspaceAlignment',
 ]);
 
+/**
+ * The reads whose answer is kept after it arrives (#3658): data that changes only when this app writes it or the project changes, and that a page asks
+ * for again on every mount (the settings: 3 to 5 identical calls on each page's cold load, 57 to 96 KB). A kept answer serves later reads at once
+ * until something that may change it happens, then the next read goes to the host. Each is also in `COALESCED_READS`.
+ *
+ * Dropped by: `saveSettings` (when it starts and when it answers, the only call that writes them), an event of `KEPT_DROPPING_EVENTS` (project attach, project state, job end), the window being focused or shown
+ * again, and `KEPT_MAX_AGE_MS` passing (a change this app did not see still shows up on the next read after that). A kept answer older than
+ * `KEPT_REVALIDATE_MS` is served and then re-read in the background, so the next reader has the host's current answer (stale while revalidate).
+ */
+export const KEPT_READS: ReadonlySet<string> = new Set(['settingsForScope']);
+/** The calls that change what a kept read answers. */
+export const KEPT_WRITERS: ReadonlySet<string> = new Set(['saveSettings']);
+/** The events that may mean the settings or the project changed under a page: the project attached or its state moved, or a job ended (an import or a scan that wrote settings). The DAW, recorder and teleprompter events say nothing about them. */
+export const KEPT_DROPPING_EVENTS: ReadonlySet<string> = new Set(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded']);
+export const KEPT_REVALIDATE_MS = 5_000;
+export const KEPT_MAX_AGE_MS = 60_000;
+type Kept = { answer: unknown; at: number; keptEpoch: number };
+
 function isThenable(value: unknown): value is PromiseLike<unknown> {
   return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
 }
 
 type Joiner = { resolve: (answer: unknown) => void; reject: (reason: unknown) => void };
 /** A read on its way: who joined it, and whether its answer has been handed out (a read asked after that is a fresh host call). */
-type InFlight = { epoch: number; joiners: Joiner[]; closed: boolean };
+type InFlight = { epoch: number; keptEpoch: number; joiners: Joiner[]; closed: boolean };
 
 /** Whether value is plain JSON data whose text says exactly what it is: finite numbers, strings, booleans, null, and arrays and plain objects of those. */
 function isPlainJson(value: unknown): boolean {
@@ -84,10 +102,14 @@ function watchTheWindow(move: () => void): void {
 export function withCoalescedReads(api: NarrationApi): NarrationApi {
   const inFlight = new Map<string, InFlight>();
   let epoch = 0;
+  // What a kept read last answered, and the epoch that drops it (see KEPT_READS); it moves on the window coming back, on `KEPT_WRITERS` and on `KEPT_DROPPING_EVENTS`, not on every call as `epoch` does.
+  let keptEpoch = 0;
+  const kept = new Map<string, Kept>();
   // One wrapper per method, as `withTracing` keeps: a hook that lists a method in an effect's dependencies must see the same function on every read (#3272).
   const wrappers = new Map<string, unknown>();
   watchTheWindow(() => {
     epoch += 1;
+    keptEpoch += 1;
   });
   return new Proxy(api, {
     get(target, property, receiver) {
@@ -108,6 +130,7 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
               if (known) return known;
               const guarded = (...event: unknown[]) => {
                 epoch += 1;
+                if (KEPT_DROPPING_EVENTS.has(property)) keptEpoch += 1;
                 return Reflect.apply(arg, undefined, event);
               };
               wrappedHandlers.set(arg, guarded);
@@ -123,10 +146,13 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
           // A write moves the epoch when it starts and again when it answers: a read that began while it ran may have been answered before it
           // committed, so one asked after it answered must not join that read.
           epoch += 1;
+          const writesKept = KEPT_WRITERS.has(property);
+          if (writesKept) keptEpoch += 1;
           const outcome: unknown = Reflect.apply(value, target, args);
           if (isThenable(outcome)) {
             const settled = () => {
               epoch += 1;
+              if (writesKept) keptEpoch += 1;
             };
             outcome.then(settled, settled); // the call's own thenable, so this runs before the caller's continuation, whatever promise class it is
           }
@@ -134,19 +160,36 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
         }
         const key = keyOf(property, args);
         if (key === undefined) return Reflect.apply(value, target, args);
+        const keeps = KEPT_READS.has(property);
+        const held = keeps ? kept.get(key) : undefined;
+        if (held && held.keptEpoch === keptEpoch && Date.now() - held.at < KEPT_MAX_AGE_MS) {
+          if (Date.now() - held.at >= KEPT_REVALIDATE_MS) {
+            // Serve the kept answer and read again for the next reader (that read joins any other in flight); a failed re-read keeps what was kept.
+            kept.delete(key);
+            const again: unknown = Reflect.apply(wrapper, undefined, args);
+            Promise.resolve(again).then(undefined, () => {
+              if (!kept.has(key)) kept.set(key, held);
+            });
+          }
+          return Promise.resolve(copyOf(held.answer));
+        }
         const joined = inFlight.get(key);
-        if (joined && joined.epoch === epoch && !joined.closed) {
+        if (joined && (keeps ? joined.keptEpoch === keptEpoch : joined.epoch === epoch) && !joined.closed) {
           return new Promise((resolve, reject) => joined.joiners.push({ resolve, reject }));
         }
         const result: unknown = Reflect.apply(value, target, args);
         if (!isThenable(result)) return result;
-        const entry: InFlight = { epoch, joiners: [], closed: false };
+        const entry: InFlight = { epoch, keptEpoch, joiners: [], closed: false };
         inFlight.set(key, entry);
         // The joiners' copies are made here, as the answer arrives and before the first caller's continuation runs: that caller gets the original,
         // so an edit it makes in place (a sort, a splice) cannot reach a copy made after it.
+        const startedAt = Date.now();
+        const startedKeptEpoch = keptEpoch;
         const promise = Promise.resolve(result).then(
           (answer) => {
             entry.closed = true;
+            // Kept only if nothing that drops it happened while the read was on its way.
+            if (keeps && startedKeptEpoch === keptEpoch) kept.set(key, { answer: copyOf(answer), at: startedAt, keptEpoch });
             for (const joiner of entry.joiners) joiner.resolve(copyOf(answer));
             return answer;
           },
