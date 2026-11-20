@@ -9,7 +9,10 @@ import { CheckLine } from '../../layout/CheckLine';
 import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
-import { DAW_CONNECT_GRACE_MS, useDawConnecting, useReopenOnBridgeProblem } from '../../connection/useDawConnecting';
+import { useDawConnecting, useReopenOnBridgeProblem } from '../../connection/useDawConnecting';
+
+/** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
+const BOOTH_CONNECT_GRACE_MS = 20_000;
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
@@ -35,7 +38,7 @@ export function RecordSetup({
   readFailed,
   factsFailed,
   onCheckAgain,
-  graceMs = DAW_CONNECT_GRACE_MS,
+  graceMs = BOOTH_CONNECT_GRACE_MS,
   asked = 0,
 }: {
   capabilities: DawCapabilities;
