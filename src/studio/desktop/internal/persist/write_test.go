@@ -95,3 +95,22 @@ func TestFlushTemporaryReportsAFailedWriteAndStillCloses(t *testing.T) {
 func TestSyncFolderIgnoresAMissingFolder(t *testing.T) {
 	syncFolder(filepath.Join(t.TempDir(), "missing"))
 }
+
+// A finished WriteFile, Rename or Advance each moves the generation, so the host can tell a read sent after one from a read sent before.
+func TestGenerationAdvancesWithEveryFinishedChange(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	changes := map[string]func() error{
+		"WriteFile": func() error { return WriteFile(path, []byte("{}"), 0o600) },
+		"Rename":    func() error { return Rename(path, path+".moved") },
+		"Advance":   func() error { Advance(); return nil },
+	}
+	for _, name := range []string{"WriteFile", "Rename", "Advance"} {
+		before := Generation()
+		if err := changes[name](); err != nil {
+			t.Fatal(err)
+		}
+		if Generation() <= before {
+			t.Fatalf("%s left the generation at %d", name, before)
+		}
+	}
+}
