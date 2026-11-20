@@ -1,9 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { NewChapterTracks, useNewChapterPick, type NewChapterPick } from '../../chapterTracks/NewChapterTracks';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { useSettingsHost } from '../row/SettingsHost';
+
+/** Sent when the default pick was put back from outside the row (the header's Reset to defaults), so the list reads it again. */
+export const NEW_CHAPTER_DEFAULT_CHANGED = 'narration:new-chapter-default-changed';
 
 /**
  * The body of "New chapter folder": the voices and Extras a new chapter folder is made with, the same checklist the create dialog shows, saved as
@@ -11,7 +14,14 @@ import { useSettingsHost } from '../row/SettingsHost';
  */
 export function NewChapterTracksBody() {
   const { setup } = useVoiceSetup();
-  return setup.layout === 'flat' ? null : <Checklist />;
+  // A reset from outside puts the ticks back, so the list is read again rather than showing what it held.
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const again = () => setVersion((n) => n + 1);
+    window.addEventListener(NEW_CHAPTER_DEFAULT_CHANGED, again);
+    return () => window.removeEventListener(NEW_CHAPTER_DEFAULT_CHANGED, again);
+  }, []);
+  return setup.layout === 'flat' ? null : <Checklist key={version} />;
 }
 
 function Checklist() {
