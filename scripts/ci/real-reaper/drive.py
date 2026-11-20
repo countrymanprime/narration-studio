@@ -43,6 +43,7 @@ SUITES = [
     "scenarios_booth_voices",
     "scenarios_tracks_read",
     "scenarios_perf",
+    "scenarios_perf_lanes",
     "scenarios_follow",
     "scenarios_select_count",
     "scenarios_solo_chapter",
