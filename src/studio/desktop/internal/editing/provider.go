@@ -116,6 +116,15 @@ func (p *SignalProvider) projectUnreadableSignals(err error, now time.Time) []st
 // analyzerID's record at analyzerVersion
 // (CurrentItemRecord, item-scoped per ledger.go's own header comment), and
 // the typed reasons of every item Resolve refused. It never decodes audio.
+// ledgerOf is the ledger a stage evaluation reads: the view's one listing of it, shared by every chapter and item of the
+// evaluation (issue 3801), else the store, which lists its folder for every question.
+func (s *Service) ledgerOf(view stages.EvidenceView) evidence.LedgerReader {
+	if view.Ledger != nil {
+		return view.Ledger
+	}
+	return s.ledger
+}
+
 func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.EvidenceView, analyzerID, analyzerVersion string) (ChapterCoverage, string, []string, error) {
 	trackGUID, err := s.confirmedTrackGUID(chapter.DocumentID, chapter.ChapterID)
 	if err != nil {
@@ -156,7 +165,7 @@ func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.Evid
 		}
 		key := evidence.ComputeAnalysisKey(identity, evidence.PlayedRange{Start: res.Source.PlayedRange.Start, End: res.Source.PlayedRange.End}, 1)
 		scopeIn := ItemScopeInput{DocumentID: chapter.DocumentID, ChapterID: chapter.ChapterID, TrackGUID: track.GUID, Item: res.Item, Key: key, ScopeKey: scopeKey}
-		staleness, err := CurrentItemRecord(s.ledger, analyzerID, analyzerVersion, paramHash, scopeIn)
+		staleness, err := CurrentItemRecord(s.ledgerOf(view), analyzerID, analyzerVersion, paramHash, scopeIn)
 		if err != nil {
 			return ChapterCoverage{}, trackGUID, nil, err
 		}
@@ -245,7 +254,11 @@ func findTrackByGUID(project tracks.Project, trackGUID string) (tracks.Track, bo
 // different action than "link this chapter") - the same check
 // coverage.SignalProvider.suggested makes for its own stage.
 func (s *Service) suggested(chapter stages.ChapterContext, view stages.EvidenceView) bool {
-	links, err := s.mapping.List(chapter.DocumentID)
+	var mapping evidence.MappingReader = s.mapping
+	if view.Mapping != nil {
+		mapping = view.Mapping
+	}
+	links, err := mapping.List(chapter.DocumentID)
 	if err != nil {
 		return false
 	}

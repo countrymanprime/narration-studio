@@ -438,6 +438,34 @@ func (s *MappingStore) List(documentID string) ([]TrackMapping, error) {
 	return append([]TrackMapping(nil), file.Mappings...), nil
 }
 
+// MappingReader is what an evaluation reads the confirmed links through: the store itself, or one MappingSnapshot shared by
+// a pass over many chapters.
+type MappingReader interface {
+	List(documentID string) ([]TrackMapping, error)
+}
+
+// MappingSnapshot is one document's confirmed links as one read of the file found them. A pass over every chapter of a book
+// takes one, where asking the store reads the file for every chapter (issue 3801). It is for one pass: a link made since is
+// not in it. Its links are shared between the pass's chapters: read them, never change them.
+type MappingSnapshot struct {
+	documentID string
+	links      []TrackMapping
+}
+
+// Snapshot reads documentID's links once.
+func (s *MappingStore) Snapshot(documentID string) MappingSnapshot {
+	links, _ := s.List(documentID) // List has no failing path: an unreadable file reads as no links
+	return MappingSnapshot{documentID: documentID, links: links}
+}
+
+// List answers as MappingStore.List does for the document the snapshot was taken for; any other document has no links in it.
+func (snapshot MappingSnapshot) List(documentID string) ([]TrackMapping, error) {
+	if documentID != snapshot.documentID {
+		return nil, nil
+	}
+	return snapshot.links, nil
+}
+
 // Get returns trackGUID's confirmed link for documentID, if any.
 func (s *MappingStore) Get(documentID, trackGUID string) (TrackMapping, bool) {
 	mappings, _ := s.List(documentID)
