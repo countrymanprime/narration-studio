@@ -12,8 +12,9 @@ import (
 // Confidence is the fixed confidence the fake gives: under extraction.VerifyBelow, like a real model's guess.
 const Confidence = 0.6
 
-// Asker answers with the character named last before the quote in the passage, by name or alias, and says why. It answers
-// with no speaker when none is named before the quote. It returns ctx.Err() once ctx is cancelled.
+// Asker answers with the character named last before the quote in the passage, by name or alias as a whole word, and says why.
+// A name inside the quote itself does not count. It answers with no speaker when none is named before the quote, and when two
+// characters are named at the same place it takes the one listed first. It returns ctx.Err() once ctx is cancelled.
 type Asker struct{}
 
 var _ localmodel.Asker = Asker{}
@@ -35,15 +36,13 @@ func (Asker) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer,
 		before.WriteString("\n")
 	}
 	text := before.String()
-	lower := strings.ToLower(text)
 	best, from, to := "", -1, 0
 	for _, c := range q.Characters {
 		for _, name := range append([]string{c.Name}, c.Aliases...) {
-			if name == "" {
-				continue
-			}
-			if at := strings.LastIndex(lower, strings.ToLower(name)); at > from {
-				best, from, to = c.Name, at, at+len(name)
+			for _, span := range localmodel.NameSpans(text, name) {
+				if span[0] > from {
+					best, from, to = c.Name, span[0], span[1]
+				}
 			}
 		}
 	}
@@ -59,7 +58,8 @@ func (Asker) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer,
 	}, nil
 }
 
-// sentenceAround is the stretch of text holding [from, to) between the sentence ends before and after it.
+// sentenceAround is the stretch of text holding [from, to) between the sentence ends before and after it. Both bounds are spans of
+// text itself (localmodel.NameSpans), so the slices are always valid.
 func sentenceAround(text string, from, to int) string {
 	start := strings.LastIndexAny(text[:from], ".!?\n") + 1
 	end := len(text)
