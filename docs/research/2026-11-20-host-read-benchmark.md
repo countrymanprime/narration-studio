@@ -1,6 +1,6 @@
 # Host reads and page loads on seeded books (2026-11-20)
 
-**What it settles:** what each page's host reads cost, and how long the real app keeps reading after a launch or a page change, on books of 1, 17 and 40 hours and of 300 chapters that carry a narrator's work. It is the baseline for the performance work of [#3751](https://github.com/countrymanprime/narration-studio/issues/3751), taken with the committed harness of [#3803](https://github.com/countrymanprime/narration-studio/issues/3803) on `main` at `270bbb7`, so each later change and the owner's own book can be measured the same way.
+**What it settles:** what each page's host reads cost, and how long the real app keeps reading after a launch or a page change, on books of 1, 17 and 40 hours and of 300 chapters that carry a narrator's work. It is the baseline for the performance work of [#3751](https://github.com/countrymanprime/narration-studio/issues/3751) ([its research page](performance-architecture-2026-11.md)), taken with the committed harness of [#3803](https://github.com/countrymanprime/narration-studio/issues/3803) on `main` at `270bbb7`, so each later change and the owner's own book can be measured the same way.
 
 **Method.** One cloud container: 4 vCPU Intel Xeon at 2.10 GHz, 15 GiB RAM, Linux 6.18, ext4, Go 1.27.3, WebKitGTK under Xvfb. Windows is the supported platform and is not in these numbers; see [Not measured](#not-measured).
 
@@ -54,7 +54,7 @@ Milliseconds, first call on a host that has read nothing | warm median.
 
 ### The work behind the slow reads
 
-Files decoded (first call / warm), record folders listed, and allocations of the first call. These are the counts `TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` caps in CI, on a 44-chapter book with short chapters; they follow the chapters and their checks, so the 17 hour column is that test's.
+Files decoded (first call / warm), record folders listed, and allocations of the first call. These are the counts `TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` caps in CI, on a 44-chapter book with short chapters; they follow the chapters and their checks, so that test sees the 17 hour column's decodes and listings.
 
 | Binding | 17 h | 17 h, 10 of 44 checked | 17 h, checked three times | 40 h | 300 chapters |
 | --- | --- | --- | --- | --- | --- |
@@ -75,6 +75,19 @@ Files decoded (first call / warm), record folders listed, and allocations of the
 | `ProductionOverview` | 670 \| 652 | 216 \| 180 | 792 \| 682 |
 | `ChapterSyncState` | 349 \| 318 | 128 \| 102 | 384 \| 370 |
 | `FindingsSummary` | 41 \| 36 | 36 \| 35 | 38 \| 33 |
+
+### The same reads after the first changes
+
+`main` moved to `f88e387` while this was measured: [#3762](https://github.com/countrymanprime/narration-studio/pull/3762) answers every chapter of a read from one listing of the ledger, [#3796](https://github.com/countrymanprime/narration-studio/pull/3796) decodes the chapter-track map only when its bytes change and [#3777](https://github.com/countrymanprime/narration-studio/pull/3777) decodes only the Story Bible list a read answers. One process a book, milliseconds, first call | warm, at `270bbb7` → at `f88e387`.
+
+| Binding | 17 h | 40 h | 300 chapters |
+| --- | --- | --- | --- |
+| `PickupsList` | 1,124 \| 956 → 744 \| 645 | 2,736 \| 2,410 → 1,794 \| 1,559 | 3,852 \| 3,489 → 1,870 \| 1,446 |
+| `ManuscriptChapters` | 712 \| 653 → 335 \| 321 | 1,762 \| 1,514 → 897 \| 824 | 2,378 \| 2,257 → 968 \| 774 |
+| `ProductionOverview` | 670 \| 652 → 360 \| 353 | 1,631 \| 1,568 → 874 \| 790 | 2,458 \| 2,444 → 1,053 \| 800 |
+| `ChapterSyncState` | 349 \| 318 → 340 \| 308 | 872 \| 755 → 839 \| 749 | 1,538 \| 1,188 → 937 \| 661 |
+
+At 17 h a warm chapter-list read went from 298 decodes and 178 listings to 152 and 1, and its allocations from 2.00 to 1.00 million. The budget test's rows are the `f88e387` counts. The real-app tables below are from `270bbb7`.
 
 ## The real app
 
