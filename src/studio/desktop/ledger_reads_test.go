@@ -57,6 +57,12 @@ func TestAPagesReadsListTheLedgerOncePerPassAndDecodeNothingTwice(t *testing.T) 
 	if decoded := host.coverage.ResultsDecoded() - results; decoded != 0 {
 		t.Errorf("the reads decoded %d stored results, want 0", decoded)
 	}
+	// Nor did anything before them: the check stores its result without reading it back, and the chaptersync:state read it
+	// starts takes the summary. A reader that decoded the result before the count began would have hidden itself behind
+	// the decoded-result cache.
+	if total := host.coverage.ResultsDecoded(); total != 0 {
+		t.Errorf("%d stored results were decoded since the check, want 0", total)
+	}
 }
 
 // ledgerStoreMakers are the only places that make a ledger store: the host makes the project's one, and the two services
