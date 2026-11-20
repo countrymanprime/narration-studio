@@ -138,6 +138,8 @@ The answers are small, so the volume costs REAPER little; what it multiplies is 
 
 **Fix 1: one track list per edit counter.** The live track list is read through `cachedTrackLister` (`tracks_cache.go`): while the heartbeat's change count equals the count the last answer carried, and the answer is under 10 s old, the last answer is reused; callers that arrive while a read is out share it; a track this app creates drops the answer. With no counter nothing is reused, and nothing read before the bridge may have started over (a heartbeat gap longer than 5 s, another project, a counter that went down: `Reachability.Epoch`). An unchanged idle Booth tick goes from 3 TR to at most 1 TR per 10 s, and the four callers of one action share one read.
 
+**Fix 2: the resume prompt's follow reads no items** (#3664). The follow loop of the read-aloud dialog's resume prompt (`resumefollow.go`) asked for the chapter's whole folder every second for up to 30 minutes, only to see that REAPER plays or records, that the cursor moved, and, once it settled, whether it is on the chapter's audio. It now reads the itemless state each tick (the transport and the edit cursor) and the items once, when the cursor has settled. For a chapter folder of 360 items on the project above, one tick goes from 4,125 ReaScript calls, 362 event lines and 80 KB to 133 calls, 3 lines and 256 bytes, so a minute of following no longer appends about 4.8 MB to `events.log` (which restarts at 8 MiB) but about 15 KB.
+
 ## Not measured here
 
 - Windows: file opens, directory listings and antivirus scans of `events.log`, which grows for the whole session. Each is a candidate this Linux run cannot rank.

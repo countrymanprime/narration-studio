@@ -73,9 +73,16 @@ func newResumeFollower(chapterID string, saved *tracks.Track, span *tracks.Span,
 	return &resumeFollower{chapterID: chapterID, saved: saved, span: span, folder: projectFolder}
 }
 
-// step takes one read and answers the event to send (nil for none) and whether the poll should stop. REAPER playing
+// step takes one read, which carries the items, and answers the event to send (nil for none) and whether the poll should stop. REAPER playing
 // or recording (on any track: the narrator is at REAPER) is reported at once, even on the first read, and ends the poll.
 func (f *resumeFollower) step(state dawport.TrackState) (*resumeFollowEvent, bool) {
+	return f.stepWith(state, nil)
+}
+
+// stepWith is step for a poll that reads without the items (#3664): state carries the transport and the cursor, and items reads the track's items
+// when, and only when, the cursor has settled and the follower must know whether it is on recorded audio. items answers false when that read failed:
+// the settle is then tried again at the next tick. A nil items takes the items from state.
+func (f *resumeFollower) stepWith(state dawport.TrackState, items func() (dawport.TrackState, bool)) (*resumeFollowEvent, bool) {
 	switch {
 	case state.Recording:
 		return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followRecording}, true
@@ -95,8 +102,16 @@ func (f *resumeFollower) step(state dawport.TrackState) (*resumeFollowEvent, boo
 		f.pending = &cursor
 		return nil, false
 	}
+	full := state
+	if items != nil {
+		got, ok := items()
+		if !ok {
+			return nil, false
+		}
+		full = got
+	}
 	f.baseline, f.pending = cursor, nil
-	if _, at, ok := liveRecordedEnd(state, f.saved, f.span, f.folder); ok && at == liveAtCursor {
+	if _, at, ok := liveRecordedEnd(full, f.saved, f.span, f.folder); ok && at == liveAtCursor {
 		return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followCursorMoved, EditCursor: &cursor}, false
 	}
 	return nil, false
@@ -137,11 +152,17 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 		if l.sessionBusy() {
 			continue
 		}
-		state, ok := readLiveTrack(ctx, l.reader, l.projectPath, l.trackGUID)
+		// Every tick reads the transport and the cursor without the track's items; the items (a chapter's folder is hundreds of rows and tens of
+		// KB each second, #3664) are read only when the cursor has settled, to see whether it is on the chapter's audio.
+		state, ok := readLiveTrackLight(ctx, l.reader, l.projectPath, l.trackGUID)
 		if !ok || ctx.Err() != nil {
 			continue
 		}
-		event, stop := l.follower.step(withoutSkippedTracks(state, l.skip))
+		items := func() (dawport.TrackState, bool) {
+			full, ok := readLiveTrack(ctx, l.reader, l.projectPath, l.trackGUID)
+			return withoutSkippedTracks(full, l.skip), ok && ctx.Err() == nil
+		}
+		event, stop := l.follower.stepWith(state, items)
 		if event != nil {
 			l.emit(*event)
 		}

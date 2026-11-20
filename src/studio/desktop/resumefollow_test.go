@@ -317,3 +317,110 @@ func TestContractTeleprompterResumeFollow(t *testing.T) {
 		contractfile.Check(t, name, payload)
 	}
 }
+
+// lightTrackState answers the poll's itemless read with the state's transport and cursor and no items, and the full read with the items, and counts each
+// (#3664: a chapter's folder is hundreds of rows a second, and the poll needs the items only once the cursor has settled).
+type lightTrackState struct {
+	mu          sync.Mutex
+	cursors     []float64 // the cursor of each tick, the last repeated
+	light, full int
+	failFull    bool
+}
+
+func (s *lightTrackState) state(guid string, withItems bool) dawport.TrackState {
+	state := followState(s.cursors[min(s.light, len(s.cursors)-1)])
+	if !withItems {
+		state.Items = nil
+	}
+	state.TrackGUID = guid
+	return state
+}
+
+func (s *lightTrackState) ChapterTrackStateNoItems(_ context.Context, guid string) (dawport.TrackState, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	state := s.state(guid, false)
+	s.light++
+	return state, nil
+}
+
+func (s *lightTrackState) ChapterTrackState(_ context.Context, guid string) (dawport.TrackState, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.full++
+	if s.failFull {
+		return dawport.TrackState{}, context.DeadlineExceeded
+	}
+	// The cursor of the tick that asked: light has counted it already.
+	return func() dawport.TrackState {
+		state := followState(s.cursors[max(min(s.light-1, len(s.cursors)-1), 0)])
+		state.TrackGUID = guid
+		return state
+	}(), nil
+}
+
+func (s *lightTrackState) counts() (light, full int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.light, s.full
+}
+
+func runFollow(t *testing.T, reader trackStateReader, ticks func() bool, emitter *recordingEmitter) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		followLoop(reader, func() bool { return false }, emitter).run(ctx)
+		close(done)
+	}()
+	waitFor(t, ticks)
+	cancel()
+	<-done
+}
+
+func TestResumeFollowLoopReadsNoItemsWhileTheCursorStaysPut(t *testing.T) {
+	reader := &lightTrackState{cursors: []float64{5}}
+	runFollow(t, reader, func() bool { light, _ := reader.counts(); return light >= 20 }, &recordingEmitter{})
+	if light, full := reader.counts(); light < 20 || full != 0 {
+		t.Fatalf("%d itemless reads and %d full reads, want no full read while the cursor does not move", light, full)
+	}
+}
+
+func TestResumeFollowLoopReadsTheItemsOnceWhenTheCursorSettlesOnTheRecording(t *testing.T) {
+	reader := &lightTrackState{cursors: []float64{0, 5, 5}} // moves onto the audio, then stays
+	emitter := &recordingEmitter{}
+	runFollow(t, reader, func() bool { return len(emitter.all()) == 1 }, emitter)
+	events := emitter.all()
+	if len(events) != 1 || events[0].Reason != followCursorMoved || events[0].EditCursor == nil || *events[0].EditCursor != 5 {
+		t.Fatalf("events = %+v, want one cursor_moved at 5", events)
+	}
+	if _, full := reader.counts(); full != 1 {
+		t.Fatalf("%d full reads, want exactly one, at the settle", full)
+	}
+}
+
+func TestResumeFollowLoopTriesTheItemsAgainWhenTheirReadFailed(t *testing.T) {
+	reader := &lightTrackState{cursors: []float64{0, 5, 5}, failFull: true}
+	emitter := &recordingEmitter{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		followLoop(reader, func() bool { return false }, emitter).run(ctx)
+		close(done)
+	}()
+	waitFor(t, func() bool { _, full := reader.counts(); return full >= 3 })
+	if events := emitter.all(); len(events) != 0 {
+		t.Fatalf("events = %+v, want none while the items cannot be read", events)
+	}
+	reader.mu.Lock()
+	reader.failFull = false // REAPER answers again: the settle that was waiting is reported
+	reader.mu.Unlock()
+	waitFor(t, func() bool { return len(emitter.all()) == 1 })
+	cancel()
+	<-done
+	if events := emitter.all(); len(events) != 1 || events[0].Reason != followCursorMoved {
+		t.Fatalf("events = %+v, want the settled cursor reported once the items read", events)
+	}
+}
