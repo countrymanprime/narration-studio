@@ -415,7 +415,7 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.navigate).not.toHaveBeenCalled();
     // The reason starts the dialog's sentence, so it starts with a capital.
     expect(page.dialog()?.spec.title).toBe('Could not stop the take');
-    expect(page.dialog()?.spec.body).toMatch(/^The stop did not go through\./);
+    expect(page.dialog()?.spec.body).toMatch(/^REAPER could not be reached\./);
   });
 
   it('Stop and leave with a stop the DAW never answers gives up at the stop limit and does not leave', async () => {
@@ -2337,13 +2337,14 @@ describe('a-take-is-undone-in-the-daw', () => {
     await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
   });
 
-  // N3: a stop answered after the 8 s deadline (the "Could not stop the take" question is up) says the take is saved where the narrator is, once.
-  it('a stop answered after the deadline says Take saved with Undo once, while the question stays', async () => {
+  // N3 (#3697): a stop that answers after the leave guard's first 8 s but inside the stop's own 10 s limit is the guard's to take: no "Could not stop the take" is raised over a take that is
+  // being saved, and the take is told as saved where the narrator is, once. (Before, the question was raised at 8 s and the answer arrived under it.)
+  it('a stop answered after 8 s but inside its limit says Take saved with Undo once, with no question raised', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const daw = dawFor('reaper');
     const stop = daw.recordStop.bind(daw);
     daw.recordStop = (async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10_000));
+      await new Promise((resolve) => setTimeout(resolve, 9_000));
       return stop();
     }) as typeof daw.recordStop;
     const page = renderPage({ daw, journal: dawJournal });
@@ -2351,11 +2352,12 @@ describe('a-take-is-undone-in-the-daw', () => {
     await press('Escape');
     await act(async () => page.dialog()!.answer(true));
     await act(() => vi.advanceTimersByTimeAsync(8500));
-    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(page.dialog()?.spec.title, 'no refusal while the stop is inside its limit').not.toBe('Could not stop the take');
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
-    await act(() => vi.advanceTimersByTimeAsync(2500));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
     expect(page.overlay.getSnapshot().toasts.filter((toast) => toast.text === 'Take saved')).toHaveLength(1);
+    expect(page.dialog()?.spec.title).not.toBe('Could not stop the take');
   });
 
   it('a take with the built-in recorder is not a DAW entry', async () => {

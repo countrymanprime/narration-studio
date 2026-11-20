@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 )
 
@@ -42,6 +43,8 @@ type liveTracksCache struct {
 
 // liveTracksFlight is one read that callers arriving meanwhile wait on instead of sending their own.
 type liveTracksFlight struct {
+	// epoch is the heartbeat's epoch the read began in: a caller in a later epoch does not join it.
+	epoch  uint64
 	done   chan struct{}
 	answer dawport.LiveTracks
 	err    error
@@ -72,6 +75,9 @@ type cachedTrackLister struct {
 
 var _ dawport.TrackLister = cachedTrackLister{}
 
+// The production heartbeat keeps an epoch: without the method the cache would silently stop telling a restarted bridge from a running one.
+var _ interface{ Epoch() uint64 } = (*daw.Reachability)(nil)
+
 // withTracksCache is lister behind svc's cache, or lister itself when there is no cache or no heartbeat to judge it by.
 func withTracksCache(svc hostServices, lister dawport.TrackLister) dawport.TrackLister {
 	if lister == nil || svc.tracksCache == nil || svc.reachability == nil {
@@ -89,7 +95,7 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 			c.mu.Unlock()
 			return answer, nil
 		}
-		if flight := c.flight; flight != nil {
+		if flight := c.flight; flight != nil && flight.epoch == l.epoch() {
 			c.mu.Unlock()
 			select {
 			case <-flight.done:
@@ -102,11 +108,12 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 			}
 			continue
 		}
-		flight := &liveTracksFlight{done: make(chan struct{})}
+		epoch := l.epoch() // before the request: a heartbeat that lands during it makes the answer older than the epoch it is stored in
+		flight := &liveTracksFlight{done: make(chan struct{}), epoch: epoch}
 		c.flight = flight
 		generation := c.generation
 		c.mu.Unlock()
-		return l.lead(ctx, c, flight, generation, l.epoch())
+		return l.lead(ctx, c, flight, generation, epoch)
 	}
 }
 

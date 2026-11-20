@@ -9,6 +9,7 @@ import { reviewFinding } from '../../../studio/commands/reviewFinding';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { ManuscriptChapter } from '../../../types';
 import { EnginePanelLink } from '../../engine/EnginePanelContext';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { Button } from '../../primitives/Button';
 import { Dot, StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
@@ -28,7 +29,7 @@ import {
   checkSentence,
   estimateLabel,
   hasRecording,
-  NO_RECORDING_WHY,
+  noRecordingWhy,
   recordedLabel,
   runningFor,
   SPEECH_COUNTS,
@@ -75,6 +76,7 @@ export function CheckCard({
   /** The page offers Compare beside Check recordings (#2822): pressing it opens the Compare panel under the card, which `open` reports. */
   compare?: { onOpen: () => void; open: boolean };
 }) {
+  const layout = useVoiceLayout();
   const coverage = usePort('coverage');
   const findings = usePort('findings');
   const journal = useJournalOrOwn();
@@ -157,7 +159,7 @@ export function CheckCard({
         ? 'This chapter has no text to check against.'
         : '';
 
-  const noRecording = !hasRecording(chapter.recordedSeconds) && chapter.recordedUnavailable ? NO_RECORDING_WHY[chapter.recordedUnavailable] : undefined;
+  const noRecording = !hasRecording(chapter.recordedSeconds) && chapter.recordedUnavailable ? noRecordingWhy(chapter.recordedUnavailable, layout) : undefined;
 
   const decide = async (id: string, action: () => Promise<string | void>) => {
     setBusy(true);

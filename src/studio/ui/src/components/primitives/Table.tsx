@@ -228,6 +228,8 @@ export function TableHeader({
   info,
   className = '',
   style,
+  custom,
+  colSpan,
   children,
 }: {
   sorted?: 'ascending' | 'descending';
@@ -238,12 +240,23 @@ export function TableHeader({
   info?: string;
   className?: string;
   style?: CSSProperties;
+  // What the cell draws instead of a label: a column of checkboxes' select-all box, or the bar that takes the whole header row while rows are ticked (#3662). It keeps the header's height; the caller names what it draws.
+  custom?: ReactNode;
+  colSpan?: number;
   children?: string;
 }) {
   const arrow = sorted === 'ascending' ? '↑' : sorted === 'descending' ? '↓' : '';
   return (
-    <th scope="col" aria-sort={onSort ? (sorted ?? 'none') : undefined} className={`relative ${TABLE_HEADER_CLASS} ${className}`} style={style}>
-      {onSort ? (
+    <th
+      scope="col"
+      colSpan={colSpan}
+      aria-sort={onSort ? (sorted ?? 'none') : undefined}
+      className={`relative ${TABLE_HEADER_CLASS} ${className}`}
+      style={style}
+    >
+      {custom !== undefined ? (
+        custom
+      ) : onSort ? (
         <button
           type="button"
           aria-label={children}

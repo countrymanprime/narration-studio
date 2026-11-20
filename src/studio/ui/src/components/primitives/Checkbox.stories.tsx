@@ -79,3 +79,11 @@ export const LabelLess: Story = {
 export const LabelLessIndeterminate: Story = {
   args: { 'aria-label': 'Select all', indeterminate: true, children: undefined },
 };
+
+// A box in a list with one roving tab stop: `tabIndex={-1}` takes it out of the tab order while a press still toggles it.
+export const OutOfTheTabOrder: Story = {
+  args: { 'aria-label': 'Select Alice', tabIndex: -1, children: undefined },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('checkbox', { name: 'Select Alice' })).toHaveAttribute('tabindex', '-1');
+  },
+};

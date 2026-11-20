@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
@@ -190,12 +190,15 @@ export function useArmBoothOnOpen({
   say: (sentence: string) => void;
 }) {
   const place = usePort('dawPlace');
+  const [again, setAgain] = useState(0);
   const done = useRef(false);
   const wasRecording = useRef(false);
   const wasCanArm = useRef(canArm);
   const owed = useRef(false);
   const dueAfterStop = useRef(false);
   const retry = useRef(false);
+  // Numbers the asks: an answer to an older ask says nothing once a newer one has been sent (the link's arm supersedes the entry's refusal, #3670).
+  const asked = useRef(0);
   const lastVoice = useRef(voice);
   const unmounted = useRef(false);
   const sayRef = useRef(say);
@@ -228,19 +231,30 @@ export function useArmBoothOnOpen({
     dueAfterStop.current = false;
     if (follow === true) monitorAsked = true;
     if (recording) owed.current = true;
+    asked.current += 1;
+    const mine = asked.current;
     void place
       .dawArmBoothVoice(chapterId)
       .then((result) => {
-        if (unmounted.current) return;
+        if (unmounted.current || mine !== asked.current) return;
         if (!result.ok) {
           retry.current = true;
           sayRef.current(result.refused ?? result.message);
+        } else {
+          // What an earlier refusal owed is paid.
+          retry.current = false;
         }
       })
       .catch(() => {
-        if (!unmounted.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it in the DAW yourself.");
+        if (!unmounted.current && mine === asked.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it in the DAW yourself.");
       });
-  }, [enabled, follow, chapterId, canArm, recording, place]);
+  }, [enabled, follow, chapterId, canArm, recording, place, again]);
+  // The chapter's track was just created or linked here (#3670): the entry arm found nothing to arm, so it is owed now, not at the next entry.
+  return useCallback(() => {
+    done.current = false;
+    retry.current = false;
+    setAgain((n) => n + 1);
+  }, []);
 }
 
 // Whether this page asked the DAW to turn an input monitoring on and no release has been answered since: the page's copy of the host's own note.

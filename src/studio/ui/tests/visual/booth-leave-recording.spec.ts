@@ -376,7 +376,7 @@ const hang = (name: 'readAloudRecordStart' | 'readAloudRecordStop' | 'passageMap
     w.__NARRATION_MOCK_OVERRIDES__ = { ...(w.__NARRATION_MOCK_OVERRIDES__ ?? {}), [method]: () => new Promise(() => {}) };
   }, name);
 
-test('a stop the host never answers: after about 8 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
+test('a stop the host never answers: after about 10 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
   test.setTimeout(60_000);
   await page.addInitScript(() => {
     const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
@@ -580,7 +580,7 @@ for (const [width, height] of [
 }
 
 // #3321: a start that is still pending when the narrator leaves asks the question, which never says a take records and closes by itself when the start
-// ends at its limit (10 s) with no take. The narrator stays on the Booth with the press's sentence, nothing recording and no stop owed.
+// ends at its limit (14 s) with no take. The narrator stays on the Booth with the press's sentence, nothing recording and no stop owed.
 const ASKED = (page: Page) => page.getByRole('alertdialog', { name: /^Leave while a take is starting\?$/ });
 async function openWithPendingStart(page: Page, answersAtMs: number | 'never'): Promise<void> {
   await page.addInitScript((answers) => {
@@ -621,7 +621,7 @@ async function openWithPendingStart(page: Page, answersAtMs: number | 'never'): 
 
 for (const [name, answersAt] of [
   ['never answers', 'never'],
-  ['answers after the limit (12 s)', 12_000],
+  ['answers after the limit (16 s)', 16_000],
 ] as const) {
   test(`the leave question closes, or never says is recording, when the pending start ends at its limit: the start ${name}`, async ({ page }) => {
     test.setTimeout(60_000);

@@ -546,7 +546,7 @@ function BoothSession({
     asking: whoAsk !== null,
   });
   // Entering the chapter arms the voice the next take records on and monitors it (the same switch as the move above); a cold read waits for its end.
-  useArmBoothOnOpen({
+  const armNow = useArmBoothOnOpen({
     enabled: !coldMode && source.kind === 'chapter',
     follow: followChapterInDaw,
     chapterId,
@@ -700,6 +700,8 @@ function BoothSession({
     control.refresh();
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
     voices.reload();
+    // The entry arm found no track to arm for this chapter: the voice of the new link is armed and monitored now (#3670).
+    armNow();
     overlay.toast(
       created ? createdSentence(created, recordName, page.dawName) : dest.linkedToast(recordName),
       // The save the narrator owes REAPER is worth more than the usual five seconds.

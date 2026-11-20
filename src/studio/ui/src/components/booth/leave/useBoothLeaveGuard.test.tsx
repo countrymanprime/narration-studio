@@ -6,7 +6,7 @@ import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
 import { createOverlayService } from '../../../overlay/overlayService';
 import type { DawResult } from '../../../api/contracts/daw';
 import { IGNORE_ENTER_MS } from './stopRecordingSpec';
-import { LEAVE_WAIT_MS, useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
+import { LEAVE_STOP_WAIT_MS, LEAVE_WAIT_MS, useBoothLeaveGuard, type BoothLeaveSession } from './useBoothLeaveGuard';
 
 const ok: DawResult = { ok: true, changed: true, message: 'Stopped.', undoSteps: 0 };
 const setup = (over: Partial<BoothLeaveSession> = {}, stop: () => Promise<DawResult> = async () => ok) => {
@@ -638,7 +638,7 @@ describe('useBoothLeaveGuard', () => {
       // The narrator sees that the take is being stopped.
       expect(t.overlay.getSnapshot().toasts.map((toast) => toast.text)).toContain('Stopping the take…');
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 50);
+        await vi.advanceTimersByTimeAsync(LEAVE_STOP_WAIT_MS + 50);
       });
       return { ...t, done: () => done };
     };
@@ -648,12 +648,12 @@ describe('useBoothLeaveGuard', () => {
     // Drawn by the host, which is what ends a toast at its time.
     const stoppingShown = () => screen.queryByText('Stopping the take…') !== null;
     for (const [name, over, stop, firstWaitEnds] of [
-      ['a hung stop', {}, never, LEAVE_WAIT_MS],
+      ['a hung stop', {}, never, LEAVE_STOP_WAIT_MS],
       [
         'a hung start, then a hung stop',
         { settle: async () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), LEAVE_WAIT_MS - 100)) },
         never,
-        2 * LEAVE_WAIT_MS,
+        LEAVE_WAIT_MS - 100 + LEAVE_STOP_WAIT_MS,
       ],
       ['a hung run', { flush: never }, undefined, LEAVE_WAIT_MS],
     ] as const) {
@@ -675,10 +675,18 @@ describe('useBoothLeaveGuard', () => {
       });
     }
 
+    it('a stop that never answers names the connected DAW, not "the DAW"', async () => {
+      const t = await yesAndWait({ daw: { name: 'Audacity' } }, never);
+      expect(t.dialog()?.spec.body).toContain('Audacity did not answer in time. You can leave anyway, but it may keep recording.');
+      expect(t.dialog()?.spec.body).not.toContain('The DAW');
+      act(() => t.dialog()!.answer(true));
+      await act(() => t.done());
+    });
+
     it('a stop that never answers ends in "Could not stop the take", with Leave anyway, and asking is cleared', async () => {
       const t = await yesAndWait({}, never);
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
-      expect(t.dialog()?.spec.body).toContain('did not answer in time');
+      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time. You can leave anyway, but it may keep recording.');
       expect(t.overlay.getSnapshot().toasts.map((toast) => toast.text)).not.toContain('Stopping the take…');
       act(() => t.dialog()!.answer(true));
       await act(() => t.done());
@@ -690,9 +698,32 @@ describe('useBoothLeaveGuard', () => {
       act(() => t.dialog()!.answer(false));
     });
 
+    // #3697: the page's own stop is allowed 10 s, so a stop that answers at 9 s is the guard's to take: it leaves with the take saved, with no refusal first.
+    it('a stop that answers after the first wait but inside the stop limit leaves, with no "Could not stop the take" first', async () => {
+      vi.useFakeTimers();
+      const t = setup({}, () => new Promise<DawResult>((resolve) => setTimeout(() => resolve(ok), 9000)));
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 500);
+      });
+      expect(t.dialog(), 'no refusal is up while the stop is still inside its limit').toBeUndefined();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      await act(() => done);
+      expect(t.go).toHaveBeenCalledWith('/script');
+      expect(t.dialog()).toBeUndefined();
+    });
+
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
+      expect(t.dialog()?.spec.body).toContain('REAPER did not answer in time. You can leave anyway, but it may keep recording.');
       expect(t.stopRecording).not.toHaveBeenCalled();
       act(() => t.dialog()!.answer(false));
       await act(() => t.done());
@@ -785,7 +816,7 @@ describe('useBoothLeaveGuard', () => {
         act(() => t.dialog()!.answer(true));
         await flush();
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS + 100);
+          await vi.advanceTimersByTimeAsync(LEAVE_STOP_WAIT_MS + 100);
         });
         expect(t.dialog()?.spec.title).toBe('Could not stop the take');
         expect(arrived).toHaveBeenCalledTimes(1);
@@ -863,7 +894,7 @@ describe('useBoothLeaveGuard', () => {
         });
         t.hook.rerender({ ...t.session, recording: false });
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS);
+          await vi.advanceTimersByTimeAsync(LEAVE_STOP_WAIT_MS);
         });
         expect(t.go).not.toHaveBeenCalled();
         expect(t.dialog()?.spec.title).toBe('Could not stop the take');

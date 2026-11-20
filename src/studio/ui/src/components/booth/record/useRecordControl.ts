@@ -5,7 +5,7 @@ import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../..
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import type { DawRecordStart } from '../../../ports/daw';
-import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
+import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
@@ -127,6 +127,11 @@ const lostInDaw = (daw: DawKind | undefined) => {
 // reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. A take the app
 // never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should.
 let appTakeRunning = false;
+// The chapter that take began in, claimed by the first page that records it: a page for another chapter that adopts the take (the narrator opened it with the take still
+// running) is not the take's, and writes no passage-map run of its own for it (#3712).
+let appTakeChapterId: string | undefined;
+/** The chapter the take this app started and has not seen end began in; undefined when there is none. */
+export const appTakeChapter = (): string | undefined => appTakeChapterId;
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
 // The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
@@ -139,6 +144,7 @@ export const forgetAppTake = (): void => {
   startsSent = 0;
   runningStart = 0;
   appTakeRunning = false;
+  appTakeChapterId = undefined;
   lastStartAt = 0;
 };
 /** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
@@ -319,10 +325,14 @@ export function useRecordControl({
   useEffect(() => {
     if (recording) {
       appTakeRunning = true;
+      appTakeChapterId ??= chapterId;
       recordedHere.current = true;
-    } else if (wasRecording.current) appTakeRunning = false;
+    } else if (wasRecording.current) {
+      appTakeRunning = false;
+      appTakeChapterId = undefined;
+    }
     wasRecording.current = recording;
-  }, [recording]);
+  }, [recording, chapterId]);
   useEffect(() => {
     // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
     if (!recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
@@ -332,6 +342,11 @@ export function useRecordControl({
       setRecording(true);
     }
   }, [recording, project?.playState, inApp]);
+  // A page that reads the DAW as not recording, while it records nothing itself, holds no take: a claim left by a take that ended with no page to see it is stale, and would
+  // write off the next take this page adopts as another chapter's (#3712).
+  useEffect(() => {
+    if (!recording && project?.playState && project.playState !== 'recording') appTakeChapterId = undefined;
+  }, [recording, project?.playState]);
   // Nothing but this app starts a take of its own recorder, so none is "elsewhere".
   const takeElsewhere = !recording && !adopt && !inApp && project?.playState === 'recording';
   const refusedForChapter =
@@ -385,7 +400,7 @@ export function useRecordControl({
   // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
   const appStops = useRef(0);
   const appStopReleases = useRef(new Set<() => void>());
-  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
+  // An end the transport pushed during such a stop, to be heard if that stop failed; and the function that hears an end.
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
@@ -510,7 +525,7 @@ export function useRecordControl({
     (how: string) => {
       // The page may be gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
       // bookkeeping, so a take it kept is not in Undo.)
-      const name = capabilitiesRef.current?.daw ?? 'the DAW';
+      const name = recorderName(capabilitiesRef.current?.daw);
       const unstopped = (why: string) => {
         logUi('ui.record', `The late take was not stopped: ${why}`);
         overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
@@ -569,7 +584,7 @@ export function useRecordControl({
           if (how?.current && !how.current()) return false;
           if (checked.timedOut) {
             // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
-            const sentence = `${capabilitiesRef.current.daw ?? 'The DAW'} could not confirm the open project in time, so no take was started.`;
+            const sentence = `${recorderNameCapital(capabilitiesRef.current.daw)} could not confirm the open project in time, so no take was started.`;
             setRefused({ chapterId, sentence });
             block({ cause: 'failed', reason: sentence });
             return false;
@@ -599,7 +614,7 @@ export function useRecordControl({
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
-            const name = capabilitiesRef.current?.daw ?? 'the DAW';
+            const name = recorderName(capabilitiesRef.current?.daw);
             const sentence = `The Booth gave up waiting for ${name} to start recording.`;
             if (how?.current && !how.current()) return false;
             setRefused({ chapterId, sentence });
@@ -611,7 +626,7 @@ export function useRecordControl({
           // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
           // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
           const stopAsked = await limited('recordStop', daw.recordStop());
-          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          if (stopAsked.timedOut) throw new Error(noAnswerSentence(recorderName(capabilitiesRef.current?.daw)));
           result = stopAsked.value;
         }
         if (result.ok && starting && !alive.current && runningStart > seq) {
@@ -633,7 +648,11 @@ export function useRecordControl({
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
           if (!starting) stopAccepted.current = true;
-          if (starting) lastStartAt = Date.now();
+          if (starting) {
+            lastStartAt = Date.now();
+            // A take this page starts is this chapter's, whatever claim a take it never saw end left behind (the Booth was left while it ran, and it ended with no page to see it).
+            appTakeChapterId = chapterId;
+          }
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;
           if (starting) {
@@ -657,7 +676,9 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
-        const sentence = `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
+        const sentence = `${what}: ${apiErrorMessage(error)
+          .trim()
+          .replace(/[.!?]+$/, '')}. Check ${recorderName(capabilitiesRef.current?.daw)} before pressing again.`;
         setRefused({ chapterId, sentence });
         block({ cause: 'failed', reason: sentence });
       } finally {

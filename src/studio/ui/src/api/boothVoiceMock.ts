@@ -127,7 +127,7 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)), ...(unsaved.length ? { added: unsaved } : {}) };
     },
     // As BoothVoiceAdd does (src/studio/desktop/boothvoiceadd.go): a child at the end of the chapter's folder, its characters added
-    // to its name's, and chosen. Refused during this app's take, for a blank name or one a voice of the folder has.
+    // to its name's, and chosen (the host also arms and monitors it; the mock's DAW answers as armed). Refused during this app's take, for a blank name or one a voice of the folder has.
     async boothVoiceAdd(chapterId: string, name: string, characterIds: string[]): Promise<BoothVoiceAdded> {
       const { links, voices } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
@@ -149,6 +149,7 @@ export function createBoothVoiceMock(api: Deps) {
           message: `This chapter already has a track named “${taken.name.trim()}”. Choose it, or give the new track another name.`,
         };
       if (recording) return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then add the track.' };
+      const chosenBefore = chosenFor(chapterId);
       addedCount += 1;
       const voice = { guid: `{ADDED000-0000-4000-8000-${String(addedCount).padStart(12, '0')}}`, name: clean };
       const key = links[0].toUpperCase();
@@ -157,7 +158,8 @@ export function createBoothVoiceMock(api: Deps) {
         const had = (await api.voiceTracksGet()).tracks.find((entry) => entry.track === clean)?.characters ?? [];
         await api.voiceTracksSetCharacters(clean, [...had, ...characterIds.filter((id) => !had.includes(id))]);
       }
-      chosen.set(chapterId, voice.guid);
+      // As the host: a voice chosen while the add waited keeps its place.
+      if (chosenFor(chapterId) === chosenBefore) chosen.set(chapterId, voice.guid);
       return { outcome: 'added', trackGuid: voice.guid, name: clean };
     },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {

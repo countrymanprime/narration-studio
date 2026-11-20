@@ -444,4 +444,19 @@ describe('TableRow tree (#2643)', () => {
     );
     expect(rows).toBeTruthy();
   });
+
+  it('a header cell with custom content spans its columns and has no sort button', () => {
+    render(
+      <Table label="Entries">
+        <TableHead>
+          <TableRow>
+            <TableHeader colSpan={3} custom={<span>2 selected</span>} />
+          </TableRow>
+        </TableHead>
+      </Table>,
+    );
+    const header = screen.getByRole('columnheader', { name: '2 selected' });
+    expect(header.getAttribute('colspan')).toBe('3');
+    expect(screen.queryByRole('button')).toBeNull();
+  });
 });

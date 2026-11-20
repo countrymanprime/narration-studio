@@ -18,6 +18,8 @@ export type CheckboxProps = DataProps &
     'aria-describedby'?: string;
     // The mixed state of a parent whose children are partly selected: reports aria-checked="mixed" and draws a dash.
     indeterminate?: boolean;
+    // -1 takes the box out of the Tab order, for a column of them in a table with one tab stop per row (the Story Bible's list, #3662).
+    tabIndex?: number;
   };
 
 const BOX_CLASS = `${HIT_AREA} inline-flex size-4 flex-none items-center justify-center rounded-[0.25rem] border-2 border-[var(--btn-line)] bg-[var(--surface)] text-[var(--accent-contrast)] data-[checked]:border-[var(--accent)] data-[checked]:bg-[var(--accent)] data-[indeterminate]:border-[var(--accent)] data-[indeterminate]:bg-[var(--accent)] data-[disabled]:opacity-40`;

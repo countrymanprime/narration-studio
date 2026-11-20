@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterTrackCreateResult, ChapterTrackMatch } from '../../../api/contracts/chapterTrackMap';
@@ -192,6 +192,19 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
+  // #3670: the entry arm found no track for the unlinked chapter; the track just created is armed and monitored now, without a second press.
+  it('asks the DAW to arm the voice of the track it just created', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    renderUnlinked({ dawArmBoothVoice } as Partial<NarrationApi>);
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBeGreaterThan(before));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+    expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
+  });
+
   it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {
     const message = 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.';
     const { overlay } = renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
@@ -226,7 +239,7 @@ describe('an unlinked chapter in the Booth', () => {
 
   it.each([
     ['flat', 'track', 'Track missing'],
-    ['folders', 'folder', 'Track missing'],
+    ['folders', 'folder', 'Folder missing'],
   ] as const)(
     'a missing link in a %s project: footer says the %s is not in the project, never that there is none, and the chips say what the Engine says',
     async (layout, noun, chip) => {

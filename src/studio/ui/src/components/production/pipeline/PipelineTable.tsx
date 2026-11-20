@@ -35,7 +35,7 @@ const cellStatus = (cell: PipelineCell): StatusId => {
 };
 /**
  * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge. Rec.
- * holds "1h 12m" (or "<0h 01m", or a two-word state) on one line and Est. its "0h 13m" or "<0h 01m" (owner report, #2251: two columns, not one stacked), each with its
+ * holds "1h 12m" (or "<0h 01m", or "Not linked") on one line, a longer state word on two and Est. its "0h 13m" or "<0h 01m" (owner report, #2251: two columns, not one stacked), each with its
  * info mark under a centred header. The mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter names to
  * two to five lines (alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
@@ -44,8 +44,6 @@ const STAGE_WIDTH = '3.75rem';
 const COLUMNS = ['auto', '4.5rem', '4rem', ...Array<string>(6).fill(STAGE_WIDTH), '4.5rem'];
 // The Rec. and Est. headers hold a label and its info mark on one line (never clipped by the cell): 4 px of padding either side, not 10.
 const FIGURE_HEAD = 'px-1!';
-// A figure cell is 4 px of padding either side too: "<0h 01m" is 7 characters (about 55 px) and Est. is 64 px wide, so the cell's own 10 px would push it past the edge.
-const FIGURE_CELL = 'px-1!';
 const STAGE_COLUMNS: readonly PipelineColumn[] = ['prep', 'record', 'edit', 'proof', 'pickups', 'master', 'qc'];
 // Important: the cell's own 10 px padding is the same specificity and comes later in the stylesheet. The last column keeps its 16 px card edge.
 const STAGE_CELL = 'px-1! last:pr-4!';
@@ -122,10 +120,12 @@ function RecordedCell({ figure }: { figure: RecordedFigure }) {
         role="img"
         aria-label={figure.label}
         data-recorded={figure.kind}
-        // A word that says why there is no length ("Several tracks", "Track missing") is wider than the column: it wraps inside its cell, a figure never does.
-        className={figure.kind === 'none' ? 'inline-block max-w-full leading-tight whitespace-normal' : 'inline-block whitespace-nowrap'}
+        className={figure.kind === 'none' ? 'inline-block whitespace-normal' : 'inline-block whitespace-nowrap'}
       >
-        <span className={figure.kind === 'none' ? 'font-sans text-[0.75rem] text-[var(--text-muted)]' : undefined}>{figure.text}</span>
+        {/* A state word ("Folder missing", "Several tracks") is two words wider than the column: it wraps to two lines and never runs into Est. */}
+        <span className={figure.kind === 'none' ? 'block font-sans text-[0.75rem] leading-[1.1] whitespace-normal text-[var(--text-muted)]' : undefined}>
+          {figure.text}
+        </span>
       </span>
     </TooltipTarget>
   );
@@ -246,10 +246,10 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                     <TitleSubtitle {...row.parts} />
                   )}
                 </TableCell>
-                <TableCell numeric align="center" className={FIGURE_CELL}>
+                <TableCell numeric align="center" className={FIGURE_HEAD}>
                   <RecordedCell figure={row.recorded} />
                 </TableCell>
-                <TableCell numeric align="center" className={FIGURE_CELL}>
+                <TableCell numeric align="center" className={FIGURE_HEAD}>
                   <SpokenFigure text={row.estimate} />
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {
