@@ -22,7 +22,7 @@ export const READY_POLL_MS = 15_000;
 /** How long after a take starts that a press is not taken for Stop: a double click or a key repeat must not start and end a take at once. */
 export const START_GUARD_MS = 1000;
 /** What the Booth says when Stop is pressed on a take the DAW started: the app never stops a take it did not start (#3666). */
-export const heldInDawSentence = (daw: DawKind | undefined) => `${recorderNameCapital(daw)} started this take, so stop it in ${recorderName(daw)}.`;
+const heldInDawSentence = (daw: DawKind | undefined) => `${recorderNameCapital(daw)} started this take, so stop it in ${recorderName(daw)}.`;
 /** What the Booth says when a press inside that guard is ignored. */
 export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
 
