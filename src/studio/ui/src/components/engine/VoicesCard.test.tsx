@@ -172,7 +172,6 @@ describe('the Voices card', () => {
         onNotAVoice={vi.fn()}
       />,
     );
-    // The table's own header has a help button now (Voice); the edit buttons are the ones named "Choose who ...".
     const buttons = within(screen.getByRole('table')).getAllByRole('button', { name: /^Choose who/ });
     expect(buttons.map((button) => button.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
     expect(buttons.every((button) => button.getAttribute('aria-label')!.length < 100)).toBe(true);

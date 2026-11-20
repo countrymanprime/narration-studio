@@ -30,9 +30,11 @@ const LAYOUTS = [
 /** A marked child's name, muted (a token that holds contrast in both themes, not an opacity): the row is still there, and so are the badge and the switch that turns it back on, at full strength. */
 const DIMMED = 'text-[var(--text-muted)]';
 
-/** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
 /** Why the Voice switches are off while the DAW records. */
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
+/** What the switch says it does: a track that is not a voice is never recorded on and not offered in the Booth. */
+const SWITCH_HINT = 'Counts as a voice. Turn it off for a track that is not one (a music bed): the Booth never records on it and does not offer it.';
+/** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
 const NARROW = '(max-width: 30rem)';
 const subscribeNarrow = (notify: () => void) => {
   const query = window.matchMedia?.(NARROW);
@@ -102,7 +104,7 @@ export function VoicesCard({
   // A take records on the Booth's voice: turning a track off under it would change where the take goes mid-take, so the switches wait for the stop.
   const recording = useIsRecording();
   const voiceSwitch = (voice: Voice) => (
-    <TooltipTarget text={recording ? RECORDING_REASON : 'Counts as a voice'}>
+    <TooltipTarget text={recording ? RECORDING_REASON : SWITCH_HINT}>
       <Switch checked={!voice.notVoice} disabled={recording} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>
@@ -145,11 +147,7 @@ export function VoicesCard({
                     {!narrow && <TableHeader>Key</TableHeader>}
                     <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
                     {!narrow && <TableHeader>Characters</TableHeader>}
-                    {!narrow && (
-                      <TableHeader info="A track you turn off is not a voice: the Booth never records on it and does not offer it. Every other track in the folder is a voice.">
-                        Voice
-                      </TableHeader>
-                    )}
+                    {!narrow && <TableHeader>Voice</TableHeader>}
                     <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
