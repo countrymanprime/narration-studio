@@ -109,7 +109,7 @@ func (r *Reachability) Record(event bridge.Event) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := r.now()
-	if !r.lastSeen.IsZero() && (now.Sub(r.lastSeen) > heartbeatTimeout || rpp != r.rpp || (hasChangeCount && r.hasChangeCount && changeCount < r.changeCount)) {
+	if !r.lastSeen.IsZero() && (now.Sub(r.lastSeen) > heartbeatTimeout || !strings.EqualFold(filepath.Clean(rpp), filepath.Clean(r.rpp)) || (hasChangeCount && r.hasChangeCount && changeCount < r.changeCount)) {
 		r.epoch++
 	}
 	r.lastSeen = now

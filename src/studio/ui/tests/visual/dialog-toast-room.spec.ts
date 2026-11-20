@@ -111,6 +111,8 @@ for (const c of CASES) {
     const problems: string[] = [];
     for (const [width, height] of SIZES) {
       await page.setViewportSize({ width, height });
+      // A toast the pointer is over keeps its timer: the walk of 42 sizes outlasts an Undo toast's lifetime on a loaded runner, and a toast that went is not what this measures.
+      await shown(page).first().hover();
       await expect
         .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h')), { message: `${width}x${height}: the room is published` })
         .not.toBe('');
