@@ -230,6 +230,46 @@ describe('an unlinked chapter in the Booth', () => {
     expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1', { voices: ['Mara', 'Dragon 🐉'], extras: false });
   });
 
+  it('a create that was partly done says what is left in the toast that says it was made (#3748)', async () => {
+    const message = 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.';
+    const made = (guid: string, name: string, index: number) => ({ guid, name, index, notVoice: false });
+    const link = {
+      trackGuid: '{NEW}',
+      chapterId: 'c1',
+      chapterTitle: 'Chapter 1',
+      confirmedAt: '2026-10-23T10:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    };
+    const { overlay } = renderUnlinked(
+      {
+        chapterCreateOptions: async () => foldersOptions,
+        chapterTrackCreate: async () => ({
+          outcome: 'created' as const,
+          documentId: 'doc',
+          link,
+          displaced: null,
+          mappings: [link],
+          track: { guid: '{NEW}', name: 'Chapter 1', index: 0 },
+          voice: { guid: '{N}', name: 'Narrator', index: 1 },
+          children: [made('{N}', 'Narrator', 1)],
+          message,
+        }),
+      } as Partial<NarrationApi>,
+      'folders',
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new folder' }));
+    await waitFor(() =>
+      expect(
+        overlay
+          .getSnapshot()
+          .toasts.map((t) => t.text)
+          .join(' '),
+      ).toContain(`Save the REAPER project to keep it. ${message}`),
+    );
+  });
+
   it('a create dialog whose list cannot be read still creates, with the last pick the host remembers', async () => {
     const { chapterTrackCreate, overlay } = renderUnlinked(
       {
