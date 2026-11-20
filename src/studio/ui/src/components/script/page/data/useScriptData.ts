@@ -102,7 +102,7 @@ function allCues(byChapter: ScriptDataState['cues']): Loadable<GuideDialogueCue[
   const value = held.flatMap((chapter) => chapter.value ?? []);
   const failed = held.find((chapter) => chapter.status === 'error');
   if (failed?.status === 'error') return { status: 'error', message: failed.message, value };
-  return { status: held.length === 0 || held.some((chapter) => chapter.status === 'loading') ? 'loading' : 'ready', value };
+  return { status: held.some((chapter) => chapter.status === 'loading') ? 'loading' : 'ready', value };
 }
 
 /** A chapter's dialogue cues, asked for in one call with the other chapters wanted in the same tick. */
