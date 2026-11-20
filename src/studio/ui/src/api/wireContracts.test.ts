@@ -222,7 +222,7 @@ import {
 } from './schemas/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsOpenCountSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import {
@@ -4532,6 +4532,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const listed = await api.pickupsList();
     expectMatches(pickupListSchema, listed, 'mock pickups list');
+    // The open count is the list's own count: the golden's against the merged golden, the mock's against its list.
+    const hostCount = pickupsOpenCountSchema.parse(readGolden('pickups-open-count.json'));
+    expect(hostCount.open).toBe(merged.pickups.filter((pickup) => pickup.done !== true).length);
+    const counted = await api.pickupsOpenCount();
+    expectMatches(pickupsOpenCountSchema, counted, 'mock pickups open count');
+    expect(counted.open).toBe(listed.pickups.filter((pickup) => !pickup.done).length);
     expect(listed.pickups.map((pickup) => pickup.source)).toEqual(['speech', 'speech', 'audio']);
     const added = await api.pickupsAdd('chapter-1', 12, '  A line read again  ');
     expectMatches(pickupListSchema, added, 'mock pickups add');
@@ -4776,6 +4782,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pickupsCount',
       'pickupsState',
       'pickupsList',
+      'pickupsOpenCount',
       'pickupsAdd',
       'pickupsRemove',
       'pickupsSetIncluded',

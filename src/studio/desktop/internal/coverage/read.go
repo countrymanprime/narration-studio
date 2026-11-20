@@ -45,6 +45,10 @@ func (s *Service) ResultIn(project tracks.Project, projectFile evidence.LedgerPr
 // the tests that guard what a page's read costs (issue 3749).
 func (s *Service) LedgerReads() (listings, decodes int) { return s.ledger.Reads() }
 
+// ResultsDecoded is how many stored result files the service has decoded, for the tests that guard what a page's read
+// costs (issue 3804): a read of every chapter takes the summaries and decodes none.
+func (s *Service) ResultsDecoded() int64 { return s.results.cache.decoded.Load() }
+
 // Pass is one read of every chapter of a book: its ResultIn answers each chapter from a single listing of the ledger, a
 // single read of the chapter links and a single sweep of the manuscript, where Service.ResultIn does all three for every
 // chapter (issues 3749, 3801). Take one per read and drop it after: a record, a link or a text edit made later is not in it.
@@ -110,6 +114,24 @@ func (s *Service) basis(read reading, chapterID string) (ChapterBasis, error) {
 // ResultIn is Service.ResultIn from what the pass read once.
 func (p Pass) ResultIn(project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {
 	return p.service.resultIn(p.read, project, projectFile, chapterID, alignment)
+}
+
+// Summary is ResultIn for a caller that reads the check's state and the summary of its result (the counts, the paragraph
+// lines, the gaps) and not the result itself: no stored result is decoded for it (issue 3804). The summary is nil unless
+// a stored result stands behind the answer; Result is nil in the answer.
+func (p Pass) Summary(project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, *ResultSummary, error) {
+	basis, err := p.service.readableChapter(p.read, chapterID, alignment)
+	if err == nil {
+		var result ChapterResult
+		var summary *ResultSummary
+		if result, summary, err = p.service.evaluateSummary(p.read, project, projectFile, basis, alignment); err == nil {
+			return result, summary, nil
+		}
+	}
+	if reason, ok := ReasonOf(err); ok {
+		return ChapterResult{State: evidence.StateNever, Reasons: []string{string(reason)}}, nil, nil
+	}
+	return ChapterResult{}, nil, err
 }
 
 func (s *Service) resultIn(read reading, project tracks.Project, projectFile evidence.LedgerProjectFile, chapterID string, alignment AlignmentParams) (ChapterResult, error) {

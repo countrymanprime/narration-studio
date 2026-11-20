@@ -331,7 +331,8 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)
-			if result, err := pass.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
+			// The row reads the check's state, reasons and time, none of which is in the stored result: none is decoded.
+			if result, _, err := pass.Summary(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
 				row.Freshness = string(result.State)
 				if result.Reasons != nil {
 					row.Reasons = result.Reasons

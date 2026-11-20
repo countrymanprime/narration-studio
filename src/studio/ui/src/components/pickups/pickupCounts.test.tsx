@@ -33,6 +33,7 @@ const apiWith = () => {
   const base = createMockApi(
     {
       pickupsList: async () => LIST,
+      pickupsOpenCount: async () => ({ open: OPEN }),
       pickupsState: async () => ({ phase: 'counted', message: '', remaining: 0, total: 0, csv: '' }) as never,
     },
     {},
