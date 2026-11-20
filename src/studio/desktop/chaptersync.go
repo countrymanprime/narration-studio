@@ -123,7 +123,9 @@ type chapterSyncPreview struct {
 type chapterSyncRuns struct{ mu sync.Mutex }
 
 // ChapterSyncState reads the consent, whether to ask, and the last sync. It only reads.
-func (h *Host) ChapterSyncState() (string, error) { return encodeBinding(h.chapterSyncState()) }
+func (h *Host) ChapterSyncState() (string, error) {
+	return h.sharedRead("ChapterSyncState", func() (string, error) { return encodeBinding(h.chapterSyncState()) })
+}
 
 // ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
 func (h *Host) ChapterSyncPreview() (string, error) { return encodeBinding(h.chapterSyncPreview()) }

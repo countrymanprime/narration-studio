@@ -23,6 +23,7 @@ var emitEventSink func(name string, data any)
 
 // emitEvent sends one live event to the window. The payload arrives in the UI as the event's `data` (src/studio/ui/src/api/wailsClient.ts).
 func emitEvent(name string, data any) {
+	eventGeneration.Add(1) // before the page hears of it: the read it sends in answer joins nothing older (readflights.go)
 	if emitEventSink != nil {
 		emitEventSink(name, data)
 		return

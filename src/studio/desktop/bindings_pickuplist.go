@@ -19,7 +19,7 @@ import (
 
 // PickupsList answers the merged list and the chapters whose recording check added nothing, and why.
 func (h *Host) PickupsList() (string, error) {
-	return encodeBinding(h.pickupList().List())
+	return h.sharedRead("PickupsList", func() (string, error) { return encodeBinding(h.pickupList().List()) })
 }
 
 // PickupsAdd adds a line by hand to a chapter, at a time in seconds into the chapter's recording. The paragraph whose
