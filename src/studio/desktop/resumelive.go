@@ -53,6 +53,24 @@ func readLiveTrack(ctx context.Context, reader trackStateReader, projectPath, tr
 	return state, true
 }
 
+// readLiveTrackLight is readLiveTrack without the track's items: the transport, the edit cursor and the project, which is all a poll needs to see that
+// REAPER plays or records or that the cursor moved. A reader with no itemless read answers the full state.
+func readLiveTrackLight(ctx context.Context, reader trackStateReader, projectPath, trackGUID string) (dawport.TrackState, bool) {
+	if reader == nil || projectPath == "" || trackGUID == "" {
+		return dawport.TrackState{}, false
+	}
+	ctx, cancel := context.WithTimeout(ctx, liveTrackStateTimeout)
+	defer cancel()
+	state, err := dawport.TrackStateNoItems(ctx, reader, trackGUID)
+	if err != nil || state.Unsaved || state.ProjectPath == "" {
+		return dawport.TrackState{}, false
+	}
+	if !strings.EqualFold(filepath.Clean(state.ProjectPath), filepath.Clean(projectPath)) {
+		return dawport.TrackState{}, false
+	}
+	return state, true
+}
+
 // recordingOn reports whether REAPER is recording onto the chapter's track: its take's file is still growing, so no
 // locate runs. Recording another track leaves this one's items final.
 func recordingOn(state dawport.TrackState) bool {
