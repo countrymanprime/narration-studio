@@ -460,3 +460,61 @@ func TestResumeFollowLoopDoesNotReportACursorTheItemsWereNotReadAt(t *testing.T)
 		t.Fatalf("%d full reads, want the first (cursor moved) and a second at the settle", full)
 	}
 }
+
+// An items read that keeps failing (an older script, a track that is gone) is not tried every second for the rest of the follow: it waits longer each time.
+func TestResumeFollowLoopBacksOffAFailingItemsRead(t *testing.T) {
+	reader := &lightTrackState{cursors: []float64{0, 5}, failFull: true} // the cursor settles at 5 and stays there
+	emitter := &recordingEmitter{}
+	runFollow(t, reader, func() bool { light, _ := reader.counts(); return light >= 100 }, emitter)
+	light, full := reader.counts()
+	if full > 12 {
+		t.Fatalf("%d failing items reads in %d ticks, want the retries spaced out (about 1, 2, 4, 8 ... ticks apart)", full, light)
+	}
+	if full < 3 {
+		t.Fatalf("%d items reads in %d ticks, want it still tried again", full, light)
+	}
+	if len(emitter.all()) != 0 {
+		t.Fatalf("events = %+v, want none", emitter.all())
+	}
+}
+
+// A heartbeat-less itemless read for another project, an unsaved one or one with no project path must never move the follow, whatever it says.
+func TestReadLiveTrackLightOnlyAnswersForTheFollowedProject(t *testing.T) {
+	for name, state := range map[string]dawport.TrackState{
+		"another project": {ProjectPath: "C:/p/Other.rpp", EditCursor: 5, Playing: true},
+		"unsaved":         {ProjectPath: "C:/p/Book.rpp", Unsaved: true, EditCursor: 5, Playing: true},
+		"no path":         {EditCursor: 5, Playing: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			reader := &scriptedTrackState{states: []dawport.TrackState{state}}
+			if _, ok := readLiveTrackLight(context.Background(), reader, "C:/p/Book.rpp", chapterOneTrack); ok {
+				t.Fatal("the light read answered for a project that is not the followed one")
+			}
+		})
+	}
+	reader := &scriptedTrackState{states: []dawport.TrackState{followState(5)}}
+	if _, ok := readLiveTrackLight(context.Background(), reader, "c:/p/book.rpp", chapterOneTrack); !ok {
+		t.Fatal("the light read refused the followed project (the path compares without case)")
+	}
+}
+
+// The follow is told to stop while the items are read: nothing is emitted after that, not the settle that read was for.
+func TestResumeFollowLoopEmitsNothingAfterTheFollowEndedDuringTheItemsRead(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	reader := &lightTrackState{cursors: []float64{0, 5, 5}, adjustFull: func(*dawport.TrackState) { cancel() }}
+	emitter := &recordingEmitter{}
+	done := make(chan struct{})
+	go func() {
+		followLoop(reader, func() bool { return false }, emitter).run(ctx)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the follow did not end when it was cancelled during the items read")
+	}
+	if events := emitter.all(); len(events) != 0 {
+		t.Fatalf("events = %+v, want none once the follow ended", events)
+	}
+}

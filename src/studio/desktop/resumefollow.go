@@ -38,6 +38,9 @@ var (
 	resumeFollowLifetime = 30 * time.Minute
 )
 
+// itemsRetryTicksMax is the most ticks the follow waits before it tries a failing read of the chapter's items again.
+const itemsRetryTicksMax = 30
+
 // followCursorTolerance is how far, in seconds, the edit cursor must move to count as moved.
 const followCursorTolerance = 0.01
 
@@ -153,6 +156,7 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 	defer cancel()
 	ticker := time.NewTicker(l.interval)
 	defer ticker.Stop()
+	itemsFailures, itemsWait := 0, 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -169,11 +173,23 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 			continue
 		}
 		items := func() (dawport.TrackState, bool) {
+			// A read of the items that keeps failing (an older script without the folder read, a track that is gone, another project in front) is
+			// not tried every second for the rest of the follow: it waits 1, 2, 4 ... up to itemsRetryTicksMax ticks, and starts again on an answer.
+			if itemsWait > 0 {
+				itemsWait--
+				return dawport.TrackState{}, false
+			}
 			full, ok := readLiveTrack(ctx, l.reader, l.projectPath, l.trackGUID)
-			return withoutSkippedTracks(full, l.skip), ok && ctx.Err() == nil
+			if !ok || ctx.Err() != nil {
+				itemsFailures++
+				itemsWait = min(1<<min(itemsFailures-1, 10), itemsRetryTicksMax)
+				return dawport.TrackState{}, false
+			}
+			itemsFailures = 0
+			return withoutSkippedTracks(full, l.skip), true
 		}
 		event, stop := l.follower.stepWith(state, items)
-		if event != nil {
+		if event != nil && ctx.Err() == nil { // nothing is emitted once the follow ended, also when it ended while this tick read
 			l.emit(*event)
 		}
 		if stop {
