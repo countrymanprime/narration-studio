@@ -5,9 +5,13 @@ import "desktop/internal/bridge"
 // slowDawLink slows client's link when profile (the value of bridge.SlowLinkEnv) names a slowness, and says so in the host log, so a run
 // slowed on purpose is never mistaken for a slow DAW. It is a development aid for reproducing a slow DAW (#3752): a command the app gave
 // up on still reaches the DAW later, as it does on a slow machine, so it is for a project made for the test. A profile that does not
-// parse slows nothing and is logged.
-func slowDawLink(client *bridge.Client, profile string, report func(kind, message string) error) {
+// parse slows nothing and is logged. A release build never slows its link: it logs that the variable was ignored.
+func slowDawLink(client *bridge.Client, profile string, development bool, report func(kind, message string) error) {
 	if client == nil || profile == "" {
+		return
+	}
+	if !development {
+		_ = report("bridge.slow_link", bridge.SlowLinkEnv+" is set and was ignored: only a development build slows its DAW link.")
 		return
 	}
 	link, err := bridge.ParseSlowLink(profile)

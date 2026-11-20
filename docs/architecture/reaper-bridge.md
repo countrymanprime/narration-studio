@@ -336,7 +336,7 @@ A fresh REAPER answers a command in tens of milliseconds, so a slow or stalling 
 | `delay=1s`, or a bare `1s` | Holds every command that long before REAPER can read it |
 | `jitter=200ms` | Adds up to that much more, different for each command and the same on every run |
 | `stall=8s`, `stall=8s/30s` | Nothing reaches REAPER and no event is delivered for 8 s, from the moment the profile is set (and again every 30 s). Commands sent meanwhile are released together when it ends, and so are the events. `stall-recover` is `stall=8s` |
-| `drop=1` | The first command never reaches REAPER, so it is never answered |
+| `drop=1` | The first command never reaches REAPER, so it is never answered and nothing is done. An answer lost after REAPER did the work is not modelled |
 | `only=tracks_read+arm_lane` | Limits the delay, the jitter and the drop to these commands. A stall holds every command |
 
 Parts are joined with commas: `delay=1s,jitter=200ms,only=tracks_read`.
@@ -344,7 +344,7 @@ Parts are joined with commas: `delay=1s,jitter=200ms,only=tracks_read`.
 - **What the host sees.** A held command's file is not in `commands/` yet, so the host reads it as taken at once and counts the hold as REAPER's time (`reaper_ms` in `bridge.slow`). A wait that ends finds nothing to take back, as with a REAPER that read the command and is still at work: a command in `mayRunLong` gets the late wait, and any other reports no answer and **still reaches REAPER when the hold ends**.
 - **Order.** Commands reach REAPER in the order they were sent, whatever each one's hold.
 - **In a Go test:** `client.SetSlowLink(bridge.SlowLink{Delay: 150 * time.Millisecond})` on a session with a fake REAPER. `slowlink_test.go` runs the six profiles the issue names, scaled down.
-- **In a development run:** set `NARRATION_DAW_LATENCY` to a profile before starting the app. It works against a real REAPER and the host log gets one `bridge.slow_link` line saying the link is slowed on purpose. Use a project made for the test: a command the app gave up on still runs.
+- **In a development run:** set `NARRATION_DAW_LATENCY` to a profile before starting a development build (one with no release version; a release build ignores the variable and logs that it did). It works against a real REAPER and the host log gets one `bridge.slow_link` line saying the link is slowed on purpose. Use a project made for the test: a command the app gave up on still runs.
 
 - **In the mock app (Playwright, `pnpm dev:mock`):** add `?mockDawLatency=<profile>` to the address, or call `window.__NARRATION_MOCK_DAW_LATENCY__('<profile>')` once the page is up (a stall starts at the call). `only=` takes the UI's method names there (`only=tracksLive+boothVoiceSet`). The mock has no host, so `withDawLatency` (`src/studio/ui/src/api/dawLatency.ts`) plays the host's part: each call in its `DAW_CALLS` table waits for the commands the real binding sends, and past the host's own limit (3 s for an answer, 20 s more for a command that may run long, 7 s for the live track list, a binding's own deadline) it answers the sentence and shape the real binding answers. A command the host gave up on still reaches the mock DAW when the hold ends. The [slow-link suite](../operations/verification-tooling.md#slow-daw-link-suite) runs on it.
 

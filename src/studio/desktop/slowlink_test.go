@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -10,24 +11,28 @@ import (
 
 func TestSlowDawLinkSlowsTheClientAndSaysSoInTheHostLog(t *testing.T) {
 	cases := []struct {
-		profile string
-		slowed  bool
-		logged  string
+		profile     string
+		development bool
+		slowed      bool
+		logged      string
 	}{
-		{"", false, ""},
-		{"0ms", false, ""},
-		{"150ms", true, "slowed on purpose by NARRATION_DAW_LATENCY=150ms"},
-		{"quick", false, "was not understood"},
+		{"", true, false, ""},
+		{"0ms", true, false, ""},
+		{"150ms", true, true, "slowed on purpose by NARRATION_DAW_LATENCY=150ms"},
+		{"quick", true, false, "was not understood"},
+		// A release build: the narrator's commands are never held or dropped by a variable left in the environment.
+		{"150ms", false, false, "was ignored"},
+		{"", false, false, ""},
 	}
 	for _, test := range cases {
-		t.Run(test.profile, func(t *testing.T) {
+		t.Run(fmt.Sprint(test.profile, test.development), func(t *testing.T) {
 			dir := t.TempDir()
 			client, err := bridge.New(dir)
 			if err != nil {
 				t.Fatal(err)
 			}
 			var lines []string
-			slowDawLink(client, test.profile, func(kind, message string) error {
+			slowDawLink(client, test.profile, test.development, func(kind, message string) error {
 				lines = append(lines, kind+": "+message)
 				return nil
 			})
@@ -44,5 +49,5 @@ func TestSlowDawLinkSlowsTheClientAndSaysSoInTheHostLog(t *testing.T) {
 			}
 		})
 	}
-	slowDawLink(nil, "1s", func(string, string) error { t.Fatal("a launch with no bridge logged a slow link"); return nil })
+	slowDawLink(nil, "1s", true, func(string, string) error { t.Fatal("a launch with no bridge logged a slow link"); return nil })
 }
