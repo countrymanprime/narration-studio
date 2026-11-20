@@ -145,12 +145,14 @@ export function createDawSession(host: DawSessionApi): DawSession {
       capsReadFailed: false,
       capsError: '',
       offSince: next.reachable ? null : (state.offSince ?? now),
+      // What the host says about a DAW that is not answering matters only while it is not: asked then, forgotten when it answers.
+      ...(next.reachable && state.choice !== undefined ? { choice: undefined } : {}),
       capsVersion: state.capsVersion + 1,
     });
-    void readChoice();
+    if (!next.reachable) void readChoice();
   };
 
-  // One read of the host's DAW choice at a time, asked with every report so "starting" and "connected" follow the report; a read that fails is `null`, which the callers treat as "the host cannot say".
+  // One read of the host's DAW choice at a time, asked with every report of a DAW that is not answering so "starting" and "connected" follow the report; a read that fails is `null`, which the callers treat as "the host cannot say".
   let choosing = false;
   const readChoice = () => {
     if (choosing || !running) return Promise.resolve();
@@ -162,7 +164,8 @@ export function createDawSession(host: DawSessionApi): DawSession {
         () => null,
       )
       .then((next) => {
-        if (!running) return;
+        // An answer that came in after the DAW did is about a DAW that is no longer off.
+        if (!running || state.caps?.reachable) return;
         const was = state.choice;
         // The project's DAW changed while it was off (another project, a file linked): the time it has been off starts again.
         const changed = was && next && (was.daw !== next.daw || was.linkedFile !== next.linkedFile || was.hasProject !== next.hasProject);

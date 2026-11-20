@@ -16,7 +16,7 @@ export interface DawConnecting {
 /**
  * The one "connecting" state of the app (#3668), read from the DAW session. A DAW that is not answering is connecting, not failed, while
  * the host has not said yet (the first read), while the host says it is starting it (`DawChoice.state === 'starting'`, which the host holds
- * for up to 90 s and then reports as a bridge problem), and for `graceMs` after it stopped answering. Only then does the page's dialog ask.
+ * for up to 90 s and then reports as a bridge problem), and for `graceMs` after it stopped answering (a `graceMs` of 0 asks at once, unless the host says it is starting). Only then does the page's dialog ask.
  * The clock starts when the DAW stops answering, never at app start, so a project opened a minute after the app is given its time too.
  */
 export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): DawConnecting {
@@ -30,6 +30,7 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
     return () => clearTimeout(timer);
   }, [left]);
   const starting = off && choice?.state === 'starting';
-  const connecting = off && (choice === undefined || starting || left > 0);
+  // The host's first answer is awaited only when there is a grace at all (a caller that passes 0 asks at once).
+  const connecting = off && ((choice === undefined && graceMs > 0) || starting || left > 0);
   return { connecting, starting, label: (dawName) => (starting ? `Starting ${dawName}…` : `Connecting to ${dawName}…`) };
 }

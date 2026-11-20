@@ -370,10 +370,10 @@ describe('daw-connect-grace', () => {
         dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])),
         dawChoice: vi.fn(async () => starting),
       },
-      dawConnectGraceMs: 0,
+      dawConnectGraceMs: 1,
     });
     expect(await screen.findByText('Starting REAPER…')).toBeTruthy();
-    // The grace is 0 and the app opened long ago: only the host's "starting" is holding the dialog back.
+    // The grace is 1 ms and the app opened long ago: only the host's "starting" is holding the dialog back.
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
