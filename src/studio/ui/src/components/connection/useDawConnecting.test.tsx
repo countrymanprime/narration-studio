@@ -31,15 +31,15 @@ const choice = (patch: Record<string, unknown>) =>
     ...patch,
   }) as unknown as DawChoice;
 
-function Probe({ graceMs, off = true }: { graceMs: number; off?: boolean }) {
-  const connecting = useDawConnecting(off, graceMs);
+function Probe({ graceMs, off = true, unlinkedAsksNow = false }: { graceMs: number; off?: boolean; unlinkedAsksNow?: boolean }) {
+  const connecting = useDawConnecting(off, graceMs, { askAtOnceWhenUnlinked: unlinkedAsksNow });
   return <p>{connecting.connecting ? connecting.label('REAPER') : 'asks now'}</p>;
 }
 
-function mount(api: Partial<NarrationApi>, graceMs: number) {
+function mount(api: Partial<NarrationApi>, graceMs: number, unlinkedAsksNow = false) {
   render(
     <ApiProvider api={createMockApi({ dawCapabilities: async () => structuredClone(DAW_SETUPS['reaper-off']), ...api })}>
-      <Probe graceMs={graceMs} />
+      <Probe graceMs={graceMs} unlinkedAsksNow={unlinkedAsksNow} />
     </ApiProvider>,
   );
 }
@@ -68,9 +68,16 @@ describe('useDawConnecting', () => {
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy(), { timeout: 3000 });
   });
 
-  it('asks at once for a project with no DAW file linked, whatever the grace: nothing is being connected to', async () => {
-    mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000);
+  it('asks at once for a project with no DAW file linked when the caller says so (the Booth), whatever the grace: nothing is being connected to', async () => {
+    mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000, true);
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy());
+  });
+
+  it('gives a project with no DAW file linked the grace on every other page, so a page does not load under a dialog', async () => {
+    mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000);
+    expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    expect(screen.getByText('Connecting to REAPER…')).toBeTruthy();
   });
 
   it("gives a DAW that goes off long after the page opened the whole grace and no more (the page's age is not part of it)", async () => {

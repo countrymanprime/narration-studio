@@ -20,7 +20,11 @@ export interface DawConnecting {
  * for up to 90 s and then reports as a bridge problem), and for `graceMs` after it stopped answering (a `graceMs` of 0 asks at once, unless the host says it is starting). Once the grace has run out the host's answer can still hold the dialog: a read that settles as "starting" keeps it back. Only then does the page's dialog ask.
  * The clock starts when the DAW stops answering, never at app start, so a project opened a minute after the app is given its time too.
  */
-export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): DawConnecting {
+export function useDawConnecting(
+  off: boolean,
+  graceMs = DAW_CONNECT_GRACE_MS,
+  { askAtOnceWhenUnlinked = false }: { askAtOnceWhenUnlinked?: boolean } = {},
+): DawConnecting {
   const choice = useDawState((state) => state.choice);
   const offSince = useDawState((state) => state.offSince);
   // A caller that knows the DAW is off before the session has seen it off (a page working from its own facts) is given the grace from when it asked.
@@ -38,8 +42,9 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
   }, [since, graceMs]);
   const starting = off && choice?.state === 'starting';
   // The host's first answer is awaited inside the grace (the clock starts when the DAW goes off), so a read that never settles cannot hold the dialog back for ever.
-  // A project with no DAW file linked is not being connected to anything: it asks at once, as the Booth does, with Link project file… as the way forward.
-  const unlinked = choice?.state === 'not_linked';
+  // The Booth's setup asks at once for a project with no DAW file linked (nothing is being connected to, and Link project file… is the way forward); the other
+  // pages give it the grace like any other DAW that is not answering, so a page does not open under a dialog the moment it loads.
+  const unlinked = askAtOnceWhenUnlinked && choice?.state === 'not_linked';
   const connecting = off && !unlinked && (starting || left > 0);
   return { connecting, starting, label: (dawName) => (starting ? `Starting ${dawName}…` : `Connecting to ${dawName}…`) };
 }

@@ -204,7 +204,7 @@ function Connect({
   const [turnedAway, setTurnedAway] = useState<string | null>(null);
   // A linked project connects on its own (the app runs the launcher in the open DAW), so the dialog waits while the host says it is starting
   // the DAW and for the grace after it stopped answering; the same state every page's chip reads (#3668). An unlinked project asks at once.
-  const connecting = useDawConnecting(plan.linked, graceMs);
+  const connecting = useDawConnecting(plan.linked, graceMs, { askAtOnceWhenUnlinked: true });
   const settling = connecting.connecting;
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
