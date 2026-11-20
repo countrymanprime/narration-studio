@@ -20,11 +20,13 @@ export function ContextMenuHost({
   tail = [],
   fallback,
   className,
+  focusPageOnClose,
   children,
 }: {
   tail?: ContextMenuItem[];
   fallback?: (target: Element) => ContextMenuItem[];
   className?: string;
+  focusPageOnClose?: true;
   children: ReactNode;
 }) {
   const [items, setItems] = useState<ContextMenuItem[]>([]);
@@ -80,7 +82,7 @@ export function ContextMenuHost({
   };
 
   return (
-    <ContextMenu items={items} onOpen={onOpen} className={className}>
+    <ContextMenu items={items} onOpen={onOpen} className={className} focusPageOnClose={focusPageOnClose}>
       {children}
     </ContextMenu>
   );
