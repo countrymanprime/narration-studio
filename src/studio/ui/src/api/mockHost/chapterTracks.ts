@@ -34,6 +34,7 @@ export function createChapterTracksMock(
     voiceLayout,
     knownVoices,
     markNotVoice,
+    notVoiceGuids,
   }: {
     manuscriptReady: Promise<void>;
     /** The project's layout (voice-tracks.json) as ChapterTrackCreate reads it at the press: a folder with a Narrator child, or one track. */
@@ -42,6 +43,8 @@ export function createChapterTracksMock(
     knownVoices: () => Promise<string[]>;
     /** Marks a track as not a voice in the project's voice setup, as the host does for the Extras track a create makes (SetNotVoice). */
     markNotVoice: (guid: string) => void;
+    /** The tracks the narrator marked as not a voice (voice-tracks.json), which the chapters' member rows say. */
+    notVoiceGuids: () => readonly string[];
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
     /** Whether the DAW records now (a take started in it by hand, or the app's own): the host refuses to add or move tracks then. */
@@ -188,7 +191,7 @@ export function createChapterTracksMock(
   const chapterSyncSubscribers = new Set<(state: ChapterSyncState) => void>();
   const mockLinksRead = () => {
     const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-    return mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state);
+    return mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state, notVoiceGuids());
   };
   const mockChapterSyncState = (batch: ChapterSyncBatch | null): ChapterSyncState => {
     const links = mockLinksRead();
@@ -457,7 +460,7 @@ export function createChapterTracksMock(
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
       // Unlike chapter sync and the region plan (which come from the picked tracks), the links list holds the credits, as the host's does.
-      return wireClone(mockChapterTrackLinks(chaptersWithCredits(), project, s.chapterTrackMappings, state));
+      return wireClone(mockChapterTrackLinks(chaptersWithCredits(), project, s.chapterTrackMappings, state, notVoiceGuids()));
     },
     chapterSyncState: async () => {
       await manuscriptReady;
@@ -505,14 +508,18 @@ export function createChapterTracksMock(
     chapterRegionsPreview: async (openingTrackGuid, closingTrackGuid) => {
       await manuscriptReady;
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      const links = mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state);
+      const links = mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state, notVoiceGuids());
       return wireClone(mockChapterRegionPlan(links, openingTrackGuid, closingTrackGuid));
     },
     chapterRegionsCreate: async (openingTrackGuid, closingTrackGuid, update) => {
       await manuscriptReady;
       if (initial.regionsCreateAlwaysErrors) throw new Error('REAPER refused to write the regions: the app’s script is not responding');
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
-      const plan = mockChapterRegionPlan(mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state), openingTrackGuid, closingTrackGuid);
+      const plan = mockChapterRegionPlan(
+        mockChapterTrackLinks(s.chapters, project, s.chapterTrackMappings, state, notVoiceGuids()),
+        openingTrackGuid,
+        closingTrackGuid,
+      );
       if (plan.project !== 'ready') throw new Error(plan.message);
       if (plan.rows.length === 0) throw new Error('no chapter or credits entry has a linked track with recorded items, so there are no regions to create');
       const created = plan.rows.filter((row) => row.state === 'new' || (!update && row.state !== 'exists')).length;

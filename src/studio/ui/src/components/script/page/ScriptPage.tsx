@@ -34,7 +34,7 @@ import type { LineText, Spot } from '../bookmarks/model/selectors';
 import { useBookmarkContextMenu } from '../bookmarks/ui/bookmarkContextMenu';
 import { dictionaryInstallPrompt } from '../dictionaryInstall';
 import { useScriptCredits, useSaveMarkTypes, useWordsHost } from '../scriptPageHost';
-import { ChapterCard } from './chapters/ChapterCard';
+import { ChapterCard, HeldChapterCard } from './chapters/ChapterCard';
 import { ChapterList } from './chapters/ChapterList';
 import { useChapters, useEntries, useManuscriptSearch, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
 import { BookmarkGutter, GutterContext, type GutterState } from './layout/BookmarkGutter';
@@ -412,7 +412,8 @@ function ScriptWorkspace({
   const firstId = chapters[0]!.id;
   const openingWords = openingChapter?.wordCount ?? 0;
   const renderChapterCard = useCallback(
-    (chapter: ManuscriptChapter) => {
+    (chapter: ManuscriptChapter, near: boolean) => {
+      if (!near) return <HeldChapterCard chapter={chapter} />;
       const at = order.indexOf(chapter.id);
       return (
         <>

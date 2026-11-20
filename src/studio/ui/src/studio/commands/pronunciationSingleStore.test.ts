@@ -54,7 +54,8 @@ describe('one pronunciation store (#2595)', () => {
   it("Script's read cache holds the host's lists and no list of its own: the Story Bible's entries are its words", () => {
     const data = files.find(({ path }) => path === 'components/script/page/data/scriptData.ts')!.text;
     const lists = /export type ScriptList = ([^;]+);/.exec(data)![1]!.match(/'[a-z]+'/g);
-    expect(lists).toEqual(["'chapters'", "'marks'", "'prep'", "'entries'", "'types'", "'cues'"]);
+    // The dialogue cues are held by chapter beside the paragraphs, not as a list.
+    expect(lists).toEqual(["'chapters'", "'marks'", "'prep'", "'entries'", "'types'"]);
   });
 
   it('every journal key of the Story Bible is in one namespace, so its undos order with each other whichever page made them', () => {

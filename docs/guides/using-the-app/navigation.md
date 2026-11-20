@@ -392,9 +392,17 @@ Narrator row the list picks the one character the narrator also voices, for a bo
 and holds for every chapter folder with a track of that name. A track with no name, or a name over 120 characters, can't be given
 characters until it is renamed in REAPER.
 
+The card lists the folder's tracks in either layout: in Flat too, when a chapter is linked to a folder with tracks of its own (a track another chapter is linked to is left out), since the Booth records on one of them. Every track in the folder is a voice unless you say it is not. The **Voice** switch on a row is on for each; turn it off for a track that
+is not a voice, such as a music bed or room tone. The row stays in the list, dimmed and marked **Not a voice**, with no key and no
+characters to choose, and the Booth does not offer it: Record never arms it, and a folder whose tracks are all marked records on the
+folder itself (in Voice folders, Record says the folder has no voices). Turn the switch back on and it is a voice again. The mark follows
+the track if you rename it in REAPER, and it holds for every chapter folder that track is in. In a window 30 rem (480 px) wide or less the Key column goes, a track's characters sit under its name, and the switch sits beside the edit button. While a take is recording the Voice switches are disabled (a tooltip says why): stop the take first.
+
 ![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)
 
 ![A track's character list open on the Voices card](../../images/ui/engine-panel-voices-picker.webp)
+
+![The Voices card with the Extras track turned off: it has no key and says Not a voice](../../images/ui/engine-panel-voices-marked.webp)
 
 An Audacity project has no folders, so the card is not shown for it.
 

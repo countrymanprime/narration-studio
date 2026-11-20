@@ -3746,6 +3746,7 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ToolResult.tsx",
+        "src/components/engine/VoicesCard.tsx",
         "src/components/engine/audacityLinkText.ts",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/HistoryPanel.tsx",
@@ -3908,6 +3909,7 @@
         "Space Toggles"
       ],
       "consumers": [
+        "src/components/engine/VoicesCard.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",
@@ -4204,11 +4206,15 @@
         "Huge Word",
         "Two Huge Words",
         "Five Long Messages",
+        "Long Refusal With Action",
         "Long Action Label",
         "Two Toasts Above The Booth Bars",
+        "Four Toasts Above The Booth Bars",
         "Huge Word In Tiny Window",
         "Two Huge Words In Tiny Window",
         "Five Long Messages In Tiny Window",
+        "Long Refusal With Action In Tiny Window",
+        "Four Toasts Above The Booth Bars In Tiny Window",
         "Long Action Label In Tiny Window",
         "Two Toasts Above The Booth Bars In Tiny Window"
       ],

@@ -860,7 +860,7 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     expect(at).toBeLessThan(45);
   });
 
-  it('after a take stops, Start from here still starts the next take from the chosen place', async () => {
+  it('after a take stops, Mark the start here only marks: the take starts when Record is pressed, from the chosen place (#3319)', async () => {
     const page = renderPage();
     await record(page);
     await space();
@@ -869,9 +869,12 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
-    // Not recording, Start from here moves the place there and starts the take at once (useRoll.startFromHere).
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
     await waitFor(() => expect(current()).toBe('3'));
+    // Choosing the start sends the DAW nothing: the one take so far is the first one.
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
+    await space();
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
     expect(current()).toBe('3');
   });
@@ -886,7 +889,7 @@ describe('start-from-here-and-record-from-here', () => {
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
     await waitFor(() => expect(current()).toBe('3'));
     expect(screen.getByText(/Next roll starts from ¶ 2/)).toBeTruthy();
   });
@@ -1375,7 +1378,7 @@ describe('bookmarks on the page', () => {
     const labels = within(menu)
       .getAllByRole('menuitem')
       .map((item) => item.textContent);
-    expect(labels.slice(0, 2)).toEqual(['Start from here', 'Bookmark here']);
+    expect(labels.slice(0, 2)).toEqual(['Mark the start here', 'Bookmark here']);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(ribbons()).toHaveLength(1));
@@ -1604,7 +1607,7 @@ describe('the right-click menu', () => {
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
     ).toEqual([
-      'Start from here',
+      'Mark the start here',
       'Bookmark here',
       'Read to here',
       'Next phrase',
@@ -3111,7 +3114,9 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await act(async () => {
         fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
       });
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+      // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+      await space();
     };
     const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
     const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
@@ -3134,15 +3139,16 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await settle();
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
+      // What the press said before the second one: its notes share a topic (#3322), so "Recording over" replaced "Starting from" and counts one message.
       const toastsBefore = said(page).length;
       await startFrom(7);
       await settle();
-      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, and the one new sentence is the refusal.
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(boothVoiceSet).toHaveBeenCalledTimes(1);
       expect(current()).toBe('3');
       expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
-      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
+      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(0);
       holder.release();
       await waitFor(() => expect(stopButton()).toBeTruthy());
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
@@ -3197,7 +3203,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await act(async () => lookup.answer(FOUND));
       await settle();
       await waitFor(() => expect(stopButton()).toBeTruthy());
-      expect(said(page).filter((text) => text.includes('The take starts from the end of what is already there'))).toHaveLength(1);
+      expect(said(page).filter((text) => text.includes('Recording from the end of what is already there instead'))).toHaveLength(1);
       expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
       expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
@@ -3244,7 +3250,9 @@ describe('while a press is under way the reading stays where the press chose, so
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+    await space();
   };
   const menuItem = async (name: string) => {
     const word = document.querySelector('[data-unit="5"] [data-word]')!;
@@ -3494,12 +3502,14 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
   const START = '?chapter=c1&para=p3&at=28';
   const refusedStart = { ok: false as const, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' };
   const nextRoll = () => screen.queryByText(/Next roll starts from/);
-  const startFromUnit = async (unit: number) => {
+  const startFromUnit = async (unit: number, andRecord = true) => {
     const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
     await act(async () => {
       fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
     });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
+    if (andRecord) await space();
   };
   const idle = () => waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
 
@@ -3599,12 +3609,12 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
     it('during a take an arrow key that cannot move the reading keeps Start from here, and R rolls from it again', async () => {
       const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => FOUND), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
       await record(page);
-      await startFromUnit(3);
-      await waitFor(() => expect(current()).toBe('3'));
-      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
+      await startFromUnit(3, false);
+      // During a take the voice keeps the cursor, and choosing the start only marks it (#3319): no roll yet.
+      await waitFor(() => expect(nextRoll()?.textContent).toMatch(/¶ 2/));
+      expect(page.daw.roll).not.toHaveBeenCalled();
       // A word step inside the phrase leaves the reading on the same phrase: nothing to replace.
       await press('ArrowRight');
-      expect(current()).toBe('3');
       expect(nextRoll()?.textContent).toMatch(/¶ 2/);
       await press('r', 'KeyR');
       await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
@@ -3714,5 +3724,148 @@ describe('a move of the reading replaces the chosen start (#3317, #3353)', () =>
       await ready();
       await waitFor(() => expect(nextRoll()).toBeTruthy());
     });
+  });
+});
+
+// A press says its refusal once (#3322): as the message, not again in the footer, which keeps the sentence only as Record's description.
+describe('a refusal is said once (#3322)', () => {
+  const START = '?chapter=c1&para=p3&at=28';
+  const startFromUnit = async (unit: number) => {
+    const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+    await act(async () => {
+      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+    });
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    // Marking only marks (#3319): the take, and the lookup before it, begin when Record is pressed.
+    await space();
+  };
+  /** The sentences a narrator can read now: the messages, and the footer's sentence unless it is only Record's description. */
+  const drawn = (page: ReturnType<typeof renderPage>) => [
+    ...page.overlay.getSnapshot().toasts.map((t) => t.text),
+    ...[...document.querySelectorAll('#brec-why, #blisten-why')].filter((el) => !el.classList.contains('sr-only')).map((el) => el.textContent ?? ''),
+  ];
+  const SENTENCES = {
+    'the DAW refuses the start': (daw: ReturnType<typeof renderPage>['daw']) =>
+      daw.recordStart.mockImplementationOnce(
+        async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+      ),
+    'the host call fails': (daw: ReturnType<typeof renderPage>['daw']) =>
+      daw.recordStart.mockImplementationOnce(async () => {
+        throw new Error('the bridge did not answer');
+      }),
+  };
+  for (const [name, arrange] of Object.entries(SENTENCES)) {
+    it(`${name}: the sentence is on screen once, and Record is still described by it`, async () => {
+      const page = renderPage({ search: START });
+      await ready();
+      arrange(page.daw);
+      await space();
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(true));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+      const sentence = page.overlay.getSnapshot().toasts.find((t) => t.tone === 'error')!.text;
+      expect(drawn(page).filter((text) => text.includes(sentence))).toHaveLength(1);
+      const described = document.getElementById(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-describedby') ?? 'none');
+      expect(described?.textContent).toContain(sentence);
+    });
+  }
+
+  it('leaving the Booth takes away a refusal that is about a press here: it does not stay on the next page beside a Check again that does nothing', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+    );
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(true));
+    page.view.unmount();
+    expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error')).toBe(false);
+  });
+
+  it('a second refused press with another sentence replaces the first message: it never stacks', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    const refuse = (sentence: string) =>
+      page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: sentence, refused: sentence }) as never);
+    refuse('REAPER is not answering.');
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.length).toBe(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    refuse('The armed track is locked.');
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['The armed track is locked.']);
+  });
+
+  it('a press error is dismissed when a later press starts a take: its Retry would stop the take that runs', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' }) as never,
+    );
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'REAPER is not answering.')).toBe(true));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.overlay.getSnapshot().toasts.filter((t) => t.tone === 'error')).toEqual([]);
+  });
+
+  it('a refusal with no words still says a sentence', async () => {
+    const page = renderPage({ search: START });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(async () => ({ ok: false, changed: false, undoSteps: 0, message: '  ', refused: '' }) as never);
+    await space();
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.tone === 'error' && t.text.trim() !== '')).toBe(true));
+  });
+
+  describe('a refusal on the way to a take is the one message, an error that stays (#3322)', () => {
+    const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+    const alone = (page: ReturnType<typeof renderPage>, sentence: string) =>
+      expect(page.overlay.getSnapshot().toasts.map((t) => [t.text, t.tone])).toEqual([[sentence, 'error']]);
+    it('a lookup the host refuses says the refusal alone', async () => {
+      const sentence = 'The recording check is out of date.';
+      const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, message: sentence })) } as never });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
+    it('a lookup that gave up at its limit says so alone, and as an error', async () => {
+      const sentence = 'Where this passage was recorded did not come back in time, so no take was started.';
+      const page = renderPage({
+        api: { boothPunchTarget: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'failed', message: sentence })) } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+    });
+    it('a voice the host refuses to choose says the refusal alone', async () => {
+      const sentence = 'That voice is not on this chapter any more.';
+      const page = renderPage({
+        api: {
+          boothPunchTarget: vi.fn(async () => FOUND),
+          boothVoiceSet: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'stale', message: sentence })),
+        } as never,
+      });
+      await ready();
+      await startFromUnit(3);
+      await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === sentence)).toBe(true));
+      alone(page, sentence);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
+    });
+  });
+
+  it('a refused start leaves the refusal alone: the press\'s note ("Recording over") goes', async () => {
+    const found = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
+    const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => found), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
+    await ready();
+    page.daw.recordStart.mockImplementationOnce(
+      async () => ({ ok: false, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' }) as never,
+    );
+    await startFromUnit(3);
+    await waitFor(() => expect(page.overlay.getSnapshot().toasts.some((t) => t.text === 'Disk full.')).toBe(true));
+    expect(page.overlay.getSnapshot().toasts.map((t) => t.text)).toEqual(['Disk full.']);
   });
 });

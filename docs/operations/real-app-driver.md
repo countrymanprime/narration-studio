@@ -35,6 +35,7 @@ To reproduce a bug that crosses the DAW (a recording that lands on a track, a li
 # build the host first (Set up, step 2); also install jackd2 and libgtk-3-0
 scripts/dev/real-app/rig.sh up /tmp/rig --items 3     # flat layout; add --layout folders, or --tracks 60 --items 300 for a big project
 scripts/dev/real-app/rig.sh up /tmp/rig --chapters 44 --items-per-track 100 --tracks 20   # a 17 hour book: 44 linked chapters, about 155,000 words, 64 tracks, 4,400 items
+scripts/dev/real-app/rig.sh up /tmp/rig --chapters 44 --checked                          # the same book with a recording check on every chapter, findings and a Story Bible
 . /tmp/rig/env.sh && cd scripts/dev/real-app
 /usr/bin/python3.12 rig_smoke.py
 ./rig.sh down /tmp/rig
@@ -51,6 +52,42 @@ Things that cost time:
 - The Booth stops and undoes a take within about 30 ms when no speech model is installed. `ARMED` and `RECORD_STARTED` still reach REAPER, which is enough to time or check a Record press. To keep a take, send `arm_only`, `record_start` and `record_stop` yourself.
 - Some text (the no-audio banner's sentence) is not in the accessibility tree. Read it from a screenshot: `XAUTHORITY=/tmp/xvfb-run.XXXX/Xauthority import -display :NN -window root x.png`, with the display and the auth folder from `pgrep -fa Xvfb`.
 - Kill REAPER with `rig.sh down`; a plain kill of `xvfb-run` leaves a REAPER answering the old session folder.
+
+## A book with a narrator's work in it
+
+A book that `seed.py --chapters` writes holds the manuscript, the `.rpp` and the links, and the host reads it in a fraction of the time a worked-on book takes: the host evaluates every recording check on each read of the chapter list, the Production overview, the pickup list and the chapter sync state, and a book without checks skips that work. To reproduce what a narrator sees on a real book, seed one with the work in it:
+
+```bash
+node scripts/dev/host-read-bench.mjs seed /tmp/book-17h --size 17h    # 44 chapters; 1h is 3, 40h is 103, 300 is 300 short chapters
+node scripts/dev/host-read-bench.mjs seed /tmp/part --chapters 44 --checked 10 --checks 2   # 10 chapters checked, twice each
+scripts/dev/real-app/rig.sh up /tmp/rig --chapters 44 --checked       # the same seed under a real REAPER
+```
+
+The seed is a Go test (`TestSeedAPerfBook` in `src/studio/desktop/perfbook_test.go`) that writes the book and then, through a host built over it, runs a recording check on each chapter (the sidecar is a stand-in that hears every word; the host's own aligner, ledger and result store do the rest), builds the Story Bible, and saves findings at about 40 per 1,000 words with 45 % decided, marks at about 15 per 1,000 words, a pickup in one chapter of eight and script prep. The files are the ones the app writes, so they pass its schemas. The folder must be new or empty. `--items` sets the takes on each chapter's track (100), `--paragraphs` the paragraphs a chapter (40, of 88 words), `--tracks` the extra empty tracks. A 17 hour book seeds in about 70 s and takes 47 MB.
+
+Every take plays its own five seconds of one shared two-second file of silence, so a real REAPER opens the project and plays nothing.
+
+## Timing the host's reads
+
+```bash
+node scripts/dev/host-read-bench.mjs reads /tmp/book-17h --runs 3
+```
+
+prints one Markdown table a run (`TestPrintTheHostReadTable` in `perfreads_test.go`): for each read binding a page calls on opening, the first call on a host that has read nothing, the median of the calls after it, the answer's size, and the files decoded, record folders listed and allocations of a call. No window and no DAW are involved, so the numbers are the host's alone and the command also runs on Windows. Each run is a new process.
+
+`TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` in the same file runs in CI. It seeds a 44-chapter book with short chapters and caps the decodes, listings and allocations of `ManuscriptChapters`, `ProductionOverview`, `PickupsList`, `ChapterSyncState` and `FindingsSummary`. A change that makes one of them cheaper lowers its row in `readBudgets`; the test's log line gives the new numbers.
+
+## Timing the pages
+
+```bash
+NARRATION_DEBUG=1 scripts/dev/real-app/start-host.sh /tmp/ns-host /tmp/ns-state 3000 -- --project-folder /tmp/book-17h &
+cd scripts/dev/real-app
+DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ns-state/run/bus /usr/bin/python3.12 page_times.py /tmp/ns-state
+```
+
+With `NARRATION_DEBUG=1` the page logs every host call it gets an answer to, with the time it waited (`ui.call.ok` in the run log under `<state>/AppData/Roaming/`). `page_times.py` reads the launch from the start of that log, then presses each page's navigation button twice over and prints, for each visit, the calls made, when the first and the last answer came, how long the app stayed busy, the summed wait and the slowest call. A visit ends when, for two seconds (`--quiet`), no answer has come and the host process and WebKit's page process together have used under 40 % of one processor, so a slow read in flight and the drawing after the last answer both count; "Busy until" is the last moment either process worked. `--launch-only` stops after the launch row, for timing several starts. A call's wait is the host and the bridge to the page together; `host-read-bench.mjs reads` gives the host's share of one call made alone (a page makes several at once, and each then takes longer), and `scripts/dev/page-bench.mjs` times the same pages on the mock, where the host costs nothing.
+
+Keep the state folder's path short. The host's session bus is a unix socket at `<state>/run/bus`, and a socket path over 107 bytes fails with `connect: invalid argument` before the window opens; `/tmp/ns-state` is safe.
 
 ## Why the start script looks the way it does
 

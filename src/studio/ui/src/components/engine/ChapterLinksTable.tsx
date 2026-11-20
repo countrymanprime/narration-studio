@@ -21,12 +21,12 @@ import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
-import { useVoiceLayout } from './voiceLayout';
+import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
 import { childNames, destinationFor } from './destination';
 import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
-import { folderChildren, folderLinkLabel, kindInWords as kindWords } from './voices';
+import { folderChildren, folderLinkLabel, kindInWords as kindWords, wordsCount } from './voices';
 import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
@@ -76,6 +76,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   const nameOf = chapterNameLookup(chapters);
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
+  const { setup } = useVoiceSetup();
   // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
   const nesting = useChapterFolders({ revision: linksKey(mappings), notify });
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
@@ -107,7 +108,10 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
     const read = live ? await live.recheck() : { failed: false };
     if (read.failed) return 'failed'; // a read failed and its own toast says so
     const now = read.project?.tracks ?? tracks;
-    notify(recheckSentence(short, row.trackName, now, guid, folders, !read.project ? 'held' : read.source === 'saved' ? 'saved' : 'live'), 'info');
+    notify(
+      recheckSentence(short, row.trackName, now, guid, folders, !read.project ? 'held' : read.source === 'saved' ? 'saved' : 'live', setup.notVoiceGuids),
+      'info',
+    );
     return now.some((candidate) => candidate.guid === guid) ? 'found' : 'gone';
   };
 
@@ -183,8 +187,8 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   );
 }
 
-const kindInWords = (track: Track, tracks: Track[], voiceFolders: boolean): string =>
-  kindWords(track.isFolder, track.isFolder ? folderChildren(tracks, track.guid).length : 0, voiceFolders);
+const kindInWords = (track: Track, tracks: Track[], voiceFolders: boolean, notVoiceGuids: readonly string[]): string =>
+  kindWords(track.isFolder, track.isFolder ? wordsCount(folderChildren(tracks, track.guid), notVoiceGuids, voiceFolders) : 0, voiceFolders);
 
 /** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
 function quoted(name: string, index?: number): string {
@@ -202,11 +206,12 @@ export function recheckSentence(
   guid: string | undefined,
   voiceFolders = false,
   how: 'live' | 'saved' | 'held' = 'live',
+  notVoiceGuids: readonly string[] = [],
 ): string {
   const found = tracks.find((candidate) => candidate.guid === guid);
   const noun = voiceFolders ? 'folder' : 'track';
   if (!found) return `${short} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
-  const what = kindInWords(found, tracks, voiceFolders);
+  const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
     return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
@@ -277,6 +282,7 @@ function ChapterLinkRow({
   const navigate = useGuardedNavigate();
   // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
   const folders = useVoiceLayout() === 'folders';
+  const { setup } = useVoiceSetup();
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id, nameOf);
   const linkedGuid = row.mapping?.trackGuid;
   const hasLink = Boolean(linkedGuid);
@@ -313,7 +319,8 @@ function ChapterLinkRow({
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
   // A track REAPER gives no name reads as the one name every page gives it (trackName), here with its place in the project.
   const shownName = trackName(row.trackName ?? '', linkedTrack ? tracks.indexOf(linkedTrack) : undefined);
-  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(shownName, folderChildren(tracks, linkedTrack.guid).length) : shownName;
+  const linkedName =
+    folders && linkedTrack?.isFolder ? folderLinkLabel(shownName, wordsCount(folderChildren(tracks, linkedTrack.guid), setup.notVoiceGuids, true)) : shownName;
   const short = chapterName(row.chapter, 'short');
   // The button that was pressed leaves the page and another takes its place (Cancel -> Change, Clear -> Create): focus goes to the one that
   // takes over, so the next Tab starts from the row and not from the top of the panel (#3376). Only when focus was lost with the button (on the
@@ -361,7 +368,7 @@ function ChapterLinkRow({
     row.state === 'several' ? `its ${row.linkCount} ${destination.noun}s` : row.state === 'missing' ? `the missing ${destination.noun}` : quoted(shownName);
   const preview = picked
     ? [
-        `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders)})`,
+        `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders, setup.notVoiceGuids)})`,
         hasLink && checkedGuid !== pick ? `instead of ${replaced}` : '',
         heldBy ? `${heldBy} loses its link` : '',
       ]
@@ -417,7 +424,11 @@ function ChapterLinkRow({
           <span className="flex min-w-0 items-center gap-1.5">
             <span
               className="min-w-0 truncate"
-              title={linkedTrack && !(folders && linkedTrack.isFolder) ? `${linkedName} (${kindInWords(linkedTrack, tracks, folders)})` : linkedName}
+              title={
+                linkedTrack && !(folders && linkedTrack.isFolder)
+                  ? `${linkedName} (${kindInWords(linkedTrack, tracks, folders, setup.notVoiceGuids)})`
+                  : linkedName
+              }
             >
               <bdi>{linkedName}</bdi>
             </span>

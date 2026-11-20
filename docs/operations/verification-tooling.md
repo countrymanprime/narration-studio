@@ -105,7 +105,23 @@ pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "
 - A page with many controls is split into parts that run on different workers. Rows of one list count as one control: the first two of each name pattern are pressed.
 - Fix a finding in the control: `Button`/`IconButton` `disabledReason`, `pending`, a toast, or `CheckedStamp` for a Check again that finds the same thing. `tests/visual/guards/dead-controls-allowlist.ts` lists what is owned by another piece of work; it only shrinks.
 - `UI_DEAD_CONTROLS=report:/tmp/dead pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` writes every finding to `/tmp/dead.<page>.<part>.json` instead of failing.
-- It does not cover what the mock answers instantly (a spinner that never shows against a slow host) or a press that needs data the mock does not have; those are in the PR's Not exercised.
+- It does not cover what the mock answers instantly (a spinner that never shows against a slow host; the [slow DAW link suite](#slow-daw-link-suite) covers the DAW's part of that) or a press that needs data the mock does not have; those are in the PR's Not exercised.
+
+## Slow DAW link suite
+
+`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs four scenarios on each:
+
+| Scenario | Fails when |
+| --- | --- |
+| The Booth opens ready | The voice or Record is not on screen within 1.5 s, or opening the page raises an error toast |
+| A lane key shows its lane at once and its take starts | The lane is not shown within 1.5 s of the key, the lane is lost, the take does not start, or an error toast is raised |
+| The engine panel lists the tracks | The tracks are not on screen within 2.5 s, the saved-project fallback is shown for a REAPER that is only slow, or the panel does not close at once |
+| Check recordings opens | The dialog is not usable within 1.5 s, or it reports the links unread or REAPER not answering |
+
+- A cell that fails today is listed in the spec's `KNOWN` table with what the narrator gets, and runs as an expected failure (`test.fail`): the change that fixes it must remove the entry, because an expected failure that passes fails the run. Add no entry for new work.
+- The profile is set in the address (`?mockDawLatency=3s`) for a page that opens on a slow link, and from the test (`window.__NARRATION_MOCK_DAW_LATENCY__`) for a link that turns slow under a page that is up.
+- It does not cover Editing's follow, Pickups or the Script page; those are still to add.
+- Run it alone: `pnpm --dir src/studio/ui exec playwright test tests/visual/daw-slow-link.spec.ts --trace off` (about 30 s).
 
 ## Mock match
 
@@ -156,6 +172,14 @@ Scripts in `scripts/ci/` check what merges while no person watches each pull req
 ## Latency measurements (manual, Windows)
 
 `.github/workflows/latency-windows.yml` is started by hand (`workflow_dispatch` only) and is never a gate. On a `windows-latest` runner it freezes the three sidecars, then runs `scripts/research/frozen-sidecar-timing.py` (fresh-copy launch against launch 10, against a frozen "hello", plus import profiles), the `latency`-tagged Go harness against the frozen Story Bible sidecar (`src/studio/desktop/internal/latency`), the bridge round trip against the fake `reaper` (`bridge_test.go`, with `scripts/research/bridge-fake-driver.py`) and `BenchmarkDispatchByLogSize`. The tables are printed in the job log and uploaded as the `latency-windows` artifact. Results go in a dated note under `docs/research/`.
+
+## Host read benchmark and budgets
+
+`node scripts/dev/host-read-bench.mjs seed <folder> --size 17h` writes a book with a recording check on each chapter, findings, a Story Bible, marks and a pickup list through the host's own code, and `reads <folder>` prints what each read binding a page calls on opening costs the host: time, answer size, files decoded, record folders listed and allocations. [Driving the real desktop app](real-app-driver.md#a-book-with-a-narrators-work-in-it) has the options and the per-page timing of the real app.
+
+`TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` (`src/studio/desktop/perfreads_test.go`) runs with the Go tests in `Test (Windows 1/2)`. It caps the decodes, listings and allocations of the five reads every page waits for; it counts work and not time, since a shared runner's clock varies more than a regression moves it. `internal/persist` keeps the two counts (`persist.Work`): a file read through `Reporter.ReadJSON` is a decode and a folder listed through `persist.ReadDir` is a listing.
+
+`.github/workflows/host-read-bench-windows.yml` is started by hand (`workflow_dispatch` only) and is never a gate. It seeds one book size on a `windows-latest` runner, prints the read table in the job log and uploads it as the `host-read-bench-windows` artifact.
 
 ## Reading a run
 

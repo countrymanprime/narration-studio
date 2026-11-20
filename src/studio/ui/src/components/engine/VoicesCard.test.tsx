@@ -7,6 +7,9 @@ import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
 import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
 import { VoicesCard } from './VoicesCard';
+import { useIsRecording } from '../../daw/useIsRecording';
+
+vi.mock('../../daw/useIsRecording', () => ({ useIsRecording: vi.fn(() => false) }));
 
 afterEach(cleanup);
 
@@ -29,15 +32,25 @@ const cast = [
   { id: 'e-queen', canonical_name: 'Queen of Hearts', aliases: [{ text: 'Queen' }], category: 'Character' },
 ] as unknown as GuideEntity[];
 
-function draw(setup: VoiceTracksState, layoutInCard = true) {
-  const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn() };
-  render(<VoicesCard tracks={tracks} chapters={chapters} mappings={mappings} setup={setup} characters={cast} layoutInCard={layoutInCard} {...handlers} />);
+function draw(setup: VoiceTracksState, layoutInCard = true, linked = true) {
+  const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
+  render(
+    <VoicesCard
+      tracks={tracks}
+      chapters={chapters}
+      mappings={linked ? mappings : ([] as never)}
+      setup={setup}
+      characters={cast}
+      layoutInCard={layoutInCard}
+      {...handlers}
+    />,
+  );
   return handlers;
 }
 
 describe('the Voices card', () => {
   it('a flat project shows its layout and no voices, and switching saves the layout', () => {
-    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
+    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, true, false);
     expect(screen.queryByRole('table')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Voice folders' }));
     expect(handlers.onLayout).toHaveBeenCalledWith('folders');
@@ -77,7 +90,7 @@ describe('the Voices card', () => {
   });
 
   it('a flat project draws no Voices card while Chapter sync carries the layout switch', () => {
-    draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+    draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false, false);
     expect(screen.queryByRole('heading', { name: 'Voices' })).toBeNull();
     cleanup();
     draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
@@ -156,9 +169,10 @@ describe('the Voices card', () => {
         onLayout={vi.fn()}
         onTrackCharacters={vi.fn()}
         onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
       />,
     );
-    const buttons = within(screen.getByRole('table')).getAllByRole('button');
+    const buttons = within(screen.getByRole('table')).getAllByRole('button', { name: /^Choose who/ });
     expect(buttons.map((button) => button.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
     expect(buttons.every((button) => button.getAttribute('aria-label')!.length < 100)).toBe(true);
   });
@@ -181,9 +195,192 @@ describe('the Voices card', () => {
         onLayout={vi.fn()}
         onTrackCharacters={vi.fn()}
         onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
       />,
     );
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByText('This folder has no tracks yet.')).toBeTruthy();
+  });
+
+  it('every child counts as a voice by default, and turning its switch off marks it', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
+    const queen = screen.getByRole('switch', { name: 'Queen counts as a voice' });
+    expect(queen.getAttribute('aria-checked')).toBe('true');
+    await userEvent.setup().click(queen);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('a child marked as not a voice stays listed, dimmed and labelled, with no key, no characters to choose and a switch that turns it back on', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['queen'], tracks: [] });
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(2);
+    const marked = rows[1];
+    expect(within(marked).getByText('Queen')).toBeTruthy();
+    expect(within(marked).getByText('Not a voice')).toBeTruthy();
+    // The name is muted (a colour token, not an opacity, so contrast holds in both themes); the badge and the switch that turns the row back on are not.
+    expect(within(marked).getByText('Queen').closest('td')?.className).toContain('text-[var(--text-muted)]');
+    expect(within(marked).getByText('Not a voice').closest('td')?.className).not.toContain('opacity');
+    expect(within(marked).getByRole('switch', { name: 'Queen counts as a voice' }).closest('td')?.className).not.toContain('opacity');
+    expect(within(marked).getByRole('button', { name: 'Choose who the Queen track records' }).getAttribute('aria-disabled')).toBe('true');
+    const queen = within(marked).getByRole('switch', { name: 'Queen counts as a voice' });
+    expect(queen.getAttribute('aria-checked')).toBe('false');
+    await userEvent.setup().click(queen);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', false);
+  });
+
+  it('a marked Narrator has no key 0', () => {
+    draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    expect(within(rows[0]).getByText('Not a voice')).toBeTruthy();
+    expect(within(rows[1]).getByText('1')).toBeTruthy();
+  });
+
+  it('two unnamed children get switches with different names', () => {
+    const blank = [track('c8', 'Ch 8', 0, true), track('a', '', 1), track('b', '', 1), track('c9', 'Chapter 9', 0)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={mappings}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    const names = screen.getAllByRole('switch').map((el) => el.parentElement?.textContent);
+    expect(new Set(names).size).toBe(2);
+  });
+
+  it('a Flat project whose chapter is linked to a folder of its own tracks lists them, so a music bed can be marked', async () => {
+    const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+    expect(screen.getByRole('table', { name: /^Voices of / })).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('while a take records the switches are off with the reason, and a press does nothing', async () => {
+    vi.mocked(useIsRecording).mockReturnValue(true);
+    try {
+      const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+      const queen = screen.getByRole('switch', { name: 'Queen counts as a voice' });
+      expect(queen.hasAttribute('disabled') || queen.getAttribute('aria-disabled') === 'true' || queen.hasAttribute('data-disabled')).toBe(true);
+      await userEvent.setup().click(queen);
+      expect(handlers.onNotAVoice).not.toHaveBeenCalled();
+    } finally {
+      vi.mocked(useIsRecording).mockReturnValue(false);
+    }
+  });
+
+  it('in a window of 30 rem or less the Key column goes and the switch keeps its name', () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('30rem'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })) as never;
+    try {
+      draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+      expect(screen.queryByRole('columnheader', { name: 'Key' })).toBeNull();
+      expect(screen.getByRole('columnheader', { name: 'Track and characters' })).toBeTruthy();
+      expect(screen.getByRole('switch', { name: 'Queen counts as a voice' })).toBeTruthy();
+    } finally {
+      window.matchMedia = real;
+    }
+  });
+
+  it('a marked blank-named track is named by its place in the project by the row, the switch and the edit button alike', () => {
+    const blank = [track('folder', 'Ch 8', 0, true), track('b1', '   ', 1)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={[{ chapterId: 'ch8', trackGuid: 'folder' }] as never}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['b1'], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('switch', { name: 'Track 2 counts as a voice' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose who Track 2 records' })).toBeTruthy();
+  });
+
+  it('an unmarked blank-named track has the same name on its edit button, and toggling the switch does not rename it', () => {
+    const blank = [track('folder', 'Ch 8', 0, true), track('b1', '   ', 1)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={[{ chapterId: 'ch8', trackGuid: 'folder' }] as never}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('switch', { name: 'Track 2 counts as a voice' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose who Track 2 records' })).toBeTruthy();
+  });
+
+  it('a Flat folder with a chapter-linked child and a music bed lists only the music bed', async () => {
+    const part = [track('part', 'Part 1', 0, true), track('c8', 'Chapter 8', 1), track('bed', 'Music bed', 1)];
+    const handlers = { onNotAVoice: vi.fn() };
+    render(
+      <VoicesCard
+        tracks={part}
+        chapters={chapters}
+        mappings={
+          [
+            { chapterId: 'ch7', trackGuid: 'c8' },
+            { chapterId: 'ch8', trackGuid: 'part' },
+          ] as never
+        }
+        setup={{ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={handlers.onNotAVoice}
+      />,
+    );
+    expect(screen.queryByRole('switch', { name: 'Chapter 8 counts as a voice' })).toBeNull();
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Music bed counts as a voice' }));
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('bed', true);
+  });
+
+  it('a Flat project whose linked folder holds only another chapter’s track lists no voices', () => {
+    const nested = [track('c8', 'Ch 8', 0, true), track('c9', 'Chapter 9', 1)];
+    render(
+      <VoicesCard
+        tracks={nested}
+        chapters={chapters}
+        mappings={
+          [
+            { chapterId: 'ch8', trackGuid: 'c8' },
+            { chapterId: 'ch9', trackGuid: 'c9' },
+          ] as never
+        }
+        setup={{ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('table')).toBeNull();
   });
 });

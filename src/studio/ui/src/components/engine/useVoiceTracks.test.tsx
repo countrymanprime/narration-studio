@@ -139,6 +139,37 @@ describe('saving the voice setup', () => {
     expect(hook.current.setup.layout).toBe('flat');
   });
 
+  it('marking a child as not a voice shows at once, and a refused write says so and puts the switch back', async () => {
+    const api = createMockApi();
+    api.guideEntities = async () => [];
+    api.voiceTracksGet = async () => state({});
+    api.voiceTracksSetNotAVoice = async () => {
+      throw new Error('could not save the voice setup');
+    };
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string) => notify(message, tone);
+    const hook = mount(api, stable);
+    await act(async () => {});
+    await act(async () => hook.current.setNotAVoice('{AAAA}', true));
+    await act(async () => {});
+    expect(notify.mock.calls.some(([message, tone]) => tone === 'error' && String(message).includes('could not save'))).toBe(true);
+    expect(hook.current.setup.notVoiceGuids).toEqual([]);
+  });
+
+  it('marking a child shows the lower-case GUID at once, and unmarking removes it', async () => {
+    const { api, pending } = slowHost();
+    api.voiceTracksSetNotAVoice = vi.fn(
+      (guid: string, flag: boolean) => new Promise<VoiceTracksState>((answer) => pending.push({ args: [guid, flag], answer })),
+    );
+    const hook = mount(api);
+    await act(async () => {});
+    await act(async () => hook.current.setNotAVoice('{AAAA}', true));
+    expect(hook.current.setup.notVoiceGuids).toEqual(['{aaaa}']);
+    await act(async () => pending[0].answer(state({ notVoiceGuids: ['{aaaa}'] })));
+    await act(async () => hook.current.setNotAVoice('{aaaa}', false));
+    expect(hook.current.setup.notVoiceGuids).toEqual([]);
+  });
+
   it('a refused save whose re-read fails restores the layout before the save', async () => {
     const api = createMockApi();
     api.guideEntities = async () => [];

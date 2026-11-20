@@ -86,6 +86,13 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'voice-folders-marked',
+    description:
+      'The engine panel\'s Voices card (?mockVoiceFolders=1) with the Extras track turned off by its "Voice" switch: Extras is dimmed with the "Not a voice" badge at full strength, has no key, its edit button is disabled, and the switch stays on screen to turn it back on',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'voice-folders-picker',
     description:
       "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",

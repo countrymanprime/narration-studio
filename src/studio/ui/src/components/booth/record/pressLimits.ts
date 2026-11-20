@@ -43,6 +43,18 @@ export const PRESS_LIMITS_MS = {
   voiceChoice: 45_000,
 } as const;
 
+/**
+ * The topic of every message that ends a Record press without a take (a refusal, a limit, a failure): a newer one replaces the one before it, so a
+ * repeated press shows its reason once and never stacks it (#3322).
+ */
+export const PRESS_TOPIC = 'booth-press';
+
+/**
+ * The topic of what a press says as it goes ("Starting from ¶ 3", "Recording over ¶ 3 on Hero."): a message that ends the press takes these away
+ * (`dismissTopic`), so a refused start shows its reason alone and not under notes about a take that never began (#3322).
+ */
+export const PRESS_NOTE_TOPIC = 'booth-press-note';
+
 export type PressStage = keyof typeof PRESS_LIMITS_MS;
 
 /** Why each limit is what it is: a host limit it is above, or a measurement. `pressLimits.guard.test.ts` requires a basis for every stage. */

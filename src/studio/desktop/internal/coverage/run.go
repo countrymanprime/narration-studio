@@ -319,8 +319,12 @@ func (s *Service) finish(running *job) {
 	if err != nil {
 		phase, message = PhaseFailed, err.Error()
 	} else if outcome == evidence.LedgerComplete {
-		if err := s.results.write(s.storedResult(running, record.ID, report)); err != nil {
+		result := s.storedResult(running, record.ID, report)
+		if err := s.results.write(result); err != nil {
 			phase, message = PhaseFailed, err.Error()
+		} else if err := s.summaries.write(summarize(result)); err != nil {
+			// The check stands: the summary is held in memory and the next start of the app rebuilds it from the result.
+			s.config.Reporter.Warn("coverage_summary_not_stored", err.Error())
 		}
 	}
 	if err := os.RemoveAll(running.dir); err != nil {
