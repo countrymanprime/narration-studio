@@ -126,7 +126,7 @@ describe("the session's DAW choice and offSince", () => {
   });
 
   it('keeps a "starting" it already heard through one failed read', async () => {
-    let answer: () => Promise<DawChoice> = async () => choice('starting');
+    let answer: () => Promise<DawChoice> = async () => ({ ...choice('starting'), starting: { since: new Date().toISOString() } }) as unknown as DawChoice;
     const session = createDawSession(
       host(
         () => OFF,
@@ -181,6 +181,25 @@ describe("the session's DAW choice and offSince", () => {
     await settle();
     expect(session.getState().choice?.state).not.toBe('starting');
     expect(dawChoice.mock.calls.length).toBeGreaterThanOrEqual(2);
+    session.stop();
+  });
+
+  it('does not keep a heard "starting" through failed reads once the host\'s own start window has run out', async () => {
+    const old = new Date(Date.now() - 120_000).toISOString();
+    let answer: () => Promise<DawChoice> = async () => ({ ...choice('starting'), starting: { since: old } }) as unknown as DawChoice;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => answer(),
+      ),
+    );
+    session.start();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    answer = async () => Promise.reject(new Error('no'));
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().choice).toBeNull();
     session.stop();
   });
 });

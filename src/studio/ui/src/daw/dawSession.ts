@@ -14,6 +14,8 @@ export const DAW_RETRY_MS = 4_000;
 const DAW_OFF_RECHECK_MS = 10_000;
 /** How long a read of the host's DAW choice is waited for before it counts as failed. */
 export const DAW_CHOICE_READ_MS = 8_000;
+/** How long the host holds a start it made before it reports a bridge problem instead (reaperbridge.go `reaperStartWait`). */
+export const DAW_START_WINDOW_MS = 90_000;
 
 export type DawMetersState =
   /** No answer yet. */
@@ -188,7 +190,10 @@ export function createDawSession(host: DawSessionApi): DawSession {
         }
         // A read that failed keeps what the host last said: one failed read does not turn a start that is going on into "the host cannot say".
         if (next === undefined) {
-          if (state.choice === undefined) set({ choice: null });
+          const was = state.choice;
+          // What was heard is kept through a failed read only while the host's own window for a start (90 s) has not run out, so reads that keep failing cannot hold "starting" for ever.
+          const windowEnds = was?.state === 'starting' && was.starting ? Date.parse(was.starting.since) + DAW_START_WINDOW_MS : 0;
+          if (was === undefined || (was !== null && !(windowEnds > Date.now()))) set({ choice: null });
           return;
         }
         const was = state.choice;

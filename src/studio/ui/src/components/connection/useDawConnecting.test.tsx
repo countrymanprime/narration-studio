@@ -55,6 +55,15 @@ describe('useDawConnecting', () => {
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy(), { timeout: 3000 });
   });
 
+  it("asks once after the host stops saying it is starting: starting, then not starting, then the dialog's moment", async () => {
+    let answer = choice({ state: 'starting', starting: { since: new Date().toISOString() } });
+    mount({ dawChoice: async () => answer }, 100);
+    expect(await screen.findByText('Starting REAPER…')).toBeTruthy();
+    answer = choice({ state: 'linked' });
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy(), { timeout: 3000 });
+  });
+
   it('asks at once for a project with no DAW file linked, whatever the grace: nothing is being connected to', async () => {
     mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000);
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy());
