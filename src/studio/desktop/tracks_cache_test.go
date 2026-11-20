@@ -362,12 +362,14 @@ func TestAddingAVoiceDropsTheCachedTrackList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			host, ids := newVoiceFolderHost(t, "folders")
 			svc, inner := warmedServices(t, host)
+			warm := inner.calls.Load()
 			_, _ = host.boothVoiceAddIn(context.Background(), svc, creator, createAvailable(), ids[0], "Crowd", nil)
 			lister, _ := trackListerFrom(svc)
-			before := inner.calls.Load()
 			read(t, lister)
-			if inner.calls.Load() != before+1 {
-				t.Fatalf("the list was served from the cache after the app added a voice (%d requests before, %d after)", before, inner.calls.Load())
+			// The list warmed before the add may not be served after it. An add that got no answer reads the folder back at once (#3645), and that
+			// fresh read is then the cached one, so the check is that REAPER was asked again since the add, not that the next read asks again.
+			if inner.calls.Load() <= warm {
+				t.Fatalf("the list was served from the cache after the app added a voice (%d requests before the add, %d after)", warm, inner.calls.Load())
 			}
 		})
 	}

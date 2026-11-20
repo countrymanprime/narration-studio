@@ -152,10 +152,16 @@ export function useBoothVoices({
     [notify],
   );
 
+  // Counts the changes this page made to the voice the host records on and to the voices it added (a choice, an add). A read of the host
+  // that began before such a change answers for the voice as it was: its result must not put the old voice back or drop the lane just
+  // added (#3645, a lane that vanished and a selection that fell back to lane 1).
+  const localChanges = useRef(0);
+
   // The characters and the voice the host records on, read again whenever the shared tracks are (`readAt`) and after a change made here.
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
+    const startedAt = localChanges.current;
     const pressed = retryPressed.current;
     retryPressed.current = false;
     if (!link) {
@@ -184,6 +190,7 @@ export function useBoothVoices({
       if (!live) return;
       if (!hostFailed) failing.current = false;
       setCharacters(entities.filter((entity) => entity.category === 'Character'));
+      if (localChanges.current !== startedAt) return;
       setHostVoice({
         chapterId,
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
@@ -295,6 +302,7 @@ export function useBoothVoices({
   const send = useCallback(
     (voice: Voice) => {
       sending.current = voice;
+      localChanges.current += 1;
       let accepted = false;
       setChoosing(true);
       setEpoch((n) => n + 1);
@@ -302,6 +310,7 @@ export function useBoothVoices({
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
           accepted = answer.outcome !== 'refused';
+          armUnconfirmed.current = answer.outcome === 'selected' && !answer.armed;
           if (answer.outcome === 'refused') {
             notify(answer.message ?? 'The voice was not changed.', 'error');
             // The voices this page lists are not the saved project's any more: read them again.
@@ -314,6 +323,7 @@ export function useBoothVoices({
               if (answer.reason === 'track_missing') refreshAll();
             }
             const guid = answer.trackGuid;
+            localChanges.current += 1;
             setHostVoice((last) => ({ chapterId, guid, added: last.chapterId === chapterId ? last.added : [] }));
           }
         })
@@ -409,6 +419,7 @@ export function useBoothVoices({
           ? undefined
           : characters.find((entity) => same(entity.canonical_name) || entity.aliases.some((alias) => same(alias.text)));
         const ids = named && characterIds.length > 0 && !characterIds.includes(named.id) ? [named.id, ...characterIds] : characterIds;
+        const changesBefore = localChanges.current;
         const answer = await voiceTracks.boothVoiceAdd(chapterId, name, ids);
         if (answer.outcome === 'refused') {
           notify(answer.message ?? 'The track was not added.', 'error');
@@ -416,9 +427,14 @@ export function useBoothVoices({
         }
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
+        // The add arms nothing (#3645): the old lane is still the one armed, which the next DAW report must not read as the narrator arming it by hand.
+        armUnconfirmed.current = true;
+        // A voice chosen while the add waited keeps its place: the late lane is listed, not selected (the host does the same).
+        const keepChoice = localChanges.current !== changesBefore;
+        localChanges.current += 1;
         setHostVoice((last) => ({
           chapterId,
-          guid,
+          guid: keepChoice && last.chapterId === chapterId ? last.guid : guid,
           added: [...(last.chapterId === chapterId ? last.added : []), { guid, name: answer.name ?? name }],
         }));
         // The characters are on the new track's name: the Voices card and the keys read them from the setup.
@@ -514,6 +530,9 @@ export function useBoothVoices({
   // counts, so a read in flight when the app chose, or taken during a take, is never acted on late. A guid asked once is not asked again until
   // the DAW reports something else, so a refusal is not repeated on every read.
   const followed = useRef('');
+  // Set when a choice was made but the DAW did not confirm the arm (#3645): its next report of another armed lane is the old arm still standing,
+  // not the narrator arming that lane by hand, so it is not followed (it would put the old voice back over the one just chosen).
+  const armUnconfirmed = useRef(false);
   // null while no read counts (none yet, taken during a take, or begun under another voice or question state): that says nothing, so it neither follows
   // nor forgets. `key` is the DAW's armed set: a set already acted on is not acted on again, so a DAW that keeps two lanes armed cannot make the Booth
   // swap between them, and a refusal is not repeated on every read.
@@ -536,9 +555,15 @@ export function useBoothVoices({
     if (armedByHand === null) return;
     if (armedByHand.lane === '') {
       followed.current = '';
+      armUnconfirmed.current = false;
       return;
     }
     if (recording || choosing || asking || followed.current === armedByHand.key) return;
+    if (armUnconfirmed.current) {
+      armUnconfirmed.current = false;
+      followed.current = armedByHand.key;
+      return;
+    }
     const voice = voices.find((each) => each.guid.toLowerCase() === armedByHand.lane);
     if (!voice || voice.guid.toLowerCase() === current?.guid.toLowerCase()) return;
     followed.current = armedByHand.key;

@@ -28,6 +28,10 @@ const (
 // starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
+// laneCommandTimeout bounds a call that creates or arms a lane: the usual wait, the late wait for a command REAPER has read
+// (bridge.LateAnswerWait, #3645) and room for the read-back after it.
+const laneCommandTimeout = bridge.DefaultAnswerTimeout + bridge.LateAnswerWait + 2*tracksLiveTimeout
+
 // readAloudVoiceStartTimeout is readAloudRecordStartTimeout plus the wait for REAPER's live track list (tracksLiveTimeout) that a call
 // resolving the chapter's voice makes first, so a slow list read does not eat the arm's own budget (a list answering in 2.5 s must
 // still leave the arm its 3 s).
@@ -119,6 +123,9 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 	switch {
 	case errors.As(err, &stale):
 		return readAloudRefused(readAloudTrackMissing, fmt.Sprintf("The track linked to this chapter is no longer in the %s project. Link it again in the audio engine panel.", name))
+	case errors.Is(err, bridge.ErrAnswerLate):
+		// REAPER took the command and had not confirmed it when the wait ended (#3645): it may have done it, so this is neither "not answering" nor "nothing started".
+		return readAloudRefused("timeout", fmt.Sprintf("%s took the command but did not confirm it in time, so what it did may not match. Check %s.", name, name))
 	case errors.Is(err, context.DeadlineExceeded):
 		return readAloudRefused("timeout", fmt.Sprintf("%s did not confirm within 3 seconds. Nothing started.", name))
 	case errors.Is(err, bridge.ErrNoTrackArmed):
