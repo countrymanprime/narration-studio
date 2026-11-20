@@ -20,7 +20,10 @@ const resultSummaryVersion = 1
 // the check is current and how far the chapter is recorded are not here: they are judged on every read against the saved
 // project, the settings and the manuscript.
 type ResultSummary struct {
-	SchemaVersion  int    `json:"schemaVersion"`
+	SchemaVersion int `json:"schemaVersion"`
+	// ResultVersion is the version of the stored result it was made from (storedResultVersion): a result of a version
+	// this build does not read has no summary this build uses either.
+	ResultVersion  int    `json:"resultVersion"`
 	RecordID       string `json:"recordId"`
 	DocumentID     string `json:"documentId"`
 	ChapterID      string `json:"chapterId"`
@@ -39,7 +42,7 @@ func (s ResultSummary) PresentFraction() float64 { return Report{Summary: s.Summ
 func summarize(result StoredResult) ResultSummary {
 	gaps, unfinished := ClassifyGaps(result.Report)
 	return ResultSummary{
-		SchemaVersion: resultSummaryVersion, RecordID: result.RecordID, DocumentID: result.DocumentID, ChapterID: result.ChapterID,
+		SchemaVersion: resultSummaryVersion, ResultVersion: storedResultVersion, RecordID: result.RecordID, DocumentID: result.DocumentID, ChapterID: result.ChapterID,
 		ManuscriptHash: result.ManuscriptHash, Summary: result.Report.Summary, Paragraphs: nonNil(result.Report.Paragraphs),
 		Gaps: gaps, Unfinished: unfinished,
 	}
@@ -55,6 +58,9 @@ type summaryStore struct {
 	mu       sync.Mutex
 	// +checklocks:mu
 	held map[string]ResultSummary
+	// writing keeps one file write at a time: a finished check and a read that rebuilds the same summary would share
+	// writeAtomically's temporary file.
+	writing sync.Mutex
 }
 
 func (s *summaryStore) path(recordID string) (string, bool) {
@@ -68,8 +74,10 @@ func (s *summaryStore) write(summary ResultSummary) error {
 	if !ok {
 		return fmt.Errorf("%q is not a ledger record id", summary.RecordID)
 	}
-	summary.SchemaVersion = resultSummaryVersion
+	summary.SchemaVersion, summary.ResultVersion = resultSummaryVersion, storedResultVersion
 	s.hold(summary)
+	s.writing.Lock()
+	defer s.writing.Unlock()
 	encoded, err := json.Marshal(summary)
 	if err != nil {
 		return err
@@ -90,7 +98,7 @@ func (s *summaryStore) hold(summary ResultSummary) {
 }
 
 // read returns the record's summary, or false when there is none this version can use: missing, unreadable, of another
-// version or naming another record.
+// version, made from a result of another version, or naming another record.
 func (s *summaryStore) read(recordID string) (ResultSummary, bool) {
 	path, ok := s.path(recordID)
 	if !ok {
@@ -108,7 +116,7 @@ func (s *summaryStore) read(recordID string) (ResultSummary, bool) {
 		if err := json.Unmarshal(raw, &decoded); err != nil {
 			return err
 		}
-		if decoded.SchemaVersion != resultSummaryVersion || decoded.RecordID != recordID {
+		if decoded.SchemaVersion != resultSummaryVersion || decoded.ResultVersion != storedResultVersion || decoded.RecordID != recordID {
 			return fmt.Errorf("coverage result summary %s is version %d of record %q", recordID, decoded.SchemaVersion, decoded.RecordID)
 		}
 		summary = decoded

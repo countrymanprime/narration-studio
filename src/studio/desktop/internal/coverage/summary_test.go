@@ -81,6 +81,9 @@ func TestASummaryThatCannotBeUsedIsRebuiltFromItsResult(t *testing.T) {
 		"another version": func(t *testing.T, path, _ string) {
 			rewriteSummary(t, path, func(s *ResultSummary) { s.SchemaVersion++ })
 		},
+		"of a result of another version": func(t *testing.T, path, _ string) {
+			rewriteSummary(t, path, func(s *ResultSummary) { s.ResultVersion++ })
+		},
 		"another record's": func(t *testing.T, path, other string) {
 			rewriteSummary(t, path, func(s *ResultSummary) { s.RecordID = other; s.Summary.PresentTokens = 0 })
 		},
