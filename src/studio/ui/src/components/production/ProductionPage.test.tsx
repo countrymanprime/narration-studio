@@ -93,13 +93,16 @@ describe('production-route-draws-the-mock-page', () => {
     const legend = Object.fromEntries(
       within(bar)
         .getAllByRole('listitem')
-        .map((li) => [li.textContent!.replace(/\s*\d+:\d+$/, ''), li.querySelector('b')!.textContent!]),
+        .map((li) => [li.textContent!.replace(/\s*\d+h \d+m.*$/, ''), li.querySelector('b [aria-hidden="true"]')!.textContent!]),
     );
-    const minutes = (clock: string) => clock.split(':').reduce((h, m) => Number(h) * 60 + Number(m), 0);
+    const minutes = (clock: string) => {
+      const [, h, m] = /(\d+)h (\d+)m/.exec(clock)!;
+      return Number(h) * 60 + Number(m);
+    };
     const total = Object.values(legend).reduce((a, clock) => a + minutes(clock), 0);
     const recorded = total - minutes(legend['Not recorded yet']);
     const tile = within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!;
-    const [value, whole] = [...tile.matchAll(/(\d+:\d+)/g)].map((m) => minutes(m[1]));
+    const [value, whole] = [...tile.matchAll(/(\d+h \d+m)/g)].map((m) => minutes(m[1]));
     // The legend and the tile print each figure rounded to the minute, so a sum of printed figures can drift from a printed total by half a
     // minute per figure and no more: four segments and the tile's own rounding for Recorded (2.5 min, so 2 whole minutes), five and the
     // tile for the book (3). The exact, unrounded agreement is pinned in overview.test.tsx over four books.

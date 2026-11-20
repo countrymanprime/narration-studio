@@ -40,10 +40,22 @@ describe('clock, full', () => {
   it('keeps every hour digit from a hundred hours', () => {
     expect(clock(100 * 3600 + 0.5, { full: true })).toBe('100:00:00.500');
   });
-  it('rounds to the millisecond and carries, so no field reads out of range', () => {
-    expect(clock(59.9996, { full: true })).toBe('00:01:00.000');
-    expect(clock(3599.9999, { full: true })).toBe('01:00:00.000');
+  it('floors to the millisecond, like every other reading, so it never shows a time that has not happened yet', () => {
+    expect(clock(59.9996, { full: true })).toBe('00:00:59.999');
+    expect(clock(3599.9999, { full: true })).toBe('00:59:59.999');
     expect(clock(0.0004, { full: true })).toBe('00:00:00.000');
+    expect(clock(0.9999, { full: true })).toBe('00:00:00.999');
+  });
+  it('does not read a whole number of milliseconds one short for the double', () => {
+    for (const ms of [65300, 5540, 12400, 31900, 8282, 3725004, 599999])
+      expect(clock(ms / 1000, { full: true }).slice(-3)).toBe(String(ms % 1000).padStart(3, '0'));
+  });
+  it('agrees with the floored form: its minutes and seconds are the ones m:ss shows (59.6 s reads 0:59 and 00:00:59.600)', () => {
+    for (const t of [0, 0.4, 59.6, 59.9996, 60, 61.2, 599.9996, 3599.9996, 3600, 3725.4, 86399.9996]) {
+      const [h, m, s] = clock(t, { full: true }).split('.')[0].split(':').map(Number);
+      expect(clock(t, { hours: 'always' }), `${t} s`).toBe(`${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+    }
+    expect(clock(59.6)).toBe('0:59');
   });
   it('reads zero for negative, NaN and infinite input', () => {
     for (const bad of [-5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) expect(clock(bad, { full: true })).toBe('00:00:00.000');
@@ -57,6 +69,28 @@ describe('clock, full', () => {
     expect(clock(402, { full: true, minuteDigits: 1, hours: 'always' })).toBe('00:06:42.000');
     expect(clock(425)).toBe('7:05');
     expect(clock(425, { hours: 'always' })).toBe('0:07:05');
+  });
+});
+
+describe('clock, marked', () => {
+  it('writes hours and minutes with their units, always', () => {
+    expect(clock(0, { marked: true })).toBe('0h 00m');
+    expect(clock(612, { marked: true })).toBe('0h 10m');
+    expect(clock(5 * 3600 + 40 * 60, { marked: true })).toBe('5h 40m');
+    expect(clock(100.5 * 3600, { marked: true })).toBe('100h 30m');
+  });
+  it('rounds to the nearest minute, where the default floors', () => {
+    expect(clock(59.6, { marked: true })).toBe('0h 01m');
+    expect(clock(59.6)).toBe('0:59');
+    expect(clock(89, { marked: true })).toBe('0h 01m');
+    expect(clock(90, { marked: true })).toBe('0h 02m');
+  });
+  it('is capped at a billion seconds, like the full form', () => {
+    expect(clock(1e21, { marked: true })).toBe(clock(1e9, { marked: true }));
+    expect(clock(1e21, { marked: true })).toBe('277777h 46m');
+  });
+  it('reads zero for a value that is not a time', () => {
+    for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) expect(clock(bad, { marked: true })).toBe('0h 00m');
   });
 });
 

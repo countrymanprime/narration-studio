@@ -68,7 +68,7 @@ describe('actions-follow-the-daw-capability', () => {
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
     expect(t.goTo).toHaveBeenCalledWith('f1');
-    expect((await screen.findByRole('status')).textContent).toBe('Moved to 00:12.4 in REAPER.');
+    expect((await screen.findByRole('status')).textContent).toBe('Moved to 00:00:12.400 in REAPER.');
   });
 
   it('turns Add marker on for an accepted note and calls DawClient.addMarker', async () => {
@@ -121,7 +121,7 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     expect(t.onOpenBooth).toHaveBeenCalledWith('chapter-1');
   });
 
-  // #2800 (walkthrough 4): a note with an item but no time (every retired take-review note) toasted "Moved to 00:00.0", the item's
+  // #2800 (walkthrough 4): a note with an item but no time (every retired take-review note) toasted "Moved to 00:00:00.000", the item's
   // start, while the pane said the note has no time. Show in is off with the reason, as Hear it and Add marker are.
   it('turns Show in REAPER off with the reason for a note with no time, and asks the DAW nothing', async () => {
     const t = setup(placed({ time_range: undefined }));

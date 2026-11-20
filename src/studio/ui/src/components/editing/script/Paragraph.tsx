@@ -41,12 +41,14 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       data-active={active ? '' : undefined}
       data-in-view={inView ? '' : undefined}
       data-unrecorded={dp.recorded ? undefined : ''}
-      className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[76px_minmax(0,1fr)] @max-[30rem]/script:grid-cols-[2.75rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1fr)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
+      className={`mb-2 grid gap-x-1.5 border-l-[3px] py-1 ${gutter ? 'grid-cols-[6.75rem_minmax(0,1fr)] @max-[30rem]/script:grid-cols-[5rem_minmax(0,1fr)]' : 'grid-cols-[0px_minmax(0,1fr)]'} ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
       {/* One line of the text tall (`1lh` is the inherited line height), so the time is centred on the paragraph's first line at any size. */}
       <div data-gutter className={`flex h-[1lh] items-center justify-end pr-2 ${gutter ? '' : 'invisible overflow-hidden'}`}>
-        <span className="font-mono text-xs text-[var(--text-muted)]">{dp.start != null ? clock(dp.start) : ''}</span>
+        <span className="font-mono text-xs text-[var(--text-muted)] @max-[30rem]/script:text-[10px]">
+          {dp.start != null ? clock(dp.start, { full: true }) : ''}
+        </span>
       </div>
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
         {dp.units.map((us) => (

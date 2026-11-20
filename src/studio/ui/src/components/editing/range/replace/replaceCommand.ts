@@ -43,7 +43,7 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
 
 /** The history entry's name: "Replaced 13 words with Eric Leach's audio at 0:54". */
 export function replaceLabel(words: number, narrator: string, start: number): string {
-  return `Replaced ${plural(words, 'word', 'words')} with ${narrator}'s audio at ${clock(start)}`;
+  return `Replaced ${plural(words, 'word', 'words')} with ${narrator}'s audio at ${clock(start, { full: true })}`;
 }
 
 /**

@@ -118,6 +118,8 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
     teleprompterStart: async () => ({ status: 'started' as const }),
     // Opened at a chapter, the Booth also moves the DAW there; a page under test has a DAW that does.
     dawGoToChapter: async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }),
+    dawArmBoothVoice: async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }),
+    dawReleaseBoothMonitor: async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }),
     dawPlace: async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 }),
     teleprompterLocate: () => Promise.reject(new Error('no recording')),
     teleprompterDevices: async () => ({ devices: [{ name: 'USB Mic' }], error: null }),

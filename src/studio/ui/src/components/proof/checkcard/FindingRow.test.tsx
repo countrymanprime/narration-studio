@@ -31,7 +31,7 @@ const row = (finding: CardFinding, editing?: string, routed = true) => {
 describe('a said-twice row', () => {
   it('links to the line on Editing', () => {
     row(said, '/editing/c-1?passage=p-1');
-    const link = screen.getByRole('link', { name: 'Open in Editing: Said twice at 0:06' });
+    const link = screen.getByRole('link', { name: 'Open in Editing: Said twice at 00:00:06.300' });
     expect(link.getAttribute('href')).toBe('/editing/c-1?passage=p-1');
     expect(link.textContent).toBe('Open in Editing');
   });

@@ -79,8 +79,8 @@ describe('popover-shows-both-rates-and-the-breakdown', () => {
     const pop = await popup();
     await waitFor(() => expect(within(pop).getByText('11,095')).toBeTruthy());
     expect(within(pop).getByText('9,300')).toBeTruthy();
-    expect(pop.querySelector('[data-basis="standard"]')?.textContent).toContain('Target 1:10');
-    expect(pop.querySelector('[data-basis="yours"]')?.textContent).toContain('Target 0:59');
+    expect(pop.querySelector('[data-basis="standard"]')?.textContent).toContain('Target 1h 10m');
+    expect(pop.querySelector('[data-basis="yours"]')?.textContent).toContain('Target 0h 59m');
     expect(pop.textContent).toContain('Ch 1, Ch 2 and Ch 4 have a measured length: 6,851 words in 37:03.');
     expect(within(pop).getByRole('button', { name: 'Standard' }).getAttribute('aria-pressed')).toBe('true');
   });

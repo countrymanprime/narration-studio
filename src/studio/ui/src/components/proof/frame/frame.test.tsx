@@ -120,10 +120,10 @@ describe('WaveformWindow', () => {
   it('centres the window on a selected note outside it and leaves one inside', () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Note a' }));
-    expect(label()).toBe('00:00–01:00');
+    expect(label()).toBe('00:00:00.000–00:01:00.000');
     cleanup();
     render(<Harness initialSel="b" />);
-    expect(label()).toBe('06:10–07:10');
+    expect(label()).toBe('00:06:10.000–00:07:10.000');
   });
 
   it('selects the earliest note in view when the window moves off the selection', () => {
@@ -140,12 +140,12 @@ describe('WaveformWindow', () => {
     const zin = screen.getByRole('button', { name: 'Zoom in' });
     expect(zin.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(out);
-    expect(label()).toBe('00:00–01:00');
+    expect(label()).toBe('00:00:00.000–00:01:00.000');
     fireEvent.click(out);
-    expect(label()).toBe('00:00–01:30');
+    expect(label()).toBe('00:00:00.000–00:01:30.000');
     expect(out.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(zin);
-    expect(label()).toBe('00:15–01:15');
+    expect(label()).toBe('00:00:15.000–00:01:15.000');
   });
 
   it('drags the window keeping the grabbed spot, centres on an outside click, resizes by its handles and nudges by keys', () => {
@@ -156,10 +156,10 @@ describe('WaveformWindow', () => {
     fireEvent.pointerDown(overview, { clientX: 140, button: 0 });
     fireEvent.pointerMove(overview, { clientX: 240 });
     fireEvent.pointerUp(overview);
-    expect(label()).toBe('03:20–05:00');
+    expect(label()).toBe('00:03:20.000–00:05:00.000');
     fireEvent.pointerDown(overview, { clientX: 600, button: 0 });
     fireEvent.pointerUp(overview);
-    expect(label()).toBe('09:10–10:50');
+    expect(label()).toBe('00:09:10.000–00:10:50.000');
 
     const start = screen.getByRole('slider', { name: 'Window start' });
     const end = screen.getByRole('slider', { name: 'Window end' });
@@ -201,7 +201,7 @@ describe('WaveformWindow', () => {
     expect(onPin).toHaveBeenCalledWith('a');
     expect(screen.getByText('Take 2')).toBeTruthy();
     expect(document.querySelector('[data-playhead]')).toBeTruthy();
-    expect(screen.getByRole('group', { name: 'Chapter waveform, 02:00 to 04:00, 1 note in this chapter' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Chapter waveform, 00:02:00.000 to 00:04:00.000, 1 note in this chapter' })).toBeTruthy();
   });
 });
 

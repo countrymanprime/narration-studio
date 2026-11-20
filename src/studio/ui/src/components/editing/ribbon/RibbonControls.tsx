@@ -6,12 +6,12 @@ import { subscribeFrames } from './frameLoop';
 import { createHoldScroll } from './holdScroll';
 import { readScrollStep } from './scrollStep';
 import type { RibbonView } from './useRibbonView';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 
 /** The row above the waveform: what it is (`head`), what part of the audio it shows, a "?" with its `gestures`, and the zoom buttons. */
 export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: RibbonView; head?: ReactNode; gestures?: string }) {
   const { view, canZoomIn, canZoomOut, zoom } = ribbon;
-  const range = `${clockTenths(t0 + view.start, { decimals: 2 })} to ${clockTenths(t0 + view.start + view.len, { decimals: 2 })}`;
+  const range = `${clock(t0 + view.start, { full: true })} to ${clock(t0 + view.start + view.len, { full: true })}`;
   return (
     <div className="@container/zoom flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
       {head}

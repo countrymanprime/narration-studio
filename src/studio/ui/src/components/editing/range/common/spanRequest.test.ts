@@ -21,10 +21,12 @@ describe('subWordNote', () => {
   });
   it('names the exact range, the whole words the DAW acts on, and that the edge is a preview', () => {
     const note = subWordNote({ start: 1, end: 1.5 }, whole);
-    expect(note).toBe('Sub-word edge, shown as a preview: your range runs 0:01.00 to 0:01.50, and the DAW acts on the whole words, 0:00.95 to 0:01.55.');
+    expect(note).toBe(
+      'Sub-word edge, shown as a preview: your range runs 00:00:01.000 to 00:00:01.500, and the DAW acts on the whole words, 00:00:00.950 to 00:00:01.550.',
+    );
   });
   it('reads one-sided differences too', () => {
-    expect(subWordNote({ start: 0.95, end: 1.2 }, whole)).toMatch(/0:00.95 to 0:01.20.*0:00.95 to 0:01.55/);
+    expect(subWordNote({ start: 0.95, end: 1.2 }, whole)).toMatch(/00:00:00.950 to 00:00:01.200.*00:00:00.950 to 00:00:01.550/);
   });
 });
 

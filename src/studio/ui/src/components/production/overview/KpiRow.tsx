@@ -22,10 +22,10 @@ export function KpiRow({ onGo, targetInfo, ...inputs }: Props) {
         {tiles.map(({ key, target, tip, ...tile }) => (
           <li key={key} className="relative min-w-0 border-t border-l border-[var(--border)]">
             <TooltipTarget text={tip} className="size-full">
-              {/* native-control-ok: a whole KPI tile is the button, a card-shaped target Button's padded uppercase chrome cannot draw. */}
+              {/* native-control-ok: a whole KPI tile is the button (it starts its content at the top, `justify-start`, as a button centres it otherwise and a taller tile would put the eyebrows at two heights), a card-shaped target Button's padded uppercase chrome cannot draw. */}
               <button
                 type="button"
-                className="block size-full cursor-pointer px-4 pt-3.5 pb-3 text-left hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)]"
+                className="flex size-full cursor-pointer flex-col justify-start px-4 pt-3.5 pb-3 text-left hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)]"
                 onClick={() => onGo(target)}
               >
                 <StatTile {...tile} size="kpi" />

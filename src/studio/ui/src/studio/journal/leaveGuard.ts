@@ -13,6 +13,8 @@ export type ConfirmSpec = {
   armAfterMs?: number;
   /** No Enter or Space is taken for this long after the question appears, whichever button has focus: for a question raised by a key the narrator may press twice. A click and Escape are not held back. */
   ignoreEnterAfterMs?: number;
+  /** Where focus goes on close when the element that had it is gone: the control the narrator asked from (the chapter picker). Absent, the page's <main>. */
+  returnFocus?: () => HTMLElement | null;
 };
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */

@@ -142,6 +142,8 @@ first, and leaving a chapter's [Proof view](proof.md#the-chapter-view) while a c
 showing results resets it the same way. They only move between pages — closing a slide-over, the previous
 chapter, or the previous Story Bible entry are not Back steps.
 
+During a take in the [Booth](booth.md), Back and Forward ask **Stop recording?** first. The question does not name a page, because a step in the history does not know where it lands ("Leaving the Booth stops it and saves the take.").
+
 A browser Back (or Alt+Left) while a dialog is open does not leave the page: the dialog and what you typed stay.
 
 A box that saves when you click or Tab out of it saves what you typed before any of these moves, even when the move comes from a key and the cursor is still in the box.

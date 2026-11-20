@@ -5,7 +5,7 @@ import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../..
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import type { DawRecordStart } from '../../../ports/daw';
-import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
+import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
@@ -385,7 +385,7 @@ export function useRecordControl({
   // Stops the app itself sent outside a press and has not seen answered (`appStop`): their transport event is not the narrator's, nor a take that ended.
   const appStops = useRef(0);
   const appStopReleases = useRef(new Set<() => void>());
-  // An end the transport pushed during such a stop, to be heard if the stop did not go through; and the function that hears an end.
+  // An end the transport pushed during such a stop, to be heard if that stop failed; and the function that hears an end.
   useEffect(() => {
     if (!recording) {
       heardRecording.current = false;
@@ -510,7 +510,7 @@ export function useRecordControl({
     (how: string) => {
       // The page may be gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
       // bookkeeping, so a take it kept is not in Undo.)
-      const name = capabilitiesRef.current?.daw ?? 'the DAW';
+      const name = recorderName(capabilitiesRef.current?.daw);
       const unstopped = (why: string) => {
         logUi('ui.record', `The late take was not stopped: ${why}`);
         overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
@@ -569,7 +569,7 @@ export function useRecordControl({
           if (how?.current && !how.current()) return false;
           if (checked.timedOut) {
             // Not knowing which project is open is not a reason to record: the press ends, and the next one asks again.
-            const sentence = `${capabilitiesRef.current.daw ?? 'The DAW'} could not confirm the open project in time, so no take was started.`;
+            const sentence = `${recorderNameCapital(capabilitiesRef.current.daw)} could not confirm the open project in time, so no take was started.`;
             setRefused({ chapterId, sentence });
             block({ cause: 'failed', reason: sentence });
             return false;
@@ -599,7 +599,7 @@ export function useRecordControl({
           if (answered.timedOut) {
             // The host never answered: it may still be starting. Record is free, and an answer that comes later is stopped (`stopLateStart`),
             // so the DAW is never left recording behind a take nobody sees.
-            const name = capabilitiesRef.current?.daw ?? 'the DAW';
+            const name = recorderName(capabilitiesRef.current?.daw);
             const sentence = `The Booth gave up waiting for ${name} to start recording.`;
             if (how?.current && !how.current()) return false;
             setRefused({ chapterId, sentence });
@@ -611,7 +611,7 @@ export function useRecordControl({
           // A stop the DAW never answers does not hold Record for good: past the limit the press ends with the failure sentence below (the take may still be
           // recording, and pressing Stop again asks once more). An answer that comes later changes nothing here.
           const stopAsked = await limited('recordStop', daw.recordStop());
-          if (stopAsked.timedOut) throw new Error('the stop did not answer in time');
+          if (stopAsked.timedOut) throw new Error(noAnswerSentence(recorderName(capabilitiesRef.current?.daw)));
           result = stopAsked.value;
         }
         if (result.ok && starting && !alive.current && runningStart > seq) {
@@ -657,7 +657,9 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
-        const sentence = `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
+        const sentence = `${what}: ${apiErrorMessage(error)
+          .trim()
+          .replace(/[.!?]+$/, '')}. Check ${recorderName(capabilitiesRef.current?.daw)} before pressing again.`;
         setRefused({ chapterId, sentence });
         block({ cause: 'failed', reason: sentence });
       } finally {
