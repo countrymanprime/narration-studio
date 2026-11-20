@@ -457,6 +457,13 @@ describe('a long book', () => {
 });
 
 describe('the chapter card slot', () => {
+  it('names the heading of a far chapter with no title, as its card does', () => {
+    const blank = Array.from({ length: 8 }, (_, i) => ({ ...chapter(`u${i}`, i), title: ' ', label: undefined }));
+    render(<Reader chapters={blank} paragraphsOf={() => []} sources={sources} renderChapterCard={(c) => <h2>{`Card ${c.id}`}</h2>} />);
+    const far = document.querySelector('[data-bound][data-ch="u7"] [data-pending-card] h2');
+    expect(far?.getAttribute('aria-label')).toBe('Untitled chapter');
+  });
+
   it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
     const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);

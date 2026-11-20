@@ -173,7 +173,12 @@ const Section = memo(function Section(props: SectionProps) {
         {props.renderChapterCard && !drawn ? (
           // The heading alone, so the chapter keeps its place, its name for a search of the page and its heading for a screen reader.
           <div data-pending-card="" style={{ minHeight: CARD_EST_PX }}>
-            <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere]">{headingName(chapter)}</h2>
+            <h2
+              aria-label={headingName(chapter).trim() ? undefined : 'Untitled chapter'}
+              className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere]"
+            >
+              {headingName(chapter)}
+            </h2>
           </div>
         ) : props.renderChapterCard ? (
           props.renderChapterCard(chapter)
