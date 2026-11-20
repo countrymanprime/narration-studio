@@ -456,6 +456,23 @@ describe('a long book', () => {
     expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(10);
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
   });
+
+  // Short chapters, or a tall window: more chapters start inside the reader than two either side of the top one (#3766, the breaker's
+  // 90 one-line chapters at 1440x1400, where chapters 4 and 5 were in view as a heading alone and, before that, with no text).
+  it('draws the card and text of every chapter that starts inside the reader, however many fit', () => {
+    const short = many.slice(0, 40);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(1000);
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+    // Each section is 100 px of the laid-out page here (no paragraphs), so ten start inside a 1000 px reader.
+    render(<Reader chapters={short} paragraphsOf={() => []} sources={sources} renderChapterCard={renderChapterCard} />);
+    scrollTo(0);
+    const cards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-card]')).map((card) => card.dataset.card);
+    expect(cards()).toEqual(short.slice(0, 13).map((c) => c.id));
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(40 - 13);
+    scrollTo(1500);
+    expect(cards()).toContain('k25');
+    expect(cards()).not.toContain('k30');
+  });
 });
 
 describe('the chapter card slot', () => {

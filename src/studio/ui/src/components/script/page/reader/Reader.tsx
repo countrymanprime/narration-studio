@@ -259,14 +259,17 @@ export function Reader(props: ReaderProps) {
     const at = startChapter === undefined ? 0 : (indexOf.get(startChapter) ?? 0);
     return new Set(Array.from({ length: 2 * REACH + 1 }, (_, i) => at - REACH + i).filter((i) => i >= 0));
   });
+  /** Draws chapters `at` to `to` (the ones in view) and `REACH` either side; false while any of them was not drawn yet. */
   const reach = useCallback(
-    (at: number): boolean => {
+    (at: number, to = at): boolean => {
+      const from = Math.max(0, at - REACH);
+      const until = Math.min(chapters.length - 1, Math.max(at, to) + REACH);
       let missing = false;
-      for (let i = at - REACH; i <= at + REACH; i++) if (i >= 0 && i < chapters.length && !drawn.has(i)) missing = true;
+      for (let i = from; i <= until; i++) if (!drawn.has(i)) missing = true;
       if (missing) {
         setDrawn((current) => {
           const next = new Set(current);
-          for (let i = at - REACH; i <= at + REACH; i++) if (i >= 0 && i < chapters.length) next.add(i);
+          for (let i = from; i <= until; i++) next.add(i);
           return next;
         });
       }
@@ -318,14 +321,17 @@ export function Reader(props: ReaderProps) {
   );
 
   /* The spy: the last chapter heading at or above the top of the reader, and the paragraph at its top. */
-  const measure = useCallback((): void => {
+  /* It answers with the last section that starts inside the reader: short chapters, or a tall window, put more than one in view. */
+  const measure = useCallback((): string | undefined => {
     const root = scroller.current;
-    if (!root) return;
+    if (!root) return undefined;
     const bounds = Array.from(root.querySelectorAll<HTMLElement>('[data-bound]'));
-    if (!bounds.length) return;
+    if (!bounds.length) return undefined;
     let at = 0;
+    let last = 0;
     bounds.forEach((bound, i) => {
       if (bound.offsetTop - root.scrollTop <= 70) at = i;
+      if (bound.offsetTop - root.scrollTop <= root.clientHeight) last = i;
     });
     // The last section (the closing credits) is short, so a jump to it stops at the bottom with its heading still below the top.
     if (root.scrollHeight > root.clientHeight && root.scrollTop + root.clientHeight >= root.scrollHeight - 2) {
@@ -339,17 +345,21 @@ export function Reader(props: ReaderProps) {
       if (row.offsetTop - root.scrollTop <= 80) n = i + 1;
     });
     spy.set({ chapterId, para: rows.length ? `¶ ${Math.max(1, n)} of ${rows.length}` : '' });
+    return bounds[Math.max(at, last)].dataset.ch;
   }, [spy]);
   const lastReported = useRef<string | null>(null);
   const onSpy = useCallback(() => {
-    measure();
+    const lastInView = measure();
     const id = spy.get().chapterId;
     if (id && id !== lastReported.current) {
       lastReported.current = id;
       onChapterInView?.(id);
     }
     const idx = id ? indexOf.get(id) : undefined;
-    if (idx !== undefined) reach(idx);
+    const to = lastInView ? indexOf.get(lastInView) : undefined;
+    if (idx !== undefined) reach(idx, to ?? idx);
+    // Under a section that is not a chapter (the opening credits), the chapters in view start at the first.
+    else if (to !== undefined) reach(0, to);
   }, [measure, spy, onChapterInView, indexOf, reach]);
 
   /** Says where a jump landed ("Chapter 2, The Pool of Tears, ¶ 1 of 26"). The header's line is not a live region, and this replaces whatever the live region said last (a prep state). */
