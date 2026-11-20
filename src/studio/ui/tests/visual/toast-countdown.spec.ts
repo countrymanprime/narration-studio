@@ -1,5 +1,5 @@
 // A toast shows how long it has left (#3667): a 3 px bar along its bottom edge, inside its clipped box, that shrinks over the toast's lifetime, is held whole and still while the pointer or focus is on the toast and
-// runs again from the full width on leaving, and takes no room (the toast is as tall with it as without) and covers no button. Motion is on here, as in `motion.spec.ts`: under reduced motion the bar is not drawn.
+// runs again from the full width on leaving, and takes no room (the toast is as tall with it as without) and covers no button. Motion is on here, as in `motion.spec.ts`; the last test is reduced motion, where a stepped bar (once a second, no animation) takes its place.
 import { expect, test, type Page } from '@playwright/test';
 
 test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' });

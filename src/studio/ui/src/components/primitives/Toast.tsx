@@ -38,6 +38,8 @@ export const TOAST_MAX_MS = 60_000;
 /** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
+/** The time-left bar's look, one for the animated bar and the stepped one drawn under reduced motion so they cannot drift (#3667). */
+const COUNTDOWN_BAR = 'pointer-events-none absolute right-0 bottom-0 h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)]';
 /** How often the time-left bar steps under reduced motion (#3667): the one exception to the motion rule, a timer shown without moving. */
 const TOAST_STEP_MS = 1000;
 /** How long an action has to put focus where it wants (the Schedule's restored row, after its Undo resolves) before focus is handed back to where it was. */
@@ -144,13 +146,13 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         data-toast-countdown
         aria-hidden="true"
         style={held ? undefined : { animationDuration: `${stays}ms` }}
-        className={`pointer-events-none absolute right-0 bottom-0 ${isError ? 'left-1' : 'left-0'} h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)] motion-still:hidden ${held ? '' : 'motion-ok:animate-[toast-countdown_linear_forwards]'}`}
+        className={`${COUNTDOWN_BAR} ${isError ? 'left-1' : 'left-0'} motion-still:hidden ${held ? '' : 'motion-ok:animate-[toast-countdown_linear_forwards]'}`}
       />
       <span
         data-toast-countdown-stepped
         aria-hidden="true"
         style={{ transform: `scaleX(${1 - elapsedMs / stays})` }}
-        className={`pointer-events-none absolute right-0 bottom-0 ${isError ? 'left-1' : 'left-0'} hidden h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)] motion-still:block`}
+        className={`${COUNTDOWN_BAR} ${isError ? 'left-1' : 'left-0'} hidden motion-still:block`}
       />
       {isError ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />

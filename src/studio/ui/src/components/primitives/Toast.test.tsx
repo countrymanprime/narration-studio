@@ -419,7 +419,7 @@ describe('ToastRegion time left (#3667)', () => {
     }
   });
 
-  it('is not read out, takes no press, and is not drawn under reduced motion', () => {
+  it('is not read out, takes no press, and is hidden under reduced motion (the stepped bar takes its place)', () => {
     render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     const el = bar('Message 1');
     expect(el.getAttribute('aria-hidden')).toBe('true');
