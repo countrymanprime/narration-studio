@@ -30,9 +30,9 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
   return { api, onOpenDelivery };
 };
 describe('the DAW connection chip (#2823)', () => {
-  it('shows the shared REAPER-not-connected chip when the DAW does not answer, and nothing while it does', async () => {
+  it('shows the shared REAPER connection chip ("Connecting" while the app is still connecting) when the DAW does not answer, and nothing while it does', async () => {
     mount(ALL_PASS, acx, { dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
-    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Connecting to REAPER/, hidden: true })).toBeTruthy();
     cleanup();
     mount(ALL_PASS);
     await screen.findByRole('complementary', { name: /Delivery package/ });

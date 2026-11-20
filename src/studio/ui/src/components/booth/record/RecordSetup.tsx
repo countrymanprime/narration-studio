@@ -9,13 +9,16 @@ import { CheckLine } from '../../layout/CheckLine';
 import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
+import { startedToast } from '../../../daw/dawSession';
+import { useDawConnecting, useReopenOnBridgeProblem } from '../../connection/useDawConnecting';
+
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
 import { capitalised } from '../../../studio/dawNames';
 
-/** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
-const CONNECT_GRACE_MS = 20_000;
+/** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
+const BOOTH_CONNECT_GRACE_MS = 20_000;
 
 /** What a notice says as a toast. `topic` names what the message is about, so a newer message on it replaces the old and Record becoming ready takes it away. */
 type Say = (sentence: string, tone?: 'error', topic?: string) => void;
@@ -38,7 +41,7 @@ export function RecordSetup({
   readFailed,
   factsFailed,
   onCheckAgain,
-  graceMs = CONNECT_GRACE_MS,
+  graceMs = BOOTH_CONNECT_GRACE_MS,
   asked = 0,
 }: {
   capabilities: DawCapabilities;
@@ -205,16 +208,14 @@ function Connect({
   // A launch hands its project to this app, which turns it away while it is busy (the host's `system:attached` with a reason). Nothing else on the
   // page would say why the dialog is still needed, so the dialog says it, and what to do, until a project is taken or the narrator checks again.
   const [turnedAway, setTurnedAway] = useState<string | null>(null);
-  // A linked project connects on its own (the app runs the launcher in the open DAW), so the dialog waits until that has had its time.
-  const [settling, setSettling] = useState(plan.linked && graceMs > 0);
-  useEffect(() => {
-    if (!plan.linked) return;
-    const timer = window.setTimeout(() => setSettling(false), graceMs);
-    return () => window.clearTimeout(timer);
-  }, [plan.linked, graceMs]);
+  // A linked project connects on its own (the app runs the launcher in the open DAW), so the dialog waits while the host says it is starting
+  // the DAW and for the grace after it stopped answering; the same state every page's chip reads (#3668). An unlinked project asks at once.
+  const connecting = useDawConnecting(plan.linked, graceMs, { askAtOnceWhenUnlinked: true });
+  const settling = connecting.connecting;
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
   useReopenOnAsk(asked, reopen);
+  useReopenOnBridgeProblem(reopen);
   // This dialog says why in its own alert, so App does not toast the same sentence over the script (R4BO2-4).
   useEffect(() => claimAttachRefusal(), []);
   useEffect(
@@ -252,7 +253,7 @@ function Connect({
   const label = turnedAway
     ? `${name} started, project turned away`
     : settling
-      ? `Connecting to ${name}…`
+      ? connecting.label(name)
       : plan.notAnswering
         ? `${name} not answering`
         : `${name} not connected`;
@@ -278,7 +279,7 @@ function Connect({
             check.onCheckAgain?.();
           }}
           onCaps={() => onChanged()}
-          onLaunched={(path) => say(`${name} is starting (${path}). Record turns on here once it connects.`, undefined, START_TOPIC)}
+          onLaunched={(path) => say(startedToast(name, path), undefined, START_TOPIC)}
           startLabel={guide.launch.label}
           linked={factsFailed ? undefined : plan.linked}
           onClose={dialog.close}

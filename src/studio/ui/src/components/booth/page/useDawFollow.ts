@@ -217,12 +217,13 @@ export function useArmBoothOnOpen({
   if (stopped) owed.current = false;
   wasRecording.current = recording;
   wasCanArm.current = canArm;
-  useEffect(
-    () => () => {
+  // Set again on every mount: StrictMode runs the cleanup and mounts the same instance once more, and a flag the cleanup left set silenced every answer.
+  useEffect(() => {
+    unmounted.current = false;
+    return () => {
       unmounted.current = true;
-    },
-    [],
-  );
+    };
+  }, []);
   useEffect(() => {
     if (!enabled || follow === undefined || done.current || chapterId === '' || !canArm) return;
     // The entry arm needs the switch on; what a take owes is sent with it off too (the host leaves the monitoring to the switch).

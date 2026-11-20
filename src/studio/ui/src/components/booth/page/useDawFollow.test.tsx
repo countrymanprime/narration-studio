@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react';
+import { StrictMode, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawPlace } from '../../../api/contracts/daw';
@@ -459,6 +459,58 @@ describe('arming the Booth voice on entry (#3428)', () => {
     const sayFailure = vi.fn();
     renderHook(() => useArmBoothOnOpen({ ...base, say: sayFailure }), { wrapper: wrapperFor({ dawArmBoothVoice: failing }) });
     await waitFor(() => expect(sayFailure).toHaveBeenCalledTimes(1));
+  });
+
+  // StrictMode mounts, unmounts and mounts again: the hook is still on screen, so its refusal and its failure are said (they were silent).
+  // A component, not renderHook: renderHook under the provider does not run the effects twice.
+  function renderStrict(dawArmBoothVoice: NonNullable<NarrationApi['dawArmBoothVoice']>, say: (sentence: string) => void) {
+    function Arm() {
+      useArmBoothOnOpen({ ...base, say });
+      return null;
+    }
+    const Wrapper = wrapperFor({ dawArmBoothVoice });
+    return render(
+      <StrictMode>
+        <Wrapper>
+          <Arm />
+        </Wrapper>
+      </StrictMode>,
+    );
+  }
+  // The DAW answers after the remount, as a bridge round trip does.
+  const later = () => new Promise((r) => setTimeout(r, 20));
+
+  it('says a refusal under StrictMode too', async () => {
+    const refused = vi.fn(async () => {
+      await later();
+      return { ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'REAPER is already recording.' };
+    });
+    const say = vi.fn();
+    renderStrict(refused, say);
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith('REAPER is already recording.'));
+  });
+
+  it('says a failed call under StrictMode too', async () => {
+    const failing = vi.fn(async () => {
+      await later();
+      throw new Error('bridge down');
+    });
+    const say = vi.fn();
+    renderStrict(failing, say);
+    await waitFor(() => expect(say).toHaveBeenCalledExactlyOnceWith("The DAW could not arm this chapter's voice. Arm it in the DAW yourself."));
+  });
+
+  it('says nothing once the page is gone, under StrictMode as well', async () => {
+    const gone = vi.fn(async () => {
+      await later();
+      return { ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'late' };
+    });
+    const say = vi.fn();
+    const { unmount } = renderStrict(gone, say);
+    await waitFor(() => expect(gone).toHaveBeenCalled());
+    unmount();
+    await act(async () => later());
+    expect(say).not.toHaveBeenCalled();
   });
 });
 

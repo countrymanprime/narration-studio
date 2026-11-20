@@ -187,7 +187,8 @@ A chip under the text, above the footer, names each problem the Booth can fix an
 footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · track missing**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take the Booth does not follow (another track is armed, several are, none is, or the Booth could not read which; the tooltip says which), or **not running** for a DAW that is not running):
 
 - **Not linked to a track.** The chapter has no track in the DAW project, or several (the chip then reads **Linked to several tracks**), or the track it was linked to is no longer in the project (**Track missing**, as in the audio engine panel; **Folder missing** and **Linked to several folders** in a Voice folders project, where every word says folder). The dialog opens by itself the first
-  time you open the chapter, and again each time you press Record. It offers two fixes:
+  time you open the chapter, and again each time you press Record. The Booth reads the project's tracks in the background as soon as it knows the chapter, and the
+  dialog waits for them (a moment at most, with the **Not linked to a track** chip on screen) so it opens with them to choose from; if they are still being read, **Link track** says so on its tooltip until they arrive. It offers two fixes:
   - **Link track**: choose one of the project's tracks (the best match by name is chosen for you). A track linked to another
     chapter says so, and linking it here moves it.
   - **Create a new track**: REAPER adds a track named after the chapter at the end of the project and links it. With no tracks
@@ -210,7 +211,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
   that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and REAPER starts it
   each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on. When the project opens
   in the app and REAPER is not running, the app opens REAPER on the linked project by itself. Until it connects, a quiet mark
-  above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
+  above the footer says so ("Connecting to REAPER…" for the first few seconds, and "Starting REAPER…" while the app opens it, for up to 90 seconds), and a dialog opens by itself once, only if REAPER has not come up by then; the X
   closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
   the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
   If no REAPER project is linked yet, **Start REAPER** is off and **Link project file…** is the main button: it is the same link action as the one in [Settings > Recording & DAW](settings.md), and every page follows it without a reload. A refusal or a start that never
@@ -219,6 +220,8 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
 
   ![Booth - the dialog closed: the REAPER not connected mark above the footer, which reopens it](../../images/ui/booth-record-connect-closed.webp)
+
+  ![Booth - the app opening REAPER on the linked project: the Starting REAPER mark above the footer, and no dialog](../../images/ui/booth-record-starting.webp)
 
   The dialog says what it is waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
   ago"). The Booth asks again by itself every few seconds while it waits, when you come back to its window, and when you press

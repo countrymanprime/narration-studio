@@ -159,11 +159,25 @@ let appTakeRunning = false;
 let appTakeChapterId: string | undefined;
 /** The chapter the take this app started and has not seen end began in; undefined when there is none. */
 export const appTakeChapter = (): string | undefined => appTakeChapterId;
+// Whether the claiming page already wrote this take's passage-map run (it was left mid-take by the narrator's choice and flushed). The chapter opened again with the take
+// still running does not start a second, overlapping run for the same take (#3720); the claim ending, or a new claim, resets it.
+let appTakeRunWritten = false;
+/** True when the take this app started and has not seen end already has its run written, by the page that was left. */
+export const appTakeRunIsWritten = (): boolean => appTakeRunWritten;
+/** The page that began the take was left mid-take and wrote its run. */
+export const markAppTakeRunWritten = (): void => {
+  appTakeRunWritten = true;
+};
+/** The run that was flushed was refused: the chapter opened again begins a run of its own, so the take is not left with none. */
+export const clearAppTakeRunWritten = (): void => {
+  appTakeRunWritten = false;
+};
 /** Ends the app's claim on its own take, and the chapter it began in. Only a positive answer does: a stop the DAW accepted, a DAW that answers it is not recording, or the DAW
  * recording elsewhere for the claim's own chapter. Anything that is no answer (a read that failed, a quiet DAW, a heard but unconfirmed end) keeps it: the take may still run, and is the app's. */
 const dropClaim = (): void => {
   appTakeRunning = false;
   appTakeChapterId = undefined;
+  appTakeRunWritten = false;
 };
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
@@ -178,6 +192,7 @@ export const forgetAppTake = (): void => {
   runningStart = 0;
   appTakeRunning = false;
   appTakeChapterId = undefined;
+  appTakeRunWritten = false;
   lastStartAt = 0;
 };
 /** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
@@ -406,7 +421,10 @@ export function useRecordControl({
   // A page that reads the DAW as not recording, while it records nothing itself, holds no take: a claim left by a take that ended with no page to see it is stale, and would
   // write off the next take this page adopts as another chapter's (#3712).
   useEffect(() => {
-    if (!recording && !appTakeRunning && project?.playState && project.playState !== 'recording') appTakeChapterId = undefined;
+    if (!recording && !appTakeRunning && project?.playState && project.playState !== 'recording') {
+      appTakeChapterId = undefined;
+      appTakeRunWritten = false;
+    }
   }, [recording, project?.playState]);
   // A take the DAW holds that this app neither pressed nor can claim: the narrator pressed Record in the DAW itself (#3666). It is the Booth's running take
   // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), as the reads above (`link`, `match`) say
@@ -905,6 +923,7 @@ export function useRecordControl({
             // Only a press's own answer claims a take for the app, and a take it started is never one the DAW did.
             appTakeRunning = true;
             setStartedInDaw(false);
+            appTakeRunWritten = false;
           }
           // At once, not at the next render: a start that answers late reads this to tell a take that runs from one nobody owns.
           recordingRef.current = starting;

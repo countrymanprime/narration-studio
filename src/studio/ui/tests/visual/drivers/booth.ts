@@ -265,6 +265,17 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
   },
+  // The linked project while the host starts REAPER (#3668): the mark says so and the dialog does not open, however long after the app opened.
+  'record-starting': async (page) => {
+    await openBooth(page, '?mockDawConnected=0&mockDawChoice=starting');
+    await page
+      .locator('#brec-setup')
+      .getByRole('button', { name: /Starting REAPER/ })
+      .waitFor();
+    await page.waitForTimeout(600);
+    if ((await page.getByRole('dialog', { name: /is not connected/ }).count()) > 0)
+      throw new Error('the not-connected dialog opened while the host is starting REAPER');
+  },
   // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
   'record-connect-closed': async (page) => {
     await openBooth(page, '?mockDawConnected=0');

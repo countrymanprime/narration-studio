@@ -596,11 +596,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/connection/ReaperOffDialog.tsx',
-    text: 'This app opened … on the linked project and is waiting for its bridge to answer.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/connection/ReaperOffDialog.tsx',
     text: 'No … project file is linked to this project yet, so it cannot be started from here.',
     class: 'overlay',
   },
