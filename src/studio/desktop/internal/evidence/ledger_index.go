@@ -44,7 +44,7 @@ func (index *ledgerIndex) refresh(dir string, read func(id string) (LedgerRecord
 	index.mu.Lock()
 	defer index.mu.Unlock()
 	index.listings++
-	entries, err := os.ReadDir(dir)
+	entries, err := persist.ReadDir(dir)
 	if os.IsNotExist(err) {
 		index.records = nil
 		return nil, nil

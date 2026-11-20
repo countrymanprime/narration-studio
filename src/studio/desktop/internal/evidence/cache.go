@@ -192,7 +192,7 @@ func (s *CacheStore) Prune(maxBytes int64) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	entries, err := os.ReadDir(s.dir)
+	entries, err := persist.ReadDir(s.dir)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

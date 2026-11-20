@@ -173,6 +173,14 @@ Scripts in `scripts/ci/` check what merges while no person watches each pull req
 
 `.github/workflows/latency-windows.yml` is started by hand (`workflow_dispatch` only) and is never a gate. On a `windows-latest` runner it freezes the three sidecars, then runs `scripts/research/frozen-sidecar-timing.py` (fresh-copy launch against launch 10, against a frozen "hello", plus import profiles), the `latency`-tagged Go harness against the frozen Story Bible sidecar (`src/studio/desktop/internal/latency`), the bridge round trip against the fake `reaper` (`bridge_test.go`, with `scripts/research/bridge-fake-driver.py`) and `BenchmarkDispatchByLogSize`. The tables are printed in the job log and uploaded as the `latency-windows` artifact. Results go in a dated note under `docs/research/`.
 
+## Host read benchmark and budgets
+
+`node scripts/dev/host-read-bench.mjs seed <folder> --size 17h` writes a book with a recording check on each chapter, findings, a Story Bible, marks and a pickup list through the host's own code, and `reads <folder>` prints what each read binding a page calls on opening costs the host: time, answer size, files decoded, record folders listed and allocations. [Driving the real desktop app](real-app-driver.md#a-book-with-a-narrators-work-in-it) has the options and the per-page timing of the real app.
+
+`TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` (`src/studio/desktop/perfreads_test.go`) runs with the Go tests in `Test (Windows 1/2)`. It caps the decodes, listings and allocations of the five reads every page waits for; it counts work and not time, since a shared runner's clock varies more than a regression moves it. `internal/persist` keeps the two counts (`persist.Work`): a file read through `Reporter.ReadJSON` is a decode and a folder listed through `persist.ReadDir` is a listing.
+
+`.github/workflows/host-read-bench-windows.yml` is started by hand (`workflow_dispatch` only) and is never a gate. It seeds one book size on a `windows-latest` runner, prints the read table in the job log and uploads it as the `host-read-bench-windows` artifact.
+
 ## Reading a run
 
 Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\<data>\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).

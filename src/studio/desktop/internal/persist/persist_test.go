@@ -257,3 +257,31 @@ func TestWarnLogsAndIsSafeOnANilReporter(t *testing.T) {
 		t.Errorf("logged %q", got)
 	}
 }
+
+func TestWorkCountsTheFilesDecodedAndTheFoldersListed(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "record.json")
+	if err := os.WriteFile(path, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	decoded, listed := Work()
+	reporter := &Reporter{}
+	for range 3 {
+		if outcome := reporter.ReadJSON(path, "record", Disposable, func([]byte) error { return nil }); outcome != Loaded {
+			t.Fatalf("outcome %v, want Loaded", outcome)
+		}
+	}
+	// A file that is not there was not decoded.
+	reporter.ReadJSON(filepath.Join(dir, "missing.json"), "record", Disposable, func([]byte) error { return nil })
+	entries, err := ReadDir(dir)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("ReadDir = %d entries, %v; want the one record", len(entries), err)
+	}
+	if _, err := ReadDir(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
+		t.Fatalf("ReadDir of a missing folder: %v, want not-exist as os.ReadDir gives", err)
+	}
+	nowDecoded, nowListed := Work()
+	if nowDecoded-decoded != 3 || nowListed-listed != 2 {
+		t.Fatalf("counted %d decodes and %d listings, want 3 and 2", nowDecoded-decoded, nowListed-listed)
+	}
+}
