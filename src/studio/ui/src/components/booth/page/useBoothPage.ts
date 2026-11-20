@@ -1305,7 +1305,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
-  // Alt+Space (#3445): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
+  // Ctrl+Alt+Space (#3445, #3744): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
   // from Record a cold read, from Cold read a take. Nothing new while a take or a cold read runs or is starting, or while a popup or a question has
   // the keyboard (the router lets an Alt chord through a popup, so this says no to it here).
   const switchMode = useCallback(async () => {
