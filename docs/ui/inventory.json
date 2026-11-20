@@ -1605,6 +1605,7 @@
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/AddMarkers.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/CapabilityReferenceButton.tsx",
         "src/components/engine/CapabilityReferenceDialog.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",

@@ -41,7 +41,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/page/rail/InThisChapter.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/storybible/EntryTable.tsx`

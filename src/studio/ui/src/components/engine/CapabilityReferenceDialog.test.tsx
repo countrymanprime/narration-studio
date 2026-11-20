@@ -40,7 +40,7 @@ describe('CapabilityReference', () => {
         .map((header) => header.textContent),
     ).toEqual(['What', 'Now']);
     const record = within(table).getByText('Record').closest('tr')!;
-    expect(within(record).getByText('Works with REAPER, Built-in recorder')).toBeTruthy();
+    expect(within(record).getByText('Works with REAPER, Built-in recorder. Not built yet for Audacity 3')).toBeTruthy();
     expect(within(record).getAllByRole('cell')).toHaveLength(2);
   });
 

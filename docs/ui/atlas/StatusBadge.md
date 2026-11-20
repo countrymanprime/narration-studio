@@ -103,7 +103,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/script/page/rail/words/wordStatus.ts`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
 - `src/components/settings/controls/DefinitionsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`

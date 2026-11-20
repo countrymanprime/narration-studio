@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilitySupport } from '../../api/contracts/daw';
-import { CAPABILITY_GUIDE } from '../../daw/capabilityGuide';
+import { recorderName } from '../../studio/dawNames';
+import { CAPABILITY_GUIDE, placeLabel } from '../../daw/capabilityGuide';
 import { CAPABILITY_MATRIX, MATRIX_TOOLS, type MatrixCell } from '../../daw/capabilityMatrix';
 import { IconButton } from '../primitives/IconButton';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -20,6 +21,13 @@ const LEVEL_WORD: Record<DawCapabilityLevel, string> = {
   not_yet_available: 'Not yet available',
   unsupported: 'Unsupported',
 };
+// What a header's tooltip says: the words in its column, and why a tool is "No" all the way down.
+const TOOL_INFO: Record<(typeof MATRIX_TOOLS)[number], string> = {
+  REAPER: 'Yes: the app can do it with this tool. Not yet: the app has not built it for this tool. No: this tool cannot do it.',
+  'Audacity 3': 'Yes: the app can do it with this tool. Not yet: the app has not built it for this tool. No: this tool cannot do it.',
+  'Audacity 4': 'Audacity 4 has no scripting pipe, so the app cannot reach it.',
+  'Built-in recorder': 'The app’s own recorder: it records, and has no project to edit.',
+};
 const CELL: Record<MatrixCell, { label: string; tone: 'success' | 'neutral' | 'warning'; icon: string }> = {
   yes: { label: 'Yes', tone: 'success', icon: '✓' },
   soon: { label: 'Not yet', tone: 'warning', icon: '' },
@@ -32,10 +40,6 @@ function keysOf(report: DawCapabilities | undefined): string[] {
   return [...DAW_CAPABILITIES.map(({ key }) => String(key)), ...reported.filter((key) => !LABELS.has(key))];
 }
 
-/** The tool's name for the table's title: the DAW's own, or "the recording tool" when the launch names none. */
-export const toolName = (report: DawCapabilities | undefined): string =>
-  !report || report.daw === 'none' ? 'the recording tool' : report.daw === 'Built-in' ? 'the built-in recorder' : report.daw;
-
 /** What the capability is now: available, or the host's own sentence for why not (the page never words a refusal). */
 function Now({ support }: { support: DawCapabilitySupport | undefined }) {
   if (!support) return <span className="text-[var(--text-muted)]">Not reported</span>;
@@ -46,6 +50,14 @@ function Now({ support }: { support: DawCapabilitySupport | undefined }) {
       <span className="text-[0.8125rem] text-[var(--text-muted)]">{support.message ?? LEVEL_WORD[support.level] ?? LEVEL_WORD.unsupported}</span>
     </span>
   );
+}
+
+/** The folded layout's line for the tools: who does it, and who the app has not built it for yet. */
+function worksWith(levels: readonly MatrixCell[]): string {
+  const named = (cell: MatrixCell) => MATRIX_TOOLS.filter((_, index) => levels[index] === cell).join(', ');
+  const yes = named('yes');
+  const soon = named('soon');
+  return `${yes ? `Works with ${yes}` : 'Works with no tool yet'}${soon ? `. Not built yet for ${soon}` : ''}`;
 }
 
 /** How many of the capabilities the host reports are available now, for the one-line Settings row. */
@@ -71,11 +83,16 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
         </div>
       )}
       <Table label="What the recording tools can do" columns={narrow ? NARROW_COLUMNS : COLUMNS}>
-        <TableHead>
+        <TableHead sticky>
           <TableRow>
             <TableHeader>What</TableHeader>
-            {!narrow && MATRIX_TOOLS.map((tool) => <TableHeader key={tool}>{tool === 'Built-in recorder' ? 'Built-in' : tool}</TableHeader>)}
-            <TableHeader>{narrow ? 'Now' : `Now in ${toolName(report)}`}</TableHeader>
+            {!narrow &&
+              MATRIX_TOOLS.map((tool) => (
+                <TableHeader key={tool} info={TOOL_INFO[tool]}>
+                  {tool === 'Built-in recorder' ? 'Built-in' : tool}
+                </TableHeader>
+              ))}
+            <TableHeader>{narrow ? 'Now' : `Now in ${recorderName(report?.daw)}`}</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -90,18 +107,14 @@ export function CapabilityReference({ report, loadError, onRetry }: { report: Da
                   {guide && <span className="block text-[0.8125rem] text-[var(--text-muted)]">{guide.does}</span>}
                   {guide && (
                     <span className="block text-[0.8125rem] text-[var(--text-muted)]">
-                      {guide.used.length > 0 ? `Used by ${guide.used.join(', ')}` : 'Used by the app itself'}
+                      {guide.used.length > 0 ? `Used by ${guide.used.map(placeLabel).join(', ')}` : 'Used by the app itself'}
                     </span>
                   )}
-                  {narrow && (
-                    <span className="block text-[0.8125rem] text-[var(--text-muted)]">
-                      {levels ? `Works with ${MATRIX_TOOLS.filter((_, index) => levels[index] === 'yes').join(', ') || 'no tool yet'}` : 'Not listed'}
-                    </span>
-                  )}
+                  {narrow && <span className="block text-[0.8125rem] text-[var(--text-muted)]">{levels ? worksWith(levels) : 'Not listed'}</span>}
                 </TableCell>
                 {!narrow &&
                   MATRIX_TOOLS.map((tool, index) => (
-                    <TableCell key={tool}>
+                    <TableCell key={tool} align="center">
                       {levels ? (
                         <StatusBadge shape="cell" tone={CELL[levels[index]].tone} icon={CELL[levels[index]].icon} label={CELL[levels[index]].label} />
                       ) : (

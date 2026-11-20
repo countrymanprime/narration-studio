@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
-import { DAW_CAPABILITIES } from '../../../api/contracts/daw';
+import { DAW_CAPABILITIES, type DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
@@ -479,7 +479,14 @@ describe('App & updates: Capabilities', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((header) => header.textContent),
-    ).toEqual(['What', 'REAPER', 'Audacity 3', 'Audacity 4', 'Built-in', expect.stringMatching(/^Now in /)]);
+    ).toEqual([
+      'What',
+      expect.stringMatching(/^REAPER/),
+      expect.stringMatching(/^Audacity 3/),
+      expect.stringMatching(/^Audacity 4/),
+      expect.stringMatching(/^Built-in/),
+      expect.stringMatching(/^Now in /),
+    ]);
     const report = await api.dawCapabilities();
     const recordRow = within(table).getByText('Record').closest('tr')!;
     expect(within(recordRow).getByText('Arms a chapter’s track and starts and stops recording on it.')).toBeTruthy();
@@ -490,6 +497,7 @@ describe('App & updates: Capabilities', () => {
     expect(within(recordRow).getAllByText('Yes')).toHaveLength(2);
     expect(within(recordRow).getAllByText('No')).toHaveLength(1);
     expect(within(recordRow).getAllByText('Not yet')).toHaveLength(1);
+    expect(within(recordRow).getByText('Used by Booth')).toBeTruthy();
     expect(within(recordRow).queryByRole('combobox')).toBeNull();
     expect(dialog.textContent).not.toMatch(/experimental/i);
   });
@@ -515,7 +523,7 @@ describe('App & updates: Capabilities', () => {
   });
 
   it('keeps focus on Retry when the read fails again and closes back to the button', async () => {
-    const dawCapabilities = vi.fn(async () => {
+    const dawCapabilities = vi.fn<() => Promise<DawCapabilities>>(async () => {
       throw new Error('bridge unreadable');
     });
     const api = createMockApi({ subscribeDawCapabilities: () => () => undefined, dawCapabilities });
@@ -526,6 +534,12 @@ describe('App & updates: Capabilities', () => {
     await userEvent.click(retry);
     await waitFor(() => expect(dawCapabilities.mock.calls.length).toBeGreaterThan(reads));
     expect(document.activeElement).toBe(retry);
+    // A read that then succeeds takes the error line, and the Retry in it, away: focus stays in the dialog, never on <body>.
+    const base = createMockApi({}, {});
+    dawCapabilities.mockImplementation(async () => base.dawCapabilities());
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(within(dialog).queryByText(/bridge unreadable/)).toBeNull());
+    expect(dialog.contains(document.activeElement)).toBe(true);
     await userEvent.click(within(dialog).getAllByRole('button', { name: 'Close' }).at(-1)!);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /^What .* can do$/ })).toBeNull());
     expect(document.activeElement).toBe(within(line).getByRole('button', { name: 'See what each tool can do' }));

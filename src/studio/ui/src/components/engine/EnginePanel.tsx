@@ -180,7 +180,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
         <div className="flex items-center justify-end gap-2">
-          <CapabilityReferenceButton>What it can do</CapabilityReferenceButton>
+          <CapabilityReferenceButton />
           <IconButton action="gear" label="Recording settings" onClick={onOpenRecordingSettings} />
         </div>
         {forAudacity ? (

@@ -175,6 +175,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'replaces audio when it cuts, so the audio around the cut is backed up first.',
     class: 'overlay',
   },
+  { file: 'components/engine/CapabilityReferenceDialog.tsx', text: 'The recording tool’s capabilities could not be read: ….', class: 'error' },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',

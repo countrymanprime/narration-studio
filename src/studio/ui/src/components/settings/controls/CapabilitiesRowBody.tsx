@@ -1,6 +1,7 @@
-import { plural } from '../../../plural';
+import { formatCount, plural } from '../../../plural';
+import { recorderNameCapital } from '../../../studio/dawNames';
 import { useDawCapabilityReport } from '../../../daw/useDawCapabilityReport';
-import { availableCount, toolName } from '../../engine/CapabilityReferenceDialog';
+import { availableCount } from '../../engine/CapabilityReferenceDialog';
 import { CapabilityReferenceButton } from '../../engine/CapabilityReferenceButton';
 
 /**
@@ -13,7 +14,7 @@ export function CapabilitiesRowBody() {
   const summary = report
     ? report.daw === 'none'
       ? 'No recording tool is linked.'
-      : `${toolName(report)} does ${available} of ${plural(total, 'thing')} the app asks of it now.`
+      : `${recorderNameCapital(report.daw)} does ${formatCount(available)} of ${plural(total, 'thing')} the app asks of it now.`
     : loadError
       ? 'Could not be read.'
       : 'Reading what the recording tool can do…';

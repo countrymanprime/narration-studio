@@ -119,7 +119,7 @@ describe('EnginePanel', () => {
   it('opens what the recording tools can do from the panel, over it, and puts focus back on its button', async () => {
     renderPanel();
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
-    const opener = within(panel).getByRole('button', { name: 'What it can do' });
+    const opener = within(panel).getByRole('button', { name: 'Show what each recording tool can do' });
     await userEvent.click(opener);
     const reference = await screen.findByRole('dialog', { name: /^What .* can do$/ });
     expect(within(reference).getByRole('table', { name: 'What the recording tools can do' })).toBeTruthy();

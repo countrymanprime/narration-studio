@@ -649,7 +649,7 @@ export const ROWS: readonly SettingMeta[] = [
   {
     id: 'booth.followChapterInDaw',
     cat: 'recording',
-    section: 'What the recording tool can do',
+    section: 'Following your chapter',
     label: 'DAW follows your chapter',
     scope: 'computer',
     def: 'true',
@@ -964,7 +964,7 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Capabilities',
     scope: 'computer',
     def: '',
-    desc: 'What each recording tool can do, and what the linked one does now.',
+    desc: 'What each tool can do, and what the linked one does now.',
     more: 'Each thing the app can ask a recording tool to do, what it is for, which tools do it and what the linked tool reports now, with the tool’s reason when it cannot. Nothing here turns one on or off. The same list opens from the audio engine panel.',
     used: ['booth', 'editing', 'pickups', 'proof'],
     also: 'Audio engine panel',
