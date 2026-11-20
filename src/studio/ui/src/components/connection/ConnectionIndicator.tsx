@@ -7,7 +7,7 @@ import { HeaderChip } from '../primitives/HeaderChip';
  */
 export function ConnectionIndicator({ label, onOpen, id }: { label: string; onOpen: () => void; id?: string }) {
   return (
-    <span id={id} className="inline-flex min-w-[9.5rem] flex-none">
+    <span id={id} className="inline-flex min-w-[8.5rem] flex-none">
       <HeaderChip dot="var(--warn)" onClick={onOpen} title="Show what is wrong and how to fix it" aria-label={`${label}. Show details`}>
         {label}
       </HeaderChip>
