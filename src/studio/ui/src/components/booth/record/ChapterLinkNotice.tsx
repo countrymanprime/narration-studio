@@ -51,7 +51,12 @@ export function ChapterLinkNotice({
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <NoticeChip id="brec-link" label={several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip} onOpen={reopen} />
+      <NoticeChip
+        id="brec-link"
+        // While the dialog waits for the tracks the chip says so, so the narrator sees what is happening instead of a notice and a pause.
+        label={!ahead ? `Reading the ${dawName} tracks…` : several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip}
+        onOpen={reopen}
+      />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}

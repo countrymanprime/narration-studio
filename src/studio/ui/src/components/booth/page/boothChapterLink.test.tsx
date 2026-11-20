@@ -135,7 +135,8 @@ describe('an unlinked chapter in the Booth', () => {
       candidates: [{ trackGuid: '{T-1}', trackName: 'Chapter 1', trackIndex: 0, score: 1, source: 'track-name', region: null }],
     };
     renderUnlinked({ chapterTrackMatch: () => new Promise<ChapterTrackMatch>((resolve) => setTimeout(() => resolve(withTracks), 500)) });
-    expect(await screen.findByRole('button', { name: 'Not linked to a track. Show details' })).toBeTruthy();
+    // While the tracks are being read the chip says so, and no dialog is up.
+    expect(await screen.findByRole('button', { name: /Reading the REAPER tracks…/ })).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' }, { timeout: 4000 });
     expect(within(dialog).queryByText(/Reading the REAPER tracks/)).toBeNull();

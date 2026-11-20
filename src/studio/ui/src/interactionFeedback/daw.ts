@@ -220,7 +220,7 @@ export const dawFeedback = {
     'silent',
     'na',
     'exempt',
-    "Reads the chapter's tracks ahead, once, when the Booth knows the chapter and the DAW answers, so the not-linked dialog opens with them (#3669); it only warms what the dialog reads for itself, and a failed read leaves nothing behind, so the dialog reads the tracks on open and says so in its own words.",
+    "Reads the chapter's tracks ahead when the Booth knows the chapter (and again when the DAW comes back or the last read is over 30 s old), so the not-linked dialog opens with them (#3669); it only warms what the dialog reads for itself, and a failed read leaves nothing behind, so the dialog reads the tracks on open and says so in its own words.",
   ),
   // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
   'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(

@@ -17,7 +17,7 @@ import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTrack
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
 import { LinkDawFileContext } from './linkDawFile';
-import { forgetMatches, prefetchMatch } from './chapterMatchCache';
+import { forgetMatches, prefetchMatch, rememberMatch } from './chapterMatchCache';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
 import { VoiceLayoutContext } from '../engine/voiceLayout';
 
@@ -480,6 +480,13 @@ describe('the not-linked dialog', () => {
       const create = await screen.findByRole('button', { name: 'Create a new track' });
       await userEvent.click(create);
       expect(chapterTrackCreate).not.toHaveBeenCalled();
+    });
+
+    it('says when the tracks it opened with were read, not when the dialog opened', async () => {
+      rememberMatch('C:/Projects/Alice', 'c3', match(), Date.now() - 120_000);
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      expect(screen.getByText(/Last checked 1\d\d s ago/)).toBeTruthy();
     });
 
     it('keeps the tracks shown when the read behind them fails, and Check again tries again', async () => {
