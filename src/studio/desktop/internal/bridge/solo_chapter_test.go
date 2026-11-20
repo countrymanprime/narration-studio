@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +58,18 @@ func TestSoloRestoreReadsWhatWasPutBackKeptAndWaiting(t *testing.T) {
 	answer = [][]string{{"SOLO_RESTORED", "", "0", "0", "1"}}
 	if got, err = actions.SoloRestore(context.Background()); err != nil || got != (SoloReleased{Waiting: true}) {
 		t.Fatalf("waiting: got %+v, %v", got, err)
+	}
+}
+
+func TestSoloChapterAndRestoreReturnTheErrorREAPERAnswers(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was soloed."}}
+	})
+	if _, err := actions.SoloChapter(context.Background(), testTrack); err == nil || !strings.Contains(err.Error(), "not writable") {
+		t.Fatalf("solo err = %v, want REAPER's sentence", err)
+	}
+	if _, err := actions.SoloRestore(context.Background()); err == nil || !strings.Contains(err.Error(), "not writable") {
+		t.Fatalf("restore err = %v, want REAPER's sentence", err)
 	}
 }
