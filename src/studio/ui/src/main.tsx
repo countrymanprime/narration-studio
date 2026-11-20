@@ -167,7 +167,7 @@ const mockResume = MOCK_RESUME_SEEDS.find((seed) => seed === mockParams.get('moc
 // `?mockRemoved=1`: the last narration chapter boots removed from recording.
 const mockRemoved = mockParams.get('mockRemoved') === '1';
 // `?mockChapterSync=ask|off|linked|unsaved|pickups|activity|needs-you|background`: chapter sync's consent at boot
-// (`unsaved` is REAPER holding unsaved edits, with a Sync activity row; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is a sync that
+// (`unsaved` is REAPER holding unsaved edits, with one stored batch; `pickups` is a chapter whose pickup track changed since its last scan; `activity` is a sync that
 // made an automatic and a manual link, `needs-you` the same after the automatic one was undone; `background` is a background check waiting because the
 // heartbeat says REAPER is recording).
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'needs-you', 'background'] as const).find(

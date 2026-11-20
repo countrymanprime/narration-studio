@@ -121,7 +121,7 @@ export function createChapterTracksMock(
   };
   const mockBackground = (): ChapterSyncBackground => ({ ...background });
   const chapterSyncUnsavedEdits = initial.chapterSync === 'unsaved';
-  // The Sync activity list, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
+  // The stored sync batches, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
   let chapterSyncActivity: ChapterSyncBatch[] =
     initial.chapterSync === 'unsaved'
       ? [{ at: '2026-09-24T09:05:00Z', trigger: 'watch', linked: [], newTracks: [{ guid: '{mock-room-tone}', name: 'Room tone', index: 9, marker: '' }] }]
@@ -490,7 +490,7 @@ export function createChapterTracksMock(
   return { bindings, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
 }
 
-/** The activity seed's Sync activity, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
+/** The activity seed's stored batches, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
 function mockSyncActivity(): ChapterSyncBatch[] {
   const [first] = WIRE_TRACKS_PROJECT.tracks;
   const chapter = WIRE_CHAPTERS[0];
