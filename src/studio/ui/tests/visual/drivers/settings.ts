@@ -237,7 +237,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByRole('table', { name: /^Voices of / }).waitFor();
   },
   'recording-new-chapter-folder': async (page) => {
-    // The mock project assigns no voice but Extras, so the host's answer is set to the cast a real project has: three voices, one left out last time.
+    // The mock project assigns no voice but Extras, so the host's answer is set to the cast a real project has: three voices, all ticked (the default, so the row is not Changed).
     await page.addInitScript(() => {
       (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
         chapterCreateOptions: async () => ({
@@ -246,7 +246,7 @@ export const settingsDrivers: Record<string, Driver> = {
           voices: [
             { name: 'White Rabbit', checked: true },
             { name: 'Alice', checked: true },
-            { name: 'Cheshire Cat', checked: false },
+            { name: 'Cheshire Cat', checked: true },
           ],
           extras: { name: 'Extras', checked: true },
         }),
