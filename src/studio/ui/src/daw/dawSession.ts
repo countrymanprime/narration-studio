@@ -114,6 +114,23 @@ const INITIAL: DawSessionState = {
  * app start, and every screen reads them from this store. No screen subscribes to the host for DAW state by itself, so what a screen
  * shows never depends on which other screen has mounted. `ApiProvider` creates and starts it; see `useDawSession.ts` for the hooks.
  */
+/**
+ * The capability report as every screen should read it: while the host is starting the DAW (it is not answering and the host says "starting"), a
+ * capability that is off is off because the DAW is not up yet, so its sentence says that instead of "Open REAPER" (#3668). Done here, once, so the
+ * twenty places that read a capability's message from the session all say the same, whichever way they read it.
+ */
+export function presentCaps(caps: DawCapabilities | null, choice: DawChoice | null | undefined): DawCapabilities | null {
+  if (!caps || caps.reachable || caps.daw === 'none' || choice?.state !== 'starting') return caps;
+  const message = `${caps.daw} is starting. The app connects to it by itself.`;
+  const capabilities = Object.fromEntries(
+    Object.entries(caps.capabilities).map(([key, entry]) => [
+      key,
+      entry && !entry.available && entry.level !== 'unsupported' && !['not_yet', 'unsupported'].includes(entry.reason ?? '') ? { ...entry, message } : entry,
+    ]),
+  ) as DawCapabilities['capabilities'];
+  return { ...caps, capabilities };
+}
+
 export function createDawSession(host: DawSessionApi): DawSession {
   // A call that throws before it returns a promise (an api double without the method) is a failed read, like any other.
   const api = {
@@ -133,6 +150,8 @@ export function createDawSession(host: DawSessionApi): DawSession {
   let heardMetersAt: number | null = null;
   let asking = false;
   let episode = 0;
+  // The report as the host sent it; `state.caps` is that report presented for the host's choice (see `presentCaps`).
+  let rawCaps: DawCapabilities | null = null;
 
   const set = (patch: Partial<DawSessionState>) => {
     state = { ...state, ...patch };
@@ -145,8 +164,9 @@ export function createDawSession(host: DawSessionApi): DawSession {
     const now = Date.now();
     // Every change between answering and not answering is a new episode: a choice asked in an earlier one is about a start that is over.
     if (state.caps !== null && state.caps.reachable !== next.reachable) episode += 1;
+    rawCaps = next;
     set({
-      caps: next,
+      caps: presentCaps(next, next.reachable ? undefined : state.choice),
       capsCheckedAt: now,
       capsHeardAt: next.reachable ? now : state.capsHeardAt,
       capsReadFailed: false,
@@ -193,13 +213,13 @@ export function createDawSession(host: DawSessionApi): DawSession {
           const was = state.choice;
           // What was heard is kept through a failed read only while the host's own window for a start (90 s) has not run out, so reads that keep failing cannot hold "starting" for ever.
           const windowEnds = was?.state === 'starting' && was.starting ? Date.parse(was.starting.since) + DAW_START_WINDOW_MS : 0;
-          if (was === undefined || (was !== null && !(windowEnds > Date.now()))) set({ choice: null });
+          if (was === undefined || (was !== null && !(windowEnds > Date.now()))) set({ choice: null, caps: presentCaps(rawCaps, null) });
           return;
         }
         const was = state.choice;
         // The project's DAW changed while it was off (another project, a file linked): the time it has been off starts again.
         const changed = was && next && (was.daw !== next.daw || was.linkedFile !== next.linkedFile || was.hasProject !== next.hasProject);
-        set({ choice: next, ...(changed && state.offSince !== null ? { offSince: Date.now() } : {}) });
+        set({ choice: next, caps: presentCaps(rawCaps, next), ...(changed && state.offSince !== null ? { offSince: Date.now() } : {}) });
       })
       .finally(() => {
         clearTimeout(giveUp);

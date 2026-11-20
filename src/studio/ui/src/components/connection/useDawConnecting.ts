@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useDawState } from '../../daw/useDawSession';
 
 /** How long a DAW that is not answering is left alone, counted from when it stopped answering (or the project's DAW changed), before the app asks the narrator about it. */
@@ -41,4 +41,18 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
   const unlinked = choice?.state === 'not_linked';
   const connecting = off && !unlinked && (starting || left > 0);
   return { connecting, starting, label: (dawName) => (starting ? `Starting ${dawName}…` : `Connecting to ${dawName}…`) };
+}
+
+/**
+ * Asks again, once, when the host reports that a start it made went nowhere (the DAW was opened but its bridge never answered, after its 90 s
+ * window): the narrator who closed the dialog during the start is told, with the host's sentence, instead of the chip quietly changing (#3668).
+ */
+export function useReopenOnBridgeProblem(reopen: () => void): void {
+  const problem = useDawState((state) => state.choice?.bridge?.problem ?? null);
+  const told = useRef<string | null>(null);
+  useEffect(() => {
+    if (!problem || told.current === problem) return;
+    told.current = problem;
+    reopen();
+  }, [problem, reopen]);
 }

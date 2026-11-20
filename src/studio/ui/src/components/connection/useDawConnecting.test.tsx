@@ -6,7 +6,7 @@ import type { DawChoice } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
-import { useDawConnecting } from './useDawConnecting';
+import { useDawConnecting, useReopenOnBridgeProblem } from './useDawConnecting';
 
 afterEach(cleanup);
 
@@ -130,3 +130,35 @@ function ConnectedProbe() {
   const connecting = useDawConnecting(false, 10_000);
   return <p>{connecting.connecting ? 'connecting' : 'asks now'}</p>;
 }
+
+function Reopener({ reopen }: { reopen: () => void }) {
+  useReopenOnBridgeProblem(reopen);
+  return <p>reopener</p>;
+}
+
+describe('useReopenOnBridgeProblem', () => {
+  it('asks again once when the host reports that a start went nowhere, and not for a host that reports none', async () => {
+    const problem = 'The app opened REAPER, but REAPER’s bridge has not answered.';
+    const reopen = vi.fn();
+    const first = render(
+      <ApiProvider
+        api={createMockApi({
+          dawCapabilities: async () => structuredClone(DAW_SETUPS['reaper-off']),
+          dawChoice: async () => choice({ bridge: { installed: true, startsWithReaper: true, problem } }),
+        })}
+      >
+        <Reopener reopen={reopen} />
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(reopen).toHaveBeenCalledTimes(1));
+    first.unmount();
+    const quiet = vi.fn();
+    render(
+      <ApiProvider api={createMockApi({ dawCapabilities: async () => structuredClone(DAW_SETUPS['reaper-off']), dawChoice: async () => choice({}) })}>
+        <Reopener reopen={quiet} />
+      </ApiProvider>,
+    );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 100)));
+    expect(quiet).not.toHaveBeenCalled();
+  });
+});

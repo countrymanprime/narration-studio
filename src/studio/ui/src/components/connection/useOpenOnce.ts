@@ -55,6 +55,8 @@ export function useOpenOnce(
   const reopen = useCallback(() => {
     if (key === null) return;
     opened.add(key);
+    // Remembered like an automatic opening, so the condition going away forgets the key and the next loss asks again.
+    lastKey.current = key;
     setState({ key, open: true });
   }, [key]);
   const close = useCallback(() => setState((prev) => ({ ...prev, open: false })), []);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
+import { useDawState } from '../../daw/useDawSession';
 import { usePort } from '../../ports/usePort';
 import { recorderName } from '../../studio/dawNames';
 import { useSecondsSince } from '../layout/CheckLine';
@@ -84,7 +85,10 @@ export function ReaperOffDialog({
 }: ReaperOffDialogProps) {
   const name = nameOverride ?? recorderName(daw);
   const choiceApi = usePort('dawChoice');
-  const [choice, setChoice] = useState<DawChoice | null>();
+  const [ownChoice, setChoice] = useState<DawChoice | null>();
+  // The session's reading is what the chip and the page say, so it is what the dialog says too, the moment it opens; this dialog's own read is only for when the session has none.
+  const sessionChoice = useDawState((state) => state.choice);
+  const choice = sessionChoice ?? ownChoice;
   // Read again with every check, so "linked" turns into "connected" at once and the sentence under the title stays true.
   useEffect(() => {
     let live = true;
@@ -165,7 +169,8 @@ export function ReaperOffDialog({
           {name} could not be started: {launch.state.message}
         </p>
       )}
-      {launch.state.phase === 'failed' && (
+      {/* While the host says it is starting the DAW, "has not answered yet" would be false: it has not had its time yet. */}
+      {launch.state.phase === 'failed' && !starting && (
         <p role="alert" className="text-[var(--danger-text)]">
           {launch.state.message}
         </p>

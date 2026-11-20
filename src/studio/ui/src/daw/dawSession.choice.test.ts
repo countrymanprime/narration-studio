@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DawCapabilities, DawChoice } from '../api/contracts/daw';
 import { DAW_SETUPS } from '../fixtures/daw';
-import { createDawSession, DAW_CHOICE_READ_MS, type DawSessionApi } from './dawSession';
+import { createDawSession, DAW_CHOICE_READ_MS, presentCaps, type DawSessionApi } from './dawSession';
 
 const OFF: DawCapabilities = structuredClone(DAW_SETUPS['reaper-off']);
 const ON: DawCapabilities = structuredClone(DAW_SETUPS['reaper']);
@@ -200,6 +200,53 @@ describe("the session's DAW choice and offSince", () => {
     await session.refreshCapabilities();
     await settle();
     expect(session.getState().choice).toBeNull();
+    session.stop();
+  });
+
+  it('presents every unavailable capability as "starting" while the host starts the DAW, and nothing otherwise', async () => {
+    const starting = { ...choice('starting'), starting: { since: new Date().toISOString() } } as unknown as DawChoice;
+    const shown = presentCaps(OFF, starting);
+    const connectionOff = (entry: (typeof OFF.capabilities)[keyof typeof OFF.capabilities]) =>
+      !entry.available && entry.level !== 'unsupported' && !['not_yet', 'unsupported'].includes(entry.reason ?? '');
+    const off = Object.values(OFF.capabilities).filter(connectionOff);
+    expect(off.length).toBeGreaterThan(0);
+    for (const [key, entry] of Object.entries(shown?.capabilities ?? {})) {
+      const was = OFF.capabilities[key as keyof typeof OFF.capabilities];
+      if (connectionOff(was)) expect(entry.message).toBe('REAPER is starting. The app connects to it by itself.');
+      else expect(entry).toBe(was);
+    }
+    // A capability that is off for a reason other than the connection keeps the host's own sentence.
+    const withNotYet = structuredClone(OFF);
+    const [notYetKey] = Object.keys(withNotYet.capabilities);
+    withNotYet.capabilities[notYetKey as keyof typeof withNotYet.capabilities] = {
+      level: 'not_yet_available',
+      available: false,
+      reason: 'not_yet',
+      message: 'Not built yet.',
+    } as never;
+    expect(presentCaps(withNotYet, starting)?.capabilities[notYetKey as keyof typeof withNotYet.capabilities].message).toBe('Not built yet.');
+    expect(presentCaps(OFF, choice('linked'))).toBe(OFF);
+    expect(presentCaps(OFF, null)).toBe(OFF);
+    expect(presentCaps(ON, starting)).toBe(ON);
+    expect(presentCaps(null, starting)).toBeNull();
+
+    // And through the session: every reader of `caps` sees it, and it goes when the host stops saying starting.
+    let answer: DawChoice = starting;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        async () => answer,
+      ),
+    );
+    session.start();
+    await settle();
+    const sentence = (state: ReturnType<typeof session.getState>) =>
+      Object.values(state.caps?.capabilities ?? {}).find((entry) => !entry.available && entry.level !== 'unsupported')?.message;
+    expect(sentence(session.getState())).toBe('REAPER is starting. The app connects to it by itself.');
+    answer = choice('linked');
+    await session.refreshCapabilities();
+    await settle();
+    expect(sentence(session.getState())).not.toContain('is starting');
     session.stop();
   });
 });

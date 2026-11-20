@@ -9,7 +9,7 @@ import { CheckLine } from '../../layout/CheckLine';
 import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
-import { DAW_CONNECT_GRACE_MS, useDawConnecting } from '../../connection/useDawConnecting';
+import { DAW_CONNECT_GRACE_MS, useDawConnecting, useReopenOnBridgeProblem } from '../../connection/useDawConnecting';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
@@ -209,6 +209,7 @@ function Connect({
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
   useReopenOnAsk(asked, reopen);
+  useReopenOnBridgeProblem(reopen);
   // This dialog says why in its own alert, so App does not toast the same sentence over the script (R4BO2-4).
   useEffect(() => claimAttachRefusal(), []);
   useEffect(

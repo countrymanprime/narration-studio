@@ -1,9 +1,11 @@
 import { useEffect, type ReactNode } from 'react';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
-import { DAW_CONNECT_GRACE_MS, useDawConnecting } from './useDawConnecting';
+import { DAW_CONNECT_GRACE_MS, useDawConnecting, useReopenOnBridgeProblem } from './useDawConnecting';
 import { useDawStatus } from './useDawStatus';
 import { useOpenOnce } from './useOpenOnce';
+
+const noop = () => undefined;
 
 export interface DawConnectionOptions {
   /** What still works while the DAW is off, said once in the dialog; named for the DAW the capability report gives. */
@@ -37,6 +39,7 @@ export function useDawConnection({ stillWorks, id = 'dawoff', graceMs = DAW_CONN
   const daw = useDawStatus();
   const connecting = useDawConnecting(Boolean(daw.off), graceMs);
   const state = useOpenOnce(daw.off ? `reaper-off:${daw.dawName}` : null, connecting.connecting);
+  useReopenOnBridgeProblem(daw.off ? state.reopen : noop);
   const dialogOpen = Boolean(daw.off) && state.open;
   useEffect(() => {
     onDialogOpen?.(dialogOpen);
