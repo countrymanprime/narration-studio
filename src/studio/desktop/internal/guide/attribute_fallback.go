@@ -249,7 +249,13 @@ func (s *Service) withoutDeclined(cues []UnknownCue, characters []FallbackCharac
 	cast := castKey(characters)
 	s.fallbackMu.Lock()
 	defer s.fallbackMu.Unlock()
-	return slices.DeleteFunc(cues, func(cue UnknownCue) bool { return s.fallbackDeclined[declinedKey(cue, cast)] })
+	kept := cues[:0]
+	for _, cue := range cues {
+		if !s.fallbackDeclined[declinedKey(cue, cast)] {
+			kept = append(kept, cue)
+		}
+	}
+	return kept
 }
 
 // fallbackQuestions is what a fallback is asked: the unknown, unconfirmed lines the model has not already declined, each with
