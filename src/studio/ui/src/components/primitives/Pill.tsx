@@ -28,6 +28,7 @@ export function Pill({
   title,
   disabledReason,
   look = 'chip',
+  tabIndex,
   onClick,
 }: {
   label: string;
@@ -37,6 +38,8 @@ export function Pill({
   /** Off, with the reason: the chip stays focusable and hoverable (a native `disabled` takes neither), a press does nothing, and the reason is its hint and its description. */
   disabledReason?: string;
   look?: PillLook;
+  /** Set by `ToggleGroup`, whose chips share one tab stop; a chip that stands alone leaves it out and is its own tab stop. */
+  tabIndex?: number;
   onClick?: () => void;
 }) {
   const reasonId = useId();
@@ -47,6 +50,7 @@ export function Pill({
       disabled={disabled}
       aria-disabled={gated || undefined}
       aria-describedby={gated ? reasonId : undefined}
+      tabIndex={tabIndex}
       onPressedChange={() => (gated ? undefined : onClick?.())}
       className={`inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} ${gated ? 'cursor-not-allowed opacity-75' : 'disabled:opacity-40'} ${LOOK_CLASS[look](active)}`}
     >
