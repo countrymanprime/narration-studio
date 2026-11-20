@@ -246,7 +246,7 @@ export const engineDrivers: Record<string, Driver> = {
     await button.click();
     await table.getByRole('button', { name: label, exact: true }).waitFor({ state: 'detached' });
     await table
-      .getByText(/ · 1 voice$/)
+      .getByText(/ · 2 voices$/)
       .first()
       .waitFor();
     await page

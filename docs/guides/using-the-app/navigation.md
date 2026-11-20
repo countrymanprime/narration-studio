@@ -381,7 +381,7 @@ With Voice folders, Chapter links' last column is **Folder**: a chapter links to
 
 ![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
 
-![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with one voice, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
+![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
 
 The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
 track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters

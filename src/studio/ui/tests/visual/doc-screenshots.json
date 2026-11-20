@@ -634,7 +634,7 @@
     "state": "chapter-folder-created",
     "viewport": "desktop",
     "docName": "engine-panel-chapter-folder-created",
-    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices"
   },
   {
     "page": "proof-chapter",
