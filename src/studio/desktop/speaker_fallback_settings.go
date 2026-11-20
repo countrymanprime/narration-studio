@@ -10,7 +10,8 @@ import (
 
 // The narrator's settings for the local model that suggests a speaker for the lines the rules leave unknown (#3743), all under
 // ManuscriptGuide: speaker_fallback (off unless turned on), speaker_fallback_model (which model) and
-// speaker_fallback_max_quotes (how many lines one run may put to it).
+// speaker_fallback_max_quotes (how many lines one run may put to it). They are this computer's settings: a value in a project's own
+// settings file is not read, so a project folder from someone else cannot turn the model on or raise its cap.
 
 // defaultSpeakerFallbackQuotes is the per-run cap when the setting is unset or out of range. It is a starting value: no run on a
 // real model has measured what a run costs.
@@ -18,13 +19,13 @@ const defaultSpeakerFallbackQuotes = 20
 
 // speakerFallbackOn reports whether the narrator turned the local model on.
 func speakerFallbackOn(store *settings.Store) bool {
-	value, _ := store.Effective("ManuscriptGuide", "speaker_fallback", "false")
+	value, _ := store.EffectiveGlobal("ManuscriptGuide", "speaker_fallback", "false")
 	return value == "true"
 }
 
 // speakerFallbackQuotes is how many unknown lines one run may put to the model.
 func speakerFallbackQuotes(store *settings.Store) int {
-	value, _ := store.Effective("ManuscriptGuide", "speaker_fallback_max_quotes", strconv.Itoa(defaultSpeakerFallbackQuotes))
+	value, _ := store.EffectiveGlobal("ManuscriptGuide", "speaker_fallback_max_quotes", strconv.Itoa(defaultSpeakerFallbackQuotes))
 	if n, err := strconv.Atoi(value); err == nil && n >= 1 && n <= 200 {
 		return n
 	}

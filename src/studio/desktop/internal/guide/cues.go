@@ -357,7 +357,9 @@ func mergeDialogueCues(fresh []*pyObject, previous any, speakers map[string]bool
 			copied.set("speaker_source", cueSourceLocalModel)
 			if evidence, ok := cue.values["evidence"].(*pyObject); ok {
 				kept := &pyObject{keys: slices.Clone(evidence.keys), values: maps.Clone(evidence.values)}
-				kept.set("reason", prior.values["evidence"].(*pyObject).values["reason"])
+				// The file may have come from someone else: the reason is cleaned and capped again on its way through.
+				reason, _ := prior.values["evidence"].(*pyObject).values["reason"].(string)
+				kept.set("reason", extraction.CleanSentence(reason, maxFallbackReasonRunes))
 				copied.set("evidence", kept)
 			}
 			cue = copied

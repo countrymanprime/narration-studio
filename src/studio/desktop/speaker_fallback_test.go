@@ -28,6 +28,9 @@ func speakerFallbackProject(t *testing.T) *guide.Service {
 // speakerFallbackProjectWithSettings is speakerFallbackProject with the settings store the service reads.
 func speakerFallbackProjectWithSettings(t *testing.T) (*guide.Service, *settings.Store) {
 	t.Helper()
+	// Its own settings folder: the tests save this computer's settings and must not read each other's, or the developer's.
+	t.Setenv("APPDATA", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	project := t.TempDir()
 	store := settings.New(t.TempDir(), project)
 	svc := guide.New(project, "", "", store, nil)

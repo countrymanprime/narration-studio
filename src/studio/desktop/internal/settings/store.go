@@ -56,6 +56,18 @@ func (s *Store) Effective(tool, key, fallback string) (string, string) {
 	return fallback, "hardcoded"
 }
 
+// EffectiveGlobal is Effective without the project's layer: this computer's value, else the default. For a setting that belongs to
+// the computer and must not be turned on by a project folder that came from someone else.
+func (s *Store) EffectiveGlobal(tool, key, fallback string) (string, string) {
+	if value, ok := s.Global(tool)[key]; ok && known(tool, key, value) {
+		return value, "global"
+	}
+	if value, ok := s.Defaults(tool)[key]; ok {
+		return value, "repo_default"
+	}
+	return fallback, "hardcoded"
+}
+
 // closedChoices are the settings whose stored value must be one of a fixed set: a value outside it (a hand-edited file, a
 // choice a later build dropped) is skipped, so the layer below answers and the setting reads as its default.
 // Script.definition_source is where the Words tab's definitions come from (wordsHost.ts's DEFINITION_SOURCES).

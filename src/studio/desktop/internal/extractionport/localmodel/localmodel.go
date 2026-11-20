@@ -139,7 +139,7 @@ type Answered struct {
 }
 
 // Answers is what one run gave: the suggestions that passed the checks, and Asked, how many questions, counted from the first,
-// the model answered, whether or not its answer was kept.
+// were put to the model and came back, with an answer (kept or not) or with the failure that ended the run.
 type Answers struct {
 	Kept  []Answered
 	Asked int
@@ -194,6 +194,9 @@ func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, e
 			if in.Note != nil {
 				in.Note("The local model stopped before it finished, so the lines after it keep the rules' answer.")
 			}
+			// The question it failed on counts as asked, so a caller that remembers what was asked does not put the same
+			// question first on every later run and never reach the ones after it.
+			answers.Asked = i + 1
 			break
 		}
 		answers.Asked = i + 1

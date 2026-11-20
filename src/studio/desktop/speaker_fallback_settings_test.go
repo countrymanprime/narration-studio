@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -154,5 +155,51 @@ func TestAnOpenedProjectReadsTheSpeakerFallbackSettingAndHasNoModelToAsk(t *test
 	// The one line that ties the setting to the run; nothing else calls the provider, so losing it turns the feature off silently.
 	if !strings.Contains(string(source), "h.guide.SetSpeakerFallbackProvider(speakerFallbackProvider(h.settings, h.speakerModel))") {
 		t.Fatal("configureLocked does not give the Story Bible the speaker fallback provider")
+	}
+}
+
+// A project folder can come from someone else. Its own settings file cannot turn the model on or raise its cap: the three are
+// this computer's settings, and the app refuses to save them for a project.
+func TestAProjectsSettingsFileCannotTurnTheLocalModelOnOrRaiseItsCap(t *testing.T) {
+	svc, store := speakerFallbackProjectWithSettings(t)
+	model := &countingAsker{}
+	svc.SetSpeakerFallbackProvider(speakerFallbackProvider(store, model))
+	saveGuideSetting(t, store, "project", "speaker_fallback", "true")
+	saveGuideSetting(t, store, "project", "speaker_fallback_max_quotes", "200")
+	if result := runAttribution(t, svc); model.asked != 0 || result.ModelFilled != 0 {
+		t.Fatalf("the project's file turned the model on: asked %d, result %+v", model.asked, result)
+	}
+	saveGuideSetting(t, store, "global", "speaker_fallback", "true")
+	saveGuideSetting(t, store, "global", "speaker_fallback_max_quotes", "1")
+	if result := runAttribution(t, svc); model.asked != 1 || result.ModelFilled != 1 {
+		t.Fatalf("the project's file raised the cap: asked %d, result %+v", model.asked, result)
+	}
+}
+
+// failsOn fails on the question of one paragraph and answers the rest like the fake.
+type failsOn struct {
+	paragraph string
+	asked     []string
+}
+
+func (f *failsOn) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer, error) {
+	f.asked = append(f.asked, q.ParagraphID)
+	if q.ParagraphID == f.paragraph {
+		return localmodel.Answer{}, errors.New("the model could not read this one")
+	}
+	return localmodeltest.Asker{}.Ask(ctx, q)
+}
+
+// A line the model fails on ends that run, but not every run after it: the next run starts with the lines after it.
+func TestALineTheLocalModelFailsOnDoesNotBlockTheLinesAfterItForGood(t *testing.T) {
+	svc := speakerFallbackProject(t)
+	model := &failsOn{paragraph: "p3"}
+	source := fakeLocalModel(50)
+	source.Ask = model
+	svc.SetSpeakerFallback(localModelSpeakerFallback(source))
+	first := runAttribution(t, svc)
+	second := runAttribution(t, svc)
+	if got := strings.Join(model.asked, " "); got != "p3 p5 q1" || first.ModelFilled != 0 || first.ModelNote == "" || second.ModelFilled != 1 || speakerOf(cuesOf(t, svc)["p5"]) != "ada" {
+		t.Fatalf("asked %q; first %+v; second %+v", got, first, second)
 	}
 }

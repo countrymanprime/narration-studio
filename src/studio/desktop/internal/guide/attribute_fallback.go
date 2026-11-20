@@ -2,6 +2,8 @@ package guide
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -187,20 +189,33 @@ func speakingEntityIDs(document map[string]any) map[string]bool {
 	return ids
 }
 
-// declinedKey names a line the model was asked about and gave no kept answer for, with the cast it was asked with: a changed
-// cast (a new entry, a new alias) makes the line worth asking again.
-func declinedKey(cueID string, characters []FallbackCharacter) string {
-	var b strings.Builder
-	b.WriteString(cueID)
-	for _, c := range characters {
-		b.WriteString("\x00" + c.EntityID + "\x01" + c.Name + "\x01" + strings.Join(c.Aliases, "\x02"))
+// declinedKey names a line the model was asked about and gave no kept answer for, with what it was shown: the passage and
+// the cast. A changed cast (a new entry, a new alias) or a changed passage (the paragraphs around the line were edited) makes
+// the line worth asking again.
+func declinedKey(cue UnknownCue, cast string) string {
+	hash := sha256.New()
+	for _, p := range cue.Passage {
+		_, _ = fmt.Fprintf(hash, "%d:%s%d:%s", len(p.ID), p.ID, len(p.Text), p.Text)
 	}
-	return b.String()
+	return cue.CueID + "\x00" + hex.EncodeToString(hash.Sum(nil)) + "\x00" + cast
+}
+
+// castKey is one value for the whole cast a run is asked with, made once per run.
+func castKey(characters []FallbackCharacter) string {
+	hash := sha256.New()
+	for _, c := range characters {
+		_, _ = fmt.Fprintf(hash, "%d:%s%d:%s%d;", len(c.EntityID), c.EntityID, len(c.Name), c.Name, len(c.Aliases))
+		for _, alias := range c.Aliases {
+			_, _ = fmt.Fprintf(hash, "%d:%s", len(alias), alias)
+		}
+	}
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // rememberDeclined records the asked lines that got no kept answer, so the next run's cap is spent on lines the model has not
 // seen instead of the same first ones. It lasts while the project is open; nothing is written.
 func (s *Service) rememberDeclined(cues []UnknownCue, characters []FallbackCharacter, asked int, kept map[string]CueSuggestion) {
+	cast := castKey(characters)
 	s.fallbackMu.Lock()
 	defer s.fallbackMu.Unlock()
 	if s.fallbackDeclined == nil {
@@ -208,16 +223,17 @@ func (s *Service) rememberDeclined(cues []UnknownCue, characters []FallbackChara
 	}
 	for _, cue := range cues[:asked] {
 		if _, ok := kept[cue.CueID]; !ok {
-			s.fallbackDeclined[declinedKey(cue.CueID, characters)] = true
+			s.fallbackDeclined[declinedKey(cue, cast)] = true
 		}
 	}
 }
 
-// declined reports whether the model already declined this line with this cast.
-func (s *Service) declined(cueID string, characters []FallbackCharacter) bool {
+// withoutDeclined is cues without the lines the model already declined with this passage and cast.
+func (s *Service) withoutDeclined(cues []UnknownCue, characters []FallbackCharacter) []UnknownCue {
+	cast := castKey(characters)
 	s.fallbackMu.Lock()
 	defer s.fallbackMu.Unlock()
-	return s.fallbackDeclined[declinedKey(cueID, characters)]
+	return slices.DeleteFunc(cues, func(cue UnknownCue) bool { return s.fallbackDeclined[declinedKey(cue, cast)] })
 }
 
 // fallbackQuestions is what a fallback is asked: the unknown, unconfirmed lines the model has not already declined, each with
@@ -254,9 +270,6 @@ func (s *Service) fallbackQuestions() ([]UnknownCue, []FallbackCharacter, error)
 		if !ok {
 			continue // the manuscript changed under the cue; the next refresh drops it
 		}
-		if s.declined(cue.ID, characters) {
-			continue
-		}
 		question := UnknownCue{CueID: cue.ID, ChapterID: cue.ChapterID, ParagraphID: cue.ParagraphID, Quote: cue.QuoteText}
 		for j := max(0, i-fallbackParagraphsBefore); j <= i+fallbackParagraphsAfter && j < len(paragraphs); j++ {
 			if p := paragraphs[j]; p.chapterID == cue.ChapterID {
@@ -265,7 +278,7 @@ func (s *Service) fallbackQuestions() ([]UnknownCue, []FallbackCharacter, error)
 		}
 		cues = append(cues, question)
 	}
-	return cues, characters, nil
+	return s.withoutDeclined(cues, characters), characters, nil
 }
 
 // fallbackCharacters is the entries a line's speaker can be: those whose type speaks and that have an id and a name.

@@ -583,3 +583,45 @@ func TestOverlappingRunsDoNotCorruptTheLines(t *testing.T) {
 		t.Fatalf("cue %+v", cue)
 	}
 }
+
+// The model declined a line with nobody named near it. The narrator then edits the paragraph before it: the line is worth
+// asking again, though its own words, and so its id, are the same.
+func TestADeclinedLineIsAskedAgainWhenThePassageAroundItChanges(t *testing.T) {
+	asked := 0
+	rows := [][3]string{{"c1", "p1", "The cellar was quiet."}, {"c1", "p2", `"Is anyone here?"`}}
+	s := cueProject(t, map[string]any{"entities": []any{cueAda, attributeBo}, "types": speakingCharacter}, rows...)
+	s.SetSpeakerFallback(func(_ context.Context, cues []UnknownCue, _ []FallbackCharacter) (FallbackResult, error) {
+		asked++
+		return FallbackResult{Asked: len(cues)}, nil
+	})
+	attributed(t, s)
+	attributed(t, s)
+	if asked != 1 {
+		t.Fatalf("asked %d times about a line it had declined with nothing changed", asked)
+	}
+	raw, _ := os.ReadFile(s.manuscript())
+	if err := os.WriteFile(s.manuscript(), []byte(strings.Replace(string(raw), "The cellar was quiet.", "Bo opened the cellar door and listened.", 1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	attributed(t, s)
+	if asked != 2 {
+		t.Fatalf("asked %d times; the paragraph before the line changed, so it is asked again", asked)
+	}
+}
+
+// A Story Bible file can come from someone else: a reason a refresh carries is cleaned and capped again.
+func TestARefreshCleansAndCapsTheReasonItCarries(t *testing.T) {
+	s := fallbackProject(t, suggest("entity-bo", "Bo is in the hall."))
+	attributed(t, s)
+	editGuide(t, s, func(document map[string]any) {
+		fileCue(t, document, "Who goes there?")["evidence"].(map[string]any)["reason"] = "Bo \u202egnp.exe\nsecond line " + strings.Repeat("x", 5000)
+	})
+	s.SetSpeakerFallback(nil)
+	if _, err := s.RefreshCues(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	reason := string(cuesByQuote(t, s)["Who goes there?"].Evidence.Reason)
+	if len([]rune(reason)) != 300 || strings.ContainsAny(reason, "\u202e\n") || !strings.HasPrefix(reason, "Bo gnp.exe second line xxx") {
+		t.Fatalf("reason (%d runes) %q", len([]rune(reason)), reason[:min(len(reason), 80)])
+	}
+}

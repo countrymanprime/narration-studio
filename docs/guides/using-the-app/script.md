@@ -59,7 +59,7 @@ What to expect:
 
 - The model's speaker is a suggestion like any other: a dashed chip, never a confirmed one. A line you confirmed, picked or cleared is never asked about and never changed.
 - The reason is the model's own sentence, shown as plain text. It says why the model chose that speaker; it is not checked for being true.
-- One run asks about at most the number of lines set in **Lines the local model may take per run** (20 at first). When more lines are unknown than that, the message says how many it asked about; press the button again for the rest. A line the model could not answer is not asked again until you add or rename a character, or reopen the project.
+- One run asks about at most the number of lines set in **Lines the local model may take per run** (20 at first). When more lines are unknown than that, the message says how many it asked about; press the button again for the rest. A line the model could not answer is not asked again until you add or rename a character, change the text around the line, or reopen the project.
 - If the model stops or runs out of time, the message says so. What it had answered is kept, and the lines the search attributed stay as they are.
 - A later search keeps the model's suggestion until the search itself finds the speaker (which then replaces it) or the character is deleted or stops being a type that speaks (the line is then unknown again).
 - **Undo** takes the whole run back, the model's lines included.

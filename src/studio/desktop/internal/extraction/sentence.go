@@ -23,7 +23,7 @@ func CleanSentence(s string, maxRunes int) string {
 		return r
 	}, s)
 	s = strings.Join(strings.Fields(s), " ")
-	if !strings.ContainsFunc(s, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }) {
+	if !strings.ContainsFunc(s, readable) {
 		return ""
 	}
 	runes := []rune(s)
@@ -34,5 +34,12 @@ func CleanSentence(s string, maxRunes int) string {
 	for cut > 0 && (unicode.In(runes[cut], unicode.Mn, unicode.Me, unicode.Mc) || runes[cut] == '\u200d' || runes[cut-1] == '\u200d') {
 		cut--
 	}
-	return strings.TrimRight(string(runes[:cut]), " \u200c\u200d") + "…"
+	kept := strings.TrimRight(string(runes[:cut]), " \u200c\u200d")
+	if !strings.ContainsFunc(kept, readable) {
+		return ""
+	}
+	return kept + "…"
 }
+
+// readable reports whether r is a letter or a digit: what a sentence must have to say anything.
+func readable(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }

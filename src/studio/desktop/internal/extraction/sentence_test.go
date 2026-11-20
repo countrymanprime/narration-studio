@@ -24,6 +24,7 @@ func TestCleanSentence(t *testing.T) {
 		"long text is cut with an ellipsis":                   {strings.Repeat("x", 10), 5, "xxxx…"},
 		"a cut never leaves a letter without its mark":        {"xxxé́x", 5, "xxx…"},
 		"a cut never splits a joined emoji":                   {"xx" + family, 4, "xx…"},
+		"a cut that leaves nothing readable is nothing":       {"e" + strings.Repeat("\u0301", 40) + " Ada said so", 10, ""},
 		"text at the limit is whole":                          {"xxxxx", 5, "xxxxx"},
 	} {
 		t.Run(name, func(t *testing.T) {
