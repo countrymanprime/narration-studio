@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { freeNames } from './components/primitives/ColourField';
 
 // Class guard for #3680: a colour is chosen with `ColourField` (components/primitives/ColourField.tsx) and nowhere else, so a narrator
 // picks from swatches or a picker and a hex box, never from a list of colour names, and every hex box settles the same way. The scan
@@ -117,6 +118,20 @@ describe('a colour is chosen with ColourField (#3680)', () => {
     expect(Object.keys(ALLOWED).length, 'the allowlist only shrinks').toBeLessThanOrEqual(0);
   });
 
+  // B12 (#3680, WCAG 2.5.3 Label in Name): a narrator who speaks the words drawn beside a colour control must reach it, so the picker's
+  // and the hex box's names hold those words as drawn. The labels are the ones the six sites pass: the host's for a setting (American
+  // spelling), the Settings row's own, and a row's with whose value it is.
+  it('each name contains the visible label', () => {
+    for (const label of ['Misread marker color', 'Skipped marker color', 'Extra marker color', 'Note color', 'Note colour', 'Note colour (this project)']) {
+      const names = freeNames(label);
+      expect(names.picker, `picker of "${label}"`).toContain(label);
+      expect(names.hex, `hex box of "${label}"`).toContain(label);
+      expect(names.hex, 'the two controls are told apart').not.toBe(names.picker);
+    }
+    // The palette box's name starts with its label and holds the colour name it shows (ColourField.tsx, the `aria-label` of the box).
+    expect(readFileSync(join(uiRoot, COLOUR_FIELD), 'utf8')).toContain('aria-label={`${label}: ${shownName}`}');
+  });
+
   it('reads ColourField itself as the one place a colour input is written', () => {
     expect(kinds(readFileSync(join(uiRoot, COLOUR_FIELD), 'utf8'), { inPrimitives: true })).toEqual(['picker']);
   });
@@ -163,7 +178,7 @@ describe('a colour is chosen with ColourField (#3680)', () => {
   describe('the scan leaves alone what is not a colour control', () => {
     it('other inputs, other lists and fixed backgrounds', () => {
       expect(kinds('const a = <TextField label="Name" type="text" value={v} onChange={set} />;')).toEqual([]);
-      expect(kinds('const a = <TextField label="Note hex" mono value={v} onChange={set} />;')).toEqual([]);
+      expect(kinds('const a = <TextField label="Note color hex" mono value={v} onChange={set} />;')).toEqual([]);
       expect(kinds('const a = <Select label="Line" value={v} options={MARK_STYLES.map(asOption)} onChange={set} />;')).toEqual([]);
       expect(kinds('const a = <span style={{ background: "var(--surface-2)" }} />;')).toEqual([]);
       expect(kinds('const a = <span style={{ color: `var(--${hue}-text)` }} />;')).toEqual([]);

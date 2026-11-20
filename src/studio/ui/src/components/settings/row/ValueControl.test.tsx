@@ -53,16 +53,16 @@ function Row({
 }
 
 describe('ValueControl, a colour (#3680, S4)', () => {
-  const hex = (name = 'Note hex') => screen.getByRole('textbox', { name }) as HTMLInputElement;
-  const picker = (name = 'Note colour') => screen.getByLabelText(name) as HTMLInputElement;
+  const hex = (name = 'Note colour hex') => screen.getByRole('textbox', { name }) as HTMLInputElement;
+  const picker = (name = 'Note colour') => screen.getByLabelText(name, { selector: 'input[type="color"]' }) as HTMLInputElement;
 
   it('is a picker and a hex box, named for the row and for whose value it is', () => {
     render(<Row label="Note colour" kind="color" start="B5473C" which="this project" onChange={vi.fn()} />);
     expect(picker('Note colour (this project)').type).toBe('color');
     expect(picker('Note colour (this project)').value).toBe('#b5473c');
-    expect(hex('Note hex (this project)').value).toBe('B5473C');
+    expect(hex('Note colour (this project) hex').value).toBe('B5473C');
     // The row's visible label points at the hex box.
-    expect(hex('Note hex (this project)').id).toBe('control');
+    expect(hex('Note colour (this project) hex').id).toBe('control');
   });
 
   it('saves a typed colour on Enter or on leaving the box, in capitals without the hash, and never per key', () => {

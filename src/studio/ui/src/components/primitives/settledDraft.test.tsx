@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useSettledDraft } from './settledDraft';
@@ -35,6 +35,32 @@ describe('useSettledDraft', () => {
     await userEvent.type(input(), 'Ærøskøbing 東京');
     await userEvent.tab();
     expect(onSettle).toHaveBeenCalledExactlyOnceWith('Ærøskøbing 東京');
+  });
+
+  // B2 (#3680): the value does not change until the host answers, and each Enter or blur until then sent the same save again.
+  it('a second Enter, or a blur after Enter, does not settle the same draft twice', async () => {
+    const onSettle = vi.fn();
+    render(<Box value="Alice" onSettle={onSettle} />);
+    await userEvent.type(input(), '!{Enter}{Enter}');
+    for (let repeat = 0; repeat < 20; repeat += 1) fireEvent.keyDown(input(), { key: 'Enter', repeat: true });
+    await userEvent.tab();
+    expect(onSettle).toHaveBeenCalledExactlyOnceWith('Alice!');
+  });
+
+  it('settles again once the narrator types, even back to the same text', async () => {
+    const onSettle = vi.fn();
+    render(<Box value="Alice" onSettle={onSettle} />);
+    await userEvent.type(input(), '!{Enter}?{Backspace}{Enter}');
+    expect(onSettle.mock.calls).toEqual([['Alice!'], ['Alice!']]);
+  });
+
+  it('settles a draft typed over the new value after the first was accepted', async () => {
+    const onSettle = vi.fn();
+    const { rerender } = render(<Box value="Alice" onSettle={onSettle} />);
+    await userEvent.type(input(), '!{Enter}');
+    rerender(<Box value="Alice!" onSettle={onSettle} />);
+    await userEvent.type(input(), '{Backspace}{Enter}');
+    expect(onSettle.mock.calls).toEqual([['Alice!'], ['Alice']]);
   });
 
   it('reports nothing for a draft equal to the value', async () => {

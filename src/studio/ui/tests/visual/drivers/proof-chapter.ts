@@ -91,7 +91,7 @@ export const proofChapterDrivers: Record<string, Driver> = {
       .getByRole('option', { name: /^Open Compare options/ })
       .first()
       .click();
-    await page.getByRole('textbox', { name: 'Misread marker hex', exact: true }).waitFor();
+    await page.getByRole('textbox', { name: 'Misread marker color hex', exact: true }).waitFor();
   },
   'compare-setup-alt': async (page) => {
     await openCompare(page);

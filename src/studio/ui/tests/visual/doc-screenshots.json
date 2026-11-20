@@ -911,6 +911,13 @@
   },
   {
     "page": "storybible",
+    "state": "entry-speaker-colour",
+    "viewport": "desktop",
+    "docName": "storybible-speaker-colour",
+    "caption": "Story Bible - Speaker colour in edit mode: a row of swatches, Auto first, the chosen one ringed and checked"
+  },
+  {
+    "page": "storybible",
     "state": "entry-needs-review",
     "viewport": "desktop",
     "docName": "storybible-needs-review",

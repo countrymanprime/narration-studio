@@ -10,8 +10,19 @@ describe('normaliseHex', () => {
   });
 
   it('keeps what is not a colour as typed, so the caller can refuse it', () => {
-    expect(normaliseHex('zzz')).toBe('ZZZ');
-    expect(normaliseHex('##b5473c')).toBe('#B5473C');
+    expect(normaliseHex('zzz')).toBe('zzz');
+    expect(normaliseHex('##b5473c')).toBe('#b5473c');
+  });
+
+  // B8 (#3680): `'ﬀ'.toUpperCase()` is "FF", so three of the ligature read as white.
+  it('a non-ASCII letter that upper-cases to hex digits is refused', () => {
+    expect('ﬀﬀﬀ'.toUpperCase()).toBe('FFFFFF');
+    expect(normaliseHex('ﬀﬀﬀ')).toBe('ﬀﬀﬀ');
+    expect(isStoredHex(normaliseHex('ﬀﬀﬀ'))).toBe(false);
+    expect(isStoredHex(normaliseHex('ﬀﬀﬀﬀﬀﬀ'))).toBe(false);
+    expect(toPickerValue('ﬀﬀﬀ')).toBe('#808080');
+    // Dotless and dotted i, and the long s, upper-case to ASCII letters in some locales or always; none is a hex digit either way.
+    expect(isStoredHex(normaliseHex('ſſſſſſ'))).toBe(false);
   });
 });
 

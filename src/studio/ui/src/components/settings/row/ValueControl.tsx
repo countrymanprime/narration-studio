@@ -159,6 +159,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'color') {
+    // No `allowUnset`: the host refuses '' for a colour ("must be a six-digit color"), and a row goes back to its default with Reset.
     return (
       <ColourField
         mode="free"

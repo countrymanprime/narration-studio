@@ -55,10 +55,10 @@ describe('ScopedSetting controls', () => {
 
   it('shows a colour as a picker and a hex box that store the value without the hash, in capitals', () => {
     const change = renderSetting(colourField('ffd54f'));
-    const picker = screen.getByLabelText('Note colour') as HTMLInputElement;
+    const picker = screen.getByLabelText('Note color') as HTMLInputElement;
     expect(picker.type).toBe('color');
     expect(picker.value).toBe('#ffd54f');
-    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    const box = screen.getByRole('textbox', { name: 'Note color hex' });
     fireEvent.change(box, { target: { value: '#ff8800' } });
     fireEvent.blur(box);
     expect(change).toHaveBeenLastCalledWith('FF8800');
@@ -66,7 +66,7 @@ describe('ScopedSetting controls', () => {
 
   it('shows the stored colour in the picker and reports a picked one once, when the picker closes', () => {
     const change = renderSetting(colourField('FFD54F'));
-    const picker = screen.getByLabelText('Note colour') as HTMLInputElement;
+    const picker = screen.getByLabelText('Note color') as HTMLInputElement;
     expect(picker.value).toBe('#ffd54f');
     fireEvent.input(picker, { target: { value: '#a1b2c3' } });
     expect(change).not.toHaveBeenCalled();
@@ -74,24 +74,52 @@ describe('ScopedSetting controls', () => {
     expect(change).toHaveBeenCalledExactlyOnceWith('A1B2C3');
   });
 
-  // The form's Save button saves the draft as it stands: a half-typed code must not reach it (#3680, S5).
-  it('reports a typed colour when the box is left or Enter is pressed, never per key, and never a half-typed code', () => {
+  // The form's Save button saves the draft as it stands, so a code is not handed over per key (#3680, S5): only when the box is left or Enter
+  // is pressed. Text left in the box that is not a colour is handed over too, as an out-of-range number is: the form then holds an unsaved
+  // value, asks before the narrator leaves, and the host refuses it on Save (B7).
+  it('reports a typed colour when the box is left or Enter is pressed, never per key', () => {
     const change = renderSetting(colourField('FFD54F'));
-    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    const box = screen.getByRole('textbox', { name: 'Note color hex' });
     fireEvent.change(box, { target: { value: 'FF8' } });
-    fireEvent.change(box, { target: { value: 'FF88' } });
+    fireEvent.change(box, { target: { value: 'ff88' } });
     expect(change).not.toHaveBeenCalled();
     fireEvent.blur(box);
-    expect(change).not.toHaveBeenCalled();
+    expect(change).toHaveBeenCalledExactlyOnceWith('FF88');
     expect(box.getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(box, { target: { value: 'ff8800' } });
     fireEvent.keyDown(box, { key: 'Enter' });
-    expect(change).toHaveBeenCalledExactlyOnceWith('FF8800');
+    expect(change).toHaveBeenLastCalledWith('FF8800');
+    expect(change).toHaveBeenCalledTimes(2);
+  });
+
+  it('draws a form value that is not a colour as typed, marked, with a grey picker', () => {
+    renderSetting({ ...colourField('FFD54F'), value: '4D5E6' });
+    const box = screen.getByRole('textbox', { name: 'Note color hex' }) as HTMLInputElement;
+    expect(box.value).toBe('4D5E6');
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+    expect((screen.getByLabelText('Note color') as HTMLInputElement).value).toBe('#808080');
+  });
+
+  it('a draft does not follow a scope switch', () => {
+    const field = colourField('FFD54F');
+    const draw = (scope: 'global' | 'project') => (
+      <TooltipProvider>
+        <ScopedSetting field={field} scope={scope} value="" change={() => undefined} onClearOverride={() => undefined} />
+      </TooltipProvider>
+    );
+    const { rerender } = render(draw('global'));
+    const typed = screen.getByRole('textbox', { name: 'Note color hex' });
+    fireEvent.change(typed, { target: { value: '4D5E6' } });
+    fireEvent.blur(typed);
+    rerender(draw('project'));
+    const box = screen.getByRole('textbox', { name: 'Note color hex' }) as HTMLInputElement;
+    expect(box.value).toBe('FFD54F');
+    expect(box.getAttribute('aria-invalid')).toBeNull();
   });
 
   it('an emptied colour box reports "", which is "not set"', () => {
     const change = renderSetting(colourField('FFD54F'));
-    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    const box = screen.getByRole('textbox', { name: 'Note color hex' });
     fireEvent.change(box, { target: { value: '' } });
     fireEvent.blur(box);
     expect(change).toHaveBeenCalledExactlyOnceWith('');
@@ -99,7 +127,7 @@ describe('ScopedSetting controls', () => {
 
   it('shows a neutral grey in the picker for an unset colour and "Not set" in the box', () => {
     renderSetting(colourField(''));
-    expect((screen.getByLabelText('Note colour') as HTMLInputElement).value).toBe('#808080');
+    expect((screen.getByLabelText('Note color') as HTMLInputElement).value).toBe('#808080');
     expect(screen.getByPlaceholderText('Not set')).toBeTruthy();
   });
 

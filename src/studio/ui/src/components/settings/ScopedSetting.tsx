@@ -258,7 +258,10 @@ export function ScopedSetting({
           </div>
         ) : isColor ? (
           // The pair takes the row's free width: the hex box settles on Enter or on leaving it, so a half-typed code never marks the form changed.
+          // Text left in the box that is not a colour is the form's value too (`onRefused`), as a number out of range is: the form then asks before
+          // the narrator leaves, and Discard takes it away. Keyed by the scope, so nothing typed under one scope shows under the other.
           <ColourField
+            key={scope}
             mode="free"
             label={field.label}
             value={effective}
@@ -267,6 +270,7 @@ export function ScopedSetting({
             className={GROWING_CONTROL_CLASSES}
             hexClassName={HEX_CONTROL_CLASSES}
             onChange={change}
+            onRefused={change}
           />
         ) : isText ? (
           <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />

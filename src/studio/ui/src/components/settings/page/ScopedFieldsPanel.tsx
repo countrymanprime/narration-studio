@@ -239,7 +239,10 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
           confirm={() => {
             const next = pendingScope;
             setPendingScope(undefined);
-            void save().then(() => setScope(next));
+            // A save the host refused keeps the edits, and they belong to this scope: the narrator stays with them.
+            void save().then((saved) => {
+              if (saved) setScope(next);
+            });
           }}
           dangerLabel="Discard & continue"
           danger={() => {

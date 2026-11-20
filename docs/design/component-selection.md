@@ -125,7 +125,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 - **CS-E10** One value is one control. A setting drawn in two places (Settings and a page's own menu or dialog) uses the same component, the same options and the same option labels in both, from one shared module. **New**.
 - **CS-E11** A scope switch (All projects / This project), which changes whose values a panel edits, is a `ToggleGroup look="segmented"` in the panel's header. **New**.
 - **CS-E12** Presets over custom numbers are a segmented `ToggleGroup` of the presets plus "Custom". The control selects "Custom" itself when the numbers stop matching a preset, and "Custom" is off while a preset matches, as `components/editing/cleanup/CleanupInspector.tsx` does. **New**.
-- **CS-E13** A list filter is not a value control, and CS-E1's counts do not apply to it. One of up to about 6: chips in the filter look (28 px, sentence case, the ink fill when pressed), which `components/primitives/Pill.tsx` documents as the list-filter look. `ToggleGroup` draws only `chip` (36 px, capitals, the accent fill: a standalone value toggle) and `segmented`, so a `look="filter"` option on `ToggleGroup` is **Proposed**; until it exists, a one-of-N filter is a `role="group"` of `Pill look="filter"` with the group's name. Several at once: `Pill look="filter"` chips. More than about 6: a `Menu` with a `select="one"` or `select="many"` section. A segmented `ToggleGroup` is never a filter. **New**; coordinator's default, accepted by the owner.
+- **CS-E13** A list filter is not a value control, and CS-E1's counts do not apply to it. One of up to about 6: chips in the filter look (28 px, sentence case, the ink fill when pressed), which `components/primitives/Pill.tsx` documents as the list-filter look. `ToggleGroup` draws only `chip` (36 px, capitals, the accent fill: a standalone value toggle) and `segmented`, so a `look="filter"` option on `ToggleGroup` is **Proposed**; until it exists, a one-of-N filter is a `role="group"` of `Pill look="filter"` with the group's name. Several at once: `Pill look="filter"` chips. More than about 6: a `Menu` with a `select="one"` or `select="many"` section. A segmented `ToggleGroup` is never a filter. **New**; decided 2026-11-20 (coordinator).
 - **CS-E14** Every picker of a DAW track is `TrackSelect`, never a plain `Select` of track names. `TrackSelect` labels an option with the track's name and the chapter that holds it, and takes no prop for another label, so `components/booth/voices/WhoIsInDialog.tsx`, whose options read "key · voice", needs that prop on `TrackSelect` before it can move. **New**.
 
 ### Numbers
@@ -284,17 +284,17 @@ Each is a reject in review. The ID it breaks is in brackets. Numbers are stable:
 
 ## Rules this page adds
 
-frontend-primitives covers which primitive exists, icon buttons, errors, prose, dead controls and list caps. The rules marked **New** above go beyond it. The audit behind them is [the component-selection audit](../research/2026-11-component-selection-audit.md) (tracking issue [#3675](https://github.com/countrymanprime/narration-studio/issues/3675)). The rows marked "coordinator's default" were decided without the owner on 2026-11-20 and stand until the owner overturns them; a row marked "accepted by the owner" was put to the owner, who let it stand as written.
+frontend-primitives covers which primitive exists, icon buttons, errors, prose, dead controls and list caps. The rules marked **New** above go beyond it. The audit behind them is [the component-selection audit](../research/2026-11-component-selection-audit.md) (tracking issue [#3675](https://github.com/countrymanprime/narration-studio/issues/3675)). The rows marked "coordinator's default" or "decided 2026-11-20 (coordinator)" were decided without the owner and stand until the owner overturns them.
 
 | Topic | Rule | Decided by |
 | --- | --- | --- |
 | Colour uses one colour selector, in two modes and two palette forms | CS-C1 to CS-C3 | Owner's example on #3675; the forms from the audit (R8, R9) |
 | `Switch` versus `Checkbox`; rows of an editable list use `Checkbox` | CS-B2, CS-E9 | Coordinator's default (audit R3, M8) |
-| Segmented cap: 5 options, when the labels fit the row in a 960 px window; the playback-speed labels stay as they are | CS-E1, CS-N3 | Owner, 2026-11-20 (audit R1) |
-| A filter is chips in the filter look, one of N or several; segmented and the default `chip` look are for values | CS-E13 | Coordinator's default, accepted by the owner (audit R4, corrected: the default look draws `chip`, not `filter`) |
-| An unanswered boolean is a `Switch` drawn off with a note | CS-B6 | Coordinator's default, accepted by the owner (audit M3, first option) |
-| A time is entered in a time field | CS-N8 | Coordinator's default, accepted by the owner (audit M4, first option) |
-| A scope switch is a segmented `ToggleGroup` | CS-E11 | Coordinator's default, accepted by the owner (audit M15, first option) |
+| Segmented cap: 5 options, when the labels fit the row in a 960 px window; the playback-speed labels stay as they are | CS-E1, CS-N3 | Decided 2026-11-20 (coordinator); audit R1 |
+| A filter is chips in the filter look, one of N or several; segmented and the default `chip` look are for values | CS-E13 | Decided 2026-11-20 (coordinator); audit R4, corrected: the default look draws `chip`, not `filter` |
+| An unanswered boolean is a `Switch` drawn off with a note | CS-B6 | Decided 2026-11-20 (coordinator); audit M3, first option |
+| A time is entered in a time field | CS-N8 | Decided 2026-11-20 (coordinator); audit M4, first option |
+| A scope switch is a segmented `ToggleGroup` | CS-E11 | Decided 2026-11-20 (coordinator); audit M15, first option |
 | A Settings choice row declares its control; roving first | CS-E6, CS-K6 | Audit R2, R10 |
 | The "say it aloud" test for a number | CS-N1, CS-N2 | Audit R5 |
 | Money, Automatic numbers, ranges, manuscript indexes | CS-N6, CS-N7, CS-N9, CS-N10 | Audit M1, M2, M12, M13 |
@@ -302,7 +302,7 @@ frontend-primitives covers which primitive exists, icon buttons, errors, prose, 
 | A fact is not a control | CS-B7 | Audit M6 |
 | Multi-line text; the browser's file input | CS-T5, CS-P6 | Audit M10, M11 |
 | Confirm versus Undo; destructive items in menus | CS-X2, CS-X6 | This page |
-| Link buttons and external links; `Menu` for related actions; `SplitButton`; `Tabs` versus `ToggleGroup` and the category strip | CS-A1 to CS-A4 | This page; the category strip is the coordinator's default, accepted by the owner |
+| Link buttons and external links; `Menu` for related actions; `SplitButton`; `Tabs` versus `ToggleGroup` and the category strip | CS-A1 to CS-A4 | This page; the category strip was decided 2026-11-20 (coordinator) |
 | Every DAW track picker is `TrackSelect` | CS-E14 | This page (audit G1, G2, G4) |
 | Multi-select and bulk actions | CS-M1 to CS-M3, CS-M6, CS-M7 | This page; audit M14 |
 | The narrow and tiny captures as required checks | CS-S8 | This page |

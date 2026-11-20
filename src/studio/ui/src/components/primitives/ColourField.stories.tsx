@@ -165,7 +165,7 @@ export const FreeUnset: Story = { args: { ...FREE, value: '', allowUnset: true, 
 export const FreeInvalidStaysInTheBox: Story = {
   args: FREE,
   play: async ({ args, canvasElement }) => {
-    const box = within(canvasElement).getByRole('textbox', { name: 'Note hex' });
+    const box = within(canvasElement).getByRole('textbox', { name: 'Note color hex' });
     await userEvent.clear(box);
     await userEvent.type(box, 'zzz');
     await userEvent.tab();
@@ -178,7 +178,7 @@ export const FreeInvalidStaysInTheBox: Story = {
 export const FreeSettlesOnEnter: Story = {
   args: FREE,
   play: async ({ args, canvasElement }) => {
-    const box = within(canvasElement).getByRole('textbox', { name: 'Note hex' });
+    const box = within(canvasElement).getByRole('textbox', { name: 'Note color hex' });
     await userEvent.clear(box);
     await userEvent.type(box, '#3c7a5c');
     await expect(args.onChange).not.toHaveBeenCalled();

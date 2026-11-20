@@ -197,6 +197,8 @@ track what you've marked or approved and who a line of dialogue is attributed to
 
 Read-only, an entry shows its speaker colour and each cue's speaker as text, and the reference clips have no approve row or Revoke; press Edit to change any of them. In edit mode **Speaker colour** is a row of swatches: **Auto** first (the colour the app gives this speaker, named in its hint, for example "Automatic (Brown)"), then Green, Blue, Violet, Red, Brown, Teal and Rose. Press one, or move along the row with the arrow keys; the chosen one has a ring and a check. In edit mode the speaker colour, approving or revoking a reference clip and a cue's speaker apply at once, with a message, and **Discard changes** does not undo them; **Save** and **Discard changes** cover the text fields.
 
+![Story Bible - Speaker colour in edit mode: a row of swatches, Auto first, the chosen one ringed and checked](../../images/ui/storybible-speaker-colour.webp)
+
 **Reference clips** lists the REAPER regions you've approved as a voice reference for this
 character. In edit mode, choose a region from the picker (the regions of the saved REAPER project), add an
 optional note such as "anchor take, chapter 1", and press **Approve as reference**, which is off, with its reason in the hint, until a region is chosen. Approving the

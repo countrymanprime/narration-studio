@@ -21,6 +21,26 @@ const THEMES = ['light', 'dark'] as const;
 type Theme = (typeof THEMES)[number];
 
 const POPUP = '[data-popover-popup]';
+const HINT = '[data-hint-popup]';
+const PICKER = 'input[type="color"]';
+// The double-click interval the app guards (ECHO_WINDOW_MS in src/components/primitives/echoGuard.ts), and a margin.
+const AFTER_ECHO_MS = 600;
+
+/** The two places a colour box opens its swatches over other controls: what opens the page, the list the boxes are in, and the boxes. */
+const POPOVER_SITES = [
+  {
+    site: 'Settings, Entry types',
+    driver: settingsDrivers['project-type-colour'],
+    boxes: (page: Page) => page.getByRole('button', { name: /^Colour for .+: / }),
+    list: (page: Page) => page.locator('[data-row="project.types"]'),
+  },
+  {
+    site: 'Script, Define how you mark up',
+    driver: scriptDrivers['define-marks-colour'],
+    boxes: (page: Page) => page.getByRole('dialog', { name: 'Define how you mark up' }).getByRole('button', { name: /^Colour: / }),
+    list: (page: Page) => page.getByRole('dialog', { name: 'Define how you mark up' }),
+  },
+];
 const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core'), 'utf8');
 
 async function open(page: Page, size: { width: number; height: number }, theme: Theme, driver: ((page: Page) => Promise<void>) | undefined): Promise<void> {
@@ -66,13 +86,49 @@ async function swatchesOnTop(popup: Locator): Promise<boolean> {
   );
 }
 
-/** The colour boxes whose name is cut short, as `name (shown/needed px)`: each box shows a swatch, the colour's name and a caret. */
-async function clippedNames(boxes: Locator): Promise<string[]> {
-  return boxes.evaluateAll((buttons) =>
-    buttons.flatMap((button) => {
-      const name = button.querySelector('span.truncate')!;
-      return name.scrollWidth > name.clientWidth ? [`${button.getAttribute('aria-label')} (${name.clientWidth}/${name.scrollWidth})`] : [];
-    }),
+/**
+ * How each colour box draws its colour's name. A box shows a swatch, the name and a caret; a box with no room for the whole name shows the
+ * swatch and the caret alone. `cut` lists the names drawn in part (never right), `hidden` the names not drawn at all.
+ */
+async function drawnNames(boxes: Locator): Promise<{ cut: string[]; hidden: string[] }> {
+  return boxes.evaluateAll((buttons) => {
+    const cut: string[] = [];
+    const hidden: string[] = [];
+    for (const button of buttons) {
+      const box = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      // The room for the swatch and the name: inside the border (what is past it is not drawn), and clear of the caret at the right.
+      const inner = {
+        left: box.left + button.clientLeft + parseFloat(style.paddingLeft),
+        right: box.left + button.clientLeft + button.clientWidth - parseFloat(style.paddingRight),
+        top: box.top + button.clientTop,
+        bottom: box.top + button.clientTop + button.clientHeight,
+      };
+      const name = button.lastElementChild!.getBoundingClientRect();
+      const said = `${button.getAttribute('aria-label')} (box ${Math.round(box.width)} px, name ${Math.round(name.width)} px)`;
+      const whole = name.left >= inner.left - 0.5 && name.right <= inner.right + 0.5 && name.top >= inner.top - 0.5 && name.bottom <= inner.bottom + 0.5;
+      const out = name.top >= inner.bottom - 0.5 || name.left >= inner.right - 0.5;
+      if (whole) continue;
+      (out ? hidden : cut).push(said);
+    }
+    return { cut, hidden };
+  });
+}
+
+/**
+ * Every control inside `container`, as one line each: what it is, its name, its value and whether it is checked. A press that lands on the
+ * wrong control changes a line that is not the colour box's, or the number of lines.
+ */
+async function controlsOf(container: Locator): Promise<string[]> {
+  return container.evaluate((element) =>
+    [...element.querySelectorAll<HTMLElement>('button, input, select, [role="checkbox"], [role="switch"]')].map((control) =>
+      [
+        control.tagName.toLowerCase(),
+        control.getAttribute('aria-label') ?? control.textContent?.trim() ?? '',
+        (control as HTMLInputElement).value ?? '',
+        control.getAttribute('aria-checked') ?? '',
+      ].join('|'),
+    ),
   );
 }
 
@@ -111,7 +167,7 @@ for (const size of SIZES) {
         return own.left >= type.left && own.right <= type.right && own.top >= type.top && own.bottom <= type.bottom;
       });
       expect.soft(fits, 'the box is inside its type').toBe(true);
-      expect.soft(await clippedNames(page.getByRole('button', { name: /^Colour for .+: / })), 'every colour name is whole').toEqual([]);
+      expect.soft(await drawnNames(page.getByRole('button', { name: /^Colour for .+: / })), 'every colour name is whole').toEqual({ cut: [], hidden: [] });
       const popup = page.locator(POPUP);
       const placed = await inWindow(page, popup);
       expect.soft(placed.outside, 'the swatches are inside the window').toEqual([]);
@@ -134,7 +190,7 @@ for (const size of SIZES) {
       await open(page, size, theme, scriptDrivers['define-marks-colour']);
       const dialog = page.getByRole('dialog', { name: 'Define how you mark up' });
       const popup = page.locator(POPUP);
-      expect.soft(await clippedNames(dialog.getByRole('button', { name: /^Colour: / })), 'every colour name is whole').toEqual([]);
+      expect.soft(await drawnNames(dialog.getByRole('button', { name: /^Colour: / })), 'every colour name is whole').toEqual({ cut: [], hidden: [] });
       const placed = await inWindow(page, popup);
       expect.soft(placed.outside, 'the swatches are inside the window').toEqual([]);
       expect.soft(placed.sideways, 'the page does not scroll sideways').toBe(false);
@@ -180,10 +236,10 @@ for (const size of SIZES) {
 
     test(`Proof, Compare options at ${at}: each marker colour is a picker and a hex box on one line`, async ({ page }) => {
       await open(page, size, theme, proofChapterDrivers['options-open']);
-      const dialog = page.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Misread marker hex', exact: true }) });
-      const hex = dialog.getByRole('textbox', { name: 'Misread marker hex', exact: true });
+      const dialog = page.getByRole('dialog').filter({ has: page.getByRole('textbox', { name: 'Misread marker color hex', exact: true }) });
+      const hex = dialog.getByRole('textbox', { name: 'Misread marker color hex', exact: true });
       await hex.scrollIntoViewIfNeeded();
-      expectOneLine(await pairOf(dialog.getByLabel('Misread marker colour', { exact: true }), hex));
+      expectOneLine(await pairOf(dialog.getByLabel('Misread marker color', { exact: true }).and(page.locator(PICKER)), hex));
       await hex.evaluate((element) => element.parentElement!.setAttribute('data-colour-field-probe', ''));
       expect.soft(await axeOn(page, '[data-colour-field-probe]')).toEqual([]);
     });
@@ -194,8 +250,8 @@ for (const size of SIZES) {
         await showSettingsRow(settings, 'look.note');
       });
       const row = page.locator('[data-row="look.note"]');
-      const hex = row.getByRole('textbox', { name: /^Note hex/ });
-      expectOneLine(await pairOf(row.getByLabel(/^Note colour/).first(), hex));
+      const hex = row.getByRole('textbox', { name: /^Note colour.* hex$/ });
+      expectOneLine(await pairOf(row.locator(PICKER), hex));
       expect.soft((await inWindow(page, hex)).sideways, 'the page does not scroll sideways').toBe(false);
       expect.soft(await axeOn(page, '[data-row="look.note"]')).toEqual([]);
     });
@@ -207,12 +263,117 @@ for (const size of SIZES) {
       });
       const panel = page.locator('[data-page-setting="ps.compare"]');
       for (const marker of ['Misread', 'Skipped', 'Extra']) {
-        const hex = panel.getByRole('textbox', { name: `${marker} marker hex`, exact: true });
+        const hex = panel.getByRole('textbox', { name: `${marker} marker color hex`, exact: true });
         await hex.scrollIntoViewIfNeeded();
-        expectOneLine(await pairOf(panel.getByLabel(`${marker} marker colour`, { exact: true }), hex));
+        expectOneLine(await pairOf(panel.getByLabel(`${marker} marker color`, { exact: true }).and(page.locator(PICKER)), hex));
       }
       expect.soft((await inWindow(page, panel)).sideways, 'the page does not scroll sideways').toBe(false);
       expect.soft(await axeOn(page, '[data-page-setting="ps.compare"]')).toEqual([]);
+    });
+  }
+}
+
+// B9 (#3680): a box with no room for its colour's whole name draws the swatch and the caret alone, never half a word; the name is then in
+// the box's hint and in its accessible name.
+for (const { site, driver, boxes, list } of POPOVER_SITES) {
+  test(`${site} at 320: no colour name is cut, and a box without its name says it in a hint`, async ({ page }) => {
+    await open(page, { width: 320, height: 844 }, 'light', driver);
+    await page.keyboard.press('Escape');
+    await expect(page.locator(POPUP)).toHaveCount(0);
+    if (process.env.COLOUR_FIELD_SHOTS) await page.screenshot({ path: `${process.env.COLOUR_FIELD_SHOTS}/${site.replace(/\W+/g, '-')}-320.png` });
+    const drawn = await drawnNames(boxes(page));
+    expect.soft(drawn.cut, 'no colour name is drawn in part').toEqual([]);
+    // A box that kept the width of its name would push the row's last control (Remove) past the window.
+    const pastTheWindow = await list(page).evaluate((element) =>
+      [...element.querySelectorAll('button')]
+        .filter((button) => button.getBoundingClientRect().right > window.innerWidth + 0.5)
+        .map((button) => button.getAttribute('aria-label') ?? button.textContent),
+    );
+    expect.soft(pastTheWindow, 'every control of the list is inside the window').toEqual([]);
+    // Escape put focus on the box that was open, and a focused box shows its hint.
+    const box = boxes(page).and(page.locator(':focus'));
+    await expect(box).toHaveCount(1);
+    const name = ((await box.getAttribute('aria-label')) ?? '').split(': ').pop()!;
+    expect(name).not.toBe('');
+    expect
+      .soft(
+        drawn.hidden.some((said) => said.includes(`: ${name} (`)),
+        'this box draws no name at 320',
+      )
+      .toBe(true);
+    await expect(page.locator(HINT)).toHaveText(name);
+    expect.soft(await box.getAttribute('title'), 'the hint is not a native title').toBeNull();
+  });
+}
+
+// B4 (#3680): keyboard focus on the checked swatch shows its hint, and the first Escape used to dismiss only the hint.
+for (const { site, driver, boxes } of POPOVER_SITES) {
+  test(`${site}: opened with Enter, one Escape closes the swatches and focus is on the box`, async ({ page }) => {
+    await open(page, SIZES[0]!, 'light', driver);
+    await page.keyboard.press('Escape');
+    const popup = page.locator(POPUP);
+    await expect(popup).toHaveCount(0);
+    const box = boxes(page).and(page.locator(':focus'));
+    await expect(box).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await expect(popup.getByRole('radio', { checked: true })).toBeFocused();
+    await expect(page.locator(HINT)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(popup).toHaveCount(0);
+    await expect(box).toHaveCount(1);
+    // The Escape went no further: the dialog the box sits in (Define how you mark up) is still open, and Settings is still on its page.
+    await expect(boxes(page).first()).toBeVisible();
+  });
+}
+
+// B1 (#3680): the first press of a double click picks and closes the swatches, and the second landed on what they covered: it removed the
+// next mark type at 320 wide and flipped the next entry type's "Can speak". With the page's motion stilled and with the app's own motion.
+const DOUBLE_CLICK_RUNS = [
+  { width: 320, motion: false },
+  { width: 390, motion: false },
+  { width: 720, motion: false },
+  { width: 1440, motion: false },
+  { width: 320, motion: true },
+  { width: 1440, motion: true },
+];
+for (const { site, driver, boxes, list } of POPOVER_SITES) {
+  for (const { width, motion } of DOUBLE_CLICK_RUNS) {
+    test(`${site} at ${width}${motion ? ', with motion' : ''}: a double click on any swatch changes only that row's colour`, async ({ page }) => {
+      test.setTimeout(240_000);
+      if (!driver) throw new Error('colour-field.spec.ts names a driver that tests/visual/drivers no longer has');
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto('/');
+      if (motion) await page.waitForLoadState('networkidle');
+      else await settlePage(page);
+      await driver(page);
+      const popup = page.locator(POPUP);
+      const swatches = await popup.getByRole('radio').evaluateAll((radios) => radios.map((radio) => radio.getAttribute('aria-label') ?? ''));
+      expect(swatches.length).toBeGreaterThanOrEqual(6);
+      await page.keyboard.press('Escape');
+      await expect(popup).toHaveCount(0);
+      const rows = await boxes(page).count();
+      expect(rows).toBeGreaterThanOrEqual(2);
+      const wrong: string[] = [];
+      for (let row = 0; row < rows; row += 1) {
+        for (const swatch of swatches) {
+          const before = await controlsOf(list(page));
+          // Rows may share a colour, so the box is found by its place among the colour boxes, not by its name.
+          const boxAt = before.flatMap((line, at) => (/^button\|Colour[^|]*: /.test(line) ? [at] : []))[row];
+          await boxes(page).nth(row).click();
+          await popup.getByRole('radio', { name: swatch, exact: true }).dblclick();
+          await expect(popup).toHaveCount(0);
+          // Past the double-click interval, so what a late second press would have done has happened, and the next press is a new one.
+          await page.waitForTimeout(AFTER_ECHO_MS);
+          await expect(boxes(page).nth(row)).toHaveAttribute('aria-label', new RegExp(`: ${swatch}$`));
+          const after = await controlsOf(list(page));
+          const changed = after.flatMap((line, at) => (line !== before[at] && at !== boxAt ? [`${before[at]} => ${line}`] : []));
+          const opened = (await popup.count()) + (await page.getByRole('alertdialog').count()) + (await page.getByRole('listbox').count());
+          if (after.length !== before.length || changed.length > 0 || opened > 0) {
+            wrong.push(`row ${row}, ${swatch}: ${before.length} => ${after.length} controls, opened ${opened}, ${changed.join('; ')}`);
+          }
+        }
+      }
+      expect(wrong).toEqual([]);
     });
   }
 }

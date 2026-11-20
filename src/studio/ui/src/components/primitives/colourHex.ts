@@ -1,9 +1,15 @@
 // A stored colour is six capital hex digits with no `#` (the host checks the same shape), and '' where a colour may be unset.
 const STORED_HEX = /^[0-9A-F]{6}$/;
 
-/** What the narrator typed, as the stored form would spell it: trimmed, without a leading `#`, in capitals. It may still not be a colour. */
+const HEX_DIGITS = /^[0-9a-f]*$/i;
+
+/**
+ * What the narrator typed, as the stored form would spell it: trimmed, without a leading `#`, and in capitals when it is hex digits. Anything
+ * else is left as typed and is not a colour: capitals are not taken of other letters, since some become hex digits that way (`ﬀ`, U+FB00, is "FF").
+ */
 export function normaliseHex(text: string): string {
-  return text.trim().replace(/^#/, '').toUpperCase();
+  const bare = text.trim().replace(/^#/, '');
+  return HEX_DIGITS.test(bare) ? bare.toUpperCase() : bare;
 }
 
 /** Whether `hex` is a stored colour: exactly six capital hex digits. */
@@ -19,5 +25,5 @@ const UNSET_PICKER_VALUE = '#808080';
  * host kept in lower case (it accepts either case) is shown as itself.
  */
 export function toPickerValue(hex: string): string {
-  return isStoredHex(hex.toUpperCase()) ? `#${hex.toLowerCase()}` : UNSET_PICKER_VALUE;
+  return /^[0-9a-f]{6}$/i.test(hex) ? `#${hex.toLowerCase()}` : UNSET_PICKER_VALUE;
 }

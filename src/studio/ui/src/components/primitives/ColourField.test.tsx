@@ -3,10 +3,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ECHO_WINDOW_MS, forgetEchoClicks } from './echoGuard';
 import { ColourField, freeNames, type ColourChoice } from './ColourField';
 import { TooltipProvider } from './Tooltip';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  forgetEchoClicks();
+});
 
 type Hue = 'green' | 'blue' | 'violet';
 const CHOICES: readonly ColourChoice<Hue>[] = [
@@ -179,6 +183,62 @@ describe('ColourField palette while a save runs, and when off', () => {
     expect(document.activeElement).toBe(radio('Blue'));
   });
 
+  // B6 (#3680): a save that is slow or refused must not leave focus on a swatch that is not the chosen one.
+  function Saving({ refuse = false }: { refuse?: boolean }) {
+    const [value, setValue] = useState<Hue>('violet');
+    const [busy, setBusy] = useState(false);
+    return (
+      <>
+        <ColourField
+          mode="palette"
+          label="Colour"
+          choices={CHOICES}
+          value={value}
+          pending={busy}
+          onChange={(next) => {
+            if (next && !refuse) setValue(next);
+            setBusy(true);
+          }}
+        />
+        <button type="button" onClick={() => setBusy(false)}>
+          Answer
+        </button>
+      </>
+    );
+  }
+
+  it('a press while pending leaves focus on the swatch being saved', async () => {
+    render(<Saving />);
+    await userEvent.click(radio('Green'));
+    expect(screen.getByRole('radiogroup').getAttribute('aria-busy')).toBe('true');
+    expect(document.activeElement).toBe(radio('Green'));
+    await userEvent.click(radio('Blue'));
+    expect(document.activeElement).toBe(radio('Green'));
+    expect(checked('Green')).toBe('true');
+    expect(checked('Blue')).toBe('false');
+  });
+
+  it('after the answer the tab stop is the checked swatch', async () => {
+    render(<Saving refuse />);
+    await userEvent.click(radio('Green'));
+    expect(document.activeElement).toBe(radio('Green'));
+    // The host refuses: the value stays Violet. Answering by key keeps focus where the narrator left it.
+    act(() => screen.getByRole('button', { name: 'Answer' }).click());
+    expect(checked('Violet')).toBe('true');
+    expect(document.activeElement).toBe(radio('Violet'));
+    expect(radio('Violet').tabIndex).toBe(0);
+    expect(radio('Green').tabIndex).toBe(-1);
+  });
+
+  it('an answer that arrives while focus is elsewhere moves no focus', async () => {
+    render(<Saving refuse />);
+    await userEvent.click(radio('Green'));
+    const answer = screen.getByRole('button', { name: 'Answer' });
+    answer.focus();
+    act(() => answer.click());
+    expect(document.activeElement).toBe(answer);
+  });
+
   it('disabled: no swatch can be operated', async () => {
     const onChange = vi.fn();
     render(<Palette start="blue" disabled onChange={onChange} />);
@@ -202,6 +262,84 @@ describe('ColourField palette, as a popover', () => {
     await userEvent.click(trigger('Colour for Character: Blue'));
     expect(await screen.findByRole('radiogroup', { name: 'Colour for Character' })).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(radio('Blue')));
+  });
+
+  it('says the chosen colour in a hint on the box, not in a native title', async () => {
+    render(<Palette start="blue" form="popover" />);
+    const box = trigger('Colour for Character: Blue');
+    expect(box.getAttribute('title')).toBeNull();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(box);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Blue');
+  });
+
+  // B1 (#3680): the swatches are gone before the second press of a double click, which then landed on the row under them.
+  describe('the second press of a double click', () => {
+    const SPOT = { left: 100, top: 200, right: 128, bottom: 228, width: 28, height: 28, x: 100, y: 200, toJSON: () => ({}) };
+    const at = (x: number, y: number) => ({ clientX: x, clientY: y, detail: 1, bubbles: true, cancelable: true });
+
+    async function pickViolet(under: () => void) {
+      render(
+        <>
+          <Palette start="blue" form="popover" />
+          <button type="button" onPointerDown={under} onMouseDown={under} onClick={under}>
+            Remove the next row
+          </button>
+        </>,
+      );
+      await userEvent.click(trigger('Colour for Character: Blue'));
+      const violet = await screen.findByRole('radio', { name: 'Violet' });
+      // jsdom lays nothing out, so the swatch is given the box it would have.
+      violet.getBoundingClientRect = () => SPOT;
+      fireEvent.click(violet, at(110, 210));
+      await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
+      return screen.getByRole('button', { name: 'Remove the next row' });
+    }
+
+    it('a second click that follows a pick lands on nothing', async () => {
+      const under = vi.fn();
+      const below = await pickViolet(under);
+      for (const type of ['pointerDown', 'mouseDown', 'pointerUp', 'mouseUp', 'click', 'dblClick'] as const) {
+        expect(fireEvent[type](below, at(112, 212)), `${type} is cancelled`).toBe(false);
+      }
+      expect(under).not.toHaveBeenCalled();
+      expect(trigger('Colour for Character: Violet')).toBeTruthy();
+    });
+
+    it('a press somewhere else goes through at once', async () => {
+      const under = vi.fn();
+      const below = await pickViolet(under);
+      fireEvent.click(below, at(300, 400));
+      expect(under).toHaveBeenCalledTimes(1);
+    });
+
+    it('a press at the same spot goes through once the double-click interval has passed', async () => {
+      const under = vi.fn();
+      const below = await pickViolet(under);
+      await new Promise((resolve) => setTimeout(resolve, ECHO_WINDOW_MS + 20));
+      fireEvent.click(below, at(112, 212));
+      expect(under).toHaveBeenCalledTimes(1);
+    });
+
+    it('a pick by Space guards nothing: no second press follows a key', async () => {
+      const under = vi.fn();
+      render(
+        <>
+          <Palette start="blue" form="popover" />
+          <button type="button" onClick={under}>
+            Remove the next row
+          </button>
+        </>,
+      );
+      await userEvent.click(trigger('Colour for Character: Blue'));
+      const violet = await screen.findByRole('radio', { name: 'Violet' });
+      violet.getBoundingClientRect = () => SPOT;
+      violet.focus();
+      await userEvent.keyboard(' ');
+      await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
+      fireEvent.click(screen.getByRole('button', { name: 'Remove the next row' }), at(112, 212));
+      expect(under).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('a click picks, closes and returns focus to the box', async () => {
@@ -247,19 +385,25 @@ describe('ColourField palette, as a popover', () => {
     await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
   });
 
-  // Keyboard focus shows the swatch's name as a hint, and the first Escape is the hint's (WCAG 1.4.13), as on every hinted control in a dialog.
-  it('Escape dismisses the swatch’s hint, then closes, and keeps what the arrow keys checked', async () => {
+  // B4 (#3680): keyboard focus shows the swatch's name as a hint, and the first Escape used to dismiss only the hint.
+  it('one Escape closes the swatches while a swatch’s hint is showing, returns focus to the box and keeps what the arrow keys checked', async () => {
     const onChange = vi.fn();
-    render(<Palette start="green" form="popover" onChange={onChange} />);
+    const onDialogKey = vi.fn();
+    render(
+      // The listener stands for the dialog the box may sit in: the Escape that closes the swatches must not reach it.
+      <div onKeyDown={onDialogKey}>
+        <Palette start="green" form="popover" onChange={onChange} />
+      </div>,
+    );
     await userEvent.click(trigger('Colour for Character: Green'));
     await waitFor(() => expect(document.activeElement).toBe(radio('Green')));
     await userEvent.keyboard('{ArrowRight}');
-    expect(await screen.findByRole('tooltip')).toBeTruthy();
-    await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('radiogroup')).toBeTruthy();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Blue');
+    onDialogKey.mockClear();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('radiogroup')).toBeNull());
-    expect(trigger('Colour for Character: Blue')).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(trigger('Colour for Character: Blue')));
+    expect(onDialogKey).not.toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledExactlyOnceWith('blue');
   });
 
@@ -287,21 +431,27 @@ describe('ColourField palette, as a popover', () => {
 });
 
 describe('freeNames', () => {
+  // B12 (#3680, WCAG 2.5.3): the words drawn beside the control are in both names, spelled as drawn.
   it.each([
-    ['Tint', 'Tint colour', 'Tint hex'],
-    ['Note color', 'Note colour', 'Note hex'],
-    ['Marker Colour', 'Marker colour', 'Marker hex'],
-    ['Colour', 'Colour', 'Hex'],
-    ['Décor', 'Décor colour', 'Décor hex'],
-    ['Note colour (this project)', 'Note colour (this project)', 'Note hex (this project)'],
-    ['Tint (all projects)', 'Tint colour (all projects)', 'Tint hex (all projects)'],
-    ['Colour (all projects)', 'Colour (all projects)', 'Hex (all projects)'],
+    ['Tint', 'Tint', 'Tint hex'],
+    ['Note color', 'Note color', 'Note color hex'],
+    ['Misread marker color', 'Misread marker color', 'Misread marker color hex'],
+    ['Décor', 'Décor', 'Décor hex'],
+    ['Note colour (this project)', 'Note colour (this project)', 'Note colour (this project) hex'],
   ])('%s names the picker %j and the box %j', (label, picker, hex) => {
     expect(freeNames(label)).toEqual({ picker, hex });
   });
 });
 
-type FreeExtras = { allowUnset?: boolean; placeholder?: string; invalid?: boolean; disabled?: boolean; describedBy?: string; id?: string };
+type FreeExtras = {
+  allowUnset?: boolean;
+  onRefused?: (text: string) => void;
+  placeholder?: string;
+  invalid?: boolean;
+  disabled?: boolean;
+  describedBy?: string;
+  id?: string;
+};
 
 function Free({
   start,
@@ -325,8 +475,8 @@ function Free({
 }
 
 describe('ColourField free', () => {
-  const hexBox = () => screen.getByRole<HTMLInputElement>('textbox', { name: 'Note hex' });
-  const picker = () => screen.getByLabelText<HTMLInputElement>('Note colour');
+  const hexBox = () => screen.getByRole<HTMLInputElement>('textbox', { name: 'Note color hex' });
+  const picker = () => screen.getByLabelText<HTMLInputElement>('Note color', { selector: 'input[type="color"]' });
 
   it('draws the browser’s picker and a hex box, each named for what it is', () => {
     render(<Free start="B5473C" />);
@@ -382,9 +532,81 @@ describe('ColourField free', () => {
     expect(hexBox().getAttribute('aria-invalid')).toBe('true');
     const hint = document.getElementById(hexBox().getAttribute('aria-describedby')!);
     expect(hint?.textContent).toBe('Six hex digits, like B5473C');
-    // The hint is for a screen reader only: nothing is added to the page flow (errors are a toast, a dialog or a fixed box).
+    // Spoken from here; shown as a hint on the box. Nothing is added to the page flow (errors are a toast, a dialog or a fixed box).
     expect(hint?.className).toContain('sr-only');
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  // B5 (#3680): a red edge alone does not say what is wrong.
+  it('a refused hex shows the hint', async () => {
+    render(<Free start="B5473C" />);
+    await userEvent.clear(hexBox());
+    await userEvent.type(hexBox(), 'B547');
+    await userEvent.tab();
+    await userEvent.tab({ shift: true });
+    expect(document.activeElement).toBe(hexBox());
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Six hex digits, like B5473C');
+  });
+
+  it('the hint is absent until a hex is refused', async () => {
+    render(<Free start="B5473C" />);
+    expect(screen.queryByText('Six hex digits, like B5473C')).toBeNull();
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(hexBox());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(screen.queryByText('Six hex digits, like B5473C')).toBeNull();
+    expect(hexBox().getAttribute('aria-describedby')).toBeNull();
+  });
+
+  it('marks a stored value that is not a colour, and says what one is', () => {
+    render(<Free start="4D5E6" />);
+    expect(hexBox().value).toBe('4D5E6');
+    expect(hexBox().getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(hexBox().getAttribute('aria-describedby')!)?.textContent).toBe('Six hex digits, like B5473C');
+    expect(picker().value).toBe('#808080');
+  });
+
+  // B2, B3 (#3680): a save that is slow to answer, or refused, is sent once.
+  function SlowHost({ onChange }: { onChange: (hex: string) => void }) {
+    // The host has not answered: the value stays what it was.
+    return <ColourField mode="free" label="Note color" value="B5473C" onChange={onChange} />;
+  }
+
+  it('held Enter reports once', async () => {
+    const onChange = vi.fn();
+    render(<SlowHost onChange={onChange} />);
+    await userEvent.clear(hexBox());
+    await userEvent.type(hexBox(), 'BB0001');
+    for (let repeat = 0; repeat < 21; repeat += 1) fireEvent.keyDown(hexBox(), { key: 'Enter', repeat: repeat > 0 });
+    await userEvent.tab();
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('BB0001');
+  });
+
+  it('a refused value is not sent again on blur, and the box shows the stored colour', async () => {
+    const onChange = vi.fn();
+    render(<SlowHost onChange={onChange} />);
+    await userEvent.clear(hexBox());
+    await userEvent.type(hexBox(), 'BB0001{Enter}');
+    expect(hexBox().value).toBe('B5473C');
+    await userEvent.tab();
+    await userEvent.tab({ shift: true });
+    await userEvent.tab();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(hexBox().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  // B7 (#3680): a form that saves later holds refused text as its own unsaved value.
+  it('onRefused: hands refused text to the caller, once, tidied as a colour would be', async () => {
+    const onChange = vi.fn();
+    const onRefused = vi.fn();
+    render(<Free start="B5473C" onChange={onChange} onRefused={onRefused} />);
+    await userEvent.clear(hexBox());
+    await userEvent.type(hexBox(), ' #4d5e6{Enter}');
+    await userEvent.tab();
+    expect(onRefused).toHaveBeenCalledExactlyOnceWith('4D5E6');
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('stops marking the box once the narrator types again', async () => {
@@ -454,6 +676,7 @@ describe('ColourField free', () => {
         <Free start="B5473C" id="note-colour" describedBy="why" invalid />
       </>,
     );
+    expect(screen.getByLabelText('Note color', { selector: 'input[type="text"]' })).toBe(hexBox());
     expect(hexBox().id).toBe('note-colour');
     expect(hexBox().getAttribute('aria-describedby')).toBe('why');
     expect(hexBox().getAttribute('aria-invalid')).toBe('true');

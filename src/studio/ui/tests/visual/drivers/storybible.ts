@@ -242,6 +242,14 @@ export const storybibleDrivers: Record<string, Driver> = {
     if (await unlock.count()) await unlock.click();
     await clickVisible(page, 'button', 'Edit this entry');
   },
+  'entry-speaker-colour': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await entryRows(page).first().click();
+    const unlock = page.getByRole('button', { name: 'Unlock entry' });
+    if (await unlock.count()) await unlock.click();
+    await clickVisible(page, 'button', 'Edit this entry');
+    await page.getByRole('radiogroup', { name: 'Speaker colour' }).evaluate((group) => group.scrollIntoView({ block: 'center' }));
+  },
   'entry-leave-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();
