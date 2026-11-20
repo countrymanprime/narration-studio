@@ -243,9 +243,9 @@ func TestLinkingAndUnlinkingAChapterNeverTakesAMeasuredRead(t *testing.T) {
 	var fractions, lengths, throughs int
 	host.manuscript.SetRecordedFractions(func() map[string]float64 { fractions++; return nil })
 	host.manuscript.SetRecordedLengths(func() map[string]manuscript.RecordedLength { lengths++; return nil })
-	host.manuscript.SetRecordedThrough(func([]string, map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
+	host.manuscript.SetRecordedThrough(func([]string, map[string]manuscript.RecordedLength) (map[string]recordedthrough.Through, map[string]float64) {
 		throughs++
-		return nil
+		return nil, nil
 	})
 	measured := func() int { return fractions + lengths + throughs }
 
