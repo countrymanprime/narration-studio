@@ -127,7 +127,7 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)), ...(unsaved.length ? { added: unsaved } : {}) };
     },
     // As BoothVoiceAdd does (src/studio/desktop/boothvoiceadd.go): a child at the end of the chapter's folder, its characters added
-    // to its name's, and chosen. Refused during this app's take, for a blank name or one a voice of the folder has.
+    // to its name's, and chosen (the host also arms and monitors it; the mock's DAW answers as armed). Refused during this app's take, for a blank name or one a voice of the folder has.
     async boothVoiceAdd(chapterId: string, name: string, characterIds: string[]): Promise<BoothVoiceAdded> {
       const { links, voices } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);

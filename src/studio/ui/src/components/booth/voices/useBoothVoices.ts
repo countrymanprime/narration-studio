@@ -419,8 +419,11 @@ export function useBoothVoices({
         }
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
-        // The add arms nothing (#3645): the old lane is still the one armed, which the next DAW report must not read as the narrator arming it by hand.
-        armUnconfirmed.current = true;
+        // The add arms the new voice (#3670); when the DAW would not (a message says so) the old lane is still the one armed, which the next DAW report must
+        // not read as the narrator arming it by hand.
+        armUnconfirmed.current = Boolean(answer.message);
+        // The track is added and chosen, but the DAW would not arm it (#3670): said, as for a voice chosen from the list.
+        if (answer.message) notify(answer.message, 'error');
         // A voice chosen while the add waited keeps its place: the late lane is listed, not selected (the host does the same).
         const keepChoice = localChanges.current !== changesBefore;
         localChanges.current += 1;
