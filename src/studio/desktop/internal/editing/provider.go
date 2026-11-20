@@ -111,11 +111,6 @@ func (p *SignalProvider) projectUnreadableSignals(err error, now time.Time) []st
 	}
 }
 
-// gatherCoverage is the provider's own read of stored evidence: the
-// chapter's confirmed track, every item's own staleness against
-// analyzerID's record at analyzerVersion
-// (CurrentItemRecord, item-scoped per ledger.go's own header comment), and
-// the typed reasons of every item Resolve refused. It never decodes audio.
 // ledgerOf is the ledger a stage evaluation reads: the view's one listing of it, shared by every chapter and item of the
 // evaluation (issue 3801), else the store, which lists its folder for every question.
 func (s *Service) ledgerOf(view stages.EvidenceView) evidence.LedgerReader {
@@ -125,6 +120,11 @@ func (s *Service) ledgerOf(view stages.EvidenceView) evidence.LedgerReader {
 	return s.ledger
 }
 
+// gatherCoverage is the provider's own read of stored evidence: the
+// chapter's confirmed track, every item's own staleness against
+// analyzerID's record at analyzerVersion
+// (CurrentItemRecord, item-scoped per ledger.go's own header comment), and
+// the typed reasons of every item Resolve refused. It never decodes audio.
 func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.EvidenceView, analyzerID, analyzerVersion string) (ChapterCoverage, string, []string, error) {
 	trackGUID, err := s.confirmedTrackGUID(chapter.DocumentID, chapter.ChapterID)
 	if err != nil {

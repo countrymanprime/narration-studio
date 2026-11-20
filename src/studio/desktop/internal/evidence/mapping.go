@@ -163,6 +163,8 @@ type MappingStore struct {
 	last mappingRead
 	// decodes counts how often a read had to decode the file, for the tests of mappingRead.
 	decodes atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while mu is held
+	// reads counts how often the file was read, for the tests that guard what a pass over a book's chapters costs.
+	reads atomic.Int64 // +checklocksignore: an atomic
 }
 
 // mappingRead is a decoded mapping file and the bytes it came from. A chapter list asks for the links once or twice per chapter, and
@@ -458,6 +460,22 @@ func (s *MappingStore) Snapshot(documentID string) MappingSnapshot {
 	return MappingSnapshot{documentID: documentID, links: links}
 }
 
+// SnapshotWhenAsked is a reader that takes one Snapshot of documentID's links at its first question and answers every
+// later one from it. A view built before the narrator is asked something (a file picker) therefore reads the links as
+// they are when it is first used, not as they were when it was built.
+func (s *MappingStore) SnapshotWhenAsked(documentID string) MappingReader {
+	return askedMapping(sync.OnceValue(func() MappingSnapshot { return s.Snapshot(documentID) }))
+}
+
+type askedMapping func() MappingSnapshot
+
+func (asked askedMapping) List(documentID string) ([]TrackMapping, error) {
+	return asked().List(documentID)
+}
+
+// Reads is how often the store has read its file, for the tests that guard a read's cost (issue 3801).
+func (s *MappingStore) Reads() int64 { return s.reads.Load() }
+
 // List answers as MappingStore.List does for the document the snapshot was taken for; any other document has no links in it.
 func (snapshot MappingSnapshot) List(documentID string) ([]TrackMapping, error) {
 	if documentID != snapshot.documentID {
@@ -493,6 +511,7 @@ func (s *MappingStore) clock() time.Time {
 //
 // +checklocks:s.mu
 func (s *MappingStore) readLocked(documentID string) mappingFileShape {
+	s.reads.Add(1)
 	decoded, ok := readMappingFile(s.Reporter, s.path, &s.last, &s.decodes)
 	if !ok || decoded.DocumentID != documentID {
 		return mappingFileShape{SchemaVersion: mappingSchemaVersion, DocumentID: documentID}

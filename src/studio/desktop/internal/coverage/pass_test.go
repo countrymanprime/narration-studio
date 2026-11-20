@@ -37,6 +37,7 @@ func TestAPassReadsTheManuscriptAndTheLedgerOnceAndAnswersAsSingleReadsDo(t *tes
 
 	loads = 0
 	listings, _ := service.LedgerReads()
+	linkReads := service.mapping.Reads()
 	pass := service.Pass()
 	for _, chapter := range chapters {
 		got, err := pass.ResultIn(project, projectFile, chapter, DefaultAlignmentParams)
@@ -50,6 +51,10 @@ func TestAPassReadsTheManuscriptAndTheLedgerOnceAndAnswersAsSingleReadsDo(t *tes
 	// The credits row is rendered, not read from the pass's manuscript: it loads the manuscript once more for its document id.
 	if loads != 2 {
 		t.Errorf("the pass loaded the manuscript %d times for %d chapters, want 2 (the pass, the credits row)", loads, len(chapters))
+	}
+	// The credits row is refused before its links are asked for (no credits text in this fixture), so the pass's one read is all.
+	if got := service.mapping.Reads() - linkReads; got != 1 {
+		t.Errorf("the pass read the chapter links %d times for %d chapters, want 1", got, len(chapters))
 	}
 	if after, _ := service.LedgerReads(); after-listings != 1 {
 		t.Errorf("the pass listed the ledger %d times, want 1", after-listings)

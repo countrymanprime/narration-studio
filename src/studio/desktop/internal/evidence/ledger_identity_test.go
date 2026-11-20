@@ -55,6 +55,19 @@ func TestAMappingSnapshotAnswersAsTheStoreDidWhenItWasTaken(t *testing.T) {
 	if other, _ := snapshot.List("doc-2"); len(other) != 0 {
 		t.Fatalf("another document's links = %+v, want none", other)
 	}
+	reads := store.Reads()
+	asked := store.SnapshotWhenAsked("doc-1")
+	if store.Reads() != reads {
+		t.Fatal("a snapshot taken when asked read the links before it was asked")
+	}
+	for range 3 {
+		if links, _ := asked.List("doc-1"); len(links) != 2 {
+			t.Fatalf("asked now, the links = %+v, want both", links)
+		}
+	}
+	if got := store.Reads() - reads; got != 1 {
+		t.Fatalf("three questions read the links %d times, want 1", got)
+	}
 	if empty, _ := NewMappingStore(t.TempDir()).Snapshot("doc-1").List("doc-1"); len(empty) != 0 {
 		t.Fatalf("a project with no link file = %+v, want none", empty)
 	}
