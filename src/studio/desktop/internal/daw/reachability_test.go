@@ -301,3 +301,48 @@ func TestReachabilityEpochMovesOnlyWhenTheBridgeMayHaveStartedOver(t *testing.T)
 		t.Fatalf("epoch %d after the counter went down, want it moved past %d", got, other)
 	}
 }
+
+// The first heartbeat starts the first epoch: nothing was read before it, so it moves nothing.
+func TestReachabilityEpochIsZeroUntilARealRestartAndTheFirstBeatDoesNotMoveIt(t *testing.T) {
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	reach := NewReachabilityWithClock(nil, func() time.Time { return now })
+	if got := reach.Epoch(); got != 0 {
+		t.Fatalf("epoch %d before any heartbeat, want 0", got)
+	}
+	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "7"}})
+	if got := reach.Epoch(); got != 0 {
+		t.Fatalf("epoch %d after the first heartbeat, want 0", got)
+	}
+}
+
+// The gap rule is "longer than the heartbeat timeout": a beat exactly that late is the same bridge, one a nanosecond later may not be.
+func TestReachabilityEpochGapBoundaryIsTheHeartbeatTimeout(t *testing.T) {
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	reach := NewReachabilityWithClock(nil, func() time.Time { return now })
+	beat := func() {
+		reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "7"}})
+	}
+	beat()
+	now = now.Add(heartbeatTimeout)
+	beat()
+	if got := reach.Epoch(); got != 0 {
+		t.Fatalf("epoch %d after a beat exactly %s late, want 0", got, heartbeatTimeout)
+	}
+	now = now.Add(heartbeatTimeout + time.Nanosecond)
+	beat()
+	if got := reach.Epoch(); got != 1 {
+		t.Fatalf("epoch %d after a beat a nanosecond past the timeout, want 1", got)
+	}
+}
+
+// Windows can spell the same project's path in another case: that is not another project, and must not drop what was read.
+func TestReachabilityEpochIgnoresACaseOnlyPathChange(t *testing.T) {
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	reach := NewReachabilityWithClock(nil, func() time.Time { return now })
+	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/Projects/Alice/Alice.rpp", "0", "7"}})
+	now = now.Add(time.Second)
+	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "c:/projects/alice/alice.rpp", "0", "7"}})
+	if got := reach.Epoch(); got != 0 {
+		t.Fatalf("epoch %d after the same path in another case, want 0", got)
+	}
+}
