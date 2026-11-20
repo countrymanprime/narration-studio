@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
-import { useDawState } from '../../daw/useDawSession';
+import { usePort } from '../../ports/usePort';
 import { recorderName } from '../../studio/dawNames';
 import { useSecondsSince } from '../layout/CheckLine';
 import { ResolveShell } from './ResolveShell';
@@ -83,8 +83,19 @@ export function ReaperOffDialog({
   children,
 }: ReaperOffDialogProps) {
   const name = nameOverride ?? recorderName(daw);
-  // What the host knows about the project's DAW is the session's, read with every report: no second read here (#3668).
-  const choice = useDawState((state) => state.choice);
+  const choiceApi = usePort('dawChoice');
+  const [choice, setChoice] = useState<DawChoice | null>();
+  // Read again with every check, so "linked" turns into "connected" at once and the sentence under the title stays true.
+  useEffect(() => {
+    let live = true;
+    choiceApi.dawChoice().then(
+      (c) => live && setChoice(c),
+      () => live && setChoice(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [choiceApi, checkedAt]);
   const launch = useReaperLaunch({ daw, name, onCaps, onLaunched, pollMs, polls });
   const [checking, setChecking] = useState(false);
   // "Link project file…" is the app's one link action (the same one the engine panel and Settings press); the dialog follows it with a check, so the page
