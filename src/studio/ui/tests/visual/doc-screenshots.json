@@ -393,6 +393,13 @@
   },
   {
     "page": "booth",
+    "state": "recording-in-daw",
+    "viewport": "desktop",
+    "docName": "booth-take-in-reaper",
+    "caption": "Booth - a take started in REAPER and followed: Stop and the REC · REAPER pill, the Space and R hints struck through, and the message that says to stop it in REAPER"
+  },
+  {
+    "page": "booth",
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
@@ -655,7 +662,14 @@
     "state": "recording-advanced",
     "viewport": "desktop",
     "docName": "settings-daw",
-    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program and the capabilities table"
+    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program path"
+  },
+  {
+    "page": "settings",
+    "state": "app-capabilities",
+    "viewport": "desktop",
+    "docName": "settings-capabilities",
+    "caption": "Settings - App & updates, Capabilities: the dialog that lists what each recording tool can do"
   },
   {
     "page": "settings",

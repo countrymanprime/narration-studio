@@ -21,7 +21,7 @@ import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
 import { useBoothSamples } from '../samples/useBoothSamples';
 import type { MeasurementsPort } from '../../../ports/measurements';
 import { usePort } from '../../../ports/usePort';
-import { recordsInApp } from '../../../studio/dawNames';
+import { recorderName, recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
 import type { ToastAction } from '../../primitives/Toast';
@@ -51,7 +51,7 @@ import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { prefetchMatch } from '../../connection/chapterMatchCache';
 import { useChapterTrackProject } from '../../chapterTracks/ChapterTrackState';
 import { recordSetupFor } from '../record/recordSetupModel';
-import type { RecordBlock } from '../record/useRecordControl';
+import { heldInDawSentence, notWhileRecording, RECORD_BLOCKED_TOPIC, type RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -77,6 +77,7 @@ import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawSoloesChapter } from '../../../hooks/useDawSoloesChapter';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
+import { useIsRecording } from '../../../daw/useIsRecording';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -144,7 +145,12 @@ function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNo
 function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: string) => void; exitTo: string; projectFolder: string }) {
   // Leaving the Booth puts back the input monitoring it turned on; stepping through chapters inside it does not.
   const overlay = useOverlay();
-  useReleaseBoothMonitorOnLeave((sentence) => sayDawArming(overlay, sentence));
+  // Whether the DAW records a take the app did not start, set where the control is known: the leave sends the DAW nothing then.
+  const dawHoldsTake = useRef(false);
+  useReleaseBoothMonitorOnLeave(
+    (sentence) => sayDawArming(overlay, sentence),
+    () => dawHoldsTake.current,
+  );
   const [params, setParams] = useSearchParams();
   // An address that cannot be read is no request: the gate in front of the page says so (it holds the page while a take records), and the page does not act on a half-read chapter.
   const asked = useMemo(() => (readAddress('booth', { search: `?${params.toString()}`, hash: '' }).kind === 'bad' ? null : readBoothQuery(params)), [params]);
@@ -276,12 +282,15 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         pickAt={pickAt}
         onPick={setPickAt}
         measurements={measurements}
+        holdsTake={dawHoldsTake}
       />
     </>
   );
 }
 
 type SessionProps = {
+  /** Set by the session: the DAW records a take the app did not start (the leave sends it nothing then). */
+  holdsTake: { current: boolean };
   source: BoothSource;
   from?: BoothStart;
   /** What the address asks for now, and how the page takes it on. */
@@ -326,6 +335,7 @@ function BoothSession({
   pickAt,
   onPick,
   measurements,
+  holdsTake,
 }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
@@ -383,6 +393,8 @@ function BoothSession({
     onRecordBlocked: (block) => parts.current.recordBlocked?.(block),
   });
   const { control, at, units } = page;
+  // Why a change that waits for the take to end is off: a take REAPER started is stopped there, not here.
+  const whileRecording = notWhileRecording(control.capabilities?.daw, control.recording && !control.startedByApp);
 
   const chapterLabels = useMemo(() => (data.chapters ?? []).map((item) => ({ id: item.id, name: chapterName(item, 'short') })), [data.chapters]);
   const chapterLabel = useCallback((id: string) => chapterLabels.find((item) => item.id === id)?.name ?? id, [chapterLabels]);
@@ -400,6 +412,7 @@ function BoothSession({
     onJump: jumpToLine,
     blocked: page.moveBlocked,
     initialAt: pickAt,
+    whileRecording,
   });
   // A take that read over a suspected line puts it on the shared pickup list; the pickup session's toast, when it had one, said it was saved.
   const suspected = useSuspectedPickups({ chapterId: recordId, flags: page.flags });
@@ -413,6 +426,7 @@ function BoothSession({
       survivesMoves: take.survivesMoves,
       later: take.later,
       saidSaved: marked > 0,
+      byDaw: take.byDaw,
       ...(marked > 0 ? {} : { undoTake: take.undoTake, entry: take.entry }),
     });
     return marked + added;
@@ -434,6 +448,7 @@ function BoothSession({
     // The credits chapters have no paragraphs: nothing there can be bookmarked.
     position: chapter ? page.position : undefined,
     recording: control.recording,
+    whileRecording,
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
@@ -484,11 +499,18 @@ function BoothSession({
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
+  // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
+  const dawRecording = useIsRecording() || control.recording || (control.project === null ? !control.projectFailed : control.project.playState === 'recording');
+  // A take the DAW holds that the app did not start (the narrator pressed Record there) is not armed over: the host refuses, and the arm is sent once it ends.
+  const dawHoldsOthersTake =
+    (control.project === null ? !control.projectFailed : control.project.playState === 'recording') && !(control.recording && control.startedByApp);
+  holdsTake.current = dawHoldsOthersTake;
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
     chapterId,
-    canFollow: !!control.capabilities?.capabilities.follow_position?.available,
+    // The DAW is never moved while it records (the host refuses), so a Booth opened mid-take sends nothing and shows no refusal for it.
+    canFollow: !!control.capabilities?.capabilities.follow_position?.available && !dawRecording,
     target: moveTarget,
     onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
@@ -510,6 +532,7 @@ function BoothSession({
     characters,
     inChapter,
     recording: control.recording,
+    recordingWhy: whileRecording,
     recorder: { unknown: control.readFailed, checkedAt: control.checkedAt, checkAgain: control.checkAgain },
     listening: { active: session.active, paused: session.paused, pause: session.pause },
     notify: (text, tone) => overlay.toast(text, tone ? { tone } : undefined),
@@ -531,7 +554,8 @@ function BoothSession({
   // The chapter's voices, when it is linked to a folder holding tracks of its own (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
   const voiceToast = useCallback(
-    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    (text: string, tone?: 'error' | 'info', action?: ToastAction, topic?: string) =>
+      overlay.toast(text, tone === 'error' || topic ? { ...(tone === 'error' ? { tone, action } : {}), ...(topic ? { topic } : {}) } : undefined),
     [overlay],
   );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
@@ -542,6 +566,7 @@ function BoothSession({
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
+    heldInDaw: control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'change the voice') : undefined,
     coldRead: coldMode,
     notify: voiceToast,
     stopTake: page.stopTake,
@@ -555,7 +580,7 @@ function BoothSession({
     enabled: !coldMode && source.kind === 'chapter',
     follow: followChapterInDaw,
     chapterId,
-    canArm: !!control.capabilities?.capabilities.record?.available,
+    canArm: !!control.capabilities?.capabilities.record?.available && !dawHoldsOthersTake,
     recording: control.recording,
     voice: voices.current?.guid ?? '',
     say: (sentence) => sayDawArming(overlay, sentence),
@@ -591,7 +616,7 @@ function BoothSession({
           keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
           speaks: (id: string) => (lines.get(id) ?? 0) > 0,
           add: (id: string) => askFor(id, 'new'),
-          addWhy: control.recording ? 'Not while recording. Stop the take first.' : undefined,
+          addWhy: control.recording ? whileRecording : undefined,
         }
       : undefined;
   useCommand('booth.voice.0', () => voices.byKey(0));
@@ -630,7 +655,8 @@ function BoothSession({
     adopt,
     choose,
     chapters: pickerChapters,
-    toast: (text) => overlay.toast(text),
+    toast: (text, topic) => overlay.toast(text, topic ? { topic } : undefined),
+    whileRecording,
   });
 
   useBoothPageCommands({
@@ -638,6 +664,7 @@ function BoothSession({
     current: pickerValue,
     choose: (id) => changeChapter({ chapter: id }),
     recording: control.recording,
+    whileRecording,
     hasText: units.length > 0,
     toggleTake: page.toggleTake,
     punchAndRoll: page.punchAndRoll,
@@ -704,7 +731,7 @@ function BoothSession({
       ((block.cause === 'no_track' || block.cause === 'several_tracks' || block.cause === 'track_missing') && linkProblem) ||
       ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
     if (noticeUp) return setRecordAsks((n) => n + 1);
-    overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
+    overlay.toast(block.reason, { tone: 'error', topic: RECORD_BLOCKED_TOPIC, action: { label: 'Check again', onAction: control.checkAgain } });
   };
   // The message about the link is for before the take: once one starts it would only cover the text.
   useEffect(() => {
@@ -785,7 +812,7 @@ function BoothSession({
                   <ChapterStepper
                     chapters={pickerChapters}
                     value={pickerValue}
-                    disabled={control.recording ? 'Not while recording. Stop the take first.' : control.starting ? 'Not while a take is starting.' : undefined}
+                    disabled={control.recording ? whileRecording : control.starting ? 'Not while a take is starting.' : undefined}
                     onChange={(id) => changeChapter({ chapter: id })}
                     onStep={step}
                   />
@@ -816,11 +843,13 @@ function BoothSession({
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
                     problem={setupProblem}
+                    notFollowed={control.notFollowed}
                   />
                 ) : undefined
               }
               recording={control.recording}
               paused={page.paused}
+              startedIn={control.recording && !control.startedByApp ? recorderName(control.capabilities?.daw) : undefined}
               coldRead={page.coldRead.on}
               panelOpen={side.open}
               onTogglePanel={side.toggle}
@@ -987,6 +1016,8 @@ function BoothSession({
             pickupSession={pickups.active}
             coldRead={page.coldRead}
             voiceFolders={voices.voices.length > 0}
+            takeInDaw={control.recording && !control.startedByApp}
+            dawName={recorderName(control.capabilities?.daw)}
             voice={
               <VoiceControl
                 voices={voices.voices}

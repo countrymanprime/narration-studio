@@ -233,7 +233,7 @@ SEP. Can disagree: (1) is app-driven with heartbeat lag and a 4 s poll plus a 3-
 
 ### T3. Record availability ("can Record?" and why not)
 
-- Booth: `recordCheck(capabilities, chapter, openProject)` (B/record/recordCheck.ts) over `daw.capabilities()` + `subscribeCapabilities` + `teleprompter.readAloudReaperState(chapterId)` (track count) + `system.bootstrap()` (`dawFileLinked`, `dawProjectMatches`) + `projectState().playState` (elsewhere). Refusal codes: capability, wrong_project, recording_elsewhere, no_track, several_tracks.
+- Booth: `recordCheck(capabilities, chapter, openProject)` (B/record/recordCheck.ts) over `daw.capabilities()` + `subscribeCapabilities` + `teleprompter.readAloudReaperState(chapterId)` (track count) + `system.bootstrap()` (`dawFileLinked`, `dawProjectMatches`) + `projectState().playState` (elsewhere). Refusal codes: capability, wrong_project, recording_elsewhere, no_track, several_tracks, track_missing. A take the DAW holds is not always a refusal: when the linked project is the open one and the chapter's track is the one armed (`recording_here`), the Booth follows it as its own running take (#3666, `startedByApp` false; the app never stops it) and the check says nothing; `recording_elsewhere` carries why it is not followed (another track, several, none).
 - Production page: `caps.capabilities.record?.available` only (ProductionPage.tsx:278-282) from DAW session store; the "session" jump-menu entry.
 - Companion: `useCapability('record')` = DAW session store (CompanionHost.tsx:66).
 - Pickups/Proof/Editing: link to Booth only.

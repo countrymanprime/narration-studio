@@ -224,14 +224,6 @@ describe('Settings: row layout', () => {
     return body!;
   };
 
-  it('draws the Capabilities table under its label across the whole row (XSE2-4, R4SE2-6)', async () => {
-    await renderPage();
-    await openAdvanced();
-    const body = await waitFor(() => wideBody('daw.capabilities'));
-    expect(body.className).toContain('col-span-full');
-    expect(within(body).getByRole('table')).toBeTruthy();
-  });
-
   it('draws the Credits body across the whole row (XSE2-11)', async () => {
     await renderPage();
     pick('Project');
@@ -609,9 +601,9 @@ describe('Settings: editing', () => {
     const advanced = await screen.findByRole('button', { name: /Advanced/ });
     expect(advanced.getAttribute('aria-expanded')).toBe('false');
     expect(advanced.textContent).toMatch(/\(\d+\)/);
-    expect(row('daw.capabilities')).toBeFalsy();
+    expect(row('daw.reaperPath')).toBeFalsy();
     fireEvent.click(advanced);
-    expect(row('daw.capabilities')).toBeTruthy();
+    expect(row('daw.reaperPath')).toBeTruthy();
   });
 
   // Alignment audit (XSE2-18): the opened Advanced sections sit behind a rule, so a section named like one above reads as its advanced part.

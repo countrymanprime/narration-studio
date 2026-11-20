@@ -1191,7 +1191,20 @@ describe('a press the narrator left behind by changing chapter, whose take still
       listeners.add(listener);
       return () => listeners.delete(listener);
     }) as unknown as typeof daw.subscribeTransport;
-    const page = mountBooth(host, daw);
+    // The page that opens on the next chapter takes the app's own claim back only on this chapter's lane in the linked project, as any take the DAW holds is (#3666): this
+    // DAW says so. A page that finds the DAW stopped forgets the claim, and a take it reports recording after that is REAPER's, followed on the same terms.
+    const asREAPERs: Partial<NarrationApi> = {
+      readAloudReaperState: async () => ({
+        status: dawRecording ? 'recording_here' : 'ready',
+        message: '',
+        trackGuid: '{T}',
+        armedCount: 1,
+        playing: dawRecording,
+        recording: dawRecording,
+      }),
+      bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true }),
+    };
+    const page = mountBooth(host, daw, asREAPERs);
     if (stop === 'refused') page.recordStop.mockResolvedValueOnce(stopRefused as never);
     await ready();
     await space();
@@ -1211,7 +1224,7 @@ describe('a press the narrator left behind by changing chapter, whose take still
       await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
     }
     await settle();
-    return { host, control, page, push };
+    return { host, control, page, push, asREAPERs };
   };
   const toasted = (page: ReturnType<typeof mountBooth>) => vi.spyOn(page.overlay, 'toast');
   const said = (spy: ReturnType<typeof toasted>) => spy.mock.calls.map(([text]) => text).filter((text) => UNHEARD.test(text));
@@ -1351,11 +1364,14 @@ describe('a press the narrator left behind by changing chapter, whose take still
       const host = fakeHost();
       host.quietFailures();
       let own: ReturnType<typeof host.holdNextStart> = Object.assign(async () => {}, { refuse: async () => {}, refuseIdle: async () => {} });
-      const { page, push } = await changeChapterDuringStart('refused', host, { idleAtChange: true, beforeChange: () => void (own = host.holdNextStart()) });
+      const { page, push, asREAPERs } = await changeChapterDuringStart('refused', host, {
+        idleAtChange: true,
+        beforeChange: () => void (own = host.holdNextStart()),
+      });
       await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
       page.view.unmount();
       if (takeEndsMeanwhile) await push(false);
-      const back = mountBooth(host, page.daw, {}, search);
+      const back = mountBooth(host, page.daw, asREAPERs, search);
       if (!takeEndsMeanwhile) await screen.findByRole('button', { name: /^Stop$/ });
       else await screen.findByRole('button', { name: /^Record$/ });
       return { host, own, back, push };
@@ -1371,12 +1387,14 @@ describe('a press the narrator left behind by changing chapter, whose take still
     });
 
     it('the take that ends later lets the handed-over listening go, and the claim with it', async () => {
-      const { host, own, back } = await leaveAndReturn();
+      const { host, own, back, push } = await leaveAndReturn();
       await own();
       await settle();
       skipStartGuard();
       await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
       await waitFor(() => expect(back.recordStop).toHaveBeenCalled());
+      // The DAW stops recording, as the stop asked it to (this fake DAW says what it was last pushed).
+      await push(false);
       await waitFor(() => expect(host.teleprompterStop).toHaveBeenCalled());
       await waitFor(() => expect(host.phase()).not.toBe('running'));
       expect(joinListening(), 'a claim outlived the session it was for').toBeNull();
@@ -1487,11 +1505,13 @@ describe('a press the narrator left behind by changing chapter, whose take still
       }
     });
 
-    it('Stop pressed while the page waits for the cold read to end starts no session', async () => {
-      const { host } = await adoptWithSlowColdStop();
+    it('Stop pressed on a take REAPER started while the page waits for the cold read to end stops nothing: it says to stop it in REAPER (#3666)', async () => {
+      const { page } = await adoptWithSlowColdStop();
+      const stops = page.recordStop.mock.calls.length;
       skipStartGuard();
       await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
-      await noSessionStarted(host);
+      await waitFor(() => expect(screen.getByText('REAPER started this take, so stop it in REAPER.')).toBeTruthy());
+      expect(page.recordStop).toHaveBeenCalledTimes(stops);
     });
 
     it('does not say the take is unheard when the page ends the cold read and its own listening for the take comes up', async () => {
@@ -1521,7 +1541,8 @@ describe('a press the narrator left behind by changing chapter, whose take still
   });
 
   it.each([
-    ['9.9 s', 9_900, true],
+    // 9.5 s, not 9.9: a take REAPER started is adopted after the reads that follow it (milliseconds, more on a slow runner), and the fake clock also runs with the real one.
+    ['9.5 s', 9_500, true],
     ['10.1 s', 10_100, false],
   ])('a report waits 10 s for the page to adopt the take: adopted at %s, then the session settles', async (_name, wait, spoken) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

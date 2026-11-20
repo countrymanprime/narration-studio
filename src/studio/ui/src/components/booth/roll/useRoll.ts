@@ -6,6 +6,7 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
+import { HELD_TOPIC, heldInDawSentence } from '../record/useRecordControl';
 import { clampPhrase } from './startFromHere';
 import { createTakeHold, type TakeControls } from './takeHold';
 
@@ -16,6 +17,8 @@ type RollFn = (phrase: number, options: { confirmed: boolean }) => Promise<DawRe
 export type RollSession = {
   capabilities: DawCapabilities | null;
   recording: boolean;
+  /** False for a take the DAW started (adopted): the bridge rolls only a take it started, so R says where to roll and sends nothing. */
+  startedByApp?: boolean;
   phraseCount: number;
   /** The phrase the reading position is on. */
   phrase: number;
@@ -44,7 +47,7 @@ export type RollActions = TakeControls & {
   moveTo: (phrase: number) => void;
   /** The punch for the passage map: the paragraph rolled from and the seconds into the take. */
   logPunch: (punch: { paragraph: number; seconds: number }) => void;
-  notify: (sentence: string) => void;
+  notify: (sentence: string, topic?: string) => void;
 };
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
@@ -128,6 +131,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const rollFrom = useCallback(
     async (from: number) => {
       const s = sessionRef.current;
+      if (s.recording && s.startedByApp === false) return actionsRef.current.notify(heldInDawSentence(s.capabilities?.daw, 'roll again'), HELD_TOPIC);
       const to = clampPhrase(from, s.phraseCount);
       const plan = rollPlan(s.capabilities);
       if (plan.kind === 'refused') return actionsRef.current.notify(plan.reason);

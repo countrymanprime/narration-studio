@@ -79,6 +79,7 @@ export function BoothTop({
   setup,
   recording,
   paused = false,
+  startedIn,
   coldRead = false,
   panelOpen,
   onTogglePanel,
@@ -92,6 +93,8 @@ export function BoothTop({
   setup?: ReactNode;
   recording: boolean;
   paused?: boolean;
+  /** The take was started in the DAW (this name, as `recorderName` words it): the pill says so, since nothing else shows whose take it is until a key is pressed. */
+  startedIn?: string;
   /** A cold read listens: the microphone is in use, as in a take, though nothing records (the REC tone, dashed). */
   coldRead?: boolean;
   panelOpen: boolean;
@@ -123,7 +126,7 @@ export function BoothTop({
       {resume}
       {/* The bar's tools are one group kept at the right edge: when the bar wraps they move to the next row together, never under Previous. */}
       <div data-booth-tools="" className="ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap">
-        {recording ? <Badge shape="pill" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
+        {recording ? <Badge shape="pill" label={['REC', startedIn, paused ? 'reading paused' : null].filter(Boolean).join(' · ')} colors={REC_COLORS} /> : null}
         {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={COLD_COLORS} look="outline" /> : null}
         {setup}
         {text ? <TextPopover {...text} /> : null}

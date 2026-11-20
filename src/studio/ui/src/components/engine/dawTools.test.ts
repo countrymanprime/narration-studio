@@ -41,7 +41,7 @@ describe('dawToolGate', () => {
 
   // QA break B3 of #2820: a write into another project is the risky direction, so the entries are off, with the Booth's own sentence.
   it('turns every tool off, with the sentence the Booth uses, when the DAW has a different project open', () => {
-    const wrongProject = 'REAPER has a different project open than the one linked here. Open the linked project in REAPER, or link the open one in Settings.';
+    const wrongProject = 'REAPER has a different project open than the one linked here. Open the linked project in REAPER, or link the open project.';
     for (const tool of DAW_TOOLS) {
       expect(dawToolGate(tool, { ...READY, trackCount: 0, wrongProject })).toEqual({ level: 'not_yet_available', available: false, message: wrongProject });
     }

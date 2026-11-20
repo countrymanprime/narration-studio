@@ -132,8 +132,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
-  'src/components/editing/ribbon/useRibbonPeaks.ts#1':
-    "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
+  'src/hooks/useRingPrefetch.ts#1':
+    "A background read only warms the caller's own kept data (Editing: the other chapters' waveforms, a failed one not kept); the run goes on, a later run asks again, and the page that needs the data asks for itself and says why it has none.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   // useZoom's three call sites, none of which has anywhere better to send a failure -
