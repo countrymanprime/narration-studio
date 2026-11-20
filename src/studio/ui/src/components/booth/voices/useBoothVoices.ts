@@ -1,3 +1,4 @@
+import { HELD_TOPIC } from '../record/useRecordControl';
 import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
 import { releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
@@ -72,14 +73,17 @@ export function useBoothVoices({
   startTake,
   onNoTrack,
   asking = false,
+  heldInDaw,
 }: {
   chapterId: string;
   recording: boolean;
   /** The main button reads Cold read and no take runs (#3430): no voice is chosen, no lane is set and no arm is read at the DAW. */
   coldRead?: boolean;
-  notify: (text: string, tone?: 'error' | 'info', action?: ToastAction) => void;
+  notify: (text: string, tone?: 'error' | 'info', action?: ToastAction, topic?: string) => void;
   /** Stops the take this app runs, as the Stop press does (the take is kept); resolves true once it has stopped. */
   stopTake?: () => Promise<boolean>;
+  /** A take the DAW started runs (adopted): the bridge switches the voice of a take it started only, so no voice is chosen meanwhile and this sentence says where to do it. */
+  heldInDaw?: string;
   /** Starts a take on the voice a key chose, once the host has accepted it: a voice key pressed with no take running records at once. */
   startTake?: () => Promise<unknown>;
   /** A key with no track behind it, pressed or answered once no take runs: the page asks who is in it. */
@@ -291,6 +295,8 @@ export function useBoothVoices({
   recordingNow.current = recording;
   const coldNow = useRef(coldRead);
   coldNow.current = coldRead;
+  const heldNow = useRef(heldInDaw);
+  heldNow.current = heldInDaw;
   const haveVoices = useRef(false);
   haveVoices.current = voices.length > 0;
   // Set by a voice key pressed with no take running; the answer to the choice starts the take (see `send`).
@@ -346,6 +352,7 @@ export function useBoothVoices({
   const choose = useCallback(
     (voice: Voice, fromKey = false) => {
       if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
+      if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       // Only a key records at once, and only when no take runs (a take that runs is switched live); a pick from the list leaves Record to the narrator.
       if (fromKey && !recordingNow.current) recordOnChoice.current = true;
       // A voice chosen is the voice recorded: the stand-in for a character with no track ends.
@@ -365,6 +372,7 @@ export function useBoothVoices({
     (n: number) => {
       releaseFocusToPage();
       if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
+      if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -488,6 +496,8 @@ export function useBoothVoices({
   const standInFor = useCallback(
     (character: WhoCharacter) => {
       if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
+      // A take the DAW started switches no voice, a stand-in included: the control would say a voice the take does not use.
+      if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
         notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');

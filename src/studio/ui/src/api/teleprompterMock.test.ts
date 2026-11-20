@@ -86,6 +86,19 @@ describe('teleprompter mock', () => {
     await mock.teleprompterStop();
   });
 
+  it.each([
+    ['ready', 'recording_here', 1],
+    ['not_armed', 'recording_elsewhere', 0],
+    ['other_armed', 'recording_elsewhere', 1],
+    ['several_armed', 'recording_elsewhere', 3],
+  ] as const)(
+    'while REAPER records, the seed %s answers %s with %i armed: the Booth words each reason it does not follow the take',
+    async (seed, status, armedCount) => {
+      const mock = build({ reaper: seed, dawRecording: () => true });
+      await expect(mock.readAloudReaperState('chapter-1')).resolves.toMatchObject({ status, armedCount, recording: true });
+    },
+  );
+
   it('refuses credits of a kind with no template, as the host does', async () => {
     await expect(build().teleprompterStart({ credits: 'closing', device: 'Microphone (USB)' })).rejects.toThrow(/Settings > Credits/);
   });

@@ -75,6 +75,10 @@ function mountBooth(refusals: number, shared?: ReturnType<typeof createOverlaySe
   const overlay = shared ?? createOverlayService();
   const daw = dawFor('reaper');
   const transport = new Set<(next: { recording: boolean }) => void>();
+  // What the DAW holds: a take the test pushes is one every read of the project then agrees with.
+  let held = false;
+  const projectState = daw.projectState.bind(daw);
+  daw.projectState = (async () => ({ ...(await projectState()), ...(held ? { playState: 'recording' as const } : {}) })) as typeof daw.projectState;
   daw.subscribeTransport = ((listener: (next: { recording: boolean }) => void) => {
     transport.add(listener);
     return () => transport.delete(listener);
@@ -114,7 +118,10 @@ function mountBooth(refusals: number, shared?: ReturnType<typeof createOverlaySe
     teleprompterStop,
     publish,
     teleprompterStart,
-    pushTransport: (next: { recording: boolean }) => transport.forEach((listener) => listener(next)),
+    pushTransport: (next: { recording: boolean }) => {
+      held = next.recording;
+      transport.forEach((listener) => listener(next));
+    },
   };
 }
 

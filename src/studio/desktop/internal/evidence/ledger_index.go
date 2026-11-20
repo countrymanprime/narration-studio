@@ -19,7 +19,10 @@ type ledgerIndex struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	records map[string]indexedRecord
-	// decodes counts the record files read and decoded, for the tests that guard the work a read does.
+	// listings and decodes count the folder listings and the record files decoded, for the tests that guard the work a
+	// read does.
+	// +checklocks:mu
+	listings int
 	// +checklocks:mu
 	decodes int
 }
@@ -40,6 +43,7 @@ type indexedRecord struct {
 func (index *ledgerIndex) refresh(dir string, read func(id string) (LedgerRecord, persist.Outcome)) ([]LedgerRecord, error) {
 	index.mu.Lock()
 	defer index.mu.Unlock()
+	index.listings++
 	entries, err := persist.ReadDir(dir)
 	if os.IsNotExist(err) {
 		index.records = nil

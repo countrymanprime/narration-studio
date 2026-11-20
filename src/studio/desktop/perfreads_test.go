@@ -164,10 +164,10 @@ var budgetBook = perfBook{Chapters: 44, Paragraphs: 4, Items: 10, Checked: 44, C
 // findings, the links, the pickup list), and a listing is a folder listed through persist.ReadDir (the ledger, the evidence
 // cache, the findings). A file read with os.ReadFile or a folder listed with os.ReadDir is in the allocations only.
 var readBudgets = []readBudget{
-	{"ManuscriptChapters", workBudget{341, 178, 480000}, workBudget{298, 178, 440000}},
-	{"ProductionOverview", workBudget{391, 178, 510000}, workBudget{348, 178, 470000}},
-	{"PickupsList", workBudget{528, 268, 710000}, workBudget{481, 268, 660000}},
-	{"ChapterSyncState", workBudget{199, 88, 260000}, workBudget{155, 88, 220000}},
+	{"ManuscriptChapters", workBudget{195, 1, 230000}, workBudget{152, 1, 190000}},
+	{"ProductionOverview", workBudget{245, 1, 260000}, workBudget{202, 1, 215000}},
+	{"PickupsList", workBudget{382, 4, 410000}, workBudget{335, 4, 360000}},
+	{"ChapterSyncState", workBudget{199, 1, 220000}, workBudget{155, 1, 175000}},
 	{"FindingsSummary", workBudget{44, 2, 22000}, workBudget{44, 2, 22000}},
 }
 

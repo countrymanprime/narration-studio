@@ -387,6 +387,16 @@ describe('RecordSetup when the DAW has a different project open', () => {
     expect(screen.getByRole('button', { name: 'DAW settings' })).toBeTruthy();
   });
 
+  it('says the DAW is recording a take now when it is, and only then', () => {
+    mount(DAW_SETUPS.reaper, different);
+    expect(screen.getByRole('dialog', { name: 'REAPER has a different project open' }).textContent).not.toContain('is recording a take now');
+    cleanup();
+    mount(DAW_SETUPS.reaper, { ...different, dawRecording: true });
+    expect(screen.getByRole('dialog', { name: 'REAPER has a different project open' }).textContent).toContain(
+      'REAPER is recording a take now. A take would not land',
+    );
+  });
+
   it('shows what it waits for and when it last looked, with Check again', async () => {
     const onCheckAgain = vi.fn();
     render(

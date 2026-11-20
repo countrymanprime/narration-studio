@@ -330,7 +330,8 @@ export type TeleprompterRoomTone = { db: number; measuredAt: string; seconds: nu
  * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `failed`).
  * `armedCount`, `playing` and `recording` are what REAPER said; `armedCount` is absent when it was not asked.
  */
-export type ReadAloudReaperStatus = 'ready' | 'not_armed' | 'other_armed' | 'several_armed' | 'no_link' | 'recording_elsewhere' | 'unavailable';
+export type ReadAloudReaperStatus =
+  'ready' | 'not_armed' | 'other_armed' | 'several_armed' | 'no_link' | 'recording_here' | 'recording_elsewhere' | 'unavailable';
 export type ReadAloudReaperReason = 'unlinked' | 'several_links' | 'track_missing' | 'standalone' | 'not_running' | 'failed';
 export type ReadAloudReaperState = {
   status: ReadAloudReaperStatus;
