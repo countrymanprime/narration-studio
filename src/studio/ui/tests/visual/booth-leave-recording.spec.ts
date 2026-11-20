@@ -376,7 +376,7 @@ const hang = (name: 'readAloudRecordStart' | 'readAloudRecordStop' | 'passageMap
     w.__NARRATION_MOCK_OVERRIDES__ = { ...(w.__NARRATION_MOCK_OVERRIDES__ ?? {}), [method]: () => new Promise(() => {}) };
   }, name);
 
-test('a stop the host never answers: after about 8 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
+test('a stop the host never answers: after about 10 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
   test.setTimeout(60_000);
   await page.addInitScript(() => {
     const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
