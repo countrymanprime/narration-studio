@@ -17,6 +17,7 @@ import { SpeakerTag } from '../primitives/SpeakerTag';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
+import { useIsRecording } from '../../daw/useIsRecording';
 import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
@@ -30,6 +31,8 @@ const LAYOUTS = [
 const DIMMED = 'text-[var(--text-muted)]';
 
 /** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
+/** Why the Voice switches are off while the DAW records. */
+const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
 const NARROW = '(max-width: 30rem)';
 const subscribeNarrow = (notify: () => void) => {
   const query = window.matchMedia?.(NARROW);
@@ -96,10 +99,14 @@ export function VoicesCard({
   // A blank-named track is named by its place in the project, as Chapter links names it, not by its place in the folder.
   const narrow = useSyncExternalStore(subscribeNarrow, narrowNow, () => false);
   const projectPlace = (guid: string) => tracks.findIndex((track) => track.guid === guid);
+  // A take records on the Booth's voice: turning a track off under it would change where the take goes mid-take, so the switches wait for the stop.
+  const recording = useIsRecording();
   const voiceSwitch = (voice: Voice) => (
-    <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
-      <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
-    </Switch>
+    <TooltipTarget text={recording ? RECORDING_REASON : 'Counts as a voice'}>
+      <Switch checked={!voice.notVoice} disabled={recording} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
+        <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
+      </Switch>
+    </TooltipTarget>
   );
   const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
 
@@ -138,7 +145,11 @@ export function VoicesCard({
                     {!narrow && <TableHeader>Key</TableHeader>}
                     <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
                     {!narrow && <TableHeader>Characters</TableHeader>}
-                    {!narrow && <TableHeader>Voice</TableHeader>}
+                    {!narrow && (
+                      <TableHeader info="A track you turn off is not a voice: the Booth never records on it and does not offer it. Every other track in the folder is a voice.">
+                        Voice
+                      </TableHeader>
+                    )}
                     <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
@@ -161,11 +172,7 @@ export function VoicesCard({
                       )}
                       {!narrow && <TableCell align="center">{voiceSwitch(voice)}</TableCell>}
                       <TableCell align="right">
-                        {narrow && (
-                          <span className="mr-1 inline-flex align-middle">
-                            <TooltipTarget text="Counts as a voice">{voiceSwitch(voice)}</TooltipTarget>
-                          </span>
-                        )}
+                        {narrow && <span className="mr-1 inline-flex align-middle">{voiceSwitch(voice)}</span>}
                         <CharacterPicker
                           voice={voice}
                           placeName={trackName(voice.name, projectPlace(voice.guid))}

@@ -7,6 +7,9 @@ import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
 import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
 import { VoicesCard } from './VoicesCard';
+import { useIsRecording } from '../../daw/useIsRecording';
+
+vi.mock('../../daw/useIsRecording', () => ({ useIsRecording: vi.fn(() => false) }));
 
 afterEach(cleanup);
 
@@ -169,7 +172,8 @@ describe('the Voices card', () => {
         onNotAVoice={vi.fn()}
       />,
     );
-    const buttons = within(screen.getByRole('table')).getAllByRole('button');
+    // The table's own header has a help button now (Voice); the edit buttons are the ones named "Choose who ...".
+    const buttons = within(screen.getByRole('table')).getAllByRole('button', { name: /^Choose who/ });
     expect(buttons.map((button) => button.getAttribute('aria-disabled'))).toEqual(['true', 'true']);
     expect(buttons.every((button) => button.getAttribute('aria-label')!.length < 100)).toBe(true);
   });
@@ -257,6 +261,19 @@ describe('the Voices card', () => {
     expect(screen.getByRole('table', { name: /^Voices of / })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('while a take records the switches are off with the reason, and a press does nothing', async () => {
+    vi.mocked(useIsRecording).mockReturnValue(true);
+    try {
+      const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+      const queen = screen.getByRole('switch', { name: 'Queen counts as a voice' });
+      expect(queen.hasAttribute('disabled') || queen.getAttribute('aria-disabled') === 'true' || queen.hasAttribute('data-disabled')).toBe(true);
+      await userEvent.setup().click(queen);
+      expect(handlers.onNotAVoice).not.toHaveBeenCalled();
+    } finally {
+      vi.mocked(useIsRecording).mockReturnValue(false);
+    }
   });
 
   it('in a window of 30 rem or less the Key column goes and the switch keeps its name', () => {
