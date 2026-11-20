@@ -62,17 +62,58 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), workspacePeaksTimeout)
 	defer cancel()
 
+	whole := sourcePeaksReader(ctx, store, svc.config.projectFolder)
 	items := make([]WorkspacePeaksItem, 0, len(view.Items))
 	for _, alignmentItem := range view.Items {
-		items = append(items, itemPeaks(ctx, store, project, svc.config.projectFolder, alignmentItem))
+		items = append(items, itemPeaks(whole, project, alignmentItem))
 	}
 	return encodeBinding(WorkspacePeaksView{ChapterID: chapterID, Items: items}, nil)
 }
 
-// itemPeaks answers one alignment item's peaks. Every way it can fail to have any - not live, the item no
-// longer in the saved project, no source file, an unreadable source, or a source that is not a WAV - answers
-// its own Reason rather than an error, so the rest of the chapter's strip still draws.
-func itemPeaks(ctx context.Context, store *evidence.CacheStore, project tracks.Project, projectFolder string, item coverage.AlignmentItem) WorkspacePeaksItem {
+// sourcePeaks is one source file's whole peaks, or why it has none.
+type sourcePeaks struct {
+	whole  measure.Peaks
+	reason string
+}
+
+// sourcePeaksReader answers a reader that identifies each source file and reads its cached peaks once, however many
+// items ask: a chapter cut into many items is mostly one recording, and reading it once an item took 1.7 s a call for
+// 300 items of an hour's recording (#3767). One reader serves one WorkspacePeaks call, so the next call sees the file
+// as it is then.
+func sourcePeaksReader(ctx context.Context, store *evidence.CacheStore, projectFolder string) func(file string) sourcePeaks {
+	sources := map[string]sourcePeaks{}
+	return func(file string) sourcePeaks {
+		read, ok := sources[file]
+		if !ok {
+			read = readSourcePeaks(ctx, store, projectFolder, file)
+			sources[file] = read
+		}
+		return read
+	}
+}
+
+// readSourcePeaks identifies file as it is on disk now and answers its whole peaks from the evidence cache
+// (measure.CachedPeaksFile), or the reason an item over it has no waveform.
+func readSourcePeaks(ctx context.Context, store *evidence.CacheStore, projectFolder, file string) sourcePeaks {
+	identity, err := evidence.Identify(file, projectFolder)
+	if err != nil {
+		return sourcePeaks{reason: "this item's source audio could not be read"}
+	}
+	whole, err := measure.CachedPeaksFile(ctx, store, identity, file, nil, measure.DefaultPeaksPerSecond)
+	if err != nil {
+		if errors.Is(err, measure.ErrNotWAV) {
+			return sourcePeaks{reason: "no waveform"}
+		}
+		return sourcePeaks{reason: "this item's waveform could not be computed"}
+	}
+	return sourcePeaks{whole: whole}
+}
+
+// itemPeaks answers one alignment item's peaks, cut from its source's whole peaks (whole reads a source once a
+// call). Every way it can fail to have any - not live, the item no longer in the saved project, no source file, an
+// unreadable source, or a source that is not a WAV - answers its own Reason rather than an error, so the rest of
+// the chapter's strip still draws.
+func itemPeaks(whole func(file string) sourcePeaks, project tracks.Project, item coverage.AlignmentItem) WorkspacePeaksItem {
 	if !item.Live {
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item is no longer in the REAPER project"}
 	}
@@ -87,16 +128,12 @@ func itemPeaks(ctx context.Context, store *evidence.CacheStore, project tracks.P
 	if item.Length <= 0 {
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item has no played range"}
 	}
-	identity, err := evidence.Identify(take.SourceFile, projectFolder)
-	if err != nil {
-		return WorkspacePeaksItem{Index: item.Index, Reason: "this item's source audio could not be read"}
+	source := whole(take.SourceFile)
+	if source.reason != "" {
+		return WorkspacePeaksItem{Index: item.Index, Reason: source.reason}
 	}
-	rng := &measure.Range{StartSeconds: item.SourceStart, LengthSeconds: item.Length * item.PlayRate}
-	peaks, err := measure.CachedPeaksFile(ctx, store, identity, take.SourceFile, rng, measure.DefaultPeaksPerSecond)
+	peaks, err := measure.SlicePeaks(source.whole, measure.Range{StartSeconds: item.SourceStart, LengthSeconds: item.Length * item.PlayRate})
 	if err != nil {
-		if errors.Is(err, measure.ErrNotWAV) {
-			return WorkspacePeaksItem{Index: item.Index, Reason: "no waveform"}
-		}
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item's waveform could not be computed"}
 	}
 	return WorkspacePeaksItem{Index: item.Index, Peaks: &peaks}
