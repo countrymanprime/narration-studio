@@ -169,8 +169,10 @@ func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 
 // liveSelectedProjectForLane is liveSelectedProject for choosing the lane a voice choice or the Booth's arm is for (#3752): it may answer
 // from a list between liveTracksMaxAge and liveTracksStaleAge old while REAPER is asked again behind it (servingStale), so the narrator's
-// lane switch on a slow DAW does not wait a round trip for the list. Those two only arm a track, by its GUID, and a track gone since is
-// refused; a read a page shows, a take, and an edit of the project all use liveSelectedProject and wait for REAPER's own list.
+// lane switch on a slow DAW does not wait a round trip for the list. Those two arm a track by its GUID, which REAPER refuses when the
+// track has gone; the arm picks the chapter's voice from this list (the chosen one, else the Narrator by name, else the first), and a record
+// start checks that choice again against REAPER's own list. A voice chosen during a take, a read a page shows, a take, and an edit of the
+// project all use liveSelectedProject and wait for REAPER's own list.
 func liveSelectedProjectForLane(svc hostServices) (tracks.Project, error) {
 	return liveSelectedProjectFrom(svc, servingStale)
 }

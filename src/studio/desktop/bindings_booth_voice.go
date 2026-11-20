@@ -386,8 +386,13 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	if refused != nil {
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
-	// One read of REAPER's list serves the voices and the vanished-link check, so they see one snapshot and one wait.
-	project, err := liveSelectedProjectForLane(svc)
+	// One read of REAPER's list serves the voices and the vanished-link check, so they see one snapshot and one wait. A choice made during
+	// a take moves the take (switch_voice), so it waits for REAPER's own list; an idle choice only arms, and may use the list being re-read.
+	readProject := liveSelectedProjectForLane
+	if h.readAloudRecordingFor(chapterID) {
+		readProject = liveSelectedProject
+	}
+	project, err := readProject(svc)
 	if err != nil {
 		return BoothVoice{}, err
 	}

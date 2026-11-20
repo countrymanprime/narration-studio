@@ -834,16 +834,31 @@ func TestARefreshInFlightWhenTheListWasInvalidatedIsNotKept(t *testing.T) {
 	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	t.Cleanup(func() {
+		select {
+		case <-inner.hold:
+		default:
+			close(inner.hold)
+		}
+	})
 	read(t, cached) // served stale; the refresh is held
-	for inner.calls.Load() != 2 {
-		time.Sleep(time.Millisecond)
+	for deadline := time.Now().Add(30 * time.Second); inner.calls.Load() != 2; time.Sleep(time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("the refresh was never sent")
+		}
+	}
+	cache.mu.Lock()
+	refresh := cache.flight
+	cache.mu.Unlock()
+	if refresh == nil {
+		t.Fatal("no refresh is in flight")
 	}
 	cache.Invalidate()
 	if got := read(t, cached); len(got.Tracks) != 3 || inner.calls.Load() != 3 {
 		t.Fatalf("the read after the invalidation: %d tracks after %d requests; want REAPER's 3 from a request of its own", len(got.Tracks), inner.calls.Load())
 	}
 	close(inner.hold) // the refresh answers now, with the list from before the track was made
-	time.Sleep(20 * time.Millisecond)
+	<-refresh.done
 	if got := read(t, cached); len(got.Tracks) != 3 || inner.calls.Load() != 3 {
 		t.Fatalf("after the old refresh came back: %d tracks, %d requests; want the 3 still, from the cache", len(got.Tracks), inner.calls.Load())
 	}
