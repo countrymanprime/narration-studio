@@ -68,10 +68,12 @@ describe('the checklist of a new chapter folder (#3748)', () => {
     render(<Harness initial={{ voices: [voice('Dragon 🐉'), voice('مرحبا'), voice(long), ...many], extras: voice('Extras') }} />);
     expect(screen.getByRole('checkbox', { name: 'Dragon 🐉' })).toBeTruthy();
     expect(screen.getByRole('checkbox', { name: 'مرحبا' })).toBeTruthy();
-    expect(screen.getByTitle(long).getAttribute('dir')).toBe('auto');
+    expect(screen.getByText(long).getAttribute('dir')).toBe('auto');
     const list = screen.getByRole('list');
     expect(list.className).toContain('max-h-32');
     expect(list.className).toContain('overflow-y-auto');
+    // A row cut by the cap reads as more to scroll: the app's vertical scroll edges draw it (Dialog does the same for its body).
+    expect(list.className).toContain('scroll-y-edges');
     // The buttons below stay reachable: Extras is outside the scrolling list.
     expect(list.contains(screen.getByRole('checkbox', { name: 'Extras' }))).toBe(false);
   });
@@ -109,7 +111,7 @@ describe('the checklist of a new chapter folder (#3748)', () => {
   it('lets a long unbroken name wrap anywhere, and keeps the label and the list shrinkable', () => {
     const long = 'W'.repeat(200);
     render(<Harness initial={{ voices: [voice(long), voice('Mara')], extras: voice('Extras') }} />);
-    const name = screen.getByTitle(long);
+    const name = screen.getByText(long);
     expect(name.className).toContain('[overflow-wrap:anywhere]');
     expect(screen.getByRole('list').className).toContain('min-w-0');
     expect(name.closest('label')?.className).toContain('min-w-0');
