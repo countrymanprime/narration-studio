@@ -154,7 +154,7 @@ const mockRoomTone = Number.isFinite(mockRoomToneParam) && mockRoomToneParam >= 
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
-// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable` makes
+// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_here|recording_elsewhere|unavailable` makes
 // the read-aloud dialog's REAPER state answer that for every chapter.
 const mockReaperState = MOCK_REAPER_SEEDS.find((seed) => seed === mockParams.get('mockReaperState'));
 // `?mockReaperInput=matched|uncertain|no_match|reaper_no_device` makes the microphone REAPER records from

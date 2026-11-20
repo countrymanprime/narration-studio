@@ -26,7 +26,8 @@ for (const size of [
       items.map((li) => {
         const box = (sel: string) => li.querySelector(sel)!.getBoundingClientRect();
         const name = box('input[aria-label="Mark name"]');
-        const colour = box('select[aria-label="Colour"]');
+        // The colour box is a button named "Colour: <chosen>" that opens the swatches (ColourField, #3680).
+        const colour = box('button[aria-label^="Colour: "]');
         const line = box('select[aria-label="Line"]');
         const remove = box('button[aria-label="Remove"]');
         return {

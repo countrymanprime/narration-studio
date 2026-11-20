@@ -163,6 +163,8 @@ describe('Panel header, subtitle and body', () => {
     expect(section.className).toContain('h-64');
     expect(section.className).toContain('flex-col');
     expect(section.querySelector(':scope > div:last-child')!.className).toContain('overflow-y-auto');
+    // The frame clips: a focus ring outside the body is never seen (#3605 item 3).
+    expect(section.querySelector(':scope > div:last-child')!.className).toContain('focus-visible:-outline-offset-2');
   });
 });
 

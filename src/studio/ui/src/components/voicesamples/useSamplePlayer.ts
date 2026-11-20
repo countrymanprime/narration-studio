@@ -19,7 +19,11 @@ import {
  * whether a take is recording (a DAW is configured and silent): a sample is refused with it, because a clip through the speakers reaches
  * the microphone of a take that may be running. A page that has no recorder, such as the Story Bible, passes none and is still refused while the DAW itself is recording.
  */
-type RecorderGuard = { recording: boolean; cantTell?: string };
+type RecorderGuard = {
+  recording: boolean;
+  cantTell?: string;
+  /** What to say instead of "Not while recording" (a take the DAW started is stopped there). */ recordingWhy?: string;
+};
 
 export type SamplePlayerOptions = {
   guard?: RecorderGuard;
@@ -65,7 +69,7 @@ export function useSamplePlayer({ guard, notify = toast }: SamplePlayerOptions =
   const play = useCallback(
     (id: string, options?: { name?: string }): boolean => {
       const { guard: now, notify: say, voiceSampleMediaUrl: urlOf } = live.current;
-      const refusal = now?.recording ? NOT_WHILE_RECORDING : now?.cantTell;
+      const refusal = now?.recording ? (now.recordingWhy ?? NOT_WHILE_RECORDING) : now?.cantTell;
       if (refusal) {
         say(refusal);
         return false;

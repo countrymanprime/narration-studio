@@ -181,19 +181,6 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'startup action',
   },
   {
-    id: 'daw.capabilities',
-    cat: 'recording',
-    section: 'What the recording tool can do',
-    label: 'Capabilities',
-    scope: 'computer',
-    def: '',
-    desc: 'What the linked recording tool can do.',
-    more: 'Each thing the app can ask the recording tool to do, as the linked tool reports it, with the tool’s reason when it cannot. Nothing here turns one on or off.',
-    used: ['booth', 'editing', 'pickups', 'proof'],
-    advanced: true,
-    syn: 'record punch markers regions fx chains',
-  },
-  {
     id: 'daw.fxCap',
     cat: 'recording',
     section: 'Effects',
@@ -648,7 +635,7 @@ export const ROWS: readonly SettingMeta[] = [
   {
     id: 'booth.followChapterInDaw',
     cat: 'recording',
-    section: 'What the recording tool can do',
+    section: 'Following your chapter',
     label: 'DAW follows your chapter',
     scope: 'computer',
     def: 'true',
@@ -657,7 +644,7 @@ export const ROWS: readonly SettingMeta[] = [
     more: FOLLOW_CHAPTER_NOTE,
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',
-    syn: 'follow daw navigate chapter select track cursor',
+    syn: 'follow daw navigate chapter select track cursor solo mute quiet',
   },
   {
     id: 'project.rateBasis',
@@ -956,6 +943,19 @@ export const ROWS: readonly SettingMeta[] = [
   },
 
   // ---- App & updates
+  {
+    id: 'daw.capabilities',
+    cat: 'app',
+    section: 'Recording tool',
+    label: 'Capabilities',
+    scope: 'computer',
+    def: '',
+    desc: 'What each tool can do, and what the linked one does now.',
+    more: 'Each thing the app can ask a recording tool to do, what it is for, which tools do it and what the linked tool reports now, with the tool’s reason when it cannot. Nothing here turns one on or off. The same list opens from the audio engine panel.',
+    used: ['booth', 'editing', 'pickups', 'proof'],
+    also: 'Audio engine panel',
+    syn: 'record punch markers regions fx chains reaper audacity',
+  },
   {
     id: 'app.updates',
     cat: 'app',

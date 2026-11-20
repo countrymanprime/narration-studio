@@ -1,4 +1,5 @@
-# Define marks (the Script page's "Define how you mark up"): a modal dialog with each mark type's name, colour and line, and Done.
+# Define marks (the Script page's "Define how you mark up"): a modal dialog with each mark type's name, its colour box (a button
+# named with the colour, which opens the swatches) and line, and Done.
 # The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
 - /children: equal
 - main:
@@ -12,13 +13,7 @@
   - list:
     - listitem:
       - textbox "Mark name": Word stress
-      - combobox "Colour":
-        - option "Copper" [selected]
-        - option "Blue"
-        - option "Green"
-        - option "Amber"
-        - option "Red"
-        - option "Violet"
+      - 'button "Colour: Copper"'
       - combobox "Line":
         - option "Highlight" [selected]
         - option "Underline"
@@ -31,13 +26,7 @@
       - button "Remove"
     - listitem:
       - textbox "Mark name": Breath / pause
-      - combobox "Colour":
-        - option "Copper"
-        - option "Blue" [selected]
-        - option "Green"
-        - option "Amber"
-        - option "Red"
-        - option "Violet"
+      - 'button "Colour: Blue"'
       - combobox "Line":
         - option "Highlight"
         - option "Underline"
@@ -50,13 +39,7 @@
       - button "Remove"
     - listitem:
       - textbox "Mark name": Pace
-      - combobox "Colour":
-        - option "Copper"
-        - option "Blue"
-        - option "Green" [selected]
-        - option "Amber"
-        - option "Red"
-        - option "Violet"
+      - 'button "Colour: Green"'
       - combobox "Line":
         - option "Highlight"
         - option "Underline"
@@ -69,13 +52,7 @@
       - button "Remove"
     - listitem:
       - textbox "Mark name": Emotion
-      - combobox "Colour":
-        - option "Copper"
-        - option "Blue"
-        - option "Green"
-        - option "Amber"
-        - option "Red" [selected]
-        - option "Violet"
+      - 'button "Colour: Red"'
       - combobox "Line":
         - option "Highlight"
         - option "Underline" [selected]
@@ -88,13 +65,7 @@
       - button "Remove"
     - listitem:
       - textbox "Mark name": Note
-      - combobox "Colour":
-        - option "Copper"
-        - option "Blue"
-        - option "Green"
-        - option "Amber"
-        - option "Red"
-        - option "Violet" [selected]
+      - 'button "Colour: Violet"'
       - combobox "Line":
         - option "Highlight"
         - option "Underline"
@@ -107,13 +78,7 @@
       - button "Remove"
     - listitem:
       - textbox "Mark name": Query for author
-      - combobox "Colour":
-        - option "Copper"
-        - option "Blue"
-        - option "Green"
-        - option "Amber" [selected]
-        - option "Red"
-        - option "Violet"
+      - 'button "Colour: Amber"'
       - combobox "Line":
         - option "Highlight" [selected]
         - option "Underline"
