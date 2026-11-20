@@ -474,7 +474,7 @@ describe('App & updates: Capabilities', () => {
     const { dialog } = await openCapabilities(api);
     const table = await within(dialog).findByRole('table', { name: 'What the recording tools can do' });
     await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(DAW_CAPABILITIES.length + 1));
-    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '6rem', '6rem', '6rem', '6rem', '11rem']);
+    expect([...table.querySelectorAll('col')].map((col) => col.style.width)).toEqual(['', '7rem', '7rem', '7rem', '7rem', '10rem']);
     expect(
       within(table)
         .getAllByRole('columnheader')

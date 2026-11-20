@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 
 // What takes the free width, one narrow column for each tool, and Now, which holds a badge and, when the tool cannot do it, the tool's own sentence.
-const COLUMNS = ['auto', '6rem', '6rem', '6rem', '6rem', '11rem'] as const;
+const COLUMNS = ['auto', '7rem', '7rem', '7rem', '7rem', '10rem'] as const;
 // In a narrow window the four tools fold into a line under each capability, so nothing scrolls sideways.
 const NARROW_COLUMNS = ['auto', '8.5rem'] as const;
 
