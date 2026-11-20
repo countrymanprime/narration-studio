@@ -258,6 +258,18 @@ describe('arming the Booth voice on entry (#3428)', () => {
     expect(say).toHaveBeenCalledTimes(1);
   });
 
+  // #3670: only the Booth, open on the chapter and with "DAW follows your chapter" on, arms a track that was just created or linked.
+  it('armNow arms nothing with the switch off', async () => {
+    const dawArmBoothVoice = vi.fn(async () => moved);
+    const { result } = renderHook((p) => useArmBoothOnOpen({ ...p, say: vi.fn() }), {
+      initialProps: { ...base, follow: false as boolean | undefined },
+      wrapper: wrapperFor({ dawArmBoothVoice }),
+    });
+    await act(async () => result.current());
+    await act(async () => {});
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+  });
+
   it('armNow says nothing for an older ask that is refused after the newer one answered ok', async () => {
     let releaseFirst: (value: typeof moved & { ok: boolean; refused?: string }) => void = () => {};
     const dawArmBoothVoice = vi
