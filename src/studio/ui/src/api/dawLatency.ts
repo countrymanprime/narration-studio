@@ -341,7 +341,7 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
           () =>
             void Promise.resolve()
               .then(invoke)
-              .catch(() => undefined),
+              .catch((error: unknown) => console.warn('mock DAW: a held command failed when it reached the DAW', error)),
           release - performance.now(),
         );
       }
@@ -372,7 +372,11 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
       }
       const call = DAW_CALLS[property];
       if (!call) return value;
-      return (...args: unknown[]) => run(property, call, args, () => value.apply(target, args) as unknown);
+      return (...args: unknown[]) =>
+        run(property, call, args, () => {
+          const result: unknown = value.apply(target, args);
+          return result;
+        });
     },
   });
 }
