@@ -163,6 +163,24 @@ describe("the session's DAW choice and offSince", () => {
     session.stop();
   });
 
+  it("takes the host's answer that comes after the bound when nothing newer was heard", async () => {
+    vi.useFakeTimers();
+    let late: (value: DawChoice) => void = () => undefined;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => new Promise<DawChoice>((resolve) => (late = resolve)),
+      ),
+    );
+    session.start();
+    await vi.advanceTimersByTimeAsync(DAW_CHOICE_READ_MS + 10);
+    expect(session.getState().choice).toBeNull();
+    late({ ...choice('starting'), starting: { since: new Date().toISOString() } } as unknown as DawChoice);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
   it('drops an answer asked before the DAW last went off, and asks again', async () => {
     const answers: Array<(value: DawChoice) => void> = [];
     let caps = OFF;

@@ -1,5 +1,6 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useDawState } from '../../daw/useDawSession';
+import { takeBridgeProblem } from './useOpenOnce';
 
 /** How long a DAW that is not answering is left alone, counted from when it stopped answering (or the project's DAW changed), before the app asks the narrator about it. */
 export const DAW_CONNECT_GRACE_MS = 10_000;
@@ -49,10 +50,8 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
  */
 export function useReopenOnBridgeProblem(reopen: () => void): void {
   const problem = useDawState((state) => state.choice?.bridge?.problem ?? null);
-  const told = useRef<string | null>(null);
+  const heard = useDawState((state) => !!state.choice);
   useEffect(() => {
-    if (!problem || told.current === problem) return;
-    told.current = problem;
-    reopen();
-  }, [problem, reopen]);
+    if (takeBridgeProblem(problem, heard)) reopen();
+  }, [problem, heard, reopen]);
 }

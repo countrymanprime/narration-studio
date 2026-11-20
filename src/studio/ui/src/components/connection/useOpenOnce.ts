@@ -6,6 +6,22 @@ const opened = new Set<string>();
 /** Forgets every key (tests, so one test's dialog does not stay "already shown" for the next). */
 export function resetOpenOnce(): void {
   opened.clear();
+  toldProblem = null;
+}
+
+/** The host's bridge problem the narrator was already told about, module-wide so another page mounting does not tell them again (#3668). */
+let toldProblem: string | null = null;
+
+/** Whether this bridge problem is news: true once per problem, until the host stops reporting it. */
+export function takeBridgeProblem(problem: string | null, known = true): boolean {
+  if (!problem) {
+    // Only the host saying there is none forgets it: a page that has not heard from the host yet knows nothing.
+    if (known) toldProblem = null;
+    return false;
+  }
+  if (toldProblem === problem) return false;
+  toldProblem = problem;
+  return true;
 }
 
 /**

@@ -20,7 +20,7 @@ import { useSettingsHost } from '../row/SettingsHost';
 const choosingHelp = (daw: string) => `${daw} cannot record yet, but choosing it still switches this project to ${daw} and shows its connection card.`;
 
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
-function optionDescription(option: DawChoiceOption): ReactNode {
+function optionDescription(option: DawChoiceOption, starting: boolean): ReactNode {
   const lines: ReactNode[] = [];
   if (option.installed === false) {
     lines.push(
@@ -32,7 +32,9 @@ function optionDescription(option: DawChoiceOption): ReactNode {
     );
   }
   const { record } = option;
-  if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
+  // The host's "not connected, open it" sentence is wrong while the app is starting that DAW itself (#3668): the card below says so, and so does this line.
+  if (!record.available && starting) lines.push(<span key="record">{`${option.daw} is starting. The app connects to it by itself.`}</span>);
+  else if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
   // The radio still switches the project (the link card and the other tools are behind it): a "?" says so, so the line is not instruction prose and does not go stale once chosen (#3339).
   if (!record.available && record.level === 'not_yet_available')
     lines.push(
@@ -52,7 +54,7 @@ function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<Choosable
   const linked = dawLinked(choice);
   return choice.options.map((option) => {
     const lastResort = linked && option.daw === 'Built-in';
-    const detail = optionDescription(option);
+    const detail = optionDescription(option, choice.state === 'starting' && option.daw === choice.daw);
     return {
       value: option.daw,
       label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,

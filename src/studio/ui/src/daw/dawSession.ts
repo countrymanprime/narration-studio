@@ -193,10 +193,23 @@ export function createDawSession(host: DawSessionApi): DawSession {
     const asked = episode;
     // A read the host never answers is given up after a bound, so it cannot hold every later read back for the life of the app.
     let giveUp: ReturnType<typeof setTimeout> | undefined;
+    let gaveUp = false;
     const bound = new Promise<'gave up'>((resolve) => {
-      giveUp = setTimeout(() => resolve('gave up'), DAW_CHOICE_READ_MS);
+      giveUp = setTimeout(() => {
+        gaveUp = true;
+        resolve('gave up');
+      }, DAW_CHOICE_READ_MS);
     });
-    return Promise.race([api.dawChoice(), bound])
+    const answer = api.dawChoice();
+    // The host's own answer that comes after the bound is still taken when it is about the same episode and nothing newer has been heard (#3668).
+    void answer.then(
+      (late) => {
+        if (!gaveUp || !running || state.caps?.reachable || asked !== episode || state.choice) return;
+        set({ choice: late, caps: presentCaps(rawCaps, late) });
+      },
+      () => undefined,
+    );
+    return Promise.race([answer, bound])
       .then(
         (next) => (next === 'gave up' ? undefined : next),
         () => undefined,

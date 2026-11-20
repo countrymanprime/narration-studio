@@ -7,8 +7,12 @@ import { createMockApi } from '../../api/mockApi';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { useDawConnecting, useReopenOnBridgeProblem } from './useDawConnecting';
+import { resetOpenOnce } from './useOpenOnce';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  resetOpenOnce();
+});
 
 const choice = (patch: Record<string, unknown>) =>
   ({
@@ -160,5 +164,30 @@ describe('useReopenOnBridgeProblem', () => {
     );
     await act(async () => new Promise((resolve) => setTimeout(resolve, 100)));
     expect(quiet).not.toHaveBeenCalled();
+  });
+
+  it('does not tell the narrator about the same problem again when another page mounts', async () => {
+    const problem = 'The app opened REAPER, but REAPER’s bridge has not answered.';
+    const api = createMockApi({
+      dawCapabilities: async () => structuredClone(DAW_SETUPS['reaper-off']),
+      dawChoice: async () => choice({ bridge: { installed: true, startsWithReaper: true, problem } }),
+    });
+    const reopen = vi.fn();
+    const first = render(
+      <ApiProvider api={api}>
+        <Reopener reopen={reopen} />
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(reopen).toHaveBeenCalledTimes(1));
+    first.unmount();
+    // Another page: a new mount, the same standing problem.
+    const second = vi.fn();
+    render(
+      <ApiProvider api={api}>
+        <Reopener reopen={second} />
+      </ApiProvider>,
+    );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 100)));
+    expect(second).not.toHaveBeenCalled();
   });
 });
