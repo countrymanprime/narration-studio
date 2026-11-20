@@ -4,7 +4,7 @@
 /** What the app says of a take it stopped (and saved). */
 export const TAKE_SAVED = 'Take saved';
 /** What it says of a take it only saw end (one the DAW started). */
-export const TAKE_ENDED = 'The take ended';
+const TAKE_ENDED = 'The take ended';
 /** What a toast that says what a take left behind opens with. */
 export const takeToastOpener = (byDaw: boolean): string => (byDaw ? TAKE_ENDED : TAKE_SAVED);
 /** The sentence for a take the DAW started that has ended there; `name` is the recorder as `recorderName` words it. */
