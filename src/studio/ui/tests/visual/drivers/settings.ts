@@ -226,12 +226,6 @@ export const settingsDrivers: Record<string, Driver> = {
     await openAdvanced(page);
     await page.getByLabel('REAPER program', { exact: true }).waitFor();
   },
-  'recording-sync-activity': async (page) => {
-    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
-    await openAdvanced(page);
-    const row = await showSettingsRow(page, 'daw.syncActivity');
-    await row.getByRole('button', { name: /^Undo: Linked/ }).waitFor();
-  },
   'recording-chapter-layout': async (page) => {
     await openSettings(page, 'Recording & DAW');
     const row = await showSettingsRow(page, 'daw.layout');

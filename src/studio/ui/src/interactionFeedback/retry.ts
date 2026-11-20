@@ -229,7 +229,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterLinksTable.tsx#2': no(
     'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
   ),
-  'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useChapterLinks.ts#1': no(ED),
   'src/components/engine/useChapterLinks.ts#2': no(ED),
   'src/components/engine/useChapterLinks.ts#3': no(ED),

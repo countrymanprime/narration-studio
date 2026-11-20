@@ -123,8 +123,7 @@ and the device, with what REAPER records from and plays on) and needs nothing se
 microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each. **Ask REAPER again** asks once more and then shows when it last got an answer ("Checked 3:42:07 PM"), even when the answer is the same. **Test sound** is busy for the half second the tone plays.
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
-for Audacity or the built-in recorder); and, under Advanced for any recorder,
-for REAPER, **Sync activity**. **DAW follows your chapter** (on by default) makes the DAW select a chapter's track, and the tracks inside it, when you go to that chapter in the Booth, on Editing, or on Pickups with one chapter chosen, and, in the Booth, arms only your voice and turns its input monitoring on until you leave ([how](booth.md#where-the-booth-opens-in-your-daw)); off, the DAW stays where you put it. The Booth puts the DAW's cursor at the end of what is recorded (or at the line you went to); Editing and Pickups put it where the chapter's audio starts. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the app's chapter and your cursor stays. After a restart the Booth and Editing take the DAW to the chapter you were on (the Booth tries for about 20 seconds after it opens; a DAW that starts later is brought back the next time the app window gets focus). Nothing moves while the DAW records or is not connected. Master & QC has no chapter in view, so it follows nothing. These are settings of this computer; a project has no override for them. **Voice sample output** names the
+for Audacity or the built-in recorder). **DAW follows your chapter** (on by default) makes the DAW select a chapter's track, and the tracks inside it, when you go to that chapter in the Booth, on Editing, or on Pickups with one chapter chosen, and, in the Booth, arms only your voice and turns its input monitoring on until you leave ([how](booth.md#where-the-booth-opens-in-your-daw)); off, the DAW stays where you put it. The Booth puts the DAW's cursor at the end of what is recorded (or at the line you went to); Editing and Pickups put it where the chapter's audio starts. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the app's chapter and your cursor stays. After a restart the Booth and Editing take the DAW to the chapter you were on (the Booth tries for about 20 seconds after it opens; a DAW that starts later is brought back the next time the app window gets focus). Nothing moves while the DAW records or is not connected. Master & QC has no chapter in view, so it follows nothing. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
@@ -166,8 +165,6 @@ you chose elsewhere, and the row does not check whether a take is recording.
 
 ![Settings - Recording & DAW: the REAPER path under Advanced](../../images/ui/settings-daw.webp)
 
-![Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made](../../images/ui/settings-sync-activity.webp)
-
 ### Choose REAPER
 
 Each radio says whether that program was found on this computer, or what stops it. A project folder holding a REAPER
@@ -200,9 +197,6 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Start the launcher script with REAPER** (on by default): the app keeps its bridge in REAPER's Scripts folder and
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
-- **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
-  chapter a later sync linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has **Undo**
-  while the chapter still holds it; Undo removes that link and sync never makes the same one again.
 
 The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
