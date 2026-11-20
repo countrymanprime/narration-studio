@@ -13,6 +13,9 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - Disabled
 - Clamps On Blur
 - Arrow Keys Step
+- Empty Is Not Set
+- Emptied Reports Null
+- Settle Reports On Enter
 
 ## Used by
 
@@ -22,4 +25,4 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
-- `src/components/proof/proofOptions/ProofOptions.tsx`
+- `src/components/settings/value/SettingNumber.tsx`

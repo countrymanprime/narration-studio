@@ -130,7 +130,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 ### Numbers
 
-- **CS-N1** An exact value is `NumberInput` with `min`, `max` and `step`, and its unit as text after the box (as `components/settings/row/ValueControl.tsx` does with `row.unit`). The range is a muted note under it, not a tooltip. A count of things (workers, processes, pages) is always exact. **New**.
+- **CS-N1** An exact value is `NumberInput` with `min`, `max` and `step`, and its unit as text after the box (as `components/settings/value/SettingNumber.tsx` does). The range is a muted note under it, not a tooltip. A count of things (workers, processes, pages) is always exact. **New**.
 - **CS-N2** A value the narrator tunes by ear or eye is a `Slider`; its readout (`valueText`) carries the unit and is the `aria-valuetext`. The test: if the narrator would ever say the number aloud or copy it from a guide, it is a `NumberInput`. A value a delivery spec checks (loudness targets, sample rate) is a `NumberInput` or a `Select`, not a slider. **New**.
 - **CS-N3** A number from a fixed set of up to 5 values is a segmented `ToggleGroup` when the labels fit the row on one line in a 960 px window; more is a `Select`. A label keeps its unit sign (`0.75×`).
 - **CS-N4** A duration or time position is shown with `clock`/`clockTenths`, and a count with `plural`/`formatCount` (frontend-primitives, "Before writing text or logic a page already has").
@@ -164,7 +164,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 - **CS-T1** A control with a visible label, a hint or an error is a `Field`; a bare control with only an accessible name is a `TextField`. Every control has a name (`ControlNaming`: `label`, or an `id` a visible `<label htmlFor>` points at).
 - **CS-T2** Text that is code (an id, a hex colour, a number) uses `mono`, which is a `TextField` prop (`NumberInput` sets it). `Field` has none, so a labelled code value is a `TextField mono` under its own `<label>`.
-- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (the settled box in `components/settings/row/ValueControl.tsx`). A half-typed value is never saved.
+- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (the settled text box in `components/settings/row/ValueControl.tsx`; a number does the same through `NumberInput commit="settle"`). A half-typed value is never saved.
 - **CS-T4** A placeholder is an example of the value ("Your name as the narrator"), never the label and never an instruction.
 - **CS-T5** Text of several lines is `Field textarea`. **New**.
 
@@ -321,9 +321,9 @@ The audit lists every site with its file and line; this table names the larger c
 | CS-B1, CS-B2, CS-B6 | Two Settings bodies are Off / On `RadioGroup`s; some booleans saved at once are `Checkbox`es, and a draft's are `Switch`es | S6 to S10, E4 |
 | CS-M1, CS-M2, CS-M7 | `components/production/ImportReview.tsx` selects chapter tiles and character tiles with a `Switch` each and "Select all" / "Select none" buttons; `components/recordingcheck/CheckRecordingsDialog.tsx` has "All" / "None" buttons | P1 to P4, K2 |
 | CS-E3, CS-N7, CS-E10 | Parallel workers is a number box where 0 means automatic in Settings, a `Slider` with an "Automatic" `Checkbox` in `components/recordingcheck/RunOptions.tsx`, and a chip group in `components/proof/CompareRun.tsx` | S16, P5, P6, F2, F3, S22 |
-| CS-N1 | Number boxes built on `TextField` with page-written parsing in Settings and Schedule | S11 to S14, H1, H2 |
+| CS-N1 | Number boxes built on `TextField` with page-written parsing in the delivery profile editor and Schedule; **Credits room tone** is a `Select` of 0 to 10 | S11, S14, H1, H2 |
 | CS-P3 | **REAPER program** (`daw.reaperPath`) is a free-text box with no Choose… button | S15 |
-| CS-L5 | `Field` draws `error` as a line in the flow under the control, which adds its height when it appears; it has no reserved slot. `components/settings/row/ValueControl.tsx` shows a refused number as a `role="alert"` line in place of the range note; it is counted in the inline-errors allowlist | (none) |
+| CS-L5 | `Field` draws `error` as a line in the flow under the control, which adds its height when it appears; it has no reserved slot | (none) |
 | CS-N6 | `NumberInput` has no precision or format prop: a money value with `step={0.01}` shows 12, not 12.00 | H1 |
 | CS-L1 | `Slider`'s `label` and `aria-label` are both optional | (none) |
 | CS-K2 | The standalone `Radio` drops `reason`; `Select`, `TextField`, `NumberInput`, `Slider`, `DateField` and `Field` take no reason, and `Slider` and `Field` take no `aria-describedby` either. `Button` and `IconButton` show `disabledReason` as a hint only, not as the button's description; an `IconButton` with `label=` alone shows it only if the caller adds the `TooltipTarget` | (none) |

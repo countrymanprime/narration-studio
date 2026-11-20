@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
@@ -126,7 +126,7 @@ function rowsOf(global: ScopedSettingField[], project: ScopedSettingField[]): Ba
  * Settings > DAW: Backups (SNM-3b). Drawn only when the DAW reports the `backups` capability as built; when it
  * is there but unavailable (the DAW not running) the capability's own sentence stands in for the rows. The window
  * either side of an edit and the retention are the DAW tool's two number settings, edited through `ScopedSetting` and
- * saved when a box is left, at the layer the value comes from, with the store's own range check. It takes no props, so a Settings
+ * saved when a box is left, at the layer the value comes from; a number past the store's range is saved as the nearest limit. It takes no props, so a Settings
  * page mounts it as `<BackupsSection />`. The report is read when it mounts, as the Editing drawer reads it.
  */
 export function BackupsSection() {
@@ -135,6 +135,13 @@ export function BackupsSection() {
   const [caps, setCaps] = useState<DawCapabilities>();
   const [rows, setRows] = useState<BackupsRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // What `commit` reads: leaving a box can change its draft (a number past the range becomes the limit) in the same event that commits it,
+  // before the state above has drawn.
+  const latestDrafts = useRef(drafts);
+  const holdDrafts = useCallback((next: Record<string, string>) => {
+    latestDrafts.current = next;
+    setDrafts(next);
+  }, []);
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -142,8 +149,8 @@ export function BackupsSection() {
   const readSettings = useCallback(async () => {
     const [global, project] = await Promise.all([system.settingsForScope('global'), system.settingsForScope('project')]);
     setRows(rowsOf(global[TOOL] ?? [], project[TOOL] ?? []));
-    setDrafts({});
-  }, [system]);
+    holdDrafts({});
+  }, [system, holdDrafts]);
 
   useEffect(() => {
     let live = true;
@@ -178,7 +185,7 @@ export function BackupsSection() {
 
   const commit = (key: string) => {
     const row = rows.find((candidate) => candidate.field.key === key);
-    const draft = drafts[key];
+    const draft = latestDrafts.current[key];
     if (!row || draft === undefined || draft === row.field.value) return;
     if (row.field.number && numberProblem(row.field.number, draft)) return;
     void save(row.scope, { [key]: draft === '' ? null : draft });
@@ -194,7 +201,7 @@ export function BackupsSection() {
       onRetry={() => setAttempt((n) => n + 1)}
       rows={rows}
       drafts={drafts}
-      onChange={(key, value) => setDrafts((current) => ({ ...current, [key]: value }))}
+      onChange={(key, value) => holdDrafts({ ...latestDrafts.current, [key]: value })}
       onCommit={commit}
       onClearOverride={(key) => void save('project', { [key]: null })}
       saveError={saveError}

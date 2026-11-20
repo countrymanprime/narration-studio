@@ -64,7 +64,8 @@ describe('ScopedFieldsPanel save', () => {
       </ApiProvider>,
     );
     const field = (await screen.findAllByRole('textbox'))[0] ?? (await screen.findAllByRole('spinbutton'))[0];
-    fireEvent.change(field!, { target: { value: '7' } });
+    // In the range of the first Cleanup field (the pad, 0 to 2 s): a number past it is held in the box until the box is left.
+    fireEvent.change(field!, { target: { value: '1' } });
     const save = await screen.findByRole('button', { name: 'Save' });
     const failed = nextToast();
     fireEvent.click(save);

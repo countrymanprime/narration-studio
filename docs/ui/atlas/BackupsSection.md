@@ -7,7 +7,7 @@ Storybook title: `Settings/BackupsSection`. Source: `src/components/settings/Bac
 ## Stories
 
 - Shown
-- Project Override And Out Of Range
+- Project Override
 - Hidden Reason
 - Load Error
 - Save Refused
