@@ -100,7 +100,7 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
 };
 
 const FOOTER_EXTRAS: Record<FooterSurface, FooterExtra> = {
-  booth: [{ after: 'booth.roll', keys: ['Right-click'], label: 'Start from here' }],
+  booth: [{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }],
   proof: [],
 };
 

@@ -420,7 +420,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'chosen-start',
     description:
-      'Booth (as setup) after right-clicking a word that is in view and choosing Start from here (#3319): the first word of that sentence is underlined with the sentence tinted, so the place the next take starts from shows in the text itself. The take starts there at once (STOP, a few seconds in, so the cursor has moved on from the start word, and the toasts "Starting from ¶ n" and "was not recorded before" are up); the side panel is open at 1440 and shut below that',
+      'Booth (as setup) after right-clicking a word that is in view and choosing Mark the start here (#3319): the first word of that sentence is underlined with the sentence tinted, so the place the next take starts from shows in the text itself. Nothing has started: Record is still Record, and the Booth sent the DAW nothing; the side panel is open at 1440 and shut below that',
     ...REFLOW,
   },
   {

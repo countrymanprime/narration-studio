@@ -32,9 +32,10 @@ async function openWithHeldLookup(page: Page): Promise<void> {
 async function startFromHere(page: Page): Promise<void> {
   await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
 
 test('Resume at during the held lookup is ignored: one sentence, and the take records where the text shows', async ({ page }) => {

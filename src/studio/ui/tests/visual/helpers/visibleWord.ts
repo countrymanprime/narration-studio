@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * Right-clicks a word the narrator can see, for a test that picks "Start from here" and returns that word's sentence number. A word is picked in a
+ * Right-clicks a word the narrator can see, for a test that picks "Mark the start here" and returns that word's sentence number. A word is picked in a
  * not-yet-read sentence when one is in view, else the last in view (in a small window the sentence being read fills the box). It never right-clicks a word
  * out of sight: Playwright would scroll the box natively, which a narrator cannot do and the Booth's own scrolling does not expect.
  */
