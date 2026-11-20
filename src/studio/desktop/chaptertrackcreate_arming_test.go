@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -47,7 +49,7 @@ func TestChapterTrackCreateSaysWhenTheArmWasRefused(t *testing.T) {
 	}
 	got := decodeBinding(t, raw)
 	message, _ := got["armMessage"].(string)
-	if got["outcome"] != "created" || !strings.Contains(message, "did not arm it") {
+	if got["outcome"] != "created" || !strings.Contains(message, "recording") {
 		t.Fatalf("answer %v", got)
 	}
 }
@@ -92,10 +94,7 @@ func TestChapterTrackCreateInVoiceFoldersArmsTheNarratorNotTheFolder(t *testing.
 // With "DAW follows your chapter" off the new track is still armed, without monitoring.
 func TestChapterTrackCreateWithTheSwitchOffArmsWithoutMonitoring(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	off := "false"
-	if err := host.saveSettings("Booth", "global", map[string]*string{"follow_chapter_in_daw": &off}); err != nil {
-		t.Fatal(err)
-	}
+	switchFollow(t, host, "false")
 	recorder := &fakeLaneRecorder{}
 	hostWithArmingDAW(t, host, &fakeCreator{}, recorder)
 	if _, err := host.ChapterTrackCreate(ids[0]); err != nil {
@@ -120,5 +119,56 @@ func TestChapterTrackCreateDuringATakeArmsNothing(t *testing.T) {
 	}
 	if decodeBinding(t, raw)["outcome"] != "created" || len(recorder.laneArmed) != 0 {
 		t.Fatalf("answer %s armed %v", raw, recorder.laneArmed)
+	}
+}
+
+// The refusal sentences are the create's own: no record-start words, a clipped clean name, and the folder named as a folder.
+func TestChapterTrackCreateArmRefusalSentences(t *testing.T) {
+	cases := map[string]error{
+		"recording": bridge.ErrRecording,
+		"deadline":  context.DeadlineExceeded,
+		"late":      bridge.ErrAnswerLate,
+		"no answer": bridge.ErrNoAnswer,
+		"stale":     &bridge.TrackStaleError{GUID: createdTrackGUID},
+		"other":     errors.New("boom"),
+	}
+	for name, err := range cases {
+		message := createArmFailure("REAPER", err)
+		for _, bad := range []string{"Nothing started", "3 seconds", "then try again", "audio engine panel"} {
+			if strings.Contains(message, bad) {
+				t.Errorf("%s: %q says %q", name, message, bad)
+			}
+		}
+		if message == "" {
+			t.Errorf("%s: no sentence", name)
+		}
+	}
+	for in, want := range map[string]string{
+		"":                       "new track",
+		"   \n\t ":               "new track",
+		"A\u202eB\x00C":          "A B C",
+		strings.Repeat("x", 500): strings.Repeat("x", 60) + "…",
+	} {
+		if got := clipTrackName(in); got != want {
+			t.Errorf("clipTrackName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// A take running on another chapter leaves its arm alone too, and the answer says the new track was not armed.
+func TestChapterTrackCreateWhileThisAppRecordsSaysItWasNotArmed(t *testing.T) {
+	host, ids := newTestHostForChapterMatch(t)
+	recorder := &fakeLaneRecorder{}
+	hostWithArmingDAW(t, host, &fakeCreator{}, recorder)
+	host.mu.Lock()
+	host.readAloudStarting++
+	host.mu.Unlock()
+	raw, err := host.ChapterTrackCreate(ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, _ := decodeBinding(t, raw)["armMessage"].(string)
+	if len(recorder.laneArmed) != 0 || !strings.Contains(message, "take") {
+		t.Fatalf("armed %v message %q", recorder.laneArmed, message)
 	}
 }

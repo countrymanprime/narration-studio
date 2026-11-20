@@ -1,5 +1,5 @@
 {
-  "armMessage": "The track “Chapter II: The Pool of Tears” was added and linked, but REAPER did not arm it: REAPER is already recording.",
+  "armMessage": "The track “Chapter II: The Pool of Tears” was added and linked, but REAPER is recording, so it was not armed.",
   "displaced": null,
   "documentId": "id-1",
   "link": {
