@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
+import { usePort } from '../../../ports/usePort';
 import { Switch } from '../../primitives/Switch';
 import { useSettingsStore } from '../data/SettingsStore';
 import { rowOf } from '../registry/rows';
@@ -17,7 +17,7 @@ const CANNOT_TELL = 'Could not check for a local model.';
  */
 export function SpeakerFallbackBody() {
   const row = rowOf('project.speakerFallback')!;
-  const api = useApi();
+  const api = usePort('extraction');
   const store = useSettingsStore();
   const [missing, setMissing] = useState<string | undefined>(CHECKING);
   useEffect(() => {

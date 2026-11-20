@@ -351,6 +351,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'project-unknown-speakers',
+    description:
+      'Settings, Project, the Unknown speakers section with the local model turned on: the switch, the model and the lines one run may take, each for this computer',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'project-type-colour',
     description:
       'Settings, Project scrolled to Entry types with the colour box of Place opened: a row of six swatches in a popover under the box, Blue ringed and checked',

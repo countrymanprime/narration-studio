@@ -20,7 +20,7 @@ three parts side by side:
   of the line. It turns solid once you confirm it or pick someone in the chip's menu; confirming adds nothing to the Story
   Bible. Confirming who speaks a line is one history entry (**Confirmed a speaker**), the same one the Story Bible's cue list and the Booth's speaker chip make. The **Find who speaks each line** button in the header runs the search again whenever you like, the first time or
   after you add a character: it fills the lines nobody has confirmed, never changes one you confirmed or picked, and says
-  how many lines it attributed, with **Undo**. Run again with nothing new, it says so and changes nothing. A name still in Needs Review is never a speaker until you file it under a type that speaks. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width: **Narrow**, **Medium**, **Wide** or **Full**, each the width's characters a line or the whole text area, whichever is less, in a column centred in the text area, the same column the [Booth](booth.md) reads in; the column grows and shrinks with the window up to that width and fills a text area too narrow for it). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
+  how many lines it attributed, with **Undo**. Run again with nothing new, it says so and changes nothing. To also have a model on this computer suggest a speaker for the lines this search leaves unknown, see [A local model for unknown speakers](#a-local-model-for-unknown-speakers). A name still in Needs Review is never a speaker until you file it under a type that speaks. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width: **Narrow**, **Medium**, **Wide** or **Full**, each the width's characters a line or the whole text area, whichever is less, in a column centred in the text area, the same column the [Booth](booth.md) reads in; the column grows and shrinks with the window up to that width and fills a text area too narrow for it). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
 - **The rail** on the right, with three tabs: **Words**, **Story Bible** and **Notes**. Bookmarks are not a tab: go to one from the [jump menu](navigation.md#jump-to-or-run) (`Ctrl+F`, then type *bookmark*), and add, edit or delete one from the right-click menu (see [Bookmarks](#bookmarks)).
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
@@ -41,6 +41,28 @@ way to the rail. The first Tab stop after the reader's header is **Skip to the s
 Enter moves focus to the open tab of the rail (or opens the rail, where it is a drawer).
 
 ![Script - the Skip to the side panel button under the reader header, with focus on it](../../images/ui/script-skip-to-side-panel.webp)
+
+## A local model for unknown speakers
+
+Some quoted lines have no speech tag and no name near them, so the search leaves them with the grey question-mark chip. A model that runs on this computer can read the paragraphs around such a line and suggest who speaks it. It is off until you turn it on, and nothing it reads leaves this computer.
+
+This version of the app has no local model to install yet, so the switch in Settings is off and says **No local model is installed.** The steps below are how it works once a model is installed.
+
+1. Open [Settings](settings.md#project), choose **Project**, and under **Unknown speakers** turn on **Ask a local model about unknown speakers**.
+2. On the Script page, press **Find who speaks each line**. The message says how many lines were attributed and how many of them the local model suggested, with **Undo**.
+3. Click the chip of a line it filled. **Confirm** is first in the menu, with **Suggested by the local model:** and the model's one-sentence reason beneath it. Rest the pointer on the reason to read all of it when it is cut short.
+4. Press **Confirm** if the model is right, or pick someone else. Either way the line is yours from then on and the reason goes.
+
+![Script - a line the local model suggested a speaker for: Confirm with the model's reason beneath it](../../images/ui/script-speaker-suggested-by-model.webp)
+
+What to expect:
+
+- The model's speaker is a suggestion like any other: a dashed chip, never a confirmed one. A line you confirmed, picked or cleared is never asked about and never changed.
+- The reason is the model's own sentence, shown as plain text. It says why the model chose that speaker; it is not checked for being true.
+- One run asks about at most the number of lines set in **Lines the local model may take per run** (20 at first). When more lines are unknown than that, the message says how many it asked about; press the button again for the rest. A line the model could not answer is not asked again until you add or rename a character, or reopen the project.
+- If the model stops or runs out of time, the message says so. What it had answered is kept, and the lines the search attributed stay as they are.
+- A later search keeps the model's suggestion until the search itself finds the speaker (which then replaces it) or the character is deleted or stops being a type that speaks (the line is then unknown again).
+- **Undo** takes the whole run back, the model's lines included.
 
 ## Searching the script
 

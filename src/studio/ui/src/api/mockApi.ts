@@ -178,11 +178,10 @@ export function createMockApi(
   const { manuscriptReady: textReady, hasImported: manuscriptImported } = manuscript;
   // A Voice folders project's Chapter 1 also has a line Alice speaks, and no voice records her: the Booth's "No track" row and the
   // speaker "Who is in Num N?" ticks (#2839). The cue is placed in the loaded text, so the manuscript is ready only once it is in.
-  const manuscriptReady = initial.voiceFolders
-    ? textReady.then(() => {
-        s.dialogueCues = [...s.dialogueCues, ...aliceSpeaks(s.paragraphs)];
-      })
-    : textReady;
+  const manuscriptReady = textReady.then(() => {
+    s.dialogueCues = placedInText(s.dialogueCues, s.paragraphs);
+    if (initial.voiceFolders) s.dialogueCues = [...s.dialogueCues, ...aliceSpeaks(s.paragraphs)];
+  });
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
   const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
@@ -1136,6 +1135,30 @@ function createBackupsMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: stri
 }
 
 /** Alice's "and even if my head would go through," in Chapter 1, attributed to her, as a cue the Booth reads as one line. */
+/**
+ * The fixture cues, each on a paragraph of the loaded text. A cue whose paragraph the loaded book does not have in its chapter (the
+ * demo book numbers its paragraphs differently from the fixture) moves to the paragraph that holds its words, so the line the rules
+ * leave unknown is a line the reader draws. One whose words the book does not have stays as it was.
+ */
+function placedInText(cues: readonly GuideDialogueCue[], paragraphs: readonly ManuscriptParagraph[]): GuideDialogueCue[] {
+  return cues.map((cue) => {
+    if (paragraphs.some((each) => each.id === cue.paragraphId && each.chapterId === cue.chapterId)) return cue;
+    const words = cue.quote_text.replace(/[.,!?]+$/, '');
+    const paragraph = paragraphs.find((each) => each.text.includes(words));
+    if (!paragraph) return cue;
+    const start = paragraph.text.indexOf(words);
+    return {
+      ...cue,
+      chapterId: paragraph.chapterId,
+      paragraphId: paragraph.id,
+      quote_start: start,
+      quote_end: start + words.length,
+      quote_text: words,
+      evidence: { ...cue.evidence, chapterId: paragraph.chapterId, paragraphId: paragraph.id, excerpt: words },
+    };
+  });
+}
+
 function aliceSpeaks(paragraphs: readonly ManuscriptParagraph[]): GuideDialogueCue[] {
   const words = 'and even if my head would go through,';
   const paragraph = paragraphs.find((each) => each.chapterId === 'chapter-1' && each.text.includes(words));

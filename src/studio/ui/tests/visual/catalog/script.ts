@@ -83,6 +83,13 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'speaker-suggested-by-model',
+    description:
+      "Script, the Change speaker menu on a line the local model suggested a speaker for (the model turned on in Settings, then Find who speaks each line): Confirm with the model's one-sentence reason beneath it, clamped to three lines, above this chapter's speakers",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
     state: 'skip-to-side-panel',
     description:
       'Script, the "Skip to the side panel" button under the reader header, shown while it has focus: one Tab from the header past every chapter card to the rail',
