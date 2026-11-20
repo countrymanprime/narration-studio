@@ -35,6 +35,8 @@ import { evidenceLinks } from './evidenceLinks';
 import { useHearEntry } from './useHearEntry';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable, type EntryTableHandle } from './EntryTable';
+import { useBulkDelete } from './useBulkDelete';
+import { useEntrySelection } from './useEntrySelection';
 import { SortMenu } from './SortMenu';
 import { FilterChips, FilterMenu, NO_FILTER, type FilterChoice, type FilterCounts } from './FilterMenu';
 import { ScanStatus } from './suggested/panel/ScanStatus';
@@ -246,6 +248,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
   const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
+  const orderedIds = useMemo(() => sorted.map((row) => row.id), [sorted]);
+  const ticks = useEntrySelection(orderedIds);
+  const bulk = useBulkDelete({ entries: sorted, selection: ticks, openId: selected?.id, reload: () => load(), notify, guarded });
   const openHidden = selected !== undefined && !pendingNewEntity && !looseChosen && !sorted.some((row) => row.id === selected.id);
   const filtering = query.trim() !== '' || filterCount(filters) > 0;
   const clearFilters = () => {
@@ -490,6 +495,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 onHear={hear}
                 playingId={listHear.playingId}
                 loadingId={listHear.loadingId}
+                selection={{
+                  ticked: new Set(ticks.ids),
+                  onToggle: ticks.toggle,
+                  onToggleAll: () => ticks.setAll(ticks.ids.length < sorted.length),
+                  bar: bulk.bar,
+                }}
               />
             ) : (
               <div className="min-h-0 flex-1 overflow-hidden">
@@ -497,6 +508,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
               </div>
             )}
           </section>
+          {bulk.dialog}
           <div ref={detailRef} className="flex min-h-0 min-w-0">
             {!entriesRead ? (
               <GuideDetailSkeleton />

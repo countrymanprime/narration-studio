@@ -275,3 +275,87 @@ describe('a-row-plays-its-pronunciation', () => {
     expect(screen.queryByRole('button', { name: /^Hear/ })).toBeNull();
   });
 });
+
+// #3662: ticking rows. A column of boxes before the name, a select-all box, and a bar that takes the header row while any row is ticked.
+describe('ticking-rows', () => {
+  const ROWS = [entry('e1', 'Ann'), entry('e2', 'Bea'), entry('e3', 'Cy', { category: 'Place' })];
+  const withSelection = (ticked: string[], over: Partial<NonNullable<EntryTableProps['selection']>> = {}) => ({
+    ticked: new Set(ticked),
+    onToggle: vi.fn(),
+    onToggleAll: vi.fn(),
+    bar: <span data-bar="">Delete</span>,
+    ...over,
+  });
+
+  it('draws no column of boxes without a selection, and one box a row with it', () => {
+    const { view } = setup(ROWS);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    view.unmount();
+    setup(ROWS, { selection: withSelection([]) });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(ROWS.length + 1);
+    expect(screen.getByRole('checkbox', { name: 'Select Ann' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Select every entry' })).toBeTruthy();
+  });
+
+  it('ticks a row with its box and opens nothing; a press with Shift asks for the range', async () => {
+    const selection = withSelection([]);
+    const { props } = setup(ROWS, { selection });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('checkbox', { name: 'Select Bea' }));
+    expect(selection.onToggle).toHaveBeenLastCalledWith('e2', false);
+    await user.keyboard('{Shift>}');
+    await user.click(screen.getByRole('checkbox', { name: 'Select Cy' }));
+    await user.keyboard('{/Shift}');
+    expect(selection.onToggle).toHaveBeenLastCalledWith('e3', true);
+    expect(props.onOpen, 'a press on a box opens no entry').not.toHaveBeenCalled();
+  });
+
+  it('Space on a box ticks the row and neither plays nor opens it', async () => {
+    const onHear = vi.fn();
+    const selection = withSelection([]);
+    const { props } = setup([entry('e1', 'Ann', { pronunciation: { ipa: 'an', source: 'user', confidence: '' } })], { selection, onHear });
+    const box = screen.getByRole('checkbox', { name: 'Select Ann' });
+    box.focus();
+    await userEvent.setup().keyboard(' ');
+    expect(selection.onToggle).toHaveBeenCalledWith('e1', false);
+    expect(onHear).not.toHaveBeenCalled();
+    expect(props.onOpen).not.toHaveBeenCalled();
+  });
+
+  it('shows the select-all box ticked, mixed or off by what is ticked, and asks to tick or clear all', async () => {
+    const selection = withSelection(['e1']);
+    const { view } = setup(ROWS, { selection });
+    const all = () => screen.getByRole('checkbox', { name: 'Select every entry' });
+    expect(all().getAttribute('aria-checked')).toBe('mixed');
+    await userEvent.setup().click(all());
+    expect(selection.onToggleAll).toHaveBeenCalledTimes(1);
+    view.unmount();
+    setup(ROWS, { selection: withSelection(['e1', 'e2', 'e3']) });
+    expect(all().getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('puts the bar in the header row while a row is ticked, in place of the sort buttons, and takes it away when none is', () => {
+    const { view } = setup(ROWS, { selection: withSelection([]) });
+    expect(screen.getByRole('columnheader', { name: /Name/ })).toBeTruthy();
+    expect(document.querySelector('[data-bar]')).toBeNull();
+    view.unmount();
+    setup(ROWS, { selection: withSelection(['e2']) });
+    expect(document.querySelector('thead [data-bar]')).not.toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /Name/ })).toBeNull();
+    // One header row either way, so the rows below it do not move.
+    expect(document.querySelectorAll('thead tr')).toHaveLength(1);
+  });
+
+  it('keeps one tab stop: only the box of the row that holds it is in the Tab order', () => {
+    setup(ROWS, { selection: withSelection([]) });
+    const stops = screen.getAllByRole('checkbox', { name: /^Select (Ann|Bea|Cy)$/ }).filter((box) => box.getAttribute('tabindex') !== '-1');
+    expect(stops).toHaveLength(1);
+  });
+
+  it('draws a loose suggestion with an empty first cell, so its row lines up with the entries', () => {
+    const loose = [{ id: 'l1', payload: { kind: 'entity', name: 'Zed', category: 'Character' } }] as unknown as ExtractionSuggestion[];
+    setup(ROWS, { selection: withSelection([]), loose });
+    const row = document.querySelector('[data-loose]')!;
+    expect(row.querySelectorAll('td').length + [...row.querySelectorAll('td')].reduce((n, td) => n + (td.colSpan - 1), 0)).toBe(4);
+  });
+});
