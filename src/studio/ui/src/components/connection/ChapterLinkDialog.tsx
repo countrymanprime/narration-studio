@@ -9,6 +9,7 @@ import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/C
 import { cachedMatch, rememberMatch, useCachedMatch } from './chapterMatchCache';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
+import { NewChapterTracks, useNewChapterPick } from '../chapterTracks/NewChapterTracks';
 import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
@@ -107,6 +108,8 @@ export function ChapterLinkDialog({
   // In a Voice folders project the host makes a folder with a Narrator track for the chapter (ChapterTrackCreate), so the words say folder.
   const dest = destinationFor(useVoiceLayout());
   const folders = dest.folders;
+  // What the new folder is made with besides the Narrator: the known voices and Extras, ticked by the last pick (#3748); only a folder has them.
+  const newTracks = useNewChapterPick(folders && create?.available !== false, actions.createOptions);
 
   const shownRef = useRef(read.status);
   shownRef.current = read.status;
@@ -205,7 +208,7 @@ export function ChapterLinkDialog({
     if (creating || linking || create?.available === false) return;
     setCreating(true);
     setRefused(null);
-    actions.create(chapterId).then(
+    actions.create(chapterId, newTracks.choice).then(
       (result) => {
         setCreating(false);
         if (result.outcome === 'created') {
@@ -296,6 +299,9 @@ export function ChapterLinkDialog({
           {createFirst && !createOff ? `${createLabel} adds one named after the chapter${withNarrator} and links it.` : ''}
         </p>
       )}
+      {(noTracks || read.status === 'failed') && newTracks.pick && !createOff && (
+        <NewChapterTracks narrator="Narrator" pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
+      )}
       {read.status === 'ready' && !noTracks && (
         <>
           <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={picked ?? ''} onChange={setChosen} fullWidth />
@@ -309,6 +315,11 @@ export function ChapterLinkDialog({
               <span className="text-[var(--text-muted)]">
                 Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
               </span>
+            )}
+            {newTracks.pick && !createOff && (
+              <div className="basis-full">
+                <NewChapterTracks narrator="Narrator" pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
+              </div>
             )}
             <Button
               variant="secondary"

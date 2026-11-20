@@ -206,6 +206,53 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /not armed/, hidden: true })).toBeNull());
   });
 
+  // #3748: the create dialog of a Voice folders project lists the voices and Extras to make with the folder; what is ticked at the press is what is made.
+  const foldersOptions = {
+    folders: true,
+    narrator: 'Narrator',
+    voices: [
+      { name: 'Mara', checked: true },
+      { name: 'Dragon 🐉', checked: false },
+    ],
+    extras: { name: 'Extras', checked: true },
+  };
+
+  it('a Voice folders create dialog lists the voices and Extras, and Create sends exactly what is ticked', async () => {
+    const { chapterTrackCreate } = renderUnlinked({ chapterCreateOptions: async () => foldersOptions } as Partial<NarrationApi>, 'folders');
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    const group = await within(dialog).findByRole('group', { name: 'Tracks in the new folder' });
+    expect(within(group).getByText('Narrator (always)')).toBeTruthy();
+    expect(within(group).getByRole('checkbox', { name: 'Mara' }).getAttribute('aria-checked')).toBe('true');
+    expect(within(group).getByRole('checkbox', { name: 'Dragon 🐉' }).getAttribute('aria-checked')).toBe('false');
+    await userEvent.click(within(group).getByRole('checkbox', { name: 'Dragon 🐉' }));
+    await userEvent.click(within(group).getByRole('checkbox', { name: 'Extras' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create a new folder' }));
+    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1', { voices: ['Mara', 'Dragon 🐉'], extras: false });
+  });
+
+  it('a create dialog whose list cannot be read still creates, with the last pick the host remembers', async () => {
+    const { chapterTrackCreate } = renderUnlinked(
+      {
+        chapterCreateOptions: async () => {
+          throw new Error('host down');
+        },
+      } as Partial<NarrationApi>,
+      'folders',
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new folder' }));
+    expect(within(dialog).queryByRole('group', { name: 'Tracks in the new folder' })).toBeNull();
+    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1');
+  });
+
+  it('a flat project has no list to choose from and Create sends no choice', async () => {
+    const { chapterTrackCreate } = renderUnlinked({ chapterCreateOptions: async () => foldersOptions } as Partial<NarrationApi>);
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
+    expect(within(dialog).queryByRole('group', { name: 'Tracks in the new folder' })).toBeNull();
+    expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1');
+  });
+
   // #3271: the layout is a project setting, so a Voice folders project is never told that a chapter records on a track.
   it('in a Voice folders project the prompt, the chip, the footer and the toast after Create a new folder all say folder', async () => {
     const { overlay, chapterTrackCreate } = renderUnlinked({}, 'folders');
