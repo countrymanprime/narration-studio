@@ -54,6 +54,45 @@ describe("the Booth's voices", () => {
     expect(hook.current.current?.name).toBe('Narrator');
   });
 
+  it("reads the DAW's arms once for a voice switch, after the host's answer and not while the host arms the lane (#3647)", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    const answer = api.boothVoiceSet.bind(api);
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    api.boothVoiceSet = async (...args: Parameters<typeof api.boothVoiceSet>) => {
+      await held;
+      return answer(...args);
+    };
+    const read = vi.spyOn(api, 'readAloudReaperState');
+
+    await act(async () => {
+      hook.current.byKey(1);
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(read).not.toHaveBeenCalled();
+
+    release();
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(hook.current.current?.name).toBe('White Rabbit');
+  });
+
+  it('a refused voice choice reads the arms once after the answer, not during it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const { hook } = await mount({ voiceFolders: true }, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    api.boothVoiceSet = async () => ({ outcome: 'refused', message: 'No.', reason: 'not_a_voice' }) as never;
+    const read = vi.spyOn(api, 'readAloudReaperState');
+    await act(async () => {
+      hook.current.byKey(1);
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(read.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+
   it('a voice key chooses that voice through the host, and the next take records on it', async () => {
     const { api, hook } = await mount({ voiceFolders: true });
     await act(async () => hook.current.byKey(2));
