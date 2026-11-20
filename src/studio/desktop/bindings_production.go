@@ -143,11 +143,13 @@ var errProductionNoProject = errors.New("open a project before tracking producti
 
 // ProductionOverview is the Production page's board, KPI figures and "Next up" list.
 func (h *Host) ProductionOverview() (string, error) {
-	overview, _, err := h.buildProductionOverview()
-	if err != nil {
-		return "", err
-	}
-	return encodeBinding(overview, nil)
+	return h.sharedRead("ProductionOverview", func() (string, error) {
+		overview, _, err := h.buildProductionOverview()
+		if err != nil {
+			return "", err
+		}
+		return encodeBinding(overview, nil)
+	})
 }
 
 // buildProductionOverview is ProductionOverview's own build, shared with the status report export so the

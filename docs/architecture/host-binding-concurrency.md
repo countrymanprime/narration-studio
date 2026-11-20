@@ -1,6 +1,6 @@
 # Host binding concurrency
 
-How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `src/studio/desktop/services.go`, enforced by `src/studio/desktop/hostguard_test.go` and `src/studio/desktop/hostrace_test.go`; the decision is The rule.
+How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `src/studio/desktop/services.go` and `src/studio/desktop/readflights.go`, enforced by `src/studio/desktop/hostguard_test.go` and `src/studio/desktop/hostrace_test.go`; the decision is The rule.
 
 ## The problem it solves
 
@@ -35,6 +35,28 @@ func (h *Host) GuideRescan(id string) (string, error) {
 
 The steps for a new binding are in the doc comment of `services()` (`src/studio/desktop/services.go`).
 
+## Identical reads in flight share one computation
+
+The page sends some reads several times at the same moment: at start `ManuscriptChapters` three times, `ChapterSyncState` and `PickupsList` twice each, and the same set again on a focus or event refresh. Each copy computed alone costs several times what one call costs, because they compete for CPU and the garbage collector. `sharedRead` (`src/studio/desktop/readflights.go`) answers the copies from one computation: a call that arrives while a call with the same key is computing waits for it and gets its answer, JSON text or error. `ManuscriptChapters`, `ChapterSyncState`, `PickupsList` and `ProductionOverview` go through it.
+
+Nothing is kept once the computation ends, so this is not a cache: the next call computes again. No lock is held while the computation runs.
+
+The key is the binding's name and arguments plus everything that makes an older computation the wrong answer for a newer call:
+
+| Part of the key | Changes when | So that |
+| --- | --- | --- |
+| The project folder and the manuscript and settings services of the `services()` snapshot | a project is attached | a call after a switch never gets the previous project's answer |
+| `persist.Generation()` | the host finishes a file change: every `persist.WriteFile` and `persist.Rename`, and every `persist.Advance()` | a call sent after a ledger, result, mapping or manuscript write never gets an answer computed before it |
+| The live event count | `emitEvent` is about to send any event | the refresh a page sends because of an event (a finished recording check, a sync, a DAW change) never joins a computation started before the event |
+
+Rules for code that touches this:
+
+- **A store that removes a file a read answers from calls `persist.Advance()`** after the removal, because only `WriteFile` and `Rename` advance the generation by themselves. The ledger's `Retain`, the findings store's `RemoveAnalyzer`, the manuscript's `Clear` and replace, and the recording check's removal of its old results file do. A store that writes with `os.WriteFile` directly must switch to `persist.WriteFile` or call `Advance`.
+- **Only a binding that reads goes through `sharedRead`**, or one whose only other work may be done once for all its callers: `PickupsList` also sends the done marks that waited for the DAW and saves the list, and one call doing that serves the calls that joined it. Its computation must not call the same binding again: the inner call would wait for the outer one.
+- A new cache of derived state that the host writes needs nothing more as long as its files are written through `persist`. A file a sidecar writes is covered by the event the host sends when the run ends.
+
+`readflights_test.go` holds a computation in flight and checks that each of the four bindings joins it, that three calls are one computation, and that a call after a ledger write, a ledger prune, a mapping write, a manuscript clear, a live event or a project switch computes its own answer, and that a project switch alone changes the key.
+
 ## Related rules in the host
 
 - `ProjectCreate` checks that a switch would be accepted (`canAttach`, a read-locked pre-check) before it creates the folder, and requires an absolute path. `ProjectSwitch` asks again under the write lock, so a lost race at worst leaves an empty folder. A refused create reports the same `switched: false` result and `system:attached` event as a refused switch.
@@ -42,6 +64,9 @@ The steps for a new binding are in the doc comment of `services()` (`src/studio/
 ## Known limits
 
 - **A switch is not refused while a `Guide*` edit, the post-commit character seeding or a just-started teleprompter session is in flight.** `canAttachLocked` covers import drafts, Story Bible, TTS and Whisper jobs, the transcript and the teleprompter (its `Busy()`) only. The snapshot means such a call finishes against the project it started on, but the switch is still allowed; tracked in issue #60.
+- **A shared read is keyed on one snapshot and computed on another.** `sharedRead` takes a snapshot for its key, and the binding's computation takes its own. A switch between the two gives the callers that joined the newer project's answer, never an older one.
+- **A change the host cannot see does not start a new computation.** A file REAPER saves, or state the host changes only in memory without an event, leaves the key as it was, so a call in the same instant can get the answer of a computation that began just before the change. The page hears of such a change only through an event, and the event starts a new key.
+- **Every live event advances the key, the meter and transport streams included.** While REAPER plays or a recording runs, events arrive many times a second and identical reads rarely share a computation.
 - **`SystemSaveSettings` takes two snapshots** (`saveSettings`, then `Bootstrap` for the reply); a switch between them saves to one project and answers with the next.
 - **The guard is syntactic.** It does not follow a `Host` reached through another type (a struct field, an embedded `Host`) or returned from a function other than `NewHost`; the snapshot discipline covers those. Nothing fails a function that calls `services()` twice.
 - **The asset managers are not rebuilt on an attach.** `Host.assets` is set once in `Startup` and read with `registry()` ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)), so `hostServices` holds no asset manager.

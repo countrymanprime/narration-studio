@@ -7,6 +7,7 @@ import type { IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { KeyChord } from './KeyCap';
 import { TooltipTarget } from './Tooltip';
+import { handFocusToPage } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type ContextMenuItem = {
@@ -212,11 +213,14 @@ export function ContextMenu({
   items,
   onOpen,
   className,
+  focusPageOnClose,
   children,
 }: {
   items: ContextMenuItem[];
   onOpen?: (event: MouseEvent) => void;
   className?: string;
+  /** A page whose next key is its own (the Booth's Enter and Space record): focus goes to the page's <main> when the menu closes, not to the header's first button. */
+  focusPageOnClose?: true;
   children: ReactNode;
 }) {
   const reasonId = useId();
@@ -236,6 +240,7 @@ export function ContextMenu({
         <BaseContextMenu.Positioner collisionPadding={8} className="z-[var(--z-popover)]" {...beside}>
           <BaseContextMenu.Popup
             tabIndex={0}
+            finalFocus={focusPageOnClose ? () => handFocusToPage() : undefined}
             className={`max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
             <Runs items={items} reasonId={reasonId} />

@@ -19,7 +19,7 @@ import (
 
 // PickupsList answers the merged list and the chapters whose recording check added nothing, and why.
 func (h *Host) PickupsList() (string, error) {
-	return encodeBinding(h.pickupList().List())
+	return h.sharedRead("PickupsList", func() (string, error) { return encodeBinding(h.pickupList().List()) })
 }
 
 // PickupsOpenCount answers how many pickups of the list are still open, for a reader that shows the number only (the
