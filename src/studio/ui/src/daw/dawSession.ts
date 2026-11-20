@@ -154,8 +154,14 @@ export function createDawSession(host: DawSessionApi): DawSession {
 
   // One read of the host's DAW choice at a time, asked with every report of a DAW that is not answering so "starting" and "connected" follow the report; a read that fails is `null`, which the callers treat as "the host cannot say".
   let choosing = false;
-  const readChoice = () => {
-    if (choosing || !running) return Promise.resolve();
+  // A report that comes in while a read is out (the host's emit right after it starts the DAW) asks for one more when this one ends, so "starting" is never missed.
+  let askAgain = false;
+  const readChoice = (): Promise<void> => {
+    if (!running) return Promise.resolve();
+    if (choosing) {
+      askAgain = true;
+      return Promise.resolve();
+    }
     choosing = true;
     return api
       .dawChoice()
@@ -173,6 +179,11 @@ export function createDawSession(host: DawSessionApi): DawSession {
       })
       .finally(() => {
         choosing = false;
+        if (askAgain && state.caps && !state.caps.reachable) {
+          askAgain = false;
+          void readChoice();
+        }
+        askAgain = false;
       });
   };
 

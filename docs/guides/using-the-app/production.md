@@ -25,9 +25,9 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 
 ![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
 
-The app connects to the REAPER you have open by itself. While it is starting REAPER on the linked project, the mark reads
-"Starting REAPER…", and for ten seconds after REAPER stops answering it reads "Connecting to REAPER…"; nothing asks you
-meanwhile. If REAPER has not come up by then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
+The app connects to the REAPER you have open by itself. For the first ten seconds after REAPER stops answering the mark reads
+"Connecting to REAPER…", and while the app is opening REAPER on the linked project it reads "Starting REAPER…" (the app
+waits up to 90 seconds for REAPER to answer); nothing asks you meanwhile. If REAPER has not come up by then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
 that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. While no REAPER project file is linked to the project, **Start REAPER** is off and **Link project file…** is the main button; it links the file and the dialog reads the answer again. The same mark and dialog appear, worded the same, on [Editing](editing.md), [Proof](proof.md), [Pickups](pickups.md), [Master & QC](master-and-qc.md) and the [Booth](booth.md): a **Check again** or a link on one is the answer on all of them, with no reload. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:

@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 // Class guard for #3668 (one synchronized state): "the DAW is still connecting" is decided in `components/connection/useDawConnecting.ts` and
 // nowhere else, from the DAW session's own facts (the host's "starting" and when the DAW stopped answering). A page does not write its own
 // "Connecting to …" sentence, and does not bring back a clock of its own counted from app start (`APP_STARTED_AT`, `useConnectGrace`), which asked the
-// narrator about a DAW that was still launching and gave a project opened a minute after the app no time at all. `api/` (host stand-ins) is not scanned.
+// narrator about a DAW that was still launching and gave a project opened a minute after the app no time at all. It guards those two spellings only: a
+// private timer under another name, or a fifth reader of the host's DAW choice, is not caught (#3700 moves the readers onto the session and guards them). `api/` is not scanned.
 const SRC = join(__dirname);
 const HOME = 'components/connection/useDawConnecting.ts';
 

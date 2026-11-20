@@ -481,7 +481,7 @@ The project file is linked by one action wherever it is offered (the connection 
 A dialog says the DAW is not connected, in the app's own words: the DAW's reason ("REAPER is not running."), what the host
 knows (the project is linked but REAPER has not connected; it connected before and stopped answering; no project file is
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
-launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, only after the app has had its time to start REAPER (the mark reads "Starting REAPER…" or "Connecting to REAPER…" meanwhile), so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
+launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, only after the app has had its time to start REAPER (the mark reads "Connecting to REAPER…" for the first ten seconds and "Starting REAPER…" while the app opens it, for up to 90 seconds), so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
 opens it again. Every control that waits on the DAW (Delete, Mute, Add FX, Keep take, Clean up, Backups and the rest) follows the DAW's report as it changes: start the DAW with the page open and they turn on with the header, with no reload. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 

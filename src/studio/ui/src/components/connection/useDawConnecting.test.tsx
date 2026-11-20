@@ -43,9 +43,9 @@ function mount(api: Partial<NarrationApi>, graceMs: number) {
 // The one "connecting" state (#3668): the host says it is starting the DAW, or the DAW has not been off for the grace yet.
 describe('useDawConnecting', () => {
   it('says "Starting" for as long as the host reports its own start, whatever the grace', async () => {
-    mount({ dawChoice: async () => choice({ state: 'starting', starting: { since: new Date().toISOString() } }) }, 1);
+    mount({ dawChoice: async () => choice({ state: 'starting', starting: { since: new Date().toISOString() } }) }, 150);
     expect(await screen.findByText('Starting REAPER…')).toBeTruthy();
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 500)));
     expect(screen.getByText('Starting REAPER…')).toBeTruthy();
   });
 
@@ -58,6 +58,12 @@ describe('useDawConnecting', () => {
   it('asks at once with no grace when the host is not starting anything', async () => {
     mount({ dawChoice: async () => choice({}) }, 0);
     expect(await screen.findByText('asks now')).toBeTruthy();
+  });
+
+  it('does not hold the dialog back for ever when the host never answers: the grace ends it', async () => {
+    mount({ dawChoice: () => new Promise<DawChoice>(() => undefined) }, 300);
+    expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy(), { timeout: 3000 });
   });
 
   it('holds until the host has answered when there is a grace, and falls back to the clock when the host cannot say', async () => {
