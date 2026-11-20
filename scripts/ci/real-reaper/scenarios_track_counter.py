@@ -26,7 +26,8 @@ local function names()
 end
 """
 
-# Each row edits the project once and answers the count before and after. `lists` is whether the edit changes what `tracks_read` lists.
+# Each row edits the project once, as one undo block like the narrator's own edits, and answers the count before and after. `lists` is whether the
+# edit changes what `tracks_read` lists.
 ROWS = [
     ("add a track", True, "local t = ci.add_track('Added') return {}"),
     ("rename a track", True, "reaper.GetSetMediaTrackInfo_String(ci.track_by_name('Voice A'), 'P_NAME', 'Voice A renamed', true) return {}"),
@@ -72,7 +73,14 @@ def list_edits_raise_the_count(env: Env) -> str:
     failed = []
     for name, lists, body in ROWS:
         env.lua(ARRANGE)
-        got = env.lua(LIB + f"local before = count() {body.replace('return {}', '')} return {{ before = before, after = count(), tracks = names() }}")
+        # Each edit is one undo block, as every edit the narrator makes in REAPER's own windows is (a bare API call makes no undo point, and the
+        # first run of this row, 2026-11-17, showed such a call leaves the count alone).
+        edit = body.replace("return {}", "")
+        got = env.lua(
+            LIB
+            + f"local before = count() reaper.Undo_BeginBlock2(0) {edit} reaper.Undo_EndBlock2(0, 'counter row', -1) "
+            + "return { before = before, after = count(), tracks = names() }"
+        )
         raised = got["after"] > got["before"]
         rows.append({"edit": name, "changes_the_list": lists, "before": got["before"], "after": got["after"], "raised": raised})
         if lists and not raised:
