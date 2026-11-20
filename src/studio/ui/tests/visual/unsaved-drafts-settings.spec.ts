@@ -235,7 +235,7 @@ test('switching Settings category or searching with an unsaved page-setting edit
   await settlePage(page);
   await openSettings(page, 'Speech to text');
   const entry = page.locator('[data-row="stt.rules"]');
-  const box = entry.getByRole('region', { name: 'Recording check rules' }).getByRole('textbox', { name: 'Longest run of missing words allowed' });
+  const box = entry.getByRole('region', { name: 'Recording check' }).getByRole('textbox', { name: 'Longest run of missing words allowed' });
   await box.fill('7');
   await page
     .getByRole('navigation', { name: 'Settings categories' })

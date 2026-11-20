@@ -1037,7 +1037,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
     expect(within(check).getByText('Unsaved changes')).toBeTruthy();
 
@@ -1068,7 +1068,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       return { request: () => act(() => request!()), windowCloseGuard, windowCloseAsked, windowCloseAnswer };
     };
     const editSettings = async () => {
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
       expect(within(check).getByText('Unsaved changes')).toBeTruthy();
     };
@@ -1131,7 +1131,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       return event.defaultPrevented;
     };
     expect(unload(), 'nothing is held').toBe(false);
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     const box = await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' });
     fireEvent.change(box, { target: { value: '5' } });
     expect(within(check).getByText('Unsaved changes')).toBeTruthy();
@@ -1148,7 +1148,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       },
     });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
     await waitFor(() => expect(jobEnded).toBeDefined());
     act(() => jobEnded?.({ id: 'scan-1', kind: 'extraction_scan', outcome: 'success', message: '2 suggestions added.', durationMs: 900 }));
@@ -1165,7 +1165,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const rules = await openKeptPanel('stt.rules', 'Recording check rules');
+    const rules = await openKeptPanel('stt.rules', 'Recording check');
 
     // A project has no override for any field until one is saved, so all of them are unset (empty) here. The host rejects an empty
     // value for a choice or a colour, so only the edited field may go.
@@ -1183,7 +1183,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(store.saveSettings);
     renderApp({ saveSettings, settingsForScope: store.settingsForScope });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
 
     expect(await within(check).findByText('Proposed values, not yet calibrated')).toBeTruthy();
     expect(within(check).getByText(/at least 80% of its words read and no more than 3 words in a row/)).toBeTruthy();
@@ -1197,7 +1197,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const rules = await openKeptPanel('stt.rules', 'Recording check rules');
+    const rules = await openKeptPanel('stt.rules', 'Recording check');
 
     const run = (await within(rules).findByRole('textbox', { name: 'Longest run of missing words allowed' })) as HTMLInputElement;
     const original = run.value;
@@ -1213,7 +1213,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    const rules = await openKeptPanel('stt.rules', 'Recording check rules');
+    const rules = await openKeptPanel('stt.rules', 'Recording check');
 
     // A project shows the Global value for a field it has no override for. Changing it and changing it back must
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
@@ -1233,7 +1233,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp();
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
     expect(screen.queryAllByRole('tablist')).toHaveLength(0);
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     const scope = within(check).getByRole('group', { name: 'Recording check scope' });
     expect(within(scope).getByRole('button', { name: 'Global' }).getAttribute('aria-pressed')).toBe('true');
     // A clean switch happens at once.
@@ -1610,7 +1610,7 @@ describe('App Back and Forward', () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
     expect(await jumpRowIsOff('Back')).toBe(false);
 
@@ -1627,7 +1627,7 @@ describe('App Back and Forward', () => {
     const dirtySettings = async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       // The history's own idx settles one render after the move; Back and its shortcuts are live from then on.
       await waitFor(async () => expect(await jumpRowIsOff('Back')).toBe(false));
@@ -2069,7 +2069,7 @@ describe('App Back and Forward', () => {
     it('the engine panel Open in Proof from dirty Settings asks Unsaved changes first and stays on Settings', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       await rowAction(await linkChapterOne(), 'Open in Proof');
       expect(await screen.findByText('Save or discard changes before leaving Settings?')).toBeTruthy();
@@ -2079,7 +2079,7 @@ describe('App Back and Forward', () => {
     it('a link inside an overlay dialog from dirty Settings asks too (the overlay host draws outside the app tree)', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       const Link = () => {
         const navigate = useGuardedNavigate();
@@ -2144,7 +2144,7 @@ describe('App Back and Forward', () => {
       const saveSettings = vi.fn(createMockApi().saveSettings);
       renderApp({ saveSettings });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       // D4: a draft with no save beside Settings' own edit: no Save, and the sentence names both.
       let close = openProbe(<NoSaveHolder />);
@@ -2187,7 +2187,7 @@ describe('App Back and Forward', () => {
     it('a pop to the same Settings path with another hash asks over a held edit, and Cancel puts the address back (#3456)', async () => {
       renderApp();
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       const before = window.location.pathname + window.location.hash;
       act(() => {
@@ -2529,7 +2529,7 @@ describe('App Back and Forward', () => {
       const { saveSettings, release } = slowSettingsSave();
       renderApp({ saveSettings });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       headerSwitch();
       const save = await screen.findByRole('button', { name: 'Save & continue' });
@@ -2550,7 +2550,7 @@ describe('App Back and Forward', () => {
       });
       renderApp({ saveSettings });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       headerSwitch();
       fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
@@ -2565,7 +2565,7 @@ describe('App Back and Forward', () => {
       const saveSettings = vi.fn(() => new Promise<never>(() => {}));
       renderApp({ saveSettings });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
@@ -2612,7 +2612,7 @@ describe('App Back and Forward', () => {
       const saveSettings = vi.fn(createMockApi().saveSettings);
       renderApp({ saveSettings });
       await screen.findByRole('heading', { level: 1, name: 'Production' });
-      const check = await openKeptPanel('stt.rules', 'Recording check rules');
+      const check = await openKeptPanel('stt.rules', 'Recording check');
       fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
       headerSwitch();
       fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
@@ -2624,7 +2624,7 @@ describe('App Back and Forward', () => {
   it('a browser Back the app did not start, from dirty Settings, restores Settings and asks (#1779)', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const check = await openKeptPanel('stt.rules', 'Recording check rules');
+    const check = await openKeptPanel('stt.rules', 'Recording check');
     fireEvent.change(await within(check).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '5' } });
 
     // A popstate the app's own guarded Back did not start (a mouse-button gesture, history.back()).

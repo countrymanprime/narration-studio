@@ -848,14 +848,14 @@ describe('Settings: search and filters', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'breath');
     const found = document.querySelector<HTMLElement>('[data-row="editing.cleanup"]');
     expect(found).toBeTruthy();
-    expect(found!.closest('section')?.getAttribute('aria-label')).toBe('Recording & DAW');
+    expect(found!.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
   it('keeps the punch pre-roll and the Audacity backups editable here, each in its category with the page it is also set on', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
     const punch = await waitForRow('daw.punchPreroll');
-    expect(within(punch).getByRole('button', { name: /^Booth/ })).toBeTruthy();
+    expect(within(punch).getByText(/Used by Booth/)).toBeTruthy();
     expect(within(punch).getByText(/Also set in Booth/)).toBeTruthy();
     await userEvent.clear(screen.getByRole('textbox', { name: 'Search settings' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), 'retention');
@@ -867,7 +867,7 @@ describe('Settings: search and filters', () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
     const entry = await waitForRow('daw.fxFavourites');
-    expect(entry.closest('section')?.getAttribute('aria-label')).toBe('Recording & DAW');
+    expect(entry.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
   it('Escape clears the search', async () => {

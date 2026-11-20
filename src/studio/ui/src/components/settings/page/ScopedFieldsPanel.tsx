@@ -64,6 +64,8 @@ export type ScopedFieldsPanelProps = {
   notify: Notify;
   /** Drawn above the fields. */
   before?: (state: ScopedPanelState) => ReactNode;
+  /** The page already says the settings could not be read, with its own Retry: a panel drawn in a category row leaves its own line out. */
+  pageSaysReadError?: boolean;
   /** Drawn below the fields, above Save. */
   after?: (state: ScopedPanelState) => ReactNode;
   /** Replaces the form in a scope where the panel is not a form of fields (DAW Integration in a project); `undefined` keeps it. */
@@ -78,7 +80,19 @@ export type ScopedFieldsPanelProps = {
  * shows Save and Discard once something changed, and asks before a scope switch would drop an edit. Its edits join
  * the page's dirty flag and its leave guard through `SettingsFormsProvider`.
  */
-export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, before, after, replace, onChoose }: ScopedFieldsPanelProps) {
+export function ScopedFieldsPanel({
+  id,
+  title,
+  tool,
+  scopes,
+  filter,
+  notify,
+  before,
+  after,
+  replace,
+  onChoose,
+  pageSaysReadError = false,
+}: ScopedFieldsPanelProps) {
   const system = usePort('system');
   const { register } = useSettingsForms();
   const [scope, setScope] = useState<Scope>(scopes[0]!);
@@ -207,7 +221,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
           ) : undefined
         }
       >
-        {error && (
+        {error && !pageSaysReadError && (
           <div
             role="alert"
             className="mb-3 flex flex-wrap items-center gap-3 rounded-md p-3 text-sm"

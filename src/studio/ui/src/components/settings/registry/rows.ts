@@ -235,7 +235,7 @@ export const ROWS: readonly SettingMeta[] = [
     more: 'The window and the retention of the audio copies the app keeps while Audacity records, for this project. Editing’s Backups tab is a shortcut to the same keys.',
     used: ['editing'],
     also: 'Editing › Backups',
-    syn: 'window days retention keep audacity backup',
+    syn: 'window days retention audacity backup',
   },
   {
     id: 'editing.cleanup',

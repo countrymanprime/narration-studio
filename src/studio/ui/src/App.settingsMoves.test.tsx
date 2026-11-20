@@ -45,7 +45,7 @@ const sources: Source[] = [
         if (!found) throw new Error('not drawn');
         return found;
       });
-      const panel = await within(entry).findByRole('region', { name: 'Recording check rules' });
+      const panel = await within(entry).findByRole('region', { name: 'Recording check' });
       fireEvent.change(await within(panel).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
     },
     kept: () => screen.getByRole('textbox', { name: 'Longest run of missing words allowed' }),

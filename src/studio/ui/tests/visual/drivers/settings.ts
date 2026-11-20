@@ -104,7 +104,7 @@ async function openCreditsEditor(page: Page, query = ''): Promise<void> {
 async function openRulesPanel(page: Page): Promise<void> {
   await openSettings(page, 'Speech to text');
   await showSettingsRow(page, 'stt.rules');
-  await page.locator('[data-row="stt.rules"]').getByRole('region', { name: 'Recording check rules' }).waitFor();
+  await page.locator('[data-row="stt.rules"]').getByRole('region', { name: 'Recording check' }).waitFor();
 }
 
 export const settingsDrivers: Record<string, Driver> = {

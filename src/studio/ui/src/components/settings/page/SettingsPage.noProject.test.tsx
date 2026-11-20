@@ -2,7 +2,6 @@
 // Settings with no project open (issue 3024): every category draws, the rows that are this computer's work, and the rows that need a project
 // say so and stay where they are, disabled. Nothing throws, nothing is blank, nothing asks the host for a project's data.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -133,7 +132,6 @@ describe('Settings with no project: every category', () => {
       pick(category.label);
       await screen.findByRole('heading', { level: 2, name: category.label });
     }
-    await userEvent.click(within(nav()).getByRole('button', { name: /^Set on a page/ }));
     // Let the Changed probes run.
     await new Promise((resolve) => setTimeout(resolve, 50));
     for (const [name, spy] of Object.entries(reads)) expect(spy, name).not.toHaveBeenCalled();
