@@ -20,11 +20,15 @@ function* sources(dir: string): Generator<string> {
 }
 
 const OWN_SENTENCE = /Connecting to /;
+// The words for "the host is starting the DAW" have one home too: `startingLabel`, `startingTitle`, `startingStatement` and `startingSentence` in daw/dawSession.ts.
+const OWN_STARTING = /Starting \$\{|\$\{[^}]*\} is starting\.|['"`](?:REAPER|Audacity) is starting\./;
+const STARTING_HOME = 'daw/dawSession.ts';
 const OWN_CLOCK = /\b(?:APP_STARTED_AT|useConnectGrace)\b/;
 
 /** What a file does that only `useDawConnecting.ts` may. */
-export function offences(text: string): string[] {
+export function offences(text: string, file = ''): string[] {
   const found: string[] = [];
+  if (file !== STARTING_HOME && OWN_STARTING.test(text)) found.push('writes its own "Starting …" wording');
   if (OWN_SENTENCE.test(text)) found.push('writes its own "Connecting to …" sentence');
   if (OWN_CLOCK.test(text)) found.push('keeps a connect clock counted from app start');
   return found;
@@ -36,7 +40,7 @@ describe('one connecting state for the DAW', () => {
     for (const path of sources(SRC)) {
       const file = relative(SRC, path).split(sep).join('/');
       if (file === HOME || file.startsWith('api/') || file.startsWith('fixtures/')) continue;
-      for (const why of offences(readFileSync(path, 'utf8'))) bad.push(`${file} ${why}`);
+      for (const why of offences(readFileSync(path, 'utf8'), file)) bad.push(`${file} ${why}`);
     }
     expect(bad, 'use `useDawConnecting` (components/connection/useDawConnecting.ts) for the connecting label and the grace (#3668)').toEqual([]);
   });
@@ -47,5 +51,10 @@ describe('one connecting state for the DAW', () => {
     expect(offences('const settling = useConnectGrace(graceMs);')).toHaveLength(1);
     expect(offences('export const APP_STARTED_AT = Date.now();')).toHaveLength(1);
     expect(offences('const { connecting } = useDawConnecting(off);')).toEqual([]);
+    expect(offences('label={`Starting ${name}…`}')).toHaveLength(1);
+    expect(offences('<span>{`${daw} is starting.`}</span>')).toHaveLength(1);
+    expect(offences("<span>{starting ? 'REAPER is starting.' : ''}</span>")).toHaveLength(1);
+    expect(offences('return `Starting ${daw}…`;', 'daw/dawSession.ts')).toEqual([]);
+    expect(offences('const word = startingLabel(name);')).toEqual([]);
   });
 });

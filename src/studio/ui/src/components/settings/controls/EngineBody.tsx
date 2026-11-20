@@ -1,4 +1,4 @@
-import { startingSentence } from '../../../daw/dawSession';
+import { startingLabel, startingSentence, startingTitle } from '../../../daw/dawSession';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
@@ -110,7 +110,7 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
     const since = opts.startedFor === undefined ? '' : ` Opened ${opts.startedFor} s ago.`;
     return {
       tone: 'neutral',
-      title: `Starting ${daw}`,
+      title: startingTitle(daw),
       detail: `${linked}The app opened ${daw} and connects on its own once ${daw} has the project open.${since}`,
     };
   }
@@ -284,7 +284,7 @@ export function EngineBody() {
             )}
             {!notInstalled && linkedFile !== null && (state === 'linked' || state === 'not_running') && (
               <Button variant="secondary" size="sm" disabled={busy || starting} onClick={() => void start()}>
-                {starting ? `Starting ${daw}…` : `Start ${daw}`}
+                {starting ? startingLabel(daw) : `Start ${daw}`}
               </Button>
             )}
             {notInstalled && daw === 'REAPER' && (

@@ -1,3 +1,4 @@
+import { startingLabel } from '../../daw/dawSession';
 import { useEffect, useReducer, useState } from 'react';
 import { useDawState } from '../../daw/useDawSession';
 import { takeBridgeProblem } from './useOpenOnce';
@@ -46,7 +47,7 @@ export function useDawConnecting(
   // pages give it the grace like any other DAW that is not answering, so a page does not open under a dialog the moment it loads.
   const unlinked = askAtOnceWhenUnlinked && choice?.state === 'not_linked';
   const connecting = off && !unlinked && (starting || left > 0);
-  return { connecting, starting, label: (dawName) => (starting ? `Starting ${dawName}…` : `Connecting to ${dawName}…`) };
+  return { connecting, starting, label: (dawName) => (starting ? startingLabel(dawName) : `Connecting to ${dawName}…`) };
 }
 
 /**

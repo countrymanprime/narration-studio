@@ -121,7 +121,20 @@ const INITIAL: DawSessionState = {
  */
 /** The one sentence for a capability or setting that is off only because the host is starting the DAW (#3668). */
 export function startingSentence(daw: string): string {
-  return `${daw} is starting. The app connects to it by itself.`;
+  return `${startingStatement(daw)} The app connects to it by itself.`;
+}
+
+/** The short statement of the same state (the audio engine panel's line). */
+export function startingStatement(daw: string): string {
+  return `${daw} is starting.`;
+}
+
+/** The label of the connection mark, and the title of the dialog and the card badge: one word for the state wherever it is drawn. */
+export function startingLabel(daw: string): string {
+  return `Starting ${daw}…`;
+}
+export function startingTitle(daw: string): string {
+  return `Starting ${daw}`;
 }
 
 export function presentCaps(caps: DawCapabilities | null, choice: DawChoice | null | undefined): DawCapabilities | null {

@@ -1,3 +1,4 @@
+import { startingTitle } from '../../daw/dawSession';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
@@ -148,7 +149,7 @@ export function ReaperOffDialog({
   return (
     <ResolveShell
       // While the host is starting the DAW the dialog says so and does not tell the narrator to open it: that is what the app is doing (#3668).
-      title={starting ? `Starting ${name}` : `${name === 'the DAW' ? 'The DAW' : name} is not connected`}
+      title={starting ? startingTitle(name) : `${name === 'the DAW' ? 'The DAW' : name} is not connected`}
       description={starting ? (detail ?? sentence) : sentence}
       onClose={onClose}
       primary={unlinked ? { label: 'Link project file…', onPress: link, pending: linking } : start}

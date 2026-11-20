@@ -1,3 +1,4 @@
+import { startingStatement } from '../../daw/dawSession';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -284,7 +285,7 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
           <InsetCard tone="warn" fill className="space-y-2">
             <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
               <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
-              <span>{starting ? 'REAPER is starting.' : 'REAPER is not running.'}</span>
+              <span>{starting ? startingStatement('REAPER') : 'REAPER is not running.'}</span>
             </p>
             <CheckLine waiting="Waiting for REAPER to start" unknown="REAPER is not running" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">
