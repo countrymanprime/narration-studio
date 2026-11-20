@@ -81,6 +81,8 @@ export type ReaderProps = {
 /** How many chapters either side of the one in view have their text drawn; the rest are a block of the estimated height. */
 const REACH = 2;
 const EST_PX_PER_WORD = 0.6;
+/** The height held for the card of a chapter that is not drawn: a card is 188 to 284 px from a 1440 px window down to a 420 px one. */
+const CARD_EST_PX = 200;
 const SAVE_DELAY_MS = 250;
 const NO_PARAS: readonly ManuscriptParagraph[] = [];
 
@@ -157,14 +159,23 @@ type SectionProps = {
   onPickSpeaker?: ReaderProps['onPickSpeaker'];
 };
 
-/** One chapter: its card (the end of the chapter before, the title and facts), or a bare heading without one, then its paragraphs (or a block of the estimated height until it is near the reader). */
+/**
+ * One chapter: its card (the end of the chapter before, the title and facts), or a bare heading without one, then its paragraphs. Until
+ * the chapter is near the reader, the card is its heading in a block of the estimated height and so is the text: a card is about 30
+ * elements with a prep control and a button, and one for every chapter was most of the Script page's load on a long book (#3766).
+ */
 const Section = memo(function Section(props: SectionProps) {
   const { chapter, paragraphs, drawn } = props;
   const rows = paragraphs ?? NO_PARAS;
   return (
     <Fragment>
       <div data-bound="" data-ch={chapter.id} id={`ch-${chapter.id}`} className="mt-12 mb-3 first:mt-3">
-        {props.renderChapterCard ? (
+        {props.renderChapterCard && !drawn ? (
+          // The heading alone, so the chapter keeps its place, its name for a search of the page and its heading for a screen reader.
+          <div data-pending-card="" style={{ minHeight: CARD_EST_PX }}>
+            <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere]">{headingName(chapter)}</h2>
+          </div>
+        ) : props.renderChapterCard ? (
           props.renderChapterCard(chapter)
         ) : (
           <>
@@ -203,8 +214,8 @@ const Section = memo(function Section(props: SectionProps) {
 /**
  * The continuous reader: every chapter in one scroll under a sticky header that names the chapter in view and the paragraph
  * ("¶ n of m"). It keeps the spy, the scroll requests, the remembered position and Find's current match in view; each paragraph
- * draws its own layers (`Para`). Text near the reader is drawn and the rest is a block of the estimated height, so a long book
- * draws its first screen at once; a chapter once drawn stays drawn.
+ * draws its own layers (`Para`). The cards and text near the reader are drawn and the rest are blocks of the estimated height, so a
+ * long book draws its first screen at once; a chapter once drawn stays drawn.
  */
 export function Reader(props: ReaderProps) {
   const {

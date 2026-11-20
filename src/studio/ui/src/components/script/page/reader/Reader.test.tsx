@@ -434,6 +434,26 @@ describe('a long book', () => {
     scrollTo(900);
     expect(renderGutter.mock.calls.length).toBeLessThanOrEqual(drawn + 2 * PER_CHAPTER);
   });
+
+  // A card is the page's (a prep control, a Record button, the facts): one for each of 300 chapters was most of the Script page's load (#3766).
+  it("draws the cards of the chapters near the reader only, and a far chapter's when the reader goes to it", () => {
+    const renderChapterCard = vi.fn((c: ManuscriptChapter) => <h2 data-card={c.id}>{`Card ${c.title}`}</h2>);
+    const view = (extra: Partial<ComponentProps<typeof Reader>> = {}) => (
+      <Reader chapters={many} paragraphsOf={(id) => bodies.get(id)} sources={sources} renderChapterCard={renderChapterCard} {...extra} />
+    );
+    const { rerender } = render(view());
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(5);
+    // Every chapter keeps its section and its heading, so the header, a jump and a screen reader still find it.
+    expect(document.querySelectorAll('[data-bound]')).toHaveLength(CHAPTERS);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).not.toBeNull();
+
+    rerender(view({ pendingJump: 'k200' }));
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).toBeNull();
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(10);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+  });
 });
 
 describe('the chapter card slot', () => {
