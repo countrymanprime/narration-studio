@@ -160,11 +160,15 @@ type MappingStore struct {
 	hold heldMapping
 }
 
-// heldMapping is the last successful decode of the mapping file and the file it came from: a read of the same file (same
-// identity, size and modification time) answers from it instead of decoding again, so a pass that asks for each of 44
-// chapters does not read and parse the file 44 times. A write through the store clears it; a write through another store, or by a
-// re-import, replaces the file (a new identity, or a new size or time), which the next read sees. Its own mutex is taken by the
-// store's readers and writers, which already hold the store's.
+// heldMapping is the last successful decode of the mapping file and the file it came from: a read of a file with the same size
+// and modification time answers from it instead of decoding again, so a pass that asks for each of 44 chapters does not read and
+// parse the file 44 times. A write through the store clears it; a write through another store (the UI's bindings make a fresh store
+// for each call, the coverage and editing services keep long-lived ones) or by a re-import changes the size or the time, which the
+// next read sees. A file's time says nothing about a second write inside the file system's clock tick (2 s on FAT, 10 ms on exFAT,
+// a few ms on older ext4, up to a clock tick on NTFS), and its identity says nothing either (inode numbers come back, and Windows
+// reads it by path when it is asked): so a decode is held only for a file last written more than heldMappingAge before it was
+// read, as git does for its index, and a younger file is decoded on every read. Its own mutex is taken by the store's readers and
+// writers, which already hold the store's.
 type heldMapping struct {
 	mu sync.Mutex
 	// +checklocks:mu
@@ -472,32 +476,43 @@ func (s *MappingStore) readLocked(documentID string) mappingFileShape {
 	return decoded.clone()
 }
 
-// loadLocked answers the file's decoded shape, from the held decode while the file is the one it came from. The file is
-// stat'ed before it is read, so a replacement in between leaves the held shape under the older identity and the next read
-// decodes again; only a successful decode is held, so a missing, corrupt or newer-version file is read (and reported) each time.
+// loadLocked answers the file's decoded shape, from the held decode while the file has the size and time it had when it was
+// decoded. The file is stat'ed before it is read, so a replacement in between leaves the held shape under the older size and time
+// and the next read decodes again; only a successful decode of a file older than heldMappingAge is held, so a missing, corrupt,
+// newer-version or just-written file is read (and reported) each time.
 func (s *MappingStore) loadLocked() (mappingFileShape, bool) {
 	info, statErr := os.Stat(s.path)
 	s.hold.mu.Lock()
 	defer s.hold.mu.Unlock()
-	if statErr == nil && s.hold.shape != nil && s.hold.info != nil && os.SameFile(s.hold.info, info) && s.hold.info.Size() == info.Size() && s.hold.info.ModTime().Equal(info.ModTime()) {
+	if statErr == nil && s.hold.shape != nil && s.hold.info != nil && s.hold.info.Size() == info.Size() && s.hold.info.ModTime().Equal(info.ModTime()) {
 		return *s.hold.shape, true
 	}
 	s.hold.shape, s.hold.info = nil, nil
 	s.hold.decodes++
 	decoded, ok := readMappingFile(s.Reporter, s.path)
-	if ok && statErr == nil {
-		held := decoded.clone()
-		s.hold.shape, s.hold.info = &held, info
+	if ok && statErr == nil && s.clock().Sub(info.ModTime()) > heldMappingAge {
+		s.hold.shape, s.hold.info = &decoded, info // readLocked copies it before any caller sees it
 	}
 	return decoded, ok
 }
 
-// clone copies the slices a caller may change, so the held shape is never edited through a returned one.
+// heldMappingAge is how long before it was read a file must have been written for its decode to be held (see heldMapping).
+const heldMappingAge = 3 * time.Second
+
+// clone copies the slices a caller may change, so the held shape is never edited through a returned one; an absent slice stays
+// absent (a file with "mappings": [] must not come back as null). The Match pointers are shared: nothing writes through them.
 func (f mappingFileShape) clone() mappingFileShape {
-	f.Mappings = append([]TrackMapping(nil), f.Mappings...)
-	f.Rejected = append([]RejectedPair(nil), f.Rejected...)
-	f.Previous = append([]TrackMapping(nil), f.Previous...)
+	f.Mappings = cloneSlice(f.Mappings)
+	f.Rejected = cloneSlice(f.Rejected)
+	f.Previous = cloneSlice(f.Previous)
 	return f
+}
+
+func cloneSlice[T any](in []T) []T {
+	if in == nil {
+		return nil
+	}
+	return append(make([]T, 0, len(in)), in...)
 }
 
 // readMappingFile decodes a mapping file of any document, reporting false
