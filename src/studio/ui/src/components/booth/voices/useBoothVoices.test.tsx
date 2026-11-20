@@ -507,7 +507,7 @@ describe("the Booth's voices", () => {
   });
 
   // A read that never answers must not hold every later read back: after the limit it fails with a toast, and the next poll reads again.
-  // (It waits the real limit, 8 s.)
+  // (It waits the real limit, 10 s.)
   it('tells the narrator when a read never answers, and reads again after it', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     const real = api.tracksLive.bind(api);
@@ -518,7 +518,7 @@ describe("the Booth's voices", () => {
       return real();
     };
     const { notify, hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 8500)));
+    await act(async () => new Promise((r) => setTimeout(r, 10500)));
     expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
     act(() => {
       window.dispatchEvent(new Event('focus'));
@@ -838,6 +838,37 @@ describe('a lane armed in the DAW', () => {
       await settle();
     }
     expect(set).toHaveBeenCalledTimes(1);
+  });
+
+  // #3645 (the lane switch that "does not switch"): a choice whose arm the DAW did not confirm leaves the old lane armed; that is not the narrator arming it.
+  it('does not put the old voice back when the DAW did not confirm the arm of the voice just chosen', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const narrator = (await api.tracksLive()).project.tracks.find((track) => track.name === 'Narrator')?.guid ?? '';
+    // The DAW has the Narrator armed alone and stays so: the arm for the new voice never confirms.
+    let chosenGuid = '';
+    api.readAloudReaperState = async () =>
+      chosenGuid === ''
+        ? state({ status: 'ready', trackGuid: narrator, armedTrackGuids: [narrator] })
+        : state({ status: 'other_armed', trackGuid: chosenGuid, armedTrackGuids: [narrator] });
+    const real = api.boothVoiceSet.bind(api);
+    api.boothVoiceSet = async (chapter, guid) => ({
+      ...(await real(chapter, guid)),
+      ...((chosenGuid = guid), {}),
+      armed: false,
+      reason: 'timeout' as never,
+      message: 'REAPER did not confirm in time.',
+    });
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    const { hook } = await mount({}, false, api);
+    await settle();
+    await act(async () => hook.current.byKey(2));
+    await settle();
+    for (let i = 0; i < 3; i++) {
+      await act(async () => hook.current.reload());
+      await settle();
+    }
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(hook.current.current?.name).toBe('Extras');
   });
 
   it('is followed when the old lane is still armed beside the new one, as a plain arm click leaves it', async () => {

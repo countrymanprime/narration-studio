@@ -304,6 +304,7 @@ export function useBoothVoices({
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
           accepted = answer.outcome !== 'refused';
+          armUnconfirmed.current = answer.outcome === 'selected' && !answer.armed;
           if (answer.outcome === 'refused') {
             notify(answer.message ?? 'The voice was not changed.', 'error');
             // The voices this page lists are not the saved project's any more: read them again.
@@ -521,6 +522,9 @@ export function useBoothVoices({
   // counts, so a read in flight when the app chose, or taken during a take, is never acted on late. A guid asked once is not asked again until
   // the DAW reports something else, so a refusal is not repeated on every read.
   const followed = useRef('');
+  // Set when a choice was made but the DAW did not confirm the arm (#3645): its next report of another armed lane is the old arm still standing,
+  // not the narrator arming that lane by hand, so it is not followed (it would put the old voice back over the one just chosen).
+  const armUnconfirmed = useRef(false);
   // null while no read counts (none yet, taken during a take, or begun under another voice or question state): that says nothing, so it neither follows
   // nor forgets. `key` is the DAW's armed set: a set already acted on is not acted on again, so a DAW that keeps two lanes armed cannot make the Booth
   // swap between them, and a refusal is not repeated on every read.
@@ -543,9 +547,15 @@ export function useBoothVoices({
     if (armedByHand === null) return;
     if (armedByHand.lane === '') {
       followed.current = '';
+      armUnconfirmed.current = false;
       return;
     }
     if (recording || choosing || asking || followed.current === armedByHand.key) return;
+    if (armUnconfirmed.current) {
+      armUnconfirmed.current = false;
+      followed.current = armedByHand.key;
+      return;
+    }
     const voice = voices.find((each) => each.guid.toLowerCase() === armedByHand.lane);
     if (!voice || voice.guid.toLowerCase() === current?.guid.toLowerCase()) return;
     followed.current = armedByHand.key;

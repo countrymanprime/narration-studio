@@ -556,3 +556,64 @@ func TestAListReadBeforeTheBridgeStartedOverIsNotReused(t *testing.T) {
 		t.Fatalf("%d requests, want 2: ordinary heartbeats must not drop the list", calls)
 	}
 }
+
+// A caller that arrives after the bridge started over must not be handed a read that began before: its answer predates the restart.
+func TestACallerAfterTheEpochMovedDoesNotJoinAReadThatStartedBefore(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9), gate: make(chan struct{})}, newBeat(9)
+	cached, _ := cachedFor(inner, b)
+	first := make(chan struct{})
+	go func() {
+		defer close(first)
+		_, _ = cached.ReadTracks(context.Background())
+	}()
+	for inner.calls.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	b.advance(6 * time.Second) // REAPER went quiet for longer than the heartbeat timeout and came back: a new epoch
+	b.set(9)
+	second := make(chan struct{})
+	go func() {
+		defer close(second)
+		_, _ = cached.ReadTracks(context.Background())
+	}()
+	deadline := time.After(2 * time.Second)
+	for inner.calls.Load() < 2 {
+		select {
+		case <-second:
+			t.Fatalf("the caller after the restart was answered by the read that began before it (%d requests)", inner.calls.Load())
+		case <-deadline:
+			close(inner.gate)
+			t.Fatalf("the caller after the restart sent no request of its own (%d requests)", inner.calls.Load())
+		case <-time.After(time.Millisecond):
+		}
+	}
+	close(inner.gate)
+	<-first
+	<-second
+}
+
+// An epoch read after the answer instead of before it would store a list that began before a restart under the epoch after it: the gap and the
+// heartbeat land while the request is out, and the list must not be reused afterwards.
+type gapDuringRead struct {
+	countedLister
+	b *beat
+}
+
+func (l *gapDuringRead) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
+	if l.calls.Load() == 0 {
+		l.b.advance(6 * time.Second) // REAPER restarts while this request is out
+		l.b.set(9)
+	}
+	return l.countedLister.ReadTracks(ctx)
+}
+
+func TestAListReadAcrossAGapIsNotReusedAfterwards(t *testing.T) {
+	b := newBeat(9)
+	inner := &gapDuringRead{countedLister: countedLister{answer: twoTracks(9)}, b: b}
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests, want 2: a list read while the bridge restarted was kept for the new epoch", calls)
+	}
+}
