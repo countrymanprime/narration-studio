@@ -178,7 +178,7 @@ func createChildren(svc hostServices, choice *chapterCreateChoice) ([]string, er
 	}
 	known, _ := knownVoiceNames(svc, setup)
 	var picked []string
-	extras := true
+	var extras bool
 	if choice == nil {
 		remembered, err := voices.NewChapter()
 		if err != nil {
