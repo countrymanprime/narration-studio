@@ -3746,6 +3746,7 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ToolResult.tsx",
+        "src/components/engine/VoicesCard.tsx",
         "src/components/engine/audacityLinkText.ts",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/HistoryPanel.tsx",
@@ -3908,6 +3909,7 @@
         "Space Toggles"
       ],
       "consumers": [
+        "src/components/engine/VoicesCard.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",

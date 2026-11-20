@@ -22,9 +22,9 @@ import { WhoIsInDialog, type WhoAsk, type WhoIsInDialogProps } from './WhoIsInDi
 afterEach(cleanup);
 
 const voices: Voice[] = [
-  { guid: 'n', name: 'Narrator', key: '0', narrator: true, characters: [] },
-  { guid: 'a', name: 'Alice', key: '1', narrator: false, characters: [{ id: 'alice', name: 'Alice', source: 'name' }] },
-  { guid: 'g', name: 'Gardeners', key: '2', narrator: false, characters: [] },
+  { guid: 'n', name: 'Narrator', key: '0', narrator: true, notVoice: false, characters: [] },
+  { guid: 'a', name: 'Alice', key: '1', narrator: false, notVoice: false, characters: [{ id: 'alice', name: 'Alice', source: 'name' }] },
+  { guid: 'g', name: 'Gardeners', key: '2', narrator: false, notVoice: false, characters: [] },
 ];
 const cast = castOf({
   inThisChapter: [

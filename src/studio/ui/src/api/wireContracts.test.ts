@@ -4632,6 +4632,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'voiceTracksSetLayout',
       'voiceTracksSetCharacters',
       'voiceTracksSetNarrator',
+      'voiceTracksSetNotAVoice',
       'boothVoiceSet',
       'boothVoiceGet',
       'boothVoiceAdd',
@@ -6557,6 +6558,10 @@ describe('the voice tracks bindings', () => {
     ]);
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
+    const marked = await api.voiceTracksSetNotAVoice('{AAAAAAAA-0000-4000-8000-000000000010}', true);
+    expectMatches(voiceTracksStateSchema, marked, 'mock voice tracks not a voice');
+    expect(marked.notVoiceGuids).toEqual(['{aaaaaaaa-0000-4000-8000-000000000010}']);
+    expect((await api.voiceTracksSetNotAVoice('{AAAAAAAA-0000-4000-8000-000000000010}', false)).notVoiceGuids).toEqual([]);
     expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
   });
 
@@ -6610,6 +6615,23 @@ describe('the voice tracks bindings', () => {
     await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
     expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
     expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+  });
+
+  it('a child marked as not a voice is refused in the mock Booth, and the chapter rows say so, through the schemas', async () => {
+    const [first] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    await api.voiceTracksSetNotAVoice('{V01CE-EXTRAS}', true);
+    const refused = await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    expectMatches(boothVoiceSchema, refused, 'mock booth voice (marked child)');
+    expect(refused.reason).toBe('not_a_voice');
+    expect((await api.boothVoiceGet(first)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+    const members = (await api.chapterTrackLinks()).chapters.find((row) => row.chapterId === first)?.members ?? [];
+    expect(members.find((member) => member.guid === '{V01CE-EXTRAS}')).toMatchObject({ isVoice: false, notAVoice: true });
+    await api.voiceTracksSetNotAVoice('{V01CE-EXTRAS}', false);
+    expect((await api.boothVoiceSet(first, '{V01CE-EXTRAS}')).outcome).not.toBe('refused');
+    const unmarked = (await api.chapterTrackLinks()).chapters.find((row) => row.chapterId === first)?.members ?? [];
+    expect(unmarked.find((member) => member.guid === '{V01CE-EXTRAS}')?.notAVoice).toBe(false);
   });
 
   it("the Booth's voice add: a child of the chapter's folder, listed as added until saved, chosen, refused as the host refuses, each through the schema", async () => {

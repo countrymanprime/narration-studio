@@ -13,8 +13,11 @@ function validName(text: string): boolean {
 /** Every VoiceTracksApi call but the Booth's voice, which needs the links and tracks too (boothVoiceMock.ts). */
 export function createVoiceTracksMock(
   initial?: Partial<VoiceTracksState>,
+  /** Where the marked tracks are published as they change, so the chapters' rows (`members[].notAVoice`) follow them as the host's do. */
+  marks?: { current: string[] },
 ): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
   let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [], ...initial };
+  if (marks) marks.current = [...state.notVoiceGuids];
   const snapshot = (): VoiceTracksState => ({
     ...state,
     tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters], guids: [...entry.guids] })),
@@ -38,6 +41,16 @@ export function createVoiceTracksMock(
       const tracks = ids.length === 0 ? others : [...others, { track: nameTrimmed, characters: ids, guids }];
       tracks.sort((a, b) => (a.track < b.track ? -1 : a.track > b.track ? 1 : 0));
       state = { ...state, tracks };
+      return snapshot();
+    },
+    voiceTracksSetNotAVoice: async (guid, notAVoice) => {
+      const id = guid.trim().toLowerCase();
+      if (!validName(id) || [...id].length > 64) throw new Error('that voice setup is not valid: a track GUID');
+      const marked = state.notVoiceGuids.includes(id);
+      if (notAVoice && !marked && state.notVoiceGuids.length >= 2000) throw new Error('that voice setup is not valid: too many tracks marked as not a voice');
+      const guids = notAVoice ? [...new Set([...state.notVoiceGuids, id])].sort() : state.notVoiceGuids.filter((other) => other !== id);
+      state = { ...state, notVoiceGuids: guids };
+      if (marks) marks.current = [...guids];
       return snapshot();
     },
     voiceTracksSetNarrator: async (characterId) => {
