@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sync"
@@ -178,5 +179,34 @@ func TestReadsThatArriveTogetherDecodeEachFileOnce(t *testing.T) {
 	}
 	if decodes := decodesOf(reader); decodes != 6 {
 		t.Fatalf("decoded %d files, want 6", decodes)
+	}
+}
+
+// A record that is a link to a file elsewhere is judged by that file, not by the link.
+func TestASymlinkedRecordIsDecodedAgainWhenItsTargetChanges(t *testing.T) {
+	reader, _, project := ledgerOf(t, 1)
+	target := filepath.Join(t.TempDir(), "elsewhere.json")
+	write := func(outcome LedgerOutcome) {
+		t.Helper()
+		record := baseLedgerRecord("rc", "c-0005", time.Now(), outcome)
+		record.ID, record.SchemaVersion = "linked", ledgerSchemaVersion
+		raw, err := json.Marshal(record)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(target, raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(LedgerPartial)
+	if err := os.Symlink(target, filepath.Join(LedgerDir(project), "linked.json")); err != nil {
+		t.Skipf("this platform or account cannot make a symlink: %v", err)
+	}
+	if got, ok := reader.Latest("rc", "c-0005"); !ok || got.Outcome != LedgerPartial {
+		t.Fatalf("first read = %q, %v; want partial", got.Outcome, ok)
+	}
+	write(LedgerComplete)
+	if got, _ := reader.Latest("rc", "c-0005"); got.Outcome != LedgerComplete {
+		t.Fatalf("read after the target changed = %q, want complete", got.Outcome)
 	}
 }

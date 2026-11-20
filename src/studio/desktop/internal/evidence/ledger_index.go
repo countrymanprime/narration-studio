@@ -3,6 +3,7 @@ package evidence
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -55,6 +56,10 @@ func (index *ledgerIndex) refresh(dir string, read func(id string) (LedgerRecord
 			continue
 		}
 		info, err := entry.Info()
+		if err == nil && entry.Type()&os.ModeSymlink != 0 {
+			// The listing describes the link; the record is the file it points to.
+			info, err = os.Stat(filepath.Join(dir, entry.Name()))
+		}
 		if err != nil {
 			continue
 		}
