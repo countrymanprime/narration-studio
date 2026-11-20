@@ -11,7 +11,7 @@ export type NavCounts = { proof?: number; pickups?: number; master?: number };
 
 /**
  * What waits on each page, read from the host: the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed; pickups are not added) and the open lines of the Pickups page's list (the host's `pickupsOpenCount`, the count `openPickups` gives Production and Schedule) and the chapters whose measured file fails a check (the per-chapter verdict the Production pipeline's QC cell reads: `masterByChapter`; a chapter with no measured file is not counted). It reads again on
- * every page move and when Proof or Pickups announce a change, so a decision shows on the rail at once. It only reads the list; it never asks the DAW
+ * every page move and when Proof or Pickups announce a change, so a decision shows on the rail at once. It only reads the count; it never asks the DAW
  * to count. With no manuscript it reads nothing and gives no count.
  */
 export function useNavCounts(pathname: string, hasManuscript = true): NavCounts {

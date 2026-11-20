@@ -31,12 +31,14 @@ func TestAPagesReadsListTheLedgerOncePerPassAndDecodeNothingTwice(t *testing.T) 
 		{"the open pickups count", host.PickupsOpenCount, 1},
 		{"the Production overview", host.ProductionOverview, 1},
 	}
+	// Counted from before the first read of each: the check just stored its result, which nothing has decoded yet, so a
+	// reader that went back to the whole result would decode it here.
+	results := host.coverage.ResultsDecoded()
 	for _, each := range reads { // the first read of each decodes what it needs
 		if _, err := each.read(); err != nil {
 			t.Fatalf("%s: %v", each.name, err)
 		}
 	}
-	results := host.coverage.ResultsDecoded()
 	for _, each := range reads {
 		listings, decodes := host.coverage.LedgerReads()
 		if _, err := each.read(); err != nil {

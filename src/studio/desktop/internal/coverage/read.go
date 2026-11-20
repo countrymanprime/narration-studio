@@ -47,7 +47,12 @@ func (s *Service) LedgerReads() (listings, decodes int) { return s.ledger.Reads(
 
 // ResultsDecoded is how many stored result files the service has decoded, for the tests that guard what a page's read
 // costs (issue 3804): a read of every chapter takes the summaries and decodes none.
-func (s *Service) ResultsDecoded() int64 { return s.results.cache.decoded.Load() }
+func (s *Service) ResultsDecoded() int64 {
+	if s.results.cache == nil {
+		return 0
+	}
+	return s.results.cache.decoded.Load()
+}
 
 // Pass is one read of every chapter of a book: its ResultIn answers each chapter from a single listing of the ledger, a
 // single read of the chapter links and a single sweep of the manuscript, where Service.ResultIn does all three for every
