@@ -14,15 +14,16 @@ test('no pin bump leaves the families to Nx and keeps the self-scoped jobs', () 
 });
 
 test('a pure pin bump starts only the families of the jobs it reaches', () => {
-  const pins = { kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux', 'codeql.yml#analyze'] };
+  const pins = { kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux', '_quality.yml#test-linux-quick', 'codeql.yml#analyze'] };
   assert.deepEqual(pinFlags(pins), { ui: true, shell: false, static: false, quickubuntu: true });
   const ciOnly = { kind: 'pins', pure: true, jobs: ['ci.yml#ci-passed'] };
   assert.deepEqual(pinFlags(ciOnly), { ui: true, shell: false, static: false, quickubuntu: false });
 });
 
-test('a bump in Test (Windows) starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and quick tests', () => {
+test('a bump in Test (Windows) starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and one in Test (Linux quick) its quick tests', () => {
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-windows'] }), { ui: false, shell: true, static: false, quickubuntu: false });
-  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: false, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: false, quickubuntu: false });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux-quick'] }), { ui: false, shell: false, static: false, quickubuntu: true });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
 
