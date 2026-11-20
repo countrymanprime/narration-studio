@@ -130,6 +130,56 @@ describe('createKeyedCache (#3658)', () => {
   });
 });
 
+describe('createKeyedCache: reads that overlap, pins and bad sizes (#3658)', () => {
+  it('an older read of a key that answers after a newer one writes nothing', async () => {
+    const slow = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(slow.promise).mockResolvedValueOnce('newer');
+    const cache = createKeyedCache('text', { schema: textSchema, load, size: length });
+    const older = cache.load('c1');
+    await cache.load('c1');
+    slow.resolve('older');
+    await older;
+    expect(cache.get('c1')).toBe('newer');
+  });
+
+  it('never drops a pinned key for the budget, and drops it once the pin is released', async () => {
+    const load = vi.fn(async (key: string) => key.repeat(10));
+    const cache = createKeyedCache('text', { schema: textSchema, load, size: length, budget: 15 });
+    const release = cache.pin('a');
+    await cache.ensure('a');
+    await cache.ensure('b'); // 20 > 15: a is pinned, b was just read, nothing goes
+    expect(cache.get('a')).toBeDefined();
+    expect(cache.get('b')).toBeDefined();
+    release();
+    expect(cache.get('a')).toBeUndefined(); // over budget again and no longer pinned: the older one goes
+    expect(cache.held()).toBe(10);
+  });
+
+  it('two pins on one key hold it until both are released', async () => {
+    const cache = createKeyedCache('text', { schema: textSchema, load: async (key: string) => key.repeat(10), size: length, budget: 5 });
+    const one = cache.pin('a');
+    const two = cache.pin('a');
+    await cache.ensure('a');
+    await cache.ensure('b');
+    one();
+    one(); // releasing the same pin twice releases nothing more
+    expect(cache.get('a')).toBeDefined();
+    two();
+    expect(cache.get('a')).toBeUndefined();
+  });
+
+  it('forgets a failure when something changes, so the key is tried once more, and measures a bad size as its JSON', async () => {
+    const load = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue('ok');
+    const cache = createKeyedCache('text', { schema: textSchema, load, size: () => Number.NaN, budget: 100 });
+    await expect(cache.ensure('c1')).rejects.toThrow('offline');
+    expect(cache.error('c1')).toBeDefined();
+    cache.invalidate();
+    expect(cache.error('c1')).toBeUndefined();
+    await cache.ensure('c1');
+    expect(cache.held()).toBe(JSON.stringify('ok').length);
+  });
+});
+
 describe('a keyed cache in the store (#3658)', () => {
   const make = (config: Partial<Parameters<typeof createKeyedCache>[1]> = {}) => {
     const handlers = new Map<string, Set<() => void>>();

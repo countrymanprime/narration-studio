@@ -32,6 +32,11 @@ export type KeyedCache<V = unknown> = {
   ensure(key: string): Promise<void>;
   /** Reads the key now, whatever is held. */
   load(key: string): Promise<void>;
+  /**
+   * Marks a key as shown by a mounted reader: it is never dropped for the budget while pinned (the budget is a soft limit for what is on screen), so two
+   * readers that do not fit together do not push each other out. Pins count: a key is pinned until each pin is released.
+   */
+  pin(key: string): () => void;
   /** Marks every held value stale without reading: the next `ensure` of a key reads it again behind the held value. */
   invalidate(): void;
   /** Drops every held value and the reads in flight (a project switch). */
@@ -52,10 +57,23 @@ const jsonSize = (value: unknown): number => JSON.stringify(value)?.length ?? 0;
  */
 export function createKeyedCache<S extends StandardSchemaV1>(name: string, config: KeyedConfig<S>): KeyedCache<InferOutput<S>> {
   type V = InferOutput<S>;
-  const size = config.size ?? ((value: V) => jsonSize(value));
+  const measure = config.size ?? ((value: V) => jsonSize(value));
+  // A size that throws or is not a finite, non-negative number is measured as the value's JSON instead, so one bad answer cannot evict the rest for good.
+  const size = (value: V): number => {
+    try {
+      const cost = measure(value);
+      if (Number.isFinite(cost) && cost >= 0) return cost;
+    } catch {
+      // measured below
+    }
+    return jsonSize(value);
+  };
   // Insertion order is recency: a key read or used again moves to the end, and the front goes first when the budget is passed.
   const entries = new Map<string, { value: V; size: number; freshAt: number }>();
   const errors = new Map<string, Error>();
+  const pins = new Map<string, number>();
+  /** The newest read asked for each key: an older read that answers after it writes nothing. */
+  const requests = new Map<string, number>();
   const inFlight = new Map<string, Promise<void>>();
   const listeners = new Set<() => void>();
   let total = 0;
@@ -72,7 +90,7 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
     if (config.budget === undefined) return;
     for (const [key, entry] of entries) {
       if (total <= config.budget) return;
-      if (key === keep) continue;
+      if (key === keep || pins.has(key)) continue;
       entries.delete(key);
       total -= entry.size;
     }
@@ -81,10 +99,13 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
   const attempt = (key: string): Promise<void> => {
     const mine = epoch;
     const startedAt = changed;
+    const request = (requests.get(key) ?? 0) + 1;
+    requests.set(key, request);
+    const current = () => mine === epoch && requests.get(key) === request;
     const read = (async () => {
       try {
         const value = parseWire(config.schema, await config.load(key), { boundary: 'studio keyed cache', payload: `${name}:${key}` }) as V;
-        if (mine !== epoch) return;
+        if (!current()) return;
         const previous = entries.get(key);
         if (previous) {
           total -= previous.size;
@@ -97,7 +118,7 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
         evict(key);
         emit();
       } catch (e) {
-        if (mine !== epoch) return;
+        if (!current()) return;
         errors.set(key, toError(e));
         emit();
         throw errors.get(key);
@@ -133,8 +154,22 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
       return inFlight.get(key) ?? attempt(key);
     },
     load: (key) => attempt(key),
+    pin(key) {
+      pins.set(key, (pins.get(key) ?? 0) + 1);
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        const left = (pins.get(key) ?? 1) - 1;
+        if (left > 0) pins.set(key, left);
+        else pins.delete(key);
+        evict('');
+      };
+    },
     invalidate() {
       changed += 1;
+      // Something changed, so a key whose read failed is worth one more try: the failures are forgotten.
+      errors.clear();
       emit();
     },
     clear() {
@@ -142,6 +177,7 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
       entries.clear();
       errors.clear();
       inFlight.clear();
+      requests.clear();
       total = 0;
       emit();
     },

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NarrationApi } from '../types';
+import { createMockApi } from './mockApi';
+import { withCoalescedReads } from './withCoalescedReads';
 import { CHAPTER_LIST_WRITERS, onChapterListWritten, withChapterListWrites } from './chapterListWrites';
 
 function apiOf(methods: Record<string, unknown>): NarrationApi {
@@ -54,6 +56,11 @@ describe('withChapterListWrites (#3658)', () => {
     off();
   });
 
+  it('every writer it names is a call the api has', () => {
+    const api = createMockApi() as unknown as Record<string, unknown>;
+    for (const name of CHAPTER_LIST_WRITERS) expect(typeof api[name], name).toBe('function');
+  });
+
   it('pins the writers: a new one is a deliberate edit', () => {
     expect([...CHAPTER_LIST_WRITERS].sort()).toEqual(
       [
@@ -66,12 +73,36 @@ describe('withChapterListWrites (#3658)', () => {
         'clearProjectData',
         'dawChoose',
         'dawLinkFound',
+        'dawSaveProject',
         'linkDawFile',
+        'setCreditsStatus',
+        'teleprompterStop',
         'tracksSelect',
         'voiceTracksSetCharacters',
         'voiceTracksSetLayout',
         'voiceTracksSetNarrator',
       ].sort(),
     );
+  });
+});
+
+describe("wrapped in main.tsx's order (#3658)", () => {
+  it('the list read an announcement triggers does not join a read that began while the writer ran', async () => {
+    const reads: ((answer: unknown) => void)[] = [];
+    let finish: () => void = () => undefined;
+    const host = apiOf({
+      manuscriptChapters: vi.fn(() => new Promise((resolve) => reads.push(resolve))),
+      chapterTrackSet: vi.fn(() => new Promise<void>((resolve) => (finish = resolve))),
+      subscribeJobEnded: vi.fn(() => () => undefined),
+    });
+    // The order main.tsx builds: the announcement outside the coalescer.
+    const api = withChapterListWrites(withCoalescedReads(host));
+    const off = onChapterListWritten(() => void api.manuscriptChapters());
+    const writing = api.chapterTrackSet('c1', '{T}');
+    void api.manuscriptChapters(); // a read that began while the writer ran: it may answer the list from before the commit
+    finish();
+    await writing;
+    expect(host.manuscriptChapters).toHaveBeenCalledTimes(2);
+    off();
   });
 });

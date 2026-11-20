@@ -22,6 +22,11 @@ export const CHAPTER_LIST_WRITERS: ReadonlySet<string> = new Set([
   'dawChoose',
   'dawLinkFound',
   'linkDawFile',
+  // The saved project is what the recorded lengths are measured in, and a Booth take that ends writes the reading file `recordedThrough` is read from.
+  'dawSaveProject',
+  'teleprompterStop',
+  // The credits are chapters of the list.
+  'setCreditsStatus',
 ]);
 
 const listeners = new Set<() => void>();

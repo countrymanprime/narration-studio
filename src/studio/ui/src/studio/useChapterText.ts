@@ -20,18 +20,23 @@ export function useChapterText(chapterId: string | undefined): {
   const store = useOptionalStoreHandle();
   const manuscript = usePort('manuscript');
   const cache = store?.keyed('chapterText');
-  useSyncExternalStore(
+  // Read to redraw on any change of the cache, and to ask again when what this reader shows has gone (a project switch), gone stale (a job ended) or was never answered.
+  const version = useSyncExternalStore(
     cache ? cache.subscribe : noSubscribe,
     () => cache?.version() ?? 0,
     () => 0,
   );
-  // A key the cache dropped (a project switch, the budget) is asked for again by whoever still shows it.
-  const held = cache !== undefined && chapterId !== undefined && cache.get(chapterId) !== undefined;
   const [own, setOwn] = useState<{ id: string; paragraphs: readonly ManuscriptParagraph[] }>();
+  // A chapter a reader shows is not dropped for the budget while it is shown.
+  useEffect(() => {
+    if (!cache || chapterId === undefined) return;
+    return cache.pin(chapterId);
+  }, [cache, chapterId]);
   useEffect(() => {
     if (chapterId === undefined) return;
     if (cache) {
-      void cache.ensure(chapterId).catch(() => undefined);
+      const failed = cache.error(chapterId) !== undefined;
+      if (!failed && (cache.get(chapterId) === undefined || cache.isStale(chapterId))) void cache.ensure(chapterId).catch(() => undefined);
       return;
     }
     let live = true;
@@ -42,7 +47,7 @@ export function useChapterText(chapterId: string | undefined): {
     return () => {
       live = false;
     };
-  }, [cache, manuscript, chapterId, held]);
+  }, [cache, manuscript, chapterId, version]);
   if (chapterId === undefined) return { paragraphs: undefined, error: undefined, loading: false };
   const paragraphs = cache ? (cache.get(chapterId) as readonly ManuscriptParagraph[] | undefined) : own?.id === chapterId ? own.paragraphs : undefined;
   const error = cache?.error(chapterId);

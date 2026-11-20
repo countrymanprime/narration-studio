@@ -355,3 +355,31 @@ describe('ensure: a mounting page does not read what the store holds (#3658)', (
     expect(load).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('a burst of events and an ensure beside other reads (#3658)', () => {
+  it('reads once and once more for a burst of events, not once for each', async () => {
+    const gate = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(gate.promise).mockResolvedValue({ count: 2 });
+    const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+    store.start();
+    for (let i = 0; i < 50; i += 1) events.emit('sync');
+    expect(load).toHaveBeenCalledTimes(1);
+    gate.resolve({ count: 1 });
+    await flush();
+    await flush();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(store.getState().slots.jobs).toEqual({ count: 2 });
+  });
+
+  it('ensure joins a read that a load or an event started', async () => {
+    const gate = deferred<unknown>();
+    const load = vi.fn().mockReturnValue(gate.promise);
+    const { store } = make({ jobs: { schema: isCount, load } });
+    const loading = store.load('jobs');
+    const ensuring = store.ensure('jobs');
+    expect(load).toHaveBeenCalledTimes(1);
+    gate.resolve({ count: 4 });
+    await Promise.all([loading, ensuring]);
+    expect(store.getState().slots.jobs).toEqual({ count: 4 });
+  });
+});

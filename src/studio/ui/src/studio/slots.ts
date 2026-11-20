@@ -40,8 +40,9 @@ export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, book
 }
 
 /**
- * The most chapter text the store holds, in characters of JSON (about 8 MB: a 10 hour book's text), beyond which the least recently used chapters are dropped. Titles are
- * never budgeted: the chapter list is one slot of all of them. The owner can set this (#3658).
+ * The most chapter text the store holds, in characters of JSON (UTF-16 units, so about twice that in bytes of heap): 8,000,000 holds roughly 100 hours of narration
+ * text at about 9,300 words an hour, so a long book is held whole and the budget only bites on an extreme one. The least recently used chapters beyond it are dropped,
+ * except those a reader is showing. Titles are never budgeted: the chapter list is one slot of all of them. The owner can set this (#3658).
  */
 const CHAPTER_TEXT_BUDGET = 8_000_000;
 

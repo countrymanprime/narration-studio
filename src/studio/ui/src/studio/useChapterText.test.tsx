@@ -4,6 +4,10 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import { createMockApi } from '../api/mockApi';
+import type { ManuscriptParagraph } from '../types';
+import { createHostEvents, createKeyedSlots, createSlots } from './slots';
+import { createStudioStore } from './store/createStudioStore';
+import { act } from '@testing-library/react';
 import { StudioProvider, useStoreHandle } from './StudioProvider';
 import { useChapterText } from './useChapterText';
 
@@ -75,5 +79,90 @@ describe('useChapterText (#3658)', () => {
     });
     await waitFor(() => expect(alone.result.current.paragraphs).toBeDefined());
     expect(read).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useChapterText with a store of its own (#3658)', () => {
+  /** A provider over a store whose budget and events the test sets; `emit` raises a host event. */
+  function harness(api: ReturnType<typeof createMockApi>, budget?: number) {
+    const handlers = new Map<string, Set<() => void>>();
+    const keyed = createKeyedSlots(api);
+    const store = createStudioStore({
+      registry: createSlots(api, { bookmarksList: async () => [] }),
+      keyed: { chapterText: { ...keyed.chapterText, ...(budget === undefined ? {} : { budget }) } },
+      subscribe: (event, handler) => {
+        (handlers.get(event) ?? handlers.set(event, new Set()).get(event)!).add(handler);
+        return () => handlers.get(event)?.delete(handler);
+      },
+      subscribeFocus: () => () => undefined,
+      onError: () => undefined,
+    });
+    void createHostEvents;
+    store.start();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider store={store}>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    return { store, wrapper, emit: (event: string) => act(() => handlers.get(event)?.forEach((h) => h())) };
+  }
+
+  it('reads a mounted chapter again after a job ends and shows the new text', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    let text = 'first';
+    vi.spyOn(api, 'manuscriptParagraphs').mockImplementation(async (id) => [
+      { id: 'p1', chapterId: id, chapter: 'Chapter', index: 0, text, entityIds: [] } as unknown as ManuscriptParagraph,
+    ]);
+    const { wrapper, emit } = harness(api);
+    const { result } = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(result.current.paragraphs?.[0]?.text).toBe('first'));
+    text = 'second';
+    await emit('job:ended');
+    await waitFor(() => expect(result.current.paragraphs?.[0]?.text).toBe('second'));
+  });
+
+  it('settles when two mounted chapters do not fit the budget together: neither is dropped, the read count stops', async () => {
+    const api = createMockApi();
+    const [one, two] = await api.manuscriptChapters();
+    const read = vi.spyOn(api, 'manuscriptParagraphs');
+    const { wrapper } = harness(api, 10);
+    const { result } = renderHook(() => [useChapterText(one!.id), useChapterText(two!.id)], { wrapper });
+    await waitFor(() => expect(result.current.every((entry) => entry.paragraphs !== undefined)).toBe(true));
+    const settled = read.mock.calls.length;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(read.mock.calls.length).toBe(settled);
+    expect(settled).toBe(2);
+    expect(result.current.map((entry) => entry.loading)).toEqual([false, false]);
+  });
+
+  it('reads the chapter again when a project switch lands while its first read is in flight', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const real = api.manuscriptParagraphs.bind(api);
+    let release: () => void = () => undefined;
+    const spy = vi.spyOn(api, 'manuscriptParagraphs').mockImplementationOnce(async (id) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real(id);
+    });
+    const { wrapper, store } = harness(api);
+    const { result } = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    act(() => store.reset());
+    release();
+    await waitFor(() => expect(result.current.paragraphs).toBeDefined());
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not read a failed chapter in a loop', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const spy = vi.spyOn(api, 'manuscriptParagraphs').mockRejectedValue(new Error('offline'));
+    const { wrapper } = harness(api);
+    const { result } = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(result.current.error).toBeDefined());
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(result.current.loading).toBe(false);
   });
 });

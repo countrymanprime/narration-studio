@@ -99,7 +99,18 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
 
   // Reads one slot and settles with the failure, if any, after recording and reporting it. It never rejects, so an event or
   // focus reload with no caller to hear a rejection needs no catch.
-  async function attempt(name: keyof R & string): Promise<Error | undefined> {
+  // The read in flight for each slot, whoever started it (a load, an event, an ensure), so an ensure joins it instead of starting another.
+  const flights = new Map<string, Promise<Error | undefined>>();
+  function attempt(name: keyof R & string): Promise<Error | undefined> {
+    const flight = run(name);
+    flights.set(name, flight);
+    void flight.finally(() => {
+      if (flights.get(name) === flight) flights.delete(name);
+    });
+    return flight;
+  }
+
+  async function run(name: keyof R & string): Promise<Error | undefined> {
     const config = registry[name];
     if (!config) return new Error(`studio: no slot named ${name}`);
     const myEpoch = epoch;
@@ -126,7 +137,22 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     if (error) throw error;
   }
 
-  const refresh = (name: keyof R & string) => void attempt(name);
+  // A burst of events (a sync that updates many times, a write and the event it raises) is one read in flight and at most one trailing read: what the slot
+  // holds is read after the last of them, and the ones between add nothing.
+  const refreshing = new Map<string, { again: boolean }>();
+  function refresh(name: keyof R & string): void {
+    const running = refreshing.get(name);
+    if (running) {
+      running.again = true;
+      return;
+    }
+    const entry = { again: false };
+    refreshing.set(name, entry);
+    void attempt(name).finally(() => {
+      refreshing.delete(name);
+      if (entry.again) refresh(name);
+    });
+  }
 
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
   const ensuring = new Map<string, Promise<void>>();
@@ -134,11 +160,16 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     if (state.slots[name] !== undefined) return Promise.resolve();
     const running = ensuring.get(name);
     if (running) return running;
-    const read = load(name).finally(() => {
-      if (ensuring.get(name) === read) ensuring.delete(name);
+    // A read already in flight (a load, an event, a refresh) is joined, not repeated.
+    const flight = flights.get(name);
+    const read = (flight ?? attempt(name)).then((error) => {
+      if (error) throw error;
     });
-    ensuring.set(name, read);
-    return read;
+    const settled = read.finally(() => {
+      if (ensuring.get(name) === settled) ensuring.delete(name);
+    });
+    ensuring.set(name, settled);
+    return settled;
   }
 
   return {
@@ -182,6 +213,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     reset() {
       epoch += 1;
       ensuring.clear();
+      flights.clear();
+      refreshing.clear();
       caches.forEach((cache) => cache.clear());
       state = empty;
       emit();

@@ -68,7 +68,9 @@ for (const rows of AREAS) {
  */
 export const SILENT_CATCHES: Record<string, string> = {
   'src/studio/store/keyedCache.ts#1':
-    'The background read of a stale held value (a job ended since it was read): a failure keeps the value that was held, which is what the page shows, and the next ensure of the key reads it again.',
+    "A chapter text's size measured by a function that threw: the value's JSON is measured instead, so one odd answer cannot stop the cache holding the rest.",
+  'src/studio/store/keyedCache.ts#2':
+    'The background read of a stale held value (a job ended since it was read): a failure keeps the value that was held, which is what the page shows, and the next change or ensure of the key reads it again.',
   'src/studio/useChapterText.ts#1':
     "A chapter's text asked for by a page: the failure is recorded on the key (`error`) for the page that shows it, so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapterText.ts#2':
@@ -76,6 +78,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/studio/useChapters.ts#1':
     "The chapter list asked for by a page: the failure is recorded in the store's `errors` for the page that shows it (the callers keep the titles the host kept), so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapters.ts#2':
+    "The chapter list read again because the caller asked (a dialog's Check again): the failure is recorded in the store's `errors` for the page that shows it.",
+  'src/studio/useChapters.ts#3':
     'The chapter list read for a component rendered without the store (a unit render): a failed read leaves no list, and the callers fall back to the titles the host kept.',
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",

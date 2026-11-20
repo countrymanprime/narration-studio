@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import { announceChapterListWritten } from '../api/chapterListWrites';
 import { createMockApi } from '../api/mockApi';
-import { StudioProvider } from './StudioProvider';
+import { StudioProvider, useStoreHandle } from './StudioProvider';
 import { useChapters } from './useChapters';
 
 afterEach(cleanup);
@@ -53,5 +53,23 @@ describe('useChapters (#3658)', () => {
     });
     await waitFor(() => expect(alone.result.current.chapters).toBeDefined());
     expect(read).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useChapters after a project switch (#3658)', () => {
+  it('reads the list again when the store was reset while mounted, and does not read a failed list in a loop', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const { result } = renderHook(() => ({ list: useChapters(), store: useStoreHandle() }), { wrapper: withProvider(api) });
+    await waitFor(() => expect(result.current.list.chapters).toBeDefined());
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.list.chapters).toBeDefined());
+    read.mockRejectedValue(new Error('offline'));
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(result.current.list.error).toBeDefined());
+    const failed = read.mock.calls.length;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(read.mock.calls.length).toBe(failed);
   });
 });

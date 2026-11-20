@@ -28,12 +28,16 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     () => undefined,
   );
   const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
+  // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot, a read the switch dropped. A failure is
+  // not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
   useEffect(() => {
-    if (!enabled) return;
-    if (store) {
-      void (refreshKey > 0 ? store.load('chapters') : store.ensure('chapters')).catch(() => undefined);
-      return;
-    }
+    if (store && enabled && held === undefined && error === undefined) void store.ensure('chapters').catch(() => undefined);
+  }, [store, enabled, held, error]);
+  useEffect(() => {
+    if (store && enabled && refreshKey > 0) void store.load('chapters').catch(() => undefined);
+  }, [store, enabled, refreshKey]);
+  useEffect(() => {
+    if (store || !enabled) return;
     let live = true;
     manuscript
       .manuscriptChapters()
