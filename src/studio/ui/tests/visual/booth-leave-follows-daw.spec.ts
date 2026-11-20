@@ -30,7 +30,9 @@ async function recording(page: Page): Promise<void> {
   await pastStartGuard(page);
 }
 
-test('Stop and leave on the question for a take that may still run stops a take REAPER started since, and does not leave it recording', async ({ page }) => {
+test('Stop and leave on the question for a take that may still run asks the DAW to stop a take it recorded, and says so when the DAW refuses one it did not start', async ({
+  page,
+}) => {
   await recording(page);
   await daw(page).quiet();
   await page.keyboard.press('Escape');
@@ -38,13 +40,18 @@ test('Stop and leave on the question for a take that may still run stops a take 
   await expect(unconfirmed).toBeVisible();
   await expect(unconfirmed).toContainText('may still be recording');
   await daw(page).heartbeat();
+  // REAPER records again after the quiet, with nothing the bridge started: the app still claims its own take and asks for the stop, which the DAW refuses (#3666).
   await daw(page).startInDaw();
   await expect.poll(() => daw(page).recording()).toBe(true);
-  await enterHoldOver(unconfirmed);
-  await unconfirmed.getByRole('button', { name: 'Stop and leave' }).click();
-  await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
+  // The question is asked again with what is true now (the app's take records again).
+  const question = page.getByRole('alertdialog');
+  await expect(question.getByRole('button', { name: 'Stop and leave' })).toBeVisible();
+  await enterHoldOver(question);
+  await question.getByRole('button', { name: 'Stop and leave' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Could not stop the take' })).toBeVisible();
   expect(await stops(page)).toBeGreaterThan(0);
-  expect(await daw(page).recording()).toBe(false);
+  expect(await page.evaluate(() => window.location.pathname)).not.toBe('/script');
+  expect(await daw(page).recording()).toBe(true);
 });
 
 test('a question that says REAPER is recording is asked again, as the unconfirmed one, when the DAW goes quiet', async ({ page }) => {

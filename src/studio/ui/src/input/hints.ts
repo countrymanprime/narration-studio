@@ -41,7 +41,7 @@ export function gestureKeys(gesture: Gesture): string[] {
 }
 
 /** A fact about the screen that decides whether a conditional hint shows. */
-type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead';
+type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead' | 'takeInDaw';
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
@@ -70,10 +70,13 @@ export type FooterSurface = 'booth' | 'proof';
 /** Why the Booth's voice keys do nothing in a cold read: the hints' tooltip, and the start of the sentence the keys answer with. */
 export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';
 
+/** Why Space and R do nothing to a take the DAW started: the hints' tooltip. */
+const TAKE_IN_DAW_REASON = 'This take was started in the DAW, so it stops and rolls there';
+
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
-    { id: 'reading.toggle', label: 'Record / stop' },
-    { id: 'booth.roll', label: 'Punch and roll from here' },
+    { id: 'reading.toggle', label: 'Record / stop', offWhen: 'takeInDaw', offReason: TAKE_IN_DAW_REASON },
+    { id: 'booth.roll', label: 'Punch and roll from here', offWhen: 'takeInDaw', offReason: TAKE_IN_DAW_REASON },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
     { id: 'bookmark.here', label: 'Bookmark' },

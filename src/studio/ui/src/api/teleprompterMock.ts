@@ -164,7 +164,7 @@ type Deps = {
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers; unset, REAPER records from the first microphone listed. */
   reaperInput?: MockReaperInputSeed;
   /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
-  /** Whether the mock DAW is recording, whoever started it: the host's `recording_elsewhere` answers for any take. */
+  /** Whether the mock DAW is recording, whoever started it: the host answers `recording_here` for a take on the chapter's armed lane (the app's own too), else `recording_elsewhere`. */
   dawRecording?: () => boolean;
   /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
   linked?: (chapterId: string) => boolean;

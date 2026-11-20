@@ -84,6 +84,7 @@ export function BoothFooter({
   coldRead,
   voice,
   voiceFolders = false,
+  takeInDaw = false,
 }: {
   record: ReactNode;
   seconds: number;
@@ -109,6 +110,8 @@ export function BoothFooter({
   voice?: ReactNode;
   /** The chapter records on a folder of voices: the footer hints show the voice keys. */
   voiceFolders?: boolean;
+  /** The running take was started in the DAW: Space and R cannot stop or roll it from here, so their hints are struck through. */
+  takeInDaw?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
@@ -123,6 +126,7 @@ export function BoothFooter({
     new Set([
       ...(pickupSession ? ['pickupSession' as const] : []),
       ...(voiceFolders ? ['voiceFolders' as const] : []),
+      ...(takeInDaw ? ['takeInDaw' as const] : []),
       // A cold read needs no voice, so the voice keys only explain then and their hints are struck through.
       ...(coldRead?.mode && !recording ? ['coldRead' as const] : []),
     ]),

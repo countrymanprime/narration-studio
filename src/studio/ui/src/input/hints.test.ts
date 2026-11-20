@@ -78,6 +78,14 @@ describe('footerHints', () => {
     expect(footerHints('booth', keymap, undefined, undefined, new Set(['coldRead' as const]))).toEqual(footerHints('booth', keymap));
   });
 
+  it('the-record-and-roll-hints-are-struck-for-a-take-the-DAW-started (#3666): Space and R cannot stop or roll it from here, and the tooltip says where', () => {
+    const held = footerHints('booth', keymap, undefined, undefined, new Set(['takeInDaw' as const]));
+    for (const id of ['hint-reading.toggle', 'hint-booth.roll']) {
+      expect(held.find((hint) => hint.id === id)).toMatchObject({ off: true, offReason: 'This take was started in the DAW, so it stops and rolls there' });
+    }
+    expect(footerHints('booth', keymap).filter((hint) => hint.off)).toEqual([]);
+  });
+
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {
     const hints = footerHints('booth', keymap);
     expect(hints.find((hint) => hint.label === 'Bookmark')?.keys).toEqual(['B']);

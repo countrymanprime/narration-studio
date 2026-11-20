@@ -46,7 +46,7 @@ const EMPTY_PROJECT: ChapterTrackMatch = {
 };
 
 /** A Booth on an unlinked chapter whose host links it once a track is created (or chosen), as the real host's link store does. */
-function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'folders' = 'flat') {
+function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'folders' = 'flat', dawOver: Record<string, unknown> = {}) {
   let linked = false;
   const chapterTrackCreate = vi.fn(async (chapterId: string): Promise<ChapterTrackCreateResult> => {
     linked = true;
@@ -70,7 +70,7 @@ function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'fold
     ...over,
   } as Partial<NarrationApi>);
   const base = dawFor('reaper');
-  const daw = { ...base, recordStart: vi.fn(base.recordStart) };
+  const daw = { ...base, recordStart: vi.fn(base.recordStart), ...dawOver };
   const overlay = createOverlayService();
   render(
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
@@ -118,7 +118,12 @@ describe('an unlinked chapter in the Booth', () => {
     ['several_armed', 'Recording setup: REAPER'],
     ['ready', 'Recording setup: REAPER'],
   ] as const)('with REAPER saying %s the top-bar setup chip reads %j', async (status, name) => {
-    renderUnlinked({ readAloudReaperState: async () => ({ status, message: 'REAPER says so.', playing: false, recording: false }) });
+    // A DAW that says it records is one whose transport says so too (a read of the lane made during a take is not kept once the transport stopped).
+    const recording = status === 'recording_elsewhere';
+    const base = dawFor('reaper');
+    renderUnlinked({ readAloudReaperState: async () => ({ status, message: 'REAPER says so.', playing: recording, recording }) }, 'flat', {
+      projectState: async () => ({ ...(await base.projectState()), playState: recording ? 'recording' : 'stopped' }),
+    });
     expect(await screen.findByRole('button', { name, hidden: true })).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
   });

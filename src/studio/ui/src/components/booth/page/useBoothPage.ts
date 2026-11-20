@@ -642,6 +642,7 @@ export function useBoothPage(options: BoothPageOptions) {
     {
       capabilities: control.capabilities,
       recording,
+      startedByApp: control.startedByApp,
       phraseCount: units.length,
       phrase: at.cur,
       punchAt,
@@ -885,6 +886,8 @@ export function useBoothPage(options: BoothPageOptions) {
     if (recording) {
       const take = ++adoptedTakes.current;
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
+      // The last take's "Take saved" and its Undo are about a take that is over: a take beginning, pressed here or started in the DAW, takes them away.
+      overlay.dismissUndo();
       setTakeNote('');
       setPaused(false);
       setBrowse(false);

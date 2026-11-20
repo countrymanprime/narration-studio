@@ -19,6 +19,7 @@ type Extra = {
   startTake?: () => Promise<unknown>;
   onNoTrack?: (key: number) => void;
   asking?: boolean;
+  heldInDaw?: string;
 };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
@@ -1089,6 +1090,21 @@ describe('a lane armed in the DAW', () => {
     api.readAloudReaperState = () => new Promise(() => undefined);
     view.rerender(tree(false));
     await settle();
+    expect(set).not.toHaveBeenCalled();
+  });
+});
+
+describe('a voice key during a take the DAW started (#3666)', () => {
+  it('chooses nothing and says where to change the voice; the DAW is not asked', async () => {
+    const { api, hook, notify } = await mount({ voiceFolders: true }, true, undefined, {
+      heldInDaw: 'REAPER started this take, so change the voice in REAPER.',
+    });
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    await act(async () => hook.current.byKey(2));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(set).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info');
+    await act(async () => hook.current.choose(hook.current.voices[1]));
     expect(set).not.toHaveBeenCalled();
   });
 });

@@ -139,6 +139,11 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   // The DAW went quiet while the question about a running take was open, or answered again with a take of its own: what the question says is no longer true, so it is
   // asked again with what is (`decide` loops on `reask`). A take that merely ended with the DAW answering keeps the question: its Stop and leave then leaves (#3342).
   const claim = claimOf(session);
+  // The question about a take the app did not start says the DAW keeps recording: once that take has ended it is not true, and the narrator is no longer asked.
+  useEffect(() => {
+    const asked = open.current;
+    if (asked && asked.claim === 'foreign' && !recording && !asked.refusal) asked.close.abort();
+  }, [recording]);
   useEffect(() => {
     const asked = open.current;
     // A refusal already reports the DAW's last answer to a stop: it stays as it is.

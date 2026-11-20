@@ -1175,3 +1175,14 @@ describe('a press on a DAW that cannot punch (#3329)', () => {
     });
   });
 });
+
+describe('R on a take the DAW started (#3666)', () => {
+  it('asks the DAW nothing and says where to roll', async () => {
+    const { hook, actions, dialog } = setup(SETUPS.reaper, { startedByApp: false });
+    await act(() => hook.result.current.punchAndRoll());
+    expect(actions.roll).not.toHaveBeenCalled();
+    expect(actions.logPunch).not.toHaveBeenCalled();
+    expect(dialog()).toBeUndefined();
+    expect(actions.notify).toHaveBeenCalledWith('REAPER started this take, so roll again in REAPER.');
+  });
+});

@@ -49,7 +49,7 @@ import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
-import type { RecordBlock } from '../record/useRecordControl';
+import { heldInDawSentence, type RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -74,6 +74,7 @@ import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
 import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
+import { useIsRecording } from '../../../daw/useIsRecording';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -481,11 +482,14 @@ function BoothSession({
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
+  // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
+  const dawRecording = useIsRecording() || control.recording || control.project === null || control.project.playState === 'recording';
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
     chapterId,
-    canFollow: !!control.capabilities?.capabilities.follow_position?.available,
+    // The DAW is never moved while it records (the host refuses), so a Booth opened mid-take sends nothing and shows no refusal for it.
+    canFollow: !!control.capabilities?.capabilities.follow_position?.available && !dawRecording,
     target: moveTarget,
     onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
@@ -537,6 +541,7 @@ function BoothSession({
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
+    heldInDaw: control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'change the voice') : undefined,
     coldRead: coldMode,
     notify: voiceToast,
     stopTake: page.stopTake,
@@ -785,6 +790,7 @@ function BoothSession({
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
                     problem={setupProblem}
+                    notFollowed={control.notFollowed}
                   />
                 ) : undefined
               }
@@ -956,6 +962,7 @@ function BoothSession({
             pickupSession={pickups.active}
             coldRead={page.coldRead}
             voiceFolders={voices.voices.length > 0}
+            takeInDaw={control.recording && !control.startedByApp}
             voice={
               <VoiceControl
                 voices={voices.voices}

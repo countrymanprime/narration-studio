@@ -40,6 +40,14 @@ function stateDetail(choice: DawChoice): string {
  * `not_connected`, `not_armed` and `recording_elsewhere` what the DAW answered about the chapter. A state in which Record still works
  * (another track armed, say) is not one of them.
  */
+/** Why the Booth does not follow a take the DAW holds (`notFollowed` of the record control). */
+export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'unread';
+const NOT_FOLLOWED: Record<NotFollowedWhy, (name: string) => string> = {
+  other_track: (name) => `${name} is recording on another track, so the Booth is not following it`,
+  several_tracks: (name) => `${name} is recording with several tracks armed, so the Booth is not following it`,
+  no_track_armed: (name) => `${name} is recording with no track armed, so the Booth is not following it`,
+  unread: (name) => `${name} is recording a take the Booth could not match to this chapter yet`,
+};
 export type SetupProblem = 'no_track' | 'several_tracks' | 'track_missing' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
 const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks' | 'track_missing'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
@@ -70,6 +78,7 @@ export function SetupChip({
   choice,
   otherProject = false,
   problem,
+  notFollowed,
 }: {
   capabilities: DawCapabilities;
   standaloneName: string;
@@ -78,6 +87,8 @@ export function SetupChip({
   otherProject?: boolean;
   /** What the Booth knows is wrong with the setup beyond the DAW choice's own state (see `SetupProblem`): connected, or so it reads, but Record will not start. */
   problem?: SetupProblem;
+  /** With `recording_elsewhere`: why the take is not followed, in the tooltip. */
+  notFollowed?: NotFollowedWhy | null;
 }) {
   const dest = destinationFor(useVoiceLayout());
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
@@ -98,7 +109,11 @@ export function SetupChip({
   const dawShort = choice && !standalone && choice.state !== 'connected' ? (choice.state === 'linked' ? 'not running' : choice.state.replace('_', ' ')) : '';
   const stateWords = otherProject ? 'other project' : dawShort || (issue ? problemOf(issue, dest).words : '');
   const state = stateWords ? `, ${stateWords}` : '';
-  const problemText = otherProject ? ` · ${name} has a different project open` : !dawShort && issue ? ` · ${problemOf(issue, dest).sentence(name)}` : '';
+  const problemText = otherProject
+    ? ` · ${name} has a different project open`
+    : !dawShort && issue
+      ? ` · ${issue === 'recording_elsewhere' && notFollowed ? NOT_FOLLOWED[notFollowed](name) : problemOf(issue, dest).sentence(name)}`
+      : '';
   const tooltip = `${detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
   // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.

@@ -30,7 +30,8 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
       title: 'Leave the Booth?',
       body: `${subject} is recording and keeps recording after you leave. The app did not start this take, so it will not stop it.`,
       confirmLabel: 'Leave',
-      cancelLabel: KEEP_RECORDING,
+      // Both answers leave REAPER recording, so "Keep recording" would promise something Stay does not.
+      cancelLabel: 'Stay',
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
       returnFocus,
