@@ -4,8 +4,11 @@ import (
 	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
+	"time"
 
 	"desktop/internal/evidence"
 	"desktop/internal/persist"
@@ -67,6 +70,114 @@ type Recheck struct {
 type resultStore struct {
 	dir      string
 	reporter *persist.Reporter
+	cache    *resultCache
+}
+
+// resultCacheSize is how many decoded results stay in memory: the chapters the Editing and Booth pages switch between.
+const resultCacheSize = 4
+
+// resultCache keeps the decoded stored results of the latest reads, each valid for the file's size and modification time. A stored result is
+// written once, atomically, under its record's id, so a read of an unchanged file is the same answer; decoding it is most of the cost of
+// reading a chapter's alignment (about 23 of the 25 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
+type resultCache struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	entries []resultCacheEntry
+	// +checklocks:mu
+	epoch uint64
+}
+
+type resultCacheEntry struct {
+	recordID string
+	modTime  time.Time
+	size     int64
+	result   StoredResult
+}
+
+func newResultCache() *resultCache { return &resultCache{} }
+
+func (c *resultCache) get(recordID string, info os.FileInfo) (StoredResult, bool) {
+	if c == nil {
+		return StoredResult{}, false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i, entry := range c.entries {
+		if entry.recordID == recordID && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+			// The entry read last is the one kept longest: a sweep over other chapters must not push out the one the page is on.
+			reordered := make([]resultCacheEntry, 0, resultCacheSize+1)
+			reordered = append(reordered, c.entries[:i]...)
+			reordered = append(reordered, c.entries[i+1:]...)
+			c.entries = append(reordered, entry)
+			return entry.result.cloned(), true
+		}
+	}
+	return StoredResult{}, false
+}
+
+// now is the cache's epoch, which every drop moves: a reader takes it before it decodes, and put refuses a result decoded across a drop
+// (a write of that record, or another reader's miss), so content read before a write is never stored after it.
+func (c *resultCache) now() uint64 {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.epoch
+}
+
+func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult, epoch uint64) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.epoch != epoch {
+		return
+	}
+	c.dropLocked(recordID)
+	entries := append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
+	if len(entries) > resultCacheSize {
+		entries = entries[len(entries)-resultCacheSize:]
+	}
+	// A slice of its own, so an entry that left is not kept alive by the backing array.
+	c.entries = append(make([]resultCacheEntry, 0, resultCacheSize+1), entries...)
+}
+
+func (c *resultCache) drop(recordID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.dropLocked(recordID)
+}
+
+// +checklocks:c.mu
+func (c *resultCache) dropLocked(recordID string) {
+	c.epoch++
+	kept := make([]resultCacheEntry, 0, resultCacheSize+1)
+	for _, entry := range c.entries {
+		if entry.recordID != recordID {
+			kept = append(kept, entry)
+		}
+	}
+	c.entries = kept
+}
+
+// cloned is the result with its own slices, so a caller that changes the lists it was given changes nothing another read will see. The
+// lines inside them are copied by value (their pointers are shared and never written).
+func (r StoredResult) cloned() StoredResult {
+	r.Report.Items = append([]ItemLine(nil), r.Report.Items...)
+	r.Report.Paragraphs = append([]ParagraphLine(nil), r.Report.Paragraphs...)
+	r.Report.Regions = append([]RegionLine(nil), r.Report.Regions...)
+	r.Report.Tokens = append([]TokenLine(nil), r.Report.Tokens...)
+	r.Report.Extras = append([]ExtraLine(nil), r.Report.Extras...)
+	if r.Recheck != nil {
+		recheck := *r.Recheck
+		r.Recheck = &recheck
+	}
+	return r
 }
 
 func (s resultStore) path(recordID string) (string, error) {
@@ -86,6 +197,7 @@ func (s resultStore) write(result StoredResult) error {
 	if err != nil {
 		return err
 	}
+	s.cache.drop(result.RecordID)
 	if err := writeAtomically(path, encoded); err != nil {
 		return fmt.Errorf("could not store the coverage result: %w", err)
 	}
@@ -99,6 +211,15 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	if err != nil {
 		return StoredResult{}, false
 	}
+	info, statErr := os.Stat(path)
+	if statErr == nil {
+		if cached, ok := s.cache.get(recordID, info); ok {
+			return cached, true
+		}
+	}
+	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
+	s.cache.drop(recordID)
+	epoch := s.cache.now()
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult
@@ -111,6 +232,9 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		result = decoded
 		return nil
 	})
+	if outcome == persist.Loaded && statErr == nil {
+		s.cache.put(recordID, info, result, epoch)
+	}
 	return result, outcome == persist.Loaded
 }
 

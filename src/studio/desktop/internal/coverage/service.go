@@ -253,7 +253,7 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
 		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
-		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter},
+		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
 		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
 		jobs:    map[string]*job{}, preparing: map[string]bool{},
 	}
