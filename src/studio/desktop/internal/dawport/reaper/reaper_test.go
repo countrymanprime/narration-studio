@@ -116,6 +116,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"record_stop":                dawport.CapRecord,
 	"arm_lane":                   dawport.CapRecord,
 	"monitor_restore":            dawport.CapRecord,
+	"solo_chapter":               dawport.CapFollowPosition,
+	"solo_restore":               dawport.CapFollowPosition,
 	"switch_voice":               dawport.CapRecord,
 	"set_active_take":            dawport.CapTakes,
 	"hide_takes":                 dawport.CapTakes,
