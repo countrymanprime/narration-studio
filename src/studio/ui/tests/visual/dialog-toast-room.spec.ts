@@ -1,8 +1,8 @@
-// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window under 300 px tall (#3605 item 2, #3601, #3549).
+// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window 400 px tall or less (#3605 item 2, #3601, #3549).
 // In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
 // a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
-// wide and 262, 280 and 299 px at 275 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
-// not under the toast. A window 300 px tall or more keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
+// wide and the sampled heights at 275, 360 and 400 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
+// not under the toast. A window over 400 px tall keeps the static room (`toast-region.spec.ts`), and the dialog's size there is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { clickVisible } from './drivers/shared';
@@ -100,13 +100,29 @@ const CASES: Case[] = [
   },
 ];
 
-const SIZES: [number, number][] = [[275, 262], [275, 280], [275, 299], ...Array.from({ length: 39 }, (_, step): [number, number] => [320, 261 + step])];
+// #3605 item 2: the rule reaches up to 400 px, where a toast over 100 px tall at 320 wide covered Cancel and Done (320x300-380, 275x300-380, 360x261-380, 400x261-340).
+const SIZES: [number, number][] = [
+  [275, 262],
+  [275, 280],
+  [275, 299],
+  [275, 300],
+  [275, 340],
+  [275, 380],
+  [275, 400],
+  [360, 261],
+  [360, 330],
+  [360, 380],
+  [400, 261],
+  [400, 340],
+  [400, 400],
+  ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
+];
 
 for (const c of CASES) {
-  test(`a toast never covers or hides the dialog's title, focused field or buttons under 300 px of height: ${c.name}`, async ({ page }) => {
+  test(`a toast never covers or hides the dialog's title, focused field or buttons under 400 px of height: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
-    // The stack the case raised is whole in a tall window; under 300 px only the newest shows.
+    // The stack the case raised is whole in a tall window; at 400 px or less only the newest shows.
     expect(await shown(page).count(), `${c.toasts} toast(s) raised`).toBe(c.toasts);
     const problems: string[] = [];
     for (const [width, height] of SIZES) {
@@ -146,7 +162,7 @@ for (const c of CASES) {
 }
 
 // The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('under 300 px of height the older toast waits for the newest to go', async ({ page }) => {
+test('at 400 px of height or less the older toast waits for the newest to go', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   expect(await shown(page).count(), 'a tall window shows the stack').toBe(2);
@@ -202,7 +218,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(shown(page)).toHaveCount(1);
       const background = await image();
       expect(background, `${width}x${height}: the text box's background image`).not.toContain(surface);
-      if (height >= 300) expect(background, 'a tall window draws no scroll cue').toBe('none');
+      if (height > 400) expect(background, 'a tall window draws no scroll cue').toBe('none');
     }
   });
 }

@@ -30,7 +30,7 @@ const tagOf = (node: ts.Node): Tag | undefined => (ts.isJsxElement(node) ? node.
 
 // A `title` is a tooltip on a DOM tag (`span`, `button`) and on the primitives that pass it on to a DOM element. On any other component it is a prop that
 // may draw a heading instead (`Dialog title`, `ConfirmDialog title`, `Disclosure title`), which says nothing about what its children clip.
-const FORWARDS_TITLE = new Set(['Button', 'IconButton', 'Drawer.Title']);
+const FORWARDS_TITLE = new Set(['Button', 'IconButton', 'Drawer.Title', 'Parts.Title']);
 function hasTitle(tag: Tag, file: ts.SourceFile): boolean {
   const name = tag.tagName.getText(file);
   if (!/^[a-z]/.test(name) && !FORWARDS_TITLE.has(name)) return false;
