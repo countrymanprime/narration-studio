@@ -1,4 +1,4 @@
-import type { DawCapabilities, DawMeters, DawTransport } from '../api/contracts/daw';
+import type { DawCapabilities, DawChoice, DawMeters, DawTransport } from '../api/contracts/daw';
 import type { WorkspaceProjectFxResult } from '../api/contracts/workspace';
 import { apiErrorMessage, describeApiError } from '../api/errorMessage';
 import type { NarrationApi } from '../types';
@@ -46,6 +46,13 @@ export interface DawSessionState {
   capsReadFailed: boolean;
   /** The host's sentence for the last failed read, '' when it did not fail. */
   capsError: string;
+  /**
+   * What the host knows about the project's DAW beyond "not answering" (closed, starting, linked, not linked), read with every report; undefined
+   * until the first read, null when the read failed. The host owns "starting" (a start the app made that has not answered, up to 90 s), so no screen keeps a clock of its own for it.
+   */
+  choice: DawChoice | null | undefined;
+  /** When the DAW went from answering (or unknown) to not answering, or when the project's DAW changed while it was off; null while it answers. */
+  offSince: number | null;
   /** Counts every capability report taken, so a consumer that re-reads something on a DAW change keys an effect on it. */
   capsVersion: number;
   /** Counts every Check again the narrator pressed, so the facts read elsewhere (the host's bootstrap) are read again with the report. */
@@ -57,7 +64,10 @@ export interface DawSessionState {
 }
 
 /** The part of the api the session reads: the one place the app talks to the DAW's live state. */
-export type DawSessionApi = Pick<NarrationApi, 'dawCapabilities' | 'subscribeDawCapabilities' | 'subscribeDawTransport' | 'dawMeters' | 'workspaceProjectFx'>;
+export type DawSessionApi = Pick<
+  NarrationApi,
+  'dawChoice' | 'dawCapabilities' | 'subscribeDawCapabilities' | 'subscribeDawTransport' | 'dawMeters' | 'workspaceProjectFx'
+>;
 
 export interface DawSession {
   getState(): DawSessionState;
@@ -86,6 +96,8 @@ const INITIAL: DawSessionState = {
   capsHeardAt: null,
   capsReadFailed: false,
   capsError: '',
+  choice: undefined,
+  offSince: null,
   capsVersion: 0,
   checkVersion: 0,
   transport: { playing: false, recording: false },
@@ -102,6 +114,7 @@ export function createDawSession(host: DawSessionApi): DawSession {
   // A call that throws before it returns a promise (an api double without the method) is a failed read, like any other.
   const api = {
     dawCapabilities: () => Promise.resolve().then(() => host.dawCapabilities()),
+    dawChoice: () => Promise.resolve().then(() => host.dawChoice()),
     dawMeters: () => Promise.resolve().then(() => host.dawMeters()),
     workspaceProjectFx: () => Promise.resolve().then(() => host.workspaceProjectFx()),
     subscribeDawCapabilities: (on: Parameters<DawSessionApi['subscribeDawCapabilities']>[0]) => host.subscribeDawCapabilities?.(on) ?? (() => undefined),
@@ -131,8 +144,33 @@ export function createDawSession(host: DawSessionApi): DawSession {
       capsHeardAt: next.reachable ? now : state.capsHeardAt,
       capsReadFailed: false,
       capsError: '',
+      offSince: next.reachable ? null : (state.offSince ?? now),
       capsVersion: state.capsVersion + 1,
     });
+    void readChoice();
+  };
+
+  // One read of the host's DAW choice at a time, asked with every report so "starting" and "connected" follow the report; a read that fails is `null`, which the callers treat as "the host cannot say".
+  let choosing = false;
+  const readChoice = () => {
+    if (choosing || !running) return Promise.resolve();
+    choosing = true;
+    return api
+      .dawChoice()
+      .then(
+        (next) => next,
+        () => null,
+      )
+      .then((next) => {
+        if (!running) return;
+        const was = state.choice;
+        // The project's DAW changed while it was off (another project, a file linked): the time it has been off starts again.
+        const changed = was && next && (was.daw !== next.daw || was.linkedFile !== next.linkedFile || was.hasProject !== next.hasProject);
+        set({ choice: next, ...(changed && state.offSince !== null ? { offSince: Date.now() } : {}) });
+      })
+      .finally(() => {
+        choosing = false;
+      });
   };
 
   let capsEvents = 0;
