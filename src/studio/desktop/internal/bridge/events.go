@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Event is one decoded line of events.log. The tag is Fields[0]; by convention of every bridge event, the first
@@ -89,6 +90,10 @@ func (c *Client) Subscribe(sub Subscription) (unsubscribe func()) {
 // call from several goroutines; calls are serialised, so every consumer sees the log in order and once.
 func (c *Client) Dispatch() error {
 	c.events.dispatches.Add(1)
+	if c.stalled(time.Now()) {
+		// A stalled link (SlowLink.StallFor) delivers nothing; the lines stay in the log for the first call after it.
+		return nil
+	}
 	c.events.dispatchMu.Lock()
 	defer c.events.dispatchMu.Unlock()
 	lines, err := c.newEventLines()
