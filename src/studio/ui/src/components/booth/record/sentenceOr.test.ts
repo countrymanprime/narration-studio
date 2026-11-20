@@ -4,7 +4,7 @@ import { sentenceOr } from './sentenceOr';
 
 const FALLBACK = 'No words.';
 // Strings that draw nothing: each is a refusal with no sentence (#3322).
-const NOTHING = ['', '   ', '\n\t', '​', ' ​⁠ ', '͏', '⠀', 'ㅤ', '️', '\u{E0020}', '឴', '\u007F', '؅', '܏', '￹', '￺', '￻', '́', 'x'.slice(1)];
+const NOTHING = ['', '   ', '\n\t', '​', ' ​⁠ ', '͏', '⠀', 'ㅤ', '️', '\u{E0020}', '឴', '\u007F', '؅', '܏', '￹', '￺', '￻', '́', 'x'.slice(1), '\u{1D159}'];
 
 describe('sentenceOr', () => {
   it.each(NOTHING)('says the fallback for a string that draws nothing (%j)', (text) => {

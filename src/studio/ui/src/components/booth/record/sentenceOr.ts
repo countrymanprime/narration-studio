@@ -1,5 +1,5 @@
-/** Fillers that are letters or symbols to Unicode and draw nothing: the blank braille pattern and the Hangul fillers. */
-const FILLERS = new RegExp('[\\u2800\\u115F\\u1160\\u3164\\uFFA0]', 'g');
+/** Fillers that are letters or symbols to Unicode and draw nothing: the blank braille pattern, the Hangul fillers and the musical null notehead. */
+const FILLERS = new RegExp('[\\u2800\\u115F\\u1160\\u3164\\uFFA0\\u{1D159}]', 'gu');
 
 /** A character that draws something: a letter, a number, punctuation or a symbol. White space, controls, format characters, fillers and lone combining marks do not. */
 const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;

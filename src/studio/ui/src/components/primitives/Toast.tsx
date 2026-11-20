@@ -71,7 +71,7 @@ function ToastItem({ message, dismiss, alone }: { message: ToastMessage; dismiss
   }, [message.text]);
   const isError = message.tone === 'error';
   const { id } = message;
-  // In a window of 24rem or less a message that is the only one showing and has an action puts it, and Dismiss, on a row under the text, so the text keeps the width of the toast instead
+  // In a window narrower than 24rem a message that is the only one showing and has an action puts it, and Dismiss, on a row under the text, so the text keeps the width of the toast instead
   // of the sliver left beside two buttons (#3322); a stack keeps the buttons beside the text, because rows of buttons under each of several messages would not fit a short window; the row wraps only when the text does not fit beside the buttons (a short message with an action stays on one row), so the text's width is capped at what the glyph leaves of the row (a long one fills the first row and the buttons wrap under it; a short one keeps them beside it).
   const withAction = message.action !== undefined && alone;
   const glyph = isError || message.icon !== undefined;
