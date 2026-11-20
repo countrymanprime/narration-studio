@@ -15,7 +15,7 @@ const DAW_OFF_RECHECK_MS = 10_000;
 /** How long a read of the host's DAW choice is waited for before it counts as failed. */
 export const DAW_CHOICE_READ_MS = 8_000;
 /** How long the host holds a start it made before it reports a bridge problem instead (reaperbridge.go `reaperStartWait`). */
-export const DAW_START_WINDOW_MS = 90_000;
+const DAW_START_WINDOW_MS = 90_000;
 
 export type DawMetersState =
   /** No answer yet. */
