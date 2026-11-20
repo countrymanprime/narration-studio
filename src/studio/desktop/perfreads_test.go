@@ -110,7 +110,23 @@ func TestPrintTheHostReadTable(t *testing.T) {
 			read.name, ms(first.elapsed), ms(median.elapsed), calls, first.answerBytes,
 			first.decodes, median.decodes, first.listings, median.listings, first.allocations, median.allocations, float64(first.allocatedBytes)/1e6)
 	}
-	fmt.Printf("\nHost reads on %s (%s/%s, %d CPUs, %s)\n\n%s\n", dir, runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), runtime.Version(), table.String())
+	// What the host keeps in memory once every read has been made: the heap in use after a collection, less the same on a
+	// host that has read nothing. It is the size of every cache the reads fill, together.
+	idle := freshPerfHost(t, dir)
+	before := heapInUse()
+	for _, read := range perfReads {
+		costOf(t, idle, read)
+	}
+	held := float64(heapInUse()-before) / 1e6
+	runtime.KeepAlive(idle)
+	fmt.Printf("\nHost reads on %s (%s/%s, %d CPUs, %s)\n\n%s\nHeld in memory after every read: %.1f MB\n", dir, runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), runtime.Version(), table.String(), held)
+}
+
+func heapInUse() int64 {
+	var stats runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&stats)
+	return int64(stats.HeapAlloc)
 }
 
 func ms(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
