@@ -4,8 +4,11 @@ import (
 	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
+	"time"
 
 	"desktop/internal/evidence"
 	"desktop/internal/persist"
@@ -67,6 +70,90 @@ type Recheck struct {
 type resultStore struct {
 	dir      string
 	reporter *persist.Reporter
+	cache    *resultCache
+}
+
+// resultCacheSize is how many decoded results stay in memory: the chapters the Editing and Booth pages switch between.
+const resultCacheSize = 4
+
+// resultCache keeps the decoded stored results of the latest reads, each valid for the file's size and modification time. A stored result is
+// written once, atomically, under its record's id, so a read of an unchanged file is the same answer; decoding it is most of the cost of
+// reading a chapter's alignment (23 ms of 35 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
+type resultCache struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	entries []resultCacheEntry
+}
+
+type resultCacheEntry struct {
+	recordID string
+	modTime  time.Time
+	size     int64
+	result   StoredResult
+}
+
+func newResultCache() *resultCache { return &resultCache{} }
+
+func (c *resultCache) get(recordID string, info os.FileInfo) (StoredResult, bool) {
+	if c == nil {
+		return StoredResult{}, false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, entry := range c.entries {
+		if entry.recordID == recordID && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+			return entry.result.cloned(), true
+		}
+	}
+	return StoredResult{}, false
+}
+
+func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.dropLocked(recordID)
+	c.entries = append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
+	if len(c.entries) > resultCacheSize {
+		c.entries = c.entries[len(c.entries)-resultCacheSize:]
+	}
+}
+
+func (c *resultCache) drop(recordID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.dropLocked(recordID)
+}
+
+// +checklocks:c.mu
+func (c *resultCache) dropLocked(recordID string) {
+	kept := c.entries[:0]
+	for _, entry := range c.entries {
+		if entry.recordID != recordID {
+			kept = append(kept, entry)
+		}
+	}
+	c.entries = kept
+}
+
+// cloned is the result with its own slices, so a caller that changes the lists it was given changes nothing another read will see. The
+// lines inside them are copied by value (their pointers are shared and never written).
+func (r StoredResult) cloned() StoredResult {
+	r.Report.Items = append([]ItemLine(nil), r.Report.Items...)
+	r.Report.Paragraphs = append([]ParagraphLine(nil), r.Report.Paragraphs...)
+	r.Report.Regions = append([]RegionLine(nil), r.Report.Regions...)
+	r.Report.Tokens = append([]TokenLine(nil), r.Report.Tokens...)
+	r.Report.Extras = append([]ExtraLine(nil), r.Report.Extras...)
+	if r.Recheck != nil {
+		recheck := *r.Recheck
+		r.Recheck = &recheck
+	}
+	return r
 }
 
 func (s resultStore) path(recordID string) (string, error) {
@@ -86,6 +173,7 @@ func (s resultStore) write(result StoredResult) error {
 	if err != nil {
 		return err
 	}
+	s.cache.drop(result.RecordID)
 	if err := writeAtomically(path, encoded); err != nil {
 		return fmt.Errorf("could not store the coverage result: %w", err)
 	}
@@ -99,6 +187,12 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	if err != nil {
 		return StoredResult{}, false
 	}
+	info, statErr := os.Stat(path)
+	if statErr != nil {
+		s.cache.drop(recordID)
+	} else if cached, ok := s.cache.get(recordID, info); ok {
+		return cached, true
+	}
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult
@@ -111,6 +205,9 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		result = decoded
 		return nil
 	})
+	if outcome == persist.Loaded && statErr == nil {
+		s.cache.put(recordID, info, result)
+	}
 	return result, outcome == persist.Loaded
 }
 
