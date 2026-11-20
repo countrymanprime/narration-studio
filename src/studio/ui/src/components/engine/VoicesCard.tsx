@@ -32,8 +32,8 @@ const DIMMED = 'text-[var(--text-muted)]';
 
 /** Why the Voice switches are off while the DAW records. */
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
-/** What the switch says it does: a track that is not a voice is never recorded on and not offered in the Booth. */
-const SWITCH_HINT = 'Counts as a voice. Turn it off for a track that is not one (a music bed): the Booth never records on it and does not offer it.';
+/** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
+const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
 /** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
 const NARROW = '(max-width: 30rem)';
 const subscribeNarrow = (notify: () => void) => {
