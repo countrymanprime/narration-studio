@@ -18,6 +18,8 @@ import { TrackSelect } from '../mapping/TrackSelect';
 import { plainTrackChoices, rankedChoices, type TrackChoice } from '../mapping/trackChoices';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
+import { destinationFor } from './destination';
+import { useVoiceLayout } from './voiceLayout';
 import { StatusBadge } from '../primitives/StatusBadge';
 import {
   chapterSyncBackgroundWaitText,
@@ -50,6 +52,7 @@ export function ChapterSyncPanel({
 }) {
   const api = useApi();
   const actions = useChapterLinkActions();
+  const voiceLayout = useVoiceLayout();
   const state = useChapterSync(api);
   // The picker offers every track of the project, each labelled with the chapter that holds it, as the other pickers do (owner answer 2 on #3398):
   // the shared state's tracks and links, so a link made elsewhere shows here, and the names the manuscript's current headings.
@@ -194,7 +197,7 @@ export function ChapterSyncPanel({
                 {choices.length > 0 && (
                   <div className="flex w-full min-w-0 items-center gap-2">
                     <TrackSelect
-                      label={`Track for ${nameOf(item.chapterId) ?? item.chapterTitle}`}
+                      label={destinationFor(voiceLayout).pickerLabel(nameOf(item.chapterId) ?? item.chapterTitle)}
                       choices={choices}
                       fullWidth
                       value={selected}
@@ -202,7 +205,7 @@ export function ChapterSyncPanel({
                     />
                     <Button
                       pending={linkingChapterId === item.chapterId}
-                      disabledReason={selected ? '' : 'Choose a track for this chapter first.'}
+                      disabledReason={selected ? '' : `Choose a ${destinationFor(voiceLayout).noun} for this chapter first.`}
                       onClick={() => void link(item.chapterId, selected)}
                     >
                       Link
