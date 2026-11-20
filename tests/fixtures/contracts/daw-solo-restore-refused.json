@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.",
+  "undoSteps": 0,
+  "refused": "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent."
+}

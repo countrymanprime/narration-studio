@@ -237,6 +237,15 @@ describe('the guards', () => {
     expect(options.listening.pause).not.toHaveBeenCalled();
   });
 
+  it('during a take the DAW started it says to stop it there (UX 4)', async () => {
+    const why = 'REAPER started this take, so stop it in REAPER.';
+    const { result, options } = mount({ recording: true, recordingWhy: why });
+    await loaded(result);
+    expect(result.current.refusal).toBe(why);
+    act(() => void result.current.playPrimary('Queen of Hearts'));
+    expect(options.notify).toHaveBeenCalledWith(why);
+  });
+
   it('refuses when the DAW has gone quiet, with how long ago it was heard', async () => {
     const now = Date.now();
     const { result, options } = mount({ recorder: { unknown: true, checkedAt: now - 12_000, checkAgain: vi.fn() } });

@@ -72,8 +72,18 @@ let model: PickupSessionModel;
 let stop: (take: StoppedTake) => Promise<number>;
 let overlay = createOverlayService();
 
-function Session({ ids, recording = false, jumps }: { ids: string[]; recording?: boolean; jumps: (line: PickupItem) => void }) {
-  const session = usePickupSession({ ids, chapterId: 'c3', units: UNITS, recording, onJump: jumps });
+function Session({
+  ids,
+  recording = false,
+  whileRecording,
+  jumps,
+}: {
+  ids: string[];
+  recording?: boolean;
+  whileRecording?: string;
+  jumps: (line: PickupItem) => void;
+}) {
+  const session = usePickupSession({ ids, chapterId: 'c3', units: UNITS, recording, whileRecording, onJump: jumps });
   model = session;
   stop = session.takeStopped;
   return (
@@ -91,11 +101,11 @@ function Session({ ids, recording = false, jumps }: { ids: string[]; recording?:
   );
 }
 
-function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: boolean }) {
+function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: boolean; whileRecording?: string }) {
   const jumps = vi.fn();
   const api = pageApi(h.api as never);
   const journal = newJournal();
-  const tree = (next: { ids: string[]; recording?: boolean }) => (
+  const tree = (next: { ids: string[]; recording?: boolean; whileRecording?: string }) => (
     <BoothHost api={api} daw={dawFor('reaper')} journal={journal} overlay={overlay}>
       <CommandScope kind="booth">
         <Session {...next} jumps={jumps} />
@@ -103,7 +113,12 @@ function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: b
     </BoothHost>
   );
   const view = render(tree(props));
-  return { jumps, journal, rerender: (next: { ids: string[]; recording?: boolean }) => view.rerender(tree(next)), unmount: view.unmount };
+  return {
+    jumps,
+    journal,
+    rerender: (next: { ids: string[]; recording?: boolean; whileRecording?: string }) => view.rerender(tree(next)),
+    unmount: view.unmount,
+  };
 }
 
 const toasts = () => overlay.getSnapshot().toasts.map((toast) => toast.text);
@@ -173,7 +188,17 @@ describe('a pickup session in the Booth', () => {
     press('n');
     expect(model.at).toBe('c');
     expect(jumps).toHaveBeenCalledTimes(1);
-    expect(toasts()).toContain('Stop recording first.');
+    expect(toasts()).toContain('Not while recording. Stop the take first.');
+  });
+
+  it('a pickup jump during a take the DAW started says to stop it there, not "Stop the take first" (UX 1)', async () => {
+    const h = host(LIST());
+    const { jumps, rerender } = mount(h, { ids: ['a', 'c'] });
+    await screen.findByRole('button', { name: /Line c/ });
+    rerender({ ids: ['a', 'c'], recording: true, whileRecording: 'REAPER started this take, so stop it in REAPER.' });
+    await userEvent.click(screen.getByRole('button', { name: /Line a/ }));
+    expect(jumps).not.toHaveBeenCalled();
+    expect(toasts()).toContain('REAPER started this take, so stop it in REAPER.');
   });
 
   it('the marks a take makes are one journal entry, and Ctrl+Z opens the lines again', async () => {
@@ -213,6 +238,17 @@ describe('a pickup session in the Booth', () => {
     });
     await waitFor(() => expect(h.items().filter((item) => item.done)).toEqual([]));
     expect(await screen.findByText('Pickups · 3 open')).toBeTruthy();
+  });
+
+  it('a take the DAW started is not said to be saved: the toast says it ended', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a', 'c'] });
+    await screen.findByText('Pickups · 2 open');
+    await act(async () => {
+      expect(await stop({ began: 0, stopped: 0, byDaw: true })).toBe(1);
+    });
+    expect(toasts()).toContain('The take ended · 1 pickup marked recorded');
+    expect(toasts()).not.toContain('Take saved · 1 pickup marked recorded');
   });
 
   it('a-take-that-ran-over-a-line: with a DAW take whose undo is refused, the toast Undo leaves the lines recorded', async () => {

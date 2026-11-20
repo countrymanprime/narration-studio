@@ -1,6 +1,7 @@
 package guide
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
@@ -65,6 +66,12 @@ type Service struct {
 	resolvePath func(path string) string
 	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
 	undoIDs func() string
+	// readMu guards read: the file's top-level values as the last read binding found them (sections).
+	readMu sync.Mutex
+	// +checklocks:readMu
+	read readSections
+	// splits counts how often a read had to split the file, for the tests of sections.
+	splits atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while readMu is held
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
 	parses atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while editMu is held
 }
@@ -205,14 +212,72 @@ func (s *Service) document() (map[string]any, error) {
 	return document, nil
 }
 
+// readSections is the file's top-level values, each still JSON, with the bytes they were split from.
+type readSections struct {
+	bytes  []byte
+	values map[string]json.RawMessage
+}
+
+// sections reads the Story Bible file for a read binding (Entities, Types, DialogueCues) and answers its top-level values undecoded, so
+// a reader decodes only the list it returns: the page asks for the entries, the types and the cues in separate calls, and each used to
+// parse the whole file (#3768). The file is read every time and the split is reused only while its bytes are the ones last split, so
+// another writer's change is never missed. Nothing changes a value once split; every reader decodes its own copy. What a file that is
+// missing, unreadable, corrupt or from a newer version reads as is document's.
+func (s *Service) sections() (map[string]json.RawMessage, error) {
+	var values map[string]json.RawMessage
+	var versionErr error
+	outcome := s.persist.Load().ReadJSON(s.guidePath(), "Story Bible", persist.NarratorData, func(content []byte) error {
+		s.readMu.Lock()
+		defer s.readMu.Unlock()
+		if s.read.values == nil || !bytes.Equal(content, s.read.bytes) {
+			var split map[string]json.RawMessage
+			if err := json.Unmarshal(content, &split); err != nil {
+				return err
+			}
+			if split == nil {
+				return fmt.Errorf("not a JSON object")
+			}
+			s.splits.Add(1)
+			s.read = readSections{bytes: content, values: split}
+		}
+		var version float64
+		_ = json.Unmarshal(s.read.values["schema_version"], &version) // not a number reads as 0, as document reads it
+		if versionErr = persist.CheckVersion(int(version), schemaVersion, "Story Bible"); versionErr != nil {
+			return nil
+		}
+		values = s.read.values
+		return nil
+	})
+	if versionErr != nil {
+		return nil, versionErr
+	}
+	if outcome == persist.Unreadable {
+		return nil, fmt.Errorf("the Story Bible file could not be read")
+	}
+	return values, nil
+}
+
+// section decodes one top-level value into target and reports whether the file has it; a missing value and a JSON null are both absent.
+func section(values map[string]json.RawMessage, key string, target any) (bool, error) {
+	raw, present := values[key]
+	if !present || string(bytes.TrimSpace(raw)) == "null" {
+		return false, nil
+	}
+	return true, json.Unmarshal(raw, target)
+}
+
 // Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned.
 func (s *Service) Entities() ([]map[string]any, error) {
-	document, err := s.document()
+	values, err := s.sections()
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["entities"]
-	if !present || raw == nil {
+	var raw any
+	present, err := section(values, "entities", &raw)
+	if err != nil { // the syntax was checked when the file was split: this is a number no float64 holds
+		return nil, fmt.Errorf("the Story Bible entities data is invalid")
+	}
+	if !present {
 		return []map[string]any{}, nil
 	}
 	items, ok := raw.([]any)
@@ -357,21 +422,26 @@ type DialogueCueEvidence struct {
 // written before dialogue cues existed has none, which reads as an empty list, the same
 // way a missing "entities" list does.
 func (s *Service) DialogueCues() ([]DialogueCue, error) {
-	document, err := s.document()
+	values, err := s.sections()
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["dialogue_cues"]
-	if !present || raw == nil {
-		return []DialogueCue{}, nil
-	}
-	encoded, err := json.Marshal(raw)
-	if err != nil {
-		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
-	}
 	var cues []DialogueCue
-	if err := json.Unmarshal(encoded, &cues); err != nil {
-		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+	if _, err := section(values, "dialogue_cues", &cues); err != nil {
+		// A file another program wrote may hold a whole number as 1.0 or 2e1, which only reads through a float64, as every read did
+		// before the file was split.
+		var loose any
+		if _, err := section(values, "dialogue_cues", &loose); err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
+		encoded, err := json.Marshal(loose)
+		if err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
+		cues = nil
+		if err := json.Unmarshal(encoded, &cues); err != nil {
+			return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
 	}
 	if cues == nil {
 		cues = []DialogueCue{}

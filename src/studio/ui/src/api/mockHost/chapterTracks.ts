@@ -29,6 +29,7 @@ export function createChapterTracksMock(
     manuscriptReady,
     dawFileLinked,
     peekCoverage,
+    dawRecording = () => false,
     chaptersWithCredits,
     voiceLayout,
   }: {
@@ -37,6 +38,8 @@ export function createChapterTracksMock(
     voiceLayout: () => Promise<VoiceTracksLayout>;
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
+    /** Whether the DAW records now (a take started in it by hand, or the app's own): the host refuses to add or move tracks then. */
+    dawRecording?: () => boolean;
     /** The chapter list as the host sends it: the credits around the manuscript's chapters. */
     chaptersWithCredits: () => ManuscriptChapter[];
   },
@@ -326,7 +329,7 @@ export function createChapterTracksMock(
           reason: 'name_taken' as const,
           message: `REAPER already has a ${taken.isFolder ? 'folder' : 'track'} named “${taken.name.trim()}”. Link that one with the picker instead of adding another.`,
         };
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal) return refusal;
       const next = () => {
         s.createdTracks += 1;
@@ -368,13 +371,13 @@ export function createChapterTracksMock(
     // linked chapters' tracks sit inside the first linked chapter's folder until a repair the narrator confirmed moves them out.
     chapterFoldersCheck: async () => {
       await manuscriptReady;
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
       return wireClone(nestedPlan());
     },
     chapterFoldersRepair: async (expected) => {
       await manuscriptReady;
-      const refusal = mockCreateRefusal(initial.reaperState);
+      const refusal = mockCreateRefusal(initial.reaperState, dawRecording());
       if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
       const plan = nestedPlan();
       if (expected.join(',') !== plan.expected.join(',')) {
@@ -531,13 +534,17 @@ function mockSyncActivity(): ChapterSyncBatch[] {
 
 /** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
 // Only the connection refusals a seed can stage, so the chapter-folder check can answer them too (its reasons are a subset of a create's).
-function mockCreateRefusal(seed: MockApiSeed['reaperState']): { outcome: 'refused'; reason: 'standalone' | 'recording'; message: string } | null {
+function mockCreateRefusal(
+  seed: MockApiSeed['reaperState'],
+  recordingNow = false,
+): { outcome: 'refused'; reason: 'standalone' | 'recording'; message: string } | null {
   if (seed === 'unavailable')
     return {
       outcome: 'refused',
       reason: 'standalone',
       message: 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.',
     };
-  if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
+  if (seed === 'recording_elsewhere' || recordingNow)
+    return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
   return null;
 }
