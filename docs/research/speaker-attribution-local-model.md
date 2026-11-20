@@ -18,7 +18,7 @@ Not verified, because the session could not reach `arxiv.org` or `sites.google.c
 | Rules baseline in the 2026-10-10 trial | *Alice* ch. VI, 61 quotes: 55 right, 4 unknown, 2 wrong | Instant | n/a | [local-llm-spike.md](local-llm-spike.md) section 3 |
 | Qwen3 4B, Q4_K_M | 53 of 61 (87%); 53 of 54 right when it answered | 2.5 GB file, 6.7 GB peak, 4.6 to 5.1 tokens/s on 4 vCPU | Apache 2.0 | same, sections 1 to 3 |
 | Qwen3 8B, Q4_K_M | 54 of 61 (89%); the 7 misses name the wrong footman with confidence | 5.0 GB file, 10.8 GB peak, 3.2 to 3.4 tokens/s | Apache 2.0 | same |
-| BookNLP | Strongest local attribution in the 2026-10-10 trial | Has a source row, currently "not yet available" | Code MIT; weights have no stated licence | [booknlp-spike.md](booknlp-spike.md) |
+| BookNLP | Strongest local attribution in the 2026-10-10 trial | Has a source row, "not yet available" as of 2026-10-11 | Code MIT; weights have no stated licence | [booknlp-spike.md](booknlp-spike.md) |
 | Llama-3 8B and 70B, zero-shot on the PDNC corpus (published) | Reported state of the art on PDNC, 12 points above prior systems on the first 22 novels; 70B close to perfect | 70B is not a 16 GB-machine model | Llama community licence with an acceptable-use policy | [arXiv 2406.11380](https://arxiv.org/html/2406.11380v3), search summary only |
 
 How to read it:
