@@ -260,17 +260,21 @@ export function ScopedSetting({
           // The pair takes the row's free width: the hex box settles on Enter or on leaving it, so a half-typed code never marks the form changed.
           // Text left in the box that is not a colour is the form's value too (`onRefused`), as a number out of range is: the form then asks before
           // the narrator leaves, and Discard takes it away. Keyed by the scope, so nothing typed under one scope shows under the other.
+          // An emptied box is "not set" under This project, where the colour then comes from Global. Global has nothing to fall back to and the
+          // host refuses '' there, so the box refuses it: it is marked, and the form is not handed a value it could only fail to save.
           <ColourField
             key={scope}
             mode="free"
             label={field.label}
             value={effective}
-            allowUnset
+            allowUnset={scope === 'project'}
             placeholder="Not set"
             className={GROWING_CONTROL_CLASSES}
             hexClassName={HEX_CONTROL_CLASSES}
             onChange={change}
-            onRefused={change}
+            onRefused={(text) => {
+              if (text !== '') change(text);
+            }}
           />
         ) : isText ? (
           <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />

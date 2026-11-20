@@ -273,7 +273,7 @@ for (const size of SIZES) {
   }
 }
 
-// B9 (#3680): a box with no room for its colour's whole name draws the swatch and the caret alone, never half a word; the name is then in
+// B9 (#3680): a box with no room for its colour's whole name draws the swatch and the caret alone, never half a word (at 320 the Entry types box is a swatch wide and the caret sits under it; the window cannot be that narrow); the name is then in
 // the box's hint and in its accessible name.
 for (const { site, driver, boxes, list } of POPOVER_SITES) {
   test(`${site} at 320: no colour name is cut, and a box without its name says it in a hint`, async ({ page }) => {

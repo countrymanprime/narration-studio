@@ -137,8 +137,35 @@ export function StoryBibleTypesView(props: StoryBibleTypesViewProps) {
   );
 }
 
+/**
+ * The key of each type's row. The host knows a type by its name alone, and a row keyed by the name is thrown away and drawn again when the
+ * type is renamed: the press that left the name box (which sends the rename) then lands on a colour box that is replaced under it, and its
+ * swatches close or never open. A row has a number instead, which the new name takes over while the rename is out and keeps once it is in.
+ */
+function useRowKeys(types: readonly GuideType[] | undefined) {
+  // Not state: a name gets its number the first time it is drawn, and no draw depends on a number changing.
+  const [keys] = useState(() => ({ byName: new Map<string, number>(), made: 0 }));
+  return {
+    of: (name: string): number => {
+      if (!keys.byName.has(name)) keys.byName.set(name, keys.made++);
+      return keys.byName.get(name)!;
+    },
+    /** Hands the row of `from` to `to` for the rename that is out; `to` gives it back if the host refuses. */
+    carry: async (from: string, to: string, renamed: Promise<boolean>): Promise<boolean> => {
+      const row = keys.byName.get(from);
+      // A name another type has is one the host refuses, and that type keeps its own row.
+      const free = row !== undefined && !types?.some((type) => type.name === to);
+      if (free) keys.byName.set(to, row);
+      const done = await renamed;
+      if (free) keys.byName.delete(done ? from : to);
+      return done;
+    },
+  };
+}
+
 /** The rows and the New type field without a panel: the Settings page's Entry types row draws this. */
 export function StoryBibleTypesList({ types, counts, busy = false, error, onRename, onColour, onSpeaks, onRemove, onAdd, onRefuse }: StoryBibleTypesViewProps) {
+  const rowKey = useRowKeys(types);
   const [name, setName] = useState('');
   // A name whose add is on its way is not an unsaved draft, and is added once: a Save & continue over it would send a second add that the host refuses as a duplicate (#3457 B12).
   const [adding, setAdding] = useState(false);
@@ -171,12 +198,12 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
           <ul className="m-0 flex list-none flex-col gap-5 p-0 @lg:gap-3">
             {types.map((type) => (
               <TypeRow
-                key={type.name}
+                key={rowKey.of(type.name)}
                 type={type}
                 count={counts && (counts[type.name] ?? 0)}
                 last={types.length < 2}
                 busy={busy}
-                onRename={onRename}
+                onRename={(from, to) => rowKey.carry(from, to, onRename(from, to))}
                 onColour={onColour}
                 onSpeaks={onSpeaks}
                 onRemove={onRemove}

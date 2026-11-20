@@ -173,12 +173,40 @@ describe('ScopedSetting controls', () => {
     expect(box.getAttribute('aria-invalid')).toBeNull();
   });
 
-  it('an emptied colour box reports "", which is "not set"', () => {
-    const change = renderSetting(colourField('FFD54F'));
+  const drawColour = (scope: 'global' | 'project', change = vi.fn()) => {
+    render(
+      <TooltipProvider>
+        <ScopedSetting field={colourField('FFD54F')} scope={scope} value="" change={change} onClearOverride={() => undefined} />
+      </TooltipProvider>,
+    );
+    return change;
+  };
+
+  it('an emptied colour box under This project reports "", which is "not set"', () => {
+    const change = drawColour('project');
     const box = screen.getByRole('textbox', { name: 'Note color hex' });
     fireEvent.change(box, { target: { value: '' } });
     fireEvent.blur(box);
     expect(change).toHaveBeenCalledExactlyOnceWith('');
+    expect(box.getAttribute('aria-invalid')).toBeNull();
+  });
+
+  // C6 (#3680): the host refuses '' for a colour, and Global has no "not set" to fall back to.
+  it('an emptied colour under Global is refused in the box and not sent', () => {
+    const change = drawColour('global');
+    const box = screen.getByRole<HTMLInputElement>('textbox', { name: 'Note color hex' });
+    fireEvent.change(box, { target: { value: '' } });
+    fireEvent.blur(box);
+    expect(change).not.toHaveBeenCalled();
+    expect(box.value).toBe('');
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(box.getAttribute('aria-describedby')!)?.textContent).toBe('Six hex digits, like B5473C');
+    // Enter in the marked box does not submit the form it sits in, and Escape puts the colour back.
+    expect(fireEvent.keyDown(box, { key: 'Enter' })).toBe(false);
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.keyDown(box, { key: 'Escape' });
+    expect(box.value).toBe('FFD54F');
+    expect(box.getAttribute('aria-invalid')).toBeNull();
   });
 
   it('shows a neutral grey in the picker for an unset colour and "Not set" in the box', () => {

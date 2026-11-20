@@ -229,3 +229,125 @@ it('Escape in a refused box puts the stored colour back, and Save then has nothi
   expect(saved).not.toHaveBeenCalled();
   expect(screen.queryByText('Unsaved changes')).toBeNull();
 });
+
+const hostColour = async (api: ReturnType<typeof createMockApi>) =>
+  (await api.settingsForScope('global')).TranscriptCompare?.find((field) => field.key === 'color_misread')?.value;
+
+// C1 (#3680): a second submit joined the save that was out, which carried the earlier values: the later value was dropped and the page said it saved.
+it('a value changed while a save is out is sent by the next submit, or stays unsaved and says so', async () => {
+  const { api, saved, answer } = slowHost();
+  drawCompare(api);
+  const box = await misread();
+  fireEvent.change(box, { target: { value: '110001' } });
+  pressEnter(box);
+  fireEvent.change(await misread(), { target: { value: '220002' } });
+  pressEnter(await misread());
+  await act(async () => undefined);
+  expect(saved).toHaveBeenCalledTimes(1);
+  // The first answer: the second submit was waiting for it, and now sends the form as it is.
+  await answer();
+  expect(saved.mock.calls.map((call) => call[2])).toEqual([{ color_misread: '110001' }, { color_misread: '220002' }]);
+  expect((await misread()).value).toBe('220002');
+  expect(screen.getByText('Unsaved changes')).toBeTruthy();
+  await answer();
+  expect((await misread()).value).toBe('220002');
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+  expect(await hostColour(api)).toBe('220002');
+});
+
+it('a value changed while a save is out and not submitted stays in its box as unsaved', async () => {
+  const { api, saved, answer } = slowHost();
+  drawCompare(api);
+  const box = await misread();
+  fireEvent.change(box, { target: { value: '110001' } });
+  pressEnter(box);
+  fireEvent.change(await misread(), { target: { value: '220002' } });
+  fireEvent.blur(await misread());
+  await answer();
+  expect(saved).toHaveBeenCalledExactlyOnceWith('TranscriptCompare', 'global', { color_misread: '110001' });
+  expect((await misread()).value).toBe('220002');
+  expect(screen.getByText('Unsaved changes')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await act(async () => undefined);
+  await answer();
+  expect(saved.mock.calls.map((call) => call[2])).toEqual([{ color_misread: '110001' }, { color_misread: '220002' }]);
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+it('a value put back to the one being saved, then submitted, is sent again by its own save', async () => {
+  const { api, saved, answer } = slowHost();
+  drawCompare(api);
+  const box = await misread();
+  const stored = box.value;
+  fireEvent.change(box, { target: { value: '110001' } });
+  pressEnter(box);
+  // Back to the colour the host held before the save that is out: once that save answers, this is a change again.
+  fireEvent.change(await misread(), { target: { value: stored } });
+  pressEnter(await misread());
+  await answer();
+  await answer();
+  expect(saved.mock.calls.map((call) => call[2])).toEqual([{ color_misread: '110001' }, { color_misread: stored }]);
+  expect(await hostColour(api)).toBe(stored);
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+// C7 (#3680): when the save answered, the form was copied from the read made before it, until the new read landed: the box's value changed
+// twice, which dropped what was being typed.
+it('text typed in a field while the save is out stands when it answers', async () => {
+  const { api, answer } = slowHost();
+  // The read that follows the save answers later than the save, as a host does.
+  const read = api.settingsForScope;
+  const reads: (() => void)[] = [];
+  let held = false;
+  api.settingsForScope = (scope) => (held ? new Promise((resolve) => reads.push(() => resolve(read(scope)))) : read(scope));
+  drawCompare(api);
+  const box = await misread();
+  held = true;
+  fireEvent.change(box, { target: { value: 'BB0002' } });
+  pressEnter(box);
+  fireEvent.change(await misread(), { target: { value: 'CC00' } });
+  await answer();
+  expect((await misread()).value).toBe('CC00');
+  held = false;
+  await act(async () => reads.splice(0).forEach((land) => land()));
+  expect((await misread()).value).toBe('CC00');
+  expect(await hostColour(api)).toBe('BB0002');
+  // The save is over: the box is no longer marked as being saved, and what is in it is a draft like any other.
+  fireEvent.keyDown(await misread(), { key: 'Escape' });
+  expect((await misread()).value).toBe('BB0002');
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+// C6 (#3680): an emptied colour was sent as '', which the host refuses in either scope.
+it('an emptied colour under Global sends nothing, by Enter or by Save', async () => {
+  const api = createMockApi();
+  const saved = vi.fn(api.saveSettings);
+  api.saveSettings = saved;
+  drawCompare(api);
+  const box = await misread();
+  fireEvent.change(box, { target: { value: '' } });
+  pressEnter(box);
+  fireEvent.blur(box);
+  await act(async () => undefined);
+  expect(saved).not.toHaveBeenCalled();
+  expect((await misread()).getAttribute('aria-invalid')).toBe('true');
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+it("an emptied colour under This project clears the project's own colour", async () => {
+  const api = createMockApi();
+  await api.saveSettings('TranscriptCompare', 'project', { color_misread: 'AA0004' });
+  const saved = vi.fn(api.saveSettings);
+  api.saveSettings = saved;
+  drawCompare(api);
+  const inherited = (await misread()).value;
+  fireEvent.click(screen.getByRole('button', { name: 'This project' }));
+  await screen.findByDisplayValue('AA0004');
+  fireEvent.change(await misread(), { target: { value: '' } });
+  fireEvent.blur(await misread());
+  fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+  await act(async () => undefined);
+  expect(saved).toHaveBeenCalledExactlyOnceWith('TranscriptCompare', 'project', { color_misread: null });
+  expect((await misread()).value).toBe(inherited);
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+});

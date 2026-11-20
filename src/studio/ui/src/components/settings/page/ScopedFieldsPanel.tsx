@@ -26,13 +26,26 @@ const SCOPE_SUBTITLE: Record<Scope, string> = { global: 'Global defaults', proje
 // form failed every save in a scope that had any unset field (a project has none set until one is saved).
 // A field with no value of its own shows the value it inherits, so putting it back to that value is no change either: sending
 // it would pin the inherited value as an override (a two-state switch makes that easy to do by accident).
-// An emptied number is "not set", which the host takes as null (a number is never saved as "").
+// An emptied number or colour is "not set", which the host takes as null (neither is ever saved as ""). For a colour that is a project's
+// override being cleared: under Global the box refuses to be emptied (`ScopedSetting`).
 function changedValues(fields: readonly ScopedSettingField[], values: Record<string, string>): Record<string, string | null> {
   const isChanged = (field: ScopedSettingField, next: string) => next !== field.value && !(field.value === '' && next === field.effectiveValue);
-  const saved = (field: ScopedSettingField, next: string) => (field.kind === 'number' && next === '' ? null : next);
+  const saved = (field: ScopedSettingField, next: string) => ((field.kind === 'number' || field.kind === 'color') && next === '' ? null : next);
   return Object.fromEntries(
     fields.filter((field) => isChanged(field, values[field.key] ?? field.value)).map((field) => [field.key, saved(field, values[field.key] ?? '')]),
   );
+}
+
+const sameValues = (one: Record<string, string>, other: Record<string, string>) =>
+  Object.keys({ ...one, ...other }).every((key) => (one[key] ?? '') === (other[key] ?? ''));
+
+/** `read` with the values the host took in saves answered since it was read; `read` itself once a newer read is in. */
+function heldByHost(
+  read: readonly ScopedSettingField[],
+  taken: { over: readonly ScopedSettingField[] | undefined; values: Record<string, string | null> } | undefined,
+): readonly ScopedSettingField[] {
+  if (!taken || taken.over !== read) return read;
+  return read.map((field) => (field.key in taken.values ? { ...field, value: taken.values[field.key] ?? '' } : field));
 }
 
 /** What a panel's own parts are drawn from: the scope on show and its fields, as last read. */
@@ -97,21 +110,36 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     if (!editing.current) setValues(Object.fromEntries((read ?? []).map((field) => [field.key, field.value])));
   }, [read, dirty]);
 
-  // The save that is out. A second submit before it answers (Enter held in a box, Save pressed twice) joins it instead of sending the same values again.
-  const saveOut = useRef<Promise<boolean>>(undefined);
+  // The form as the last render drew it. A save reads it when it starts and again when it ends, and the save that waited for another starts
+  // before the next render: a closure's copy would be the form as it was when the narrator pressed Save.
+  const form = useRef({ read, values, scope });
+  form.current = { read, values, scope };
+  // What the host took in saves answered since `over` was read. A save that waited for another starts before the new read is drawn, and
+  // compares against this: against the old read alone, a value put back to the one the host held before would read as no change.
+  const taken = useRef<{ over: typeof read; values: Record<string, string | null> }>(undefined);
+  // The save that is out, with the values it carries.
+  const saveOut = useRef<{ values: Record<string, string>; ended: Promise<boolean>; next?: Promise<boolean> }>(undefined);
   const save = useCallback((): Promise<boolean> => {
-    if (saveOut.current) return saveOut.current;
+    const out = saveOut.current;
+    // A second submit before the answer (Enter held in a box, Save pressed twice) joins the save that is out instead of sending the same values again.
+    if (out && sameValues(out.values, form.current.values)) return out.ended;
+    // The form changed since that save was sent, so it does not carry this submit: the submit waits for the answer, then sends the form as it is.
+    if (out) return (out.next ??= out.ended.then(() => save()));
+    const { read: readNow, values: sent, scope: sentScope } = form.current;
     const send = async (): Promise<boolean> => {
-      if (!tool || !read) return true;
+      if (!tool || !readNow) return true;
       try {
-        const changed = changedValues(read, values);
+        const changed = changedValues(heldByHost(readNow, taken.current), sent);
         // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
         if (Object.keys(changed).length > 0) {
-          await system.saveSettings(tool, scope, changed);
-          notify(`${scope === 'global' ? 'Global' : 'Project'} settings saved.`);
+          await system.saveSettings(tool, sentScope, changed);
+          taken.current = { over: readNow, values: { ...(taken.current?.over === readNow ? taken.current.values : {}), ...changed } };
+          notify(`${sentScope === 'global' ? 'Global' : 'Project'} settings saved.`);
         }
-        setDirty(false);
         await reload();
+        // The form is clean only if it still holds what was sent: a value changed while the save was out stays, with "Unsaved changes".
+        // It is cleared after the new read, not before: a clean form over the old read would show the old values until the read landed.
+        if (sameValues(sent, form.current.values)) setDirty(false);
         return true;
       } catch (failure) {
         // This save has ended before the toast is up, so its Retry starts a new one. Saving the same edit again sets the same values, so it is safe to repeat.
@@ -124,13 +152,13 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
         return false;
       }
     };
-    const out = send().then((saved) => {
-      if (saveOut.current === out) saveOut.current = undefined;
+    const ended = send().then((saved) => {
+      if (saveOut.current?.ended === ended) saveOut.current = undefined;
       return saved;
     });
-    saveOut.current = out;
-    return out;
-  }, [system, notify, read, reload, scope, tool, values, setDirty]);
+    saveOut.current = { values: sent, ended };
+    return ended;
+  }, [system, notify, reload, tool, setDirty]);
   const discard = useCallback(async () => {
     setDirty(false);
     await reload();

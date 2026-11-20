@@ -221,6 +221,44 @@ describe('rapid colour changes (Define marks)', () => {
   });
 });
 
+// C4 (#3680): a new mark has no key until the host answers, and its row was keyed by that key: the answer redrew the row and closed its swatches.
+describe('a row outlives the save that gives it a key (Define marks)', () => {
+  it('the swatches of a new mark stay open when its save answers', async () => {
+    const sent: { types: MarkType[]; answer: (types: MarkType[] | null) => void }[] = [];
+    const slowSave = (types: MarkType[]): Promise<MarkType[] | null> => new Promise((resolve) => sent.push({ types, answer: resolve }));
+    render(
+      <Host api={api}>
+        <MarksDialog saveMarkTypes={slowSave} onClose={() => undefined} />
+      </Host>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Define how you mark up' });
+    await waitFor(() => expect(within(dialog).getAllByLabelText('Mark name')).toHaveLength(6));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add a mark' }));
+    const newBox = colourBox(dialog, 6);
+    const newName = within(dialog).getAllByLabelText('Mark name')[6]!;
+    await userEvent.click(newBox);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Red' })));
+    // The host answers the add: the new mark now has its key.
+    await act(async () => sent[0]!.answer(sent[0]!.types.map((type) => (type.key ? type : { ...type, key: 'mark-7' }))));
+    expect(screen.getByRole('radiogroup', { name: 'Colour' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Red' }));
+    // The row is the one that was drawn, not a new one in its place.
+    expect(colourBox(dialog, 6)).toBe(newBox);
+    expect(within(dialog).getAllByLabelText('Mark name')[6]).toBe(newName);
+    // A pick now is saved for the mark under its key.
+    await userEvent.keyboard('{ArrowRight}');
+    expect(sent[1]!.types[6]).toMatchObject({ key: 'mark-7', colour: 'violet' });
+  });
+
+  it('removing a mark above keeps the rows below it', async () => {
+    const dialog = await openDialog();
+    const third = within(dialog).getAllByLabelText('Mark name')[2]!;
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Remove' })[0]!);
+    await waitFor(() => expect(within(dialog).getAllByLabelText('Mark name')).toHaveLength(5));
+    expect(within(dialog).getAllByLabelText('Mark name')[1]).toBe(third);
+  });
+});
+
 describe('focus-and-aria (Define marks)', () => {
   it('is a named dialog and gives focus back to its opener on Done', async () => {
     const dialog = await openDialog();
