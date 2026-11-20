@@ -129,6 +129,11 @@ export function startingStatement(daw: string): string {
   return `${daw} is starting.`;
 }
 
+/** The message after a press of Start: the app opened the DAW and the Booth turns on Record once it answers. */
+export function startedToast(daw: string, path: string): string {
+  return `${daw} is starting (${path}). Record turns on here once it connects.`;
+}
+
 /** The label of the connection mark, and the title of the dialog and the card badge: one word for the state wherever it is drawn. */
 export function startingLabel(daw: string): string {
   return `Starting ${daw}…`;

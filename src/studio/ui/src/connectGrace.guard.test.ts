@@ -21,14 +21,16 @@ function* sources(dir: string): Generator<string> {
 
 const OWN_SENTENCE = /Connecting to /;
 // The words for "the host is starting the DAW" have one home too: `startingLabel`, `startingTitle`, `startingStatement` and `startingSentence` in daw/dawSession.ts.
-const OWN_STARTING = /Starting \$\{|\$\{[^}]*\} is starting\.|['"`](?:REAPER|Audacity) is starting\./;
+// Comments are not text the app draws, so they are not looked at.
+const withoutComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const OWN_STARTING = /Starting (?:\$\{|REAPER|Audacity)|\$\{[^}]*\} is starting(?: \(|[.,])|['"`](?:REAPER|Audacity) is starting/;
 const STARTING_HOME = 'daw/dawSession.ts';
 const OWN_CLOCK = /\b(?:APP_STARTED_AT|useConnectGrace)\b/;
 
 /** What a file does that only `useDawConnecting.ts` may. */
 export function offences(text: string, file = ''): string[] {
   const found: string[] = [];
-  if (file !== STARTING_HOME && OWN_STARTING.test(text)) found.push('writes its own "Starting …" wording');
+  if (file !== STARTING_HOME && OWN_STARTING.test(withoutComments(text))) found.push('writes its own "Starting …" wording');
   if (OWN_SENTENCE.test(text)) found.push('writes its own "Connecting to …" sentence');
   if (OWN_CLOCK.test(text)) found.push('keeps a connect clock counted from app start');
   return found;
@@ -55,6 +57,10 @@ describe('one connecting state for the DAW', () => {
     expect(offences('<span>{`${daw} is starting.`}</span>')).toHaveLength(1);
     expect(offences("<span>{starting ? 'REAPER is starting.' : ''}</span>")).toHaveLength(1);
     expect(offences('return `Starting ${daw}…`;', 'daw/dawSession.ts')).toEqual([]);
+    expect(offences("const label = 'Starting Audacity…';")).toHaveLength(1);
+    expect(offences('say(`${name} is starting (${path}). Record turns on.`)')).toHaveLength(1);
+    expect(offences("const title = 'Starting REAPER';")).toHaveLength(1);
+    expect(offences('// the label reads "Starting REAPER…" while it starts')).toEqual([]);
     expect(offences('const word = startingLabel(name);')).toEqual([]);
   });
 });

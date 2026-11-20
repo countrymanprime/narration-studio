@@ -9,13 +9,15 @@ import { CheckLine } from '../../layout/CheckLine';
 import { claimAttachRefusal } from '../../connection/attachRefusal';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
+import { startedToast } from '../../../daw/dawSession';
 import { useDawConnecting, useReopenOnBridgeProblem } from '../../connection/useDawConnecting';
 
-/** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
-const BOOTH_CONNECT_GRACE_MS = 20_000;
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
+
+/** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
+const BOOTH_CONNECT_GRACE_MS = 20_000;
 
 /** What a notice says as a toast. `topic` names what the message is about, so a newer message on it replaces the old and Record becoming ready takes it away. */
 type Say = (sentence: string, tone?: 'error', topic?: string) => void;
@@ -276,7 +278,7 @@ function Connect({
             check.onCheckAgain?.();
           }}
           onCaps={() => onChanged()}
-          onLaunched={(path) => say(`${name} is starting (${path}). Record turns on here once it connects.`, undefined, START_TOPIC)}
+          onLaunched={(path) => say(startedToast(name, path), undefined, START_TOPIC)}
           startLabel={guide.launch.label}
           linked={factsFailed ? undefined : plan.linked}
           onClose={dialog.close}

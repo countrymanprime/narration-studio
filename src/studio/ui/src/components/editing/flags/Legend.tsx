@@ -18,8 +18,13 @@ export interface LegendProps {
 export function Legend({ doc, noAudio = false }: LegendProps) {
   if (!doc.aligned) {
     return (
-      <div id="legend" className="flex items-center justify-end gap-3 text-[length:var(--font-size-sm)]">
-        <Badge label={noAudio ? 'No audio to edit' : 'Not transcribed yet'} colors={toneColors('neutral')} />
+      // One line, cut with an ellipsis (its full words on the title) when the header is crowded: it never wraps into four lines and pushes the header taller.
+      <div
+        id="legend"
+        className="flex min-w-0 items-center justify-end gap-3 text-[length:var(--font-size-sm)]"
+        title={noAudio ? 'No audio to edit' : 'Not transcribed yet'}
+      >
+        <Badge label={noAudio ? 'No audio to edit' : 'Not transcribed yet'} colors={toneColors('neutral')} className="max-w-full min-w-0 truncate" />
       </div>
     );
   }
