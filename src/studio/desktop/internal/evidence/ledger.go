@@ -294,6 +294,7 @@ func (s *LedgerStore) Reads() (listings, decodes int) {
 func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer persist.Advance()
 
 	referenced := make(map[string]bool, len(referencedIDs))
 	for _, id := range referencedIDs {
