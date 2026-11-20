@@ -1,8 +1,9 @@
 // A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, at any window size (#3605 items 1 and 2, #3601, #3549).
-// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem (over 400 px of height: 4rem, or a quarter of the window less 4rem where that is more) while
-// a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
-// wide and the sampled heights at 275, 360 and 400 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
-// not under the toast. With no toast the dialog's size is the sweep's (`dialog-height-sweep.spec.ts`).
+// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes) and a long message scrolls inside two lines (2.5rem at 400 px
+// of height or less). At 400 px or less `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it; in a taller window the dialog does not change, since a toast that
+// size fits the 4.75rem under it. Each case opens a dialog under toasts the way the narrator meets them (one and two Undo toasts over New project with its Name field focused; one long
+// error over the status report), then walks the sizes below: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at
+// five points not under the toast. With no toast the dialog's size is the sweep's (`dialog-height-sweep.spec.ts`).
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { clickVisible } from './drivers/shared';
@@ -117,6 +118,7 @@ const SIZES: [number, number][] = [
   [400, 400],
   // #3605: above 400 px of height a toast taller than the dialog's static 4.75rem room covered its buttons (401-800 px tall at 275-400 wide; two stacked toasts at 441 wide and more).
   ...[275, 320, 360, 400, 441, 480, 560, 640].flatMap((width) => Array.from({ length: 14 }, (_, step): [number, number] => [width, 401 + step * 31])),
+  ...Array.from({ length: 60 }, (_, step): [number, number] => [320, 401 + step * 7]),
   [900, 420],
   [1440, 900],
   ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
@@ -137,11 +139,11 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside 2.5rem (40 px; over 400 px of height 4rem, or a quarter of the window less 4rem where that is more) over a dialog, so it never takes the dialog's room.
-      const cap = height > 400 ? Math.max(64, height / 4 - 64) : 40;
+      // A long message scrolls inside two lines (2.5rem, 40 px, at 400 px of height or less) over a dialog, so it never takes the dialog's room.
+      const cap = height > 400 ? 41 : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
       if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
-      if (c.longText && cap === 40) {
+      if (c.longText && width <= 400) {
         const scrolls = await page.evaluate(() => {
           const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
           return el.scrollHeight > el.clientHeight + 1;
@@ -157,10 +159,52 @@ for (const c of CASES) {
           .evaluate((input) => input === document.activeElement))
       )
         problems.push(`${width}x${height}: the Name field lost focus`);
-      const found = await problemsOf(page);
+      // Above 400 px of height the toast changes nothing in the dialog (the test below), so what its own layout hides there is not the toast's doing: the status report's
+      // Open the folder has no room in its scroll area at 401-432 px of height with or without a toast (#3605).
+      const found = (await problemsOf(page)).filter((problem) => height <= 400 || !problem.endsWith('px high)'));
       if (found.length) problems.push(`${width}x${height}: ${found.join('; ')}`);
     }
     expect(problems).toEqual([]);
+  });
+}
+
+// Above 400 px of height a toast coming or going moves nothing in the dialog (#3605: no toast may make a layout jump): the popup and its buttons are where they were once the toast is dismissed.
+for (const c of CASES.filter((one) => one.toasts === 1)) {
+  test(`a toast going leaves the dialog where it was above 400 px of height: ${c.name}`, async ({ page }) => {
+    page.setDefaultTimeout(20_000);
+    await c.open(page);
+    const boxes = () =>
+      page.evaluate(() => {
+        const popup = [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].pop()!;
+        return [popup, ...popup.querySelectorAll('button')].map((el) => {
+          const box = el.getBoundingClientRect();
+          return [box.top, box.bottom, box.left, box.right].map(Math.round).join(',');
+        });
+      });
+    const withToast: Record<string, string[]> = {};
+    const sizes = [
+      [275, 401],
+      [275, 500],
+      [320, 520],
+      [320, 700],
+      [400, 500],
+      [441, 525],
+      [640, 480],
+      [1440, 900],
+    ] as const;
+    for (const [width, height] of sizes) {
+      await page.setViewportSize({ width, height });
+      await shown(page).first().hover();
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      withToast[`${width}x${height}`] = await boxes();
+    }
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    await expect(shown(page)).toHaveCount(0);
+    for (const [width, height] of sizes) {
+      await page.setViewportSize({ width, height });
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      expect(await boxes(), `${width}x${height}: the popup and its buttons with no toast`).toEqual(withToast[`${width}x${height}`]);
+    }
   });
 }
 

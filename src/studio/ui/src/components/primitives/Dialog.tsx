@@ -98,18 +98,12 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
 // at 261, and a sentence was cut mid-line from 262 to 292 px; #3548, #3549). Between 261 and 300 px a shorter window gets a taller popup, up to the window's own height, and the toast room shrinks with it.
 const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)))]';
 
-// While a toast shows over an open dialog, `ToastRegion` publishes `--toast-h`, the room it takes from the window's bottom edge (#3622), and the popup takes only what is left above it, at every
-// window size, so a toast never sits on the title, a focused field or the action row (#3605, #3601). With no toast the property is unset and the term never binds, so nothing changes.
-// In a window 400 px tall or less the popup is top-aligned while the toast shows (`DIALOG_SHORT_ALIGN`, only when the root carries `--toast-h`) and keeps 0.5rem above it. In a taller window
-// nothing moves: the popup's cap is the room between where it hangs (8vh, 12vh for the palette) and the toast, or the window less the toast's room twice for a centred one. A width rule
-// was not enough: two stacked toasts covered New project's Close and Create at 441 px wide.
-const DIALOG_TOAST_ROOM_SHORT =
+// While a toast shows over an open dialog, `ToastRegion` publishes `--toast-h`, the room it takes from the window's bottom edge (#3622). In a window 400 px tall or less (under 300 px the ramp above has given the toast's
+// static room back) the popup takes only what is left above the toast: the window less the toast's room less the popup's 0.5rem margin above it, so a toast never sits on the title, a focused field or the action row
+// (#3605, #3601). With no toast the property is unset and the term is the window less 0.5rem, which the ramp never exceeds, so nothing changes; above 400 px the rule is not applied (it stopped at 299 px until #3605 item 2: a toast 100 px tall covered the action row from 300 to 380 px). The popup is
+// top-aligned while the toast shows (`DIALOG_SHORT_ALIGN`, only when the root carries `--toast-h`), so its bottom edge is its top margin plus its height.
+const DIALOG_TOAST_ROOM =
   '[@media(max-height:400px)]:max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)),calc(100dvh_-_var(--toast-h,0px)_-_0.5rem))]';
-const DIALOG_TOAST_ROOM = {
-  top: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(92dvh_-_var(--toast-h,0px)))]`,
-  palette: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(88dvh_-_var(--toast-h,0px)))]`,
-  center: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(100dvh_-_2*var(--toast-h,0px)))]`,
-};
 const DIALOG_SHORT_ALIGN = '[@media(max-height:400px)]:[:root[style*=--toast-h]_&]:items-start';
 
 // The one horizontal inset of the header, the body and the action row. In a window under 360 px wide it is 12 px (#3457); in a window 360 px wide or less and 400 px
@@ -369,9 +363,7 @@ export function Dialog({
             // At 260 px of height or less (400% zoom is 275 x 200) the header, the body's floor and a wrapped action row can add up to more than the dialog's room, and the
             // clipped footer would hold buttons the narrator cannot reach: the dialog itself then scrolls (#2998).
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none [@media(max-height:260px)]:overflow-y-auto ${
-              width === 'full'
-                ? 'max-w-[calc(100vw-2rem)]'
-                : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT} ${DIALOG_TOAST_ROOM[!top ? 'center' : width === 'palette' ? 'palette' : 'top']}`
+              width === 'full' ? 'max-w-[calc(100vw-2rem)]' : `${DIALOG_WIDTHS[width]} ${DIALOG_MAX_HEIGHT} ${DIALOG_TOAST_ROOM}`
             }`}
             style={{
               height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
