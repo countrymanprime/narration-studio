@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { CapabilitiesBody } from './CapabilitiesBody';
+import { CapabilitiesRowBody } from './CapabilitiesRowBody';
 import { DefinitionsBody } from './DefinitionsBody';
 import { DeliveryCustomBody, DeliveryDefaultBody, DeliveryProfileBody } from './DeliveryBodies';
 import { EngineBody } from './EngineBody';
@@ -20,7 +20,7 @@ export const RECORDING_CONTROLS: Record<string, ComponentType> = {
   'daw.sampleOutput': SampleOutputBody,
   'daw.sampleStorage': SampleStorageBody,
   'daw.startTone': TakeToneRowBody,
-  'daw.capabilities': CapabilitiesBody,
+  'daw.capabilities': CapabilitiesRowBody,
   'daw.layout': ChapterLayoutBody,
   'daw.sync': SyncEnabledBody,
   'daw.voices': VoicesBody,

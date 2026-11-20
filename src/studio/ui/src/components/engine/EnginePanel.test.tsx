@@ -116,6 +116,18 @@ describe('EnginePanel', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  it('opens what the recording tools can do from the panel, over it, and puts focus back on its button', async () => {
+    renderPanel();
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    const opener = within(panel).getByRole('button', { name: 'What it can do' });
+    await userEvent.click(opener);
+    const reference = await screen.findByRole('dialog', { name: /^What .* can do$/ });
+    expect(within(reference).getByRole('table', { name: 'What the recording tools can do' })).toBeTruthy();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^What .* can do$/ })).toBeNull());
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('says REAPER is not running, with when it last checked and Check again, when the linked DAW is quiet', async () => {
     const onCheckAgain = vi.fn();
     renderPanel({}, {}, { dawReachable: false, dawProjectMatches: false, onCheckAgain });

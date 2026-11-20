@@ -106,10 +106,10 @@ describe('Settings: jump menu page items', () => {
   it('a row under Advanced is opened first', async () => {
     await renderPage();
     await settled();
-    expect(row('daw.capabilities')).toBeFalsy();
-    act(() => item('row.daw.capabilities').run());
-    await waitFor(() => expect(row('daw.capabilities')).toBeTruthy());
-    await waitFor(() => expect(row('daw.capabilities')!.contains(document.activeElement)).toBe(true));
+    expect(row('daw.reaperPath')).toBeFalsy();
+    act(() => item('row.daw.reaperPath').run());
+    await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
+    await waitFor(() => expect(row('daw.reaperPath')!.contains(document.activeElement)).toBe(true));
   });
 
   it('a row on another tab leaves the search and filter that hid it', async () => {

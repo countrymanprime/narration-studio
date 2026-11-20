@@ -429,7 +429,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/BackupsSection.tsx', text: 'The backups settings could not be read: ….', class: 'error' },
   { file: 'components/settings/BackupsSection.tsx', text: 'The change was not saved: ….', class: 'error' },
-  { file: 'components/settings/CapabilitySection.tsx', text: "The DAW's capabilities could not be read: ….", class: 'error' },
   {
     file: 'components/settings/CreditsPanel.tsx',
     text: 'The global narrator default is …; a narrator override here applies only to this project.',
@@ -478,7 +477,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The app is free software, licensed under the GNU Affero General Public License, version 3 or later.',
     class: 'state',
   },
-  { file: 'components/settings/controls/CapabilitiesBody.tsx', text: 'The recording tool’s capabilities could not be read: ….', class: 'error' },
   { file: 'components/settings/controls/DeliveryBodies.tsx', text: 'None checked. Master &amp; QC measures but does not judge.', class: 'state' },
   {
     file: 'components/settings/controls/EngineBody.tsx',
