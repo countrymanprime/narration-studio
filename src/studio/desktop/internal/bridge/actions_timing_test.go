@@ -168,7 +168,7 @@ func TestATakeBackThatFailsWithTheFileStillThereIsNotTaken(t *testing.T) {
 		lines = append(lines, kind+": "+message)
 	})
 
-	_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
+	_, _ = actions.request(context.Background(), "record_stop", []string{"RECORD_STOPPED"})
 	got := timings()
 	if len(got) != 1 || got[0].Taken || got[0].Queue != got[0].Elapsed {
 		t.Fatalf("timings = %+v, want not taken, the whole wait as queue", got)
@@ -212,5 +212,26 @@ func TestAnObserverPanicDoesNotLoseAnAnswer(t *testing.T) {
 
 	if _, err := actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack); err != nil {
 		t.Fatalf("an answered request failed: %v", err)
+	}
+}
+
+// A command in mayRunLong that REAPER read and answers late is waited for (waitLate), and its timing still says REAPER read it: the split
+// is kept through the longer wait, whether the answer lands or the wait ends.
+func TestALateAnswerKeepsItsQueueAndReaperSplit(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	timings := observeTimings(actions)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		time.Sleep(250 * time.Millisecond)
+		return [][]string{{"ARMED", run(command), testTrack, "0", "1"}}
+	})
+	actions.SetTimeout(80 * time.Millisecond)
+	actions.SetLateWait(2 * time.Second)
+
+	if _, err := actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack); err != nil {
+		t.Fatalf("late answer: %v", err)
+	}
+	got := timings()
+	if len(got) != 1 || got[0].Outcome != "answered" || !got[0].Taken || got[0].Queue < 0 || got[0].Queue >= got[0].Elapsed {
+		t.Fatalf("timings = %+v, want one answered request REAPER read, queue within the wait", got)
 	}
 }

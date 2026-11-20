@@ -124,9 +124,12 @@ describe('each limit is above the host call it waits for', () => {
   it('a roll: rollTimeout', () => {
     expect(PRESS_LIMITS_MS.roll).toBeGreaterThanOrEqual(seconds('bindings_daw_roll.go', 'rollTimeout') + MARGIN_MS);
   });
-  it('the Booth voice choice: readAloudVoiceStartTimeout (the record start timeout plus the live track list wait)', () => {
+  it('the Booth voice choice: laneCommandTimeout (the answer wait, the late wait and two live track list reads)', () => {
     expect(PRESS_LIMITS_MS.voiceChoice).toBeGreaterThanOrEqual(
-      seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') + seconds('tracks_live.go', 'tracksLiveTimeout') + MARGIN_MS,
+      seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') +
+        seconds('internal/bridge/actions.go', 'LateAnswerWait') +
+        2 * seconds('tracks_live.go', 'tracksLiveTimeout') +
+        MARGIN_MS,
     );
   });
   it('the model check is the read of every catalog model at the disk floor (#3432)', () => {

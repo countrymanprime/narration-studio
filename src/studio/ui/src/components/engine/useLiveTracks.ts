@@ -14,9 +14,9 @@ export const LIVE_TRACKS_BACKOFF_MAX_MS = 60_000;
 /** The topic of a tracks read's toast: a read's answer replaces the failure (or the earlier answer) it follows, so two opposite messages never stand together (#3339). */
 export const TRACKS_READ_TOPIC = 'tracks-read';
 
-/** How long one read may go unanswered before it counts as failed: the host gives REAPER 3 s (tracksLiveTimeout in tracks_live.go), and
+/** How long one read may go unanswered before it counts as failed: the host gives REAPER 7 s (tracksLiveTimeout in tracks_live.go), and
  * this leaves time for the saved file's parse and the binding's own trip. A read that never answers must not hold every later read back. */
-export const LIVE_TRACKS_TIMEOUT_MS = 8_000;
+export const LIVE_TRACKS_TIMEOUT_MS = 10_000;
 
 export type LiveTracks = {
   /** The project's tracks from the last read that answered; undefined before the first. */
