@@ -1,7 +1,7 @@
 """Times every page of the real desktop app on the project it was started with (docs/operations/real-app-driver.md, "Timing the pages").
 
     NARRATION_DEBUG=1 ./start-host.sh /tmp/ns-host /tmp/ns-state 3000 -- --project-folder <seeded book> &
-    DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ns-state/run/bus /usr/bin/python3.12 page_times.py /tmp/ns-state [--quiet 2] [--limit 600]
+    DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ns-state/run/bus /usr/bin/python3.12 page_times.py /tmp/ns-state [--quiet 2] [--limit 600] [--launch-only]
 
 With NARRATION_DEBUG=1 the page writes one `ui.call.ok` line to the run log for every host call it gets an answer to, with the time
 the page waited for it. This presses each page's navigation button and reads those lines: how many calls the page made, when the
@@ -80,6 +80,7 @@ def main() -> None:
     parser.add_argument("state", type=Path, help="start-host.sh's state folder")
     parser.add_argument("--quiet", type=float, default=2.0, help="seconds without an answer that end a page's reads")
     parser.add_argument("--limit", type=float, default=600.0, help="seconds to wait for one page at most")
+    parser.add_argument("--launch-only", action="store_true", help="print the launch row and stop")
     args = parser.parse_args()
     log = args.state / "AppData/Roaming/narration-studio/logs/run.jsonl"
     started = next(json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if '"run.start"' in line)
@@ -88,6 +89,8 @@ def main() -> None:
     print("| Visit | Calls | First answer, s | Last answer, s | Summed wait, s | Slowest call, s |\n| --- | --- | --- | --- | --- | --- |")
     real_app.app(timeout=60)
     print(row("Launch (Production)", settle(log, launch, args.quiet, args.limit)), flush=True)
+    if args.launch_only:
+        return
     # The dialogs a project with no DAW and no credits opens over the page; the navigation is not reachable under them.
     for dismiss in ("Close", "NOT NOW"):
         for button in real_app.find_all("push button", dismiss):
