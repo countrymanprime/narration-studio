@@ -1196,3 +1196,21 @@ describe('a lane that arrives late (#3645)', () => {
     expect(hook.current.current?.name).toBe('Extras');
   });
 });
+
+describe('a new lane that the DAW would not arm (#3670)', () => {
+  it('is added and chosen, and the arm refusal is said', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const realAdd = api.boothVoiceAdd.bind(api);
+    api.boothVoiceAdd = async (...args: Parameters<typeof realAdd>) => ({
+      ...(await realAdd(...args)),
+      reason: 'recording' as const,
+      message: 'REAPER is recording, so the armed track did not change.',
+    });
+    const { hook, notify } = await mount({ voiceFolders: true }, false, api);
+    await act(async () => {
+      await hook.current.add('Queen of Hearts', []);
+    });
+    expect(notify).toHaveBeenCalledWith('REAPER is recording, so the armed track did not change.', 'error');
+    await waitFor(() => expect(hook.current.current?.name).toBe('Queen of Hearts'));
+  });
+});

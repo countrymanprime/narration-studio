@@ -416,6 +416,8 @@ export function useBoothVoices({
           notify(answer.message ?? 'The track was not added.', 'error');
           return false;
         }
+        // The track is added and chosen, but the DAW would not arm it (#3670): said, as for a voice chosen from the list.
+        if (answer.message) notify(answer.message, 'error');
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
         // A voice chosen while the add waited keeps its place: the late lane is listed, not selected (the host does the same).
