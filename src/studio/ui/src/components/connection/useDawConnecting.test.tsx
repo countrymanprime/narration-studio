@@ -27,8 +27,8 @@ const choice = (patch: Record<string, unknown>) =>
     ...patch,
   }) as unknown as DawChoice;
 
-function Probe({ graceMs }: { graceMs: number }) {
-  const connecting = useDawConnecting(true, graceMs);
+function Probe({ graceMs, off = true }: { graceMs: number; off?: boolean }) {
+  const connecting = useDawConnecting(off, graceMs);
   return <p>{connecting.connecting ? connecting.label('REAPER') : 'asks now'}</p>;
 }
 
@@ -58,6 +58,30 @@ describe('useDawConnecting', () => {
   it('asks at once for a project with no DAW file linked, whatever the grace: nothing is being connected to', async () => {
     mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000);
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy());
+  });
+
+  it("gives a DAW that goes off long after the page opened the whole grace and no more (the page's age is not part of it)", async () => {
+    vi.useFakeTimers();
+    try {
+      let caps = structuredClone(DAW_SETUPS['reaper']);
+      const api = createMockApi({ dawCapabilities: async () => caps, dawChoice: async () => choice({}) });
+      render(
+        <ApiProvider api={api}>
+          <Probe graceMs={1_000} off />
+        </ApiProvider>,
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(60_000));
+      caps = structuredClone(DAW_SETUPS['reaper-off']);
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(screen.getByText('Connecting to REAPER…')).toBeTruthy();
+      await act(async () => vi.advanceTimersByTimeAsync(1_500));
+      expect(screen.getByText('asks now')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('asks at once with no grace when the host is not starting anything', async () => {

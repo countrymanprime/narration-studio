@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { useDawState } from '../../daw/useDawSession';
 
 /** How long a DAW that is not answering is left alone, counted from when it stopped answering (or the project's DAW changed), before the app asks the narrator about it. */
@@ -22,15 +22,19 @@ export interface DawConnecting {
 export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): DawConnecting {
   const choice = useDawState((state) => state.choice);
   const offSince = useDawState((state) => state.offSince);
-  const [now, setNow] = useState(() => Date.now());
   // A caller that knows the DAW is off before the session has seen it off (a page working from its own facts) is given the grace from when it asked.
   const [askedAt] = useState(() => Date.now());
-  const left = off ? Math.max(0, (offSince ?? askedAt) + graceMs - now) : 0;
+  const since = off ? (offSince ?? askedAt) : null;
+  // Read at every render, never kept from mount: a page open for a minute whose DAW then goes off gets the whole grace, not the grace plus its age.
+  const left = since === null ? 0 : Math.max(0, since + graceMs - Date.now());
+  const [, wake] = useReducer((count: number) => count + 1, 0);
   useEffect(() => {
-    if (left <= 0) return;
-    const timer = setTimeout(() => setNow(Date.now()), left);
+    if (since === null) return;
+    const wait = since + graceMs - Date.now();
+    if (wait <= 0) return;
+    const timer = setTimeout(wake, wait + 1);
     return () => clearTimeout(timer);
-  }, [left]);
+  }, [since, graceMs]);
   const starting = off && choice?.state === 'starting';
   // The host's first answer is awaited inside the grace (the clock starts when the DAW goes off), so a read that never settles cannot hold the dialog back for ever.
   // A project with no DAW file linked is not being connected to anything: it asks at once, as the Booth does, with Link project file… as the way forward.

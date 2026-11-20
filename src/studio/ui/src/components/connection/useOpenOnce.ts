@@ -29,18 +29,26 @@ export function useOpenOnce(
     };
   }, [key, forgetOnUnmount]);
 
+  // The module's `opened` set is changed here, in the effect, never inside a `setState` updater: React may call an updater twice (StrictMode in development), and
+  // the second call would see the key already shown and keep the dialog shut, so in development the dialog never opened by itself (#3668).
+  const lastKey = useRef<string | null>(null);
   useEffect(() => {
-    setState((prev) => {
-      if (key === null) {
-        if (prev.key !== null) opened.delete(prev.key);
-        return prev.key === null ? prev : { key, open: false };
-      }
-      if (opened.has(key)) return prev.key === key ? prev : { key, open: false };
-      // Held: the key stays unseen, so the hold ending is what opens it.
-      if (hold) return prev;
-      opened.add(key);
-      return { key, open: true };
-    });
+    if (key === null) {
+      if (lastKey.current !== null) opened.delete(lastKey.current);
+      lastKey.current = null;
+      setState((prev) => (prev.key === null ? prev : { key, open: false }));
+      return;
+    }
+    if (opened.has(key)) {
+      lastKey.current = key;
+      setState((prev) => (prev.key === key ? prev : { key, open: false }));
+      return;
+    }
+    // Held: the key stays unseen, so the hold ending is what opens it.
+    if (hold) return;
+    opened.add(key);
+    lastKey.current = key;
+    setState({ key, open: true });
   }, [key, hold]);
 
   // The narrator's own press counts as the dialog having been shown, even while an automatic opening is held back.

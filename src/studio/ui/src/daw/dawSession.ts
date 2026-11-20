@@ -12,6 +12,8 @@ export const DAW_METERS_QUIET_MS = 2_000;
 /** How often a capability report that has never been heard is asked for again; an off DAW is asked again every `DAW_OFF_RECHECK_MS`. */
 export const DAW_RETRY_MS = 4_000;
 const DAW_OFF_RECHECK_MS = 10_000;
+/** How long a read of the host's DAW choice is waited for before it counts as failed. */
+export const DAW_CHOICE_READ_MS = 8_000;
 
 export type DawMetersState =
   /** No answer yet. */
@@ -128,6 +130,7 @@ export function createDawSession(host: DawSessionApi): DawSession {
   let meterTimer: ReturnType<typeof setInterval> | undefined;
   let heardMetersAt: number | null = null;
   let asking = false;
+  let episode = 0;
 
   const set = (patch: Partial<DawSessionState>) => {
     state = { ...state, ...patch };
@@ -138,6 +141,8 @@ export function createDawSession(host: DawSessionApi): DawSession {
     // The transport validates every report against its schema, so only a half-built test double can answer with nothing.
     if (!running || !next) return;
     const now = Date.now();
+    // Every change between answering and not answering is a new episode: a choice asked in an earlier one is about a start that is over.
+    if (state.caps !== null && state.caps.reachable !== next.reachable) episode += 1;
     set({
       caps: next,
       capsCheckedAt: now,
@@ -163,21 +168,36 @@ export function createDawSession(host: DawSessionApi): DawSession {
       return Promise.resolve();
     }
     choosing = true;
-    return api
-      .dawChoice()
+    const asked = episode;
+    // A read the host never answers is given up after a bound, so it cannot hold every later read back for the life of the app.
+    let giveUp: ReturnType<typeof setTimeout> | undefined;
+    const bound = new Promise<'gave up'>((resolve) => {
+      giveUp = setTimeout(() => resolve('gave up'), DAW_CHOICE_READ_MS);
+    });
+    return Promise.race([api.dawChoice(), bound])
       .then(
-        (next) => next,
-        () => null,
+        (next) => (next === 'gave up' ? undefined : next),
+        () => undefined,
       )
       .then((next) => {
-        // An answer that came in after the DAW did is about a DAW that is no longer off.
+        // An answer that came in after the DAW did, or after it went off again, is about another episode: dropped, and asked again when it is still off.
         if (!running || state.caps?.reachable) return;
+        if (asked !== episode) {
+          askAgain = true;
+          return;
+        }
+        // A read that failed keeps what the host last said: one failed read does not turn a start that is going on into "the host cannot say".
+        if (next === undefined) {
+          if (state.choice === undefined) set({ choice: null });
+          return;
+        }
         const was = state.choice;
         // The project's DAW changed while it was off (another project, a file linked): the time it has been off starts again.
         const changed = was && next && (was.daw !== next.daw || was.linkedFile !== next.linkedFile || was.hasProject !== next.hasProject);
         set({ choice: next, ...(changed && state.offSince !== null ? { offSince: Date.now() } : {}) });
       })
       .finally(() => {
+        clearTimeout(giveUp);
         choosing = false;
         if (askAgain && state.caps && !state.caps.reachable) {
           askAgain = false;

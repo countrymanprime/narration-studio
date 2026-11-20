@@ -134,7 +134,8 @@ export function ReaperOffDialog({
   const start = {
     label: launch.state.phase === 'waiting' ? 'Connecting…' : (startLabel ?? `Start ${name}`),
     onPress: launch.start,
-    pending: busy,
+    // The host is already starting the DAW: a second press would be a second launch, so Start waits with it (#3668).
+    pending: busy || starting,
     disabled: unlinked,
   };
   const last = checkedFor === null ? 'Not checked yet.' : `Last checked ${checkedFor} s ago.`;

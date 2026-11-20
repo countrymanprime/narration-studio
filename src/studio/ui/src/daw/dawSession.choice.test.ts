@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DawCapabilities, DawChoice } from '../api/contracts/daw';
 import { DAW_SETUPS } from '../fixtures/daw';
-import { createDawSession, type DawSessionApi } from './dawSession';
+import { createDawSession, DAW_CHOICE_READ_MS, type DawSessionApi } from './dawSession';
 
 const OFF: DawCapabilities = structuredClone(DAW_SETUPS['reaper-off']);
 const ON: DawCapabilities = structuredClone(DAW_SETUPS['reaper']);
@@ -122,6 +122,65 @@ describe("the session's DAW choice and offSince", () => {
     late(choice('starting'));
     await settle();
     expect(session.getState().choice).toBeUndefined();
+    session.stop();
+  });
+
+  it('keeps a "starting" it already heard through one failed read', async () => {
+    let answer: () => Promise<DawChoice> = async () => choice('starting');
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => answer(),
+      ),
+    );
+    session.start();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    answer = async () => Promise.reject(new Error('no'));
+    await session.refreshCapabilities();
+    await settle();
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it('gives up on a read the host never answers, and reads again with the next report', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const session = createDawSession(
+      host(
+        () => OFF,
+        () => (++calls === 1 ? new Promise<DawChoice>(() => undefined) : Promise.resolve(choice('starting'))),
+      ),
+    );
+    session.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(calls).toBe(1);
+    await vi.advanceTimersByTimeAsync(DAW_CHOICE_READ_MS + 10);
+    expect(session.getState().choice).toBeNull();
+    await session.refreshCapabilities();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(session.getState().choice?.state).toBe('starting');
+    session.stop();
+  });
+
+  it('drops an answer asked before the DAW last went off, and asks again', async () => {
+    const answers: Array<(value: DawChoice) => void> = [];
+    let caps = OFF;
+    const dawChoice = vi.fn(() => new Promise<DawChoice>((resolve) => answers.push(resolve)));
+    const session = createDawSession(host(() => caps, dawChoice));
+    session.start();
+    await settle();
+    caps = ON;
+    await session.refreshCapabilities();
+    await settle();
+    caps = OFF;
+    await session.refreshCapabilities();
+    await settle();
+    // The first read (the earlier episode) answers "starting" now: stale, so it must not show.
+    answers[0]?.(choice('starting'));
+    await settle();
+    expect(session.getState().choice?.state).not.toBe('starting');
+    expect(dawChoice.mock.calls.length).toBeGreaterThanOrEqual(2);
     session.stop();
   });
 });
