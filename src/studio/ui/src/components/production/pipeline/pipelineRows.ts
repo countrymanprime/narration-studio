@@ -114,9 +114,6 @@ const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = 
 };
 const NOT_READ = { text: 'Not read', tip: 'The recorded length has not been read' };
 
-/** A recorded length as hours and minutes; under a minute is "<0h 01m", so a few seconds of audio never reads as nothing. */
-const recordedClock = (seconds: number): string => (seconds > 0 && seconds < 60 ? '<0h 01m' : clockOf(seconds));
-
 type ThroughWords = { label: string; tip: string };
 
 /**
@@ -147,7 +144,7 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
   const seconds = chapter.recordedSeconds;
   const of = estimate === DASH ? ', no estimate' : ` of about ${estimate} estimated`;
   if (seconds !== null && seconds > 0) {
-    const text = recordedClock(seconds);
+    const text = clockOf(seconds);
     return {
       kind: 'measured',
       text,

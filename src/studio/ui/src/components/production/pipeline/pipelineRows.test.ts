@@ -167,8 +167,8 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     const rows = rowsOf(linked);
     expect(rows).toHaveLength(16);
     for (const row of rows) {
-      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1h 04m' });
-      expect(row.recorded.label).toBe(`${row.name}: 1 hour 4 minutes recorded of about 1 hour estimated`);
+      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1h 03m' });
+      expect(row.recorded.label).toBe(`${row.name}: 1 hour 3 minutes recorded of about 1 hour estimated`);
       expect(row.estimate).toBe('1h 00m');
       // The audio is there, so Record is under way even though the chapter's stage still says not started.
       expect(row.cells.record).toMatchObject({ kind: 'progress', text: '99%' });

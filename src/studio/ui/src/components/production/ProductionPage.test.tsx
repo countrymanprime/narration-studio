@@ -103,9 +103,9 @@ describe('production-route-draws-the-mock-page', () => {
     const recorded = total - minutes(legend['Not recorded yet']);
     const tile = within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!;
     const [value, whole] = [...tile.matchAll(/(\d+h \d+m)/g)].map((m) => minutes(m[1]));
-    // The legend and the tile print each figure rounded to the minute, so a sum of printed figures can drift from a printed total by half a
-    // minute per figure and no more: four segments and the tile's own rounding for Recorded (2.5 min, so 2 whole minutes), five and the
-    // tile for the book (3). The exact, unrounded agreement is pinned in overview.test.tsx over four books.
+    // The legend and the tile print each figure floored to the minute, so a sum of printed figures can fall short of a printed total (itself floored
+    // from the exact sum) by less than a minute per figure: four segments and the tile's own floor for Recorded (up to 2 minutes), five and the
+    // tile for the book (3). The exact, unfloored agreement is pinned in overview.test.tsx over four books.
     expect(Math.abs(whole - total)).toBeLessThanOrEqual(3);
     expect(Math.abs(value - recorded)).toBeLessThanOrEqual(2);
     expect(within(kpis).getByRole('button', { name: /Open pickups/ }).textContent).not.toMatch(/not measured yet/i);

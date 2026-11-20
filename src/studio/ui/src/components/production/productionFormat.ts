@@ -7,7 +7,7 @@ import { hm } from '../schedule/dates';
 
 const DASH = '—';
 
-/** Hours or seconds as hours and minutes ("5h 40m"), to the nearest minute, through the one hours formatter (`hm`). */
+/** Hours or seconds as hours and minutes ("5h 40m"), floored to the whole minute, through the one hours formatter (`hm`). */
 export function formatClock(amount: number, unit: 'hours' | 'seconds'): string {
   return hm(unit === 'hours' ? amount : amount / 3600);
 }

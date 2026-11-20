@@ -18,8 +18,9 @@ export type ClockOptions = {
   full?: true;
   /**
    * Hours and minutes with their units, "5h 40m" ("0h 10m", "100h 30m"), always marked, so a length of hours beside lengths in minutes and seconds ("10:12") cannot be
-   * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It ROUNDS to the nearest minute (59.6 s reads "0h 01m", where the
-   * floored default reads "0:59"), as the Production figures always did; `full` and the default floor. Overrides the other options except `full`.
+   * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It FLOORS to the whole minute like every other reading (owner, #3443): 61 s, 89 s,
+   * 90 s and 119 s read "0h 01m", 120 s reads "0h 02m", and under a minute (0 < s < 60) it reads "<0h 01m", never "0h 01m", so a figure is never ahead of the time it stands for.
+   * Overrides the other options except `full`.
    */
   marked?: true;
 };
@@ -43,9 +44,15 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
   return `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${pad(whole % 60)}`;
 }
 
-/** "5h 40m" (see `ClockOptions.marked`): to the nearest minute; negative and non-finite input read "0h 00m", as the default reads "0:00"; capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. */
+/**
+ * "5h 40m" (see `ClockOptions.marked`): floored to the whole minute; under a minute (but not zero) "<0h 01m"; negative and non-finite input read "0h 00m", as the default reads "0:00";
+ * capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. A value that is a whole number of minutes in hours
+ * (4 + 35/60 h) is not read one short for the double's sake (a microminute is added before the floor).
+ */
 function clockMarked(seconds: number): string {
-  const minutes = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds / 60)), Math.floor(MAX_FULL_MILLIS / 1000 / 60)) : 0;
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0h 00m';
+  const minutes = Math.min(Math.floor(seconds / 60 + 1e-6), Math.floor(MAX_FULL_MILLIS / 1000 / 60));
+  if (minutes < 1) return '<0h 01m';
   return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m`;
 }
 

@@ -79,11 +79,26 @@ describe('clock, marked', () => {
     expect(clock(5 * 3600 + 40 * 60, { marked: true })).toBe('5h 40m');
     expect(clock(100.5 * 3600, { marked: true })).toBe('100h 30m');
   });
-  it('rounds to the nearest minute, where the default floors', () => {
-    expect(clock(59.6, { marked: true })).toBe('0h 01m');
+  it('floors to the whole minute, like the default: 61 s to 119 s read 0h 01m, 120 s reads 0h 02m', () => {
+    for (const [seconds, text] of [
+      [61, '0h 01m'],
+      [89, '0h 01m'],
+      [90, '0h 01m'],
+      [119, '0h 01m'],
+      [119.9, '0h 01m'],
+      [120, '0h 02m'],
+    ] as const)
+      expect(clock(seconds, { marked: true }), `${seconds} s`).toBe(text);
     expect(clock(59.6)).toBe('0:59');
-    expect(clock(89, { marked: true })).toBe('0h 01m');
-    expect(clock(90, { marked: true })).toBe('0h 02m');
+  });
+  it('reads "<0h 01m" under a minute, never "0h 01m" (and 0 reads 0h 00m)', () => {
+    for (const seconds of [0.4, 1, 29, 59, 59.6, 59.9996]) expect(clock(seconds, { marked: true }), `${seconds} s`).toBe('<0h 01m');
+    expect(clock(0, { marked: true })).toBe('0h 00m');
+    expect(clock(60, { marked: true })).toBe('0h 01m');
+  });
+  it('does not read a whole number of minutes in hours one short for the double', () => {
+    for (const minutes of [1, 7, 35, 59, 61, 275, 6042])
+      expect(clock((minutes / 60) * 3600, { marked: true })).toBe(`${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`);
   });
   it('is capped at a billion seconds, like the full form', () => {
     expect(clock(1e21, { marked: true })).toBe(clock(1e9, { marked: true }));
