@@ -22,6 +22,7 @@ function setup(
     recording?: boolean;
     starting?: boolean;
     endUnconfirmed?: () => boolean;
+    whileRecording?: string;
     leave?: (path: string, proceed: () => void) => Promise<unknown>;
   } = {},
 ) {
@@ -42,6 +43,15 @@ function setup(
   const view = renderHook((props: typeof args) => useChapterNavigation(props), { initialProps: args });
   return { args, view };
 }
+
+describe('changing chapter during a take REAPER started (A1)', () => {
+  it('says to stop it in REAPER, not "Stop the take first", and goes nowhere', () => {
+    const { args, view } = setup({ recording: true, whileRecording: 'REAPER started this take, so stop it in REAPER.' });
+    act(() => view.result.current.step(1));
+    expect(args.choose).not.toHaveBeenCalled();
+    expect(args.toast).toHaveBeenCalledExactlyOnceWith('REAPER started this take, so stop it in REAPER.', 'daw-held');
+  });
+});
 
 describe('changing chapter', () => {
   it('queues presses of Next from the chapter last asked for, not the one still on screen', () => {
@@ -68,7 +78,7 @@ describe('changing chapter', () => {
     const { args, view } = setup({ recording: true });
     act(() => view.result.current.changeChapter({ chapter: 'b' }));
     expect(args.choose).not.toHaveBeenCalled();
-    expect(args.toast).toHaveBeenCalledWith('Stop recording first.');
+    expect(args.toast).toHaveBeenCalledWith('Not while recording. Stop the take first.', 'daw-held');
   });
 
   it('ignores a request for the chapter already on screen', () => {

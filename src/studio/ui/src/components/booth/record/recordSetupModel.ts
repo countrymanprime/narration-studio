@@ -9,6 +9,8 @@ export type RecordSetupFacts = {
   launcherPath: string;
   /** Whether the project the DAW has open is the linked one; `unknown` (or absent) while nothing is linked or the DAW has not been heard. */
   openProject?: OpenProject;
+  /** The DAW records a take this app did not start: the other-project dialog says so. */
+  dawRecording?: boolean;
 };
 
 /**
@@ -19,13 +21,14 @@ export type RecordSetupFacts = {
  * wrong project; the narrator links the open one, or opens the linked one in the DAW.
  */
 export type RecordSetupPlan =
-  { kind: 'connect'; guide: DawConnectGuide; notAnswering: boolean; linked: boolean; launcherPath: string } | { kind: 'other-project'; dawName: string };
+  | { kind: 'connect'; guide: DawConnectGuide; notAnswering: boolean; linked: boolean; launcherPath: string }
+  | { kind: 'other-project'; dawName: string; recording?: true };
 
 export function recordSetupFor(capabilities: DawCapabilities, facts: RecordSetupFacts): RecordSetupPlan | null {
   const record = capabilities.capabilities.record;
   // What stops Record altogether comes first; a wrong project is only the problem once Record could start.
   if (record?.available && facts.openProject === 'different') {
-    return { kind: 'other-project', dawName: recorderName(capabilities.daw) };
+    return { kind: 'other-project', dawName: recorderName(capabilities.daw), ...(facts.dawRecording ? { recording: true as const } : {}) };
   }
   if (!record || record.available) return null;
   switch (record.reason) {

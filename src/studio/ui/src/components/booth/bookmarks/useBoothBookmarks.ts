@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Bookmark } from '../../../api/contracts/bookmarks';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
+import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
+import { HELD_TOPIC } from '../record/useRecordControl';
 import { useJournal, useStoreHandle } from '../../../studio/StudioProvider';
 import { addBookmark, setStop, type BookmarkSpot } from '../../../studio/commands/bookmarks';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
@@ -14,8 +16,6 @@ import { positionOfBookmark, spotAtPosition, spotOfWord } from './boothSpot';
 
 /** How long the ribbon of a bookmark just gone to pulses, as the Script's. */
 const FLASH_MS = 1600;
-/** The sentence the Booth already uses when a chapter change is asked for during a take. */
-const STOP_FIRST = 'Stop recording first.';
 
 export type BoothBookmarksOptions = {
   chapterId: string;
@@ -27,6 +27,8 @@ export type BoothBookmarksOptions = {
   position: ReadingPosition | undefined;
   /** A take is running: the chapter cannot change. */
   recording: boolean;
+  /** Why a bookmark in another chapter is not gone to while a take records (a take the DAW started is stopped there); absent, "Not while recording. Stop the take first.". */
+  whileRecording?: string;
   /** A paragraph's manuscript index (`ManuscriptParagraph.index`), which orders a spot against the host's bookmarks; null when unknown. */
   paragraphIndex: (paragraphId: string) => number | null;
   /** Puts the reading position on a word of this chapter. */
@@ -60,7 +62,7 @@ export type BoothBookmarks = {
  * commands, so the keys, the jump menu and the help sheet come from there. The page passes what it knows and mounts the ribbons.
  */
 export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmarks {
-  const { chapterId, chapters, paragraphs, units, position, recording, paragraphIndex, seek, goToChapter, blocked } = options;
+  const { chapterId, chapters, paragraphs, units, position, recording, whileRecording, paragraphIndex, seek, goToChapter, blocked } = options;
   const overlay = useOverlay();
   const journal = useJournal();
   const store = useStoreHandle();
@@ -111,7 +113,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
     (bookmark: Bookmark) => {
       if (blocked?.()) return;
       if (bookmark.chapterId !== chapterId) {
-        if (recording) return overlay.toast(STOP_FIRST);
+        if (recording) return overlay.toast(whileRecording ?? NOT_WHILE_RECORDING, { topic: HELD_TOPIC });
         return goToChapter(bookmark.chapterId, { paragraphId: bookmark.paragraphId, offset: bookmark.offset });
       }
       const at = positionOfBookmark(paragraphs, bookmark);
@@ -121,7 +123,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
       clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setFlashId(null), FLASH_MS);
     },
-    [chapterId, recording, overlay, goToChapter, paragraphs, seek, blocked],
+    [chapterId, recording, whileRecording, overlay, goToChapter, paragraphs, seek, blocked],
   );
 
   const here = useMemo(() => spotAtPosition(chapterId, paragraphs, position), [chapterId, paragraphs, position]);
