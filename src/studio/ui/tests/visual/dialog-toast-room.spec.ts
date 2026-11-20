@@ -161,7 +161,7 @@ for (const c of CASES) {
         problems.push(`${width}x${height}: the Name field lost focus`);
       // Above 400 px of height the toast changes nothing in the dialog (the test below), so what its own layout hides there is not the toast's doing: the status report's
       // Open the folder has no room in its scroll area at 401-432 px of height with or without a toast (#3605).
-      const found = (await problemsOf(page)).filter((problem) => height <= 400 || !problem.endsWith('px high)'));
+      const found = (await problemsOf(page)).filter((problem) => height <= 400 || !/^Open the folder is hidden \(\d+ of 36 px high\)$/.test(problem));
       if (found.length) problems.push(`${width}x${height}: ${found.join('; ')}`);
     }
     expect(problems).toEqual([]);
@@ -169,7 +169,7 @@ for (const c of CASES) {
 }
 
 // Above 400 px of height a toast coming or going moves nothing in the dialog (#3605: no toast may make a layout jump): the popup and its buttons are where they were once the toast is dismissed.
-for (const c of CASES.filter((one) => one.toasts === 1)) {
+for (const c of CASES) {
   test(`a toast going leaves the dialog where it was above 400 px of height: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
@@ -198,8 +198,12 @@ for (const c of CASES.filter((one) => one.toasts === 1)) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       withToast[`${width}x${height}`] = await boxes();
     }
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
-    await expect(shown(page)).toHaveCount(0);
+    // Each toast in turn: the older one takes the newest's place, then none is left.
+    for (let left = c.toasts; left > 0; left -= 1) {
+      await page.getByRole('button', { name: 'Dismiss message' }).click();
+      await expect(shown(page)).toHaveCount(left > 1 ? 1 : 0);
+      if (left > 1) expect(await boxes(), 'the popup and its buttons as the older toast takes its place').toEqual(withToast[`${sizes.at(-1)!.join('x')}`]);
+    }
     for (const [width, height] of sizes) {
       await page.setViewportSize({ width, height });
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
