@@ -8,7 +8,7 @@ import { ApiProvider } from '../../../../../api/ApiContext';
 import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../../api/contracts/storyBible';
 import { createMockApi } from '../../../../../api/mockApi';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
-import { useEntries, useSpeakers } from '../../data/useScriptData';
+import { useChapterCues, useEntries, useSpeakers } from '../../data/useScriptData';
 import { speakerChoices } from './speakerChoices';
 
 afterEach(cleanup);
@@ -53,7 +53,7 @@ describe('speakers follow the Can speak flag', () => {
         <StudioProvider>{children}</StudioProvider>
       </ApiProvider>
     );
-    const { result } = renderHook(() => ({ speakers: useSpeakers(), entries: useEntries() }), { wrapper });
+    const { result } = renderHook(() => ({ speakers: useSpeakers(), cues: useChapterCues('chapter-1'), entries: useEntries() }), { wrapper });
     await waitFor(() => expect(result.current.speakers.value?.length).toBeGreaterThan(0));
     await waitFor(() => expect(result.current.entries.types.length).toBeGreaterThan(0));
     const cues = result.current.speakers.value as GuideDialogueCue[];

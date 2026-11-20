@@ -1762,6 +1762,15 @@ export function GuideDialogueCues(): $CancellablePromise<string> {
     return $Call.ByID(1741759900);
 }
 
+/**
+ * GuideDialogueCuesIn returns the dialogue cues of the given chapters only,
+ * in the file's order: what a page that draws a few chapters reads instead
+ * of the whole book's cues.
+ */
+export function GuideDialogueCuesIn(chapterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(4235836915, chapterIDs);
+}
+
 export function GuideEdit(id: string, values: { [_ in string]?: string }): $CancellablePromise<string> {
     return $Call.ByID(275232098, id, values);
 }

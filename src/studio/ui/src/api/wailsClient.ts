@@ -385,6 +385,7 @@ export const wailsClient: NarrationApi = {
   guidePronunciationUseAlternate: (id, aliasIndex) =>
     decode(voidResult, 'GuidePronunciationUseAlternate', host.GuidePronunciationUseAlternate(id, aliasIndex ?? null)),
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
+  guideDialogueCuesIn: (chapterIds) => decode(guideDialogueCuesSchema, 'GuideDialogueCuesIn', host.GuideDialogueCuesIn([...chapterIds])),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
   // The name's whole pronunciation as Undo writes it back; `status` is read from an older file only and is never written (the host answers the value it stored).
