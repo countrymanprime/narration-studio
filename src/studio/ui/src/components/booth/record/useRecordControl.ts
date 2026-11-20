@@ -8,6 +8,7 @@ import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
+import { sentenceOr } from './sentenceOr';
 import { takeEndedIn } from './takeWords';
 import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
 import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
@@ -31,8 +32,8 @@ export const notWhileRecording = (daw: DawKind | undefined, followedInDaw: boole
   followedInDaw ? heldInDawSentence(daw, 'stop it') : NOT_WHILE_RECORDING;
 /** The topic of the sentence above: gone when the take ends. */
 export const HELD_TOPIC = 'daw-held';
-/** The topic of the message a refused press of Record leaves up (with Check again): it is about this Booth, so it goes when the Booth does. */
-export const RECORD_BLOCKED_TOPIC = 'record-blocked';
+/** The topic a refused Record's message used before it joined the press's (`PRESS_TOPIC`, which also goes when the Booth does); still dismissed on leaving. */
+const RECORD_BLOCKED_TOPIC = 'record-blocked';
 /** The topic of "the Booth stopped listening" (another lane or project mid-take): up while it has stopped, gone when it follows the take again. */
 const STOPPED_LISTENING_TOPIC = 'daw-stopped-listening';
 /** The topic of the notice that the lane has not been read yet: gone once it is. */
@@ -80,6 +81,11 @@ export type RecordControlState = {
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
+  /**
+   * `reason` is the sentence of the last press (a refusal, a limit, a failure), which the press said as a message already: the footer keeps it for Record's
+   * description and does not draw it a second time (#3322). A standing reason (the gate, a read that failed) is not told by a press, so it is drawn.
+   */
+  told?: boolean;
   /** What stops a press now, or null when Record can start: the same precondition the press would be refused for. */
   gate: RecordBlock | null;
   disabled: boolean;
@@ -977,7 +983,10 @@ export function useRecordControl({
         } else {
           // A press the narrator has left behind ends quietly: no message on whatever page they are on now.
           if (starting && how?.current && !how.current()) return false;
-          const sentence = result.refused ?? result.message;
+          const sentence = sentenceOr(
+            result.refused,
+            sentenceOr(result.message, starting ? 'The DAW did not start recording.' : 'The DAW did not stop recording.'),
+          );
           setRefused({ chapterId, sentence });
           // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
           if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
@@ -1088,6 +1097,7 @@ export function useRecordControl({
     stop,
     startedByApp: !startedInDaw,
     reason,
+    told: !check && shown !== '',
     gate,
     disabled: !recording && (!!check || blind),
     toggle,

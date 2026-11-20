@@ -58,7 +58,7 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 const TEXT_SCROLL_CUE =
   '[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
-function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessage; dismiss: (id: number) => void; waiting?: boolean }) {
+function ToastItem({ message, dismiss, alone, waiting = false }: { message: ToastMessage; dismiss: (id: number) => void; alone: boolean; waiting?: boolean }) {
   const [leaving, setLeaving] = useState(false);
   // A message taller than the toast may be is read by scrolling its text, which then needs the keyboard too: it takes focus only while it overflows.
   const text = useRef<HTMLSpanElement>(null);
@@ -74,6 +74,10 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
   }, [message.text]);
   const isError = message.tone === 'error';
   const { id } = message;
+  // In a window narrower than 24rem a message that is the only one showing and has an action puts it, and Dismiss, on a row under the text, so the text keeps the width of the toast instead
+  // of the sliver left beside two buttons (#3322); a stack keeps the buttons beside the text, because rows of buttons under each of several messages would not fit a short window; the row wraps only when the text does not fit beside the buttons (a short message with an action stays on one row), so the text's width is capped at what the glyph leaves of the row (a long one fills the first row and the buttons wrap under it; a short one keeps them beside it).
+  const withAction = message.action !== undefined && alone;
+  const glyph = isError || message.icon !== undefined;
   const stays = toastLifetimeMs(message);
   // A pointer resting on the toast or focus inside it holds the timer; leaving starts the full time again, so a message is never taken from under a hand or a key.
   const hover = useRef(false);
@@ -146,7 +150,7 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative ${waiting ? 'hidden' : 'flex'} min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`relative ${waiting ? 'hidden' : 'flex'} ${withAction ? 'max-[24rem]:flex-wrap max-[24rem]:[--toast-action-row:2.75rem] max-[24rem]:[:root[data-modal-open]_&]:flex-nowrap max-[24rem]:[:root[data-modal-open]_&]:[--toast-action-row:0rem]' : ''} min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
@@ -177,14 +181,14 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className={`max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
+        className={`${withAction ? (glyph ? 'max-[24rem]:max-w-[calc(100%-1.75rem)] max-[24rem]:[:root[data-modal-open]_&]:max-w-none' : 'max-[24rem]:max-w-full max-[24rem]:[:root[data-modal-open]_&]:max-w-none') : ''} max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-var(--toast-reserve,0px)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
       >
         {message.text}
       </span>
       {message.action && (
         <button
           title={message.action.label}
-          className={`line-clamp-3 max-w-[40%] flex-none text-left font-semibold [overflow-wrap:anywhere] underline underline-offset-2 ${HIT_AREA}`}
+          className={`line-clamp-3 max-w-[40%] flex-none text-left font-semibold [overflow-wrap:anywhere] underline underline-offset-2 max-[24rem]:ml-auto ${HIT_AREA}`}
           onClick={(event) => {
             const button = event.currentTarget;
             const had = button.contains(document.activeElement);
@@ -355,7 +359,9 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         {
           '--toast-n': Math.max(1, messages.length),
           // The bars the toasts rise above (`--toast-clear`, the Booth's footer and notice) never take more of a short window than leaves the toasts 8rem to stand in.
-          '--toast-reserve': 'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - 8rem))',
+          // ... and, with several toasts, the room each needs at its least (45 px, 0.5rem apart): four toasts would otherwise stand 30 px above the top of a 300 px window (#3322). That cap wins over `--toast-clear`: a stack of three or four in a small window may lie over a bar's own note, by design, because every toast and button must stay inside the window.
+          '--toast-reserve':
+            'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - max(8rem, calc(var(--toast-n, 1) * 2.8125rem + (var(--toast-n, 1) - 1) * 0.5rem + 0.25rem))))',
         } as CSSProperties
       }
       onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
@@ -371,14 +377,14 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         {mounted
           .filter((message) => message.tone === 'error')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} alone={messages.length === 1} />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {mounted
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} alone={messages.length === 1} waiting={waits(message)} />
           ))}
       </div>
     </div>,
