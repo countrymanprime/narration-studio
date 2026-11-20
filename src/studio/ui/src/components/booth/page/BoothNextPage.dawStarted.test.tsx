@@ -50,6 +50,7 @@ function mount(
 ) {
   const armRefusal = 'REAPER is recording. Stop recording first.';
   let recording = alreadyRecording;
+  let laneStatus = status;
   const listeners = new Set<(next: DawTransport) => void>();
   const base = dawFor('reaper');
   const recordStop = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
@@ -91,7 +92,7 @@ function mount(
     dawReleaseBoothMonitor,
     dawGoToChapter,
     readAloudReaperState: async (chapterId: string) => ({
-      status: recording ? (hereFor && chapterId !== hereFor ? 'recording_elsewhere' : status) : 'ready',
+      status: recording ? (hereFor && chapterId !== hereFor ? 'recording_elsewhere' : laneStatus) : 'ready',
       message: '',
       trackGuid: '{T}',
       armedCount: 1,
@@ -122,7 +123,15 @@ function mount(
       act(async () => states.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state }))),
     event: (event: TeleprompterEvent) => act(async () => events.forEach((on) => on(event))),
   };
+  /** What the host answers for the lane from now on, and a window focus, which makes the Booth ask again. */
+  const lane = (next: ReadAloudReaperStatus) =>
+    act(async () => {
+      laneStatus = next;
+      window.dispatchEvent(new Event('focus'));
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
   return {
+    lane,
     navigate,
     session,
     recordStart,
@@ -172,6 +181,27 @@ describe('a page for another chapter does not drop the claim of the chapter the 
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
     await waitFor(() => expect(back.recordStop).toHaveBeenCalledTimes(1));
     expect(first.recordStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('a take the Booth stopped following did not end (QA round 5 B2)', () => {
+  it('says it stopped listening, offers no check and no end, and follows the take again when its lane answers again', async () => {
+    const { inDaw, lane } = mount('recording_here');
+    await ready();
+    await inDaw(true);
+    await stopShown();
+
+    await lane('recording_elsewhere');
+    const said = 'REAPER is recording another track now, so the Booth stopped listening.';
+    await waitFor(() => expect(screen.getByText(said)).toBeTruthy());
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+    // Nothing says the take ended, and no recording check is offered for it.
+    expect(screen.queryByText(/The take ended/)).toBeNull();
+    expect(screen.queryByText(/Check this recording/)).toBeNull();
+
+    await lane('recording_here');
+    await stopShown();
+    await waitFor(() => expect(screen.queryByText(said)).toBeNull());
   });
 });
 

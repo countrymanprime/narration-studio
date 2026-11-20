@@ -40,6 +40,7 @@ import {
   useRecordControl,
   type RecordBlock,
 } from '../record/useRecordControl';
+import { takeEndedIn, TAKE_SAVED } from '../record/takeWords';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -57,7 +58,6 @@ import { clock } from '../../../clock';
 import { pageNameFor } from '../../layout/railPages';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
-const TAKE_SAVED = 'Take saved';
 const CHECK_OFFER = 'Check this recording against the script?';
 /** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
 const CHECK_OFFER_MS = 10_000;
@@ -307,6 +307,7 @@ export function useBoothPage(options: BoothPageOptions) {
     session,
     recording,
     startedByApp: true,
+    stoppedListening: false,
     takeOut: recording,
     elapsed: takeClock.read,
   });
@@ -324,6 +325,7 @@ export function useBoothPage(options: BoothPageOptions) {
     session,
     recording,
     startedByApp: control.startedByApp,
+    stoppedListening: control.stoppedListening,
     takeOut: recording || control.starting,
     elapsed: takeClock.read,
   };
@@ -940,12 +942,21 @@ export function useBoothPage(options: BoothPageOptions) {
       endTakeClaim();
       return;
     }
+    // The Booth only stopped listening to a take the DAW is still recording (another lane or project): it did not end, so nothing is said of an end, no pickup is marked and no
+    // check is offered. What this page wrote of it is closed, and the listening goes; the take is followed again when its lane answers again.
+    if (now.stoppedListening) {
+      if (place) void writer.stop(place, now.elapsed());
+      if (now.session.active) now.session.stop();
+      endTakeClaim();
+      takeBegan.current = null;
+      return;
+    }
     // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setPunchAt(null);
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
     const followed = takeByDaw.current;
-    setTakeNote(followed ? `The take ended in ${recorderLabel}.` : `Stopped. Recorded ${timerText(now.elapsed())}.`);
+    setTakeNote(followed ? takeEndedIn(recorderLabel) : `Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     // A take ended by "Stop and leave" ends its listening for the same leave: retried after this page is gone, and said on the next page if refused twice.
     if (now.session.active) {

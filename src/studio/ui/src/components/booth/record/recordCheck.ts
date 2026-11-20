@@ -1,6 +1,7 @@
 import type { ChapterLinkState } from '../../chapterTracks/chapterLink';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { recorderName, recorderNameCapital, wrongProjectReason } from '../../../studio/dawNames';
+import { recordingATakeNow } from './takeWords';
 
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
@@ -15,7 +16,7 @@ export type ChapterRecordState = {
 
 /** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
 export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'no_project' | 'unread';
-/** The reason the Booth is not following the take, after "the DAW is recording"; the one place these words are written (the footer, the chip's tooltip). */
+/** The reason the Booth is not following the take, after "the DAW is recording", for the footer and the chip's tooltip (the chip words its own opener and the two reasons that are no clause). */
 export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, string> = {
   other_track: 'on another track, so the Booth is not following it',
   several_tracks: 'with several tracks armed, so the Booth is not following it',
@@ -44,7 +45,7 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
     // A take running in it (the DAW recording in the other project) is part of what the narrator must know before fixing the project.
     return {
       code: 'wrong_project',
-      reason: `${wrongProjectReason(capabilities.daw)}${chapter.elsewhere ? ` ${recorderNameCapital(capabilities.daw)} is recording a take now.` : ''}`,
+      reason: `${wrongProjectReason(capabilities.daw)}${chapter.elsewhere ? ` ${recordingATakeNow(recorderNameCapital(capabilities.daw))}` : ''}`,
     };
   }
   if (chapter.elsewhere) {

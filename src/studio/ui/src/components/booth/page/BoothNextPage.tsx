@@ -411,6 +411,7 @@ function BoothSession({
     onJump: jumpToLine,
     blocked: page.moveBlocked,
     initialAt: pickAt,
+    whileRecording,
   });
   // A take that read over a suspected line puts it on the shared pickup list; the pickup session's toast, when it had one, said it was saved.
   const suspected = useSuspectedPickups({ chapterId: recordId, flags: page.flags });
@@ -446,6 +447,7 @@ function BoothSession({
     // The credits chapters have no paragraphs: nothing there can be bookmarked.
     position: chapter ? page.position : undefined,
     recording: control.recording,
+    whileRecording,
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
@@ -651,7 +653,7 @@ function BoothSession({
     choose,
     chapters: pickerChapters,
     toast: (text, topic) => overlay.toast(text, topic ? { topic } : undefined),
-    heldInDaw: control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'stop it') : undefined,
+    whileRecording,
   });
 
   useBoothPageCommands({

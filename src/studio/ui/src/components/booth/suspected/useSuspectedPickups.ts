@@ -7,7 +7,7 @@ import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 import { pluralWord, formatCount } from '../../../plural';
-import { takeToastOpener } from '../pickups/usePickupSession';
+import { takeToastOpener } from '../record/takeWords';
 
 /**
  * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast unless `survivesMoves` is set (Stop and leave: the sentence is shown with no Undo, and the move does not take it

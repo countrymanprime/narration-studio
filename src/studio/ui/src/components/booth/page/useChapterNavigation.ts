@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { HELD_TOPIC } from '../record/useRecordControl';
+import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
 import { boothQuery, type BoothChapterTarget } from './boothQuery';
 
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
@@ -26,8 +27,8 @@ type Args = {
   /** The chapter list in order, the credits included. */
   chapters: readonly { id: string }[];
   toast: (text: string, topic?: string) => void;
-  /** With a take the DAW started that the Booth follows: what to say instead of "Stop recording first.", which this app cannot do for it. */
-  heldInDaw?: string;
+  /** Why the chapter does not change while a take records (`notWhileRecording`: a take the DAW started is stopped there). */
+  whileRecording?: string;
 };
 
 /**
@@ -46,7 +47,7 @@ export function useChapterNavigation({
   choose,
   chapters,
   toast,
-  heldInDaw,
+  whileRecording,
 }: Args): {
   changeChapter: (target: BoothChapterTarget) => void;
   step: (direction: -1 | 1) => void;
@@ -110,8 +111,7 @@ export function useChapterNavigation({
     // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
     if (sameSource(target, current) && !asked.current) return;
     if (recording) {
-      if (heldInDaw) toast(heldInDaw, HELD_TOPIC);
-      else toast('Stop recording first.');
+      toast(whileRecording ?? NOT_WHILE_RECORDING, HELD_TOPIC);
       return;
     }
     if (starting) {

@@ -16,6 +16,7 @@ import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
 import { capitalised } from '../../../studio/dawNames';
+import { recordingATakeNow } from './takeWords';
 
 /** How long the Booth leaves a DAW that stopped answering before it asks: the Booth has always given it longer than the pages (a take can be running when the DAW goes quiet). */
 const BOOTH_CONNECT_GRACE_MS = 20_000;
@@ -153,7 +154,7 @@ function OtherProject({
       {dialog.open && (
         <ResolveShell
           title={`${Name} has a different project open`}
-          description={`${recording ? `${Name} is recording a take now. ` : ''}A take would not land in the project linked here. Open the linked project in ${dawName}, or link the open project.`}
+          description={`${recording ? `${recordingATakeNow(Name)} ` : ''}A take would not land in the project linked here. Open the linked project in ${dawName}, or link the open project.`}
           onClose={dialog.close}
           primary={{ label: 'Link the open project', onPress: () => void linkOpen(), pending: busy }}
           secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}

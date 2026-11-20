@@ -50,6 +50,8 @@ type World = {
   linked?: boolean;
   /** The next read of the link (`bootstrap`) waits for this, once. */
   bootstrapGate?: Promise<void> | null;
+  /** Reads of the DAW's transport (`projectState`) fail. */
+  projectFails?: boolean;
   /** Reads of the DAW's capabilities wait for this. */
   capsGate?: Promise<void> | null;
 };
@@ -80,7 +82,7 @@ async function open(init: Partial<World> = {}, chapterId = 'c1') {
     subscribeCapabilities: (listener) => (capabilityListeners.add(listener), () => void capabilityListeners.delete(listener)),
     subscribeTransport: (listener) => (transportListeners.add(listener), () => void transportListeners.delete(listener)),
     projectState: async (): Promise<DawProjectState> => {
-      if (world.quiet) throw new Error('no answer');
+      if (world.quiet || world.projectFails) throw new Error('no answer');
       return {
         savedAt: null,
         unsavedChanges: false,
@@ -398,7 +400,7 @@ describe('a take being followed is read again (QA B4, B8)', () => {
     await tick();
 
     expect(hook.result.current.recording).toBe(false);
-    expect(notify).toHaveBeenCalledWith('REAPER is recording another track now, so the Booth stopped listening.', HELD_TOPIC);
+    expect(notify).toHaveBeenCalledWith('REAPER is recording another track now, so the Booth stopped listening.', 'daw-stopped-listening');
     expect(recordStop).not.toHaveBeenCalled();
   });
 
@@ -408,7 +410,7 @@ describe('a take being followed is read again (QA B4, B8)', () => {
     world.sameProject = false;
     await tick();
     expect(hook.result.current.recording).toBe(false);
-    expect(notify).toHaveBeenCalledWith('REAPER has another project open now, so the Booth stopped listening.', HELD_TOPIC);
+    expect(notify).toHaveBeenCalledWith('REAPER has another project open now, so the Booth stopped listening.', 'daw-stopped-listening');
   });
 
   it('keeps following when a read fails: nothing is concluded from it', async () => {
@@ -609,43 +611,42 @@ describe('a take is followed only on a read made after it was seen (QA B6, B7, B
     expect(view.onStarted).toHaveBeenCalledWith(expect.objectContaining({ position: 42 }));
   });
 
-  it('a take the Booth stopped following is not begun a second time when its lane is armed alone again; the next take is (B9)', async () => {
+  it('a take the Booth stopped following is followed again once the lane answers again; the sentence stays up meanwhile and the take is not said to have ended (QA round 5 B2)', async () => {
     const view = await open();
     await view.dawTake(true);
+    const dismiss = vi.spyOn(view.overlay, 'dismissTopic');
+    dismiss.mockClear();
     view.world.status = 'recording_elsewhere';
     view.world.armedCount = 2;
     await tick();
     expect(view.hook.result.current.recording).toBe(false);
+    expect(view.hook.result.current.stoppedListening).toBe(true);
+    // Said, and still up after the render that says it: nothing took it away.
+    expect(dismiss).not.toHaveBeenCalledWith('daw-stopped-listening');
+    expect(view.notify).not.toHaveBeenCalledWith('The take ended in REAPER.', TAKE_TOPIC);
 
     view.world.status = 'recording_here';
     view.world.armedCount = 1;
     await tick();
     await tick();
-    expect(view.hook.result.current.recording).toBe(false);
-    expect(view.onStarted).toHaveBeenCalledTimes(1);
-
-    await view.dawTake(false);
-    await view.dawTake(true);
     expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.stoppedListening).toBe(false);
     expect(view.onStarted).toHaveBeenCalledTimes(2);
+    expect(dismiss).toHaveBeenCalledWith('daw-stopped-listening');
+    expect(view.recordStop).not.toHaveBeenCalled();
   });
-});
 
-describe("a claim is taken back only on the chapter's lane in the linked project (QA R1-R6)", () => {
-  it.each<[string, Partial<World>]>([
-    ['another lane', { status: 'recording_elsewhere' }],
-    ['another project', { sameProject: false }],
-  ])("a claim kept across a left Booth is not taken back for a take REAPER runs on %s: it is REAPER's and gets no stop", async (_name, change) => {
-    const first = await open();
-    await appRecords(first);
-    first.hook.unmount();
-    // The take is stopped in REAPER and another is started where the Booth was not looking.
-    const second = await open({ recording: true, ...change });
+  it('the same for another project opened and closed again (QA round 5 T3b)', async () => {
+    const view = await open();
+    await view.dawTake(true);
+    view.world.sameProject = false;
     await tick();
-    expect(second.hook.result.current.recording).toBe(false);
-    await act(async () => void (await second.hook.result.current.toggle()));
-    expect(second.recordStop).not.toHaveBeenCalled();
-    expect(second.recordStart).not.toHaveBeenCalled();
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.hook.result.current.stoppedListening).toBe(true);
+    view.world.sameProject = true;
+    await tick();
+    await tick();
+    expect(view.hook.result.current.recording).toBe(true);
   });
 
   it('a claim kept across a quiet DAW is not taken back for a take REAPER runs on another lane when it answers again', async () => {
@@ -696,7 +697,7 @@ describe("a claim is taken back only on the chapter's lane in the linked project
     await view.dawTake(true);
     await act(async () => void (await view.hook.result.current.toggle()));
     expect(view.recordStart).not.toHaveBeenCalled();
-    expect(view.notify).toHaveBeenCalledWith(expect.stringMatching(/has not yet checked whether it is this chapter's/));
+    expect(view.notify).toHaveBeenCalledWith(expect.stringMatching(/has not yet checked whether it is this chapter's/), 'daw-undecided');
   });
 
   it('a stopped transport heard before the DAW has answered once does not drop the claim (R4)', async () => {
@@ -929,5 +930,75 @@ describe("the app's claim on its own take is dropped only on a positive answer; 
     release();
     await act(async () => void (await press));
     expect(view.recordStart).not.toHaveBeenCalled();
+  });
+});
+
+describe('the claim is ended outside any Booth, and what is only a stop of listening is not an end (QA round 5)', () => {
+  it("a take REAPER started while no Booth was open is REAPER's, on the claim's lane and on another chapter's (B1)", async () => {
+    for (const chapter of ['c1', 'c2']) {
+      forgetAppTake();
+      const first = await open();
+      await appRecords(first);
+      first.hook.unmount();
+      // The take is stopped in REAPER with no Booth open, and REAPER records another.
+      await first.dawTake(false);
+      await settle();
+      const later = await open({ recording: true }, chapter);
+      await tick();
+      expect(later.hook.result.current.recording, chapter).toBe(true);
+      expect(later.hook.result.current.startedByApp, `a take REAPER started is read as the app's (${chapter})`).toBe(false);
+      await act(async () => void (await later.hook.result.current.toggle()));
+      expect(later.recordStop).not.toHaveBeenCalled();
+      later.hook.unmount();
+    }
+  });
+
+  it('a late end confirmation from a Booth that is gone drops nothing (B4)', async () => {
+    const first = await open();
+    await first.dawTake(true);
+    let answer: () => void = () => {};
+    first.world.capsGate = new Promise<void>((resolve) => (answer = resolve));
+    await first.dawTake(false);
+    first.hook.unmount();
+    const second = await open();
+    await appRecords(second);
+    first.world.capsGate = null;
+    answer();
+    await settle();
+    second.hook.unmount();
+    const third = await open({ recording: true });
+    await tick();
+    await tick();
+    expect(third.hook.result.current.recording).toBe(true);
+    expect(third.hook.result.current.startedByApp, "the earlier take's late confirmation dropped the claim of the take pressed since").toBe(true);
+  });
+
+  it('a transport event is heard when the first project read failed (B3)', async () => {
+    const view = await open({ projectFails: true });
+    await view.dawTake(true);
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.startedByApp).toBe(false);
+  });
+
+  it('the notice that the lane is not read yet goes when it is: the take is followed (B5)', async () => {
+    const view = await open({ lane: 'hang' });
+    await view.dawTake(true);
+    await act(async () => void (await view.hook.result.current.toggle()));
+    expect(view.notify).toHaveBeenCalledWith(expect.stringMatching(/has not yet checked/), 'daw-undecided');
+    const dismiss = vi.spyOn(view.overlay, 'dismissTopic');
+    dismiss.mockClear();
+    view.world.lane = 'live';
+    act(() => view.hook.result.current.checkAgain());
+    await settle();
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(dismiss).toHaveBeenCalledWith('daw-undecided');
+  });
+
+  it('a lane read that never answers is asked again at the short poll, not the long one (B6)', async () => {
+    const view = await open({ lane: 'hang' });
+    await view.dawTake(true);
+    view.world.lane = 'live';
+    await tick();
+    expect(view.hook.result.current.recording).toBe(true);
   });
 });

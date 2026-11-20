@@ -22,7 +22,7 @@ function setup(
     recording?: boolean;
     starting?: boolean;
     endUnconfirmed?: () => boolean;
-    heldInDaw?: string;
+    whileRecording?: string;
     leave?: (path: string, proceed: () => void) => Promise<unknown>;
   } = {},
 ) {
@@ -45,8 +45,8 @@ function setup(
 }
 
 describe('changing chapter during a take REAPER started (A1)', () => {
-  it('says to stop it in REAPER, not "Stop recording first.", and goes nowhere', () => {
-    const { args, view } = setup({ recording: true, heldInDaw: 'REAPER started this take, so stop it in REAPER.' });
+  it('says to stop it in REAPER, not "Stop the take first", and goes nowhere', () => {
+    const { args, view } = setup({ recording: true, whileRecording: 'REAPER started this take, so stop it in REAPER.' });
     act(() => view.result.current.step(1));
     expect(args.choose).not.toHaveBeenCalled();
     expect(args.toast).toHaveBeenCalledExactlyOnceWith('REAPER started this take, so stop it in REAPER.', 'daw-held');
@@ -78,7 +78,7 @@ describe('changing chapter', () => {
     const { args, view } = setup({ recording: true });
     act(() => view.result.current.changeChapter({ chapter: 'b' }));
     expect(args.choose).not.toHaveBeenCalled();
-    expect(args.toast).toHaveBeenCalledWith('Stop recording first.');
+    expect(args.toast).toHaveBeenCalledWith('Not while recording. Stop the take first.', 'daw-held');
   });
 
   it('ignores a request for the chapter already on screen', () => {

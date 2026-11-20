@@ -4,6 +4,9 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { retryAction } from '../../primitives/Toast';
+import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
+import { HELD_TOPIC } from '../record/useRecordControl';
+import { takeToastOpener } from '../record/takeWords';
 import { usePort } from '../../../ports/usePort';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
@@ -24,6 +27,8 @@ export type PickupSessionOptions = {
   blocked?: () => boolean;
   /** The line the session was on before the page changed chapter under it; left out: the first line. */
   initialAt?: string | null;
+  /** Why a jump is refused while a take records (a take the DAW started is stopped there); absent, "Not while recording. Stop the take first.". */
+  whileRecording?: string;
 };
 
 /**
@@ -31,9 +36,6 @@ export type PickupSessionOptions = {
  * `survivesMoves`: the stop is the narrator's Stop and leave, so the sentence that says the take is saved is still shown, as a plain toast with no Undo, which the move does not take away (#3529). `undoTake` and
  * `entry`: the take's history entry, when a DAW stopped it; the toast's Undo takes the take back in the DAW before the marks.
  */
-/** What a toast that says what a take left behind opens with: the app saved a take it stopped, and only saw a take the DAW started end. */
-export const takeToastOpener = (byDaw: boolean): string => (byDaw ? 'The take ended' : 'Take saved');
-
 export type StoppedTake = {
   began: number;
   stopped: number;
@@ -69,7 +71,7 @@ export type PickupSessionModel = {
  * host to its marker, a refusal being the answer. `N` and `Shift+N` are registered only while a session runs.
  */
 export function usePickupSession(options: PickupSessionOptions): PickupSessionModel {
-  const { ids, chapterId, units, recording, onJump, blocked, initialAt = null } = options;
+  const { ids, chapterId, units, recording, onJump, blocked, initialAt = null, whileRecording } = options;
   const pickups = usePort('pickups');
   const overlay = useOverlay();
   const journal = useJournalOrOwn();
@@ -97,8 +99,8 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   const at = active ? (lines.find((item) => item.id === picked)?.id ?? lines[0]?.id ?? null) : null;
   const bars = useMemo(() => pickupBars(lines, chapterId), [lines, chapterId]);
 
-  const latest = useRef({ lines, at, units, chapterId, recording, onJump, blocked });
-  latest.current = { lines, at, units, chapterId, recording, onJump, blocked };
+  const latest = useRef({ lines, at, units, chapterId, recording, onJump, blocked, whileRecording });
+  latest.current = { lines, at, units, chapterId, recording, onJump, blocked, whileRecording };
 
   const take = useCallback((answer: PickupList) => setList(answer.pickups), []);
 
@@ -107,7 +109,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
       const now = latest.current;
       if (!line) return;
       if (now.recording) {
-        overlay.toast('Stop recording first.');
+        overlay.toast(now.whileRecording ?? NOT_WHILE_RECORDING, { topic: HELD_TOPIC });
         return;
       }
       if (now.blocked?.()) return;
