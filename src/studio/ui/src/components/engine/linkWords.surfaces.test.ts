@@ -3,6 +3,7 @@ import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 import type { ChapterTrackLink } from '../../types';
 import { linkStateLabel, type ChapterLinkState } from '../chapterTracks/chapterLink';
 import { noAudioText } from '../editing/page/noAudioText';
+import { noRecordingWhy } from '../proof/checkcard/cardSelectors';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../production/chapterCheckStatus';
 import { chapterTrackButtonLabel, chapterTrackButtonState, noShowableTrackReason, type ChapterTrackButtonState } from '../production/chapterTrackButtonState';
 import { chapter } from '../production/pipeline/pipelineFixtures';
@@ -98,6 +99,8 @@ const SURFACES: Record<string, (layout: VoiceTracksLayout) => string[]> = {
       });
       return [row!.recorded.text, row!.recorded.label, row!.recorded.tip];
     }),
+  'Proof: why the check card has no recording to check': (layout) =>
+    (['unlinked', 'multiple_tracks', 'track_missing', 'no_project'] as const).map((reason) => noRecordingWhy(reason, layout).text),
   'Editing: the no-audio notice for an unlinked or missing chapter': (layout) =>
     [
       noAudioText({ kind: 'unlinked' }, 'Chapter 1', 'REAPER', layout),

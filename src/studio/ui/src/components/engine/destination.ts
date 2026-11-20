@@ -29,6 +29,8 @@ export function destinationFor(layout: VoiceTracksLayout) {
   return {
     folders,
     noun,
+    /** The noun capitalised, for a label or a title ("Folder for Chapter 1"). */
+    Noun: folders ? 'Folder' : 'Track',
     /** "a track" or "a folder of voice tracks". */
     a,
     notLinkedTitle: (chapter: string) => `${chapter} is not linked to a ${noun}`,
@@ -39,6 +41,14 @@ export function destinationFor(layout: VoiceTracksLayout) {
     missingChip: linkStateLabel('missing', folders),
     linkButton: `Link ${noun}`,
     pickerLabel: (chapter: string) => `${folders ? 'Folder' : 'Track'} for ${chapter}`,
+    /** The Engine row's and the mapping dialog's line for a link whose track the project no longer has. */
+    linkedMissing: `Linked ${noun} is missing from this project`,
+    /** Why a chapter has no measured recording, for the Proof check card. */
+    noRecordingWhy: {
+      unlinked: `No ${noun} is linked to it.`,
+      multiple_tracks: `More than one ${noun} is linked to it.`,
+      track_missing: `Its linked ${noun} is not in the saved project.`,
+    },
     /** The Booth dialog's sentence while Record waits for a link. */
     recordWaits: (chapter: string) => `Record can't start until ${chapter} has ${a} to record on.`,
     recordWaitsMissing: (chapter: string) => `Record can't start until ${chapter} is linked to ${a} that is in the project.`,

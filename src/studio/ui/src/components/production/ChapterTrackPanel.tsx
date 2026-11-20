@@ -83,8 +83,7 @@ export function ChapterTrackPanel({
   const tracks: Track[] | undefined = trackState.project?.tracks;
   const layout = useVoiceLayout();
   // What a chapter links to, in the project's words: a track, or a folder in a Voice folders project.
-  const { noun } = destinationFor(layout);
-  const Noun = noun === 'folder' ? 'Folder' : 'Track';
+  const { noun, Noun } = destinationFor(layout);
   const tracksError = tracks ? '' : trackState.live.error;
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);

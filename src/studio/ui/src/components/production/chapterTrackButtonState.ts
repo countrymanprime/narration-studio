@@ -88,8 +88,8 @@ export function noShowableTrackReason(link: ChapterTrackLink | undefined, layout
 
 /** The button's accessible name (Solution Detail's examples: "Track for Chapter 6: CHAPTER SIX, linked"; a folder in a Voice folders project). */
 export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrackButtonState, layout: VoiceTracksLayout): string {
-  const { noun } = destinationFor(layout);
-  const head = `${noun === 'folder' ? 'Folder' : 'Track'} for ${chapterTitle}`;
+  const { noun, pickerLabel } = destinationFor(layout);
+  const head = pickerLabel(chapterTitle);
   switch (state.kind) {
     case 'linked':
       return `${head}: ${state.trackName}, linked`;

@@ -434,12 +434,8 @@ function ChapterLinkRow({
             {destination.severalChip}
           </span>
         ) : (
-          <span
-            className="line-clamp-2 leading-[1.125rem]"
-            style={{ color: 'var(--danger-text)' }}
-            title={`Linked ${destination.noun} is missing from this project`}
-          >
-            Linked {destination.noun} is missing from this project
+          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }} title={destination.linkedMissing}>
+            {destination.linkedMissing}
           </span>
         )}
       </TableCell>

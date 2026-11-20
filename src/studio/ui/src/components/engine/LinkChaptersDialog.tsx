@@ -204,8 +204,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const layout = useVoiceLayout();
   const voiceFolders = layout === 'folders';
-  const noun = destinationFor(layout).noun;
-  const Noun = noun[0]!.toUpperCase() + noun.slice(1);
+  const { noun, pickerLabel } = destinationFor(layout);
   const trackOptions = [
     { value: '', label: linkStateLabel('unlinked', voiceFolders) },
     ...tracks.map((track) => {
@@ -322,7 +321,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 <TableCell>{headingName(chapter)}</TableCell>
                 <TableCell>
                   <Select
-                    label={`${Noun} for ${chapterName(chapter, 'short')}`}
+                    label={pickerLabel(chapterName(chapter, 'short'))}
                     value={severalRow ? SEVERAL_VALUE : (mapping?.trackGuid ?? '')}
                     onChange={(value) => (value === SEVERAL_VALUE ? undefined : value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}
