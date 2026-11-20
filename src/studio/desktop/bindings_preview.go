@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -150,8 +151,14 @@ func previewAudioEvidence(svc hostServices, chapters []preview.Chapter, manuscri
 	sourceHash := previewManuscriptSourceHash(manuscriptService)
 	settings := coverageSettings(svc.settings)
 	result := make(map[string]preview.ChapterAudioEvidence, len(chapters))
+	// The saved project is read once for the book, as the pickups list reads it: read per chapter, every take's source file was looked
+	// up on disk once for every chapter (issue 3766). A project that cannot be read leaves every chapter not current, as Result answers it.
+	view := svc.coverage.EvidenceView(context.Background(), manuscriptDocumentID(svc.manuscript))
 	for _, chapter := range chapters {
-		coverageResult, _ := svc.coverage.Result(chapter.ID, settings.Alignment)
+		var coverageResult coverage.ChapterResult
+		if view.ProjectErr == nil {
+			coverageResult, _ = svc.coverage.ResultIn(view.Project, view.ProjectFile, chapter.ID, settings.Alignment)
+		}
 		paragraphIDs := previewParagraphIDsForChapter(manuscriptService, chapter.ID)
 		result[chapter.ID] = preview.ChapterAudioEvidence{
 			Coverage:       previewCoverageSignal(coverageResult, settings),
