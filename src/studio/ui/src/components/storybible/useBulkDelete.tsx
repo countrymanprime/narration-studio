@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { formatCount, plural, pluralWord } from '../../plural';
@@ -40,9 +40,18 @@ export function useBulkDelete({
   const targets = useMemo(() => ticked.filter((entry) => !entry.locked), [ticked]);
   const kept = ticked.length - targets.length;
 
-  const ask = () => {
-    if (openId !== undefined && targets.some((entry) => entry.id === openId)) guarded(() => setAsking(true));
-    else setAsking(true);
+  const ask = () => setAsking(true);
+  // The question is dropped when nothing is ticked any more, so the next tick does not bring it back unasked.
+  const anyTicked = ticked.length > 0;
+  useEffect(() => {
+    if (!anyTicked) setAsking(false);
+  }, [anyTicked]);
+  // Deleting the open entry with unsaved changes in it asks about them only once the delete itself is confirmed, so Cancel on either question keeps the edit.
+  const confirm = () => {
+    if (openId !== undefined && targets.some((entry) => entry.id === openId)) {
+      setAsking(false);
+      guarded(() => void run());
+    } else void run();
   };
   const run = async () => {
     setPending(true);
@@ -91,13 +100,13 @@ export function useBulkDelete({
   const dialog = asking ? (
     <ConfirmDialog
       title={`Delete ${plural(targets.length, 'entry', 'entries')}`}
-      body={`Delete the ${plural(targets.length, 'entry', 'entries')} you ticked, with their aliases, evidence, and relationships? This cannot be undone.${
+      body={`Delete the ${plural(targets.length, 'entry', 'entries')} you ticked, with ${pluralWord(targets.length, 'its', 'their')} aliases, evidence, and relationships? This cannot be undone.${
         kept > 0 ? ` ${plural(kept, 'locked entry', 'locked entries')} ${pluralWord(kept, 'is', 'are')} kept.` : ''
       }`}
       confirmLabel={`Delete ${plural(targets.length, 'entry', 'entries')}`}
       confirmVariant="danger"
       pending={pending}
-      confirm={() => void run()}
+      confirm={confirm}
       cancel={() => setAsking(false)}
       returnFocus={() => (openId ? entryRowElement(openId) : null)}
     />

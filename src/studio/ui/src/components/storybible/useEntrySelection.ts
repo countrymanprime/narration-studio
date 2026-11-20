@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /** The entries ticked in the Story Bible's list (#3662). */
 export type EntrySelection = {
@@ -20,6 +20,10 @@ export function useEntrySelection(order: readonly string[]): EntrySelection {
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const anchor = useRef<string | undefined>(undefined);
   const ids = useMemo(() => order.filter((id) => ticked.has(id)), [order, ticked]);
+  // A tick on an entry the list no longer shows is forgotten, so it does not come back when a search is cleared, whatever else was pressed meanwhile.
+  useEffect(() => {
+    setTicked((now) => (ids.length === now.size ? now : new Set(ids)));
+  }, [ids]);
   const has = useCallback((id: string) => ticked.has(id), [ticked]);
   const toggle = useCallback(
     (id: string, range = false) => {

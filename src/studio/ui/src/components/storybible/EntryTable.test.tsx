@@ -310,6 +310,15 @@ describe('ticking-rows', () => {
     expect(props.onOpen, 'a press on a box opens no entry').not.toHaveBeenCalled();
   });
 
+  it("a press in the box's cell outside the box ticks the row and opens nothing", async () => {
+    const selection = withSelection([]);
+    const { props } = setup(ROWS, { selection });
+    const cell = screen.getByRole('checkbox', { name: 'Select Bea' }).closest('span')!;
+    await userEvent.setup().click(cell);
+    expect(selection.onToggle).toHaveBeenCalledWith('e2', false);
+    expect(props.onOpen).not.toHaveBeenCalled();
+  });
+
   it('Space on a box ticks the row and neither plays nor opens it', async () => {
     const onHear = vi.fn();
     const selection = withSelection([]);

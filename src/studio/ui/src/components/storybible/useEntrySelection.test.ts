@@ -64,4 +64,12 @@ describe('useEntrySelection', () => {
     act(() => result.current.setAll(true));
     expect(result.current.ids).toEqual([]);
   });
+
+  it('forgets a tick the list hides, so clearing the filter does not bring it back', () => {
+    const { result, rerender } = renderHook(({ order }) => useEntrySelection(order), { initialProps: { order: ORDER } });
+    act(() => result.current.toggle('a'));
+    rerender({ order: ['b', 'c'] });
+    rerender({ order: ORDER });
+    expect(result.current.ids).toEqual([]);
+  });
 });

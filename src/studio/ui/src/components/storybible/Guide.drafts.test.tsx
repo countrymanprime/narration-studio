@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The list menu's commands with an entry edit held (#3457, qa-breaker on #3457): a command waits for the answer to the question about leaving the entry being edited, and
 // the entry already open takes its own command with no question about leaving it.
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -88,20 +88,28 @@ describe('a list command with an entry edit held', () => {
     expect(asked).toHaveLength(0);
   });
 
-  it('Delete N entries with the entry being edited among the ticked asks about the edit first; without it nothing is asked', async () => {
-    await mount();
+  it('Delete N entries asks about the open edit only after the delete is confirmed, and Cancel on either keeps the edit', async () => {
+    const api = await mount();
+    const del = vi.spyOn(api, 'guideDelete');
     await holdAnEditOn('Alice');
     const tick = (name: string) => fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
     tick('Hatter');
     fireEvent.click(screen.getByRole('button', { name: 'Delete 1 entry' }));
-    expect(asked).toHaveLength(0);
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    expect(asked).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     tick('Alice');
     fireEvent.click(screen.getByRole('button', { name: 'Delete 2 entries' }));
-    expect(asked).toHaveLength(1);
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-    act(() => asked[0]!());
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    expect(asked).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Alice typed');
+    expect(del).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 2 entries' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete 2 entries' }));
+    expect(asked).toHaveLength(1);
+    expect(del).not.toHaveBeenCalled();
+    act(() => asked[0]!());
+    await waitFor(() => expect(del).toHaveBeenCalledTimes(2));
   });
 });

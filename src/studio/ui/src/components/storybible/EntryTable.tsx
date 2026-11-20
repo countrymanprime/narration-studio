@@ -335,12 +335,20 @@ function EntryRow({
       className={changed ? CHANGE_HIGHLIGHT_CLASSES : ''}
     >
       {select && (
-        <TableCell className="px-0">
-          {/* A press on the box ticks the row and opens nothing; Space and Enter on it tick it and do not play or open the row. Shift on the press ticks the range from the last one pressed. */}
+        <TableCell className="p-0">
+          {/* A press on the box, or anywhere else in its cell, ticks the row and opens nothing; Space and Enter on it tick it and do not play or open the row. Shift on the press ticks the range from the last one pressed. */}
           <span
-            className="flex justify-center"
+            className="flex min-h-[var(--row-height)] items-center justify-center"
+            onMouseDown={(event) => {
+              // A Shift press would otherwise select the page text between the two rows.
+              if (event.shiftKey) event.preventDefault();
+            }}
             onClickCapture={(event) => (shift.current = event.shiftKey)}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              // The cell around the 24 px box ticks too, so a near miss does not open the entry.
+              if (event.target === event.currentTarget) select.onToggle(shift.current);
+            }}
             onKeyDown={(event) => {
               if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
             }}
