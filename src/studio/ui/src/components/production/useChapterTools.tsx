@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
@@ -8,13 +9,14 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { changedButUnread } from '../chapterTracks/useChapterLinkActions';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { destinationFor } from '../engine/destination';
+import { useVoiceLayout } from '../engine/voiceLayout';
+import { followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -106,8 +108,10 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   // The links are read from the saved project; the tracks the Engine list and the Booth show are REAPER's now. A chapter linked to a track deleted or
   // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
   const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
+  const layout = useVoiceLayout();
   const trackLinks = useMemo(
-    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    // Without the live list (loading, or it failed) the links still follow it as far as they can: several links are several, as in the panel.
+    () => (savedLinks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
     [savedLinks, liveTracks],
   );
   const [open, setOpen] = useState<Open>();
@@ -130,7 +134,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       try {
         await refreshLinks();
       } catch (error) {
-        notify(afterWrite ? changedButUnread(error) : describeApiError(error), 'error');
+        notify(afterWrite ? linkFailureSentence('unread', error) : describeApiError(error), 'error');
       }
     },
     [notify, refreshLinks],
@@ -234,8 +238,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const checkGate = useCheckRecordingsGate();
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks, layout });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate, loadTrackLinks, layout };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
@@ -254,11 +258,9 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
         const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
         const trackGuid = showableTrackGuid(entry);
-        // A linked track REAPER no longer has is said to be missing, not "not linked" (the panel and the Engine row say so).
-        const noTrack =
-          entry && chapterTrackButtonState(entry).kind === 'missing'
-            ? 'The track linked to this chapter is missing from the project: choose another from the audio engine panel'
-            : 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
+        // Why Show in REAPER is off says what the link is (missing, several, only suggested, none), as the panel and the Engine row say.
+        // Links not read yet is not "nothing linked": the menu says it does not know yet (the board's Rec. cell still reads Not linked then, as before).
+        const noTrack = links ? noShowableTrackReason(entry, latest.current.layout) : 'The chapter links are still loading';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
@@ -274,8 +276,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           },
           {
             key: 'track',
-            label: 'Chapter track…',
-            unavailable: linked ? undefined : 'No chapter track is known yet: link one from the audio engine panel',
+            label: `Chapter ${destinationFor(latest.current.layout).noun}…`,
+            unavailable: linked ? undefined : `No chapter ${destinationFor(latest.current.layout).noun} is known yet: link one from the audio engine panel`,
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id, opener, near: neighboursOf(list, row.id) }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits, opener }) }] : []),

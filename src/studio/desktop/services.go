@@ -32,6 +32,7 @@ import (
 type hostServices struct {
 	config       config
 	boothVoices  *boothVoiceChoices
+	tracksCache  *liveTracksCache
 	findings     *findings.Store
 	guide        *guide.Service
 	lineIdentity *lineidentity.Service
@@ -173,6 +174,7 @@ func (h *Host) services() hostServices {
 		actions:          h.actions,
 		navigation:       h.navigation,
 		boothVoices:      h.boothVoices,
+		tracksCache:      h.tracksCache,
 		takeSelector:     h.takeSelector,
 		puncher:          h.puncher,
 		rangeCutter:      h.rangeCutter,

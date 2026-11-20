@@ -20,6 +20,7 @@ import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedShare } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { calc, scheduleChapters } from '../schedule/progress';
 import { useRefreshOnFocus } from '../stages/useRefreshOnFocus';
 import { StageSuggestionOptions } from '../stages/StageSuggestionOptions';
@@ -39,7 +40,7 @@ import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
 import { useDawConnection } from '../connection/useDawConnection';
 import { useDawStatus } from '../connection/useDawStatus';
-import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
+import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
 import { pickupChapters } from './pipeline/nextUpSources';
@@ -134,10 +135,9 @@ export function ProductionPage({
   refreshBootstrap: () => Promise<void>;
   /** Says a chapter's status or kind changed here, so the chapter list other pages read is read again (`MANUSCRIPT_CHANGED`). */
   onManuscriptChanged?: () => void;
-  /** How long after the app opens an unconnected DAW shows as connecting rather than not running (tests pass 0). */
+  /** How long after the DAW stops answering it shows as connecting rather than not running (tests pass 0). */
   dawConnectGraceMs?: number;
 }) {
-  const settling = useConnectGrace(dawConnectGraceMs);
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
@@ -178,6 +178,7 @@ export function ProductionPage({
   const sessionIds = useMemo(() => (openLines ?? []).filter((line) => line.included).map((line) => line.id), [openLines]);
 
   const measured = useMeasured(measurements, '', sessionIds);
+  const layout = useVoiceLayout();
   const wph = effectiveWph(rateBasis, paceChapters(load.status === 'ready' ? load.overview.chapters : []), measured.answers?.chapterLengths);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
@@ -286,6 +287,7 @@ export function ProductionPage({
       proof: proofSource,
       master: masterSource,
       wph,
+      layout,
       pickups: pickupsByChapter,
       // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
       prep: prepSource,
@@ -296,7 +298,7 @@ export function ProductionPage({
         }),
       ),
     });
-  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph]);
+  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph, layout]);
 
   const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));
@@ -356,17 +358,7 @@ export function ProductionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {connection.off && (
-        <div className="flex">
-          {settling ? (
-            <p role="status" className="m-0 text-[0.875rem] text-[var(--text-muted)]">
-              Connecting to {caps?.daw ?? 'the DAW'}…
-            </p>
-          ) : (
-            connection.indicator
-          )}
-        </div>
-      )}
+      {connection.off && <div className="flex">{connection.indicator}</div>}
       {connection.dialog}
       <PageHeader
         loading={load.status === 'loading'}

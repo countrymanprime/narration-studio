@@ -16,6 +16,8 @@ import (
 const (
 	fakeSidecarEnv = "GUIDE_FAKE_SIDECAR"
 	fakeLogEnv     = "GUIDE_FAKE_SIDECAR_LOG"
+	// fakeRecordLogEnv names the file the "record" mode appends one line per command to, the command's arguments joined by a unit separator.
+	fakeRecordLogEnv = "GUIDE_FAKE_SIDECAR_RECORD_LOG"
 )
 
 // TestMain lets this test binary stand in for the Python Story Bible sidecar's
@@ -38,6 +40,9 @@ func flagValue(args []string, name string) string {
 }
 
 func runFakeSidecar(mode string) int {
+	if mode == "record" {
+		return fakeRecordingSidecar(os.Args[1:])
+	}
 	if logPath := os.Getenv(fakeLogEnv); logPath != "" {
 		if file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
 			_, _ = fmt.Fprintln(file, strings.Join(os.Args[1:], " "))
@@ -434,6 +439,23 @@ func fakeBuildSidecar(mode string, args []string) int {
 			encoded, _ := json.Marshal(map[string]string{"ipa": "ipa:" + word})
 			fmt.Printf("{\"ipa\": %s, \"source\": \"cmu\", \"confidence\": \"medium\"}\n", encoded[7:len(encoded)-1])
 		}
+	}
+	return 0
+}
+
+// fakeRecordingSidecar is the "record" mode: it appends its arguments, joined by a unit separator, as one line of the record log, and
+// answers a create the way the real sidecar does. It stands in for the Story Bible sidecar's commands on any OS (the extraction tests
+// read the log to see what the host asked for).
+func fakeRecordingSidecar(args []string) int {
+	file, err := os.OpenFile(os.Getenv(fakeRecordLogEnv), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	_, _ = fmt.Fprintln(file, strings.Join(args, "\x1f"))
+	_ = file.Close()
+	if len(args) > 0 && args[0] == "create" {
+		fmt.Println("CREATED|new-id")
 	}
 	return 0
 }

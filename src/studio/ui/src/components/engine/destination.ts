@@ -1,3 +1,4 @@
+import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { trackName as readable } from '../tracks/trackName';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
@@ -24,10 +25,13 @@ export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
 export function destinationFor(layout: VoiceTracksLayout) {
   const folders = layout === 'folders';
   const noun = folders ? 'folder' : 'track';
+  const Noun = folders ? 'Folder' : 'Track';
   const a = folders ? 'a folder of voice tracks' : 'a track';
   return {
     folders,
     noun,
+    /** The noun capitalised, for a label or a title ("Folder for Chapter 1"). */
+    Noun,
     /** "a track" or "a folder of voice tracks". */
     a,
     notLinkedTitle: (chapter: string) => `${chapter} is not linked to a ${noun}`,
@@ -35,16 +39,35 @@ export function destinationFor(layout: VoiceTracksLayout) {
     missingTitle: (chapter: string) => `${chapter}’s ${noun} is not in the project`,
     notLinkedChip: `Not linked to a ${noun}`,
     severalChip: folders ? 'Linked to several folders' : 'Linked to several tracks',
+    missingChip: linkStateLabel('missing', folders),
     linkButton: `Link ${noun}`,
-    pickerLabel: (chapter: string) => `${folders ? 'Folder' : 'Track'} for ${chapter}`,
+    pickerLabel: (chapter: string) => `${Noun} for ${chapter}`,
+    /** The Link button's reason beside a picker with nothing chosen. */
+    chooseFirst: `Choose a ${noun} first`,
+    /** Why a pickup's original cannot be played: the chapter has no link, or its linked track is gone. */
+    noOriginal: {
+      unlinked: `This chapter is not linked to a ${noun}, so the original cannot be played.`,
+      missing: `This chapter’s linked ${noun} is no longer in the project, so the original cannot be played.`,
+    },
+    /** The Engine row's and the mapping dialog's line for a link whose track the project no longer has. */
+    linkedMissing: `Linked ${noun} is missing from this project`,
+    /** Why a chapter has no measured recording, for the Proof check card. */
+    noRecordingWhy: {
+      unlinked: `No ${noun} is linked to it.`,
+      multiple_tracks: `More than one ${noun} is linked to it.`,
+      track_missing: `Its linked ${noun} is not in the saved project.`,
+    },
     /** The Booth dialog's sentence while Record waits for a link. */
     recordWaits: (chapter: string) => `Record can't start until ${chapter} has ${a} to record on.`,
+    recordWaitsMissing: (chapter: string) => `Record can't start until ${chapter} is linked to ${a} that is in the project.`,
     recordWaitsSeveral: (chapter: string) => `Record can't start: a take needs exactly one ${noun} for ${chapter}. Linking one replaces the others.`,
     /** The footer's reason beside Record. */
+    footerMissing: (chapter: string) => `${chapter}’s ${noun} is not in the project. Press Record to link one.`,
     footerNoLink: (chapter: string) => `${chapter} has no ${noun} to record on. Press Record to link one.`,
     linkedToast: (chapter: string) => `${chapter} is linked to its ${noun}. Press Record when you are ready.`,
     /** The setup chip's words and tooltip sentence for a chapter with no link or several. */
     chipNoTrack: { words: `no ${noun}`, sentence: `this chapter has no ${noun} to record on` },
+    chipMissing: { words: linkStateLabel('missing', folders).toLowerCase(), sentence: `this chapter’s ${noun} is not in the project` },
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),

@@ -66,7 +66,7 @@ export function CleanupList({
             <TableRow key={r.key} className={r.done ? 'opacity-60' : undefined}>
               <TableCell numeric align="left">
                 <Checkbox checked={!r.done && !skip.includes(r.key)} disabled={r.done} onChange={(c) => onToggle(r.key, c)}>
-                  <span data-row={r.key}>{clock(r.sec)}</span>
+                  <span data-row={r.key}>{clock(r.sec, { full: true })}</span>
                 </Checkbox>
               </TableCell>
               <TableCell>{opSpec(kind).noun[0]}</TableCell>
@@ -78,7 +78,7 @@ export function CleanupList({
                 <IconButton
                   action="play"
                   size="sm"
-                  label={`Play ${clock(r.sec)} with ${PREVIEW_AROUND} s before and after`}
+                  label={`Play ${clock(r.sec, { full: true })} with ${PREVIEW_AROUND} s before and after`}
                   data-rplay={r.key}
                   disabledReason={onPlay ? undefined : playReason}
                   onClick={() => onPlay?.(r)}

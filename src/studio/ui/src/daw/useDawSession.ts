@@ -24,3 +24,15 @@ export function useDawMeterLease(): void {
   const session = useDawSession();
   useEffect(() => session.leaseMeters(), [session]);
 }
+
+const NEVER_CHANGES = () => () => undefined;
+const startingNow = (state: DawSessionState) => state.caps?.reachable === false && state.choice?.state === 'starting';
+
+/**
+ * The host is starting the DAW and it has not answered yet (#3668). Safe outside an `<ApiProvider>` (false there), so a chip drawn on its own in a
+ * story or a test needs no session; every screen that words the DAW being off asks this, not the host.
+ */
+export function useDawStarting(): boolean {
+  const session = useContext(DawSessionContext);
+  return useSyncExternalStore(session ? session.subscribe : NEVER_CHANGES, () => (session ? startingNow(session.getState()) : false));
+}

@@ -28,6 +28,10 @@ const (
 // starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
+// laneCommandTimeout bounds a call that creates or arms a lane: the usual wait, the late wait for a command REAPER has read
+// (bridge.LateAnswerWait, #3645) and room for the read-back after it.
+const laneCommandTimeout = bridge.DefaultAnswerTimeout + bridge.LateAnswerWait + 2*tracksLiveTimeout
+
 // readAloudVoiceStartTimeout is readAloudRecordStartTimeout plus the wait for REAPER's live track list (tracksLiveTimeout) that a call
 // resolving the chapter's voice makes first, so a slow list read does not eat the arm's own budget (a list answering in 2.5 s must
 // still leave the arm its 3 s).
@@ -119,6 +123,9 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 	switch {
 	case errors.As(err, &stale):
 		return readAloudRefused(readAloudTrackMissing, fmt.Sprintf("The track linked to this chapter is no longer in the %s project. Link it again in the audio engine panel.", name))
+	case errors.Is(err, bridge.ErrAnswerLate):
+		// REAPER took the command and had not confirmed it when the wait ended (#3645): it may have done it, so this is neither "not answering" nor "nothing started".
+		return readAloudRefused("timeout", fmt.Sprintf("%s took the command but did not confirm it in time, so what it did may not match. Check %s.", name, name))
 	case errors.Is(err, context.DeadlineExceeded):
 		return readAloudRefused("timeout", fmt.Sprintf("%s did not confirm within 3 seconds. Nothing started.", name))
 	case errors.Is(err, bridge.ErrNoTrackArmed):
@@ -207,18 +214,22 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	if refused != nil {
 		return *refused, nil
 	}
-	if reader != nil {
+	// Whether REAPER plays or records is in the heartbeat, which REAPER sends at once when either starts or stops (#3360): the bridge is
+	// asked (without the track's items) only when the heartbeat cannot tell. record_start itself refuses a playing or recording REAPER.
+	playing, recording, known := heartbeatTransport(svc)
+	if !known && reader != nil {
 		state, err := dawport.TrackStateNoItems(ctx, reader, guid)
-		timeline.Mark("track_state")
+		timeline.Mark("track_state") // stamped only when a track was read: the heartbeat's answer costs nothing to time
 		if err != nil {
 			return readAloudRecordRefusal(name, err), nil
 		}
-		switch {
-		case state.Recording:
-			return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
-		case state.Playing:
-			return readAloudRecordRefusal(name, bridge.ErrPlaying), nil
-		}
+		playing, recording = state.Playing, state.Recording
+	}
+	switch {
+	case recording:
+		return readAloudRecordRefusal(name, bridge.ErrAlreadyRecording), nil
+	case playing:
+		return readAloudRecordRefusal(name, bridge.ErrPlaying), nil
 	}
 	armed, err := recorder.ArmOnly(ctx, guid)
 	timeline.Mark("armed")
@@ -227,8 +238,9 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 	}
 	opts, message := dawport.RecordOptions{Start: bridge.AtEnd}, ""
 	if !sameTrackID(guid, link) {
-		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025).
-		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link}
+		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025), and not after a
+		// track the narrator marked as not a voice (a music bed that runs on past the narration, #3559).
+		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link, NotVoice: notVoiceTracksUnder(svc, link)}
 	}
 	if at != nil {
 		_, err := puncher.PunchTo(ctx, *at, 0)
@@ -405,4 +417,13 @@ func (h *Host) stopReadAloudRecordingOnShutdown() {
 		_, _ = recorder.RecordStop(ctx)
 	}
 	h.clearReadAloudRecording()
+}
+
+// heartbeatTransport is whether REAPER plays and records as its last fresh heartbeat said, and whether that is known.
+func heartbeatTransport(svc hostServices) (playing, recording, known bool) {
+	if svc.reachability == nil {
+		return false, false, false
+	}
+	transport, known := svc.reachability.Transport()
+	return transport.Playing, transport.Recording, known
 }

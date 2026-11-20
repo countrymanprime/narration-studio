@@ -151,6 +151,23 @@ export const engineDrivers: Record<string, Driver> = {
     await trigger.click();
     await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
   },
+  // The host refuses a link from the Chapter links list: an error toast, no line in the list, the row keeps its picker (#3365).
+  'links-set-refused': async (page) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterTrackSet: () => Promise.reject(new Error('That chapter is not in the manuscript.')),
+      };
+    });
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    const row = table.locator('tbody tr').nth(1);
+    await row.getByRole('combobox', { name: /^Track for / }).selectOption({ label: 'Click Track' });
+    await row.getByRole('button', { name: /^Use this track/ }).click();
+    await page.getByText('The link could not be made: That chapter is not in the manuscript.').waitFor();
+  },
   'folder-tracks-picker': async (page) => {
     await page.goto('/?mockTrackFolders=1&mockChapterLink=none');
     await settlePage(page);
@@ -309,6 +326,33 @@ export const engineDrivers: Record<string, Driver> = {
       .first()
       .scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
+  },
+  'voice-folders-link-several': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked to several folders').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
+  'voice-folders-link-missing': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=missing');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked folder is missing from this project').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
+  'link-chapters-several': async (page) => {
+    await page.goto('/?mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await clickVisible(page, 'button', 'Link chapters to tracks');
+    await page
+      .getByRole('combobox', { name: /^Track for / })
+      .first()
+      .waitFor();
+    await page.locator('select option:checked', { hasText: 'Several tracks' }).first().waitFor({ state: 'attached' });
   },
   'link-chapters-preview': async (page) => {
     await page.goto('/?mockChapterLink=none');

@@ -709,6 +709,20 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
 }
 
 /**
+ * DawArmBoothVoice arms the track the Booth's next take on chapterID records on (the chapter's one track, or the voice it chose, else its
+ * Narrator voice, as a record start picks it) and turns that track's input monitoring on when it is off, so the narrator hears themselves as
+ * soon as the Booth opens on the chapter (#3428, the owner's answer 8). The page sends it once per chapter it enters, when Booth.follow_chapter_in_daw
+ * is on and the DAW can follow; the voice a later choice makes is armed and monitored by BoothVoiceSet.
+ * 
+ * It does nothing, and says nothing, for a DAW with no armed tracks, a chapter with no one track or no voice to arm, a take this app runs or
+ * starts, and a DAW that is recording (the DAW refuses and the answer carries its sentence): a hot track is never moved under a take. A DAW that
+ * does not answer, or a track it no longer has, is refused with the sentence and nothing changed. It adds no undo step.
+ */
+export function DawArmBoothVoice(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(3124419122, chapterID);
+}
+
+/**
  * DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
  * (SN-D82, docs/reference/daw/audacity-3.md; the research mock's backupAround). The page sends a chapter id, two token indices and the label the
  * Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
@@ -855,9 +869,9 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 
 /**
  * DawGoToChapter selects chapterID's linked track in the DAW (with the tracks inside it, when the link is a folder of voices) and puts its cursor at where: "end" (the end of what is recorded on the
- * track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
+ * track, seconds ignored), "start" (where its audio begins, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
  * chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
- * or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
+ * or several links, a time that is not a number of seconds, a track the DAW no longer has, or a DAW that is recording, each with nothing moved. A chapter the
  * manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
  */
 export function DawGoToChapter(chapterID: string, where: string, seconds: number): $CancellablePromise<string> {
@@ -955,6 +969,15 @@ export function DawPunchPreroll(): $CancellablePromise<string> {
  */
 export function DawReduceRangeGain(chapterID: string, takeID: string, stretches: $models.DawGainStretch[], reduceDb: number): $CancellablePromise<string> {
     return $Call.ByID(1055845226, chapterID, takeID, stretches, reduceDb);
+}
+
+/**
+ * DawReleaseBoothMonitor puts back the input monitoring the Booth turned on, when the narrator leaves the Booth or the app closes: only the
+ * tracks the Booth changed, and only where the narrator has not changed the monitoring since. While the DAW records it touches nothing and the
+ * DAW puts it back by itself once the recording stops. A DAW with nothing to put back answers as done.
+ */
+export function DawReleaseBoothMonitor(): $CancellablePromise<string> {
+    return $Call.ByID(2889703333);
 }
 
 /**

@@ -26,25 +26,26 @@ type (
 	Marker       = bridge.Marker
 	MarkerResult = bridge.MarkerResult
 
-	TrackState    = bridge.TrackState
-	TrackItem     = bridge.TrackItem
-	SelectedTrack = bridge.SelectedTrack
-	CreatedTrack  = bridge.CreatedTrack
-	CreatedFolder = bridge.CreatedFolder
-	LiveTracks    = bridge.LiveTracks
-	LiveTrack     = bridge.LiveTrack
-	Armed         = bridge.Armed
-	RecordStarted = bridge.RecordStarted
-	RecordOptions = bridge.RecordOptions
-	StartRule     = bridge.StartRule
-	RecordStopped = bridge.RecordStopped
-	RecordEnded   = bridge.RecordEnded
-	VoiceSwitched = bridge.VoiceSwitched
-	FolderMove    = bridge.FolderMove
-	FolderPlan    = bridge.FolderPlan
-	PlayPosition  = bridge.PlayPosition
-	PunchPreroll  = bridge.PunchPreroll
-	DawMeters     = bridge.DawMeters
+	TrackState      = bridge.TrackState
+	TrackItem       = bridge.TrackItem
+	SelectedTrack   = bridge.SelectedTrack
+	CreatedTrack    = bridge.CreatedTrack
+	CreatedFolder   = bridge.CreatedFolder
+	LiveTracks      = bridge.LiveTracks
+	LiveTrack       = bridge.LiveTrack
+	Armed           = bridge.Armed
+	MonitorReleased = bridge.MonitorReleased
+	RecordStarted   = bridge.RecordStarted
+	RecordOptions   = bridge.RecordOptions
+	StartRule       = bridge.StartRule
+	RecordStopped   = bridge.RecordStopped
+	RecordEnded     = bridge.RecordEnded
+	VoiceSwitched   = bridge.VoiceSwitched
+	FolderMove      = bridge.FolderMove
+	FolderPlan      = bridge.FolderPlan
+	PlayPosition    = bridge.PlayPosition
+	PunchPreroll    = bridge.PunchPreroll
+	DawMeters       = bridge.DawMeters
 
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
@@ -355,14 +356,16 @@ type Place struct {
 	Cursor   float64
 }
 
-// PlaceTarget is where PlaceFollower.GoTo puts the cursor on a track: the end of what is on it, or a time in project seconds.
+// PlaceTarget is where PlaceFollower.GoTo puts the cursor on a track: the end of what is on it, the start of what is on it (End and Start
+// are never both set), or a time in project seconds.
 type PlaceTarget struct {
 	End     bool
+	Start   bool
 	Seconds float64
 }
 
 // PlaceFollower lets the app follow the narrator's place in the project and take them somewhere in it: ReadPlace says which track is
-// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end or at a time. Neither starts playback or adds an
+// selected and where the cursor is, GoTo selects a track (with the tracks inside it, for a folder) and puts the cursor at its end, at its start or at a time. Neither starts playback or adds an
 // undo step. The caller names a track by the id the engine gave it (the chapter's link), never a path. A track the engine no longer has
 // is the engine's stale error; a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence.
 type PlaceFollower interface {
@@ -427,8 +430,20 @@ type VoiceSwitcher interface {
 // LaneArmer is a Recorder that can arm the lane the Booth chose while no take runs, so the engine's armed track follows the app's
 // (#3429). Unlike ArmOnly, the engine puts nothing back at a stop: the arm is the narrator's choice. Refused while the engine records
 // (the take is switched with VoiceSwitcher); a track that is gone is a stale error. Only an engine with record-armed tracks (REAPER) has it.
+// With monitor the engine also turns the lane's input monitoring on when it is off, and puts the lane it monitored before back; Armed.Monitored
+// says whether this call turned it on (a lane the narrator already monitors is left as it is).
 type LaneArmer interface {
-	ArmLane(ctx context.Context, trackGUID string) (Armed, error)
+	ArmLane(ctx context.Context, trackGUID string, monitor bool) (Armed, error)
+}
+
+// MonitorReleaser is a LaneArmer that can put back the input monitoring it turned on, when the Booth is left: only what ArmLane changed, and
+// only where the narrator has not changed it since. It changes nothing while the engine records and says so (MonitorReleased.Waiting): the
+// engine puts it back itself once the recording stops. Only an engine with input monitoring on its tracks (REAPER) has it.
+type MonitorReleaser interface {
+	ReleaseMonitor(ctx context.Context) (MonitorReleased, error)
+	// KeepMonitor drops a release that waits for a recording to stop, for a narrator who is back in the Booth during the take. It is answered
+	// while the engine records and changes nothing else.
+	KeepMonitor(ctx context.Context) error
 }
 
 // FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),

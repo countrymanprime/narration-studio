@@ -120,9 +120,10 @@ const STORAGE: Parity = {
     'narration.booth.lastPlace.': 'The chapter and place the Booth was last at: remembered position, not a preference.',
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
+    'narration.editing.lastChapter.': 'The chapter Editing was last on: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
   },
-  cap: 8,
+  cap: 9,
 };
 
 // ---- Files that write a host settings field outside the Settings page.

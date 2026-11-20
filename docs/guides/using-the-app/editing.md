@@ -7,7 +7,7 @@ shows how it was heard, each line has its takes under it, and what you select is
 effect on. Open it from **Editing** in the sidebar's Edit group, from a linked chapter's **Open in Editing** in the
 [audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check finding's **Open in Editing** on
 [Proof](proof.md#one-chapter), or from **Manage takes in Editing** on a note in
-[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the first chapter.
+[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the chapter you were last on, or the first chapter with text when none is remembered.
 
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
 [Production](production.md#importing-the-manuscript).
@@ -36,8 +36,8 @@ wide or more) and the button that opens the drawer are all in it. Where the head
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 The chapter list starts with **Opening credits** and ends with **Closing credits** (when your credit templates have them): they are chapters like
-any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the first
-chapter with text. A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
+any other, so you can open them here, from [Production](production.md#the-credits), [Proof](proof.md) or Engine's chapter links. The page opens on the chapter you were last on in this project, or the first
+chapter with text when none is remembered (with or without a DAW connected, and whatever **DAW follows your chapter** says). A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
 track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped).
@@ -103,9 +103,9 @@ its words to carry the times they were heard at. A chapter with no audio to edit
 "not read". When the cause is a link (no track linked, or the linked track is not in the saved project), a dialog opens by
 itself, once for the chapter: it names the chapter, offers the REAPER tracks the app found in a dropdown, with the best match chosen, and
 **Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
-track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
-so the page can read the new track. If you close it with the X, the
-**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder); for a chapter whose track is no longer in the project the mark reads **Track missing**, as in the audio engine panel). The page also reads the chapter again whenever you come back
+track named after the chapter and links it instead (the main button when the project has no tracks); it does not arm the new track or change which tracks are armed; the Booth does that when it is open on the chapter, with "DAW follows your chapter" on. Save the REAPER project
+so the page can read the new track. When the Booth has already read this chapter's tracks, the dialog lists them at once, reads them again behind the list and says when it last checked; otherwise **Link track** says on its tooltip that it is still reading them. If you close it with the X, the
+**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder); for a chapter whose track is no longer in the project the mark reads **Track missing** (**Folder missing** in a Voice folders project), as in the audio engine panel, and the dialog's footer says it is waiting for the chapter to be linked to a track that is in the project). When the tracks could not be read at all, the note over the script says **The tracks could not be read** and why, with **Read again**, and the script shows without what was heard (a chapter whose alignment already names audio in the project keeps playing it). A **Saved project** mark beside it says the tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why). The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
@@ -120,6 +120,10 @@ chapter, how far it has got, the models and how many chapters wait, with **Pause
 words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
+
+## The DAW follows the chapter
+
+Opening a chapter on Editing selects that chapter's track, and the tracks inside it, in the DAW and puts the DAW's cursor where the chapter's audio starts (the start of the project when the chapter has no audio yet). It happens once each time you open a chapter, while the DAW can follow (a DAW that connects later is followed then, and one that drops and returns is not moved again). It changes no mute, solo or arming and starts no playback; a DAW that cannot follow is left alone. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on the chapter and your cursor stays where it is. Nothing moves if the DAW is already on the chapter or is recording. Opened with no chapter named, Editing opens on the chapter you were last on in Editing in this project (kept by Editing alone: Proof and Master & QC keep their own), so after a restart the DAW goes back to it when it connects; a chapter named in the address always wins, and one the book does not have opens the first chapter. A chapter with no linked track leaves the DAW where it was. To keep the DAW where you put it, turn off **DAW follows your chapter** in [Settings](settings.md) (Recording & DAW).
 
 ## The DAW tools menu
 
@@ -147,7 +151,7 @@ voice sample…**); **Takes** (show or keep the line's takes, hide the others, a
 take reads it twice); then copy. A row's key, such as **T** or **H**, is drawn at its right end.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
-(with ", not in the script" for a word that was only said), or "3 words selected, 0:23 to 0:24" for a selection, and "Selection cleared"
+(with ", not in the script" for a word that was only said), or "3 words selected, 00:00:23.100 to 00:00:24.050" for a selection, and "Selection cleared"
 when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
 cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
 (**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
@@ -214,7 +218,7 @@ its audio while the view moves; there is no scrollbar. With the waveform focused
 scroll a tenth of what shows, **Shift** or **Page Up** and **Page Down** a whole window, **Home** and **End** go to either end of the
 chapter, and **+** and **-** zoom. While you scroll, the script marks the lines now on screen in the waveform (a blue bar at their left) and
 brings them into view; the cursor stays where it was, and moving it lets the waveform return to its line. Drawing or moving a range keeps
-the waveform where you scrolled it.
+the waveform where you scrolled it. Positions on the waveform and the timeline strip (the window's span, a range's edges, **Play from**) are written to the millisecond, `hh:mm:ss.fff` ("00:00:05.540"), with a dot before the milliseconds so they are not read as frames.
 
 **The waveform's menu.** A right click without a drag (a long press on a touch screen, or the menu key or **Shift+F10** with the waveform
 focused) opens its own menu: **Play from** that moment, **Play the range** and **Clear the range** when there is one, **Put the cursor on**
@@ -477,8 +481,7 @@ The project file is linked by one action wherever it is offered (the connection 
 A dialog says the DAW is not connected, in the app's own words: the DAW's reason ("REAPER is not running."), what the host
 knows (the project is linked but REAPER has not connected; it connected before and stopped answering; no project file is
 linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
-launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, a few seconds after the app
-opens so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
+launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, only after the app has had its time to start REAPER (the mark reads "Connecting to REAPER…" for the first ten seconds and "Starting REAPER…" while the app opens it, for up to 90 seconds), so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
 opens it again. Every control that waits on the DAW (Delete, Mute, Add FX, Keep take, Clean up, Backups and the rest) follows the DAW's report as it changes: start the DAW with the page open and they turn on with the header, with no reload. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
 read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 

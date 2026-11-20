@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the rebuilt layout, the dialogs its
 // icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
-import { APP_STARTED_AT } from './pipeline/dawConnectGrace';
+import type { DawChoice } from '../../api/contracts/daw';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -93,13 +93,16 @@ describe('production-route-draws-the-mock-page', () => {
     const legend = Object.fromEntries(
       within(bar)
         .getAllByRole('listitem')
-        .map((li) => [li.textContent!.replace(/\s*\d+:\d+$/, ''), li.querySelector('b')!.textContent!]),
+        .map((li) => [li.textContent!.replace(/\s*\d+h \d+m.*$/, ''), li.querySelector('b [aria-hidden="true"]')!.textContent!]),
     );
-    const minutes = (clock: string) => clock.split(':').reduce((h, m) => Number(h) * 60 + Number(m), 0);
+    const minutes = (clock: string) => {
+      const [, h, m] = /(\d+)h (\d+)m/.exec(clock)!;
+      return Number(h) * 60 + Number(m);
+    };
     const total = Object.values(legend).reduce((a, clock) => a + minutes(clock), 0);
     const recorded = total - minutes(legend['Not recorded yet']);
     const tile = within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!;
-    const [value, whole] = [...tile.matchAll(/(\d+:\d+)/g)].map((m) => minutes(m[1]));
+    const [value, whole] = [...tile.matchAll(/(\d+h \d+m)/g)].map((m) => minutes(m[1]));
     // The legend and the tile print each figure rounded to the minute, so a sum of printed figures can drift from a printed total by half a
     // minute per figure and no more: four segments and the tile's own rounding for Recorded (2.5 min, so 2 whole minutes), five and the
     // tile for the book (3). The exact, unrounded agreement is pinned in overview.test.tsx over four books.
@@ -339,12 +342,45 @@ describe('daw-connect-grace', () => {
   it('shows Connecting while the app has just opened, then the mark and the dialog if it never connects', async () => {
     await renderPage({
       overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) },
-      dawConnectGraceMs: Date.now() - APP_STARTED_AT + 400,
+      dawConnectGraceMs: 1500, // counted from when the DAW stopped answering, not from app start; long enough that a slow runner still sees it connecting
     });
     expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.queryByText('Connecting to REAPER…')).toBeNull();
+  });
+
+  it('says the DAW is starting, and does not ask, while the host reports its own start, however long after the app opened (#3668)', async () => {
+    const starting = {
+      hasProject: true,
+      daw: 'REAPER',
+      source: 'linked',
+      chosen: 'REAPER',
+      state: 'starting',
+      reachable: false,
+      linkedFile: 'Alice.rpp',
+      foundFiles: ['Alice.rpp'],
+      launcherAutoStart: false,
+      options: [],
+      starting: { since: new Date().toISOString() },
+      bridge: null,
+    } as unknown as DawChoice;
+    await renderPage({
+      overrides: {
+        dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])),
+        dawChoice: vi.fn(async () => starting),
+      },
+      dawConnectGraceMs: 200,
+    });
+    expect(await screen.findByText('Starting REAPER…')).toBeTruthy();
+    // Past the 200 ms grace, long after the app opened: only the host's "starting" is holding the dialog back.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('asks at once when the host says it is not starting anything and the grace has run out', async () => {
+    await renderPage({ overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) }, dawConnectGraceMs: 0 });
+    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
   });
 
   it('never shows the dialog when the host connects inside the grace', async () => {
@@ -357,7 +393,7 @@ describe('daw-connect-grace', () => {
           return () => {};
         },
       },
-      dawConnectGraceMs: 60_000, // counted from when the code loaded, so far longer than the test runs
+      dawConnectGraceMs: 60_000,
     });
     await screen.findByText('Connecting to REAPER…');
     act(() => push(structuredClone(DAW_SETUPS['reaper'])));
@@ -478,7 +514,8 @@ describe('the row menu keeps the features the mock has none for', () => {
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    // The mock's chapter has a suggested track, not a confirmed link: the reason says so (#3363).
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/only a suggestion/);
   });
 
   // #3415: the board's links are read from the saved project; REAPER's tracks now say whether a linked track is still there.
@@ -535,7 +572,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: suggestedLinks } });
     const suggestedRow = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/only a suggestion/);
   });
 
   // #3228's review: the ambiguous case (two candidate tracks) was covered by the shared function only, not by the menu (#3231).
@@ -548,7 +585,36 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: ambiguousLinks } });
     const row = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
-    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/More than one track could be this chapter/);
+  });
+
+  // #3363 (ux-review): the saved read of two confirmed links with one track gone says missing; the board and its menu read it as the panel does
+  // (several), also while the live track list has not been read or cannot be.
+  it('reads two confirmed links with one track gone as several on the board menu when the live list fails', async () => {
+    const base = createMockApi();
+    const severalLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return {
+        ...links,
+        chapters: links.chapters.map((chapter) => ({
+          ...chapter,
+          status: 'confirmed' as const,
+          links: ['{A}', '{B}'].map((trackGuid) => ({
+            trackGuid,
+            chapterId: chapter.chapterId,
+            chapterTitle: chapter.chapterTitle,
+            confirmedAt: '2026-10-01T10:00:00Z',
+          })),
+          warnings: ['confirmed-track-missing' as const],
+        })),
+      };
+    };
+    const tracksLive = async () => {
+      throw new Error('REAPER is not answering');
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: severalLinks, tracksLive } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/more than one track: keep one first/));
   });
 
   // #3398: the link is written and "Track linked." said; the read after it fails. The narrator is told the change was made, once, never that the link failed.

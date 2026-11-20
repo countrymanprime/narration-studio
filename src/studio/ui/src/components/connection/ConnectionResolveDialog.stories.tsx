@@ -4,9 +4,11 @@ import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 import type { DawChoice } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
+import { overlay } from '../../overlay/overlayService';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
+import { forgetMatches } from './chapterMatchCache';
 import { ConnectionResolveDialog, type ConnectionResolveDialogProps } from './ConnectionResolveDialog';
 
 // The dialog that replaces the not-connected and not-linked banners: it names the problem in the host's words, offers the fix and a Check again,
@@ -80,6 +82,8 @@ const meta = {
   title: 'Connection/ConnectionResolveDialog',
   component: Stage,
   args: { props: off, api: { dawChoice: async () => choice() } },
+  // The tracks read ahead are kept for the app's life; a story starts with none, so each one sees its own read.
+  beforeEach: () => forgetMatches(),
 } satisfies Meta<typeof Stage>;
 
 export default meta;
@@ -199,7 +203,8 @@ export const ChapterReadFailed: Story = {
     await expect((await within(open).findByRole('alert')).textContent).toContain('The project file could not be read.');
     // Nothing to pick from: creating the track in the DAW (which needs no saved project) is the primary action.
     await expect(within(open).queryByRole('button', { name: 'Link track' })).toBeNull();
-    await expect(within(open).getByRole('button', { name: 'Create a new track' })).not.toHaveAttribute('aria-disabled');
+    // Create is held for a moment after it replaces the dead Link button, so a press meant for Link does not add a track.
+    await waitFor(() => expect(within(open).getByRole('button', { name: 'Create a new track' })).not.toHaveAttribute('aria-disabled'));
   },
 };
 
@@ -235,7 +240,7 @@ export const ChapterCreateTrack: Story = {
   },
 };
 
-/** The DAW cannot add the track now (it is recording): its sentence is in the dialog and nothing is linked. */
+/** The DAW cannot add the track now (it is recording): its sentence is an error toast and nothing is linked (#3365). */
 export const ChapterCreateRefused: Story = {
   args: {
     props: linking,
@@ -251,11 +256,12 @@ export const ChapterCreateRefused: Story = {
   play: async () => {
     const open = await dialog();
     await userEvent.click(await within(open).findByRole('button', { name: 'Create a new track' }));
-    await expect((await within(open).findByRole('alert')).textContent).toBe('REAPER is recording. Stop the take, then create the track.');
+    await waitFor(() => expect(overlay.getSnapshot().toasts.map((t) => t.text)).toContain('REAPER is recording. Stop the take, then create the track.'));
+    await expect(within(open).queryByRole('alert')).toBeNull();
   },
 };
 
-/** An engine that cannot add a track from this app (its capability says so): the button is off and the sentence says what to do in the DAW. */
+/** An engine that cannot add a track from this app (its capability says so): the button is off and its tooltip says what to do in the DAW. */
 export const ChapterCreateUnavailable: Story = {
   args: {
     props: {
@@ -270,8 +276,12 @@ export const ChapterCreateUnavailable: Story = {
   },
   play: async () => {
     const open = await dialog();
-    await expect(await within(open).findByText(/cannot add a track for a chapter from this app/)).toBeVisible();
-    await expect(await within(open).findByRole('button', { name: 'Create a new track' })).toHaveAttribute('aria-disabled', 'true');
+    const create = await within(open).findByRole('button', { name: 'Create a new track' });
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
+    // The reason is on the tooltip, not a line in the dialog (#3365).
+    await expect(within(open).queryByText(/cannot add a track for a chapter from this app/)).toBeNull();
+    await userEvent.hover(create);
+    await expect(await screen.findByRole('tooltip')).toHaveTextContent(/cannot add a track for a chapter from this app/);
   },
 };
 
@@ -288,7 +298,7 @@ export const ChapterNoBestMatch: Story = {
   },
 };
 
-/** The host refuses the link: the sentence is in the dialog and the dialog stays. */
+/** The host refuses the link: the sentence is an error toast and the dialog stays (#3365). */
 export const ChapterLinkRefused: Story = {
   args: {
     props: linking,
@@ -298,7 +308,8 @@ export const ChapterLinkRefused: Story = {
     const open = await dialog();
     await within(open).findByRole('combobox');
     await userEvent.click(within(open).getByRole('button', { name: 'Link track' }));
-    await expect((await within(open).findByRole('alert')).textContent).toContain('That chapter is not in the manuscript.');
+    await waitFor(() => expect(overlay.getSnapshot().toasts.some((t) => t.text.includes('That chapter is not in the manuscript.'))).toBe(true));
+    await expect(within(open).queryByRole('alert')).toBeNull();
   },
 };
 

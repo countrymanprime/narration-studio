@@ -259,6 +259,47 @@ def go_to_a_folder_selects_its_voices(env: Env) -> str:
 
 @scenario(
     "booth_voices",
+    "chapter_track_state",
+    "#3429: chapter_track_state names the armed tracks (armedGuids) for the Booth to follow, as REAPER arms one, two and none",
+)
+def state_names_the_armed_tracks(env: Env) -> str:
+    g = folder_book(env)
+
+    def armed_guids() -> list[str]:
+        row = env.ok("chapter_track_state", g["Chapter 3"], "none", until="TRACK_STATE")
+        assert len(row) > 15, f"a TRACK_STATE row of {len(row)} fields has no armedGuids: {row}"
+        return [guid.upper() for guid in row[15].split()]
+
+    arm_only_by_hand(env, "Veyra")
+    one = armed_guids()
+    assert one == [g["Veyra"].upper()], (one, g["Veyra"])
+    env.lua(
+        """
+        for i = 0, reaper.CountTracks(0) - 1 do
+          local t = reaper.GetTrack(0, i)
+          local _, name = reaper.GetTrackName(t)
+          reaper.SetMediaTrackInfo_Value(t, 'I_RECARM', (name == 'Veyra' or name == 'Drone') and 1 or 0)
+        end
+        return true
+        """
+    )
+    two = armed_guids()
+    assert sorted(two) == sorted([g["Veyra"].upper(), g["Drone"].upper()]), (two, g)
+    env.lua(
+        """
+        for i = 0, reaper.CountTracks(0) - 1 do
+          reaper.SetMediaTrackInfo_Value(reaper.GetTrack(0, i), 'I_RECARM', 0)
+        end
+        return true
+        """
+    )
+    none = armed_guids()
+    assert none == [], none
+    return f"one armed {one}; two armed {two}; none armed {none}"
+
+
+@scenario(
+    "booth_voices",
     "arm_lane, record_start, record_stop",
     "#3429: arm_lane arms the chosen voice and disarms the rest while stopped, and the arm stays after a take (nothing is put back)",
     needs_audio=True,
@@ -1331,3 +1372,97 @@ def save_project_refusals(env: Env) -> str:
     env.ok("ping", until="PONG")
     env.lua("reaper.Main_openProject('noprompt:' .. ci.rpp) return true")
     return f"another project, recording and a never-saved project were each refused with nothing written ({other[2][:40]!r}, {recording[2][:30]!r}, {never[2][:40]!r}); the bridge still answered ping. Not run: a read-only file, because REAPER 7.82 stops answering the bridge on it (the host checks the file first)"
+
+
+def monitoring(env: Env) -> dict[str, int]:
+    """Every track's I_RECMON by name."""
+    return env.lua(
+        """
+        local out = {}
+        for i = 0, reaper.CountTracks(0) - 1 do
+          local t = reaper.GetTrack(0, i)
+          out[select(2, reaper.GetTrackName(t))] = math.floor(reaper.GetMediaTrackInfo_Value(t, 'I_RECMON'))
+        end
+        return out
+        """
+    )
+
+
+def set_monitoring(env: Env, name: str, value: int) -> None:
+    env.lua("reaper.SetMediaTrackInfo_Value(ci.track_by_name(args[1]), 'I_RECMON', tonumber(args[2])) return true", name, str(value))
+
+
+def project_marks(env: Env) -> dict:
+    """What a narrator's undo history and unsaved-changes mark would show: the change count, the dirty flag and the top undo label."""
+    return env.lua("return { changes = reaper.GetProjectStateChangeCount(0), dirty = reaper.IsProjectDirty(0), undo = reaper.Undo_CanUndo2(0) or '' }")
+
+
+@scenario(
+    "booth_voices",
+    "arm_lane, monitor_restore",
+    "#3428: arm_lane with monitor turns the lane's input monitoring on only where it is off, adds no undo point and does not move the change count; "
+    "monitor_restore puts back only what it changed",
+    needs_audio=True,
+)
+def arm_lane_monitors_and_restores(env: Env) -> str:
+    g = folder_book(env)
+    # I_RECMON reads 0 off, 1 on, 2 on-but-silent-while-recording. A track the CI helper inserted reads the value REAPER's defaults give it, so each is set.
+    default = monitoring(env)
+    for name, value in {"Narrator": 0, "Veyra": 0, "Drone": 2, "Chapter 3": 0, "Chapter 4": 0}.items():
+        set_monitoring(env, name, value)
+    assert monitoring(env) == {"Chapter 3": 0, "Narrator": 0, "Veyra": 0, "Drone": 2, "Chapter 4": 0}, "I_RECMON does not read back what was set"
+    arm_only_by_hand(env, "Narrator")
+    before = project_marks(env)
+
+    on = env.ok("arm_lane", g["Veyra"], "monitor", until="ARMED")
+    assert on[2:6] == [g["Veyra"], "1", "1", "1"], f"arm_lane with monitor answered {on}"
+    after_on = monitoring(env)
+    assert after_on == {"Chapter 3": 0, "Narrator": 0, "Veyra": 1, "Drone": 2, "Chapter 4": 0}, f"only the lane's monitoring changes: {after_on}"
+    assert project_marks(env) == before, f"monitoring moved the change count, the dirty flag or the undo history: {project_marks(env)} against {before}"
+
+    # A lane the narrator already monitors (auto) is left as it is, and the lane left goes back.
+    auto = env.ok("arm_lane", g["Drone"], "monitor", until="ARMED")
+    assert auto[5] == "0", f"a lane already monitored must not be turned on again: {auto}"
+    moved = monitoring(env)
+    assert moved == {"Chapter 3": 0, "Narrator": 0, "Veyra": 0, "Drone": 2, "Chapter 4": 0}, f"the earlier lane goes back and the monitored one stays: {moved}"
+    again = env.ok("monitor_restore", until="MONITOR_RESTORED")
+    assert again[2:5] == ["0", "0", "0"], f"nothing was ours to put back: {again}"
+    assert monitoring(env)["Drone"] == 2, "monitoring the narrator had on stays on"
+
+    # The narrator switches a monitored lane to auto meanwhile: it is theirs and is kept.
+    env.ok("arm_lane", g["Veyra"], "monitor", until="ARMED")
+    set_monitoring(env, "Veyra", 2)
+    kept = env.ok("monitor_restore", until="MONITOR_RESTORED")
+    assert kept[2:5] == ["0", "1", "0"], f"a changed value must be kept: {kept}"
+    assert monitoring(env)["Veyra"] == 2, "the narrator's auto monitoring was put back to off"
+    set_monitoring(env, "Veyra", 0)
+
+    # The ordinary leave: turned on, then put back, and the file that guards a crash is gone.
+    env.ok("arm_lane", g["Veyra"], "monitor", until="ARMED")
+    ledger = env.lua("local f = io.open(reaper.GetResourcePath() .. '/narration_monitor_ledger.txt', 'r') if f then f:close() end return f ~= nil")
+    assert ledger, "a monitored lane leaves its ledger in REAPER's resource folder"
+    put = env.ok("monitor_restore", until="MONITOR_RESTORED")
+    assert put[2:5] == ["1", "0", "0"], f"restore answered {put}"
+    assert monitoring(env)["Veyra"] == 0, "the lane's monitoring is back to off"
+    ledger = env.lua("local f = io.open(reaper.GetResourcePath() .. '/narration_monitor_ledger.txt', 'r') if f then f:close() end return f ~= nil")
+    assert not ledger, "the ledger is removed once everything is put back"
+    assert project_marks(env) == before, f"arming and putting back monitoring changed the project marks: {project_marks(env)} against {before}"
+
+    # A take with the lane monitored: monitoring stays on through it; a restore asked during it touches nothing and is done after the stop.
+    env.ok("arm_lane", g["Veyra"], "monitor", until="ARMED")
+    env.lua("reaper.SetEditCurPos(2, false, false) return true")
+    env.ok("record_start", g["Veyra"], until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 3.2, timeout=8, what="the take to run over a second")
+    env.refused("arm_lane", g["Narrator"], "monitor")
+    assert monitoring(env)["Narrator"] == 0 and monitoring(env)["Veyra"] == 1, "a refused arm_lane changed the monitoring"
+    waiting = env.ok("monitor_restore", until="MONITOR_RESTORED")
+    assert waiting[2:6] == ["0", "0", "1"], f"a restore during a take must wait: {waiting}"
+    assert monitoring(env)["Veyra"] == 1, "monitoring was changed under a take"
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    env.wait_for(lambda: monitoring(env)["Veyra"] == 0, what="the waiting restore to run after the stop")
+    return (
+        f"I_RECMON read back 0/1/2 as set (a CI-inserted track read {default}); arm_lane monitor turned on one lane, left the narrator's auto alone, "
+        f"kept a value changed meanwhile and put back its own; change count, dirty flag and undo label unchanged ({before}); "
+        f"a restore during a take waited and ran after the stop"
+    )

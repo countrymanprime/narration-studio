@@ -34,7 +34,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'recorded-linked',
     description:
-      'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0:01"), "None yet" for a linked track with nothing on it, and "No track", "Several tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
+      'Production with every chapter linked to its track and no stage moved on (?mockProduction=linked): the Recorded audio tile sums the measured audio, and each pipeline row shows its Rec. length beside its Est. length - recorded in full, part-way, under a minute ("<0h 01m"), "None yet" for a linked track with nothing on it, and "No track", "Several tracks", "Track gone" and "No project" for the four that measure nothing - with Record under way from the audio while the stage still says not started',
   },
 
   // Home's surfaces, opened from the board
@@ -56,6 +56,18 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'chapter-track-panel-ambiguous',
     description: 'Production, chapter track panel open on a chapter confirmed to two tracks at once, offering to keep one (?mockChapterLink=ambiguous, TL6)',
+  },
+  {
+    page: 'production',
+    state: 'chapter-track-panel-several-folders',
+    description:
+      'The same panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=ambiguous): the header word reads "Several folders" and the list is the chapter linked to 2 folders to keep one of (#3363)',
+  },
+  {
+    page: 'production',
+    state: 'chapter-track-panel-missing-folders',
+    description:
+      'The chapter track panel on a chapter whose linked folder is gone, in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=missing): the header word reads "Folder missing" (#3363)',
   },
   {
     page: 'production',

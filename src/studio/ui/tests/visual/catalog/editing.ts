@@ -305,6 +305,17 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'saved-project',
+    description: 'Editing on Chapter 1 with REAPER not answering (?mockLiveTracks=saved) - the "Saved project" mark in the header beside the DAW chip',
+  },
+  {
+    page: 'editing',
+    state: 'missing-dialog',
+    description:
+      'Editing on Chapter 1 whose linked track is not in the project (?mockChapterLink=missing) - the dialog\'s footer says "Waiting for Chapter 1 to be linked to a track that is in the project", not the unlinked sentence',
+  },
+  {
+    page: 'editing',
     state: 'unlinked-closed',
     description:
       'Editing on Chapter 1 with no track linked, after the dialog was closed with its X - the quiet "Not linked to a track" mark stands where the banner stood and reopens it',

@@ -235,3 +235,32 @@ func TestTheBindingMarksAndUnmarksAChildAndRefusesABadGUID(t *testing.T) {
 		t.Fatal("a GUID with a line break was saved")
 	}
 }
+
+// #3559: the record start tells REAPER which tracks of the chapter's folder are marked, so the chapter's end leaves a music bed out.
+func notVoiceSentOnStart(t *testing.T, host *Host, chapterID string) []string {
+	t.Helper()
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, chapterID)
+	return fake.startOpts.NotVoice
+}
+
+func TestARecordStartSendsTheMarkedMusicBedWithTheChapterEndRule(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceNarratorTrack, "Narrator"}), voicetracks.LayoutFolders, musicBedTrack)
+	if got := notVoiceSentOnStart(t, host, ids[0]); len(got) != 1 || got[0] != musicBedTrack {
+		t.Fatalf("sent %v, want only the marked music bed", got)
+	}
+}
+
+func TestARecordStartSendsNothingWhenNoTrackIsMarked(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceNarratorTrack, "Narrator"}), voicetracks.LayoutFolders)
+	if got := notVoiceSentOnStart(t, host, ids[0]); len(got) != 0 {
+		t.Fatalf("sent %v, want none", got)
+	}
+}
+
+func TestARecordStartDoesNotSendAMarkedTrackOutsideTheFolder(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{voiceNarratorTrack, "Narrator"}), voicetracks.LayoutFolders, roomToneTrack)
+	if got := notVoiceSentOnStart(t, host, ids[0]); len(got) != 0 {
+		t.Fatalf("sent %v, want none: the marked track is not in this folder", got)
+	}
+}

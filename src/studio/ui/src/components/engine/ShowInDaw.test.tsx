@@ -16,7 +16,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function setup(target: ShowInDawTarget, setupId: DawSetupId = 'reaper', props: { disabled?: boolean } = {}) {
+function setup(target: ShowInDawTarget, setupId: DawSetupId = 'reaper', props: { disabled?: boolean; when?: (seconds: number) => string } = {}) {
   const api = createMockApi();
   const goTo = vi.spyOn(api, 'workspaceGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 74 });
   const findingGoTo = vi.spyOn(api, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 221 });
@@ -63,6 +63,12 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
   });
 
+  it("writes the place with the caller's formatter when it gives one, and as a plain clock when it does not", async () => {
+    const t = setup({ kind: 'passage', chapterId: 'c1', token: 42 }, 'reaper', { when: (seconds) => `at ${seconds} s` });
+    await userEvent.click(await button('Show in REAPER'));
+    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved to at 74 s in REAPER.'));
+  });
+
   it('a chapter selects its linked track', async () => {
     const t = setup({ kind: 'chapter', trackGuid: '{T1}' });
     await userEvent.click(await button('Show in REAPER'));
@@ -98,6 +104,14 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     const t = setup({ kind: 'chapter', trackGuid: undefined });
     expect(isOff(await button('Show in REAPER'))).toBe(true);
     expect(t.select).not.toHaveBeenCalled();
+  });
+
+  it("a chapter's own reason for having no track to show is the one the button gives", async () => {
+    setup({ kind: 'chapter', trackGuid: undefined, reason: 'This chapter is linked to more than one track: choose one from the audio engine panel' });
+    const b = await button('Show in REAPER');
+    expect(isOff(b)).toBe(true);
+    await userEvent.hover(b);
+    expect(await screen.findByText('This chapter is linked to more than one track: choose one from the audio engine panel')).toBeTruthy();
   });
 
   it('a DAW that cannot navigate is off with its own sentence', async () => {

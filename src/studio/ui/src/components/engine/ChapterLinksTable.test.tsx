@@ -781,6 +781,40 @@ describe('ChapterLinksTable', () => {
     expect(mine.map((mapping) => mapping.trackGuid)).toEqual([WIRE_TRACKS_PROJECT.tracks[which].guid]);
   });
 
+  // #3363: a pick on a several row replaces every link the chapter holds, and the hint said it replaced only the first track's name.
+  it('says before the check is pressed that a pick on a chapter with several links replaces all of them', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi(
+      {},
+      {
+        chapterTrackMappings: [
+          wireLink(WIRE_TRACKS_PROJECT.tracks[0].guid, WIRE_CHAPTERS[0].id),
+          wireLink(WIRE_TRACKS_PROJECT.tracks[1].guid, WIRE_CHAPTERS[0].id),
+        ],
+      },
+    );
+    render(
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <MemoryRouter>
+            <Table />
+          </MemoryRouter>
+        </ChapterTrackStateProvider>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Several tracks' })).toBeTruthy());
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
+    const other = WIRE_TRACKS_PROJECT.tracks[2];
+    await user.selectOptions(within(firstRow).getByRole('combobox'), other.guid);
+    const check = within(firstRow).getByRole('button', { name: /^Use this track/ });
+    await user.hover(check);
+    const hint = (await screen.findByRole('tooltip')).textContent ?? '';
+    expect(hint).toContain('instead of its 2 tracks');
+    expect(hint).not.toContain(WIRE_TRACKS_PROJECT.tracks[0].name);
+  });
+
   // #3363 (qa-breaker): the second press of a double click on Change lands on the confirm, which used to open on the first track and replace
   // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
   it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {

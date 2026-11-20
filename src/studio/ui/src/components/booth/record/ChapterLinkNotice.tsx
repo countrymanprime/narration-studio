@@ -1,6 +1,8 @@
 import type { ChapterTrackCreateResult } from '../../../api/contracts/chapterTrackMap';
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
+import { useMatchAhead } from '../../connection/chapterMatchCache';
+import { useChapterTrackProject } from '../../chapterTracks/ChapterTrackState';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
@@ -18,7 +20,7 @@ export function ChapterLinkNotice({
   chapterId,
   chapterName,
   dawName,
-  several,
+  state,
   create,
   asked,
   hold = false,
@@ -28,8 +30,8 @@ export function ChapterLinkNotice({
   chapterId: string;
   chapterName: string;
   dawName: string;
-  /** The chapter has more than one track (`several_tracks`), not none. */
-  several: boolean;
+  /** What is wrong with the chapter's link: none, more than one track (`several_tracks`), or a track the project no longer has (`track_missing`). */
+  state: 'unlinked' | 'several' | 'missing';
   /** The DAW's `track_create` capability, when it reports one. */
   create?: DawCapabilitySupport;
   /** How many times Record was pressed while this stops it: each press opens the dialog. */
@@ -41,20 +43,35 @@ export function ChapterLinkNotice({
   onCheckAgain: () => void;
 }) {
   const dest = destinationFor(useVoiceLayout());
-  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${several ? 'several' : 'none'}`, hold, { forgetOnUnmount: true });
+  const several = state === 'several';
+  // The dialog does not open by itself on a list it cannot offer: it waits for the tracks read ahead (or for that read to end, or a short bound), with the chip on screen meanwhile.
+  const ahead = useMatchAhead(useChapterTrackProject(), chapterId);
+  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${state === 'unlinked' ? 'none' : state}`, hold || !ahead, { forgetOnUnmount: true });
   const { reopen } = dialog;
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <NoticeChip id="brec-link" label={several ? dest.severalChip : dest.notLinkedChip} onOpen={reopen} />
+      <NoticeChip
+        id="brec-link"
+        // While the dialog waits for the tracks the chip says so, so the narrator sees what is happening instead of a notice and a pause.
+        label={!ahead ? `Reading the ${dawName} tracks…` : several ? dest.severalChip : state === 'missing' ? dest.missingChip : dest.notLinkedChip}
+        onOpen={reopen}
+      />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}
           chapterName={chapterName}
           dawName={dawName}
           several={several}
+          missing={state === 'missing'}
           // The host's own sentence points at the audio engine panel; this dialog is that fix, so it says what Record waits for instead.
-          sentence={several ? dest.recordWaitsSeveral(dialogChapterName(chapterName)) : dest.recordWaits(dialogChapterName(chapterName))}
+          sentence={
+            several
+              ? dest.recordWaitsSeveral(dialogChapterName(chapterName))
+              : state === 'missing'
+                ? dest.recordWaitsMissing(dialogChapterName(chapterName))
+                : dest.recordWaits(dialogChapterName(chapterName))
+          }
           create={create ? { available: create.available, message: create.message } : undefined}
           onLinked={(_result, created) => {
             dialog.close();

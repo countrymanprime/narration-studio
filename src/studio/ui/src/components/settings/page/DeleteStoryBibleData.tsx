@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { projectDataChanged } from '../data/projectDataSignal';
 import { describeApiError } from '../../../api/errorMessage';
 import type { GuideDeleted } from '../../../api/contracts/storyBible';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -45,6 +46,7 @@ function DeleteStoryBibleDataDialog({
     deleting.run('delete', async () => {
       try {
         const deleted = await storyBible.guideDeleteAll();
+        projectDataChanged(); // the Changed mark of the Story Bible types reads the project again
         onClose();
         notify(deletedMessage(deleted));
       } catch (error) {

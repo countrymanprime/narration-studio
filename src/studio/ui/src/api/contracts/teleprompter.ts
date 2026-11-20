@@ -338,6 +338,8 @@ export type ReadAloudReaperState = {
   message: string;
   trackGuid?: string;
   armedCount?: number;
+  /** The tracks REAPER has armed, when it named all of them; the Booth follows a lane armed by hand with them (#3429). Absent with none, or from an older script. */
+  armedTrackGuids?: string[];
   playing: boolean;
   recording: boolean;
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterTrackLink, ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { chapterTrackRows } from '../engine/chapterTrackRows';
-import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { chapterTrackButtonLabel, chapterTrackButtonState, followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 
 const base: ChapterTrackLink = {
   chapterId: 'c-1',
@@ -21,7 +21,7 @@ describe('chapterTrackButtonState', () => {
   it('reads a confirmed link with no warnings as linked', () => {
     const link: ChapterTrackLink = { ...base, status: 'confirmed', track };
     expect(chapterTrackButtonState(link)).toEqual({ kind: 'linked', trackName: 'CHAPTER SIX', trackGuid: '{T}' });
-    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState(link))).toBe('Track for Chapter 6: CHAPTER SIX, linked');
+    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState(link), 'flat')).toBe('Track for Chapter 6: CHAPTER SIX, linked');
   });
 
   it('reads a confirmed link with a rename warning as renamed', () => {
@@ -34,7 +34,7 @@ describe('chapterTrackButtonState', () => {
       const link: ChapterTrackLink = { ...base, status, track };
       expect(chapterTrackButtonState(link)).toEqual({ kind: 'suggested', trackName: 'CHAPTER SIX', trackGuid: '{T}' });
     }
-    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState({ ...base, status: 'matched', track }))).toBe(
+    expect(chapterTrackButtonLabel('Chapter 6', chapterTrackButtonState({ ...base, status: 'matched', track }), 'flat')).toBe(
       'Track for Chapter 6: suggested CHAPTER SIX, not confirmed',
     );
   });
@@ -58,12 +58,12 @@ describe('chapterTrackButtonState', () => {
   it('reads a confirmed-track-missing warning as missing, even over a confirmed status', () => {
     const link: ChapterTrackLink = { ...base, status: 'confirmed', track, warnings: ['confirmed-track-missing'] };
     expect(chapterTrackButtonState(link)).toEqual({ kind: 'missing' });
-    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'missing' })).toBe('Track for Chapter 6: linked track is missing');
+    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'missing' }, 'flat')).toBe('Track for Chapter 6: linked track is missing');
   });
 
   it('reads a none status with no candidates as not linked', () => {
     expect(chapterTrackButtonState(base)).toEqual({ kind: 'unlinked' });
-    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'unlinked' })).toBe('Track for Chapter 6: not linked');
+    expect(chapterTrackButtonLabel('Chapter 6', { kind: 'unlinked' }, 'flat')).toBe('Track for Chapter 6: not linked');
   });
 });
 
@@ -146,5 +146,50 @@ describe('every surface says the same about a track renamed or deleted in REAPER
     if (followed.kind === 'linked' || followed.kind === 'renamed') expect(followed.trackName).toBe(row.trackName);
     // Show in REAPER is on exactly when the Engine row says Linked.
     expect(showableTrackGuid(followLiveTracks(link, tracks)) !== undefined).toBe(row.state === 'linked');
+  });
+});
+
+describe('noShowableTrackReason (#3363)', () => {
+  const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
+  it('says what the link is, not just that none is linked', () => {
+    expect(noShowableTrackReason(base, 'flat')).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason(undefined, 'flat')).toMatch(/^No chapter track is linked/);
+    expect(noShowableTrackReason({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] }, 'flat')).toMatch(
+      /missing from the project/,
+    );
+    expect(noShowableTrackReason({ ...base, status: 'matched', track }, 'flat')).toMatch(/only a suggestion: link it first/);
+    expect(noShowableTrackReason({ ...base, status: 'ambiguous', candidates: [track, track] }, 'flat')).toMatch(/More than one track could be/);
+    // Several confirmed links are several links, not candidates.
+    expect(
+      noShowableTrackReason(
+        {
+          ...base,
+          status: 'confirmed',
+          track,
+          links: [mapping, { ...mapping, trackGuid: '{U}' }],
+          warnings: ['confirmed-links-conflict'],
+        },
+        'flat',
+      ),
+    ).toMatch(/linked to more than one track/);
+  });
+});
+
+describe('followLiveTracks before the live list is read (#3363)', () => {
+  it('already calls several links several, and not missing', () => {
+    const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
+    const saved: ChapterTrackLink = {
+      ...base,
+      status: 'confirmed',
+      track,
+      links: [mapping, { ...mapping, trackGuid: '{U}' }],
+      warnings: ['confirmed-track-missing'],
+    };
+    const followed = followLiveTracks(saved, undefined);
+    expect(followed.warnings).toEqual(['confirmed-links-conflict']);
+    expect(chapterTrackButtonState(followed).kind).toBe('ambiguous');
+    // One link with no live list stays as read.
+    const one = { ...base, status: 'confirmed' as const, track, links: [mapping], warnings: ['confirmed-track-missing' as const] };
+    expect(followLiveTracks(one, undefined)).toBe(one);
   });
 });

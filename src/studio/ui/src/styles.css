@@ -417,6 +417,12 @@ html[data-motion='reduce'] {
     transform: translateY(var(--motion-shift));
   }
 }
+/* A toast's time left: its bar shrinks to nothing over the toast's lifetime (Toast.tsx, `motion-ok:` only; the duration is set on the element). */
+@keyframes toast-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
 @keyframes tooltip-in {
   from {
     opacity: 0;

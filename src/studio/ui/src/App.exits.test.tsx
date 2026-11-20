@@ -150,6 +150,23 @@ describe('every exit of a page that holds a draft asks (#3400)', () => {
   }
 });
 
+// A field that takes the focus back whenever it loses it must not keep an exit from ever deciding: each exit settles the field once, then asks (#3541).
+describe('an exit with a field that takes the focus back on blur still ends in a question (#3541)', () => {
+  for (const [name, exit] of Object.entries(exits)) {
+    it(`${name}: the question opens`, async () => {
+      probe.blurSave = true;
+      probe.refocus = true;
+      await mount();
+      act(() => screen.getByLabelText('Blur-save field').focus());
+      await exit.go();
+      fireEvent.click(within(await question()).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(window.location.pathname).toBe('/script');
+      expect(probe.saves).not.toHaveBeenCalled();
+    });
+  }
+});
+
 describe('closing the window with a registered draft held asks, and the host is answered (#3526)', () => {
   const mountWithHost = async () => {
     let request: (() => void) | undefined;

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useBrowserSettingsVersion } from '../browserSettings';
 import { useZoom } from './useZoom';
 
 afterEach(() => {
@@ -230,6 +231,53 @@ describe('useZoom', () => {
       await vi.advanceTimersByTimeAsync(500);
     });
     expect(api.windowSaveZoom).toHaveBeenCalledExactlyOnceWith(1.1);
+  });
+
+  it('announces a saved zoom, so the Changed mark of the Zoom row reads it again', async () => {
+    vi.useFakeTimers();
+    const api = fakeApi(1.0);
+    const { result } = renderHook(() => ({ zoom: useZoom(api), version: useBrowserSettingsVersion() }));
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+    const before = result.current.version;
+    await act(async () => result.current.zoom.zoomIn());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(result.current.version).toBe(before + 1);
+  });
+
+  it('announces a zoom the window took even when saving it failed', async () => {
+    vi.useFakeTimers();
+    const api = fakeApi(1.0);
+    api.windowSaveZoom.mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => ({ zoom: useZoom(api), version: useBrowserSettingsVersion() }));
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+    const before = result.current.version;
+    await act(async () => result.current.zoom.zoomIn());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(result.current.version).toBe(before + 1);
+  });
+
+  it('announces the zoom when the save never answers: the mark reads the window, not the save', async () => {
+    vi.useFakeTimers();
+    const api = fakeApi(1.0);
+    api.windowSaveZoom.mockImplementation(() => new Promise(() => undefined));
+    const { result } = renderHook(() => ({ zoom: useZoom(api), version: useBrowserSettingsVersion() }));
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+    const before = result.current.version;
+    await act(async () => result.current.zoom.zoomIn());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(result.current.version).toBe(before + 1);
   });
 
   it('a run of wheel notches saves only the level the narrator settles on (SAVE #3)', async () => {

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { cutHostWords } from './chapterLink';
 import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import type { ChapterTrackLinks } from '../../api/contracts/chapterTrackMap';
@@ -188,7 +189,7 @@ export function ChapterTrackStateProvider({
           if (run !== linksRun.current) return supersededAnswer();
           setLinksStale(true);
           // A caller that shows the failure itself (`refreshLinks`) asks for none from here.
-          if (mode === 'toast' && (pressed || !linksFailing.current)) notify(describeApiError(reason), 'error', retryAction(retryRef.current));
+          if (mode === 'toast' && (pressed || !linksFailing.current)) notify(cutHostWords(describeApiError(reason)), 'error', retryAction(retryRef.current));
           // Only a read that toasted counts as a run of failures: a caller that showed the failure itself must not silence the next toast.
           if (mode === 'toast') linksFailing.current = true;
           // The state's own reads end here (the toast said it); a caller that asked to show the failure gets it.
@@ -219,7 +220,7 @@ export function ChapterTrackStateProvider({
       (reason: unknown) => {
         // This one toasts, so it counts as a toasted failure: the poll that follows does not toast the same outage again.
         linksFailing.current = true;
-        notify(describeApiError(reason), 'error', retryAction(retryRef.current));
+        notify(cutHostWords(describeApiError(reason)), 'error', retryAction(retryRef.current));
         return false;
       },
     );

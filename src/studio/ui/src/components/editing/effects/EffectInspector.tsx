@@ -9,6 +9,7 @@ import { fxSpan } from '../range/fx/fxCommand';
 import { EffectSettings, OffControls, useEffectHost } from './EffectSettings';
 import { fmtPct, shareOf } from './effectsMath';
 import { ShowInDawButton } from '../../engine/ShowInDaw';
+import { noteTime } from '../../proof/findingFormat';
 
 // A label column and the value beside it, left-aligned, so a short value does not sit 190 px from its name (alignment audit XED-14).
 const Fact = ({ name, children }: { name: string; children: ReactNode }) => (
@@ -45,7 +46,9 @@ export function EffectInspector({
   // The effect's first word that the script still holds: the DAW cannot be asked about words that are not in it.
   const first = host ? fx.keys.map((k) => host.locator.token(k)).find((t): t is number => t !== undefined) : undefined;
   // Show in the DAW acts on the same effect as Preview and Compare, so it sits in their row (XED-14).
-  const showInDaw = <ShowInDawButton size="sm" target={{ kind: 'passage', chapterId: host?.chapterId ?? '', token: host ? first : undefined }} />;
+  const showInDaw = (
+    <ShowInDawButton size="sm" target={{ kind: 'passage', chapterId: host?.chapterId ?? '', token: host ? first : undefined }} when={noteTime} />
+  );
   return (
     <section aria-label="Effect" className="flex flex-col gap-3">
       {/* The section's header, not a row like the Preview and Compare row under it, whose cells do not line up with its arrows (rule A3). */}
@@ -70,7 +73,7 @@ export function EffectInspector({
       <dl className="m-0 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
         <Fact name="Words">“{fx.text}”</Fact>
         <Fact name="Time">
-          {clock(at.start)}–{clock(at.end)}
+          {clock(at.start, { full: true })}–{clock(at.end, { full: true })}
         </Fact>
         <Fact name="Covers">{fx.stale ? 'nothing: the words changed' : `${fmtPct(shareOf(fx, cuts, total))} of this chapter`}</Fact>
         <Fact name="From">{fx.source}</Fact>

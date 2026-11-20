@@ -153,6 +153,19 @@ describe('Settings: Project', () => {
     expect(await api.guideEntities()).toEqual([]);
   });
 
+  it('deleting the Story Bible asks the Changed marks to read the project again', async () => {
+    const api = createMockApi();
+    const types = vi.spyOn(api, 'guideTypesChanged');
+    await renderPage({ api });
+    await open('Project');
+    await openAdvanced();
+    await waitFor(() => expect(types).toHaveBeenCalled());
+    const before = types.mock.calls.length;
+    await userEvent.click(within(row('project.bibleData')).getByRole('button', { name: 'Delete Story Bible data…' }));
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete Story Bible data' }));
+    await waitFor(() => expect(types.mock.calls.length).toBeGreaterThan(before));
+  });
+
   describe('credits', () => {
     it('summarises the opening and closing credits and the retail sample, and edits them in place', async () => {
       const api = createMockApi();

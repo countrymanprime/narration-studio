@@ -10,6 +10,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 export const engineStates: StateEntry[] = [
   {
     page: 'engine',
+    state: 'links-set-refused',
+    description:
+      'Chapter links after the host refuses a link (a track picked, Use this track pressed): the failure is an error toast, "The link could not be made: That chapter is not in the manuscript.", with no error line above the list, and the row keeps its pick',
+  },
+  {
+    page: 'engine',
     state: 'default',
     description:
       'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), and Chapter links, the one list of tracks',
@@ -202,6 +208,24 @@ export const engineStates: StateEntry[] = [
     state: 'link-chapters-track-folders',
     description:
       'The engine panel, "Link chapters" dialog in a project whose tracks sit in REAPER folders (?mockTrackFolders=1), Chapter 1 set to the "Chapters · 8 tracks" folder: a folder of a plain project counts tracks, not voices',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-several',
+    description:
+      'The engine panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=ambiguous): Chapter 1, linked to more than one folder, reads "Linked to several folders" (#3363)',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-missing',
+    description:
+      'The engine panel in a Voice folders project (?mockVoiceFolders=1&mockChapterLink=missing): Chapter 1, whose linked folder is gone, reads "Linked folder is missing from this project" (#3363)',
+  },
+  {
+    page: 'engine',
+    state: 'link-chapters-several',
+    description:
+      'The engine panel, "Link chapters" dialog when a chapter is linked to more than one track (?mockChapterLink=ambiguous links Chapter 1 to two): its picker reads "Several tracks" instead of the first track alone',
   },
   {
     page: 'engine',

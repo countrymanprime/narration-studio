@@ -87,7 +87,7 @@ describe('marks-are-not-colour-alone', () => {
     expect(um.textContent).toBe('um');
     expect(um.style.fontStyle).toBe('italic');
     expect(um.style.boxShadow).toContain('var(--danger)');
-    expect(um.getAttribute('aria-description')).toMatch(/^Not in the script, \d+:\d\d, 90%$/);
+    expect(um.getAttribute('aria-description')).toMatch(/^Not in the script, \d{2}:\d{2}:\d{2}\.\d{3}, 90%$/);
     const miss = document.querySelector<HTMLElement>('[data-mark="miss"]')!;
     expect(miss.textContent).toBe('very');
     expect(miss.style.outline).toContain('dashed');
@@ -113,7 +113,7 @@ describe('a-second-read-is-a-repeat', () => {
     const again = document.querySelector<HTMLElement>('[data-mark="dup"]')!;
     expect(again.textContent).toBe('um');
     expect(again.style.textDecoration).toContain('double');
-    expect(again.getAttribute('aria-description')).toMatch(/^Read twice: said again, \d+:\d\d, 90%$/);
+    expect(again.getAttribute('aria-description')).toMatch(/^Read twice: said again, \d{2}:\d{2}:\d{2}\.\d{3}, 90%$/);
   });
 });
 
@@ -172,7 +172,7 @@ describe('the time gutter', () => {
   it('is drawn for a transcribed chapter', () => {
     show(marksDoc());
     const row = document.querySelector<HTMLElement>('[data-pid]')!;
-    expect(row.className).toContain('grid-cols-[76px_minmax(0,1fr)]');
+    expect(row.className).toContain('grid-cols-[6.75rem_minmax(0,1fr)]');
     expect(row.querySelector('[data-gutter]')!.className).not.toContain('invisible');
   });
   it('is dropped when nothing was transcribed', () => {
@@ -290,7 +290,7 @@ describe('selection-is-announced', () => {
     fireEvent.mouseDown(word(keys[0]));
     fireEvent.mouseDown(word(keys[2]), { shiftKey: true });
     act(() => void vi.advanceTimersByTime(ANNOUNCE_SETTLE_MS));
-    expect(said).toEqual([expect.stringMatching(/^3 words selected, \d+:\d\d to \d+:\d\d$/)]);
+    expect(said).toEqual([expect.stringMatching(/^3 words selected, \d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3}$/)]);
     fireEvent.mouseDown(word(doc.items.find((i) => i.st === 'extra')!.key), { detail: 2 });
     act(() => void vi.advanceTimersByTime(ANNOUNCE_SETTLE_MS));
     expect(said.at(-1)).toMatch(/not in the script$/);

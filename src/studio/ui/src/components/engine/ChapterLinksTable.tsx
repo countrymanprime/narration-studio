@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useEffect, useRef, useState } from 'react';
 import { useGuardedNavigate } from '../../studio/drafts/unsavedDrafts';
 import { chapterName } from '../../chapterName';
@@ -18,12 +19,11 @@ import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
 import { CREATE_QUIET_MS, type ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
-import { apiErrorMessage } from '../../api/errorMessage';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
 import { destinationFor } from './destination';
-import { LINK_STATE_LABEL, linkStateLabel } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel, kindInWords as kindWords, wordsCount } from './voices';
@@ -35,11 +35,11 @@ import { linksKey, useChapterFolders } from './useChapterFolders';
 export const UNPLAYABLE = "This track has an item that can't be played";
 
 // The status is an icon with its words in a tooltip, so the row keeps its width for the track's name (#3274).
-const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone; icon: IconName }> = {
-  linked: { label: LINK_STATE_LABEL.linked, tone: 'success', icon: 'statusLinked' },
-  unlinked: { label: LINK_STATE_LABEL.unlinked, tone: 'neutral', icon: 'statusNotLinked' },
-  missing: { label: LINK_STATE_LABEL.missing, tone: 'danger', icon: 'statusTrackMissing' },
-  several: { label: LINK_STATE_LABEL.several, tone: 'warning', icon: 'statusSeveral' }, // the label follows the layout (destination.severalBadge)
+const STATE_BADGE: Record<ChapterLinkState, { tone: StatusTone; icon: IconName }> = {
+  linked: { tone: 'success', icon: 'statusLinked' },
+  unlinked: { tone: 'neutral', icon: 'statusNotLinked' },
+  missing: { tone: 'danger', icon: 'statusTrackMissing' },
+  several: { tone: 'warning', icon: 'statusSeveral' }, // the words come from linkStateLabel, by layout
 };
 
 // One grid for every row in every state (alignment audit ENX-1): the chapter takes what is left, then the status icon, the track (its
@@ -95,7 +95,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
         live?.refresh();
         notify(createdSentence(result, chapterName(chapter, 'short')), 'info');
       },
-      (reason: unknown) => notify(`The track could not be added: ${apiErrorMessage(reason)}`, 'error'),
+      (reason: unknown) => notify(linkFailureSentence('create', reason), 'error'),
     );
   };
 
@@ -138,7 +138,7 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
             <TableRow>
               <TableHeader>Chapter</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader>{folders ? 'Folder' : 'Track'}</TableHeader>
+              <TableHeader>{destinationFor(folders ? 'folders' : 'flat').Noun}</TableHeader>
               <TableHeader hiddenLabel="Actions" />
             </TableRow>
           </TableHead>
@@ -209,11 +209,12 @@ export function recheckSentence(
   notVoiceGuids: readonly string[] = [],
 ): string {
   const found = tracks.find((candidate) => candidate.guid === guid);
-  if (!found) return `${short} is linked to a track that is no longer in the project. Choose another track or clear the link.`;
+  const noun = voiceFolders ? 'folder' : 'track';
+  if (!found) return `${short} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
   const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
-    return `The track for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
+    return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
   const linked = `${short} is linked to ${quoted(found.name, place)} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
@@ -324,7 +325,7 @@ function ChapterLinkRow({
   // page, or on the panel's own container), never over a control the narrator moved to. The note is the table's single one (the row is drawn anew when its link is cleared).
   const actionsRef = useRef<HTMLSpanElement>(null);
   const replacementLabel = (to: 'change' | 'create') =>
-    to === 'change' ? `Change the track for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
+    to === 'change' ? `Change the ${folders ? 'folder' : 'track'} for ${short}` : `Create a ${folders ? 'folder' : 'track'} for ${short}`;
   const askHandBack = (to: 'change' | 'create') => {
     handBack = { chapterId: row.chapter.id, to, label: replacementLabel(to), until: Date.now() + HAND_BACK_MS };
   };
@@ -360,7 +361,9 @@ function ChapterLinkRow({
   const picked = tracks.find((track) => track.guid === pick);
   const heldBy = choices.find((choice) => choice.guid === pick)?.heldBy;
   // A track that is gone is not "unnamed": the sentence says it is missing.
-  const replaced = row.state === 'missing' ? 'the missing track' : quoted(shownName);
+  // A chapter with several links loses all of them, not only the one shown: the sentence says how many.
+  const replaced =
+    row.state === 'several' ? `its ${row.linkCount} ${destination.noun}s` : row.state === 'missing' ? `the missing ${destination.noun}` : quoted(shownName);
   const preview = picked
     ? [
         `links ${quoted(picked.name, tracks.indexOf(picked))} (${kindInWords(picked, tracks, folders, setup.notVoiceGuids)})`,
@@ -378,7 +381,9 @@ function ChapterLinkRow({
       action={folders ? 'createChapterFolder' : 'createChapterTrack'}
       label={`Create a ${folders ? 'folder' : 'track'} for ${short}`}
       pending={creating}
-      disabledReason={createLocked ? 'Wait for the track being added' : busy && !creating ? 'Wait for the change in progress' : undefined}
+      disabledReason={
+        createLocked ? `Wait for the ${folders ? 'folder' : 'track'} being added` : busy && !creating ? 'Wait for the change in progress' : undefined
+      }
       onClick={() => {
         // A double click on Clear lands its second press here, where Create now is: ignore it, Create adds a track in REAPER.
         if (settled()) onCreate();
@@ -408,7 +413,7 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={pick} onChange={setChosen} fullWidth />
+          <TrackSelect label={destination.pickerLabel(short)} choices={choices} value={pick} onChange={setChosen} fullWidth />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link
@@ -440,8 +445,8 @@ function ChapterLinkRow({
             {destination.severalChip}
           </span>
         ) : (
-          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }} title="Linked track is missing from this project">
-            Linked track is missing from this project
+          <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }} title={destination.linkedMissing}>
+            {destination.linkedMissing}
           </span>
         )}
       </TableCell>
@@ -455,7 +460,7 @@ function ChapterLinkRow({
                 label={pick && pick === checkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
                 variant={pick && pick !== checkedGuid ? 'primary' : 'default'}
-                disabledReason={!pick ? `Choose a ${folders ? 'folder' : 'track'} first` : creating ? 'Wait for the track being added' : undefined}
+                disabledReason={!pick ? destination.chooseFirst : creating ? `Wait for the ${folders ? 'folder' : 'track'} being added` : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {
                   if (pick !== checkedGuid) return onConfirm(pick);
@@ -499,7 +504,7 @@ function ChapterLinkRow({
             <>
               <IconButton
                 action="changeTrack"
-                label={`Change the track for ${short}`}
+                label={`Change the ${folders ? 'folder' : 'track'} for ${short}`}
                 disabledReason={busy ? 'Saving the link' : undefined}
                 onClick={() => {
                   // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).

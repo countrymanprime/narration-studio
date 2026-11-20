@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Recording in REAPER for the Read Aloud control bar (arm_only, record_start and record_stop in
@@ -32,11 +33,22 @@ var refusals = map[string]error{
 	"REAPER has not started recording yet.": ErrRecordingNotStarted,
 }
 
-// Armed is what arm_only did: the track it armed, how many others it disarmed, and whether anything changed.
+// Armed is what arm_only did: the track it armed, how many others it disarmed, and whether anything changed. Monitored is true when
+// arm_lane was asked to monitor and this call turned the lane's input monitoring on (it was off); a lane the narrator already monitors is
+// left alone and reads false.
 type Armed struct {
 	TrackGUID string
 	Disarmed  int
 	Changed   bool
+	Monitored bool
+}
+
+// MonitorReleased is what monitor_restore did: how many lanes' input monitoring it put back to off, and how many it kept because the
+// narrator changed them since. Waiting is true when REAPER was recording: nothing was touched and the rest is put back once the
+// recording stops, on REAPER's own next tick.
+type MonitorReleased struct {
+	Restored, Kept int
+	Waiting        bool
 }
 
 // StartRule says where recording begins. StartHere leaves the edit cursor where it is. AtEnd (the third argument of
@@ -58,6 +70,10 @@ type RecordOptions struct {
 	Start StartRule
 	// Folder is the chapter's folder track GUID, sent with ChapterEnd and ignored by every other rule.
 	Folder string
+	// NotVoice is the GUIDs of the tracks inside Folder the narrator marked as not a voice (a music bed), sent after Folder with ChapterEnd as
+	// one comma-separated argument: REAPER leaves their items, and everything inside a marked folder, out of where the chapter's audio ends
+	// (#3559). Empty sends nothing, which is also what an older host sent: an older script ignores the extra argument and counts every track.
+	NotVoice []string
 }
 
 // RecordStarted is the track REAPER records on and the edit cursor where recording began, in seconds.
@@ -81,20 +97,44 @@ type RecordEnded struct {
 }
 
 // ArmOnly arms the track trackGUID names and disarms every other one, after REAPER remembers the arms the narrator had;
-// they come back when the recording the app starts stops. Refused while REAPER records (ErrRecording); a track that is
-// gone is a *TrackStaleError.
+// they come back when the recording the app starts stops. Refused while REAPER records (ErrRecording) and while it plays or is
+// paused (ErrPlaying), with no arm moved; a track that is gone is a *TrackStaleError.
 func (a *Actions) ArmOnly(ctx context.Context, trackGUID string) (Armed, error) {
 	return a.arm(ctx, "arm_only", trackGUID)
 }
 
-// ArmLane is ArmOnly for the Booth's lane choice while no take runs (arm_lane): the same arming and the same refusals, but REAPER
+// ArmLane is ArmOnly for the Booth's lane choice while no take runs (arm_lane): the same arming, refused while REAPER records but not while it plays, and REAPER
 // remembers no arms to put back, so the lane stays armed after a take and the app and the DAW keep agreeing (#3429).
-func (a *Actions) ArmLane(ctx context.Context, trackGUID string) (Armed, error) {
+//
+// With monitor, REAPER also turns the lane's input monitoring on when it is off, and puts the lane it monitored before back (ReleaseMonitor
+// puts back the last one). The refusals are the same.
+func (a *Actions) ArmLane(ctx context.Context, trackGUID string, monitor bool) (Armed, error) {
+	if monitor {
+		return a.arm(ctx, "arm_lane", trackGUID, "monitor")
+	}
 	return a.arm(ctx, "arm_lane", trackGUID)
 }
 
-func (a *Actions) arm(ctx context.Context, command, trackGUID string) (Armed, error) {
-	events, err := a.request(ctx, command, []string{"ARMED", "TRACK_STALE"}, trackGUID)
+// ReleaseMonitor puts back the input monitoring ArmLane turned on (monitor_restore): to off, and only on a lane that still has it as REAPER
+// was left, so a monitoring the narrator changed meanwhile is kept. While REAPER records it changes nothing and says so (Waiting).
+func (a *Actions) ReleaseMonitor(ctx context.Context) (MonitorReleased, error) {
+	events, err := a.request(ctx, "monitor_restore", []string{"MONITOR_RESTORED"})
+	if err != nil {
+		return MonitorReleased{}, err
+	}
+	fields := events[len(events)-1].Fields
+	return MonitorReleased{Restored: int(numberAt(fields, 2)), Kept: int(numberAt(fields, 3)), Waiting: numberAt(fields, 4) != 0}, nil
+}
+
+// KeepMonitor drops a ReleaseMonitor that is waiting for a recording to stop (monitor_restore with cancel): the narrator is back in the Booth, so the
+// lane stays monitored when the recording stops. It changes nothing else and is answered while REAPER records.
+func (a *Actions) KeepMonitor(ctx context.Context) error {
+	_, err := a.request(ctx, "monitor_restore", []string{"MONITOR_RESTORED"}, "cancel")
+	return err
+}
+
+func (a *Actions) arm(ctx context.Context, command, trackGUID string, extra ...string) (Armed, error) {
+	events, err := a.request(ctx, command, []string{"ARMED", "TRACK_STALE"}, append([]string{trackGUID}, extra...)...)
 	if err != nil {
 		return Armed{}, err
 	}
@@ -105,7 +145,7 @@ func (a *Actions) arm(ctx context.Context, command, trackGUID string) (Armed, er
 	if event.Fields[2] != normalizeGUID(trackGUID) {
 		return Armed{}, fmt.Errorf("REAPER armed another track than the one this app asked for")
 	}
-	return Armed{TrackGUID: event.Fields[2], Disarmed: int(numberAt(event.Fields, 3)), Changed: event.Fields[4] == "1"}, nil
+	return Armed{TrackGUID: event.Fields[2], Disarmed: int(numberAt(event.Fields, 3)), Changed: event.Fields[4] == "1", Monitored: numberAt(event.Fields, 5) != 0}, nil
 }
 
 // RecordStart asks REAPER to record on trackGUID, which must be the one armed track, while REAPER is stopped, from
@@ -117,6 +157,9 @@ func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts Record
 		args = append(args, string(opts.Start))
 		if opts.Start == ChapterEnd {
 			args = append(args, opts.Folder)
+			if list := notVoiceList(opts.NotVoice); list != "" {
+				args = append(args, list)
+			}
 		}
 	}
 	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, args...)
@@ -188,4 +231,16 @@ func (a *Actions) OnRecordEnded(handler func(RecordEnded)) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.onRecordEnded = handler
+}
+
+// notVoiceList is the list argument for the GUIDs of marked tracks: one comma-separated text, with any entry that holds a comma left out (it
+// would be read as two GUIDs; REAPER never makes such a GUID, a hostile project file could).
+func notVoiceList(guids []string) string {
+	kept := make([]string, 0, len(guids))
+	for _, guid := range guids {
+		if guid != "" && !strings.Contains(guid, ",") {
+			kept = append(kept, guid)
+		}
+	}
+	return strings.Join(kept, ",")
 }

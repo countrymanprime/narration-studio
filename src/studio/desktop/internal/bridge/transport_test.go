@@ -71,7 +71,7 @@ func TestArmLaneSendsArmLaneAndTellsTheRefusalsApart(t *testing.T) {
 		answer[0][1] = run(command)
 		return answer
 	})
-	got, err := actions.ArmLane(context.Background(), testTrack)
+	got, err := actions.ArmLane(context.Background(), testTrack, false)
 	if err != nil || got != (Armed{TrackGUID: testTrack, Disarmed: 1, Changed: true}) {
 		t.Fatalf("got %+v, %v", got, err)
 	}
@@ -82,11 +82,11 @@ func TestArmLaneSendsArmLaneAndTellsTheRefusalsApart(t *testing.T) {
 		t.Error("arm_lane must stay experimental until it is verified in a real REAPER")
 	}
 	answer = [][]string{{"TRACK_STALE", "", testTrack}}
-	if _, err := actions.ArmLane(context.Background(), testTrack); !errors.Is(err, ErrStale) {
+	if _, err := actions.ArmLane(context.Background(), testTrack, false); !errors.Is(err, ErrStale) {
 		t.Fatalf("err = %v, want ErrStale", err)
 	}
 	answer = [][]string{{"ERROR", "", "REAPER is recording. Stop recording first."}}
-	if _, err := actions.ArmLane(context.Background(), testTrack); !errors.Is(err, ErrRecording) {
+	if _, err := actions.ArmLane(context.Background(), testTrack, false); !errors.Is(err, ErrRecording) {
 		t.Fatalf("err = %v, want ErrRecording", err)
 	}
 }
@@ -162,6 +162,42 @@ func TestRecordStartChapterEndSendsTheRuleAndTheFolder(t *testing.T) {
 	defer mu.Unlock()
 	if n := len(sent); n < 3 || sent[n-2] != "chapter_end" || sent[n-1] != "{F}" {
 		t.Fatalf("sent = %v, want the rule then the folder as the last two arguments", sent)
+	}
+}
+
+func TestRecordStartChapterEndSendsTheTracksThatAreNotAVoiceAfterTheFolderAndNothingWithoutThem(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var sent [][]string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = append(sent, command)
+		return [][]string{{"RECORD_STARTED", run(command), testTrack, "9.000000"}}
+	})
+	for _, opts := range []RecordOptions{
+		{Start: ChapterEnd, Folder: "{F}", NotVoice: []string{"{B1}", "{B2}"}},
+		{Start: ChapterEnd, Folder: "{F}"},
+		{Start: AtEnd, Folder: "{F}", NotVoice: []string{"{B1}"}},
+	} {
+		if _, err := actions.RecordStart(context.Background(), testTrack, opts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(sent) != 3 {
+		t.Fatalf("sent %d commands, want 3", len(sent))
+	}
+	last := func(command []string, n int) []string { return command[len(command)-n:] }
+	if got := last(sent[0], 3); got[0] != "chapter_end" || got[1] != "{F}" || got[2] != "{B1},{B2}" {
+		t.Errorf("with tracks that are not a voice: %v, want the rule, the folder, then one comma-separated list", got)
+	}
+	if got := last(sent[1], 2); got[0] != "chapter_end" || got[1] != "{F}" {
+		t.Errorf("without them: %v, want the rule and the folder as the last two arguments, as an older host sent", got)
+	}
+	if last(sent[2], 1)[0] != "end" {
+		t.Errorf("a rule other than chapter_end sends %v, want no folder and no list", last(sent[2], 2))
 	}
 }
 
@@ -308,5 +344,80 @@ func TestSwitchVoiceMovesTheTakeToAnotherVoiceAndTellsTheRefusalsApart(t *testin
 	mu.Unlock()
 	if _, err := actions.SwitchVoice(context.Background(), testTrack); err == nil {
 		t.Fatal("an answer for another track must be an error")
+	}
+}
+
+func TestArmLaneWithMonitorSendsTheArgumentAndReadsWhetherMonitoringWasTurnedOn(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	answer := []string{"ARMED", "", testTrack, "0", "1", "1"}
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		answer[1] = run(command)
+		return [][]string{answer}
+	})
+	got, err := actions.ArmLane(context.Background(), testTrack, true)
+	if err != nil || got != (Armed{TrackGUID: testTrack, Changed: true, Monitored: true}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if command := fake.commands()[0]; command[1] != "arm_lane" || command[3] != testTrack || command[4] != "monitor" {
+		t.Fatalf("command = %v", command)
+	}
+	// An older script answers the five fields it always did: monitoring was not turned on.
+	answer = []string{"ARMED", "", testTrack, "0", "1"}
+	if got, err := actions.ArmLane(context.Background(), testTrack, true); err != nil || got.Monitored {
+		t.Fatalf("an older script's answer read %+v, %v", got, err)
+	}
+	answer = []string{"ARMED", "", testTrack, "0", "1"}
+	if _, err := actions.ArmLane(context.Background(), testTrack, false); err != nil {
+		t.Fatal(err)
+	}
+	if command := fake.commands()[2]; len(command) != 4 {
+		t.Fatalf("a lane asked without monitor must not send the argument: %v", command)
+	}
+}
+
+func TestReleaseMonitorReadsWhatWasPutBackAndWhetherItWaits(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	answer := []string{"MONITOR_RESTORED", "", "2", "1", "0"}
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		answer[1] = run(command)
+		return [][]string{answer}
+	})
+	got, err := actions.ReleaseMonitor(context.Background())
+	if err != nil || got != (MonitorReleased{Restored: 2, Kept: 1}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if command := fake.commands()[0]; command[1] != "monitor_restore" {
+		t.Fatalf("command = %v", command)
+	}
+	answer = []string{"MONITOR_RESTORED", "", "0", "0", "1"}
+	if got, err := actions.ReleaseMonitor(context.Background()); err != nil || !got.Waiting {
+		t.Fatalf("a restore that waits for a recording read %+v, %v", got, err)
+	}
+	// A script from before this command has no such command: REAPER answers an error, and the call says so.
+	answer = []string{"ERROR", "", "Unsupported workspace command"}
+	if _, err := actions.ReleaseMonitor(context.Background()); err == nil {
+		t.Fatal("an unsupported command must be an error")
+	}
+}
+
+func TestKeepMonitorSendsCancelAndAnswersWhileRecording(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"MONITOR_RESTORED", run(command), "0", "0", "0"}}
+	})
+	if err := actions.KeepMonitor(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if command := fake.commands()[0]; command[1] != "monitor_restore" || command[3] != "cancel" {
+		t.Fatalf("command = %v", command)
+	}
+}
+
+func TestRecordStartLeavesOutAMarkedGUIDThatHoldsACommaSoItIsNeverReadAsTwo(t *testing.T) {
+	if got := notVoiceList([]string{"{B1}", "z,{B2}", "", "{B3}"}); got != "{B1},{B3}" {
+		t.Fatalf("list %q, want only the two well-formed entries", got)
+	}
+	if got := notVoiceList([]string{"a,b"}); got != "" {
+		t.Fatalf("list %q, want nothing so no argument is sent", got)
 	}
 }

@@ -19,11 +19,12 @@ import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel, wordsCount } from './voices';
+import { destinationFor } from './destination';
 import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
 
@@ -49,6 +50,9 @@ const STATUS_TONE: Record<LineIdentityRowStatus, StatusTone> = {
 // entity keep to one line (a GUID cut short keeps the whole one as its title) while the text column takes what is left.
 const MAPPING_COLUMNS = ['auto', '13rem', '6rem'] as const;
 const STAMPED_COLUMNS = ['15rem', '5.5rem', '13rem', 'auto'] as const;
+
+/** The picker value of the row for a chapter with several links: no track's, so every track (the first included) is a pick that replaces them. */
+const SEVERAL_VALUE = '\u0000several';
 
 /** The items each linked chapter owns (chapterItemsByNearestLink), so an item under two linked tracks is counted and stamped for the nearer one. The
  * opening and closing credits are linked here but own nothing: they are not in the manuscript, so a stamp with their id would read back as a
@@ -198,10 +202,12 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // (a Read refused after a Stamp, or a dialog reopened while a Read ran, keep the state's own meaning).
   const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped && !failure;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
-  const voiceFolders = useVoiceLayout() === 'folders';
+  const layout = useVoiceLayout();
+  const voiceFolders = layout === 'folders';
   const { setup } = useVoiceSetup();
+  const { noun, pickerLabel } = destinationFor(layout);
   const trackOptions = [
-    { value: '', label: LINK_STATE_LABEL.unlinked },
+    { value: '', label: linkStateLabel('unlinked', voiceFolders) },
     ...tracks.map((track) => {
       const name = trackName(track.name, track.index);
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
@@ -245,7 +251,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       title="Link chapters to REAPER"
       size="wide"
       onClose={onClose}
-      description="Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve."
+      description={`Choose which REAPER ${noun} holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve.`}
       actions={
         <>
           {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
@@ -286,11 +292,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </div>
       )}
 
-      <Table label="Chapter to track mapping" columns={MAPPING_COLUMNS}>
+      <Table label={`Chapter to ${noun} mapping`} columns={MAPPING_COLUMNS}>
         <TableHead sticky>
           <TableRow>
             <TableHeader>Chapter</TableHeader>
-            <TableHeader>REAPER track</TableHeader>
+            <TableHeader>{`REAPER ${noun}`}</TableHeader>
             <TableHeader className="whitespace-nowrap">To stamp</TableHeader>
           </TableRow>
         </TableHead>
@@ -301,21 +307,26 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const own = state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: LINK_STATE_LABEL.missing }] : trackOptions;
+            const own =
+              state === 'missing' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: linkStateLabel('missing', voiceFolders) }] : trackOptions;
             // A track another chapter holds says so before the pick, as the Chapter links list and the pickers do; picking it moves it (#3398).
             const known = chapterNameLookup(links.chapters);
-            const options = own.map((option) => {
+            const named = own.map((option) => {
               const holder = option.value ? holderOf(links.mappings, option.value, chapter.id) : undefined;
               return holder ? { ...option, label: heldLabel(option.label, holderName(known(holder.chapterId), holder.chapterTitle)) } : option;
             });
+            // A chapter with several links shows as that, on an option of its own beside every track: not as the first of its tracks alone (that
+            // track stays pickable, which then leaves only it), and not as "Not linked" when that first track is gone.
+            const severalRow = state === 'several';
+            const options = severalRow ? [{ value: SEVERAL_VALUE, label: linkStateLabel('several', voiceFolders) }, ...named] : named;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
                 <TableCell>
                   <Select
-                    label={`Track for ${chapterName(chapter, 'short')}`}
-                    value={mapping?.trackGuid ?? ''}
-                    onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
+                    label={pickerLabel(chapterName(chapter, 'short'))}
+                    value={severalRow ? SEVERAL_VALUE : (mapping?.trackGuid ?? '')}
+                    onChange={(value) => (value === SEVERAL_VALUE ? undefined : value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}
                     disabled={links.busyChapterId === chapter.id || running}
                     fullWidth

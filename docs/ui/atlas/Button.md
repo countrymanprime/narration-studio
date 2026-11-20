@@ -194,6 +194,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/storybible/suggested/panel/ScanStatus.tsx`
 - `src/components/storybible/suggested/row/Quotes.tsx`
 - `src/components/storybible/suggested/scan/AnalysisPrompt.tsx`
+- `src/components/storybible/useBulkDelete.tsx`
 - `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
 - `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`

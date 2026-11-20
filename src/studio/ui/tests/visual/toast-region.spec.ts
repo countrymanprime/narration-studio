@@ -215,3 +215,26 @@ test.describe('a modal with a toast showing, 320x300', () => {
     expect([...seen].sort()).toEqual(['dialog', 'toast']);
   });
 });
+
+// `Dialog` takes what is left above the toasts in a window under 300 px tall (#3605, #3601; `dialog-toast-room.spec.ts`), so a toast showing over an open dialog publishes `--toast-h`: the room
+// from the window's bottom edge up to its top (plus 8 px). It is set only then: not with no toast, not with no dialog.
+test('a toast over an open dialog publishes the room it takes, and only then', async ({ page }) => {
+  const toastHeight = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'));
+  await page.setViewportSize({ width: 320, height: 290 });
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
+  await page.getByRole('button', { name: 'Undo' }).waitFor();
+  expect(await toastHeight(), 'a toast with no dialog open').toBe('');
+  await page.getByRole('button', { name: 'New project' }).click();
+  await page.getByRole('dialog').waitFor();
+  await expect.poll(toastHeight).not.toBe('');
+  const expected = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  expect(await toastHeight()).toBe(`${expected}px`);
+  await page.setViewportSize({ width: 320, height: 261 });
+  const again = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  await expect.poll(toastHeight).toBe(`${again}px`);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(toastHeight).toBe('');
+});

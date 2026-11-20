@@ -25,9 +25,9 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 
 ![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
 
-The app connects to the REAPER you have open by itself. For the first ten seconds after it opens, an
-engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
-then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
+The app connects to the REAPER you have open by itself. For the first ten seconds after REAPER stops answering the mark reads
+"Connecting to REAPER…", and while the app is opening REAPER on the linked project it reads "Starting REAPER…" (the app
+waits up to 90 seconds for REAPER to answer); nothing asks you meanwhile, the header's engine chip reads **REAPER: Starting**, and the sentences the page prints about the DAW say it is starting instead of telling you to open it. A project with no REAPER project file linked does not wait: its dialog opens at once with **Link project file…**. If you open the dialog from the mark while REAPER is starting, it is titled **Starting REAPER** and its **Start REAPER** waits with it. If REAPER has not come up by then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
 that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. While no REAPER project file is linked to the project, **Start REAPER** is off and **Link project file…** is the main button; it links the file and the dialog reads the answer again. The same mark and dialog appear, worded the same, on [Editing](editing.md), [Proof](proof.md), [Pickups](pickups.md), [Master & QC](master-and-qc.md) and the [Booth](booth.md): a **Check again** or a link on one is the answer on all of them, with no reload. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
@@ -53,7 +53,7 @@ This page is a reference to everything Production shows. To do one thing, start 
 
 ## The figures
 
-The six figures are one card; each opens the page it counts.
+The six figures are one card; each opens the page it counts. Every amount of time on this page that counts hours is written with its units, hours and minutes ("3h 30m", "0h 10m"), so it cannot be read as minutes and seconds; a length of audio in minutes and seconds, as in the chapter's track panel, is written "10:12".
 
 - **Recorded audio**: the finished hours of the chapters that are recorded or further on, out of
   the book's finished length estimated from its words. It is the same count as the stage bar's
@@ -105,10 +105,10 @@ narration chapters only: a chapter removed from recording, and reference materia
 ## Chapter pipeline
 
 The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
-on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
+on the chapter's confirmed track in the saved project (`1h 12m`, or `<0h 01m` for under a minute), and **Est.** beside it (`1h 20m`) is the
 chapter's finished length estimated from its words. Every column header is centred; the chapter names under Chapter are left aligned. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **Not linked** (no track is linked to the chapter: link one in the chapter's track panel), **Several tracks** (keep one in the track
-panel), **Track missing** (the linked track is no longer in the project), **No project** (no saved project could be read) or **Not
+panel), **Track missing** (the linked track is no longer in the project; in a Voice folders project these words say **Several folders** and **Folder missing**), **No project** (no saved project could be read) or **Not
 read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.
@@ -146,7 +146,7 @@ the [audio engine panel](navigation.md#the-audio-engine-panel).
 ### A chapter's track
 
 **Chapter track…** opens what the saved project knows about the chapter's track (its items, span,
-recorded length, how the link was found and when, and whether you or chapter sync made it), and
+recorded length, how the link was found and when, and whether you or chapter sync made it; a track in a linked folder that you marked as not a voice, such as a music bed, is not counted in the recorded length or the recording check), and
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
 A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked

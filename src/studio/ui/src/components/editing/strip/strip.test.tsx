@@ -81,7 +81,12 @@ describe('offered at 1360 and wider, off to begin with', () => {
 });
 
 describe('the strip follows the line', () => {
-  const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+  // hh:mm:ss.fff, as the strip writes its span and its ticks (#3443), written out here and not through the app's `clock`.
+  const clock = (t: number): string => {
+    const ms = Math.round(t * 1000);
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${two(Math.floor(ms / 3_600_000))}:${two(Math.floor(ms / 60_000) % 60)}:${two(Math.floor(ms / 1000) % 60)}.${String(ms % 1000).padStart(3, '0')}`;
+  };
   it('shows one lane per shown take on one axis, none for a hidden take, and no waveform of its own', () => {
     mount(three, { key: 'p-1:1' }, { hidden: new Set(['t-1']) });
     expect([...document.querySelectorAll('#timeline [data-lane]')].map((l) => l.getAttribute('data-lane'))).toEqual(['t-2', 't-3']);

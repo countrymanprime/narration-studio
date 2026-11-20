@@ -38,6 +38,9 @@ var (
 	resumeFollowLifetime = 30 * time.Minute
 )
 
+// itemsRetryTicksMax is the most ticks the follow waits before it tries a failing read of the chapter's items again.
+const itemsRetryTicksMax = 30
+
 // followCursorTolerance is how far, in seconds, the edit cursor must move to count as moved.
 const followCursorTolerance = 0.01
 
@@ -73,9 +76,16 @@ func newResumeFollower(chapterID string, saved *tracks.Track, span *tracks.Span,
 	return &resumeFollower{chapterID: chapterID, saved: saved, span: span, folder: projectFolder}
 }
 
-// step takes one read and answers the event to send (nil for none) and whether the poll should stop. REAPER playing
+// step takes one read, which carries the items, and answers the event to send (nil for none) and whether the poll should stop. REAPER playing
 // or recording (on any track: the narrator is at REAPER) is reported at once, even on the first read, and ends the poll.
 func (f *resumeFollower) step(state dawport.TrackState) (*resumeFollowEvent, bool) {
+	return f.stepWith(state, nil)
+}
+
+// stepWith is step for a poll that reads without the items (#3664): state carries the transport and the cursor, and items reads the track's items
+// when, and only when, the cursor has settled and the follower must know whether it is on recorded audio. items answers false when that read failed:
+// the settle is then tried again at the next tick. A nil items takes the items from state.
+func (f *resumeFollower) stepWith(state dawport.TrackState, items func() (dawport.TrackState, bool)) (*resumeFollowEvent, bool) {
 	switch {
 	case state.Recording:
 		return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followRecording}, true
@@ -95,8 +105,26 @@ func (f *resumeFollower) step(state dawport.TrackState) (*resumeFollowEvent, boo
 		f.pending = &cursor
 		return nil, false
 	}
+	full := state
+	if items != nil {
+		got, ok := items()
+		if !ok {
+			return nil, false
+		}
+		full = got
+		// The items were read a moment after the cursor was: REAPER may have started to play or record, or the cursor may have moved on, meanwhile.
+		// What the full read says first wins, so the event is never judged at a cursor it does not carry.
+		switch {
+		case full.Recording:
+			return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followRecording}, true
+		case full.Playing:
+			return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followPlaying}, true
+		case !nearCursor(full.EditCursor, cursor):
+			return nil, false // the next tick reads the cursor where it is now
+		}
+	}
 	f.baseline, f.pending = cursor, nil
-	if _, at, ok := liveRecordedEnd(state, f.saved, f.span, f.folder); ok && at == liveAtCursor {
+	if _, at, ok := liveRecordedEnd(full, f.saved, f.span, f.folder); ok && at == liveAtCursor {
 		return &resumeFollowEvent{ChapterID: f.chapterID, Reason: followCursorMoved, EditCursor: &cursor}, false
 	}
 	return nil, false
@@ -112,6 +140,8 @@ type resumeFollowLoop struct {
 	projectPath string
 	trackGUID   string
 	follower    *resumeFollower
+	// skip names the tracks whose items are not the chapter's audio (chapterAudioSkip); nil counts every item.
+	skip        func(trackGUID string) bool
 	sessionBusy func() bool
 	emit        func(resumeFollowEvent)
 	interval    time.Duration
@@ -126,6 +156,7 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 	defer cancel()
 	ticker := time.NewTicker(l.interval)
 	defer ticker.Stop()
+	itemsFailures, itemsWait := 0, 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -135,12 +166,30 @@ func (l resumeFollowLoop) run(ctx context.Context) {
 		if l.sessionBusy() {
 			continue
 		}
-		state, ok := readLiveTrack(ctx, l.reader, l.projectPath, l.trackGUID)
+		// Every tick reads the transport and the cursor without the track's items; the items (a chapter's folder is hundreds of rows and tens of
+		// KB each second, #3664) are read only when the cursor has settled, to see whether it is on the chapter's audio.
+		state, ok := readLiveTrackLight(ctx, l.reader, l.projectPath, l.trackGUID)
 		if !ok || ctx.Err() != nil {
 			continue
 		}
-		event, stop := l.follower.step(state)
-		if event != nil {
+		items := func() (dawport.TrackState, bool) {
+			// A read of the items that keeps failing (an older script without the folder read, a track that is gone, another project in front) is
+			// not tried every second for the rest of the follow: it waits 1, 2, 4 ... up to itemsRetryTicksMax ticks, and starts again on an answer.
+			if itemsWait > 0 {
+				itemsWait--
+				return dawport.TrackState{}, false
+			}
+			full, ok := readLiveTrack(ctx, l.reader, l.projectPath, l.trackGUID)
+			if !ok || ctx.Err() != nil {
+				itemsFailures++
+				itemsWait = min(1<<min(itemsFailures-1, 10), itemsRetryTicksMax)
+				return dawport.TrackState{}, false
+			}
+			itemsFailures = 0
+			return withoutSkippedTracks(full, l.skip), true
+		}
+		event, stop := l.follower.stepWith(state, items)
+		if event != nil && ctx.Err() == nil { // nothing is emitted once the follow ended, also when it ended while this tick read
 			l.emit(*event)
 		}
 		if stop {
@@ -189,7 +238,8 @@ func (h *Host) teleprompterResumeFollowWith(svc hostServices, reader trackStateR
 		reader:      reader,
 		projectPath: project.Path,
 		trackGUID:   candidate.TrackGUID,
-		follower:    newResumeFollower(chapterID, savedTrack(project, candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder),
+		follower:    newResumeFollower(chapterID, savedTrack(chapterAudio(h.persist, svc.config.projectFolder, project), candidate.TrackGUID), candidateSpan(*candidate), svc.config.projectFolder),
+		skip:        chapterAudioSkip(h.persist, svc.config.projectFolder, project, candidate.TrackGUID),
 		sessionBusy: svc.teleprompter.Busy,
 		emit:        emit,
 		interval:    resumeFollowInterval,

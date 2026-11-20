@@ -8,6 +8,18 @@ export const proofChapterStates: StateEntry[] = [
   // The chapter view, reached from a linked chapter's "Open in Proof" link in the engine panel.
   {
     page: 'proof-chapter',
+    state: 'tracks-unreadable',
+    description:
+      'Proof chapter view when the tracks could not be read (?mockLiveTracks=unreadable) - the timeline slot says "The tracks could not be read: REAPER did not answer in time." instead of staying empty',
+  },
+  {
+    page: 'proof-chapter',
+    state: 'saved-project',
+    description:
+      'Proof chapter view with REAPER not answering (?mockLiveTracks=saved) - the "Saved project" mark in the title row beside the check state and Check recordings',
+  },
+  {
+    page: 'proof-chapter',
     state: 'never',
     description:
       'Proof chapter view, a chapter with a confirmed track link that has never been checked - Not checked yet in the title row with Check recordings beside it',

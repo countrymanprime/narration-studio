@@ -28,6 +28,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/App.tsx': {
     note: "swallows an Enter or Space echoed onto the unsaved question's way to stay, in the capture phase, and notes the press that may have asked it (#3446): a guard on one dialog's button, not a command",
   },
+  'src/components/primitives/dialogClosed.ts': {
+    note: 'stops an Escape auto-repeat so a held Escape closes one layer, not the one under it too (#3549), and the repeats of an Enter or Space that answered a dialog, so they do not press the control focus returns to (#3555): guards on the layers, not commands',
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 

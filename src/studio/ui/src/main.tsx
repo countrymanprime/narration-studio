@@ -12,6 +12,7 @@ import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
 import { withCallLog } from './api/withCallLog';
+import { withCoalescedReads } from './api/withCoalescedReads';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
@@ -77,9 +78,11 @@ const mockNoRpp = mockParams.has('mockNoRpp');
 // `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
 // `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
-// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.
+// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks; `unreadable` refuses
+// every read, the first too, so every page says the tracks could not be read.
 const mockLiveTracksParam = mockParams.get('mockLiveTracks');
-const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
+const mockLiveTracks: 'saved' | 'failing' | 'unreadable' | undefined =
+  mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' || mockLiveTracksParam === 'unreadable' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
 // `?mockEmptyTracks=1`: every track of the saved project holds no item (a chapter never recorded), so Editing's note says its track is empty.
@@ -340,6 +343,8 @@ const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // there and offers **Save in REAPER and read**), or a project that was never saved, whose save the host refuses (`never-saved`).
 const mockDawUnsaved = (['1', 'never-saved'] as const).find((seed) => seed === mockParams.get('mockDawUnsaved'));
 const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
+// `?mockDawCreate=off`: the DAW cannot add a track from the app, so the Link dialog's Create is off and its reason is on the button's tooltip.
+const mockDawCreateOff = mockParams.get('mockDawCreate') === 'off';
 // `?mockRollReplaces=1` declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
 const mockRollReplaces = mockParams.has('mockRollReplaces');
@@ -719,6 +724,7 @@ const mockInitial = {
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,
+    mockDawCreateOff ? { noTrackCreate: true } : undefined,
     mockDawUnsaved ? { savedAt: '2026-11-10T09:00', unsavedChanges: true, neverSaved: mockDawUnsaved === 'never-saved' } : undefined,
     mockRollReplaces ? { depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
@@ -732,9 +738,10 @@ if (hostApi === wailsClient) {
   enableUiLog();
   installTracing(wailsClient);
 }
+// Identical reads that are in flight together are one host call (#3560). The call log (mock builds) sits under it, so it counts the calls that reach the host.
+const coalesced = withCoalescedReads(mockCallLog ? withCallLog(hostApi) : hostApi);
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
-const wrapped = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
-const api = mockCallLog ? withCallLog(wrapped) : wrapped;
+const api = hostApi === wailsClient ? withTracing(coalesced) : (appExtension().wrapApi?.(coalesced) ?? coalesced);
 appExtension().start?.(api);
 
 createRoot(document.getElementById('root')!).render(

@@ -1,5 +1,6 @@
 import type { AssetRef, OptionNote, SettingMeta } from './types';
 import { plural } from '../../../plural';
+import { FOLLOW_CHAPTER_NOTE } from '../followChapterNote';
 
 const whisper = (id: string, label: string): OptionNote => ({ label, asset: { kind: 'whisper', id } });
 const WHISPER: Record<string, OptionNote> = {
@@ -662,13 +663,13 @@ export const ROWS: readonly SettingMeta[] = [
     id: 'booth.followChapterInDaw',
     cat: 'recording',
     section: 'What the recording tool can do',
-    label: 'DAW follows the Booth’s chapter',
+    label: 'DAW follows your chapter',
     scope: 'computer',
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
-    desc: 'Selects the Booth’s chapter in the DAW.',
-    more: 'When you go to a chapter in the Booth, the DAW selects that chapter’s track and the tracks inside it and sets its cursor at the end of what is recorded (or at the line you went to). Turn it off to leave the DAW where you put it.',
-    used: ['booth'],
+    desc: 'Selects your chapter in the DAW and arms its voice.',
+    more: FOLLOW_CHAPTER_NOTE,
+    used: ['booth', 'editing', 'pickups'],
     needs: 'daw',
     syn: 'follow daw navigate chapter select track cursor',
   },

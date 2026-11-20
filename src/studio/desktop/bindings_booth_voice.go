@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -144,7 +145,9 @@ func withoutNotVoices(setup voicetracks.State, voices []tracks.Track) []tracks.T
 	return kept
 }
 
-// withoutLinkedElsewhere is voices less the tracks some chapter is linked to.
+// withoutLinkedElsewhere is voices less the tracks some chapter is linked to: a recording-target rule (Record never arms another chapter's own
+// track). It does not make such a track outside the outer chapter's audio: chapterAudio leaves out only a track marked as not a voice, so a
+// nested chapter's track still counts toward the outer chapter's recording check, recorded length and recorded end (#3594).
 func withoutLinkedElsewhere(svc hostServices, voices []tracks.Track) []tracks.Track {
 	linked := linkedTrackGUIDs(svc)
 	if len(linked) == 0 {
@@ -245,10 +248,58 @@ type boothVoiceChoices struct {
 	// The voices BoothVoiceAdd added, by the folder's GUID (upper case), in the order added.
 	// +checklocks:mu
 	added map[string][]BoothVoiceTrack
+	// Voice names whose create REAPER read and did not confirm, by folder and lower-case name: until REAPER's list shows the track, an add of
+	// the same name is not sent again (#3645, a retry would make a second track).
+	// +checklocks:mu
+	pending map[string]time.Time
+	// How many times each chapter's voice was chosen, so a choice that repeats the current voice still counts as a choice (#3645).
+	// +checklocks:mu
+	choices map[string]int
+}
+
+// pendingVoiceFor is how long an unconfirmed create blocks a second add of its name.
+const pendingVoiceFor = 2 * time.Minute
+
+func pendingKey(folderGUID, name string) string {
+	// Folded as the name check folds (strings.EqualFold): upper then lower, so "Miſs" and "MISS" are one name.
+	return strings.ToUpper(folderGUID) + "|" + strings.ToLower(strings.ToUpper(name))
+}
+
+func (c *boothVoiceChoices) markPending(folderGUID, name string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pending[pendingKey(folderGUID, name)] = time.Now()
+}
+
+func (c *boothVoiceChoices) clearPending(folderGUID, name string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.pending, pendingKey(folderGUID, name))
+}
+
+func (c *boothVoiceChoices) isPending(folderGUID, name string) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := pendingKey(folderGUID, name)
+	at, ok := c.pending[key]
+	if ok && time.Since(at) >= pendingVoiceFor {
+		delete(c.pending, key)
+		return false
+	}
+	return ok
 }
 
 func newBoothVoiceChoices() *boothVoiceChoices {
-	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}}
+	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}, pending: map[string]time.Time{}, choices: map[string]int{}}
 }
 
 // whileAdding runs one add's checks, its track_create and its answer while no other add runs. A nil one runs it unguarded.
@@ -300,6 +351,17 @@ func (c *boothVoiceChoices) choose(chapterID, guid string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.byChapter[chapterID] = guid
+	c.choices[chapterID]++
+}
+
+// choiceCount is how many choices chapterID has had.
+func (c *boothVoiceChoices) choiceCount(chapterID string) int {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.choices[chapterID]
 }
 
 func (h *Host) readAloudRecordingActive() bool {
@@ -357,7 +419,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 			return boothVoiceRefused("starting", "A take is starting. Choose the voice once it has started."), nil
 		}
 		svc.boothVoices.choose(chapterID, target)
-		chosen := armChosenLane(ctx, name, recorder, target)
+		chosen := armChosenLane(ctx, name, recorder, target, followChapterSetting(svc), &h.boothMonitorOwed)
 		if status := reaperStatus(svc); recorder == nil && status.Connection == reaperNotRunning {
 			// A linked DAW that is not answering cannot arm the lane: say so, the choice stands.
 			chosen.Reason = reaperNotRunning
@@ -374,7 +436,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		// The take is over (the narrator stopped it in the DAW): the voice is the next take's.
 		h.clearReadAloudRecording()
 		svc.boothVoices.choose(chapterID, target)
-		return armChosenLane(ctx, name, recorder, target), nil
+		return armChosenLane(ctx, name, recorder, target, followChapterSetting(svc), &h.boothMonitorOwed), nil
 	}
 	var stale *bridge.TrackStaleError
 	if errors.As(err, &stale) {
@@ -389,23 +451,24 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 	return BoothVoice{Outcome: "switched", TrackGUID: target, At: &at}, nil
 }
 
-// armChosenLane makes the DAW's armed track the voice the Booth just chose, while no take runs, so the app and the DAW agree (#3429).
+// armChosenLane makes the DAW's armed track the voice the Booth just chose, while no take runs, so the app and the DAW agree (#3429). With monitor
+// (Booth.follow_chapter_in_daw on) the voice's input monitoring is turned on when it is off, and the voice left goes back (#3428).
 // The choice stands whatever the DAW answers: a refusal is in the answer's Reason and Message, never silent. A recorder that cannot arm
 // a lane (none linked, or an engine without armed tracks) is not asked.
-func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string) BoothVoice {
+func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, target string, monitor bool, owed *monitorDebt) BoothVoice {
 	chosen := BoothVoice{Outcome: "selected", TrackGUID: target}
 	armer, ok := recorder.(dawport.LaneArmer)
 	if recorder == nil || !ok {
 		return chosen
 	}
-	if _, err := armer.ArmLane(ctx, target); err != nil {
+	if _, err := armLaneOwing(ctx, armer, target, monitor, owed); err != nil {
 		refusal := readAloudRecordRefusal(name, err)
 		chosen.Reason = refusal.Reason
 		switch refusal.Reason {
 		case readAloudTrackMissing:
 			chosen.Message = fmt.Sprintf("That voice track is no longer in the %s project, so it could not be armed. The Booth still records on it if it comes back.", name)
 		case "timeout":
-			chosen.Message = fmt.Sprintf("%s did not confirm within 3 seconds, so the armed track may not match the voice. The Booth records on the voice you chose.", name)
+			chosen.Message = fmt.Sprintf("%s did not confirm in time, so the armed track may not match the voice. The Booth records on the voice you chose.", name)
 		default:
 			chosen.Message = fmt.Sprintf("%s The Booth records on the voice you chose, but the armed track in %s did not change.", refusal.Message, name)
 		}
@@ -420,7 +483,7 @@ func armChosenLane(ctx context.Context, name string, recorder dawport.Recorder, 
 // the Booth's voice list.
 func (h *Host) BoothVoiceSet(chapterID, trackGUID string) (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceSetIn(ctx, svc, recorderFrom(svc), chapterID, trackGUID))
 }

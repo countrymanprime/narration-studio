@@ -1,4 +1,7 @@
 import { chapterTrackOf } from '../../../api/chapterTrackItems';
+import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
+import { destinationFor } from '../../engine/destination';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { PickupItem } from '../../../api/contracts/pickups';
@@ -7,7 +10,7 @@ import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
-import { chapterLink, linkStateOf, type ChapterLinkState } from '../../chapterTracks/chapterLink';
+import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
 /** Seconds of the recording heard before and after the line's place. */
@@ -19,9 +22,9 @@ const NO_PLACE = 'This line has no place in the recording yet.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
 
 /** Why a pickup of a chapter in this link state has no recording to play. */
-function noSpotReason(state: ChapterLinkState): string {
-  if (state === 'unlinked') return 'This chapter is not linked to a track, so the original cannot be played.';
-  if (state === 'missing') return 'This chapter’s linked track is no longer in the project, so the original cannot be played.';
+function noSpotReason(state: ChapterLinkState, layout: VoiceTracksLayout): string {
+  if (state === 'unlinked') return destinationFor(layout).noOriginal.unlinked;
+  if (state === 'missing') return destinationFor(layout).noOriginal.missing;
   return NO_AUDIO;
 }
 
@@ -50,6 +53,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
   // track renamed or deleted in REAPER is what the next press plays (#3366).
   const trackState = useChapterTrackState();
+  const layout = useVoiceLayout();
   const tracks = usePort('tracks');
   const daw = usePort('daw');
   const sync = usePort('dawTransportSync');
@@ -67,7 +71,20 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   shared.current = trackState;
   live.current = { onRefused, onNotice, playingId, inDaw };
 
-  const unavailable = useCallback((pickup: PickupItem): string | undefined => (pickup.at === null && pickup.time === null ? NO_PLACE : undefined), []);
+  // Off, with its reason, for a line with no place and for a chapter with no link (#3394). The DAW can play a stretch by its own project second with
+  // no link, but the Engine list says "Not linked" and the button must not look usable beside it. Before the links are first read "no link" means
+  // "not read yet", so the button stays as it was.
+  const { mappings, linksReadAt } = trackState;
+  const unavailable = useCallback(
+    (pickup: PickupItem): string | undefined => {
+      if (pickup.at === null && pickup.time === null) return NO_PLACE;
+      // The line that is playing keeps its Stop: a chapter unlinked meanwhile must not leave a play that cannot be stopped (qa B2).
+      if (pickup.id === playingId) return undefined;
+      if (linksReadAt !== null && chapterLink(mappings, pickup.chapterId).state === 'unlinked') return noSpotReason('unlinked', layout);
+      return undefined;
+    },
+    [mappings, linksReadAt, playingId, layout],
+  );
 
   const clearTimer = (): void => {
     if (timer.current !== undefined) window.clearTimeout(timer.current);
@@ -147,12 +164,12 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
           return { played: false, why };
         },
       };
-      const { project, mappings, reread, live: read } = shared.current;
+      const { project, mappings, reread } = shared.current;
       const link = chapterLink(mappings, pickup.chapterId);
       const found = project ? chapterTrackOf(project.tracks, link.trackGuid) : undefined;
       const spot = sourceSpot(found?.items ?? [], pickup);
       // Why there is nothing to play, in the link's own terms (the same words the Engine list and Editing use), not one sentence for every case.
-      const missing = !project ? (read.error ? `The tracks could not be read: ${read.error}` : NO_AUDIO) : noSpotReason(linkStateOf(link, Boolean(found)));
+      const missing = tracksUnreadable(shared.current) ?? (!project ? NO_AUDIO : noSpotReason(linkStateOf(link, Boolean(found)), layout));
       // The state is a few seconds old at most; a press asks it to read again for the next one.
       const app: PlaybackProvider<PickupItem> = {
         name: APP,
@@ -179,7 +196,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       if (by === null) live.current.onRefused(notice);
       else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync],
+    [daw, player, stop, stopDaw, sync, layout],
   );
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */

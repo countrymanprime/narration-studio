@@ -142,9 +142,9 @@ var eventSpecs = map[string]eventSpec{
 	"FINDING_MARKER": {required: []fieldSpec{text("run"), text("state"), text("takeGuid"), number("sourceTime"), text("name")}},
 	// chapter_track_state (narration_track_state.lua): the transport and one track, read-only. guid is empty when no track was named; playState is GetPlayState's bit field;
 	// times are seconds; recInput is the track's I_RECINPUT (empty with no track); inputDevice and outputDevice are empty when
-	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say. One TRACK_ITEM per item on the track follows (none with the 'none' option), then TRACK_STATE_END (listed, and the track's total).
+	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say; armedGuids is every armed track, separated by spaces and cut at 32, empty with none (appended for the Booth following a lane armed in REAPER, #3429). One TRACK_ITEM per item on the track follows (none with the 'none' option), then TRACK_STATE_END (listed, and the track's total).
 	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
-		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName")}},
+		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName"), text("armedGuids")}},
 	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off. trackGuid, the track the item is
 	// on, follows it only in the 'children' read of a folder (ChapterFolderState).
 	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
@@ -174,11 +174,14 @@ var eventSpecs = map[string]eventSpec{
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during
 	// the recording (undo_last's record_take), was appended to both stop answers later: optional, so an older script's still reads.
-	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}},
+	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}, optional: []fieldSpec{count("monitored")}},
 	"RECORD_STARTED":  {required: []fieldSpec{text("run"), text("guid"), number("position")}},
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// arm_lane with monitor adds monitored (0 or 1: this call turned the lane's input monitoring on). monitor_restore (narration_monitor.lua):
+	// how many lanes' monitoring it put back and kept; waiting is 1 when REAPER was recording, so the rest is put back after the stop.
+	"MONITOR_RESTORED": {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("waiting")}},
 	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
 	// REAPER records on now and the play position of the switch.
 	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},

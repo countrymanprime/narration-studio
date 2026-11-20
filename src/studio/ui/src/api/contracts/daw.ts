@@ -581,8 +581,9 @@ export type DawPunchPreroll = { ok: boolean; onRecord: boolean; measures: number
  * tracks or a track no chapter is linked to is selected. `selected` is how many tracks are selected and `cursor` the DAW's cursor in project seconds. */
 export type DawPlace = { ok: boolean; message: string; chapterId: string; selected: number; cursor: number };
 
-/** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored) or `at` (`seconds` into the project). */
-export type DawGoToWhere = 'end' | 'at';
+/** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored), `start` (where the
+ * chapter's audio begins; `seconds` is ignored) or `at` (`seconds` into the project). */
+export type DawGoToWhere = 'end' | 'start' | 'at';
 
 /** DawPlace and DawGoToChapter (src/studio/desktop/bindings_daw_place.go): read which chapter's track the narrator is on in the DAW and where their cursor is, and
  * take the DAW there. The page names a chapter, never a track: the host holds the chapter-track links, and the same calls serve any DAW with the
@@ -593,6 +594,13 @@ export interface DawPlaceApi {
   /** Select the chapter's linked track in the DAW and put its cursor at `where`. A time that is not a finite, non-negative number of seconds, a
    * chapter with no or several linked tracks, a track the DAW no longer has and a refused capability are refused with nothing moved. */
   dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
+  /** Entering the Booth on a chapter (src/studio/desktop/bindings_booth_arming.go): arm the track its next take records on and turn its input monitoring on when it
+   * is off. Nothing is changed, and nothing said, for a DAW with no armed tracks, a chapter with no one linked track and a take this app runs; a DAW that is
+   * recording, does not answer or no longer has the track is refused with the sentence. No undo step. */
+  dawArmBoothVoice(chapterId: string): Promise<DawResult>;
+  /** Leaving the Booth: put back the input monitoring `dawArmBoothVoice` and a voice choice turned on, only where the narrator has not changed it since. A DAW that is
+   * recording changes nothing and puts it back itself after the stop. */
+  dawReleaseBoothMonitor(): Promise<DawResult>;
 }
 
 /** What `daw_position_changed` carries (src/studio/desktop/bindings_daw_transportsync.go): the DAW's play state, play head and edit cursor in project seconds

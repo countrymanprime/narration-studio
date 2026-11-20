@@ -305,7 +305,7 @@ describe('every-way-out-asks-while-recording', () => {
     await press('Escape');
     expect(page.overlay.getSnapshot().dialogs).toHaveLength(1);
     expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
+    expect(page.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it and saves the take.');
     // The question holds the take while it is open.
     expect(screen.getByText('REC · reading paused')).toBeTruthy();
     await act(async () => page.dialog()!.answer(false));
@@ -415,7 +415,7 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.navigate).not.toHaveBeenCalled();
     // The reason starts the dialog's sentence, so it starts with a capital.
     expect(page.dialog()?.spec.title).toBe('Could not stop the take');
-    expect(page.dialog()?.spec.body).toMatch(/^The stop did not go through\./);
+    expect(page.dialog()?.spec.body).toMatch(/^REAPER could not be reached\./);
   });
 
   it('Stop and leave with a stop the DAW never answers gives up at the stop limit and does not leave', async () => {
@@ -518,6 +518,51 @@ describe('the-daw-follows-the-chapter-the-narrator-goes-to', () => {
   });
 });
 
+describe('the-booth-arms-and-monitors-the-voice-it-opens-on', () => {
+  const armed = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  const setting = (value: 'true' | 'false'): Partial<NarrationApi> => ({
+    settingsForScope: async () => ({
+      Booth: [
+        { key: 'follow_chapter_in_daw', label: 'x', kind: 'bool', choices: [], value, isSet: true, effectiveValue: value, effectiveSource: 'repo default' },
+      ],
+    }),
+  });
+
+  it('arms the chapter it opens on, and each chapter the narrator goes to after it, once each', async () => {
+    const dawArmBoothVoice = armed();
+    renderPage({ search: '?chapter=c1', api: { dawArmBoothVoice } });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledExactlyOnceWith('c1'));
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledWith('c2'));
+    expect(dawArmBoothVoice).toHaveBeenCalledTimes(2);
+  });
+
+  it('arms the chapter the Booth opened on by itself too, though the DAW is already there', async () => {
+    const dawArmBoothVoice = armed();
+    renderPage({ search: '', api: { dawArmBoothVoice } });
+    await waitFor(() => expect(dawArmBoothVoice).toHaveBeenCalledTimes(1));
+  });
+
+  it('arms nothing when Booth.follow_chapter_in_daw is off', async () => {
+    const dawArmBoothVoice = armed();
+    renderPage({ search: '?chapter=c1', api: { dawArmBoothVoice, ...setting('false') } });
+    await ready();
+    await settle();
+    expect(dawArmBoothVoice).not.toHaveBeenCalled();
+  });
+
+  it('puts the monitoring back when the Booth is left, and not while stepping between chapters', async () => {
+    const dawReleaseBoothMonitor = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const page = renderPage({ search: '?chapter=c1', api: { dawArmBoothVoice: armed(), dawReleaseBoothMonitor } });
+    await ready();
+    await act(async () => driver.go('/booth?chapter=c2'));
+    await settle();
+    expect(dawReleaseBoothMonitor).not.toHaveBeenCalled();
+    page.view.unmount();
+    await waitFor(() => expect(dawReleaseBoothMonitor).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe('a-built-in-take-is-guarded-too', () => {
   // The built-in recorder records through the DAW port like any engine (the host answers recordStart with the recorder behind it), so the
   // page asks the port once and needs no track; what the recorder does with a microphone is the host's tests'.
@@ -529,7 +574,7 @@ describe('a-built-in-take-is-guarded-too', () => {
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     await press('Escape');
-    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it.');
+    expect(page.dialog()?.spec.body).toBe('The built-in recorder is recording. Leaving the Booth for Script stops it and saves the take.');
     await act(async () => page.dialog()!.answer(false));
     page.view.unmount();
     await settle();
@@ -2292,13 +2337,14 @@ describe('a-take-is-undone-in-the-daw', () => {
     await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
   });
 
-  // N3: a stop answered after the 8 s deadline (the "Could not stop the take" question is up) says the take is saved where the narrator is, once.
-  it('a stop answered after the deadline says Take saved with Undo once, while the question stays', async () => {
+  // N3 (#3697): a stop that answers after the leave guard's first 8 s but inside the stop's own 10 s limit is the guard's to take: no "Could not stop the take" is raised over a take that is
+  // being saved, and the take is told as saved where the narrator is, once. (Before, the question was raised at 8 s and the answer arrived under it.)
+  it('a stop answered after 8 s but inside its limit says Take saved with Undo once, with no question raised', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const daw = dawFor('reaper');
     const stop = daw.recordStop.bind(daw);
     daw.recordStop = (async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10_000));
+      await new Promise((resolve) => setTimeout(resolve, 9_000));
       return stop();
     }) as typeof daw.recordStop;
     const page = renderPage({ daw, journal: dawJournal });
@@ -2306,11 +2352,12 @@ describe('a-take-is-undone-in-the-daw', () => {
     await press('Escape');
     await act(async () => page.dialog()!.answer(true));
     await act(() => vi.advanceTimersByTimeAsync(8500));
-    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(page.dialog()?.spec.title, 'no refusal while the stop is inside its limit').not.toBe('Could not stop the take');
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
-    await act(() => vi.advanceTimersByTimeAsync(2500));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     await waitFor(() => expect(toastNamed(page, 'Take saved')?.action?.label).toBe('Undo'));
     expect(page.overlay.getSnapshot().toasts.filter((toast) => toast.text === 'Take saved')).toHaveLength(1);
+    expect(page.dialog()?.spec.title).not.toBe('Could not stop the take');
   });
 
   it('a take with the built-in recorder is not a DAW entry', async () => {

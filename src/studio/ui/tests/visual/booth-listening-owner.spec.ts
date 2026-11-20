@@ -49,7 +49,7 @@ async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningS
 test('the stop of a take whose listening failed ends at its limit with a sentence, and Record is free', async ({ page }) => {
   await openBooth(page, 'stopNeverAnswers');
   await page.keyboard.press('Space');
-  await expect(page.getByText(/The recording could not be stopped: the stop did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/The take could not be stopped: REAPER did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
   await expect(record(page)).toBeVisible();
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect((await calls(page)).stops).toBe(1);
@@ -203,7 +203,7 @@ test('a Stop the DAW never answers ends at its limit with a sentence, and Stop c
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(1500);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Stop did not go through: the stop did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/Stop did not go through: REAPER did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
   // The take may still be recording: Stop is still there and asks the DAW again.
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
   await page.keyboard.press('Space');
@@ -350,8 +350,8 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     const question = page.getByRole('alertdialog');
-    await question.getByRole('button', { name: /^Stop and leave/ }).click();
-    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+    const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
     await expect(anyway).toBeVisible({ timeout: 8000 });
     // The button ignores a press for a moment after it appears (a double-click on the one it replaced).
     await page.waitForTimeout(600);
@@ -393,8 +393,8 @@ test('a report that waits for adoption says nothing when the page then starts it
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
   const question = page.getByRole('alertdialog');
-  await question.getByRole('button', { name: /^Stop and leave/ }).click();
-  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+  await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+  const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
   await expect(anyway).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
   await anyway.click();
@@ -429,8 +429,8 @@ test('a report that waits for adoption says nothing when the adopting page ends 
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
   const question = page.getByRole('alertdialog');
-  await question.getByRole('button', { name: /^Stop and leave/ }).click();
-  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+  await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+  const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
   await expect(anyway).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
   await anyway.click();
@@ -475,8 +475,8 @@ for (const meanwhile of ['the take ends', 'the Booth is left'] as const) {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     const question = page.getByRole('alertdialog');
-    await question.getByRole('button', { name: /^Stop and leave/ }).click();
-    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+    const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
     await expect(anyway).toBeVisible({ timeout: 8000 });
     await page.waitForTimeout(600);
     await anyway.click();
@@ -535,8 +535,8 @@ for (const [name, cold, ignoreStop] of [
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     const question = page.getByRole('alertdialog');
-    await question.getByRole('button', { name: /^Stop and leave/ }).click();
-    const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+    await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+    const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
     await expect(anyway).toBeVisible({ timeout: 8000 });
     await page.waitForTimeout(600);
     await anyway.click();
@@ -605,8 +605,8 @@ const leaveDuringAdoptedStartAndReturn = async (page: Page, chapter: string) => 
   });
   await gotoBooth(page, 'chapter-2');
   const question = page.getByRole('alertdialog');
-  await question.getByRole('button', { name: /^Stop and leave/ }).click();
-  const anyway = question.getByRole('button', { name: /^Leave anyway/ });
+  await question.getByRole('button', { name: /^Stop and (leave|open)/ }).click();
+  const anyway = question.getByRole('button', { name: /^(Leave|Open) anyway/ });
   await expect(anyway).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(600);
   await anyway.click();

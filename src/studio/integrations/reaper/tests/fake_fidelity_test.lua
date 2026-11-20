@@ -320,6 +320,22 @@ H.test('7.82/Linux: an arm switched during a take ends one item and starts the n
   H.eq(#fake.items, 0, 'one Undo takes both items away')
 end)
 
+-- Seen in REAPER 7.82 on Linux, 2026-11-16 (docs/research/2026-11-16-booth-arms-and-monitors.md): I_RECMON reads back 0, 1 and 2 as set, and
+-- setting it adds no undo point, does not mark the project unsaved and does not move the project's change count. (A track the CI helper
+-- inserted read 1, so the fake leaves the start to a test and answers 0 for a track nobody set.)
+H.test('I_RECMON reads back what was set and changes neither the change count, the undo history nor the unsaved mark', function()
+  local reaper_api, fake = api()
+  local track = fake:add_track('Narrator')
+  local changes = reaper_api.GetProjectStateChangeCount(0)
+  for _, value in ipairs({ 1, 2, 0, 1 }) do
+    reaper_api.SetMediaTrackInfo_Value(track, 'I_RECMON', value)
+    H.eq(reaper_api.GetMediaTrackInfo_Value(track, 'I_RECMON'), value)
+  end
+  H.eq(reaper_api.GetProjectStateChangeCount(0), changes)
+  H.eq(reaper_api.IsProjectDirty(0), 0)
+  H.eq(#fake.undo, 0)
+end)
+
 -- Seen in REAPER 7.82 on Linux, 2026-11-02 (docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 1): a new
 -- track reads I_FOLDERDEPTH 0, and the value set is the value read (1 on a folder parent, -1 on its last child).
 H.test('I_FOLDERDEPTH reads 0 on a new track and reads back what was set', function()
@@ -329,4 +345,22 @@ H.test('I_FOLDERDEPTH reads 0 on a new track and reads back what was set', funct
   reaper_api.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)
   reaper_api.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
   H.eq({ reaper_api.GetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH'), reaper_api.GetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH') }, { 1, -1 })
+end)
+
+-- Seen in REAPER 7.82 on Linux, 2026-11-16 (docs/research/2026-11-16-select-without-edit-real-reaper.md, scripts/ci/real-reaper/scenarios_select_count.py):
+-- SetTrackSelected raises GetProjectStateChangeCount by one per call, even for the state the track already has; SetOnlyTrackSelected and an
+-- I_SELECTED write select without moving it. None adds an undo point or marks the project dirty.
+H.test('7.82/Linux: SetTrackSelected counts as an edit per call, SetOnlyTrackSelected and an I_SELECTED write do not', function()
+  local reaper_api, fake = api()
+  local a, b = fake:add_track('A'), fake:add_track('B')
+  local before = reaper_api.GetProjectStateChangeCount(0)
+  reaper_api.SetOnlyTrackSelected(a)
+  reaper_api.SetMediaTrackInfo_Value(b, 'I_SELECTED', 1)
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before, 'neither call moves the count')
+  H.eq({ reaper_api.GetMediaTrackInfo_Value(a, 'I_SELECTED'), reaper_api.GetMediaTrackInfo_Value(b, 'I_SELECTED') }, { 1, 1 })
+  reaper_api.SetTrackSelected(b, true)
+  reaper_api.SetTrackSelected(b, true)
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before + 2, 'one per call, even for the state it already has')
+  H.eq(reaper_api.IsProjectDirty(0), 0, 'the project stays clean')
+  H.eq(#fake.undo, 0, 'no undo point')
 end)

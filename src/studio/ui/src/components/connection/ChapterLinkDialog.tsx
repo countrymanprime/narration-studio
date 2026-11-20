@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { cachedMatch, rememberMatch, useCachedMatch } from './chapterMatchCache';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { useSecondsSince } from '../layout/CheckLine';
@@ -82,8 +84,18 @@ export function ChapterLinkDialog({
   // The links are the app's one chapter-track state, not a snapshot of the dialog's own: a link made here shows on the Engine panel, the Booth
   // and Settings at once, and one made there shows here (#3350). Only the links are watched; the match is this chapter's own question.
   const { mappings: links, applyMappings, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false });
-  const [read, setRead] = useState<Read>({ status: 'loading' });
+  // The Booth read the tracks ahead (#3669): the dialog opens with them to choose from and reads again behind them.
+  const projectNow = useChapterTrackProject();
+  const [read, setRead] = useState<Read>(() => {
+    const ahead = cachedMatch(projectNow, chapterId);
+    return ahead ? { status: 'ready', match: ahead.match, at: ahead.at } : { status: 'loading' };
+  });
   const [asked, setAsked] = useState(0);
+  // A read ahead that lands while this dialog is still reading is taken at once, not waited for twice.
+  const landed = useCachedMatch(projectNow, chapterId);
+  useEffect(() => {
+    if (landed) setRead((now) => (now.status === 'loading' ? { status: 'ready', match: landed.match, at: landed.at } : now));
+  }, [landed]);
   // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
   const nameOf = useChapterNameOf(true, asked);
   const nameOfRef = useRef(nameOf);
@@ -96,8 +108,11 @@ export function ChapterLinkDialog({
   const dest = destinationFor(useVoiceLayout());
   const folders = dest.folders;
 
+  const shownRef = useRef(read.status);
+  shownRef.current = read.status;
   useEffect(() => {
     let live = true;
+    const askedAt = Date.now();
     // The links are read through the shared state (every screen sees the answer), together with the match, so the two are one moment.
     // A links read that fails is this dialog's read failing: it says so, as a failed match does, and Check again tries both again.
     // A links read that fails after the match answered leaves the picker as it was, with the failure said under it, not the whole dialog failed.
@@ -111,6 +126,7 @@ export function ChapterLinkDialog({
     ]).then(
       ([match, fresh]) => {
         if (!live) return;
+        rememberMatch(projectNow, chapterId, match, askedAt);
         setRead({ status: 'ready', match, at: Date.now() });
         if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
@@ -120,32 +136,35 @@ export function ChapterLinkDialog({
             : bestChoice(trackChoices(match, fresh ?? linksRef.current, undefined, nameOfRef.current)),
         );
       },
-      (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
+      // A failed read behind tracks already on screen keeps them: they are what the narrator can act on, and Check again tries again.
+      (error: unknown) => {
+        if (!live) return;
+        // A failed read behind tracks already on screen keeps them, and says so: they are the last ones heard, shown with when they were read.
+        setRead((now) => (now.status === 'ready' && asked === 0 ? now : { status: 'failed', message: apiErrorMessage(error) }));
+        setRefused(
+          (now) =>
+            now ??
+            (shownRef.current === 'ready' && asked === 0
+              ? `The ${dawName} tracks could not be read again: ${apiErrorMessage(error)}. The last ones are shown.`
+              : now),
+        );
+      },
     );
     return () => {
       live = false;
     };
-  }, [trackMap, chapterId, asked, refreshLinks, dawName]);
+  }, [trackMap, chapterId, asked, refreshLinks, dawName, projectNow]);
 
   const readingRef = useRef(true);
   readingRef.current = read.status === 'loading';
   // Another project opened under this dialog (or the project closed): its chapter is not in what is read now, and a link would be written to the
   // wrong project, so the dialog goes away rather than offering it (#3416).
-  const projectNow = useChapterTrackProject();
   const openedFor = useRef(projectNow);
   useEffect(() => {
     if (projectNow !== openedFor.current) onClose();
   }, [projectNow, onClose]);
   const linksRef = useRef(links);
   linksRef.current = links;
-  // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
-  const open = useRef(true);
-  useEffect(
-    () => () => {
-      open.current = false;
-    },
-    [],
-  );
   const checkAgain = useCallback(() => {
     // Presses while a check is out are ignored: five presses would start five reads and five page re-reads.
     if (readingRef.current) return;
@@ -158,13 +177,15 @@ export function ChapterLinkDialog({
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
   const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId, nameOf) : []), [read, links, chapterId, nameOf]);
-  const held = choices.find((c) => c.guid === chosen && c.heldBy);
+  // Tracks shown ahead of the first read are already preselected: the best match until the narrator picks another.
+  const picked = chosen ?? (read.status === 'ready' ? bestChoice(trackChoices(read.match, links, undefined, nameOf)) : null);
+  const held = choices.find((c) => c.guid === picked && c.heldBy);
 
   const link = () => {
-    if (!chosen || linking) return;
+    if (!picked || linking) return;
     setLinking(true);
     setRefused(null);
-    actions.set(chapterId, chosen, nameOf).then(
+    actions.set(chapterId, picked, nameOf).then(
       ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
         applyMappings(result.mappings);
@@ -174,9 +195,7 @@ export function ChapterLinkDialog({
       },
       (error: unknown) => {
         setLinking(false);
-        const text = `The link could not be made: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('set', error), { tone: 'error' });
       },
     );
   };
@@ -192,14 +211,11 @@ export function ChapterLinkDialog({
         if (result.outcome === 'created') {
           applyMappings(result.mappings);
           onLinked(result, result);
-        } else if (open.current) setRefused(result.message);
-        else overlay.toast(result.message, { tone: 'error' });
+        } else overlay.toast(result.message, { tone: 'error' });
       },
       (error: unknown) => {
         setCreating(false);
-        const text = `The ${dest.noun} could not be added: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('create', error, dest.noun), { tone: 'error' });
       },
     );
   };
@@ -211,7 +227,37 @@ export function ChapterLinkDialog({
   const createWhat = dest.noun;
   const withNarrator = folders ? ', with a Narrator track in it,' : '';
   const createOff = create?.available === false;
-  const createAction = { label: createLabel, onPress: createTrack, pending: creating, disabled: createOff || linking };
+  // Why Create is off sits on its tooltip, not in the page (#3365); while a link is out it is off with no reason of its own.
+  const createOffWhy = create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`;
+  // The read behind tracks already on screen can turn the primary action from Link into Create or back; a press that lands just then would do the other thing, so the button is busy for a moment after it changes (#3669).
+  // What a press would do right now: Link on the chosen track, Create, or nothing yet. A change of it after the narrator could have aimed (tracks shown, or a dead Link that
+  // turns into Create as the read fails) holds the press for a moment; the first arrival of tracks does not.
+  const kind = createFirst ? 'create' : 'link';
+  const intent = read.status === 'ready' ? `${kind}:${picked ?? ''}` : read.status === 'failed' ? 'create' : 'reading';
+  const shownIntent = useRef<string | null>(null);
+  const shownRead = useRef(read);
+  const [settling, setSettling] = useState(false);
+  useEffect(() => {
+    const before = shownIntent.current;
+    shownIntent.current = intent;
+    // Only a change the read made: the narrator's own pick is not something to hold a press for.
+    const byRead = shownRead.current !== read;
+    shownRead.current = read;
+    if (before === null || before === intent || !byRead) return;
+    // "link:" with no track is Link before anything is chosen: nothing to aim at yet.
+    const aimed = (before.includes(':') && before !== 'link:') || (before === 'reading' && intent === 'create');
+    if (!aimed) return;
+    setSettling(true);
+    const timer = setTimeout(() => setSettling(false), 700);
+    return () => clearTimeout(timer);
+  }, [intent, read]);
+  const createAction = {
+    label: createLabel,
+    onPress: createTrack,
+    pending: creating || settling,
+    disabled: createOff || linking,
+    disabledReason: createOff ? createOffWhy : '',
+  };
   const title = missing ? dest.missingTitle(chapterName) : several ? dest.severalTitle(chapterName) : dest.notLinkedTitle(chapterName);
   return (
     <ResolveShell
@@ -220,7 +266,21 @@ export function ChapterLinkDialog({
       onClose={onClose}
       returnFocus={returnFocus}
       primary={
-        createFirst ? createAction : { label: dest.linkButton, onPress: link, pending: linking, disabled: !chosen || read.status !== 'ready' || creating }
+        createFirst
+          ? createAction
+          : {
+              label: dest.linkButton,
+              onPress: link,
+              pending: linking || settling,
+              disabled: !picked || read.status !== 'ready' || creating,
+              // Never a button that only looks dead: the tooltip says what it waits for.
+              disabledReason:
+                read.status !== 'ready'
+                  ? `Reading the ${dawName} tracks…`
+                  : creating
+                    ? `Adding the ${dest.noun}…`
+                    : `Choose a ${dest.noun} to link ${chapterName} to.`,
+            }
       }
       secondary={{ label: 'Check again', onPress: checkAgain, pending: read.status === 'loading' }}
     >
@@ -238,32 +298,30 @@ export function ChapterLinkDialog({
       )}
       {read.status === 'ready' && !noTracks && (
         <>
-          <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={chosen ?? ''} onChange={setChosen} fullWidth />
+          <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={picked ?? ''} onChange={setChosen} fullWidth />
           {held && (
             <p className="text-[var(--text-muted)]">
               {held.name} is linked to {held.heldBy}. Linking it here moves it.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-            <span className="text-[var(--text-muted)]">
-              Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
-            </span>
+            {!createOff && (
+              <span className="text-[var(--text-muted)]">
+                Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
+              </span>
+            )}
             <Button
               variant="secondary"
               size="sm"
               pending={creating}
-              {...(createAction.disabled ? { 'aria-disabled': true } : {})}
+              disabledReason={createAction.disabled ? createAction.disabledReason : ''}
+              {...(createAction.disabled && !createAction.disabledReason ? { 'aria-disabled': true } : {})}
               onClick={createAction.disabled ? undefined : createTrack}
             >
               {createLabel}
             </Button>
           </div>
         </>
-      )}
-      {createOff && (
-        <p className="text-[var(--text-muted)]">
-          {create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`}
-        </p>
       )}
       {refused && (
         <p role="alert" className="text-[var(--danger-text)]">
@@ -272,8 +330,14 @@ export function ChapterLinkDialog({
       )}
       {/* Only the sentence is announced; the seconds tick every second. */}
       <p className="text-[var(--text-muted)]">
-        <span role="status">{read.status === 'failed' ? `Can't tell which tracks ${dawName} has.` : `Waiting for ${chapterName} to be linked.`}</span>{' '}
-        {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago, from the project as last saved.`}
+        <span role="status">
+          {read.status === 'failed'
+            ? `Can't tell which tracks ${dawName} has.`
+            : missing
+              ? `Waiting for ${chapterName} to be linked to a ${dest.noun} that is in the project.`
+              : `Waiting for ${chapterName} to be linked.`}
+        </span>{' '}
+        {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago.`}
       </p>
     </ResolveShell>
   );
