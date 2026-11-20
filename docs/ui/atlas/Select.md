@@ -59,9 +59,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/settings/controls/DeliveryBodies.tsx`
 - `src/components/settings/controls/MicBody.tsx`
 - `src/components/settings/controls/SampleOutputBody.tsx`
-- `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/settings/row/ValueControl.tsx`
 - `src/components/storybible/DialogueCueAttribution.tsx`
-- `src/components/storybible/SpeakerColourField.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`

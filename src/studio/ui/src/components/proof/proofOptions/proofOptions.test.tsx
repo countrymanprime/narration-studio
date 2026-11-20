@@ -86,7 +86,8 @@ describe('Proof options', () => {
     await open();
     expect((await screen.findByRole('textbox', { name: 'Target length (seconds)' })) as HTMLInputElement).toHaveProperty('value', '300');
     expect((screen.getByRole('combobox', { name: 'Preset' }) as HTMLSelectElement).value).toBe('sample');
-    expect((screen.getByRole('textbox', { name: 'Tint' }) as HTMLInputElement).value).toBe('B5473C');
+    expect((screen.getByRole('textbox', { name: 'Tint hex' }) as HTMLInputElement).value).toBe('B5473C');
+    expect((screen.getByLabelText('Tint') as HTMLInputElement).value).toBe('#b5473c');
   });
 
   it('saves a number at the project layer once it is a valid, in-range value, and a choice as picked', async () => {
@@ -109,16 +110,50 @@ describe('Proof options', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '3600' }));
   });
 
-  it('saves a colour as six hex digits without the hash, in capitals, and ignores text that is not a colour', async () => {
+  it('saves a colour as six hex digits without the hash, in capitals, and keeps text that is not a colour in the box, unsaved and marked', async () => {
     const { save, open } = mount();
     await open();
-    const hex = await screen.findByRole('textbox', { name: 'Tint' });
+    const hex = (await screen.findByRole('textbox', { name: 'Tint hex' })) as HTMLInputElement;
     fireEvent.change(hex, { target: { value: 'zzz' } });
     fireEvent.blur(hex);
     expect(save).not.toHaveBeenCalled();
+    expect(hex.value).toBe('zzz');
+    expect(hex.getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(hex, { target: { value: '#3f6ea6' } });
     fireEvent.blur(hex);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: '3F6EA6' }));
+  });
+
+  // B3 (#3680): after a refused save the box kept the refused text beside the old colour in the picker, and each blur sent it again.
+  it('a refused colour puts the stored value back in the box and is not sent again', async () => {
+    const save = vi.fn(async () => {
+      throw new Error('The settings file is read-only.');
+    });
+    const { open } = mount({ saveSettings: save } as Partial<NarrationApi>);
+    await open();
+    const hex = (await screen.findByRole('textbox', { name: 'Tint hex' })) as HTMLInputElement;
+    fireEvent.change(hex, { target: { value: 'BB0001' } });
+    fireEvent.keyDown(hex, { key: 'Enter' });
+    expect(await screen.findByText('The settings file is read-only.')).toBeTruthy();
+    expect(hex.value).toBe('B5473C');
+    expect((screen.getByLabelText('Tint') as HTMLInputElement).value).toBe('#b5473c');
+    expect(hex.getAttribute('aria-invalid')).toBeNull();
+    fireEvent.blur(hex);
+    fireEvent.focus(hex);
+    fireEvent.blur(hex);
+    expect(save).toHaveBeenCalledExactlyOnceWith('Demo', 'project', { tint: 'BB0001' });
+  });
+
+  // B2 (#3680): the host has not answered yet; Enter again, a held Enter and the blur after it send nothing more.
+  it('sends one save for a colour however many times Enter is pressed before the host answers', async () => {
+    const save = vi.fn(() => new Promise<never>(() => undefined));
+    const { open } = mount({ saveSettings: save } as Partial<NarrationApi>);
+    await open();
+    const hex = (await screen.findByRole('textbox', { name: 'Tint hex' })) as HTMLInputElement;
+    fireEvent.change(hex, { target: { value: 'BB0001' } });
+    for (let press = 0; press < 21; press += 1) fireEvent.keyDown(hex, { key: 'Enter', repeat: press > 0 });
+    fireEvent.blur(hex);
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   it('shows an on/off setting as a switch at its value in force and saves the flip as the text true or false', async () => {
@@ -133,7 +168,7 @@ describe('Proof options', () => {
   it('offers Reset only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
     const { save, open } = mount();
     await open();
-    await screen.findByRole('textbox', { name: 'Tint' });
+    await screen.findByRole('textbox', { name: 'Tint hex' });
     expect(screen.getAllByRole('button', { name: /^Reset / })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Reset Tint' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: null }));

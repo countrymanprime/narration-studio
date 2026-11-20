@@ -65,7 +65,7 @@ export type FooterSurface = 'booth' | 'proof';
  * The footers' specs, in the order of the mock's key hints. A spec may name only an id the catalogue has (`hints.test.ts`
  * fails otherwise), so the Editing footer joins this table in the slice that adds its commands.
  */
-// The Booth footer lists no row for `booth.mode.switch` (Alt+Space): it is one row at the widths it was before, and a hint would wrap it below about 1274 px.
+// The Booth footer lists no row for `booth.mode.switch` (Ctrl+Alt+Space): it is one row at the widths it was before, and a hint would wrap it below about 1274 px.
 // The key is in the shortcut sheet (?) and Settings (`hints.test.ts` pins the footer's list).
 /** Why the Booth's voice keys do nothing in a cold read: the hints' tooltip, and the start of the sentence the keys answer with. */
 export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';

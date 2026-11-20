@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import type { ScopedSettingField } from '../../../types';
+import { ColourField } from '../../primitives/ColourField';
 import { Select } from '../../primitives/Select';
+import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
 import { describeNumberRange, numberProblem } from '../numberSetting';
@@ -32,8 +34,8 @@ export type ValueControlProps = {
   describedBy?: string;
   invalid?: boolean;
   disabled?: boolean;
-  /** The narrator settled on a value. An emptied number is `''`. */
-  onChange: (value: string) => void;
+  /** The narrator settled on a value. An emptied number is `''`. May return the save it starts, resolving to `false` when the host refused it. */
+  onChange: (value: string) => void | Promise<unknown>;
   /** A number the narrator settled on is refused (true) or fine (false); the row uses it to drop a "Saved" mark that belongs to an earlier value (#2989). */
   onDraftProblem?: (refused: boolean) => void;
 };
@@ -53,7 +55,7 @@ function SettledBox({
   className,
 }: {
   value: string;
-  onSettle: (value: string) => void;
+  onSettle: (value: string) => void | Promise<unknown>;
   label: string;
   id: string;
   describedBy?: string;
@@ -64,29 +66,21 @@ function SettledBox({
   placeholder?: string;
   className?: string;
 }) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const settle = () => {
-    if (draft !== value) onSettle(draft);
-  };
+  const box = useSettledDraft(value, onSettle);
   return (
     <TextField
       id={id}
       label={label}
       mono={mono}
       inputMode={inputMode}
-      value={draft}
+      value={box.draft}
       disabled={disabled}
       placeholder={placeholder}
       className={className}
       aria-describedby={describedBy}
       aria-invalid={invalid ? true : undefined}
-      onChange={setDraft}
-      onBlur={settle}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') settle();
-        if (event.key === 'Escape') setDraft(value);
-      }}
+      onChange={box.setDraft}
+      {...box.boxProps}
     />
   );
 }
@@ -150,7 +144,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
             className={NUMBER_WIDTH}
             onSettle={(next) => {
               setTyped(next);
-              if (!numberProblem(field.number!, next.trim())) onChange(next.trim());
+              return numberProblem(field.number!, next.trim()) ? undefined : onChange(next.trim());
             }}
           />
           {(row.unit ?? field.number.unit) && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.unit ?? field.number.unit}</span>}
@@ -165,27 +159,19 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'color') {
+    // No `allowUnset`: the host refuses '' for a colour ("must be a six-digit color"), and a row goes back to its default with Reset.
     return (
-      <span className="flex items-center gap-2">
-        <TextField
-          label={`${name} swatch`}
-          type="color"
-          value={`#${value.replace('#', '').padEnd(6, '0').slice(0, 6)}`}
-          disabled={disabled}
-          onChange={(next) => onChange(next.slice(1).toUpperCase())}
-        />
-        <SettledBox
-          id={id}
-          label={name}
-          mono
-          value={value}
-          disabled={disabled}
-          invalid={invalid}
-          describedBy={describedBy}
-          className="w-28"
-          onSettle={(next) => onChange(next.replace('#', '').toUpperCase())}
-        />
-      </span>
+      <ColourField
+        mode="free"
+        label={name}
+        id={id}
+        describedBy={describedBy}
+        invalid={invalid}
+        disabled={disabled}
+        hexClassName="w-28"
+        value={value}
+        onChange={onChange}
+      />
     );
   }
   return (

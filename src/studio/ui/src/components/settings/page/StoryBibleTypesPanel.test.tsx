@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
@@ -30,14 +31,48 @@ describe('Story Bible types panel (SN-M53)', () => {
   it('a type colour edit recolours the list', async () => {
     const api = await renderPanel();
     const setColour = vi.spyOn(api, 'guideTypeSetColour');
-    const select = within(panel()).getByRole('combobox', { name: 'Colour for Place' }) as HTMLSelectElement;
-    expect(select.value).toBe('blue');
-
-    fireEvent.change(select, { target: { value: 'rose' } });
+    await userEvent.click(within(panel()).getByRole('button', { name: 'Colour for Place: Blue' }));
+    expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual(['Green', 'Blue', 'Violet', 'Amber', 'Teal', 'Rose']);
+    await userEvent.click(screen.getByRole('radio', { name: 'Rose' }));
     await waitFor(() => expect(setColour).toHaveBeenCalledWith('Place', 'rose'));
-    await waitFor(() => expect((within(panel()).getByRole('combobox', { name: 'Colour for Place' }) as HTMLSelectElement).value).toBe('rose'));
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Colour for Place: Rose' })).toBeTruthy());
+    expect(screen.queryByRole('combobox', { name: /Colour for/ })).toBeNull();
     // The Story Bible list reads the same list back, so its Place rows and chip are drawn in the new colour.
     expect(kindSwatch(await api.guideTypes(), 'Place')).toBe('event');
+  });
+
+  // An arrow key in the open swatches saves each step. The second key arrives while the first save is out: it is not sent, so the host
+  // never gets two colour calls whose answers could cross, and focus stays on the swatch the narrator reached.
+  it('arrow keys save one colour at a time and keep focus while the host answers', async () => {
+    const api = createMockApi();
+    const answers: (() => void)[] = [];
+    const real = api.guideTypeSetColour.bind(api);
+    const setColour = vi.spyOn(api, 'guideTypeSetColour').mockImplementation(async (name, colour) => {
+      await new Promise<void>((resolve) => answers.push(resolve));
+      return real(name, colour);
+    });
+    await renderPanel(api);
+    await userEvent.click(within(panel()).getByRole('button', { name: 'Colour for Place: Blue' }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Blue' })));
+
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
+    expect(setColour.mock.calls).toEqual([['Place', 'violet']]);
+    expect(screen.getByRole('radiogroup').getAttribute('aria-busy')).toBe('true');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Violet' }));
+
+    await act(async () => answers[0]!());
+    await waitFor(() => expect(screen.getByRole('radiogroup').getAttribute('aria-busy')).toBeNull());
+    expect(screen.getByRole('radio', { name: 'Violet' }).getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Violet' }));
+    expect((await api.guideTypes()).find((type) => type.name === 'Place')?.colour).toBe('violet');
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(setColour.mock.calls).toEqual([
+      ['Place', 'violet'],
+      ['Place', 'amber'],
+    ]);
+    await act(async () => answers[1]!());
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Amber' }).getAttribute('aria-checked')).toBe('true'));
   });
 
   it('has a per-type Can speak checkbox wired to the data', async () => {
@@ -148,6 +183,72 @@ function RegistryProbe() {
 }
 
 // holder: settings/page/StoryBibleTypesPanel.tsx
+// C4 (#3680): a type's row was keyed by its name, so a rename redrew it. The press that left the name box (and so sent the rename) landed on
+// a colour box that was then replaced: its swatches never opened, or closed when the rename answered.
+describe('a type row outlives its rename', () => {
+  async function renameThenPress(api: NarrationApi) {
+    await renderPanel(api);
+    const name = nameField('Place');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Setting');
+    // One press: it takes focus from the name box, which sends the rename, and opens the swatches.
+    await userEvent.click(within(panel()).getByRole('button', { name: /^Colour for Place: / }));
+    return name;
+  }
+
+  it('a rename followed by a press on the colour box opens the swatches and keeps them open', async () => {
+    const api = createMockApi();
+    const answers: (() => void)[] = [];
+    const real = api.guideTypeRename.bind(api);
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(async (name, to) => {
+      await new Promise<void>((resolve) => answers.push(resolve));
+      return real(name, to);
+    });
+    const name = await renameThenPress(api);
+    await waitFor(() => expect(screen.getByRole('radiogroup', { name: 'Colour for Place' })).toBeTruthy());
+    await act(async () => answers[0]!());
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Colour for Setting: Blue' })).toBeTruthy());
+    expect(screen.getByRole('radiogroup', { name: 'Colour for Setting' })).toBeTruthy();
+    expect(screen.getByRole('radiogroup').contains(document.activeElement)).toBe(true);
+    expect(nameField('Setting')).toBe(name);
+  });
+
+  it('on a host that answers at once the swatches open and stay open too', async () => {
+    const name = await renameThenPress(createMockApi());
+    await waitFor(() => expect(screen.getByRole('radiogroup', { name: 'Colour for Setting' })).toBeTruthy());
+    expect(screen.getByRole('radiogroup').contains(document.activeElement)).toBe(true);
+    expect(nameField('Setting')).toBe(name);
+  });
+
+  it('a refused rename leaves the row, and a type added later under that name is a row of its own', async () => {
+    const api = createMockApi();
+    await renderPanel(api);
+    const place = nameField('Place');
+    vi.spyOn(api, 'guideTypeRename').mockRejectedValueOnce(new Error('The host refused the name.'));
+    await userEvent.clear(place);
+    await userEvent.type(place, 'Setting{Enter}');
+    await waitFor(() => expect(nameField('Place').value).toBe('Place'));
+    expect(nameField('Place')).toBe(place);
+    await userEvent.type(within(panel()).getByRole('textbox', { name: 'New type' }), 'Setting{Enter}');
+    await waitFor(() => expect(nameField('Setting')).toBeTruthy());
+    expect(nameField('Setting')).not.toBe(place);
+    expect(nameField('Place')).toBe(place);
+  });
+
+  it('a type renamed to the name another type just gave up keeps its own row', async () => {
+    await renderPanel();
+    const place = nameField('Place');
+    const character = nameField('Character');
+    await userEvent.clear(place);
+    await userEvent.type(place, 'Setting{Enter}');
+    await waitFor(() => expect(nameField('Setting')).toBe(place));
+    await userEvent.clear(character);
+    await userEvent.type(character, 'Place{Enter}');
+    await waitFor(() => expect(nameField('Place')).toBe(character));
+    expect(nameField('Setting')).toBe(place);
+  });
+});
+
 describe('text typed in New type is held until it is added (#3457)', () => {
   const mount = async () => {
     const api = createMockApi();
