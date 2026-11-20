@@ -259,6 +259,24 @@ describe('the Voices card', () => {
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
   });
 
+  it('in a window of 30 rem or less the Key column goes and the switch keeps its name', () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('30rem'),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })) as never;
+    try {
+      draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
+      expect(screen.queryByRole('columnheader', { name: 'Key' })).toBeNull();
+      expect(screen.getByRole('columnheader', { name: 'Track and characters' })).toBeTruthy();
+      expect(screen.getByRole('switch', { name: 'Queen counts as a voice' })).toBeTruthy();
+    } finally {
+      window.matchMedia = real;
+    }
+  });
+
   it('a marked blank-named track is named by its place in the project by the row, the switch and the edit button alike', () => {
     const blank = [track('folder', 'Ch 8', 0, true), track('b1', '   ', 1)];
     render(

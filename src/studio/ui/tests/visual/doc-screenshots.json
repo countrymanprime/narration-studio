@@ -564,7 +564,7 @@
     "state": "voice-folders-marked",
     "viewport": "desktop",
     "docName": "engine-panel-voices-marked",
-    "caption": "The audio engine panel - the Voices card with a track turned off by its Counts as voice switch: it keeps no key and says Not a voice"
+    "caption": "The audio engine panel - the Voices card with a track turned off by its Voice switch: it keeps no key and says Not a voice"
   },
   {
     "page": "engine",

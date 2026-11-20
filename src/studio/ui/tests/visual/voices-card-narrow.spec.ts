@@ -33,7 +33,19 @@ async function measure(box: Locator) {
       }
     }
     const rows = [...el.querySelectorAll('tbody tr')].map((row) => row.getBoundingClientRect().height);
-    return { overflowing, broken, tallest: Math.max(...rows), wide: el.scrollWidth > el.clientWidth + 1 };
+    // A control in the last cell sits beside the next one on one line, and their boxes do not overlap (the switch's press band must not cover the edit button).
+    const crowded: string[] = [];
+    for (const row of el.querySelectorAll('tbody tr')) {
+      const boxes = [...(row.querySelectorAll('td:last-child [role="switch"], td:last-child button') ?? [])].map((control) => control.getBoundingClientRect());
+      const [first, second] = boxes;
+      if (
+        first &&
+        second &&
+        (second.top > first.bottom - 4 || first.right > second.left + 1 || Math.abs(first.top + first.height / 2 - (second.top + second.height / 2)) > 12)
+      )
+        crowded.push((row.textContent ?? '').trim().slice(0, 20));
+    }
+    return { overflowing, broken, crowded, tallest: Math.max(...rows), wide: el.scrollWidth > el.clientWidth + 1 };
   });
 }
 
@@ -51,6 +63,7 @@ for (const { width, height } of [
     const m = await measure(voices);
     expect(m.overflowing).toEqual([]);
     expect(m.broken).toEqual([]);
+    expect(m.crowded).toEqual([]);
     expect(m.tallest).toBeLessThan(110);
     expect(m.wide).toBe(false);
   });
@@ -64,6 +77,7 @@ for (const { width, height } of [
     const m = await measure(voices);
     expect(m.overflowing).toEqual([]);
     expect(m.broken).toEqual([]);
+    expect(m.crowded).toEqual([]);
     expect(m.tallest).toBeLessThan(110);
     expect(m.wide).toBe(false);
   });

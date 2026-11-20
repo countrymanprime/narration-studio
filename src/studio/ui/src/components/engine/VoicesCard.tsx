@@ -132,7 +132,7 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '5.5rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
                     {!narrow && <TableHeader>Key</TableHeader>}
@@ -161,7 +161,11 @@ export function VoicesCard({
                       )}
                       {!narrow && <TableCell align="center">{voiceSwitch(voice)}</TableCell>}
                       <TableCell align="right">
-                        {narrow && <span className="mr-1 inline-flex align-middle">{voiceSwitch(voice)}</span>}
+                        {narrow && (
+                          <span className="mr-1 inline-flex align-middle">
+                            <TooltipTarget text="Counts as a voice">{voiceSwitch(voice)}</TooltipTarget>
+                          </span>
+                        )}
                         <CharacterPicker
                           voice={voice}
                           placeName={trackName(voice.name, projectPlace(voice.guid))}
