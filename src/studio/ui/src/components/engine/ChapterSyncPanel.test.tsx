@@ -224,7 +224,7 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText('1 chapter linked automatically, 1 by you')).toBeTruthy();
   });
 
-  it('does not list the Sync activity: that log is in Settings', async () => {
+  it('does not list the Sync activity: the log is kept in the project folder, not drawn anywhere (#3671)', async () => {
     render(
       <ApiProvider api={createMockApi({}, { chapterSync: 'activity' })}>
         {<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />}

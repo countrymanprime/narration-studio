@@ -496,6 +496,11 @@ func (h *Host) runChapterSync(trigger string) (chapterSyncState, error) {
 	if err := chaptersync.NewStore(in.svc.config.projectFolder).Write(plan.Snapshot, entries...); err != nil {
 		return chapterSyncState{}, err
 	}
+	// One host-log line for each sync that did something (#3671), counts only: no chapter or track name or path. It stays in logs/host.log
+	// (Settings > Open log folder) after a re-import clears the project's stored list; the diagnostics bundle leaves host.log out.
+	if batch != nil && h.log != nil {
+		_ = h.log.Report("chapter_sync", fmt.Sprintf("%s: linked %d, new tracks %d", trigger, len(written), len(newUnmatched)))
+	}
 	state := in.stateOf(plan, kept, planned)
 	state.Counts.Linked = len(kept) + len(written)
 	state.Batch = batch

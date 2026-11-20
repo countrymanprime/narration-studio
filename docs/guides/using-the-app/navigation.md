@@ -463,7 +463,7 @@ recognize as any chapter's is listed under **Not chapters** so it isn't mistaken
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 
-The log of what each sync did, with an **Undo** icon on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
+What each sync did is not listed in the app: the app keeps it in the project folder for diagnostics. Right after a sync links a track, a message says so with **Undo**, and a link can be removed any time in the chapter links table.
 
 ## What next
 
