@@ -155,6 +155,32 @@ type MappingStore struct {
 	mu       sync.Mutex
 	Reporter *persist.Reporter
 	now      func() time.Time
+
+	// hold is the last successful decode of the file (see heldMapping).
+	hold heldMapping
+}
+
+// heldMapping is the last successful decode of the mapping file and the file it came from: a read of the same file (same
+// identity, size and modification time) answers from it instead of decoding again, so a pass that asks for each of 44
+// chapters does not read and parse the file 44 times. A write through the store clears it; a write through another store, or by a
+// re-import, replaces the file (a new identity, or a new size or time), which the next read sees. Its own mutex is taken by the
+// store's readers and writers, which already hold the store's.
+type heldMapping struct {
+	mu sync.Mutex
+	// +checklocks:mu
+	shape *mappingFileShape
+	// +checklocks:mu
+	info os.FileInfo
+	// decodes counts the reads that decoded the file (tests).
+	// +checklocks:mu
+	decodes int
+}
+
+// clear drops the held decode.
+func (h *heldMapping) clear() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.shape, h.info = nil, nil
 }
 
 // NewMappingStore returns a MappingStore rooted at project's mapping file.
@@ -439,11 +465,39 @@ func (s *MappingStore) clock() time.Time {
 // read as an empty shape for documentID - the same "unknown reads as
 // absent" rule LedgerStore.readRecord and CacheStore.readEnvelope follow.
 func (s *MappingStore) readLocked(documentID string) mappingFileShape {
-	decoded, ok := readMappingFile(s.Reporter, s.path)
+	decoded, ok := s.loadLocked()
 	if !ok || decoded.DocumentID != documentID {
 		return mappingFileShape{SchemaVersion: mappingSchemaVersion, DocumentID: documentID}
 	}
-	return decoded
+	return decoded.clone()
+}
+
+// loadLocked answers the file's decoded shape, from the held decode while the file is the one it came from. The file is
+// stat'ed before it is read, so a replacement in between leaves the held shape under the older identity and the next read
+// decodes again; only a successful decode is held, so a missing, corrupt or newer-version file is read (and reported) each time.
+func (s *MappingStore) loadLocked() (mappingFileShape, bool) {
+	info, statErr := os.Stat(s.path)
+	s.hold.mu.Lock()
+	defer s.hold.mu.Unlock()
+	if statErr == nil && s.hold.shape != nil && s.hold.info != nil && os.SameFile(s.hold.info, info) && s.hold.info.Size() == info.Size() && s.hold.info.ModTime().Equal(info.ModTime()) {
+		return *s.hold.shape, true
+	}
+	s.hold.shape, s.hold.info = nil, nil
+	s.hold.decodes++
+	decoded, ok := readMappingFile(s.Reporter, s.path)
+	if ok && statErr == nil {
+		held := decoded.clone()
+		s.hold.shape, s.hold.info = &held, info
+	}
+	return decoded, ok
+}
+
+// clone copies the slices a caller may change, so the held shape is never edited through a returned one.
+func (f mappingFileShape) clone() mappingFileShape {
+	f.Mappings = append([]TrackMapping(nil), f.Mappings...)
+	f.Rejected = append([]RejectedPair(nil), f.Rejected...)
+	f.Previous = append([]TrackMapping(nil), f.Previous...)
+	return f
 }
 
 // readMappingFile decodes a mapping file of any document, reporting false
@@ -508,6 +562,7 @@ func liftRejection(rejected []RejectedPair, trackGUID, chapterTitle string) []Re
 // writeLocked writes file to disk via a temp file plus rename. It must be
 // called with s.mu held.
 func (s *MappingStore) writeLocked(file mappingFileShape) error {
+	s.hold.clear()
 	file.SchemaVersion = mappingSchemaVersion
 	sort.Slice(file.Mappings, func(i, j int) bool { return file.Mappings[i].TrackGUID < file.Mappings[j].TrackGUID })
 
