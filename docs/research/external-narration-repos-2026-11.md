@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-20. **Issue:** [#3771](https://github.com/countrymanprime/narration-studio/issues/3771). **Question:** is anything in these three public repositories worth taking into the app, and what does each licence allow?
 
-**Answer.** One of the three, Kosmos, is a close relative of this app (a desktop studio for human audiobook narration, MIT) and holds most of the value: its script-against-transcript proofing rules, its chapter-split heuristics and its voice-following teleprompter are pure TypeScript with test files alongside (tests not run by us), and the MIT licence lets us adapt them with a notice. The other two are worth a few small ideas each. A check of this app found it already covers three of the take-aways and partly covers most of the rest; the sixteen gaps that remain each have a follow-up issue ([Ranked across all three](#ranked-across-all-three)). None of the three drives a DAW or attributes dialogue to speakers, so none helps with creating DAW tracks ([#3748](https://github.com/countrymanprime/narration-studio/issues/3748)), the slow DAW link ([#3752](https://github.com/countrymanprime/narration-studio/issues/3752)) or the local-model attribution fallback ([#3743](https://github.com/countrymanprime/narration-studio/issues/3743)).
+**Answer.** One of the three, Kosmos, is a close relative of this app (a desktop studio for human audiobook narration, MIT) and holds most of the value: its script-against-transcript proofing rules, its chapter-split heuristics and its voice-following teleprompter are pure TypeScript with test files alongside (tests not run by us), and the MIT licence lets us adapt them with a notice. The other two are worth a few small ideas each. A check of this app found it already covers several of the take-aways and partly covers most of the rest; the sixteen gaps that remain each have a follow-up issue ([Ranked across all three](#ranked-across-all-three)). None of the three drives a DAW or attributes dialogue to speakers, so none helps with creating DAW tracks ([#3748](https://github.com/countrymanprime/narration-studio/issues/3748)), the slow DAW link ([#3752](https://github.com/countrymanprime/narration-studio/issues/3752)) or the local-model attribution fallback ([#3743](https://github.com/countrymanprime/narration-studio/issues/3743)).
 
 Nothing was copied into this repository. Every item below that involves their code needs an owner decision and an entry in the third-party notices file shipped with each release first ([Licence compatibility](#licence-compatibility)).
 
@@ -37,7 +37,7 @@ These are the author's readings of the licence texts, not legal advice.
 
 ## Ranked across all three
 
-Every take-away that this app lacks, ranked by expected gain against effort. Each has a follow-up issue with the evidence, written on 2026-11-20. "In this app" is what a search of this repository found the same day. Take-aways the app already covers, and those ruled out, are in each repository's own table.
+Every take-away that this app lacks, ranked by expected gain against effort. Each has a follow-up issue, written on 2026-11-20, that holds the evidence and the expected gain; none of the gains is measured. "In this app" is what a search of this repository found the same day. Take-aways the app already covers, and those ruled out, are in each repository's own table.
 
 | # | Item | From | Licence class | Effort | In this app | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ Every take-away that this app lacks, ranked by expected gain against effort. Eac
 | 5 | Warning before recording that a chapter is estimated over the file-length limit | Kosmos | Idea only | S | Partial: the limit (`deliveryprofile/acx.go:68`) and a words-per-hour estimate (`ui/src/state.ts:81`) exist apart | [#3788](https://github.com/countrymanprime/narration-studio/issues/3788) |
 | 6 | Pickup verification: check the retake against its line before clearing the flag | Kosmos | Idea only | M | Partial: pickups are marked recorded by position; an ASR re-check exists for live Booth flags only (`internal/liveflags`) | [#3783](https://github.com/countrymanprime/narration-studio/issues/3783) |
 | 7 | Voice-following cursor: hallucination-token filter, halt after several misses, predictive lead | Kosmos | Idea only first | M to L | Partial: skip, restart and waiting are handled (`internal/scripttrack/tracker.go:26-35`); these three are not | [#3784](https://github.com/countrymanprime/narration-studio/issues/3784) |
-| 8 | Each failed delivery check labelled with where it is fixed | Kosmos | Idea only | S | Partial: a prose fix per metric (`master/fileVerdict.ts:31`); no category, no bitrate case | [#3792](https://github.com/countrymanprime/narration-studio/issues/3792) |
+| 8 | Each failed delivery check labelled with where it is fixed | Kosmos | Idea only | S | Partial: a prose fix per metric (`master/fileVerdict.ts:32`); no category, no bitrate case | [#3792](https://github.com/countrymanprime/narration-studio/issues/3792) |
 | 9 | Per-chapter "review before you read" notices: leftover markup, very long paragraphs, tables | narrato-studio | Idea only | S | Absent: the importer's notices cover other cases | [#3789](https://github.com/countrymanprime/narration-studio/issues/3789) |
 | 10 | Discrepancies within a fraction of a second merged into one flag | Kosmos | Idea only | S | Absent | [#3781](https://github.com/countrymanprime/narration-studio/issues/3781) |
 | 11 | Clip start and end tightened with a loudness envelope around ASR word times | narration.studio | Adapt with attribution, or idea only | S to M | Partial: trims come from silence runs (`internal/editing/empty_space.go`); word times are not used | [#3793](https://github.com/countrymanprime/narration-studio/issues/3793) |
@@ -143,7 +143,7 @@ Kosmos is ahead on proofing false-positive handling and teleprompter recovery, c
 Already in this app, so nothing to take:
 
 - **The re-spaced-word check.** `FuseHyphenSplits` (`internal/compare/align.go:63`) treats "half-empty" against "halfempty" as equal, with tests in `compare_test.go:156`.
-- **Contents-list handling at import.** DOCX and Markdown can use the table of contents as the chapter list (`internal/importer/markdown.go:171`), a TXT contents block is read as reference (`txt.go:299`), and EPUB navigation drives chapters (`epub_toc.go`).
+- **Contents-list handling at import.** DOCX and Markdown can use the table of contents as the chapter list (`internal/importer/markdown.go:171`), a multi-line TXT contents block is never read as a heading (`txt.go:296-300`), and EPUB navigation drives chapters (`epub_toc.go`).
 - **The homophone fold without heteronyms**, the mastering meters (this app's Go meters cover the same standards) and marker export (this app writes to the DAW directly, and exports pickups as CSV from `internal/pickups/csv.go`).
 
 Ruled out: the proofer packet in HTML and XLSX (`src/core/proof/packet.ts`), because `docs/prds/proof-and-pickups.prd.md:49` lists a proofer packet as out of scope; the storage layout; and the base64 audio transport.
