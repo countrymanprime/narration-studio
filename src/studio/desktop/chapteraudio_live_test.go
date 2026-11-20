@@ -190,20 +190,30 @@ func TestARippleStillNamesTheChaptersFolderWhenAChildIsMarkedAsNotAVoice(t *test
 	}
 }
 
-// bedCursor answers the folder read with the edit cursor each call is given, one after the other (the last one repeats).
+// bedCursor answers the follow's itemless read with the edit cursor each tick is given, one after the other (the last one repeats), and the folder read
+// (the items, read once the cursor has settled) with the cursor of the tick that asked.
 type bedCursor struct {
 	bedLive
 	mu      sync.Mutex
 	cursors []float64
-	calls   int
+	ticks   int
+}
+
+func (f *bedCursor) ChapterTrackStateNoItems(ctx context.Context, guid string) (dawport.TrackState, error) {
+	state, err := f.bedLive.ChapterFolderState(ctx, guid)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	state.EditCursor = f.cursors[min(f.ticks, len(f.cursors)-1)]
+	f.ticks++
+	state.Items = nil
+	return state, err
 }
 
 func (f *bedCursor) ChapterFolderState(ctx context.Context, guid string) (dawport.TrackState, error) {
 	state, err := f.bedLive.ChapterFolderState(ctx, guid)
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	state.EditCursor = f.cursors[min(f.calls, len(f.cursors)-1)]
-	f.calls++
+	state.EditCursor = f.cursors[max(min(f.ticks-1, len(f.cursors)-1), 0)]
 	return state, err
 }
 

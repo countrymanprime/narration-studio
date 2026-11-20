@@ -22,7 +22,7 @@ The theme is one app-wide setting, light or dark (owner ruling D69). No page or 
 
 ## Primitive components
 
-Location: `src/studio/ui/src/components/primitives/`.
+Location: `src/studio/ui/src/components/primitives/`. Which primitive a control uses, by the action it runs or the kind of value it holds, is in [Component selection](component-selection.md).
 
 **The component atlas is the source of truth for what each primitive can look like.** Every primitive has a `<Name>.stories.tsx` next to it (one story per variant/state, `play()` for the primary interaction). Browse it with `pnpm --dir src/studio/ui storybook`; `pnpm --dir src/studio/ui atlas` builds it and captures every story in light/dark at a wide and a narrow viewport, failing on axe violations, a throwing `play()`, sideways overflow, or console errors. `src/atlasCoverage.test.ts` fails if a primitive has neither a story nor a recorded exemption, and `src/stories.test.tsx` runs every story as a unit test. The table below is a summary; when it and the atlas disagree, the atlas wins. Sizes in the rows were measured on earlier mocks and stay where the code still draws them. See What the suites do not prove. A story tagged `tiny-window` runs at 320 x 300 in each theme instead of the wide and narrow sizes: it is the guard for the smallest supported window, and its `play()` measures that window (the toasts' guards use it).
 
