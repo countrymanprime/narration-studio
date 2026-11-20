@@ -174,7 +174,8 @@ func waitForCalls(t *testing.T, inner *countedLister, want int32) {
 // next caller once that read answers. (Before, the first caller past the max age waited for the read itself.)
 func TestAnAnswerPastItsMaxAgeIsServedAtOnceAndReadAgainBehindIt(t *testing.T) {
 	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	cached, cache := cachedFor(inner, b)
+	strict, cache := cachedFor(inner, b)
+	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 9, liveTracksMaxAge-time.Second)
 	read(t, cached)
@@ -211,10 +212,31 @@ func TestAnAnswerPastItsMaxAgeIsServedAtOnceAndReadAgainBehindIt(t *testing.T) {
 	}
 }
 
+// A list a page shows, or the narrator asked to refresh (TracksLive, the chapter links), is never the stale one: past the max age that read
+// waits for REAPER's own answer, as it always did, so Refresh and Check again read REAPER and a change the counter missed is on screen
+// within the max age. Only the host's own reads (servingStale) take the stale answer.
+func TestAPagesReadPastTheMaxAgeWaitsForREAPER(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	page, _ := cachedFor(inner, b)
+	host := servingStale(page)
+	read(t, page)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	changed := twoTracks(9)
+	changed.Total, changed.Tracks = 1, changed.Tracks[:1]
+	inner.set(changed, nil)
+	if got := read(t, page); len(got.Tracks) != 1 || inner.calls.Load() != 2 {
+		t.Fatalf("the page's read past the max age: %d tracks after %d requests; want REAPER's 1 from a second request", len(got.Tracks), inner.calls.Load())
+	}
+	if got := read(t, host); len(got.Tracks) != 1 || inner.calls.Load() != 2 {
+		t.Fatalf("the host's read after it: %d tracks after %d requests; want the same fresh list and no request", len(got.Tracks), inner.calls.Load())
+	}
+}
+
 // The age forgiven is bounded: past liveTracksStaleAge nothing old is shown as current, and the caller waits for REAPER's own answer.
 func TestAnAnswerPastItsStaleAgeIsNotServed(t *testing.T) {
 	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	cached, _ := cachedFor(inner, b)
+	strict, _ := cachedFor(inner, b)
+	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 9, liveTracksStaleAge+time.Second)
 	changed := twoTracks(9)
@@ -228,7 +250,8 @@ func TestAnAnswerPastItsStaleAgeIsNotServed(t *testing.T) {
 // A stale answer is only handed out while the heartbeat vouches for it: a counter that moved means the list changed, and the caller waits.
 func TestAStaleAnswerIsNotServedOnceTheCounterMoved(t *testing.T) {
 	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	cached, _ := cachedFor(inner, b)
+	strict, _ := cachedFor(inner, b)
+	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 10, liveTracksMaxAge+time.Second)
 	changed := twoTracks(10)
@@ -242,7 +265,8 @@ func TestAStaleAnswerIsNotServedOnceTheCounterMoved(t *testing.T) {
 // A refresh REAPER never answers costs no caller anything: the stale answer is served until its bound, and then the caller reads for itself.
 func TestARefreshThatFailsLeavesTheStaleAnswerUntilItsBound(t *testing.T) {
 	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
-	cached, _ := cachedFor(inner, b)
+	strict, _ := cachedFor(inner, b)
+	cached := servingStale(strict)
 	read(t, cached)
 	tickBeat(b, 9, liveTracksMaxAge+time.Second)
 	inner.set(dawport.LiveTracks{}, bridge.ErrNoAnswer)

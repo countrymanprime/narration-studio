@@ -171,7 +171,7 @@ func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 	lister, support := trackListerFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
-	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, saved.Path, saved)
+	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), servingStale(lister), support, saved.Path, saved)
 	return project, nil
 }
 

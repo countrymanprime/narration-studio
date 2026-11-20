@@ -22,7 +22,7 @@ import (
 // is reopened, and not every REAPER edit raises it) is seen within this long, as the 5 s poll saw it before.
 const liveTracksMaxAge = 10 * time.Second
 
-// liveTracksStaleAge bounds how long an answer past liveTracksMaxAge is still handed out while a fresh one is read behind it (#3752): on a
+// liveTracksStaleAge bounds how long an answer past liveTracksMaxAge is still handed out, to the host's own reads only (servingStale), while a fresh one is read behind it (#3752): on a
 // slow DAW every caller used to wait a whole round trip for the list each time the age ran out, and a lane arm spent its own wait on it. The
 // heartbeat must still vouch for the answer (the same counter, project and epoch); only its age is forgiven, and never beyond this.
 const liveTracksStaleAge = 30 * time.Second
@@ -80,6 +80,20 @@ type cachedTrackLister struct {
 	inner     dawport.TrackLister
 	cache     *liveTracksCache
 	heartbeat dawport.Heartbeat
+	// staleOK lets this lister hand out an answer between liveTracksMaxAge and liveTracksStaleAge while it is read again (servingStale). It is
+	// off for a list a page shows or the narrator asked to refresh: that read waits for REAPER's own answer past liveTracksMaxAge, as before.
+	staleOK bool
+}
+
+// servingStale is lister allowed to answer from a list up to liveTracksStaleAge old while REAPER is asked again behind it. It is for the
+// host's own decisions in the path of an action (which track a take, an arm or a voice choice is for), where a round trip on a slow DAW is
+// the narrator's wait and a track that has gone since is refused by its GUID. A lister with no cache is returned as it is.
+func servingStale(lister dawport.TrackLister) dawport.TrackLister {
+	if cached, ok := lister.(cachedTrackLister); ok {
+		cached.staleOK = true
+		return cached
+	}
+	return lister
 }
 
 var _ dawport.TrackLister = cachedTrackLister{}
@@ -99,7 +113,7 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 	c := l.cache
 	for {
 		c.mu.Lock()
-		if age := c.now().Sub(c.at); c.have && l.vouched(c) && age < liveTracksStaleAge {
+		if age := c.now().Sub(c.at); c.have && l.vouched(c) && (age < liveTracksMaxAge || (l.staleOK && age < liveTracksStaleAge)) {
 			answer := cloneTracks(c.answer)
 			if age >= liveTracksMaxAge && c.flight == nil {
 				// Stale while revalidate: this caller has the list now, and the next one has REAPER's answer to the read started here.

@@ -144,6 +144,8 @@ const outcome = (reason: string, message: string, more: object = {}) => answer({
 
 /** The track list the host reads before many calls (`liveSelectedProject`, tracks_live.go): it waits 7 s, then uses the saved project, and keeps a list it read. */
 const TRACKS: Step = { limit: TRACKS_LIVE_MS };
+/** The same list read for a page to show: kept for 10 s, and never handed out stale. */
+const PAGE_TRACKS: Step = { limit: TRACKS_LIVE_MS };
 const one = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [{ limit, fail }] });
 const afterTracks = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [TRACKS, { limit, fail }] });
 const SHORT_REFUSAL = one(answer(refused(NOT_ANSWERING)));
@@ -176,7 +178,7 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
       },
     ],
   },
-  chapterTrackLinks: { steps: [TRACKS] },
+  chapterTrackLinks: { steps: [PAGE_TRACKS] },
   chapterTrackMatch: { steps: [TRACKS] },
   boothVoiceGet: { steps: [TRACKS] },
   readAloudReaperState: afterTracks(answer({ status: 'unavailable', reason: 'not_running', message: NOT_ANSWERING, playing: false, recording: false })),
@@ -319,15 +321,15 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
   async function run(name: string, call: HostCall, args: readonly unknown[], invoke: () => unknown): Promise<unknown> {
     if (!slows(link)) {
       // A prompt host reads the list too, and keeps it when the link turns slow.
-      if (call.steps.includes(TRACKS)) tracksReadAt = performance.now();
+      if (call.steps.includes(TRACKS) || call.steps.includes(PAGE_TRACKS)) tracksReadAt = performance.now();
       return invoke();
     }
     const began = performance.now();
     for (const [index, step] of call.steps.entries()) {
-      if (step === TRACKS) {
+      if (step === TRACKS || step === PAGE_TRACKS) {
         const age = performance.now() - tracksReadAt;
         if (age < TRACKS_KEPT_MS) continue;
-        if (age < TRACKS_STALE_MS) {
+        if (step === TRACKS && age < TRACKS_STALE_MS) {
           // Stale while revalidate, as the host: this call has the kept list now, and one read behind it brings the next list.
           if (!tracksRefreshing) {
             tracksRefreshing = true;
@@ -349,7 +351,7 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
       const limit = Math.min(step.limit, left);
       if (hold <= limit) {
         if (hold > 0) await sleep(hold);
-        if (step === TRACKS) tracksReadAt = performance.now();
+        if (step === TRACKS || step === PAGE_TRACKS) tracksReadAt = performance.now();
         continue;
       }
       await sleep(limit);
