@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -43,9 +44,11 @@ type RequestTiming struct {
 	// Outcome is "answered", "error" (the script refused), "no_answer" (timed out), "cancelled" or "send_failed".
 	Outcome string
 	Elapsed time.Duration
-	// Queue is how long the command file sat in the commands folder before REAPER read it (REAPER deletes a command file as it reads
-	// it), from writing it to seeing it gone, polled every few milliseconds. Elapsed less Queue is REAPER's own time, the answer's way
-	// back included. Taken is false when the file was still there at the outcome (REAPER never read it), and Queue is then Elapsed.
+	// Queue is how long the command file sat in the commands folder before REAPER read it (REAPER deletes a command file as it reads it, then
+	// runs its handler), from writing it to seeing it gone, polled every takenPoll (10 ms: an answer faster than that reads as all queue). REAPER reads the files of one tick in turn, so a
+	// command queued behind others in the same tick counts their handlers' time as queue. Elapsed less Queue is REAPER's own time, the answer's way
+	// back included. Taken is false when the file was still there at the outcome (a request that ended unanswered takes its file back first, and the file being there to remove is what says REAPER never read it), and Queue is then Elapsed; Queue is 0 when nothing was sent. When the
+	// outcome proves REAPER read the command but the poll could not see the file go (a stat that failed another way), Taken is true and Queue is -1.
 	Queue time.Duration
 	Taken bool
 }
@@ -64,7 +67,7 @@ func (a *Actions) report(command, outcome string, started time.Time, watch *take
 	a.mu.Unlock()
 	if observe != nil {
 		elapsed := time.Since(started)
-		queue, taken := watch.queue(started, elapsed)
+		queue, taken := watch.queue(started, elapsed, outcome)
 		observe(RequestTiming{Command: command, Outcome: outcome, Elapsed: elapsed, Queue: queue, Taken: taken})
 	}
 }
@@ -212,12 +215,18 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		}
 		return got.events, got.err
 	case <-timer.C:
+		// Taken back first: whether the file was still there is what says REAPER never read it, and the observer (a log write) must not stand
+		// between the timeout and taking the command back.
+		retracted := a.client.Retract(target)
+		watch.retracted(retracted)
 		a.report(command, "no_answer", started, watch)
-		a.logFailure(command, runID, "no answer within "+timeout.String()+retractNote(a.client.Retract(target)))
+		a.logFailure(command, runID, "no answer within "+timeout.String()+retractNote(retracted))
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
+		retracted := a.client.Retract(target)
+		watch.retracted(retracted)
 		a.report(command, "cancelled", started, watch)
-		a.logFailure(command, runID, "cancelled"+retractNote(a.client.Retract(target)))
+		a.logFailure(command, runID, "cancelled"+retractNote(retracted))
 		return nil, ctx.Err()
 	}
 }
@@ -401,7 +410,7 @@ func normalizeGUID(guid string) string {
 }
 
 // takenPoll is how often a request looks for its command file to be gone.
-const takenPoll = 5 * time.Millisecond
+const takenPoll = 10 * time.Millisecond
 
 // takenWatch notes when REAPER read a command: REAPER deletes the file as it reads it, so the file's absence is the moment, to within
 // takenPoll. It is how a request's wait is split into the time the command queued and REAPER's own time.
@@ -412,7 +421,18 @@ type takenWatch struct {
 	target string
 	// +checklocks:mu
 	at time.Time
+	// +checklocks:mu
+	taken backResult
 }
+
+// backResult is what taking a command back found: not tried, the file still there (REAPER never read it) or already gone.
+type backResult int
+
+const (
+	notTakenBack backResult = iota
+	takenBackByUs
+	goneBeforeTakenBack
+)
 
 func watchTaken(target string) *takenWatch {
 	w := &takenWatch{done: make(chan struct{})}
@@ -436,18 +456,52 @@ func watchTaken(target string) *takenWatch {
 	return w
 }
 
-// seen looks once and answers whether the file is gone, noting the first time it was.
-func (w *takenWatch) seen() bool {
+// retracted records what Client.Retract found, which settles a request that ended without an answer: a file the host had to remove was never
+// read, and one that was already gone was read by REAPER (or removed by something else, which the folder check in seen rules out).
+func (w *takenWatch) retracted(removed bool) {
+	if w == nil {
+		return
+	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if removed {
+		w.taken = takenBackByUs
+	} else {
+		w.taken = goneBeforeTakenBack
+	}
+}
+
+// seen looks once and answers whether the file is gone, noting the first time it was. The stat runs outside the lock.
+func (w *takenWatch) seen() bool {
+	w.mu.Lock()
 	if !w.at.IsZero() {
+		w.mu.Unlock()
 		return true
 	}
-	if _, err := os.Stat(w.target); os.IsNotExist(err) {
+	target := w.target
+	w.mu.Unlock()
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		return false
+	}
+	// A commands folder that is gone too is not REAPER reading the command.
+	if _, err := os.Stat(filepath.Dir(target)); err != nil {
+		return false
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.at.IsZero() {
 		w.at = time.Now()
-		return true
 	}
-	return false
+	return true
+}
+
+// folderExists says the commands folder is still there: a file missing from a missing folder is not REAPER reading it.
+func (w *takenWatch) folderExists() bool {
+	w.mu.Lock()
+	target := w.target
+	w.mu.Unlock()
+	_, err := os.Stat(filepath.Dir(target))
+	return err == nil
 }
 
 func (w *takenWatch) stop() {
@@ -457,12 +511,25 @@ func (w *takenWatch) stop() {
 }
 
 // queue answers how long the command waited for REAPER to read it, measured from started, and whether REAPER read it at all: a file still
-// there at the outcome was never read, and its queue time is the whole wait. A nil watch (nothing was sent) answers zero.
-func (w *takenWatch) queue(started time.Time, elapsed time.Duration) (time.Duration, bool) {
+// there at the outcome was never read, and its queue time is the whole wait, unless the outcome itself shows REAPER answered (answered or
+// error) and only the poll could not see the file go, which is Taken with an unknown queue time (-1). A nil watch (nothing was sent) answers zero.
+func (w *takenWatch) queue(started time.Time, elapsed time.Duration, outcome string) (time.Duration, bool) {
 	if w == nil {
 		return 0, false
 	}
+	w.mu.Lock()
+	back := w.taken
+	w.mu.Unlock()
+	if back == takenBackByUs {
+		return elapsed, false
+	}
+	if back == goneBeforeTakenBack && !w.folderExists() {
+		return elapsed, false
+	}
 	if !w.seen() {
+		if outcome == "answered" || outcome == "error" || back == goneBeforeTakenBack {
+			return -1, true
+		}
 		return elapsed, false
 	}
 	w.mu.Lock()
