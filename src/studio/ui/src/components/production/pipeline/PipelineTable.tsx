@@ -120,10 +120,12 @@ function RecordedCell({ figure }: { figure: RecordedFigure }) {
         role="img"
         aria-label={figure.label}
         data-recorded={figure.kind}
-        className={figure.kind === 'none' ? 'inline-block' : 'inline-block whitespace-nowrap'}
+        className={figure.kind === 'none' ? 'inline-block whitespace-normal' : 'inline-block whitespace-nowrap'}
       >
         {/* A state word ("Folder missing", "Several tracks") is two words wider than the column: it wraps to two lines and never runs into Est. */}
-        <span className={figure.kind === 'none' ? 'block font-sans text-[0.75rem] leading-[1.1] text-[var(--text-muted)]' : undefined}>{figure.text}</span>
+        <span className={figure.kind === 'none' ? 'block font-sans text-[0.75rem] leading-[1.1] whitespace-normal text-[var(--text-muted)]' : undefined}>
+          {figure.text}
+        </span>
       </span>
     </TooltipTarget>
   );
