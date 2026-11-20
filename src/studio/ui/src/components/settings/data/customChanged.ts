@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { usePort } from '../../../ports/usePort';
 import type { PortOf } from '../../../ports';
@@ -157,6 +157,11 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const tipsSeen = useTips().seen;
   const hasProject = useHasProject();
   const version = useBrowserSettingsVersion();
+  // The probes read the page's fields only for the one fact they use (a command's keys changed), so the effect below runs again when that fact moves, not on
+  // every read of a scope: each scope's answer used to start a whole pass of host reads again (#3658).
+  const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
+  const latestSettings = useRef(settings);
+  latestSettings.current = settings;
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
@@ -183,7 +188,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
         if (!hasProject && waitsForProject(id)) return undefined;
         try {
-          return (await probe({ api, settings, delivery: readDelivery })) ? id : undefined;
+          return (await probe({ api, settings: latestSettings.current, delivery: readDelivery })) ? id : undefined;
         } catch {
           return undefined;
         }
@@ -196,7 +201,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, settings, version, again, hasProject]);
+  }, [api, keymapSet, version, again, hasProject]);
 
   const live = useMemo(
     () =>

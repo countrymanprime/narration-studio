@@ -53,6 +53,32 @@ describe('the custom-row probes', () => {
   });
 });
 
+describe('a scope being read does not start the probes again (#3658)', () => {
+  function WithSettings({ value }: { value: ReadSettings }) {
+    useCustomChanged(value);
+    return null;
+  }
+  const keymap = (isSet: boolean) => ({ global: { Keymap: [{ key: 'save', isSet }] } }) as unknown as ReadSettings;
+
+  it("runs once for the global scope arriving and then the project scope, and again only when a command's keys changed", async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    const { rerender } = render(view({}));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+    rerender(view({ global: {} }));
+    rerender(view({ global: {}, project: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(zoom).toHaveBeenCalledTimes(1);
+    rerender(view(keymap(true)));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+  });
+});
+
 describe('saving the types, the marks or the credits asks the probes again', () => {
   it('reads the four project rows once more after a save, and only then', async () => {
     const api = createMockApi();

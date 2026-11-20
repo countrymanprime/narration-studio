@@ -439,13 +439,30 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     expect(failing).toHaveBeenCalledTimes(2);
   });
 
-  it('does not let a settings read that never answers capture every later settings read', () => {
+  it('shares a settings read with one asked after an unrelated call, but not with one that has been out longer than the revalidate age', () => {
+    vi.useFakeTimers();
+    try {
+      const { api, calls } = gated();
+      const wrapped = withCoalescedReads(api);
+      void wrapped.settingsForScope('global');
+      void wrapped.manuscriptSetChapterStatus('c1', 'finalized'); // moves the epoch, not what drops a kept answer
+      void wrapped.settingsForScope('global');
+      expect(calls).toEqual(['settingsForScope', 'manuscriptSetChapterStatus']);
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1); // the first read never answers
+      void wrapped.settingsForScope('global');
+      expect(calls).toEqual(['settingsForScope', 'manuscriptSetChapterStatus', 'settingsForScope']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not share a settings read with one that began before a kept writer started', () => {
     const { api, calls } = gated();
     const wrapped = withCoalescedReads(api);
     void wrapped.settingsForScope('global');
-    void wrapped.manuscriptSetChapterStatus('c1', 'finalized'); // any other call moves the epoch
+    void wrapped.saveSettings('tool', 'global', {});
     void wrapped.settingsForScope('global');
-    expect(calls).toEqual(['settingsForScope', 'manuscriptSetChapterStatus', 'settingsForScope']);
+    expect(calls).toEqual(['settingsForScope', 'saveSettings', 'settingsForScope']);
   });
 
   it.each(['switchProject', 'createProject'] as const)('drops the kept answer when %s answers, with no event delivered', async (writer) => {
@@ -545,23 +562,27 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
   });
 
   it('does not let an older answer replace the kept answer of a read that started later', async () => {
-    const waiting: ((answer: unknown) => void)[] = [];
-    const api = {
-      settingsForScope: vi.fn(() => new Promise((resolve) => waiting.push(resolve))),
-      manuscriptSetChapterStatus: vi.fn(async () => ({})),
-      subscribeJobEnded: vi.fn(() => () => undefined),
-    } as unknown as NarrationApi;
-    const wrapped = withCoalescedReads(api);
-    const slow = wrapped.settingsForScope('global');
-    await wrapped.manuscriptSetChapterStatus('c1', 'finalized'); // moves the epoch, so the next read does not join the slow one
-    const fast = wrapped.settingsForScope('global');
-    expect(waiting).toHaveLength(2);
-    waiting[1]!({ n: [{ value: 'newer' }] });
-    await fast;
-    waiting[0]!({ n: [{ value: 'older' }] });
-    await slow;
-    expect(await value(wrapped.settingsForScope('global'))).toBe('newer');
-    expect(api.settingsForScope).toHaveBeenCalledTimes(2);
+    vi.useFakeTimers();
+    try {
+      const waiting: ((answer: unknown) => void)[] = [];
+      const api = {
+        settingsForScope: vi.fn(() => new Promise((resolve) => waiting.push(resolve))),
+        subscribeJobEnded: vi.fn(() => () => undefined),
+      } as unknown as NarrationApi;
+      const wrapped = withCoalescedReads(api);
+      const slow = wrapped.settingsForScope('global');
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1); // the slow read is too old to join
+      const fast = wrapped.settingsForScope('global');
+      expect(waiting).toHaveLength(2);
+      waiting[1]!({ n: [{ value: 'newer' }] });
+      await fast;
+      waiting[0]!({ n: [{ value: 'older' }] });
+      await slow;
+      expect(await value(wrapped.settingsForScope('global'))).toBe('newer');
+      expect(api.settingsForScope).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('abandons a background re-read that never answers: a reader past the revalidate age starts another instead of joining it', async () => {

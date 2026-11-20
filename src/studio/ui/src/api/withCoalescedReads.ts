@@ -48,7 +48,7 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 
 type Joiner = { resolve: (answer: unknown) => void; reject: (reason: unknown) => void };
 /** A read on its way: who joined it, and whether its answer has been handed out (a read asked after that is a fresh host call). */
-type InFlight = { epoch: number; at: number; joiners: Joiner[]; closed: boolean };
+type InFlight = { epoch: number; keptEpoch: number; at: number; joiners: Joiner[]; closed: boolean };
 
 /** Whether value is plain JSON data whose text says exactly what it is: finite numbers, strings, booleans, null, and arrays and plain objects of those. */
 function isPlainJson(value: unknown): boolean {
@@ -182,13 +182,14 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
         // The host read: it joins a read of the same epoch still in flight, and its answer is kept if it is a kept read and nothing that drops it happened meanwhile.
         const fresh = (): unknown => {
           const joined = inFlight.get(key);
-          // A kept read does not join one that has been out longer than the revalidate age: it may never answer.
-          if (joined && joined.epoch === epoch && !joined.closed && (!keeps || Date.now() - joined.at < KEPT_REVALIDATE_MS)) {
+          // A kept read joins a read of the same kept epoch (what drops a kept answer is what separates two reads), unless that read has been out longer
+          // than the revalidate age: it may never answer. Any other read joins one of the same epoch.
+          if (joined && !joined.closed && (keeps ? joined.keptEpoch === keptEpoch && Date.now() - joined.at < KEPT_REVALIDATE_MS : joined.epoch === epoch)) {
             return new Promise((resolve, reject) => joined.joiners.push({ resolve, reject }));
           }
           const result: unknown = Reflect.apply(value, target, args);
           if (!isThenable(result)) return result;
-          const entry: InFlight = { epoch, at: Date.now(), joiners: [], closed: false };
+          const entry: InFlight = { epoch, keptEpoch, at: Date.now(), joiners: [], closed: false };
           inFlight.set(key, entry);
           // The joiners' copies are made here, as the answer arrives and before the first caller's continuation runs: that caller gets the original,
           // so an edit it makes in place (a sort, a splice) cannot reach a copy made after it.
