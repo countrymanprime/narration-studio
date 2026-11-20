@@ -996,7 +996,12 @@ func (h *Host) packagedResources() string {
 	if err != nil {
 		return ""
 	}
-	root, err := materializeResources(resources, cache, executablePath())
+	executable := executablePath()
+	key, err := memoizedResourceKey(resources, cache, executable)
+	if err != nil {
+		return ""
+	}
+	root, err := materializeResourcesAs(key, resources, cache, executable)
 	if err != nil {
 		return ""
 	}
@@ -1011,6 +1016,11 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err != nil {
 		return "", err
 	}
+	return materializeResourcesAs(key, source, userCache, executable)
+}
+
+// materializeResourcesAs is materializeResources for a caller that already has source's content key (memoizedResourceKey).
+func materializeResourcesAs(key string, source fs.FS, userCache, executable string) (string, error) {
 	target := filepath.Join(userCache, brand.DataFolder, "runtime", key)
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
