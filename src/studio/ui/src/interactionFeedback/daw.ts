@@ -211,6 +211,17 @@ export const dawFeedback = {
     'ok',
     "The tracks of the saved project and the matcher's best match for the chapter, read with the chapter links through the shared chapter-track state (so every screen sees the answer), on open and with every Check again; the dialog says it is reading them, and a failed read of either is written in it with Check again.",
   ),
+  'src/components/booth/page/BoothNextPage.tsx::chapterTrackMatch#1': row(
+    'effect',
+    'file-io',
+    'na',
+    'na',
+    'ui',
+    'silent',
+    'na',
+    'exempt',
+    "Reads the chapter's tracks ahead, once, when the Booth knows the chapter and the DAW answers, so the not-linked dialog opens with them (#3669); it only warms what the dialog reads for itself, and a failed read leaves nothing behind, so the dialog reads the tracks on open and says so in its own words.",
+  ),
   // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
   'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(
     'effect',
