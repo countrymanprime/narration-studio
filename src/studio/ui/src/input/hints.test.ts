@@ -61,7 +61,7 @@ describe('footerHints', () => {
     ]);
   });
 
-  it('the-footer-does-not-grow: the Booth footer lists no Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
+  it('the-footer-does-not-grow: the Booth footer lists no Ctrl+Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
     expect(footerHints('booth', keymap).map((hint) => hint.id)).not.toContain('hint-booth.mode.switch');
   });
 

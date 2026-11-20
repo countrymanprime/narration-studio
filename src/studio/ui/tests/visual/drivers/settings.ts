@@ -224,7 +224,6 @@ export const settingsDrivers: Record<string, Driver> = {
   'recording-advanced': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
-    await page.getByRole('table', { name: /^What .* can do$/ }).waitFor();
     await page.getByLabel('REAPER program', { exact: true }).waitFor();
   },
   'recording-chapter-layout': async (page) => {
@@ -434,6 +433,13 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText(/^Imported .* words$/).waitFor();
     await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
   },
+  // Entry types with the colour box of Place opened: its swatches in a popover over the row.
+  'project-type-colour': async (page) => {
+    await openSettings(page, 'Project');
+    await showSettingsRow(page, 'project.types');
+    await page.getByRole('button', { name: /^Colour for Place: / }).click();
+    await page.getByRole('radiogroup', { name: 'Colour for Place' }).waitFor();
+  },
   manuscript: async (page) => {
     await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();
@@ -592,6 +598,12 @@ export const settingsDrivers: Record<string, Driver> = {
   app: async (page) => {
     await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
+  },
+  'app-capabilities': async (page) => {
+    await openSettings(page, 'App & updates');
+    const row = await showSettingsRow(page, 'daw.capabilities');
+    await row.getByRole('button', { name: 'See what each tool can do' }).click();
+    await page.getByRole('table', { name: 'What the recording tools can do' }).waitFor();
   },
   'app-diagnostics': async (page) => {
     await openSettings(page, 'App & updates');

@@ -60,7 +60,14 @@ import {
 import { HIT_AREA } from '../primitives/hitArea';
 import { IconButton } from '../primitives/IconButton';
 import { TextField } from '../primitives/TextField';
-import { PANEL_BODY_CLASS, PANEL_ENTRY_TITLE_CLASS, PANEL_FRAME_CLASS, PANEL_HEADER_CLASS, PANEL_SUBTITLE_CLASS } from '../primitives/panelStyles';
+import {
+  PANEL_BODY_CLASS,
+  PANEL_ENTRY_TITLE_CLASS,
+  PANEL_FRAME_CLASS,
+  PANEL_HEADER_CLASS,
+  PANEL_SCROLL_BODY_CLASS,
+  PANEL_SUBTITLE_CLASS,
+} from '../primitives/panelStyles';
 import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
 import { useErrorToast } from '../../hooks/useErrorToast';
@@ -177,7 +184,7 @@ function EntryFrame({
         {/* The negative margin lets the 36 px buttons sit in the 50 px header without growing it, as PanelHeader does. */}
         <div className="-my-[0.3125rem] flex flex-wrap items-center gap-2">{actions}</div>
       </div>
-      <div className={`${PANEL_BODY_CLASS} min-h-0 flex-1 overflow-y-auto`} tabIndex={0} role="group" aria-labelledby={titleId} aria-busy={busy || undefined}>
+      <div className={`${PANEL_BODY_CLASS} ${PANEL_SCROLL_BODY_CLASS}`} tabIndex={0} role="group" aria-labelledby={titleId} aria-busy={busy || undefined}>
         {children}
       </div>
     </section>

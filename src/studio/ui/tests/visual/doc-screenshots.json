@@ -655,7 +655,14 @@
     "state": "recording-advanced",
     "viewport": "desktop",
     "docName": "settings-daw",
-    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program and the capabilities table"
+    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program path"
+  },
+  {
+    "page": "settings",
+    "state": "app-capabilities",
+    "viewport": "desktop",
+    "docName": "settings-capabilities",
+    "caption": "Settings - App & updates, Capabilities: the dialog that lists what each recording tool can do"
   },
   {
     "page": "settings",
@@ -740,6 +747,13 @@
     "viewport": "desktop",
     "docName": "settings-project",
     "caption": "Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator"
+  },
+  {
+    "page": "settings",
+    "state": "project-type-colour",
+    "viewport": "desktop",
+    "docName": "settings-entry-type-colour",
+    "caption": "Settings - Entry types with the colour box of Place opened: six swatches, Blue ringed and checked"
   },
   {
     "page": "settings",
@@ -908,6 +922,13 @@
     "viewport": "desktop",
     "docName": "storybible-entry-editing",
     "caption": "Story Bible - an entry in edit mode, with Save and Discard changes shown"
+  },
+  {
+    "page": "storybible",
+    "state": "entry-speaker-colour",
+    "viewport": "desktop",
+    "docName": "storybible-speaker-colour",
+    "caption": "Story Bible - Speaker colour in edit mode: a row of swatches, Auto first, the chosen one ringed and checked"
   },
   {
     "page": "storybible",

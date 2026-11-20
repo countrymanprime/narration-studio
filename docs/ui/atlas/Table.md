@@ -22,6 +22,7 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/effects/EffectsList.tsx`
 - `src/components/editing/effects/ProjectFx.tsx`
+- `src/components/engine/CapabilityReferenceDialog.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
@@ -40,7 +41,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/page/rail/InThisChapter.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/storybible/EntryTable.tsx`

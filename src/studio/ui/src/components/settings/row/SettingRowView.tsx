@@ -122,13 +122,18 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
     if (value === '' && global?.kind === 'number') return null;
     return scope === 'global' && value === row.def ? null : value;
   };
-  const commit = (value: string, scope: 'global' | 'project') => void store.write(row, scope, toSend(value, scope));
-  const apply = (value: string, scope: 'global' | 'project') => {
+  /** Resolves to whether the host kept the value. */
+  const commit = (value: string, scope: 'global' | 'project') => store.write(row, scope, toSend(value, scope));
+  /** Returns the save it started, so the control can show the value as on its way; nothing when the value is refused here or first asked about. */
+  const apply = (value: string, scope: 'global' | 'project'): void | Promise<boolean> => {
     const problem = row.check?.(value);
     store.setRowError(row.id, problem);
-    if (problem) return;
-    if (row.costly && scope === 'global') setAsking(value);
-    else commit(value, scope);
+    if (problem) return undefined;
+    if (row.costly && scope === 'global') {
+      setAsking(value);
+      return undefined;
+    }
+    return commit(value, scope);
   };
   const defaultLabel = global?.kind === 'choice' ? choiceLabel(row, row.def) : row.def || 'empty';
   const kindOf = (rowId: string): string => {
@@ -291,7 +296,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                       variant="link"
                       size="sm"
                       aria-label={`Override for this project: ${row.label}`}
-                      onClick={() => (comp === '' && global.kind === 'number' ? setOpening(true) : commit(comp, 'project'))}
+                      onClick={() => (comp === '' && global.kind === 'number' ? setOpening(true) : void commit(comp, 'project'))}
                     >
                       Override for this project
                     </Button>
@@ -332,7 +337,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           body={row.costly.body}
           confirmLabel={row.costly.confirm}
           confirm={() => {
-            commit(asking, 'global');
+            void commit(asking, 'global');
             setAsking(undefined);
           }}
           cancel={() => setAsking(undefined)}
