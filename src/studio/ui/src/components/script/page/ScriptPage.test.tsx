@@ -92,6 +92,24 @@ function selectIn(pid: string, from: number, to: number): void {
   window.getSelection()!.addRange(range);
 }
 
+describe('reads-the-cues-of-the-chapters-drawn-only', () => {
+  it('asks once, for no chapter the reader has not drawn, and never for the whole book', async () => {
+    const api = createMockApi();
+    const some = vi.spyOn(api, 'guideDialogueCuesIn');
+    const all = vi.spyOn(api, 'guideDialogueCues');
+    mount({ api });
+    await firstHeading();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^Speaker: / }).length).toBeGreaterThan(0));
+    const pending = [...document.querySelectorAll('[data-pending-chapter]')].map((block) => block.getAttribute('data-pending-chapter'));
+    expect(pending.length).toBeGreaterThan(0);
+    const asked = some.mock.calls.flatMap(([chapterIds]) => [...chapterIds]);
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.filter((chapterId) => pending.includes(chapterId))).toEqual([]);
+    expect(some).toHaveBeenCalledTimes(1);
+    expect(all).not.toHaveBeenCalled();
+  });
+});
+
 describe('three-columns-from-1440-and-drawers-below', () => {
   it('Alt+Down goes to the next chapter and leaves focus on its heading (#2902)', async () => {
     mount();

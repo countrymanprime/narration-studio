@@ -23,7 +23,7 @@ export type ScriptCommandEnv = {
   marks: Pick<MarksApi, 'marksAdd' | 'marksRemove' | 'marksReply' | 'marksEditMessage' | 'marksDeleteMessage' | 'marksRestoreMessage' | 'marksSetStatus'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepSetChapter'>;
   storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'> & PronounceApi;
-  data: Pick<ScriptData, 'getState' | 'load'>;
+  data: Pick<ScriptData, 'getState' | 'load' | 'loadCues'>;
   /** Says a change aloud (the overlay service's live region). */
   announce: (text: string) => void;
 };
@@ -48,11 +48,15 @@ async function attempt<T>(call: () => Promise<T>): Promise<Result<T>> {
   }
 }
 
+/** A list a change touches: one of the page's lists, or the cues of the chapters held. */
+type Touched = ScriptList | 'cues';
+
 /** Reads the lists a change touched; a failed read is the cache's own error state, and the change stands. */
-const reload = (env: ScriptCommandEnv, ...lists: ScriptList[]): Promise<void> => Promise.all(lists.map((list) => env.data.load(list))).then(() => undefined);
+const reload = (env: ScriptCommandEnv, ...lists: Touched[]): Promise<void> =>
+  Promise.all(lists.map((list) => (list === 'cues' ? env.data.loadCues() : env.data.load(list)))).then(() => undefined);
 
 /** Runs the command through the journal, then reads the lists again; the inverse reads them again after an undo. */
-async function journalled<R>(env: ScriptCommandEnv, lists: ScriptList[], command: Command<R>): Promise<Result<Done<R>>> {
+async function journalled<R>(env: ScriptCommandEnv, lists: Touched[], command: Command<R>): Promise<Result<Done<R>>> {
   const undo = command.undo;
   const result = await env.journal.act<R>({
     ...command,
@@ -69,7 +73,7 @@ async function journalled<R>(env: ScriptCommandEnv, lists: ScriptList[], command
 }
 
 /** A list from the cache, read first when nothing has loaded it. */
-async function cached<L extends 'marks' | 'prep' | 'cues' | 'entries'>(env: ScriptCommandEnv, list: L) {
+async function cached<L extends 'marks' | 'prep' | 'entries'>(env: ScriptCommandEnv, list: L) {
   if (!env.data.getState()[list]?.value) await env.data.load(list);
   return env.data.getState()[list]?.value as NonNullable<ReturnType<ScriptData['getState']>[L]>['value'];
 }
@@ -248,7 +252,9 @@ export async function stepPrep(env: ScriptCommandEnv, chapter: ChapterNameInput 
 
 /** Confirms who speaks a quoted phrase. Undo gives the phrase its earlier speaker (or none) back, as the narrator's correction. */
 export async function confirmSpeaker(env: ScriptCommandEnv, cueId: string, entryId: string): Promise<Result<Done<null>>> {
-  const cue = (await cached(env, 'cues'))?.find((row) => row.id === cueId);
+  const cue = Object.values(env.data.getState().cues)
+    .flatMap((held) => held.value ?? [])
+    .find((row) => row.id === cueId);
   if (!cue) return refuse('cue-gone', 'That line is no longer in the Story Bible.');
   return journalled<null>(env, ['cues', 'entries'], attributeCueCommand(env.storyBible, cue, entryId));
 }
