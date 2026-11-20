@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
 /** What a row says while the host has not answered whether a local model is installed. */
-export const CHECKING_LOCAL_MODEL = 'Checking for a local model…';
+const CHECKING_LOCAL_MODEL = 'Checking for a local model…';
 /** What it says when the host cannot be asked: the controls stay off rather than promise a model that may not be there. */
-export const CANNOT_TELL_LOCAL_MODEL = 'Could not check for a local model.';
+const CANNOT_TELL_LOCAL_MODEL = 'Could not check for a local model.';
 
 /**
  * Why the local model for unknown speakers cannot be used right now, or undefined when it can: the host's own sentence for its
