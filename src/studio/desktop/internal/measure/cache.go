@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
+	"time"
 
 	"desktop/internal/evidence"
 )
@@ -13,20 +15,29 @@ import (
 // source's peaks, computed once from position 0: a request narrowed to one item's played range never invalidates
 // another item's entry for the same file, a trim only narrows or moves that range without changing the
 // cache key, and a retake sharing an earlier item's source file is answered instantly from disk.
+//
+// An entry is the file's as it was when it was read: it carries the source's modification time, and a file whose time
+// has moved since is computed again and the entry written over. The key alone (path, size and a hash of the file's
+// first, middle and last 64 KB) cannot see an edit made in place elsewhere in a file of the same length (a repaired
+// click, a redrawn breath), and the waveform must not be the one from before it (#3778).
+// shortcut: an edit that keeps the file's length, its three hashed blocks and its modification time (a copy that
+// restores the time, a save within the time step of a FAT volume) is not seen; a hash of the whole file would see it.
 
 const (
 	// peaksAnalyzerID and peaksVersion identify this package's entries in the evidence cache (evidence.CacheEntryKey).
 	peaksAnalyzerID = "peaks"
 	peaksVersion    = "2" // 2: entries carry the RMS bytes
 	// peaksBlobVersion is the cache entry's own schema version (the evidence store never looks inside the blob).
-	peaksBlobVersion = 1
+	// 2: entries carry the source's modification time; an older entry is computed again.
+	peaksBlobVersion = 2
 )
 
 // peaksBlob is the opaque JSON this package stores in the evidence cache: the whole source's Peaks, computed
-// once at perSecond buckets a second.
+// once at perSecond buckets a second, and the modification time of the file they were computed from.
 type peaksBlob struct {
-	SchemaVersion int   `json:"schemaVersion"`
-	Peaks         Peaks `json:"peaks"`
+	SchemaVersion int       `json:"schemaVersion"`
+	SourceModTime time.Time `json:"sourceModTime"`
+	Peaks         Peaks     `json:"peaks"`
 }
 
 // CachedPeaksFile answers path's peaks over rng (or the whole file when rng is nil) at perSecond buckets a
@@ -53,14 +64,14 @@ func CachedPeaksFile(ctx context.Context, store *evidence.CacheStore, identity e
 }
 
 // wholeSourcePeaks reads identity's whole-source peaks entry from store, computing and writing one with
-// PeaksFile when it is missing, unreadable, or from a newer schema (every one of those is a cache miss, per
+// PeaksFile when it is missing, unreadable, from another schema, or of a file modified since (every one of those is a cache miss, per
 // CacheStore.Read's own rule). A failure to write the entry back is not reported: the cache is a
 // performance optimisation, not a correctness requirement, and the peaks just computed are still answered.
 func wholeSourcePeaks(ctx context.Context, store *evidence.CacheStore, identity evidence.SourceIdentity, path string, perSecond int) (Peaks, error) {
 	key := peaksCacheKey(identity, perSecond)
 	if raw, ok := store.Read(key); ok {
 		var blob peaksBlob
-		if err := json.Unmarshal(raw, &blob); err == nil && blob.SchemaVersion == peaksBlobVersion {
+		if err := json.Unmarshal(raw, &blob); err == nil && blob.SchemaVersion == peaksBlobVersion && blob.SourceModTime.Equal(identity.ModTime) && blob.Peaks.whole() {
 			return blob.Peaks, nil
 		}
 	}
@@ -68,10 +79,20 @@ func wholeSourcePeaks(ctx context.Context, store *evidence.CacheStore, identity 
 	if err != nil {
 		return Peaks{}, err
 	}
-	if encoded, err := json.Marshal(peaksBlob{SchemaVersion: peaksBlobVersion, Peaks: peaks}); err == nil {
+	// A file saved while it was being read is not stored: the entry would carry the earlier time over the later audio.
+	if info, err := os.Stat(path); err != nil || !info.ModTime().Equal(identity.ModTime) || info.Size() != identity.Size {
+		return peaks, nil
+	}
+	if encoded, err := json.Marshal(peaksBlob{SchemaVersion: peaksBlobVersion, SourceModTime: identity.ModTime, Peaks: peaks}); err == nil {
 		_ = store.Write(key, encoded)
 	}
 	return peaks, nil
+}
+
+// whole reports whether p holds the bytes its bucket count says it does, and some: a stored entry that does not is
+// computed again rather than cut past its end.
+func (p Peaks) whole() bool {
+	return p.Buckets > 0 && p.BucketsPerSecond > 0 && len(p.MinMax) == 2*p.Buckets && (len(p.RMS) == 0 || len(p.RMS) == p.Buckets)
 }
 
 func peaksCacheKey(identity evidence.SourceIdentity, perSecond int) evidence.CacheEntryKey {
