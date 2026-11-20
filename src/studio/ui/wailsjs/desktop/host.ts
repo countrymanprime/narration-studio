@@ -1082,6 +1082,27 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
 }
 
 /**
+ * DawSoloChapter soloes chapterID's linked track in the DAW while the narrator has that chapter open in the Booth, so every other chapter is quiet and not touched
+ * (#3428, solo in place on the chapter, chosen from the owner's A2). It is one change on one track: the chapter's own voices stay audible and are never
+ * muted, a track the narrator already soloed or muted stays as it is, and the chapter put in place before is put back first. It adds no undo step and
+ * changes nothing while the DAW records or plays an isolated track (the DAW does it right after). The page sends it when it enters a chapter with
+ * Booth.follow_chapter_in_daw on; DawSoloRestore puts it back. An engine that cannot do this (Audacity) answers as done with nothing changed. A DAW that
+ * does not answer, a chapter with no or several links and a track the DAW no longer has are refused with the sentence and nothing changed.
+ */
+export function DawSoloChapter(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(2009338758, chapterID);
+}
+
+/**
+ * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the chapter's recording or turns the switch off: only the tracks it
+ * soloed, and only where the narrator has not changed the solo since. It does not look at the switch, so it works after the switch was turned off. While
+ * the DAW records it touches nothing and the DAW puts it back itself once the recording stops. A DAW with nothing to put back answers as done.
+ */
+export function DawSoloRestore(): $CancellablePromise<string> {
+    return $Call.ByID(3241237989);
+}
+
+/**
  * DawSplitTake cuts takeID, a take of chapterID that reads its line twice, into two takes of one item at at seconds into the
  * chapter, in one undo step of the DAW's own (SN-E94; the research mock's splitTake, the page's splitCommand). takeID is the
  * take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,

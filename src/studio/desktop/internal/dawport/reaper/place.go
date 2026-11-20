@@ -48,3 +48,24 @@ func (p placeFollower) GoTo(ctx context.Context, trackID string, target dawport.
 	_, err := p.actions.GoTo(ctx, trackID, bridge.PlaceTarget{End: target.End, Start: target.Start, Seconds: target.Seconds})
 	return err
 }
+
+var _ dawport.ChapterSoloer = placeFollower{}
+
+// SoloChapter soloes the chapter's track in place (solo_chapter). A track that is gone is a *bridge.TrackStaleError.
+func (p placeFollower) SoloChapter(ctx context.Context, trackID string) (dawport.ChapterSoloed, error) {
+	if trackID == "" {
+		return dawport.ChapterSoloed{}, fmt.Errorf("choose a track to solo")
+	}
+	if err := p.check(); err != nil {
+		return dawport.ChapterSoloed{}, err
+	}
+	return p.actions.SoloChapter(ctx, trackID)
+}
+
+// SoloRestore puts back the solo SoloChapter set (solo_restore).
+func (p placeFollower) SoloRestore(ctx context.Context) (dawport.SoloReleased, error) {
+	if err := p.check(); err != nil {
+		return dawport.SoloReleased{}, err
+	}
+	return p.actions.SoloRestore(ctx)
+}

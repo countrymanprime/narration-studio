@@ -4,11 +4,12 @@ import { usePort } from '../../../ports/usePort';
 import { GUIDE_TYPE_COLOURS, type GuideType, type GuideTypeColour } from '../../../types';
 import { projectDataChanged } from '../data/projectDataSignal';
 import { kindSwatch } from '../../storybible/entryList';
+import { typeHueColour } from '../../../kinds/entityColour';
 import { Checkbox } from '../../primitives/Checkbox';
+import { ColourField, type ColourChoice } from '../../primitives/ColourField';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
-import { Select } from '../../primitives/Select';
-import { Swatch } from '../../primitives/Swatch';
+import { Swatch, type SwatchColour } from '../../primitives/Swatch';
 import { TextField } from '../../primitives/TextField';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { plural } from '../../../plural';
@@ -16,7 +17,12 @@ import { shortName } from '../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
-const COLOUR_OPTIONS = GUIDE_TYPE_COLOURS.map((colour) => ({ value: colour, label: COLOUR_LABELS[colour] }));
+// A type's hue is drawn from the token its chips use (`typeHueColour`), so the choice and the chip cannot differ.
+const COLOUR_CHOICES: readonly ColourChoice<GuideTypeColour>[] = GUIDE_TYPE_COLOURS.map((colour) => ({
+  value: colour,
+  token: typeHueColour(colour).line.slice(2) as SwatchColour,
+  name: COLOUR_LABELS[colour],
+}));
 const NEW_NAME = 'Give the type a new name.';
 
 export type StoryBibleTypesViewProps = {
@@ -86,13 +92,17 @@ function TypeRow({
         />
       </span>
       <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @lg:w-auto @lg:gap-3 @lg:pl-0">
-        <Select
+        <ColourField
+          mode="palette"
+          form="popover"
           label={`Colour for ${type.name}`}
           className="w-[100px] @lg:w-[130px]"
+          choices={COLOUR_CHOICES}
           value={type.colour}
-          disabled={busy}
-          options={COLOUR_OPTIONS}
-          onChange={(colour) => onColour(type.name, colour as GuideTypeColour)}
+          pending={busy}
+          onChange={(colour) => {
+            if (colour) onColour(type.name, colour);
+          }}
         />
         <TooltipTarget text="Entries of this type can be picked as the speaker of a quoted line">
           <Checkbox checked={type.speaks} disabled={busy} onChange={(speaks) => onSpeaks(type.name, speaks)}>
@@ -127,8 +137,35 @@ export function StoryBibleTypesView(props: StoryBibleTypesViewProps) {
   );
 }
 
+/**
+ * The key of each type's row. The host knows a type by its name alone, and a row keyed by the name is thrown away and drawn again when the
+ * type is renamed: the press that left the name box (which sends the rename) then lands on a colour box that is replaced under it, and its
+ * swatches close or never open. A row has a number instead, which the new name takes over while the rename is out and keeps once it is in.
+ */
+function useRowKeys(types: readonly GuideType[] | undefined) {
+  // Not state: a name gets its number the first time it is drawn, and no draw depends on a number changing.
+  const [keys] = useState(() => ({ byName: new Map<string, number>(), made: 0 }));
+  return {
+    of: (name: string): number => {
+      if (!keys.byName.has(name)) keys.byName.set(name, keys.made++);
+      return keys.byName.get(name)!;
+    },
+    /** Hands the row of `from` to `to` for the rename that is out; `to` gives it back if the host refuses. */
+    carry: async (from: string, to: string, renamed: Promise<boolean>): Promise<boolean> => {
+      const row = keys.byName.get(from);
+      // A name another type has is one the host refuses, and that type keeps its own row.
+      const free = row !== undefined && !types?.some((type) => type.name === to);
+      if (free) keys.byName.set(to, row);
+      const done = await renamed;
+      if (free) keys.byName.delete(done ? from : to);
+      return done;
+    },
+  };
+}
+
 /** The rows and the New type field without a panel: the Settings page's Entry types row draws this. */
 export function StoryBibleTypesList({ types, counts, busy = false, error, onRename, onColour, onSpeaks, onRemove, onAdd, onRefuse }: StoryBibleTypesViewProps) {
+  const rowKey = useRowKeys(types);
   const [name, setName] = useState('');
   // A name whose add is on its way is not an unsaved draft, and is added once: a Save & continue over it would send a second add that the host refuses as a duplicate (#3457 B12).
   const [adding, setAdding] = useState(false);
@@ -161,12 +198,12 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
           <ul className="m-0 flex list-none flex-col gap-5 p-0 @lg:gap-3">
             {types.map((type) => (
               <TypeRow
-                key={type.name}
+                key={rowKey.of(type.name)}
                 type={type}
                 count={counts && (counts[type.name] ?? 0)}
                 last={types.length < 2}
                 busy={busy}
-                onRename={onRename}
+                onRename={(from, to) => rowKey.carry(from, to, onRename(from, to))}
                 onColour={onColour}
                 onSpeaks={onSpeaks}
                 onRemove={onRemove}

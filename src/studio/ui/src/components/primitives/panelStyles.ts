@@ -13,6 +13,8 @@ export const PANEL_HEADER_CLASS =
 
 // The body's padding, as a custom property too, so a `Table flush` inside it can span exactly that much.
 export const PANEL_BODY_CLASS = 'p-[var(--panel-pad)] [--panel-pad:1rem]';
+// A body that scrolls inside the frame, under a header that stays put. It is a tab stop, and its focus ring is drawn inside it: the frame clips, so a ring outside the body is never seen (#3605 item 3).
+export const PANEL_SCROLL_BODY_CLASS = 'min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-2';
 
 // The title breaks inside a word only when the word alone is wider than its line (`break-word`, not `anywhere`, which let a
 // squeezed title fold one letter per line).

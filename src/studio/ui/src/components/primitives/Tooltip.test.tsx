@@ -157,6 +157,63 @@ describe('TooltipTarget', () => {
     </TooltipProvider>
   );
 
+  // R6 (#3680): a hint that is the reason a box was just marked needs no second visit to be read.
+  describe('showOnArrival', () => {
+    const marked = (text: string, showOnArrival = true) => (
+      <TooltipProvider>
+        <TooltipTarget text={text} showOnArrival={showOnArrival}>
+          <input aria-label="Hex" />
+        </TooltipTarget>
+        <button type="button">Next</button>
+      </TooltipProvider>
+    );
+
+    it('shows a hint whose text arrives while the keyboard is on the target, and blur hides it', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(marked(''));
+      await user.tab();
+      await user.keyboard('zz');
+      expect(screen.queryByRole('tooltip')).toBeNull();
+      rerender(marked('Six hex digits'));
+      expect((await screen.findByRole('tooltip')).textContent).toBe('Six hex digits');
+      await user.tab();
+      await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    });
+
+    it('Escape dismisses it, and it shows again the next time the text arrives', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(marked(''));
+      await user.tab();
+      rerender(marked('Six hex digits'));
+      await screen.findByRole('tooltip');
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+      rerender(marked(''));
+      rerender(marked('Six hex digits'));
+      expect(await screen.findByRole('tooltip')).toBeTruthy();
+    });
+
+    it('shows nothing when focus is elsewhere, or when a pointer put it there', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(marked(''));
+      rerender(marked('Six hex digits'));
+      rerender(marked(''));
+      await user.click(screen.getByRole('textbox', { name: 'Hex' }));
+      rerender(marked('Six hex digits'));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(screen.queryByRole('tooltip')).toBeNull();
+    });
+
+    it('is off unless asked for: a hint that opens takes the next Escape', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(marked('', false));
+      await user.tab();
+      rerender(marked('Six hex digits', false));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(screen.queryByRole('tooltip')).toBeNull();
+    });
+  });
+
   it('shows the hint at once on keyboard focus and hides it on blur', async () => {
     const user = userEvent.setup();
     render(target);

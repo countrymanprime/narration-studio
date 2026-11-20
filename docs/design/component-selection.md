@@ -38,7 +38,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 | --- | --- | --- | --- |
 | A boolean | It is a setting that stands alone and takes effect at once | `Switch` (`role="switch"`, says on/off) | `Checkbox`; a two-option `ToggleGroup` "On / Off" |
 | A boolean | It is one field of a form applied by a submit button (a dialog's options), one item of a multi-selection, or a boolean column in the rows of an editable list | `Checkbox` | `Switch` |
-| One of 2 to 4 short options (5 when every label is 4 characters or fewer) | The labels are one or two words and need no explanation | `ToggleGroup look="segmented"` | `Select` (hides the choices behind a press) |
+| One of 2 to 5 short options whose labels fit the row in a 960 px window | The labels are one or two words and need no explanation | `ToggleGroup look="segmented"` | `Select` (hides the choices behind a press) |
 | One of 2 to 5 options | Each option needs a description, a disabled reason, or a longer label to be read side by side | `RadioGroup` (or `Radio` when each sits in its own row) | `ToggleGroup` with tooltips carrying the explanation |
 | One of 5 to about 15 options | Flat list | `Select` (native, keyboard type-ahead) | `RadioGroup` of 8 radios; `ToggleGroup` that wraps to three lines |
 | One of more than about 15 options, or a list the narrator searches by name (speakers, voices, chapters by title) | Flat list | `SearchList` in a `Popover` (focus stays in the box, arrows move, Enter picks), as `components/booth/reading/SpeakerChip.tsx` and `components/booth/voices/VoiceControl.tsx` do; `ComboSelect` (**Proposed**) when the picker is a closed box in a form: `SELECT_BOX_CLASSES` + `Popover` + `SearchList` | A `Select` of 200 chapters; a page-written `role="combobox"` |
@@ -68,8 +68,8 @@ Read the left column, use the primitive in the middle, and do not use what is in
 | A paragraph or line of the manuscript by its number | `NumberInput` from 1 to N, or a pick from the reader (CS-N10) | A `Select` of "Paragraph 1 … N" |
 | A range (lowest and highest, from and to) | Two `NumberInput`s, each bounded by the other, with one reserved error box (CS-N9) | Two unrelated boxes validated on submit |
 | A date | `DateField` (reports `YYYY-MM-DD`) | `TextField` with a date mask |
-| A colour from the app palette (a speaker's hue, an entry type's colour, a mark's colour) | `ColourField` (**Proposed**), palette mode (see [Colour](#colour)) | `Select` of colour names, even with a `Swatch` beside it |
-| A free colour (a hex value, Proof highlight colour) | `ColourField` (**Proposed**), free mode (see [Colour](#colour)) | A bare hex `TextField`; a `Select` |
+| A colour from the app palette (a speaker's hue, an entry type's colour, a mark's colour) | `ColourField`, palette mode (see [Colour](#colour)) | `Select` of colour names, even with a `Swatch` beside it |
+| A free colour (a hex value, Proof highlight colour) | `ColourField`, free mode (see [Colour](#colour)) | A bare hex `TextField`; a `Select` |
 | A file or folder path | The path shown with `BreakablePath` and a `Button` "Choose…" that opens the system dialog through the host (see [Paths](#paths)) | A free-text `TextField` as the only way in |
 | A keyboard shortcut | The Keyboard panel's capture (`input/useGestureCapture.ts`), shown with `Kbd` / `KeyCap` | A `TextField` the narrator types "Ctrl+K" into |
 | A value the app computed that the narrator can read and copy | `TextField readOnly` | A disabled field (it reads as "off", not "read-only") |
@@ -113,7 +113,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 ### Enumerations
 
-- **CS-E1** 2 to 4 options with short labels: `ToggleGroup look="segmented"`; up to 5 when every label is 4 characters or fewer. 2 to 5 options that need descriptions or visible disabled reasons: `RadioGroup`. 5 to about 15: `Select`. More than about 15, or names the narrator looks up: a searchable picker (`SearchList` in a `Popover`, or `ComboSelect` (**Proposed**)). A tree: `TreeSelect`. These counts are for a control that stands alone and holds a value; a filter follows CS-E13 and a control repeated per row follows CS-E9. **New**.
+- **CS-E1** 2 to 5 options with short labels: `ToggleGroup look="segmented"`, when the labels fit the row on one line in a 960 px window. 2 to 5 options that need descriptions or visible disabled reasons: `RadioGroup`. 5 whose labels do not fit, and 6 to about 15: `Select`. More than about 15, or names the narrator looks up: a searchable picker (`SearchList` in a `Popover`, or `ComboSelect` (**Proposed**)). A tree: `TreeSelect`. These counts are for a control that stands alone and holds a value; a filter follows CS-E13 and a control repeated per row follows CS-E9. **New**.
 - **CS-E2** The thresholds are about what the narrator reads, not about the data type: a list that is short today but grows with the project (voices, chapters, profiles, models) is treated as long.
 - **CS-E3** "Automatic" or "Default" is an option of the enum, named with what it resolves to ("Automatic (Blue)", as `components/storybible/SpeakerColourField.tsx` does), not a separate checkbox beside the control and not a stored 0 (CS-N7).
 - **CS-E4** A stored value that is not among the host's choices still shows as the current option (as `components/settings/row/ValueControl.tsx` does), so the control never claims a choice that is not the real one.
@@ -125,14 +125,14 @@ Read the left column, use the primitive in the middle, and do not use what is in
 - **CS-E10** One value is one control. A setting drawn in two places (Settings and a page's own menu or dialog) uses the same component, the same options and the same option labels in both, from one shared module. **New**.
 - **CS-E11** A scope switch (All projects / This project), which changes whose values a panel edits, is a `ToggleGroup look="segmented"` in the panel's header. **New**.
 - **CS-E12** Presets over custom numbers are a segmented `ToggleGroup` of the presets plus "Custom". The control selects "Custom" itself when the numbers stop matching a preset, and "Custom" is off while a preset matches, as `components/editing/cleanup/CleanupInspector.tsx` does. **New**.
-- **CS-E13** A list filter is not a value control, and CS-E1's counts do not apply to it. One of up to about 6: chips in the filter look (28 px, sentence case, the ink fill when pressed), which `components/primitives/Pill.tsx` documents as the list-filter look. `ToggleGroup` draws only `chip` (36 px, capitals, the accent fill: a standalone value toggle) and `segmented`, so a `look="filter"` option on `ToggleGroup` is **Proposed**; until it exists, a one-of-N filter is a `role="group"` of `Pill look="filter"` with the group's name. Several at once: `Pill look="filter"` chips. More than about 6: a `Menu` with a `select="one"` or `select="many"` section. A segmented `ToggleGroup` is never a filter. **New**; coordinator's default, pending the owner.
+- **CS-E13** A list filter is not a value control, and CS-E1's counts do not apply to it. One of up to about 6: chips in the filter look (28 px, sentence case, the ink fill when pressed), which `components/primitives/Pill.tsx` documents as the list-filter look. `ToggleGroup` draws only `chip` (36 px, capitals, the accent fill: a standalone value toggle) and `segmented`, so a `look="filter"` option on `ToggleGroup` is **Proposed**; until it exists, a one-of-N filter is a `role="group"` of `Pill look="filter"` with the group's name. Several at once: `Pill look="filter"` chips. More than about 6: a `Menu` with a `select="one"` or `select="many"` section. A segmented `ToggleGroup` is never a filter. **New**; decided 2026-11-20 (coordinator).
 - **CS-E14** Every picker of a DAW track is `TrackSelect`, never a plain `Select` of track names. `TrackSelect` labels an option with the track's name and the chapter that holds it, and takes no prop for another label, so `components/booth/voices/WhoIsInDialog.tsx`, whose options read "key · voice", needs that prop on `TrackSelect` before it can move. **New**.
 
 ### Numbers
 
 - **CS-N1** An exact value is `NumberInput` with `min`, `max` and `step`, and its unit as text after the box (as `components/settings/row/ValueControl.tsx` does with `row.unit`). The range is a muted note under it, not a tooltip. A count of things (workers, processes, pages) is always exact. **New**.
 - **CS-N2** A value the narrator tunes by ear or eye is a `Slider`; its readout (`valueText`) carries the unit and is the `aria-valuetext`. The test: if the narrator would ever say the number aloud or copy it from a guide, it is a `NumberInput`. A value a delivery spec checks (loudness targets, sample rate) is a `NumberInput` or a `Select`, not a slider. **New**.
-- **CS-N3** A number from a fixed set of up to 4 values is a segmented `ToggleGroup`, up to 5 when every label is 4 characters or fewer; more is a `Select`.
+- **CS-N3** A number from a fixed set of up to 5 values is a segmented `ToggleGroup` when the labels fit the row on one line in a 960 px window; more is a `Select`. A label keeps its unit sign (`0.75×`).
 - **CS-N4** A duration or time position is shown with `clock`/`clockTenths`, and a count with `plural`/`formatCount` (frontend-primitives, "Before writing text or logic a page already has").
 - **CS-N5** A stepper is `NumberInput`: Arrow Up and Arrow Down step by `step`. A page that wants visible − and + buttons extracts `Stepper` (**Proposed**), built on `NumberInput` and two `IconButton`s, and does not draw its own.
 - **CS-N6** Money is a `NumberInput` with `step={0.01}` and the currency as the unit text, never a slider. `NumberInput` has no precision or format prop and shows `String(value)`, so 12.00 reads 12; a prop that fixes the decimals shown is **Proposed**. **New**.
@@ -144,10 +144,10 @@ Read the left column, use the primitive in the middle, and do not use what is in
 ### Colour
 
 - **CS-C1** Colour data is always chosen with the app's colour selector, never with a `Select`, a `RadioGroup` of colour names, or a bare text box. **New**.
-- **CS-C2** The colour selector is one primitive, `ColourField` (**Proposed**). The first PR that touches a site that picks a colour extracts it and moves every such site to it; [Where the code departs](#where-the-code-departs-from-this-page-2026-11-20) lists the six. **New**.
+- **CS-C2** The colour selector is one primitive, `ColourField`. Every site that picks a colour uses it, and `colourControls.guard.test.ts` fails one that does not. **New**.
 - **CS-C3** `ColourField` has two modes. **New**.
-  - `palette` mode: `RadioGroup` semantics over `Swatch` buttons, one per colour token the caller passes (speaker hues, entry-type colours and mark colours are three token sets), plus "Automatic" when the value can be unset. Each has the hue's name as its accessible name and tooltip; arrow keys move between swatches; the chosen one shows a check mark and a ring. It has two forms: the inline row, and, for a dense row or table cell (CS-E9), one swatch button that opens the same row in a `Popover`.
-  - `free` mode: a swatch-square picker (`TextField type="color"`) plus a mono hex box, one accessible name pattern ("<label> colour" / "<label> hex"), the hex settled on Enter or blur and refused (not saved) when invalid.
+  - `palette` mode: `RadioGroup` semantics over `Swatch` buttons, one per colour token the caller passes (speaker hues, entry-type colours and mark colours are three token sets), plus "Automatic" when the value can be unset. Each has the hue's name as its accessible name and tooltip; arrow keys move between swatches; the chosen one shows a check mark and a ring. It has two forms: the inline row, and, for a dense row or table cell (CS-E9), one swatch button that opens the same row in a `Popover`. A pointer press on a swatch there chooses and leaves the swatches open, so no second press falls through to the row under them; Enter or Space chooses and closes, and Escape, Tab or a press outside closes.
+  - `free` mode: a swatch-square picker (`TextField type="color"`) plus a mono hex box, two accessible names (the picker is named with the visible label as given, the hex box "<label> hex", so the visible words are in both), the hex settled on Enter or blur and refused (not saved) when invalid.
   - In palette mode it takes token names, never raw values (as `Swatch` does), so a page cannot paste a hex for a hue the theme owns.
 - **CS-C4** A colour is never the only cue: the swatch has its name beside it or as its accessible name, and the chosen state is a shape (check, ring). The contrast rules are in [Colour and contrast](colour-and-contrast.md).
 
@@ -284,17 +284,17 @@ Each is a reject in review. The ID it breaks is in brackets. Numbers are stable:
 
 ## Rules this page adds
 
-frontend-primitives covers which primitive exists, icon buttons, errors, prose, dead controls and list caps. The rules marked **New** above go beyond it. The audit behind them is [the component-selection audit](../research/2026-11-component-selection-audit.md) (tracking issue [#3675](https://github.com/countrymanprime/narration-studio/issues/3675)). The rows marked "coordinator's default" were decided without the owner on 2026-11-20 and stand until the owner overturns them.
+frontend-primitives covers which primitive exists, icon buttons, errors, prose, dead controls and list caps. The rules marked **New** above go beyond it. The audit behind them is [the component-selection audit](../research/2026-11-component-selection-audit.md) (tracking issue [#3675](https://github.com/countrymanprime/narration-studio/issues/3675)). The rows marked "coordinator's default" or "decided 2026-11-20 (coordinator)" were decided without the owner and stand until the owner overturns them.
 
 | Topic | Rule | Decided by |
 | --- | --- | --- |
 | Colour uses one colour selector, in two modes and two palette forms | CS-C1 to CS-C3 | Owner's example on #3675; the forms from the audit (R8, R9) |
 | `Switch` versus `Checkbox`; rows of an editable list use `Checkbox` | CS-B2, CS-E9 | Coordinator's default (audit R3, M8) |
-| Segmented cap: 4 options, 5 when every label is 4 characters or fewer | CS-E1, CS-N3 | Coordinator's default (audit R1) |
-| A filter is chips in the filter look, one of N or several; segmented and the default `chip` look are for values | CS-E13 | Coordinator's default, pending the owner (audit R4, corrected: the default look draws `chip`, not `filter`) |
-| An unanswered boolean is a `Switch` drawn off with a note | CS-B6 | Coordinator's default (audit M3, first option) |
-| A time is entered in a time field | CS-N8 | Coordinator's default (audit M4, first option) |
-| A scope switch is a segmented `ToggleGroup` | CS-E11 | Coordinator's default (audit M15, first option) |
+| Segmented cap: 5 options, when the labels fit the row in a 960 px window; the playback-speed labels stay as they are | CS-E1, CS-N3 | Decided 2026-11-20 (coordinator); audit R1 |
+| A filter is chips in the filter look, one of N or several; segmented and the default `chip` look are for values | CS-E13 | Decided 2026-11-20 (coordinator); audit R4, corrected: the default look draws `chip`, not `filter` |
+| An unanswered boolean is a `Switch` drawn off with a note | CS-B6 | Decided 2026-11-20 (coordinator); audit M3, first option |
+| A time is entered in a time field | CS-N8 | Decided 2026-11-20 (coordinator); audit M4, first option |
+| A scope switch is a segmented `ToggleGroup` | CS-E11 | Decided 2026-11-20 (coordinator); audit M15, first option |
 | A Settings choice row declares its control; roving first | CS-E6, CS-K6 | Audit R2, R10 |
 | The "say it aloud" test for a number | CS-N1, CS-N2 | Audit R5 |
 | Money, Automatic numbers, ranges, manuscript indexes | CS-N6, CS-N7, CS-N9, CS-N10 | Audit M1, M2, M12, M13 |
@@ -302,7 +302,7 @@ frontend-primitives covers which primitive exists, icon buttons, errors, prose, 
 | A fact is not a control | CS-B7 | Audit M6 |
 | Multi-line text; the browser's file input | CS-T5, CS-P6 | Audit M10, M11 |
 | Confirm versus Undo; destructive items in menus | CS-X2, CS-X6 | This page |
-| Link buttons and external links; `Menu` for related actions; `SplitButton`; `Tabs` versus `ToggleGroup` and the category strip | CS-A1 to CS-A4 | This page; the category strip is the coordinator's default |
+| Link buttons and external links; `Menu` for related actions; `SplitButton`; `Tabs` versus `ToggleGroup` and the category strip | CS-A1 to CS-A4 | This page; the category strip was decided 2026-11-20 (coordinator) |
 | Every DAW track picker is `TrackSelect` | CS-E14 | This page (audit G1, G2, G4) |
 | Multi-select and bulk actions | CS-M1 to CS-M3, CS-M6, CS-M7 | This page; audit M14 |
 | The narrow and tiny captures as required checks | CS-S8 | This page |
@@ -313,10 +313,8 @@ The audit lists every site with its file and line; this table names the larger c
 
 | Rule | Departure | Audit rows |
 | --- | --- | --- |
-| CS-C1, CS-C2 | `ColourField` is not written. Six sites pick a colour by hand: three swatch-plus-hex pairs (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`) and three `Select`s of colour names (`components/storybible/SpeakerColourField.tsx`, `components/settings/page/StoryBibleTypesPanel.tsx`, `components/script/page/tools/select/MarksDialog.tsx`) | S3, S4, S5, B1, C1, C2, F6 |
 | CS-E6 | Three renderers draw every host `choice` as a `Select` (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`), as [Settings rows](design-system.md#settings-rows) records; the registry has no control declaration | S1, S2, F7 |
 | CS-K6 | `ToggleGroup` makes every chip a tab stop | R10 |
-| CS-E1, CS-N3 | The two playback-speed groups label their options with a sign (`0.75×`, `1.25×` from `rateLabel` in `components/engine/outputPrefs.ts`), which is 5 characters. Pending the owner: drop the sign from the option, or raise the cap to 5 characters | S20, E7 |
 | CS-E13 | `ToggleGroup` has no `look="filter"`. Three one-of-N list filters are `ToggleGroup`s in a value look: two segmented (`components/settings/page/SettingsPage.tsx`, `components/settings/page/ModelsPane.tsx`) and one in the default `chip` look (`components/editing/cleanup/CleanupHeader.tsx`) | S19, E8, R4 |
 | CS-E14 | Three track pickers are plain `Select`s (`components/engine/LinkChaptersDialog.tsx`, `components/engine/CreateChapterRegionsDialog.tsx`, `components/booth/voices/WhoIsInDialog.tsx`). `TrackSelect` has no prop for the "key · voice" option label the last one draws | G1, G2, G4 |
 | CS-E1 (search) | `ComboSelect` is not written; three pages write `role="combobox"` themselves (`components/storybible/Relationships.tsx`, `components/script/page/tools/speaker/SpeakerPicker.tsx`, `components/layout/JumpMenu.tsx`), and several `Select`s list chapters or characters | B2, B3, B4, C3, E5, K1, K3, G3, S17 |
