@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-20. **Issue:** [#3771](https://github.com/countrymanprime/narration-studio/issues/3771). **Question:** is anything in these three public repositories worth taking into the app, and what does each licence allow?
 
-**Answer.** One of the three, Kosmos, is a close relative of this app (a desktop studio for human audiobook narration, MIT) and holds most of the value: its script-against-transcript proofing rules, its chapter-split heuristics and its voice-following teleprompter are pure TypeScript with test files alongside (tests not run by us), and the MIT licence lets us adapt them with a notice. The other two are worth a few small ideas each. None of the three drives a DAW or attributes dialogue to speakers, so none helps with creating DAW tracks ([#3748](https://github.com/countrymanprime/narration-studio/issues/3748)), the slow DAW link ([#3752](https://github.com/countrymanprime/narration-studio/issues/3752)) or the local-model attribution fallback ([#3743](https://github.com/countrymanprime/narration-studio/issues/3743)).
+**Answer.** One of the three, Kosmos, is a close relative of this app (a desktop studio for human audiobook narration, MIT) and holds most of the value: its script-against-transcript proofing rules, its chapter-split heuristics and its voice-following teleprompter are pure TypeScript with test files alongside (tests not run by us), and the MIT licence lets us adapt them with a notice. The other two are worth a few small ideas each. A check of this app found it already covers three of the take-aways and partly covers most of the rest; the sixteen gaps that remain each have a follow-up issue ([Ranked across all three](#ranked-across-all-three)). None of the three drives a DAW or attributes dialogue to speakers, so none helps with creating DAW tracks ([#3748](https://github.com/countrymanprime/narration-studio/issues/3748)), the slow DAW link ([#3752](https://github.com/countrymanprime/narration-studio/issues/3752)) or the local-model attribution fallback ([#3743](https://github.com/countrymanprime/narration-studio/issues/3743)).
 
 Nothing was copied into this repository. Every item below that involves their code needs an owner decision and an entry in the third-party notices file shipped with each release first ([Licence compatibility](#licence-compatibility)).
 
@@ -37,18 +37,28 @@ These are the author's readings of the licence texts, not legal advice.
 
 ## Ranked across all three
 
-The ten items most worth the owner's attention, ranked by expected gain against effort, with items that serve an open issue ahead of equal items that serve none. The issues named: #3751 is the performance research on granular files and layered loading, #3666 keeping the teleprompter following when a DAW recording starts, #3748 new-chapter tracks, #3752 the slow DAW link. #3743 is the local-model fallback for speaker attribution.
+Every take-away that this app lacks, ranked by expected gain against effort. Each has a follow-up issue with the evidence, written on 2026-11-20. "In this app" is what a search of this repository found the same day. Take-aways the app already covers, and those ruled out, are in each repository's own table.
 
-| # | Item | From | Licence class | Effort | Expected gain | Serves |
+| # | Item | From | Licence class | Effort | In this app | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2 | Proofing false-positive rules: British and American spelling fold, per-book suppressed words, a re-spaced-word check ("half-empty" heard as "halfempty"), flags within 0.4 s merged into one pickup, plus a hand-labelled precision corpus | Kosmos | Adapt with attribution (or idea only) | M | Fewer false flags on the Proof page; a corpus to measure flag precision | Proof page; no open issue found |
-| 4 | Voice-following cursor: resync windows, hallucination-token filter, halt after three misses, predictive lead | Kosmos | Idea only first; adapt with attribution if the ideas prove out | M to L | A teleprompter that recovers from skips and restarts | Teleprompter; nearest open issue is [#3666](https://github.com/countrymanprime/narration-studio/issues/3666), which asks for following to survive a recording start |
-| 5 | Table-of-contents run removal and stacked part/chapter heading folding in chapter detection | Kosmos | Adapt with attribution | S to M | Fewer phantom chapters on import | Import; no open issue found |
-| 8 | Room check that predicts the noise floor after mastering gain | Kosmos | Adapt with attribution | S | The narrator learns before recording that the room is likely to fail ACX's noise-floor limit | Booth; no open issue found |
-| 9 | Pickup verification: re-run ASR on the punched line and clear the flag only when it matches | Kosmos | Idea only | M | Closes the loop between Pickups and Proof | Pickups; no open issue found |
-| 10 | Envelope-based trim of a clip's start and end around a rough ASR timestamp | narration.studio | Adapt with attribution | S | Tighter automatic take boundaries | Editing; no open issue found |
+| 1 | A hand-labelled corpus and a test that reports Proof flag precision | Kosmos | Idea only | M | Partial: a provisional synthetic corpus counts stage recommendations, not flags (`internal/proofing/corpus_test.go`) | [#3782](https://github.com/countrymanprime/narration-studio/issues/3782) |
+| 2 | British and American spellings compared as the same word | Kosmos | Adapt with attribution, or idea only | S | Partial: a narrator can add a pair by hand; `homophones.csv` has no spelling groups | [#3779](https://github.com/countrymanprime/narration-studio/issues/3779) |
+| 3 | Per-book words to stop flagging, applied only when every word of a flag is listed | Kosmos | Idea only | S to M | Partial: a per-project "treat as same" pair list (`TreatAsSame.tsx`) | [#3780](https://github.com/countrymanprime/narration-studio/issues/3780) |
+| 4 | Room check that predicts the noise floor after mastering gain | Kosmos | Adapt with attribution, or idea only | S | Partial: the floor is measured and shown in the Booth (`internal/roomtone`); the limit is checked on rendered files only | [#3791](https://github.com/countrymanprime/narration-studio/issues/3791) |
+| 5 | Warning before recording that a chapter is estimated over the file-length limit | Kosmos | Idea only | S | Partial: the limit (`deliveryprofile/acx.go:68`) and a words-per-hour estimate (`ui/src/state.ts:81`) exist apart | [#3788](https://github.com/countrymanprime/narration-studio/issues/3788) |
+| 6 | Pickup verification: check the retake against its line before clearing the flag | Kosmos | Idea only | M | Partial: pickups are marked recorded by position; an ASR re-check exists for live Booth flags only (`internal/liveflags`) | [#3783](https://github.com/countrymanprime/narration-studio/issues/3783) |
+| 7 | Voice-following cursor: hallucination-token filter, halt after several misses, predictive lead | Kosmos | Idea only first | M to L | Partial: skip, restart and waiting are handled (`internal/scripttrack/tracker.go:26-35`); these three are not | [#3784](https://github.com/countrymanprime/narration-studio/issues/3784) |
+| 8 | Each failed delivery check labelled with where it is fixed | Kosmos | Idea only | S | Partial: a prose fix per metric (`master/fileVerdict.ts:31`); no category, no bitrate case | [#3792](https://github.com/countrymanprime/narration-studio/issues/3792) |
+| 9 | Per-chapter "review before you read" notices: leftover markup, very long paragraphs, tables | narrato-studio | Idea only | S | Absent: the importer's notices cover other cases | [#3789](https://github.com/countrymanprime/narration-studio/issues/3789) |
+| 10 | Discrepancies within a fraction of a second merged into one flag | Kosmos | Idea only | S | Absent | [#3781](https://github.com/countrymanprime/narration-studio/issues/3781) |
+| 11 | Clip start and end tightened with a loudness envelope around ASR word times | narration.studio | Adapt with attribution, or idea only | S to M | Partial: trims come from silence runs (`internal/editing/empty_space.go`); word times are not used | [#3793](https://github.com/countrymanprime/narration-studio/issues/3793) |
+| 12 | Previous good copy of a project file kept as a fallback | Kosmos | Idea only | S to M | Partial: a corrupt file is set aside and a fresh one started (`internal/persist/persist.go:114`) | [#3795](https://github.com/countrymanprime/narration-studio/issues/3795) |
+| 13 | A part heading directly above a chapter heading folded into one chapter start | Kosmos | Adapt with attribution, or idea only | S to M | Partial: contents lists are handled; stacked headings stay separate, pinned by `heading_subtitles_test.go:40` | [#3787](https://github.com/countrymanprime/narration-studio/issues/3787) |
+| 14 | Follow-along matching by sound (phonemes) | narration.studio | Idea only | M | Partial: spelling match with homophone and number keys (`scripttrack/tracker.go:56, 86`) | [#3785](https://github.com/countrymanprime/narration-studio/issues/3785) |
+| 15 | "How to say this" hints for figures and abbreviations | narrato-studio | Adapt with attribution, or idea only | M | Absent: spoken numbers are used for matching only | [#3790](https://github.com/countrymanprime/narration-studio/issues/3790) |
+| 16 | Live "current line, retake of the previous line, or unclear" decision | narration.studio | Idea only | M | Partial: a "restart" flag (`scripttrack/flags.go:31`) | [#3786](https://github.com/countrymanprime/narration-studio/issues/3786) |
 
-"No open issue found" means a search of this repository's open issues on 2026-11-20 for the item's keywords returned nothing relevant. Terms searched: homophone, false positive proof, skipped import, room tone, teleprompter follow, provenance attribution, region csv.
+A search of this repository's open issues on 2026-11-20 found none that these items already serve, except that item 12 touches the package [#3751](https://github.com/countrymanprime/narration-studio/issues/3751) is researching and item 7 sits near [#3666](https://github.com/countrymanprime/narration-studio/issues/3666), a different teleprompter defect. Terms searched: homophone, false positive proof, skipped import, room tone, teleprompter follow, region csv, spelling, ignore word proof, pickup verify, noise floor room, chapter length, trim speech, backup corrupt, part chapter heading, numbers abbreviation, phoneme.
 
 ## Kosmos (Parafield-Official/kosmos)
 
@@ -105,8 +115,8 @@ Record a chapter from a teleprompter that follows the narrator's voice, or impor
 | Area | Kosmos | This app (2026-11-20) |
 | --- | --- | --- |
 | Recording | Its own recorder; exports markers to DAWs | Drives REAPER through the Lua bridge; also Audacity 3 and a built-in recorder |
-| Proofing | Myers diff, three folds, suppression rules, labelled corpus | `internal/compare` diff with a homophone canon (`homophones.csv`, 61 lines, also free of the heteronyms Kosmos names); the code has a homophone fold and a possessive fold, and a search of it for a British/American spelling fold found none |
-| Teleprompter | Parakeet, resync windows, predictive lead | faster-whisper or moonshine in `manuscript-teleprompter/core/live_asr.py` |
+| Proofing | Myers diff, three folds, suppression rules, labelled corpus | `internal/compare` diff with a homophone canon (`homophones.csv`, 61 lines, also free of the heteronyms Kosmos names); the code has a homophone fold, a possessive fold and a re-spaced-word rule (`FuseHyphenSplits`), and a search of it for a British/American spelling fold found none |
+| Teleprompter | Parakeet, resync windows, predictive lead | faster-whisper or moonshine in `manuscript-teleprompter/core/live_asr.py`; the cursor in `internal/scripttrack` handles skips, restarts and waiting |
 | Chapters | TOC-run removal, stacked headings, length warning | `internal/importer/headings.go`, EPUB and Markdown TOC readers, import notices |
 | Speaker attribution | None | Rules, BookNLP and GLiNER providers |
 | Mastering meters | TypeScript | Go (`internal/measure`), same standards |
@@ -116,19 +126,27 @@ Kosmos is ahead on proofing false-positive handling and teleprompter recovery, c
 
 ### Kosmos: worth taking, ranked
 
-| # | Item | Where | Licence class | Effort | Expected gain | Serves |
+| # | Item | Where | Licence class | Effort | In this app (2026-11-20) | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Proofing suppression rules and the spelling fold; build our own labelled corpus the same way | `src/core/proof/{align,spelling,normalize}.ts`, `corpus.ts`, `eval.ts` | Adapt with attribution for the word lists and rules; idea only for the corpus method | M | Fewer false flags; a precision number for the Proof page | Proof page |
-| 2 | Voice-following cursor design | `src/core/teleprompter/{live,lead}.ts` | Idea only first: compare with `live_asr.py` on paper, then decide whether to adapt | M to L | Recovery from skips and restarts | Teleprompter; nearest is [#3666](https://github.com/countrymanprime/narration-studio/issues/3666) |
-| 3 | TOC-run removal and stacked-heading folding | `src/core/manuscript/split.ts:197-217, 406-435` | Adapt with attribution | S to M | Fewer phantom chapters | Import |
-| 4 | Room check that predicts the floor after gain | `src/core/acx/room.ts` (160 lines) | Adapt with attribution | S | Earlier warning of an ACX noise-floor failure | Booth |
-| 5 | Pickup verification by re-running ASR on the punch | `src/core/proof/pickup-verification.ts` | Idea only | M | A pickup closes itself when the retake is right | Pickups |
-| 6 | "Who settles it" ownership per failed delivery check | `src/core/acx/fixes.ts` | Idea only | S | A Master & QC failure says where to fix it | Master & QC |
-| 7 | Chapter length warning (over 120 minutes at 9,300 words an hour) | `split.ts:14-15` | Idea only | S | Flags a chapter likely to exceed 120 minutes, the maximum their code sets per chapter (`MAX_CHAPTER_MINUTES`), before recording | Import |
-| 8 | Proofer packet (HTML and XLSX) | `src/core/proof/packet.ts` (407 lines) | Adapt with attribution | M | A file to hand to an outside proofer | Proof page |
-| 9 | Keep the previous project file and fall back to it on a failed read | `electron/project-save.cjs:22-51` | Idea only | S | Recovery from a corrupt write; check first what `internal/persist` already does | Storage; no open issue found |
+| 1 | A labelled corpus and evaluator for flag precision | `src/core/proof/corpus.ts`, `eval.ts` | Idea only (the method, with our own labels) | M | Partial | [#3782](https://github.com/countrymanprime/narration-studio/issues/3782) |
+| 2 | British to American spelling fold | `src/core/proof/spelling.ts` | Adapt with attribution, or idea only | S | Partial | [#3779](https://github.com/countrymanprime/narration-studio/issues/3779) |
+| 3 | Per-book suppressed words | `src/core/proof/align.ts:742-748` | Idea only | S to M | Partial | [#3780](https://github.com/countrymanprime/narration-studio/issues/3780) |
+| 4 | Room check that predicts the floor after gain | `src/core/acx/room.ts` (160 lines) | Adapt with attribution, or idea only | S | Partial | [#3791](https://github.com/countrymanprime/narration-studio/issues/3791) |
+| 5 | Chapter length warning (over 120 minutes at 9,300 words an hour) | `split.ts:14-15` | Idea only | S | Partial | [#3788](https://github.com/countrymanprime/narration-studio/issues/3788) |
+| 6 | Pickup verification by re-running ASR on the punch | `src/core/proof/pickup-verification.ts` | Idea only | M | Partial | [#3783](https://github.com/countrymanprime/narration-studio/issues/3783) |
+| 7 | Voice-following cursor: token filter, miss count, predictive lead | `src/core/teleprompter/{live,lead}.ts` | Idea only first | M to L | Partial | [#3784](https://github.com/countrymanprime/narration-studio/issues/3784) |
+| 8 | "Who settles it" ownership per failed delivery check | `src/core/acx/fixes.ts` | Idea only | S | Partial | [#3792](https://github.com/countrymanprime/narration-studio/issues/3792) |
+| 9 | Pickups within 0.4 s merged | `src/core/proof/align.ts:247-250` | Idea only | S | Absent | [#3781](https://github.com/countrymanprime/narration-studio/issues/3781) |
+| 10 | Previous project file kept and read as a fallback | `electron/project-save.cjs:22-51` | Idea only | S to M | Partial | [#3795](https://github.com/countrymanprime/narration-studio/issues/3795) |
+| 11 | Stacked part and chapter headings folded | `src/core/manuscript/split.ts:197-217` | Adapt with attribution, or idea only | S to M | Partial | [#3787](https://github.com/countrymanprime/narration-studio/issues/3787) |
 
-Not worth taking: the mastering meters (this app's Go meters cover the same standards), the marker export (this app writes to the DAW directly), the storage layout and the base64 audio transport.
+Already in this app, so nothing to take:
+
+- **The re-spaced-word check.** `FuseHyphenSplits` (`internal/compare/align.go:63`) treats "half-empty" against "halfempty" as equal, with tests in `compare_test.go:156`.
+- **Contents-list handling at import.** DOCX and Markdown can use the table of contents as the chapter list (`internal/importer/markdown.go:171`), a TXT contents block is read as reference (`txt.go:299`), and EPUB navigation drives chapters (`epub_toc.go`).
+- **The homophone fold without heteronyms**, the mastering meters (this app's Go meters cover the same standards) and marker export (this app writes to the DAW directly, and exports pickups as CSV from `internal/pickups/csv.go`).
+
+Ruled out: the proofer packet in HTML and XLSX (`src/core/proof/packet.ts`), because `docs/prds/proof-and-pickups.prd.md:49` lists a proofer packet as out of scope; the storage layout; and the base64 audio transport.
 
 ## narrato-studio (sushily1k/narrato-studio)
 
@@ -166,11 +184,12 @@ This app already covers its import formats, its chapter detection, M4B and chapt
 
 ### narrato-studio: worth taking, ranked
 
-| # | Item | Where | Licence class | Effort | Expected gain | Serves |
+| # | Item | Where | Licence class | Effort | In this app (2026-11-20) | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Per-chapter "review before you read" warnings: leftover markup, very long paragraphs, tables | `manuscript.py:1176-1190` | Idea only (a few lines; quicker to write than to port) | S | The narrator sees awkward-to-read spots on the Script page before the booth | Script page |
-| 2 | Editing an approved chapter resets its approval | `router.py:994-997` | Idea only | S | Proofed state cannot outlive a text change; check what the Proof page does first | Proof page |
-| 3 | Number and abbreviation expansion as a "how to say this" hint | `manuscript.py:456-657` | Adapt with attribution | M | Reading hints for figures and abbreviations; its rules lean towards finance text | Script page |
+| 1 | Per-chapter "review before you read" warnings: leftover markup, very long paragraphs, tables | `manuscript.py:1176-1190` | Idea only (a few lines; quicker to write than to port) | S | Absent | [#3789](https://github.com/countrymanprime/narration-studio/issues/3789) |
+| 2 | Number and abbreviation expansion as a "how to say this" hint | `manuscript.py:456-657` | Adapt with attribution, or idea only | M | Absent | [#3790](https://github.com/countrymanprime/narration-studio/issues/3790) |
+
+Does not apply: resetting a chapter's approval when its text is edited (`router.py:994-997`). A search of this app found no path that edits manuscript text after import; when the evidence behind a confirmed stage changes, `internal/stages/service.go:67` reports the contradiction and leaves the revert to the narrator. That search was not exhaustive.
 
 ## narration.studio (stevenwaterman/narration.studio)
 
@@ -206,12 +225,13 @@ This app records through a DAW with takes and punch commands, compares the take 
 
 ### narration.studio: worth taking, ranked
 
-| # | Item | Where | Licence class | Effort | Expected gain | Serves |
+| # | Item | Where | Licence class | Effort | In this app (2026-11-20) | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Envelope trim around a rough timestamp | `processor.ts:16-139` | Adapt with attribution (about 120 lines), or idea only | S | Tighter automatic clip boundaries from ASR word times | Editing |
-| 2 | Compare in phoneme space, not spelling, when matching speech to a line | `pronunciation.ts`, `AudioRecorder.svelte:76-90` | Idea only | M | Names and odd spellings match by sound in follow-along; needs a local phoneme source, which this app has | Teleprompter; no open issue found |
-| 3 | "Current line, previous line, or unclear" decision with an interval test and manual override | `AudioRecorder.svelte:91-128` | Idea only | M | A live retake hint in the Booth; unproven beyond this page | Booth |
-| 4 | Write one record per edit | `persistence.ts:20-24` | Idea only | S | One data point for granular files | [#3751](https://github.com/countrymanprime/narration-studio/issues/3751) |
+| 1 | Envelope trim around a rough timestamp | `processor.ts:16-139` | Adapt with attribution (about 120 lines), or idea only | S to M | Partial | [#3793](https://github.com/countrymanprime/narration-studio/issues/3793) |
+| 2 | Compare in phoneme space, not spelling, when matching speech to a line | `pronunciation.ts`, `AudioRecorder.svelte:76-90` | Idea only | M | Partial | [#3785](https://github.com/countrymanprime/narration-studio/issues/3785) |
+| 3 | "Current line, previous line, or unclear" decision with an interval test and manual override | `AudioRecorder.svelte:91-128` | Idea only | M | Partial | [#3786](https://github.com/countrymanprime/narration-studio/issues/3786) |
+
+Left to existing work: writing one record per edit (`persistence.ts:20-24`). This app replaces whole files atomically (`internal/persist/write.go`), and whether to store smaller units is the question [#3751](https://github.com/countrymanprime/narration-studio/issues/3751) is researching.
 
 Not worth taking: the recogniser, the runtime dictionary download, and the per-sample waveform.
 
@@ -239,8 +259,9 @@ How this meets the app's dependency policy:
 
 ## Owner decisions this report asks for
 
-1. Whether to adapt code from any MIT source (cross-repository rows 2, 5, 8 and 10, and later possibly row 4; the Kosmos proofer packet; narrato-studio's number expansion), or to keep every take-away at idea level and avoid the notices work.
+1. Whether to adapt code from an MIT source for the five follow-ups that offer it ([#3779](https://github.com/countrymanprime/narration-studio/issues/3779), [#3787](https://github.com/countrymanprime/narration-studio/issues/3787), [#3790](https://github.com/countrymanprime/narration-studio/issues/3790), [#3791](https://github.com/countrymanprime/narration-studio/issues/3791), [#3793](https://github.com/countrymanprime/narration-studio/issues/3793)), or to keep every take-away at idea level and avoid the notices work.
 2. Whether to move the rule for ported source, stated so far only in a research note for one case, into the licence policy before the first such change.
+3. Whether three follow-ups are wanted at all: [#3786](https://github.com/countrymanprime/narration-studio/issues/3786), [#3787](https://github.com/countrymanprime/narration-studio/issues/3787) and [#3790](https://github.com/countrymanprime/narration-studio/issues/3790) carry the `owner-decision` label.
 
 ## What was not read
 
