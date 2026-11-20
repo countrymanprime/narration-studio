@@ -125,6 +125,15 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       className={`relative flex min-h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
+      {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
+          same `stays` the timers above wait, from `held` the same way: a hold shows it whole and still, and leaving starts it again from the full width, as the timer starts again.
+          Under reduced motion it is not drawn (a bar that never moves says nothing); an error's edge strip keeps its whole height. */}
+      <span
+        data-toast-countdown
+        aria-hidden="true"
+        style={held ? undefined : { animationDuration: `${stays}ms` }}
+        className={`pointer-events-none absolute right-0 bottom-0 ${isError ? 'left-1' : 'left-0'} h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)] motion-still:hidden ${held ? '' : 'motion-ok:animate-[toast-countdown_linear_forwards]'}`}
+      />
       {isError ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />
       ) : (
