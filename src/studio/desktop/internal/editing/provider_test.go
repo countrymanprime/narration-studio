@@ -2,8 +2,11 @@ package editing
 
 import (
 	"context"
+	"os"
 	"testing"
+	"time"
 
+	"desktop/internal/evidence"
 	"desktop/internal/stages"
 	"desktop/internal/tracks"
 )
@@ -187,3 +190,41 @@ var errUnreadableFixture = errNamed("could not read the saved project")
 type errNamed string
 
 func (e errNamed) Error() string { return string(e) }
+
+// A scan writes each item's key down, so it reads the file whatever the cache holds; a read of the signals only compares, so it asks the
+// cache and a repeat reads no file.
+func TestAScanRefreshesIdentitiesAndARepeatSignalsReadReadsNoFile(t *testing.T) {
+	svc := newTestService(t)
+	old := time.Now().Add(-time.Hour)
+	for _, item := range svc.track.Items {
+		if err := os.Chtimes(item.SourceFile, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	scanCache := &evidence.IdentityCache{}
+	svc.config.Identities = scanCache
+	for _, item := range svc.track.Items {
+		if _, err := scanCache.Identify(item.SourceFile, svc.dir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := svc.Start(context.Background(), Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}); err != nil {
+		t.Fatal(err)
+	}
+	svc.Wait()
+	if got := scanCache.Reads(); got != 4 {
+		t.Fatalf("a scan of two files the cache already held made %d reads in all, want 4 (each read again, once)", got)
+	}
+
+	readCache := &evidence.IdentityCache{}
+	svc.config.Identities = readCache
+	provider := NewSignalProvider(svc.Service)
+	for range 2 {
+		if _, err := provider.Signals(context.Background(), chapterContext(), evidenceView(svc)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := readCache.Reads(); got != 2 {
+		t.Fatalf("two reads of the signals read %d files, want 2 (each file once)", got)
+	}
+}

@@ -25,6 +25,8 @@ type EvidenceView struct {
 	ProjectErr    error
 	Ledger        *evidence.LedgerStore
 	Mapping       *evidence.MappingStore
+	// Identities is the open project's source identity cache; nil reads every file.
+	Identities *evidence.IdentityCache
 }
 
 // Provider supplies the signals for one stage. Stage is the stage its

@@ -7,6 +7,7 @@ import (
 	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 	"desktop/internal/editing"
+	"desktop/internal/evidence"
 	"desktop/internal/findings"
 	"desktop/internal/guide"
 	"desktop/internal/lineidentity"
@@ -47,6 +48,7 @@ type hostServices struct {
 	recorder     *recording.Service
 	transcript   *transcript.Service
 	coverage     *coverage.Service
+	identities   *evidence.IdentityCache
 	stages       *stages.Service
 	production   *production.Service
 	editing      *editing.Service
@@ -165,6 +167,7 @@ func (h *Host) services() hostServices {
 		recorder:         h.recorder,
 		transcript:       h.transcript,
 		coverage:         h.coverage,
+		identities:       h.identities,
 		stages:           h.stages,
 		production:       h.production,
 		editing:          h.editing,

@@ -104,6 +104,8 @@ type ComparisonRecorder struct {
 	Lookup        ChapterResolver
 	DocumentID    func() string
 	ProjectFolder string
+	// Identities is the open project's source identity cache; nil reads every file.
+	Identities *evidence.IdentityCache
 	// ProjectFile is the saved project the narrator chose, with its modified
 	// time now (at completion).
 	ProjectFile func() (evidence.LedgerProjectFile, error)
@@ -144,7 +146,7 @@ func (r *ComparisonRecorder) Record(run ComparisonRun) error {
 			return err
 		}
 		for i := range compared {
-			if identity, err := evidence.Identify(compared[i].Path, r.ProjectFolder); err == nil {
+			if identity, err := r.Identities.Refresh(compared[i].Path, r.ProjectFolder); err == nil {
 				compared[i].Identity = identityKey(identity)
 			}
 		}
@@ -269,7 +271,7 @@ func judgeRecord(record evidence.LedgerRecord, chapter stages.ChapterContext, vi
 	if len(played) == 0 {
 		return unknownRun(stages.CauseMeasurementUnavailable, ids, "The chapter's track has no played audio in the saved project.")
 	}
-	missing, changed, unreadable := matchPlayed(played, payload.Compared, view.ProjectFolder)
+	missing, changed, unreadable := matchPlayed(played, payload.Compared, view)
 	switch {
 	case unreadable > 0:
 		return unknownRun(stages.CauseStale, ids, fmt.Sprintf("%d audio file(s) on the chapter's track could not be read. Check the files, then run Transcript Compare again.", unreadable))
@@ -288,11 +290,11 @@ func judgeRecord(record evidence.LedgerRecord, chapter stages.ChapterContext, vi
 // edited rather than left out; unreadable counts played sources that could not
 // be identified. The start offset compared is the take's SOFFS, what the
 // bridge reads as D_STARTOFFS.
-func matchPlayed(played []tracks.Item, compared []ComparedItem, projectFolder string) (missing int, changed bool, unreadable int) {
+func matchPlayed(played []tracks.Item, compared []ComparedItem, view stages.EvidenceView) (missing int, changed bool, unreadable int) {
 	used := make([]bool, len(compared))
 	for _, item := range played {
 		take := item.Active()
-		identity, err := evidence.Identify(take.SourceFile, projectFolder)
+		identity, err := view.Identities.Identify(take.SourceFile, view.ProjectFolder)
 		if err != nil {
 			unreadable++
 			continue

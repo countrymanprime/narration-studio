@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/coverage"
 	"desktop/internal/tracks"
@@ -142,10 +143,44 @@ func TestWorkspacePeaksCachesAcrossCalls(t *testing.T) {
 	}
 }
 
+// The waveform of a chapter is asked on every visit: the take is identified through the project's cache, so the second visit reads none,
+// and another project starts with a cache of its own.
+func TestWorkspacePeaksSharesTheProjectsIdentityCacheAcrossCalls(t *testing.T) {
+	project := workspacePeaksProject(t)
+	host := coverageHost(t, project, true, fakeAlignedCoverageSidecar())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+	// A new time: the first call has to read the take, and can only have done so through the cache counted here.
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(filepath.Join(project, "media", "take.wav"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	identities := host.services().identities
+	before := identities.Reads()
+
+	for call, want := range []int64{1, 1} {
+		got := bindingAnswer[WorkspacePeaksView](t)(host.WorkspacePeaks("c-0001"))
+		if got.Items[0].Peaks == nil || identities.Reads()-before != want {
+			t.Fatalf("call %d: item %+v after %d reads of the take, want peaks and %d", call+1, got.Items[0], identities.Reads()-before, want)
+		}
+	}
+
+	next := host.config
+	next.projectFolder = coverageProject(t)
+	if attached, reason := host.attachProjectLocked(next); !attached {
+		t.Fatalf("attach failed: %s", reason)
+	}
+	if host.services().identities == identities {
+		t.Fatal("another project kept the last project's identity cache")
+	}
+}
+
 func TestPeaksSourcesReadAFileOnceHoweverManyItemsAsk(t *testing.T) {
 	project := workspacePeaksProject(t)
 	file := filepath.Join(project, "media", "take.wav")
-	whole := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole
+	whole := newPeaksSources(context.Background(), evidence.NewCacheStore(project), nil, project).whole
 
 	first := whole(file)
 	if first.reason != "" || first.whole.Buckets != 4*50 {
@@ -159,7 +194,7 @@ func TestPeaksSourcesReadAFileOnceHoweverManyItemsAsk(t *testing.T) {
 		t.Fatalf("second = %+v, want the first ask's peaks without reading the file again", second)
 	}
 	// A new reader (the next call) reads the file as it is now.
-	if next := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole(file); next.reason == "" {
+	if next := newPeaksSources(context.Background(), evidence.NewCacheStore(project), nil, project).whole(file); next.reason == "" {
 		t.Fatalf("next = %+v, want a reason for the missing file", next)
 	}
 }
@@ -229,7 +264,7 @@ func TestItemPeaksChecksTheFileThenTheRangeThenThePeaks(t *testing.T) {
 		{"not a WAV, bad range", stub, -1, "this item's waveform could not be computed"},
 		{"not a WAV, good range", stub, 0, "no waveform"},
 	} {
-		sources := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project)
+		sources := newPeaksSources(context.Background(), evidence.NewCacheStore(project), nil, project)
 		if got := itemPeaks(sources, items(c.file), item(c.start)); got.Reason != c.want || got.Peaks != nil {
 			t.Errorf("%s: got %+v, want reason %q", c.name, got, c.want)
 		}

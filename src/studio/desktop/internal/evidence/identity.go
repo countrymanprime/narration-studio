@@ -140,14 +140,21 @@ const racyWindow = 2 * time.Second
 // with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade to FullHash if a tool that keeps the time turns up.
 // A file modified less than racyWindow before it was read is not remembered: a rewrite in the same clock tick, or on a filesystem with a coarse
 // time (FAT32 keeps two seconds), would leave the size and time unchanged.
-// shortcut: entries are never dropped, one small record per take file for the project's lifetime.
-// An entry is keyed by the file and the project folder it was asked through.
+// The cache holds at most maxIdentityEntries entries; a new file past that replaces an arbitrary one, which is then read again when next asked.
+// An entry is keyed by the file and the project folder it was asked through. The host keeps one cache per open project and shares it between
+// the recording check, the editing check, proofing and the workspace's waveforms; a project switch starts an empty one.
 type IdentityCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	entries map[string]SourceIdentity
 	reads   atomic.Int64
+	// limit replaces maxIdentityEntries when it is not 0, so a test can fill the cache with two files.
+	limit int
 }
+
+// maxIdentityEntries bounds an IdentityCache. The largest measured project (docs/research/performance-architecture-2026-11.md) has 30,000
+// items, each with at most one source file, so a project of that size never evicts.
+const maxIdentityEntries = 32768
 
 // Reads is how many times the cache has read a file in full (not counting a stat): a test's way to see that a repeat ask read none.
 func (c *IdentityCache) Reads() int64 {
@@ -196,8 +203,22 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 	if c.entries == nil {
 		c.entries = map[string]SourceIdentity{}
 	}
-	c.entries[entryKey(path, projectFolder)] = identity
+	key := entryKey(path, projectFolder)
+	if _, known := c.entries[key]; !known && len(c.entries) >= c.maxEntries() {
+		for other := range c.entries {
+			delete(c.entries, other)
+			break
+		}
+	}
+	c.entries[key] = identity
 	return identity, nil
+}
+
+func (c *IdentityCache) maxEntries() int {
+	if c.limit > 0 {
+		return c.limit
+	}
+	return maxIdentityEntries
 }
 
 // entryKey names an entry by the file and the folder its Path is relative to, so the same file asked through another folder is read again.

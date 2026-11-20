@@ -125,6 +125,8 @@ type Config struct {
 	Policy      func() Policy
 	ScanOptions func() ScanOptions
 	Reporter    *persist.Reporter
+	// Identities is the open project's source identity cache; nil reads every file.
+	Identities *evidence.IdentityCache
 	// ProjectReader reads the saved .rpp ProjectFile resolves (see readProject); nil falls back to tracks.Parse
 	// directly.
 	ProjectReader dawport.ProjectReader

@@ -67,7 +67,7 @@ func TestAFinishedComparisonIsRecordedForItsChapter(t *testing.T) {
 	if err := os.WriteFile(manifest, []byte("0|"+filepath.Join(folder, "missing.wav")+"|0.000000|12.500000\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	record := comparisonRecorder(folder, svc.manuscript, svc.settings, host.persist)
+	record := comparisonRecorder(folder, svc.manuscript, svc.settings, host.persist, svc.identities)
 	at := time.Date(2026, 9, 26, 9, 0, 0, 0, time.UTC)
 	record(transcript.CompletedRun{RunID: "run-1", Outcome: transcript.RunComplete, ManifestPath: manifest, ChapterTitle: "Chapter One", Model: "small", StartedAt: at, CompletedAt: at.Add(time.Minute)})
 	record(transcript.CompletedRun{RunID: "run-2", Outcome: "cancelled", ChapterTitle: "Chapter One", StartedAt: at.Add(time.Hour)})

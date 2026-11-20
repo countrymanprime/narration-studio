@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"context"
 	"desktop/internal/brand"
 	"desktop/internal/creditsid"
 	"encoding/json"
@@ -473,5 +474,25 @@ func TestALookupAfterAFreshCheckAgreesWithTheCheckEvenForARewriteTheTimeHides(t 
 
 	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
 		t.Fatalf("after a fresh check of the rewritten take the chapter is %q, want current", view.State)
+	}
+}
+
+// The host hands every service one cache per project: the service must use that one, and pass it on to the stage providers.
+func TestTheServiceUsesTheIdentityCacheItIsGiven(t *testing.T) {
+	p := newTestProject(t)
+	ageTakes(t, p)
+	shared, sidecar := &evidence.IdentityCache{}, &fakeSidecar{results: alignedResults}
+	service := New(Config{
+		Project: p.dir, Python: "python-sidecar", Backend: "compare.py", Identities: shared,
+		ProjectFile:    func() (string, error) { return p.rpp, nil },
+		LoadManuscript: p.loadManuscript, LoadCredits: p.loadCredits, Align: sidecar.align,
+	}, sidecar.launcher(), nil)
+	service.pollInterval = time.Millisecond
+	run(t, service, testRequest())
+	if shared.Reads() == 0 {
+		t.Fatal("a check read no take through the cache the service was given")
+	}
+	if view := service.EvidenceView(context.Background(), "doc"); view.Identities != shared {
+		t.Fatal("the evidence view does not carry the cache the service was given")
 	}
 }

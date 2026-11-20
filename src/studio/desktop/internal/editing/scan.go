@@ -50,7 +50,7 @@ func (s *Service) run(ctx context.Context, request Request, track tracks.Track, 
 			continue
 		}
 		item, source := res.Item, res.Source
-		identity, err := evidence.Identify(source.File, s.config.Project)
+		identity, err := s.config.Identities.Refresh(source.File, s.config.Project)
 		if err != nil {
 			failed++
 			done++
@@ -105,7 +105,7 @@ func (s *Service) scanItem(ctx context.Context, in ItemScopeInput, source Source
 		return ItemScan{}, false, err
 	}
 	if staleness.State == evidence.StateCurrent {
-		identity, err := evidence.Identify(source.File, s.config.Project)
+		identity, err := s.config.Identities.Identify(source.File, s.config.Project)
 		if err == nil {
 			key := CacheKey(identity, scanCacheVersion, paramHash, source.PlayedRange)
 			if scan, ok := ReadScan(s.cache, key); ok {
@@ -135,7 +135,7 @@ var classRecords = []struct{ analyzerID, version, count, class string }{
 }
 
 func (s *Service) writeSuccess(in ItemScopeInput, projectFile evidence.LedgerProjectFile, paramHash string, scan ItemScan) {
-	identity, err := evidence.Identify(in.Item.Active().SourceFile, s.config.Project)
+	identity, err := s.config.Identities.Identify(in.Item.Active().SourceFile, s.config.Project)
 	if err != nil {
 		return
 	}
@@ -243,7 +243,7 @@ func (s *Service) scanOptions() ScanOptions {
 // (maximum gap, head or tail limit), so changing policy never invalidates a
 // cache entry or ledger record ("policy change costs no decode").
 func scanParamHash(opts ScanOptions) string {
-	return hashParts(
+	return evidence.HashParts(
 		formatFloat(opts.Silence.SilenceFloordBFS), formatFloat(opts.Silence.MinSilenceSeconds),
 		formatFloat(opts.Cleanup.PadSeconds), formatFloat(opts.Cleanup.MinBreathSeconds), formatFloat(opts.Cleanup.MaxBreathSeconds),
 		formatFloat(opts.Cleanup.BreathBelowSpeechDB), formatFloat(opts.Cleanup.ClickAboveSilenceDB),

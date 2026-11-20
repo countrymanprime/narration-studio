@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"desktop/internal/evidence"
 	"desktop/internal/measure"
 	"desktop/internal/stages"
 )
@@ -180,7 +181,7 @@ func TestRenderMeasurementIsKeyedByTheRender(t *testing.T) {
 		t.Fatalf("nothing measured yet: %+v", status)
 	}
 
-	recorded, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, wavReport(f.render), "sha", nil, attestedAt, attestedAt.Add(time.Minute))
+	recorded, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, wavReport(f.render), "sha", nil, attestedAt, attestedAt.Add(time.Minute))
 	if err != nil || len(recorded) != 1 {
 		t.Fatalf("RecordRenderMeasurements() = %v, %v", recorded, err)
 	}
@@ -194,11 +195,11 @@ func TestRenderMeasurementIsKeyedByTheRender(t *testing.T) {
 	}
 
 	other := writeAudio(t, f.dir, "somewhere-else.wav", "RIFF....WAVE unrelated")
-	if recorded, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, other, wavReport(other), "", nil, attestedAt, attestedAt); err != nil || len(recorded) != 0 {
+	if recorded, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, other, wavReport(other), "", nil, attestedAt, attestedAt); err != nil || len(recorded) != 0 {
 		t.Fatalf("a file that is no chapter's render records nothing: %v %v", recorded, err)
 	}
 
-	if _, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, measure.Report{}, "", errors.New("the file changed"), attestedAt.Add(2*time.Minute), attestedAt.Add(3*time.Minute)); err != nil {
+	if _, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, measure.Report{}, "", errors.New("the file changed"), attestedAt.Add(2*time.Minute), attestedAt.Add(3*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if status := f.evaluate(t); !status.MeasurementFailed || status.Measurement != nil {
@@ -227,5 +228,35 @@ func TestSniffFormat(t *testing.T) {
 		if got := sniffFormat(path); got != want[name] {
 			t.Errorf("sniffFormat(%s) = %q, want %q", name, got, want[name])
 		}
+	}
+}
+
+// The render's state is asked on every stage read: the second ask reads no file, and choosing the render reads each again.
+func TestEvaluateRenderAsksTheIdentityCacheAndAttestReadsAgain(t *testing.T) {
+	f := newRenderFixture(t)
+	old := time.Now().Add(-time.Hour)
+	for _, path := range []string{f.render, f.audioA, f.audioB} {
+		if err := os.Chtimes(path, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	view := f.savedView()
+	view.Identities = &evidence.IdentityCache{}
+	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderCurrent {
+			t.Fatalf("EvaluateRender() = %+v, %v", status, err)
+		}
+	}
+	if got := view.Identities.Reads(); got != 3 {
+		t.Fatalf("choosing the render and asking twice read %d files, want 3 (the render and two takes, once each)", got)
+	}
+	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
+		t.Fatal(err)
+	}
+	if got := view.Identities.Reads(); got != 6 {
+		t.Fatalf("choosing the render again made %d reads in all, want 6 (it writes the answer down, so it reads)", got)
 	}
 }

@@ -245,7 +245,7 @@ func TestDeliveryCatalogueCoversTheProfiles(t *testing.T) {
 func TestSignalProviderReportsDeliverySignals(t *testing.T) {
 	f := newRenderFixture(t)
 	f.attest(t, f.render)
-	if _, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, *reportWith(func(*measure.Report) {}), "", nil, measuredAt, measuredAt); err != nil {
+	if _, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, *reportWith(func(*measure.Report) {}), "", nil, measuredAt, measuredAt); err != nil {
 		t.Fatal(err)
 	}
 	provider := NewSignalProvider(Config{Findings: f.findings, Renders: f.store, Profile: func() deliveryprofile.Profile { return testProfile() }})

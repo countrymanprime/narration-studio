@@ -62,7 +62,7 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), workspacePeaksTimeout)
 	defer cancel()
 
-	sources := newPeaksSources(ctx, store, svc.config.projectFolder)
+	sources := newPeaksSources(ctx, store, svc.identities, svc.config.projectFolder)
 	items := make([]WorkspacePeaksItem, 0, len(view.Items))
 	for _, alignmentItem := range view.Items {
 		items = append(items, itemPeaks(sources, project, alignmentItem))
@@ -83,20 +83,21 @@ type sourcePeaks struct {
 type peaksSources struct {
 	ctx           context.Context
 	store         *evidence.CacheStore
+	cache         *evidence.IdentityCache
 	projectFolder string
 	identities    map[string]*evidence.SourceIdentity // nil: the file could not be read
 	peaks         map[string]sourcePeaks
 }
 
-func newPeaksSources(ctx context.Context, store *evidence.CacheStore, projectFolder string) *peaksSources {
-	return &peaksSources{ctx: ctx, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}}
+func newPeaksSources(ctx context.Context, store *evidence.CacheStore, cache *evidence.IdentityCache, projectFolder string) *peaksSources {
+	return &peaksSources{ctx: ctx, store: store, cache: cache, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}}
 }
 
 // identify answers file's identity as it is on disk at the first ask of this call, nil when it cannot be read.
 func (s *peaksSources) identify(file string) *evidence.SourceIdentity {
 	identity, ok := s.identities[file]
 	if !ok {
-		if read, err := evidence.Identify(file, s.projectFolder); err == nil {
+		if read, err := s.cache.Identify(file, s.projectFolder); err == nil {
 			identity = &read
 		}
 		s.identities[file] = identity
