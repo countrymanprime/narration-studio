@@ -55,6 +55,11 @@ describe('useDawConnecting', () => {
     await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy(), { timeout: 3000 });
   });
 
+  it('asks at once for a project with no DAW file linked, whatever the grace: nothing is being connected to', async () => {
+    mount({ dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) }, 5_000);
+    await waitFor(() => expect(screen.getByText('asks now')).toBeTruthy());
+  });
+
   it('asks at once with no grace when the host is not starting anything', async () => {
     mount({ dawChoice: async () => choice({}) }, 0);
     expect(await screen.findByText('asks now')).toBeTruthy();

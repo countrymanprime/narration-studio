@@ -31,6 +31,8 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
   }, [left]);
   const starting = off && choice?.state === 'starting';
   // The host's first answer is awaited inside the grace (the clock starts when the DAW goes off), so a read that never settles cannot hold the dialog back for ever.
-  const connecting = off && (starting || left > 0);
+  // A project with no DAW file linked is not being connected to anything: it asks at once, as the Booth does, with Link project file… as the way forward.
+  const unlinked = choice?.state === 'not_linked';
+  const connecting = off && !unlinked && (starting || left > 0);
   return { connecting, starting, label: (dawName) => (starting ? `Starting ${dawName}…` : `Connecting to ${dawName}…`) };
 }

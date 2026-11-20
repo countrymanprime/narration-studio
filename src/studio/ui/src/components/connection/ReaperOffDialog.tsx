@@ -112,6 +112,7 @@ export function ReaperOffDialog({
   const heardFor = useSecondsSince(heardAt);
   const unlinked = linked === undefined ? choice?.state === 'not_linked' : !linked;
   const detail = choiceSentence(choice, name);
+  const starting = choice?.state === 'starting';
 
   const check = () => {
     setChecking(true);
@@ -141,14 +142,17 @@ export function ReaperOffDialog({
 
   return (
     <ResolveShell
-      title={`${name === 'the DAW' ? 'The DAW' : name} is not connected`}
-      description={sentence}
+      // While the host is starting the DAW the dialog says so and does not tell the narrator to open it: that is what the app is doing (#3668).
+      title={starting ? `Starting ${name}` : `${name === 'the DAW' ? 'The DAW' : name} is not connected`}
+      description={starting ? (detail ?? sentence) : sentence}
       onClose={onClose}
       primary={unlinked ? { label: 'Link project file…', onPress: link, pending: linking } : start}
       extra={unlinked ? start : undefined}
       secondary={{ label: 'Check again', onPress: check, pending: checking }}
     >
-      {detail && <p>{detail}</p>}
+      {!starting && detail && <p>{detail}</p>}
+      {/* The host's own account of a start that went nowhere: REAPER was opened but its bridge never answered. */}
+      {choice?.bridge?.problem && <p>{choice.bridge.problem}</p>}
       <p className="text-[var(--text-muted)]">{stillWorks}</p>
       {linkProblem && (
         <p ref={problemRef} role="alert" className="text-[var(--danger-text)]">
