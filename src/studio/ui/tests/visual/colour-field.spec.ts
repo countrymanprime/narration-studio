@@ -421,6 +421,8 @@ const OFF_SWATCH_RUNS = [
 for (const { site, width } of OFF_SWATCH_RUNS) {
   const { driver, boxes, list } = POPOVER_SITES.find((entry) => entry.site === site)!;
   test(`${site} at ${width}: a second press 3 px off a swatch changes only that row`, async ({ page }) => {
+    // Every row, four edges, a slow second press each: about a minute on a loaded runner.
+    test.setTimeout(180_000);
     await openSite(page, width, false, driver);
     const popup = page.locator(POPUP);
     await page.keyboard.press('Escape');
@@ -449,9 +451,16 @@ for (const { site, width } of OFF_SWATCH_RUNS) {
         await page.mouse.click(outside.x, outside.y, { clickCount: 2 });
         await page.waitForTimeout(SLOW_SECOND_PRESS_MS);
         await page.mouse.click(outside.x, outside.y);
-        // Whatever the stray presses did among the swatches (nothing, or a pick of the one beside Violet), they reached nothing under them.
-        await expect(popup, `${edge} edge leaves the swatches open`).toHaveCount(1);
-        await page.keyboard.press('Escape');
+        // Whatever the stray presses did (nothing, a pick of the swatch beside Violet, or, 3 px past the popup's own edge, an outside press that closes the swatches), they reached nothing under them.
+        // The popup may or may not be open now: wait until its count stops changing, then close it by the keyboard only if it is open.
+        let open = -1;
+        for (let polls = 0; polls < 12; polls += 1) {
+          const now = await popup.count();
+          if (now === open) break;
+          open = now;
+          await page.waitForTimeout(60);
+        }
+        if (open > 0) await page.keyboard.press('Escape');
         await expect(popup).toHaveCount(0);
         const after = await controlsOf(list(page));
         wrong.push(...strayChanges(before, after, colourBoxAt(before, row), await otherLayers(page)).map((what) => `row ${row}, ${edge} edge: ${what}`));
