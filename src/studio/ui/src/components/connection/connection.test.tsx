@@ -17,6 +17,7 @@ import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTrack
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
 import { LinkDawFileContext } from './linkDawFile';
+import { forgetMatches, prefetchMatch, rememberMatch } from './chapterMatchCache';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
 import { VoiceLayoutContext } from '../engine/voiceLayout';
 
@@ -442,6 +443,138 @@ describe('the not-linked dialog', () => {
     expect((screen.getByRole('combobox', { name: 'Track for Chapter 3' }) as HTMLSelectElement).value).toBe('{T-1}');
   });
 
+  // #3669: opening an unlinked chapter used to show "Reading the tracks…" with nothing to click until the host answered.
+  describe('with the tracks read ahead', () => {
+    beforeEach(() => forgetMatches());
+    afterEach(() => forgetMatches());
+    const inProject = (ui: React.ReactElement, api: Partial<NarrationApi>) =>
+      view(
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          {ui}
+        </ChapterTrackStateProvider>,
+        api,
+      );
+
+    it('opens with the tracks to choose from and Link ready, while the host has not answered the dialog yet', async () => {
+      const dialogRead = vi.fn(() => new Promise<ChapterTrackMatch>(() => undefined));
+      prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: dialogRead });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      expect(screen.queryByText(/Reading the REAPER tracks/)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).not.toBe('true');
+    });
+
+    it('reads once ahead however often it is asked, and a failed read ahead leaves the dialog to read for itself', async () => {
+      const ahead = vi.fn(async () => match());
+      prefetchMatch('C:/Projects/Alice', 'c3', ahead);
+      prefetchMatch('C:/Projects/Alice', 'c3', ahead);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      prefetchMatch('C:/Projects/Alice', 'c3', ahead);
+      expect(ahead).toHaveBeenCalledTimes(1);
+      forgetMatches();
+      prefetchMatch('C:/Projects/Alice', 'c4', async () => Promise.reject(new Error('no')));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inProject(<ConnectionResolveDialog {...link({ chapterId: 'c4' })} />, { chapterTrackMatch: async () => match() });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    });
+
+    it('a match read for another project is not shown', async () => {
+      prefetchMatch('C:/Projects/Bob', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+      expect(await screen.findByText(/Reading the REAPER tracks/)).toBeTruthy();
+    });
+
+    it('while it reads with nothing ahead, Link says what it waits for on its tooltip', async () => {
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+      const linkButton = await screen.findByRole('button', { name: 'Link track' });
+      expect(linkButton.getAttribute('aria-disabled')).toBe('true');
+      await userEvent.hover(linkButton);
+      expect((await screen.findByRole('tooltip')).textContent).toBe('Reading the REAPER tracks…');
+    });
+
+    it('a press right after the read behind turns Link track into Create a new track does not add a track nobody asked for', async () => {
+      prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const chapterTrackCreate = vi.fn(async () => ({ outcome: 'refused' as const, reason: 'busy', message: 'no' }));
+      inProject(<ConnectionResolveDialog {...link()} />, {
+        chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
+        chapterTrackCreate: chapterTrackCreate as never,
+      });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      // The fresh read has no tracks: the primary action becomes Create, and is busy for a moment, so a press that was meant for Link does nothing.
+      const create = await screen.findByRole('button', { name: 'Create a new track' });
+      await userEvent.click(create);
+      expect(chapterTrackCreate).not.toHaveBeenCalled();
+    });
+
+    it('says when the tracks it opened with were read, not when the dialog opened', async () => {
+      rememberMatch('C:/Projects/Alice', 'c3', match(), 0, Date.now() - 120_000);
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      expect(screen.getByText(/Last checked 1\d\d s ago/)).toBeTruthy();
+    });
+
+    it('a press right after the read behind changes the chosen track does not link the other track', async () => {
+      prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const chapterTrackSet = vi.fn(async () => ({ documentId: 'd', link: null, displaced: null, mappings: [] }) as never);
+      inProject(<ConnectionResolveDialog {...link()} />, {
+        // The fresh read prefers another track than the cached one did, a moment after the dialog opened.
+        chapterTrackMatch: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          return match({ track: candidate(1, 'Chapter 2'), candidates: [candidate(1, 'Chapter 2'), candidate(2, 'Chapter 3')] });
+        },
+        chapterTrackSet,
+      });
+      const select = (await screen.findByRole('combobox', { name: 'Track for Chapter 3' })) as HTMLSelectElement;
+      expect(select.value).toBe('{T-2}');
+      await waitFor(() => expect(select.value).toBe('{T-1}'));
+      await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
+      expect(chapterTrackSet).not.toHaveBeenCalled();
+    });
+
+    it('a press on the dead Link button as the read fails does not add a track', async () => {
+      let fail: (error: Error) => void = () => undefined;
+      const chapterTrackCreate = vi.fn(async () => ({ outcome: 'refused' as const, reason: 'busy', message: 'no' }));
+      inProject(<ConnectionResolveDialog {...link()} />, {
+        chapterTrackMatch: () => new Promise<ChapterTrackMatch>((_, reject) => (fail = reject)),
+        chapterTrackCreate: chapterTrackCreate as never,
+      });
+      await screen.findByRole('button', { name: 'Link track' });
+      fail(new Error('REAPER did not answer'));
+      const create = await screen.findByRole('button', { name: 'Create a new track' });
+      await userEvent.click(create);
+      expect(chapterTrackCreate).not.toHaveBeenCalled();
+    });
+
+    it('an open dialog that is still reading takes the read ahead when it lands', async () => {
+      let answer: (value: ChapterTrackMatch) => void = () => undefined;
+      inProject(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+      expect(await screen.findByText(/Reading the REAPER tracks/)).toBeTruthy();
+      prefetchMatch('C:/Projects/Alice', 'c3', () => new Promise<ChapterTrackMatch>((resolve) => (answer = resolve)));
+      answer(match());
+      expect(await screen.findByRole('combobox', { name: 'Track for Chapter 3' })).toBeTruthy();
+    });
+
+    it('keeps the tracks shown when the read behind them fails, and Check again tries again', async () => {
+      prefetchMatch('C:/Projects/Alice', 'c3', async () => match());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inProject(<ConnectionResolveDialog {...link()} />, {
+        chapterTrackMatch: async () => {
+          throw new Error('REAPER did not answer');
+        },
+      });
+      await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+      // The failure is said, with the last tracks still on screen; Check again tries again.
+      expect(await screen.findByText(/tracks could not be read again: REAPER did not answer\. The last ones are shown\./)).toBeTruthy();
+      expect(screen.getByRole('combobox', { name: 'Track for Chapter 3' })).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+      expect(await screen.findByText(/The REAPER tracks could not be read: REAPER did not answer/)).toBeTruthy();
+    });
+  });
+
   const created = (over: object = {}) => ({
     outcome: 'created' as const,
     documentId: 'doc',
@@ -545,7 +678,8 @@ describe('the not-linked dialog', () => {
       },
     });
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not be read/);
-    expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull();
+    // Create is held for a moment after it replaces the dead Link button, so a press meant for Link does not add a track (#3669).
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull());
   });
 
   // #3416: a match read that never answers ends in the failed state (with Create offered) instead of reading for good.
@@ -558,6 +692,9 @@ describe('the not-linked dialog', () => {
         await vi.advanceTimersByTimeAsync(8100);
       });
       expect(screen.getByRole('alert').textContent).toMatch(/could not be read: REAPER did not answer in 8 s/);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(800);
+      });
       expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull();
     } finally {
       vi.useRealTimers();

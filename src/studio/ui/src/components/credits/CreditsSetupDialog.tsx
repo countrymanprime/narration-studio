@@ -87,12 +87,13 @@ export function CreditsSetupDialog({
   valuesNow.current = values;
   // The "Discard what you typed?" question while it is open, so an answer that lands under it can close it unanswered instead of leaving it over nothing.
   const asking = useRef<AbortController | null>(null);
-  useEffect(
-    () => () => {
+  // Set again on every mount: StrictMode runs the cleanup and mounts the same instance once more.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
       mounted.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
   const run = async (action: () => Promise<CreditsSetupState>) => {
     if (outstanding.current) {
       notify('Your first save is still waiting for an answer.');

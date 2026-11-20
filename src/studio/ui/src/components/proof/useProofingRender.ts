@@ -31,12 +31,13 @@ export function useProofingRender(chapterId: string | undefined, notify: Notify)
   const api = useApi();
   const [state, setState] = useState<ProofingRenderState>({ phase: 'loading', error: '', busy: false, measuring: false });
   const mounted = useRef(true);
-  useEffect(
-    () => () => {
+  // Set again on every mount: StrictMode runs the cleanup and mounts the same instance once more.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
       mounted.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!chapterId) return;
