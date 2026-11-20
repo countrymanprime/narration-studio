@@ -31,9 +31,10 @@ async function refusedStart(page: Page): Promise<void> {
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   const toast = page.locator('[data-toast-region] [data-tone="error"]');
   await toast.waitFor();
   await record(page).and(page.locator(':not([aria-busy="true"])')).waitFor();
@@ -636,11 +637,11 @@ export const boothDrivers: Record<string, Driver> = {
     // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
-  // Start from here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
+  // Mark the start here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
   'chosen-start': async (page) => {
     await readyToRecord(page);
     await rightClickVisibleWord(page);
-    await page.getByRole('menuitem', { name: 'Start from here' }).click();
+    await page.getByRole('menuitem', { name: 'Mark the start here' }).click();
     await page.locator('[data-booth-text] [data-start]').first().waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },

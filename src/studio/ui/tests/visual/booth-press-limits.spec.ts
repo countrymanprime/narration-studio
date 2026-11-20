@@ -131,9 +131,10 @@ test('a lookup of the chosen start that never answers ends the press with one er
   await arm(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   expect(await timesSaid(page, /did not come back in time, so no take was started/)).toBe(1);
@@ -149,9 +150,10 @@ test('a lookup refusal does not stay beside the take a later press starts', asyn
   await arm(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   await page.keyboard.press('Space');
@@ -165,9 +167,10 @@ test('a voice choice that never answers ends a punch press with a sentence and s
   await arm(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   // The press waits PRESS_LIMITS_MS.voiceChoice (45 s): above the host's whole budget for the arm (laneCommandTimeout).
   await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 52_000 });

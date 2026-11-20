@@ -799,7 +799,7 @@ function BoothSession({
   return (
     <CommandScope kind="booth">
       {/* The shell gives the Booth the whole window and none of its chrome, its context menu included: the page hosts its own. */}
-      <ContextMenuHost className="size-full">
+      <ContextMenuHost className="size-full" focusPageOnClose>
         <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
           <div role="status" aria-label="Take status" className="sr-only">
             {page.takeNote}

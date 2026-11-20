@@ -164,7 +164,7 @@ const UnitView = memo(function UnitView({
           const said = mode === 'cur' && token.index < wcur;
           const read = mode === 'done' || said;
           const heard = token.index === ghost;
-          // The chosen start (Start from here) is the first word of its sentence, which is where the take really starts: marked on the word itself,
+          // The chosen start (Mark the start here) is the first word of its sentence, which is where the take really starts: marked on the word itself,
           // so it shows with the side panel closed, in a small window, and during a take (when the cursor is the voice's and moved elsewhere).
           const start = from && token.index === 0;
           const look = wordLook(token, now, said);

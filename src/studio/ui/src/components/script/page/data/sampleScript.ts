@@ -5,12 +5,12 @@ import { withoutCredits } from '../../../../chapterKinds';
 import { createMockApi } from '../../../../api/mockApi';
 import { createScriptData, type ScriptDataState } from './scriptData';
 
-/** Every list the page reads, and the paragraphs of the first chapter, as the mock host answers them. */
+/** Every list the page reads, and the paragraphs and dialogue cues of the first chapter, as the mock host answers them. */
 export async function loadSampleScript(): Promise<ScriptDataState> {
   const api = createMockApi();
   const data = createScriptData({ manuscript: api, marks: api, scriptPrep: api, storyBible: api, system: api });
-  await Promise.all([data.load('chapters'), data.load('marks'), data.load('prep'), data.load('entries'), data.load('cues')]);
+  await Promise.all([data.load('chapters'), data.load('marks'), data.load('prep'), data.load('entries')]);
   const first = withoutCredits(data.getState().chapters?.value ?? [])[0];
-  if (first) await data.loadParagraphs(first.id);
+  if (first) await Promise.all([data.loadParagraphs(first.id), data.loadCues([first.id])]);
   return data.getState();
 }

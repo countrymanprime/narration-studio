@@ -5,7 +5,7 @@ import type { WordFx } from '../../../api/contracts/wordFx';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import { chapterTrackOf } from '../../../api/chapterTrackItems';
 import { usePort } from '../../../ports/usePort';
-import { useSpeakers } from '../../script/page/data/useScriptData';
+import { useChapterCues, useSpeakers } from '../../script/page/data/useScriptData';
 import type { QuotedPhrase } from '../script/docFromHeard';
 import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
@@ -89,6 +89,8 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
     error: null,
   });
   const [reads, setReads] = useState(0);
+  // The chapter's own cues: the speakers view holds what has been read, and nothing else on this page reads them.
+  useChapterCues(chapterId);
   const speakers = useSpeakers();
   // The quotes the Story Bible found in each paragraph: the script's units follow them, and each quote opens with its speaker's chip.
   const phrasesOf = useCallback(

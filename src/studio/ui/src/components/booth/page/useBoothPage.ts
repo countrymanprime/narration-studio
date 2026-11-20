@@ -108,7 +108,7 @@ export type BoothPageOptions = {
    */
   onTakeStopped?: (take: StoppedTake) => void | Promise<number>;
   /**
-   * More right-click items for this target, put after Start from here (the bookmark items). When the target is a bookmark ribbon
+   * More right-click items for this target, put after Mark the start here (the bookmark items). When the target is a bookmark ribbon
    * (`[data-bm]`), they are the whole menu.
    */
   menuItems?: (target: Element) => ContextMenuItem[];
@@ -204,7 +204,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const heardUnit = heard && unitAtPosition(paragraphs, units, heard);
   const at: UnitPosition = heardUnit ?? clampAt(local, units.length);
   // Stop keeps the place: the word the voice reached stays the real cursor once the take's session ends, so the next take, Resume and
-  // Start begin there instead of back where the take began. Going back is the narrator's choice (a click, Start from here, a punch).
+  // Start begin there instead of back where the take began. Going back is the narrator's choice (a click, Mark the start here, a punch).
   const heardCur = heardUnit?.cur;
   const heardWcur = heardUnit?.wcur;
   useEffect(() => {
@@ -826,7 +826,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const moveReading = useCallback(
     (next: UnitPosition) => {
       if (moveBlocked()) return;
-      // A move that changes the reading's phrase replaces the chosen start (Record from here, Start from here), so the cursor, the chip and Space
+      // A move that changes the reading's phrase replaces the chosen start (Record from here, Mark the start here), so the cursor, the chip and Space
       // agree. One that lands on the chosen phrase keeps it, and one that does not move the reading (an arrow at the end, the reading following
       // the voice) replaces nothing.
       const now = latest.current;
@@ -985,7 +985,7 @@ export function useBoothPage(options: BoothPageOptions) {
       takeBegan.current = null;
       return;
     }
-    // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
+    // A start chosen with Mark the start here is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setPunchAt(null);
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
@@ -1425,7 +1425,7 @@ export function useBoothPage(options: BoothPageOptions) {
         // A ribbon and a page marker offer only their own items.
         if (target.closest('[data-bm], [data-page-break]')) return more;
         return [
-          ...(phrase === null ? [] : [{ key: 'start', label: 'Start from here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
+          ...(phrase === null ? [] : [{ key: 'start', label: 'Mark the start here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
           ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveReading(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveReading(backPhrase(latest.current.at))) },

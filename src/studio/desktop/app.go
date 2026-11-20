@@ -32,6 +32,7 @@ import (
 	"desktop/internal/dawport/reaper"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/editing"
+	"desktop/internal/evidence"
 	"desktop/internal/extraction"
 	"desktop/internal/extraction/apply"
 	"desktop/internal/extraction/importer"
@@ -78,7 +79,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 167
+const hostAPIVersion = 168
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -194,6 +195,10 @@ type Host struct {
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
 	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
+	// ledger is the open project's analysis ledger: the one store coverage, editing and the proofing recorders read and
+	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
+	// with coverage on every project switch.
+	ledger *evidence.LedgerStore
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -495,6 +500,8 @@ type Host struct {
 	writableOK bool
 	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator.
 	persist *persist.Reporter
+	// reads shares one computation between identical read bindings in flight (readflights.go).
+	reads readFlights
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
 	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
 	notifySender   notificationSender
@@ -775,8 +782,10 @@ func (h *Host) configureLocked(next config) {
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
+	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
+	h.ledger.Reporter = h.persist
 	h.coverage = coverage.New(coverage.Config{
-		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
+		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend, Ledger: h.ledger,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		ChapterAudio: func(project tracks.Project) tracks.Project {
 			return chapterAudio(coverageReporter, projectFolder, project)
@@ -814,6 +823,7 @@ func (h *Host) configureLocked(next config) {
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
+		Ledger:      h.ledger,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
 		// The render association the proofing stage already owns, reused as-is,
@@ -828,7 +838,7 @@ func (h *Host) configureLocked(next config) {
 		ProjectReader: projectFileReader{},
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
-	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.manuscript, settingsStore, h.persist))
+	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,

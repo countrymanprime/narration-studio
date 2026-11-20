@@ -46,6 +46,9 @@ type Config struct {
 	LoadCredits func(kind string) (title, text string, err error)
 	// Reporter logs a stored file that cannot be read; may be nil.
 	Reporter *persist.Reporter
+	// Ledger is the project's analysis ledger, the one store every service of the project reads and writes, so each
+	// record is decoded once for all of them (issue 3801). Nil makes a store of the service's own.
+	Ledger *evidence.LedgerStore
 	// ChapterAudio sets the rule for which tracks inside a chapter's folder are its audio (tracks.Project.WithAudioSkip): the host makes a
 	// track marked as not a voice a non-chapter track (#3557). nil reads every track inside the folder, as a Config built before it did.
 	ChapterAudio func(tracks.Project) tracks.Project
@@ -241,8 +244,11 @@ type Service struct {
 // New builds the service for one project. changed, when not nil, hears every
 // state change.
 func New(config Config, launch Launcher, changed func(State)) *Service {
-	ledger := evidence.NewLedgerStore(config.Project)
-	ledger.Reporter = config.Reporter
+	ledger := config.Ledger
+	if ledger == nil {
+		ledger = evidence.NewLedgerStore(config.Project)
+		ledger.Reporter = config.Reporter
+	}
 	cache := evidence.NewCacheStore(config.Project)
 	cache.Reporter = config.Reporter
 	mapping := evidence.NewMappingStore(config.Project)

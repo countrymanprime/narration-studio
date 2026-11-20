@@ -220,6 +220,11 @@ func (s *LedgerStore) List(analyzerID, chapterID string) ([]LedgerRecord, error)
 	if err != nil {
 		return nil, err
 	}
+	return matchingRecords(all, analyzerID, chapterID), nil
+}
+
+// matchingRecords is List's rule over already-read records: the matches, newest first.
+func matchingRecords(all []LedgerRecord, analyzerID, chapterID string) []LedgerRecord {
 	matched := make([]LedgerRecord, 0, len(all))
 	for _, record := range all {
 		if analyzerID != "" && record.AnalyzerID != analyzerID {
@@ -231,6 +236,69 @@ func (s *LedgerStore) List(analyzerID, chapterID string) ([]LedgerRecord, error)
 		matched = append(matched, record)
 	}
 	sort.Slice(matched, func(i, j int) bool { return matched[i].StartedAt.After(matched[j].StartedAt) })
+	return matched
+}
+
+// LedgerReader is what an evaluation reads the ledger through: the store itself, or one LedgerSnapshot shared by a pass
+// over many chapters.
+type LedgerReader interface {
+	List(analyzerID, chapterID string) ([]LedgerRecord, error)
+}
+
+// LedgerSnapshot is the ledger as one listing of its folder found it. A pass over every chapter of a book takes one and
+// answers each chapter from it, where asking the store lists the folder for every question (issue 3749). It is for one
+// pass: take a new one for the next read, so a record written since is seen.
+type LedgerSnapshot struct {
+	// newestFirst is every record, sorted once; byChapter is the same records in the same order, grouped, so a chapter's
+	// question reads its own records and not the book's (issue 3801).
+	newestFirst []LedgerRecord
+	byChapter   map[string][]LedgerRecord
+}
+
+// Snapshot lists the ledger once and returns what it holds now.
+func (s *LedgerStore) Snapshot() (LedgerSnapshot, error) {
+	all, err := s.All()
+	return newLedgerSnapshot(all), err
+}
+
+func newLedgerSnapshot(all []LedgerRecord) LedgerSnapshot {
+	sorted := matchingRecords(all, "", "")
+	byChapter := map[string][]LedgerRecord{}
+	for _, record := range sorted {
+		byChapter[record.Scope.ChapterID] = append(byChapter[record.Scope.ChapterID], record)
+	}
+	return LedgerSnapshot{newestFirst: sorted, byChapter: byChapter}
+}
+
+// SnapshotWhenAsked is a reader that takes one Snapshot at its first question and answers every later one from it, so a
+// read that turns out to ask nothing lists nothing. It is for one pass, as a LedgerSnapshot is; a ledger that cannot be
+// listed is the error of every question.
+func (s *LedgerStore) SnapshotWhenAsked() LedgerReader {
+	return askedSnapshot(sync.OnceValues(s.Snapshot))
+}
+
+type askedSnapshot func() (LedgerSnapshot, error)
+
+func (asked askedSnapshot) List(analyzerID, chapterID string) ([]LedgerRecord, error) {
+	snapshot, err := asked()
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.List(analyzerID, chapterID)
+}
+
+// List answers as LedgerStore.List does, from the records the snapshot was taken with.
+func (snapshot LedgerSnapshot) List(analyzerID, chapterID string) ([]LedgerRecord, error) {
+	records := snapshot.newestFirst
+	if chapterID != "" {
+		records = snapshot.byChapter[chapterID]
+	}
+	matched := make([]LedgerRecord, 0, len(records))
+	for _, record := range records {
+		if analyzerID == "" || record.AnalyzerID == analyzerID {
+			matched = append(matched, record)
+		}
+	}
 	return matched, nil
 }
 
@@ -241,6 +309,14 @@ func (s *LedgerStore) List(analyzerID, chapterID string) ([]LedgerRecord, error)
 // facts a re-analysis can always replace, persist.Disposable's class).
 func (s *LedgerStore) All() ([]LedgerRecord, error) {
 	return s.index.refresh(s.dir, func(id string) (LedgerRecord, persist.Outcome) { return s.decodeRecord(s.recordPath(id)) })
+}
+
+// Reads is the work the store's reads have done so far: how often it listed the folder and how many record files it
+// decoded. It is for the tests that guard a read's cost (issue 3749).
+func (s *LedgerStore) Reads() (listings, decodes int) {
+	s.index.mu.Lock()
+	defer s.index.mu.Unlock()
+	return s.index.listings, s.index.decodes
 }
 
 // Retain prunes the ledger to its retention rule: the latest record per
@@ -257,6 +333,7 @@ func (s *LedgerStore) All() ([]LedgerRecord, error) {
 func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer persist.Advance()
 
 	referenced := make(map[string]bool, len(referencedIDs))
 	for _, id := range referencedIDs {
@@ -327,6 +404,10 @@ func (s *LedgerStore) decodeRecord(path string) (LedgerRecord, persist.Outcome) 
 		}
 		if decoded.SchemaVersion > ledgerSchemaVersion {
 			return fmt.Errorf("schema version %d newer than supported %d", decoded.SchemaVersion, ledgerSchemaVersion)
+		}
+		// A record is found by its file's name and by the id inside it; a file copied or renamed by hand would answer for both.
+		if id, _ := recordID(filepath.Base(path)); decoded.ID != id {
+			return fmt.Errorf("record id %q does not match its file name", decoded.ID)
 		}
 		record = decoded
 		return nil

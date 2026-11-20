@@ -53,6 +53,7 @@ type stressReader struct {
 var stressReaders = []stressReader{
 	{"Bootstrap", func(h *Host) { _ = h.Bootstrap() }},
 	{"GuideEntities", func(h *Host) { _, _ = h.GuideEntities() }},
+	{"GuideDialogueCuesIn", func(h *Host) { _, _ = h.GuideDialogueCuesIn([]string{"missing"}) }},
 	{"GuidePreview", func(h *Host) { _, _ = h.GuidePreview("missing", nil) }},
 	{"ManuscriptChapters", func(h *Host) { _, _ = h.ManuscriptChapters() }},
 	{"ManuscriptImportState", func(h *Host) { _, _ = h.ManuscriptImportState("missing") }},

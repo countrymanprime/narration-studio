@@ -518,7 +518,7 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	return encodeBinding(nil, err)
 }
 func (h *Host) ManuscriptChapters() (string, error) {
-	return encodeBinding(h.services().manuscript.Chapters())
+	return h.sharedRead("ManuscriptChapters", func() (string, error) { return encodeBinding(h.services().manuscript.Chapters()) })
 }
 func (h *Host) ManuscriptParagraphs(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Paragraphs(chapter))

@@ -15,7 +15,7 @@ const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', page: 'Page', boo
 
 const FOOTER_SURFACES: readonly FooterSurface[] = ['booth', 'proof'];
 
-// The ways to do a command that are not keys ("Right-click" to start from here), by the command they follow.
+// The ways to do a command that are not keys ("Right-click" to mark the start), by the command they follow.
 function extrasByCommand(): Map<string, { keys: string[]; label: string }[]> {
   const extras = new Map<string, { keys: string[]; label: string }[]>();
   for (const surface of FOOTER_SURFACES) {

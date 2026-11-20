@@ -24,7 +24,7 @@ export type RollSession = {
   phraseCount: number;
   /** The phrase the reading position is on. */
   phrase: number;
-  /** The phrase chosen with Start from here, or null. */
+  /** The phrase chosen with Mark the start here, or null. */
   punchAt: number | null;
   /** The paragraph (0-based) a phrase belongs to. */
   paragraphOf: (phrase: number) => number;
@@ -43,7 +43,7 @@ export type RollActions = TakeControls & {
   chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
   chooseStart: (phrase: number, move: boolean) => void;
-  /** Lets go of the phrase chosen with Start from here. */
+  /** Lets go of the phrase chosen with Mark the start here. */
   clearStart?: () => void;
   /** Moves the reading position to the phrase a roll started from. */
   moveTo: (phrase: number) => void;
@@ -65,7 +65,7 @@ const LOOKUP_SLOW =
 /** Said when the DAW refuses a roll and gives no words (or only characters that draw nothing). */
 const ROLL_REFUSED = 'The DAW refused to roll again.';
 
-/** Said when a press (Start from here, R, Punch and roll, Space) is not the one already under way before a take; nothing is changed. */
+/** Said when a press (R, Punch and roll, Space, a marked start) is not the one already under way before a take; nothing is changed. */
 export const START_BUSY = 'A take is already starting, so that press was ignored.';
 
 /** Said when the narrator tries to move the reading (Resume at, the arrow keys, Next or Back one phrase, a word) while a press is under way: the take records where the press chose, so the reading stays there. */
@@ -76,7 +76,7 @@ export const START_BUSY_MOVE = 'A take is already starting, so the reading stays
 const ROLL_PAUSE_MS = 700;
 
 /**
- * Roll again, Start from here and a punch-in over the DAW's roll. One plan (`rollPlan`) decides every path: a roll the DAW keeps as a
+ * Roll again, Mark the start here and a punch-in over the DAW's roll. One plan (`rollPlan`) decides every path: a roll the DAW keeps as a
  * take just runs, a destructive one asks once with the take held, a refused one
  * shows the capability's sentence. Answering no resumes the take and rolls nothing.
  */
@@ -237,18 +237,32 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
-  const startFromHereRef = useRef<(unit: number) => Promise<void>>(async () => {});
+  const markAndStartRef = useRef<(unit: number) => Promise<void>>(async () => {});
 
-  /** R: while a take runs, roll again from the phrase chosen with Start from here, otherwise from the current one; before one, start the take there in the same press. */
+  /** R: while a take runs, roll again from the phrase chosen with Mark the start here, otherwise from the current one; before one, start the take there in the same press. */
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
     const from = s.punchAt ?? s.phrase;
-    if (!s.recording) return startFromHereRef.current(from);
+    if (!s.recording) return markAndStartRef.current(from);
     return rollFrom(from);
   }, [rollFrom]);
 
-  /** Start from here (right-click on a phrase): while a take runs it goes through the same plan as R; before one it marks the start. */
+  /**
+   * Mark the start here (right-click on a phrase) only marks the start (#3319): the text moves to the phrase and its first word is highlighted. It sends
+   * the DAW nothing, arms nothing and records nothing; Record (or its key) starts the take from the mark, and R is the press that marks and starts.
+   */
   const startFromHere = useCallback(
+    async (unit: number) => {
+      const s = sessionRef.current;
+      const to = clampPhrase(unit, s.phraseCount);
+      if (joinsOrRefuses(to)) return;
+      actionsRef.current.chooseStart(to, !s.recording);
+    },
+    [joinsOrRefuses],
+  );
+
+  /** R before a take: marks the phrase (or the one already marked) and starts the take there in the same press; during a take it is `rollFrom`. */
+  const markAndStart = useCallback(
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
@@ -298,10 +312,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     },
     [rollFrom, lookUp, endWait, joinsOrRefuses],
   );
-  startFromHereRef.current = startFromHere;
+  markAndStartRef.current = markAndStart;
 
   /**
-   * Starts the take. A phrase chosen with Start from here is looked up (the host reads where it was recorded before): found, the take records
+   * Starts the take. A phrase chosen with Mark the start here is looked up (the host reads where it was recorded before): found, the take records
    * over exactly that spot, on the voice that read it, and follows the plan; never recorded, it is not a punch and the take goes on from the end
    * of the chapter; refused, the sentence is shown and nothing starts (a start is never guessed).
    */
@@ -310,7 +324,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
       if (at == null || at >= s.phraseCount) {
-        // A plain press is a press too: it joins another plain press (Space again), and a Start from here meanwhile is refused.
+        // A plain press is a press too: it joins another plain press (Space again), and a Mark the start here meanwhile is refused.
         if (s.recording) return actionsRef.current.beginTake();
         if (pressing.current) {
           // Another plain press (Space again) is that press. A plain press during a press for a phrase is told so on a DAW that can punch (it never
@@ -377,5 +391,5 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
-  return { punchAndRoll, startFromHere, startTake, cancelStart, pressUnderway, lookingUp, hold: hold.current };
+  return { punchAndRoll, startFromHere, markAndStart, startTake, cancelStart, pressUnderway, lookingUp, hold: hold.current };
 }
