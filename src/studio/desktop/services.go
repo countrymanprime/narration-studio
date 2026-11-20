@@ -7,6 +7,7 @@ import (
 	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 	"desktop/internal/editing"
+	"desktop/internal/evidence"
 	"desktop/internal/findings"
 	"desktop/internal/guide"
 	"desktop/internal/lineidentity"
@@ -47,10 +48,12 @@ type hostServices struct {
 	recorder     *recording.Service
 	transcript   *transcript.Service
 	coverage     *coverage.Service
-	stages       *stages.Service
-	production   *production.Service
-	editing      *editing.Service
-	character    *character.Service
+	// ledger is the open project's analysis ledger (Host.ledger).
+	ledger     *evidence.LedgerStore
+	stages     *stages.Service
+	production *production.Service
+	editing    *editing.Service
+	character  *character.Service
 	// reachability tracks the current bridge client's PROJECT_STATUS heartbeat, behind the
 	// DAW port's Heartbeat role. Never a true nil interface: with no bridge client configureLocked
 	// still sets it to an always-unreachable stand-in.
@@ -165,6 +168,7 @@ func (h *Host) services() hostServices {
 		recorder:         h.recorder,
 		transcript:       h.transcript,
 		coverage:         h.coverage,
+		ledger:           h.ledger,
 		stages:           h.stages,
 		production:       h.production,
 		editing:          h.editing,

@@ -53,11 +53,12 @@ func (p *SignalProvider) Signals(ctx context.Context, chapter stages.ChapterCont
 		return []stages.Signal{p.projectUnreadable(view.ProjectErr)}, nil
 	}
 	settings := p.settings()
-	result, err := p.service.ResultIn(view.Project, view.ProjectFile, chapter.ChapterID, settings.Alignment)
+	read := p.service.viewed(view)
+	result, err := p.service.resultIn(read, view.Project, view.ProjectFile, chapter.ChapterID, settings.Alignment)
 	if err != nil {
 		return nil, err
 	}
-	latest, err := p.service.latestRecord(chapter.ChapterID)
+	latest, err := newestRecord(read.ledger, chapter.ChapterID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +88,12 @@ func (p *SignalProvider) projectUnreadable(err error) stages.Signal {
 // EvidenceView builds the view one stage evaluation shares across every
 // provider (stages.Config.View): the saved project resolved, checked and
 // parsed once by the same rules as a recording check (D6), its modified time,
-// and the project's ledger and confirmed mapping. A saved project that cannot
-// be used is ProjectErr, a refusal with its Reason, never a failed read.
+// and the project's ledger and confirmed mapping, each read once for the
+// evaluation (the ledger when a provider first asks) so no provider lists the
+// ledger folder or reads the link file per chapter (issue 3801). A saved project that cannot be used is ProjectErr, a refusal with its
+// Reason, never a failed read.
 func (s *Service) EvidenceView(_ context.Context, documentID string) stages.EvidenceView {
-	view := stages.EvidenceView{DocumentID: documentID, ProjectFolder: s.config.Project, Ledger: s.ledger, Mapping: s.mapping}
+	view := stages.EvidenceView{DocumentID: documentID, ProjectFolder: s.config.Project, Ledger: s.ledger.SnapshotWhenAsked(), Mapping: s.mapping.SnapshotWhenAsked(documentID)}
 	if s.config.Project == "" {
 		view.ProjectErr = unknown(ReasonNoProject, "open a project first")
 		return view
@@ -117,7 +120,7 @@ func (p *SignalProvider) now() time.Time {
 // to any chapter has the chapter's title as its name: a match the narrator
 // has not confirmed, which is still unknown (D5), but with a different action.
 func (p *SignalProvider) suggested(chapter stages.ChapterContext, view stages.EvidenceView) bool {
-	links, err := p.service.mapping.List(chapter.DocumentID)
+	links, err := p.service.viewed(view).mapping.List(chapter.DocumentID)
 	if err != nil {
 		return false
 	}
