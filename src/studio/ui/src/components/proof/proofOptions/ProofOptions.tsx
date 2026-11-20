@@ -1,53 +1,16 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
+import { ColourField } from '../../primitives/ColourField';
 import { Dialog } from '../../primitives/Dialog';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
-import { TextField } from '../../primitives/TextField';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
 
-// A native colour input can only show a full #rrggbb value; a stored colour is six capital hex digits without the hash.
-const HEX = /^[0-9A-F]{6}$/;
-const NEUTRAL_PICKER = '#808080';
-const asHex = (text: string): string => text.trim().replace(/^#/, '').toUpperCase();
-
-function ColourRow({ field, onSave }: { field: ScopedSettingField; onSave: (hex: string) => void }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const shown = draft ?? field.effectiveValue;
-  const settle = () => {
-    if (draft === null) return;
-    const hex = asHex(draft);
-    if (HEX.test(hex) && hex !== field.effectiveValue) onSave(hex);
-    setDraft(null);
-  };
-  return (
-    <div className="flex items-center gap-2">
-      <TextField
-        label={`${field.label} picker`}
-        type="color"
-        value={HEX.test(field.effectiveValue) ? `#${field.effectiveValue}` : NEUTRAL_PICKER}
-        onChange={(value) => onSave(asHex(value))}
-      />
-      <TextField
-        label={field.label}
-        mono
-        className="max-w-[8rem]"
-        value={shown}
-        onChange={setDraft}
-        onBlur={settle}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') settle();
-        }}
-      />
-    </div>
-  );
-}
-
-function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => void }) {
+function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
@@ -59,7 +22,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
           min={range.min ?? undefined}
           max={range.max ?? undefined}
           step={range.step ?? undefined}
-          onValueChange={(n) => onSet(field.key, String(n))}
+          onValueChange={(n) => void onSet(field.key, String(n))}
         />
         {range.unit ? <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{range.unit}</span> : null}
       </span>
@@ -70,13 +33,13 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
         className="w-[10.75rem]"
         value={field.effectiveValue}
         options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
-        onChange={(value) => onSet(field.key, value)}
+        onChange={(value) => void onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
-      <ColourRow field={field} onSave={(hex) => onSet(field.key, hex)} />
+      <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
-    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => onSet(field.key, null)}>
+    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => void onSet(field.key, null)}>
       Reset
     </Button>
   ) : null;
@@ -84,7 +47,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
   if (field.kind === 'bool')
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <Switch checked={field.effectiveValue === 'true'} onChange={(on) => onSet(field.key, String(on))}>
+        <Switch checked={field.effectiveValue === 'true'} onChange={(on) => void onSet(field.key, String(on))}>
           {field.label}
         </Switch>
         {reset}

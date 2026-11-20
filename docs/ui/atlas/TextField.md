@@ -23,9 +23,9 @@ Storybook title: `Primitives/TextField`. Source: `src/components/primitives/Text
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/layout/JumpMenu.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/primitives/ColourField.tsx`
 - `src/components/primitives/NumberInput.tsx`
 - `src/components/primitives/SearchField.tsx`
-- `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/schedule/ContractPanel.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/script/bookmarks/ui/BookmarkEditor.tsx`

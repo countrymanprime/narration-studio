@@ -449,7 +449,7 @@ describe('speaker colour field in the entry', () => {
       </ApiProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Speaker colour' }), { target: { value: 'auto' } });
+    fireEvent.click(within(await screen.findByRole('radiogroup', { name: 'Speaker colour' })).getByRole('radio', { name: /^Automatic \(/ }));
     await waitFor(() => expect(call).toHaveBeenCalledWith(row.id, 0));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(`Speaker colour set to Automatic for ${row.canonical_name}.`));
   });
@@ -461,7 +461,8 @@ describe('speaker colour field in the entry', () => {
         <GuideDetail entity={place} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={vi.fn()} goToManuscript={vi.fn()} />
       </ApiProvider>,
     );
-    expect(screen.queryByRole('combobox', { name: 'Speaker colour' })).toBeNull();
+    expect(screen.queryByRole('radiogroup', { name: 'Speaker colour' })).toBeNull();
+    expect(screen.queryByText('Speaker colour')).toBeNull();
   });
 });
 
