@@ -23,7 +23,8 @@ const OWN_SENTENCE = /Connecting to /;
 // The words for "the host is starting the DAW" have one home too: `startingLabel`, `startingTitle`, `startingStatement` and `startingSentence` in daw/dawSession.ts.
 // Comments are not text the app draws, so they are not looked at.
 const withoutComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-const OWN_STARTING = /Starting (?:\$\{|REAPER|Audacity)|\$\{[^}]*\} is starting(?: \(|[.,])|['"`](?:REAPER|Audacity) is starting/;
+const OWN_STARTING =
+  /Starting (?:\$\{|REAPER|Audacity)|\$\{[^}]*\} is starting(?: \(|[.,])|['"`](?:REAPER|Audacity) is starting|[Tt]he app opened \$\{|app opened (?:REAPER|Audacity)/;
 const STARTING_HOME = 'daw/dawSession.ts';
 const OWN_CLOCK = /\b(?:APP_STARTED_AT|useConnectGrace)\b/;
 
@@ -61,6 +62,7 @@ describe('one connecting state for the DAW', () => {
     expect(offences('say(`${name} is starting (${path}). Record turns on.`)')).toHaveLength(1);
     expect(offences("const title = 'Starting REAPER';")).toHaveLength(1);
     expect(offences('// the label reads "Starting REAPER…" while it starts')).toEqual([]);
+    expect(offences('return `The app opened ${daw} and connects on its own.`;')).toHaveLength(1);
     expect(offences('const word = startingLabel(name);')).toEqual([]);
   });
 });

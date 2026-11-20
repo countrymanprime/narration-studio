@@ -1,4 +1,4 @@
-import { startingLabel, startingSentence, startingTitle } from '../../../daw/dawSession';
+import { startingDetail, startingLabel, startingSentence, startingTitle } from '../../../daw/dawSession';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
@@ -111,7 +111,7 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
     return {
       tone: 'neutral',
       title: startingTitle(daw),
-      detail: `${linked}The app opened ${daw} and connects on its own once ${daw} has the project open.${since}`,
+      detail: `${linked}${startingDetail(daw)}${since}`,
     };
   }
   const off = choice.launcherAutoStart ? '' : ` "Start the launcher script with REAPER" is off below, so ${daw} does not connect until it is on.`;

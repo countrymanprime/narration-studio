@@ -229,7 +229,7 @@ describe('the not-connected dialog', () => {
       }) as never;
     view(<ConnectionResolveDialog {...off} />, { dawChoice: choice({ state: 'starting', starting: { since: new Date().toISOString() } }) });
     expect(await screen.findByRole('heading', { name: 'Starting REAPER' })).toBeTruthy();
-    expect(screen.getByText(/This app opened REAPER on the linked project and is waiting for its bridge to answer/)).toBeTruthy();
+    expect(screen.getByText(/The app opened REAPER and connects on its own once REAPER has the project open/)).toBeTruthy();
     expect(screen.queryByText(/is not connected/)).toBeNull();
     // The host is already starting it: Start waits with it, so a press is not a second launch.
     expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).toBe('true');

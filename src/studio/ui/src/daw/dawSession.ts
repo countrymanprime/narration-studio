@@ -129,6 +129,11 @@ export function startingStatement(daw: string): string {
   return `${daw} is starting.`;
 }
 
+/** What the dialog and the Settings card say about a start the app made: one sentence, so the two never word it differently. */
+export function startingDetail(daw: string): string {
+  return `The app opened ${daw} and connects on its own once ${daw} has the project open.`;
+}
+
 /** The message after a press of Start: the app opened the DAW and the Booth turns on Record once it answers. */
 export function startedToast(daw: string, path: string): string {
   return `${daw} is starting (${path}). Record turns on here once it connects.`;

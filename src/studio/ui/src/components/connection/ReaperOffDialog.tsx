@@ -1,4 +1,4 @@
-import { startingTitle } from '../../daw/dawSession';
+import { startingDetail, startingTitle } from '../../daw/dawSession';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
@@ -16,7 +16,7 @@ function choiceSentence(choice: DawChoice | null | undefined, name: string): str
     case 'linked':
       return `The project is linked, but ${name} has not connected: it is closed, or its bridge has not started yet.`;
     case 'starting':
-      return `This app opened ${name} on the linked project and is waiting for its bridge to answer.`;
+      return startingDetail(name);
     case 'not_running':
       return `${name} connected before and has stopped answering.`;
     case 'not_linked':
