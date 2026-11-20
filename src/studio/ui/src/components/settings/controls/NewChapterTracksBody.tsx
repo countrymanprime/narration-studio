@@ -28,8 +28,11 @@ function Checklist() {
   const trackMap = usePort('chapterTrackMap');
   const { notify } = useSettingsHost();
   const read = useCallback(() => trackMap.chapterCreateOptions(), [trackMap]);
-  const { pick, setPick, failed } = useNewChapterPick(true, read);
-  if (failed) return <p role="alert">The tracks a new chapter folder is made with could not be read.</p>;
+  const { pick, setPick, failed, narrator } = useNewChapterPick(true, read);
+  // A list that cannot be read is a toast, not a line in the row: the row stays as it was.
+  useEffect(() => {
+    if (failed) notify('The tracks a new chapter folder is made with could not be read.', 'error');
+  }, [failed, notify]);
   if (!pick) return null;
   const change = (next: NewChapterPick) => {
     const before = pick;
@@ -42,5 +45,5 @@ function Checklist() {
         notify(describeApiError(reason), 'error');
       });
   };
-  return <NewChapterTracks narrator="Narrator" pick={pick} onChange={change} />;
+  return <NewChapterTracks narrator={narrator} pick={pick} onChange={change} />;
 }

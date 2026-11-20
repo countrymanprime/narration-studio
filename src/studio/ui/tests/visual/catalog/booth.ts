@@ -79,7 +79,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-unlinked-folders',
     description:
-      'The same dialog in a Voice folders project (?mockVoiceFolders=1): "Chapter 1 is not linked to a folder", and above Create a new folder the list of what the folder is made with, the Narrator as always made and Extras ticked (#3748)',
+      'The same dialog in a Voice folders project (?mockVoiceFolders=1): "Chapter 1 is not linked to a folder", and above Create a new folder the list of what the folder is made with, the Narrator as always made, the voices (White Rabbit and Alice ticked, Cheshire Cat left out) with All 3 voices, and Extras ticked (#3748)',
     ...REFLOW,
   },
   {

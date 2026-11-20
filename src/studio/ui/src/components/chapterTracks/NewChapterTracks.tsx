@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChapterCreateChoice, ChapterCreateOptions, ChapterCreateVoice } from '../../api/contracts/chapterTrackMap';
+import { plural } from '../../plural';
 import { Checkbox } from '../primitives/Checkbox';
+import { SectionLabel } from '../primitives/SectionLabel';
 
 /** The tracks a new chapter folder is made with besides the Narrator: the project's known voices and Extras, ticked or not, in the order the folder gets them (#3748). */
 export type NewChapterPick = { voices: ChapterCreateVoice[]; extras: ChapterCreateVoice };
@@ -9,8 +11,16 @@ export type NewChapterPick = { voices: ChapterCreateVoice[]; extras: ChapterCrea
 export function useNewChapterPick(
   enabled: boolean,
   read: () => Promise<ChapterCreateOptions>,
-): { pick: NewChapterPick | null; setPick: (pick: NewChapterPick) => void; failed: boolean; choice: ChapterCreateChoice | undefined } {
+): {
+  pick: NewChapterPick | null;
+  setPick: (pick: NewChapterPick) => void;
+  failed: boolean;
+  choice: ChapterCreateChoice | undefined;
+  /** The Narrator's track name as the host sends it, the first track the folder is made with. */
+  narrator: string;
+} {
   const [pick, setPick] = useState<NewChapterPick | null>(null);
+  const [narrator, setNarrator] = useState('Narrator');
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!enabled) return;
@@ -19,6 +29,7 @@ export function useNewChapterPick(
       (options) => {
         if (!live) return;
         setFailed(false);
+        setNarrator(options.narrator);
         setPick(options.folders ? { voices: options.voices, extras: options.extras } : null);
       },
       () => {
@@ -33,7 +44,7 @@ export function useNewChapterPick(
     () => (pick ? { voices: pick.voices.filter((voice) => voice.checked).map((voice) => voice.name), extras: pick.extras.checked } : undefined),
     [pick],
   );
-  return { pick, setPick, failed, choice };
+  return { pick, setPick, failed, choice, narrator };
 }
 
 /**
@@ -57,7 +68,7 @@ export function NewChapterTracks({
     onChange({ ...pick, voices: pick.voices.map((voice) => (voice.name === name ? { ...voice, checked } : voice)) });
   return (
     <div role="group" aria-label="Tracks in the new folder" className="flex flex-col gap-1">
-      <p className="text-[var(--text-muted)]">Made with the folder, in this order:</p>
+      <SectionLabel as="p">Tracks in the new folder, in this order</SectionLabel>
       <p className="text-sm">{narrator} (always)</p>
       {many && (
         <Checkbox
@@ -66,11 +77,11 @@ export function NewChapterTracks({
           disabled={disabled}
           onChange={(checked) => onChange({ ...pick, voices: pick.voices.map((voice) => ({ ...voice, checked })) })}
         >
-          All {pick.voices.length} voices
+          All {plural(pick.voices.length, 'voice')}
         </Checkbox>
       )}
       {pick.voices.length > 0 && (
-        <ul className="m-0 flex max-h-32 list-none flex-col gap-0 overflow-y-auto p-0 pl-1">
+        <ul className="m-0 flex max-h-32 list-none flex-col gap-0 overflow-y-auto p-0 pl-6">
           {pick.voices.map((voice) => (
             <li key={voice.name} className="min-w-0">
               <Checkbox checked={voice.checked} disabled={disabled} onChange={(checked) => setVoice(voice.name, checked)}>

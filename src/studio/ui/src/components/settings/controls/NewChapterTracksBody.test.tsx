@@ -67,14 +67,15 @@ describe('the new chapter folder setting (#3748)', () => {
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Extras' }).getAttribute('aria-checked')).toBe('true'));
   });
 
-  it('draws nothing for a flat project, and says so when the list cannot be read', async () => {
+  it('draws nothing for a flat project, and says so in a toast, not in the row, when the list cannot be read', async () => {
     mount(createMockApi());
     await waitFor(() => expect(screen.queryByRole('group')).toBeNull());
     cleanup();
     const api = await foldersApi();
     vi.spyOn(api, 'chapterCreateOptions').mockRejectedValue(new Error('host down'));
     mount(api);
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'), 'error'));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('reads the list again when the header puts the default back', async () => {

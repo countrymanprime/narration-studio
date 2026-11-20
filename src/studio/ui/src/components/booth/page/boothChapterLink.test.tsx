@@ -231,7 +231,7 @@ describe('an unlinked chapter in the Booth', () => {
   });
 
   it('a create dialog whose list cannot be read still creates, with the last pick the host remembers', async () => {
-    const { chapterTrackCreate } = renderUnlinked(
+    const { chapterTrackCreate, overlay } = renderUnlinked(
       {
         chapterCreateOptions: async () => {
           throw new Error('host down');
@@ -240,6 +240,12 @@ describe('an unlinked chapter in the Booth', () => {
       'folders',
     );
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    // A list that cannot be read is said once, as a toast, not as a line in the dialog.
+    await waitFor(() =>
+      expect(overlay.getSnapshot().toasts.map((t) => t.text)).toContain(
+        'The tracks a new folder is made with could not be read, so Create uses the last choice.',
+      ),
+    );
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new folder' }));
     expect(within(dialog).queryByRole('group', { name: 'Tracks in the new folder' })).toBeNull();
     expect(chapterTrackCreate).toHaveBeenCalledExactlyOnceWith('c1');

@@ -110,6 +110,11 @@ export function ChapterLinkDialog({
   const folders = dest.folders;
   // What the new folder is made with besides the Narrator: the known voices and Extras, ticked by the last pick (#3748); only a folder has them.
   const newTracks = useNewChapterPick(folders && create?.available !== false, actions.createOptions);
+  // A list that cannot be read is said once as a toast; Create still works, with the last pick the host remembers.
+  const listFailed = newTracks.failed;
+  useEffect(() => {
+    if (listFailed) overlay.toast('The tracks a new folder is made with could not be read, so Create uses the last choice.', { tone: 'error' });
+  }, [listFailed, overlay]);
 
   const shownRef = useRef(read.status);
   shownRef.current = read.status;
@@ -300,7 +305,7 @@ export function ChapterLinkDialog({
         </p>
       )}
       {(noTracks || read.status === 'failed') && newTracks.pick && !createOff && (
-        <NewChapterTracks narrator="Narrator" pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
+        <NewChapterTracks narrator={newTracks.narrator} pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
       )}
       {read.status === 'ready' && !noTracks && (
         <>
@@ -313,12 +318,13 @@ export function ChapterLinkDialog({
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
             {!createOff && (
               <span className="text-[var(--text-muted)]">
-                Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
+                Or have {dawName} add a new {createWhat} for this chapter, named after it{folders && !newTracks.pick ? ' with a Narrator track in it' : ''}, and
+                link it:
               </span>
             )}
             {newTracks.pick && !createOff && (
               <div className="basis-full">
-                <NewChapterTracks narrator="Narrator" pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
+                <NewChapterTracks narrator={newTracks.narrator} pick={newTracks.pick} onChange={newTracks.setPick} disabled={creating || linking} />
               </div>
             )}
             <Button

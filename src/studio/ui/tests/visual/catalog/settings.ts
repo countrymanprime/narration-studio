@@ -146,7 +146,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-new-chapter-folder',
     description:
-      'Settings, Recording & DAW (?mockVoiceFolders=1): the New chapter folder row under Chapter sync, with the Narrator as always made and the voices and Extras a new chapter folder is made with, ticked (#3748)',
+      'Settings, Recording & DAW (?mockVoiceFolders=1): the New chapter folder row under Chapter sync, with the Narrator as always made and the voices (White Rabbit and Alice ticked, Cheshire Cat left out) and Extras a new chapter folder is made with (#3748)',
     ...REFLOW,
   },
   {

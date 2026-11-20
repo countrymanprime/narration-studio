@@ -237,6 +237,21 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByRole('table', { name: /^Voices of / }).waitFor();
   },
   'recording-new-chapter-folder': async (page) => {
+    // The mock project assigns no voice but Extras, so the host's answer is set to the cast a real project has: three voices, one left out last time.
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterCreateOptions: async () => ({
+          folders: true,
+          narrator: 'Narrator',
+          voices: [
+            { name: 'White Rabbit', checked: true },
+            { name: 'Alice', checked: true },
+            { name: 'Cheshire Cat', checked: false },
+          ],
+          extras: { name: 'Extras', checked: true },
+        }),
+      };
+    });
     await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
     const row = await showSettingsRow(page, 'daw.newChapter');
     await row.getByRole('group', { name: 'Tracks in the new folder' }).waitFor();
