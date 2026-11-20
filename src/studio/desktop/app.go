@@ -78,7 +78,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 166
+const hostAPIVersion = 167
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -464,7 +464,9 @@ type Host struct {
 	// scripting on and start Audacity on its own (audacityauto.go); only the app's
 	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
 	// bridge files to install, for tests; nil means the real ones.
-	dawAutoEnabled     atomic.Bool
+	dawAutoEnabled atomic.Bool
+	// solo is what the host knows of the chapter solo it asked the DAW for (bindings_daw_solo.go).
+	solo               soloDebt
 	reaperResourceSeam func() string
 	reaperFilesSeam    fs.FS
 	reaperBridgeOnce   sync.Once
@@ -1349,6 +1351,8 @@ func (h *Host) ServiceShutdown() error {
 	h.stopReadAloudRecordingOnShutdown()
 	// The input monitoring the Booth turned on is put back, so a closed app leaves the narrator's DAW as it found it (#3428).
 	h.releaseBoothMonitorOnShutdown()
+	// The chapter soloed in the DAW for the Booth is put back (bindings_daw_solo.go); a DAW that cannot be reached has the ledger.
+	h.restoreSoloOnShutdown()
 	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
 	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
