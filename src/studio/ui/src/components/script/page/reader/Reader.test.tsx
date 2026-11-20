@@ -434,9 +434,56 @@ describe('a long book', () => {
     scrollTo(900);
     expect(renderGutter.mock.calls.length).toBeLessThanOrEqual(drawn + 2 * PER_CHAPTER);
   });
+
+  // A card is the page's (a prep control, a Record button, the facts): one for each of 300 chapters was most of the Script page's load (#3766).
+  it("draws the cards of the chapters near the reader only, and a far chapter's when the reader goes to it", () => {
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) =>
+      near ? <h2 data-card={c.id}>{`Card ${c.title}`}</h2> : <h2 data-pending-card="">{c.title}</h2>;
+    const view = (extra: Partial<ComponentProps<typeof Reader>> = {}) => (
+      <Reader chapters={many} paragraphsOf={(id) => bodies.get(id)} sources={sources} renderChapterCard={renderChapterCard} {...extra} />
+    );
+    const { rerender } = render(view());
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(5);
+    // Every chapter keeps its section and its heading, so the header, a jump and a screen reader still find it.
+    expect(document.querySelectorAll('[data-bound]')).toHaveLength(CHAPTERS);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k0"] [data-pending-card]')).toBeNull();
+
+    rerender(view({ pendingJump: 'k200' }));
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).toBeNull();
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(10);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+  });
+
+  // Short chapters, or a tall window: more chapters start inside the reader than two either side of the top one (#3766, the breaker's
+  // 90 one-line chapters at 1440x1400, where chapters 4 and 5 were in view as a heading alone and, before that, with no text).
+  it('draws the card and text of every chapter that starts inside the reader, however many fit', () => {
+    const short = many.slice(0, 40);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(1000);
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+    // Each section is 100 px of the laid-out page here (no paragraphs), so ten start inside a 1000 px reader.
+    render(<Reader chapters={short} paragraphsOf={() => []} sources={sources} renderChapterCard={renderChapterCard} />);
+    scrollTo(0);
+    const cards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-card]')).map((card) => card.dataset.card);
+    expect(cards()).toEqual(short.slice(0, 13).map((c) => c.id));
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(40 - 13);
+    scrollTo(1500);
+    expect(cards()).toContain('k25');
+    expect(cards()).not.toContain('k30');
+  });
 });
 
 describe('the chapter card slot', () => {
+  // Three cards with no text under them fit one screen, so the fourth chapter started inside the reader and was drawn and read on every load.
+  it('holds the estimated height of a drawn chapter until its text is read', () => {
+    const { rerender } = render(<Reader {...props({ paragraphsOf: () => undefined })} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(3);
+    rerender(<Reader {...props()} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(0);
+  });
+
   it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
     const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);
