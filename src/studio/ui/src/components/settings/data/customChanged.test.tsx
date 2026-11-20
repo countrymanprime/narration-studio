@@ -5,7 +5,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { announceBrowserSettingChange } from '../../../browserSettings';
 import { projectDataChanged } from './projectDataSignal';
-import { CUSTOM_CHANGED, useCustomChanged, type ProbeContext } from './customChanged';
+import { CUSTOM_CHANGED, PROBE_STUCK_MS, useCustomChanged, type ProbeContext } from './customChanged';
 import type { ReadSettings } from './values';
 
 afterEach(cleanup);
@@ -50,6 +50,95 @@ describe('the custom-row probes', () => {
     // An answer equal to the last one keeps the same set, so nothing downstream redraws.
     const last = seen[seen.length - 1];
     expect(seen.filter((set) => set === last).length).toBeGreaterThan(0);
+  });
+});
+
+describe('a scope being read does not start the probes again (#3658)', () => {
+  function WithSettings({ value }: { value: ReadSettings }) {
+    useCustomChanged(value);
+    return null;
+  }
+  const keymap = (isSet: boolean) => ({ global: { Keymap: [{ key: 'save', isSet }] } }) as unknown as ReadSettings;
+
+  it("runs once for the global scope arriving and then the project scope, and again only when a command's keys changed", async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    const { rerender } = render(view({}));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+    rerender(view({ global: {} }));
+    rerender(view({ global: {}, project: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(zoom).toHaveBeenCalledTimes(1);
+    rerender(view(keymap(true)));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+  });
+  it("asks a probe that failed again when the settings are read next (the page's Retry)", async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom').mockRejectedValueOnce(new Error('offline'));
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    const { rerender } = render(view({}));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    rerender(view({ global: {} }));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+    // It answered this time, so a further read of the settings asks nothing more.
+    rerender(view({ global: {}, project: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(zoom).toHaveBeenCalledTimes(2);
+  });
+  it('asks the probes again when the settings are read after a probe has not answered for the stuck age', async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    vi.spyOn(api, 'creditsChanged').mockImplementationOnce(() => new Promise(() => undefined));
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { rerender } = render(view({}));
+      await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+      rerender(view({ global: {} })); // too soon: the pass is only running
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(zoom).toHaveBeenCalledTimes(1);
+      vi.setSystemTime(Date.now() + PROBE_STUCK_MS + 1);
+      rerender(view({ global: {}, project: {} }));
+      await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('runs once when both scopes arrive while a pass that is answering is still running', async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    const plan = api.productionPlan.bind(api);
+    // One probe slower than the two settings reads, as a host read of the project is.
+    vi.spyOn(api, 'productionPlan').mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return plan();
+    });
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    const { rerender } = render(view({}));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+    rerender(view({ global: {} }));
+    rerender(view({ global: {}, project: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(zoom).toHaveBeenCalledTimes(1);
   });
 });
 

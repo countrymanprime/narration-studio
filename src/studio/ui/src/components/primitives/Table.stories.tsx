@@ -337,3 +337,28 @@ export const Tree: Story = {
     await expect(rows()[2]).toHaveFocus();
   },
 };
+
+// A header cell that draws its own content over several columns, in the one header row: the Story Bible's selection bar.
+export const CustomHeaderSpan: Story = {
+  render: () => (
+    <Table label="Entries" columns={['2.25rem', 'auto', '6rem']}>
+      <TableHead>
+        <TableRow>
+          <TableHeader colSpan={3} custom={<span>2 selected</span>} />
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        <TableRow>
+          <TableCell>x</TableCell>
+          <TableCell>Alice</TableCell>
+          <TableCell>Character</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole('row')).toHaveLength(2);
+    await expect(canvas.getByRole('columnheader', { name: '2 selected' })).toHaveAttribute('colspan', '3');
+  },
+};
