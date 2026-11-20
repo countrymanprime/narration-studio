@@ -70,6 +70,8 @@ type chapterTrackCreated struct {
 	chapterTrackSetResult
 	Track createdTrack  `json:"track"`
 	Voice *createdTrack `json:"voice,omitempty"`
+	// ArmMessage is why the new track was added and linked but not armed (#3670), empty when it was armed or nothing could arm it.
+	ArmMessage string `json:"armMessage,omitempty"`
 }
 
 // createdTrack is the track the engine added: its id (a GUID in REAPER), its name and its 0-based index in the project's tracks.

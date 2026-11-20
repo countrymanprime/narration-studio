@@ -74,6 +74,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/storybible/source/PronunciationCandidates.tsx#1': yes(
     'Asking for the candidates again changes nothing; the toast carries Retry (added by the pronunciation rework).',
   ),
+  'src/components/chapterTracks/useChapterLinkActions.ts#1': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#5': no(ED),
   'src/components/booth/voices/useBoothVoices.ts#6': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#7': no(RF),

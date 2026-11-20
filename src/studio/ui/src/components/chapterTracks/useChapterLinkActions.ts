@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { ManuscriptChapter, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
 
@@ -99,6 +100,7 @@ type ChapterLinkActions = {
 export function useChapterLinkActions(): ChapterLinkActions {
   const trackMap = usePort('chapterTrackMap');
   const manuscript = usePort('manuscript');
+  const overlay = useOverlay();
   const set = useCallback(
     async (chapterId: string, trackGuid: string, nameOf?: (chapterId: string) => string | undefined): Promise<LinkWritten> => {
       const result = await trackMap.chapterTrackSet(chapterId, trackGuid);
@@ -112,6 +114,14 @@ export function useChapterLinkActions(): ChapterLinkActions {
     [trackMap, manuscript],
   );
   const unlink = useCallback((chapterId: string) => trackMap.chapterTrackUnlink(chapterId), [trackMap]);
-  const create = useCallback((chapterId: string) => trackMap.chapterTrackCreate(chapterId), [trackMap]);
+  const create = useCallback(
+    async (chapterId: string) => {
+      const result = await trackMap.chapterTrackCreate(chapterId);
+      // The track is added and linked on every screen that creates one; a DAW that would not arm it is said once here (#3670).
+      if (result.outcome === 'created' && result.armMessage) overlay.toast(result.armMessage, { tone: 'error' });
+      return result;
+    },
+    [trackMap, overlay],
+  );
   return useMemo(() => ({ set, unlink, create }), [set, unlink, create]);
 }

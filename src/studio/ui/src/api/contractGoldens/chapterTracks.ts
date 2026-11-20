@@ -41,6 +41,7 @@ export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'chapter-regions-created.json': chapterRegionsCreatedSchema,
   'chapter-track-set-displaced.json': chapterTrackSetSchema,
   'chapter-track-create-created.json': chapterTrackCreateSchema,
+  'chapter-track-create-arm-refused.json': chapterTrackCreateSchema,
   'chapter-track-create-folder.json': chapterTrackCreateSchema,
   'chapter-track-create-already-linked.json': chapterTrackCreateSchema,
   'chapter-track-create-refused.json': chapterTrackCreateSchema,

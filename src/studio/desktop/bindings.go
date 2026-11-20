@@ -928,7 +928,32 @@ func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
 	creator, support := trackCreatorFrom(svc)
 	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID)
 	h.linksChanged(err)
-	return encodeBinding(created, err)
+	return encodeBinding(h.armCreatedTrack(svc, created), err)
+}
+
+// armCreatedTrack arms the track a ChapterTrackCreate just made, and monitors it when Booth.follow_chapter_in_daw is on, on every screen that creates one
+// (the Booth's link dialog, the Engine panel, Chapter links, Editing and Production): a created track is armed (#3670). The voice is armed when the
+// new track is a folder with a Narrator child, else the track itself. A refusal leaves the track added and linked and says so in ArmMessage.
+func (h *Host) armCreatedTrack(svc hostServices, created any) any {
+	made, ok := created.(chapterTrackCreated)
+	if !ok {
+		return created
+	}
+	target := made.Track.GUID
+	if made.Voice != nil {
+		target = made.Voice.GUID
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), laneCommandTimeout)
+	defer cancel()
+	armer, ok := recorderFrom(svc).(dawport.LaneArmer)
+	if !ok {
+		return made // no DAW linked, or one with no armed tracks: nothing to arm
+	}
+	if _, err := armLaneOwing(ctx, armer, target, followChapterSetting(svc), &h.boothMonitorOwed); err != nil {
+		name := readAloudAdapterName(svc)
+		made.ArmMessage = fmt.Sprintf("The track “%s” was added and linked, but %s did not arm it: %s", made.Track.Name, name, strings.TrimSpace(readAloudRecordRefusal(name, err).Message))
+	}
+	return made
 }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits

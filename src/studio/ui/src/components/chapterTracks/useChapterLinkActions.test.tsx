@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { OverlayProvider } from '../../overlay/OverlayProvider';
+import { createOverlayService } from '../../overlay/overlayService';
 import type { TrackMapping } from '../../types';
 import { displacedSentence, useChapterLinkActions } from './useChapterLinkActions';
 
@@ -84,5 +86,41 @@ describe('useChapterLinkActions', () => {
     expect((await actions.create('c1')).outcome).toBe('refused');
     expect(chapterTrackUnlink).toHaveBeenCalledWith('c1');
     expect(chapterTrackCreate).toHaveBeenCalledWith('c1');
+  });
+});
+
+describe('useChapterLinkActions create (#3670)', () => {
+  const created = (over: Record<string, unknown> = {}) => ({
+    outcome: 'created' as const,
+    ...setAnswer(null),
+    track: { guid: 'T', name: 'Chapter 1', index: 0 },
+    ...over,
+  });
+  const withOverlay = (chapterTrackCreate: () => Promise<unknown>) => {
+    const api = createMockApi({ chapterTrackCreate: chapterTrackCreate as never });
+    const overlay = createOverlayService();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <OverlayProvider service={overlay}>{children}</OverlayProvider>
+      </ApiProvider>
+    );
+    return { actions: renderHook(() => useChapterLinkActions(), { wrapper }).result.current, overlay };
+  };
+
+  it('says once that the DAW would not arm a track the create made, on whatever screen asked', async () => {
+    const message = 'The track “Chapter 1” was added and linked, but REAPER did not arm it: REAPER is already recording.';
+    const { actions, overlay } = withOverlay(async () => created({ armMessage: message }));
+    const result = await actions.create('c1');
+    expect(result.outcome).toBe('created');
+    expect(overlay.getSnapshot().toasts.map((t) => t.text)).toEqual([message]);
+  });
+
+  it('says nothing for a track that was armed, and nothing for a refused create', async () => {
+    const armed = withOverlay(async () => created());
+    await armed.actions.create('c1');
+    expect(armed.overlay.getSnapshot().toasts).toEqual([]);
+    const refused = withOverlay(async () => ({ outcome: 'refused', reason: 'standalone', message: 'No DAW.' }));
+    await refused.actions.create('c1');
+    expect(refused.overlay.getSnapshot().toasts).toEqual([]);
   });
 });
