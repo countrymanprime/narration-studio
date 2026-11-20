@@ -341,7 +341,7 @@ func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 		referenced[id] = true
 	}
 
-	entries, err := os.ReadDir(s.dir)
+	entries, err := persist.ReadDir(s.dir)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
