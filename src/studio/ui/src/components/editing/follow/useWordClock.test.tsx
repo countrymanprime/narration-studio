@@ -122,6 +122,58 @@ describe('the page asks the host for where its words play', () => {
     expect(asked).toHaveBeenCalledTimes(1);
   });
 
+  it('reads again for an edit that arrived while a read that then failed was out (#3722)', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const real = api.workspaceWordTimes.bind(api);
+    let calls = 0;
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      calls += 1;
+      if (calls === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        throw new Error('The host did not answer.');
+      }
+      return real(id);
+    });
+    daw.setWordTimes(table('rec@2', linear(300)));
+    daw.editInDaw();
+    await wait(100);
+    daw.editInDaw();
+    await wait(2000);
+    expect(asked).toHaveBeenCalledTimes(2);
+    expect(text('version')).toBe('rec@2');
+    await wait(3000);
+    expect(asked).toHaveBeenCalledTimes(2);
+  });
+
+  it('a run of window hides and shows makes one read in flight and one after it, and keeps the map meanwhile (#3723)', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    expect(text('version')).toBe('rec@1');
+    const real = api.workspaceWordTimes.bind(api);
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation(async (id: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return real(id);
+    });
+    for (let i = 0; i < 20; i++) {
+      const state = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(i % 2 === 0 ? 'hidden' : 'visible');
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await wait(10);
+      state.mockRestore();
+    }
+    // The window ended up visible (the last flip, i = 19): the map was never dropped on the way.
+    expect(text('version')).toBe('rec@1');
+    await wait(2000);
+    expect(asked.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(text('version')).toBe('rec@1');
+  });
+
   it('drops the map when the DAW can no longer make a table', async () => {
     await mount();
     daw.setWordTimes(table('rec@1', linear(100)));
