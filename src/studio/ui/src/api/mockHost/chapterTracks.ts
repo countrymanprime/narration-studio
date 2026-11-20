@@ -33,12 +33,15 @@ export function createChapterTracksMock(
     chaptersWithCredits,
     voiceLayout,
     knownVoices,
+    markNotVoice,
   }: {
     manuscriptReady: Promise<void>;
     /** The project's layout (voice-tracks.json) as ChapterTrackCreate reads it at the press: a folder with a Narrator child, or one track. */
     voiceLayout: () => Promise<VoiceTracksLayout>;
     /** The names the project's voice setup assigns characters to, as ChapterCreateOptions lists them (#3748). */
     knownVoices: () => Promise<string[]>;
+    /** Marks a track as not a voice in the project's voice setup, as the host does for the Extras track a create makes (SetNotVoice). */
+    markNotVoice: (guid: string) => void;
     dawFileLinked: () => boolean;
     peekCoverage: (chapterId: string) => CoverageResult;
     /** Whether the DAW records now (a take started in it by hand, or the app's own): the host refuses to add or move tracks then. */
@@ -388,7 +391,9 @@ export function createChapterTracksMock(
         for (const name of names) {
           const child = { ...next(), name };
           added.push({ ...base, ...child, depth: 1, isFolder: false });
-          children.push({ ...child, notVoice: name === 'Extras' && !extrasVoice });
+          const notVoice = name === 'Extras' && !extrasVoice;
+          if (notVoice) markNotVoice(child.guid);
+          children.push({ ...child, notVoice });
         }
         voice = { guid: children[0].guid, name: children[0].name, index: children[0].index };
         if (choice) {

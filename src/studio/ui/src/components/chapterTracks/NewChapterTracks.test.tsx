@@ -115,4 +115,13 @@ describe('the checklist of a new chapter folder (#3748)', () => {
     expect(name.closest('label')?.className).toContain('min-w-0');
     expect(name.parentElement?.className).toContain('min-w-0');
   });
+
+  // Walkthrough: a lone voice is not indented under the Narrator as if it were the Narrator's child; the indent is for the voices under "All N".
+  it('indents the voices only under an All box', () => {
+    render(<Harness initial={{ voices: [voice('Mara')], extras: voice('Extras') }} />);
+    expect(screen.getByRole('list').className).not.toContain('pl-6');
+    cleanup();
+    render(<Harness initial={{ voices: [voice('Mara'), voice('Dragon')], extras: voice('Extras') }} />);
+    expect(screen.getByRole('list').className).toContain('pl-6');
+  });
 });

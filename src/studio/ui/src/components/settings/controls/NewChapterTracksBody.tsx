@@ -3,6 +3,7 @@ import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { NewChapterTracks, choiceOf, useNewChapterPick, type NewChapterPick } from '../../chapterTracks/NewChapterTracks';
 import { useVoiceSetup } from '../../engine/voiceLayout';
+import { projectDataChanged } from '../data/projectDataSignal';
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** Sent when the default pick was put back from outside the row (the header's Reset to defaults), so the list reads it again. */
@@ -27,7 +28,11 @@ export function NewChapterTracksBody() {
 function Checklist() {
   const trackMap = usePort('chapterTrackMap');
   const { notify } = useSettingsHost();
-  const read = useCallback(() => trackMap.chapterCreateOptions(), [trackMap]);
+  // The list is read again when the voice assignments change (the Voices row above): a voice given a character is a known voice at once.
+  const { setup } = useVoiceSetup();
+  const assigned = setup.tracks.map((entry) => entry.track).join('\n');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const read = useCallback(() => trackMap.chapterCreateOptions(), [trackMap, assigned]);
   const { pick, setPick, failed, narrator } = useNewChapterPick(true, read);
   // A list that cannot be read is a toast, not a line in the row: the row stays as it was.
   useEffect(() => {
@@ -45,6 +50,8 @@ function Checklist() {
       try {
         const options = await trackMap.chapterCreateDefaultSet(choiceOf(next));
         if (mine === latest.current && options.folders) setPick({ voices: options.voices, extras: options.extras, omitted: options.omitted });
+        // Changed reads the row again: it differs from its default while a voice or Extras is left out.
+        projectDataChanged();
       } catch (reason: unknown) {
         notify(describeApiError(reason), 'error');
         if (mine !== latest.current) return;

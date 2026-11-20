@@ -16,6 +16,7 @@ import { DEFAULT_SORT, saveEntrySort } from '../../storybible/entryTableModel';
 import { refreshUserKeymap } from '../../../input/useUserKeymap';
 import { DELIVERY_PROFILES_CHANGED, optionValue } from '../DeliveryProfilesPanel';
 import { engineChanged } from './engineSignal';
+import { projectDataChanged } from './projectDataSignal';
 import { changeReaderText } from '../controls/readerText';
 import { NEW_CHAPTER_DEFAULT_CHANGED } from '../controls/NewChapterTracksBody';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -128,6 +129,7 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
         const options = await trackMap.chapterCreateOptions();
         await trackMap.chapterCreateDefaultSet({ voices: options.voices.map((voice) => voice.name), extras: true });
         window.dispatchEvent(new Event(NEW_CHAPTER_DEFAULT_CHANGED));
+        projectDataChanged();
       },
       // The shortcut list's own Reset all to defaults saves the default keymap; clearing the saved overrides is the same result.
       // Saved through the page's store, so its fields (which Changed reads) follow; the row has no field of its own.

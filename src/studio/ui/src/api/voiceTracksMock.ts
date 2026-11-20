@@ -13,6 +13,8 @@ function validName(text: string): boolean {
 /** Every VoiceTracksApi call but the Booth's voice, which needs the links and tracks too (boothVoiceMock.ts). */
 export function createVoiceTracksMock(
   initial?: Partial<VoiceTracksState>,
+  /** Filled in with the way a create marks a track as not a voice (the host's SetNotVoice), which is not a call of the API. */
+  control?: { markNotVoice: (guid: string) => void },
 ): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
   let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [], ...initial };
   const snapshot = (): VoiceTracksState => ({
@@ -21,6 +23,12 @@ export function createVoiceTracksMock(
     narratorGuids: [...state.narratorGuids],
     notVoiceGuids: [...state.notVoiceGuids],
   });
+  if (control) {
+    control.markNotVoice = (guid) => {
+      const id = guid.toLowerCase();
+      if (!state.notVoiceGuids.includes(id)) state = { ...state, notVoiceGuids: [...state.notVoiceGuids, id].sort() };
+    };
+  }
   return {
     voiceTracksGet: async () => snapshot(),
     voiceTracksSetLayout: async (layout) => {

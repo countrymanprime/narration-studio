@@ -1790,6 +1790,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ]);
   });
 
+  // Walkthrough: the mock marks the Extras track as the host does, so the Booth cannot arm it; a project that gives characters to Extras keeps it a voice.
+  it('a created Extras is marked not-a-voice in the project, unless the project gives characters to a track called Extras (#3748)', async () => {
+    const kept = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const keptChapters = await ownChapters(kept);
+    await kept.chapterTrackCreate(keptChapters[1].id);
+    expect((await kept.voiceTracksGet()).notVoiceGuids).toEqual([]);
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Extras', []);
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    if (created.outcome !== 'created') throw new Error('expected a created folder');
+    const extras = created.children?.find((child) => child.name === 'Extras');
+    expect(extras).toMatchObject({ notVoice: true });
+    expect((await api.voiceTracksGet()).notVoiceGuids).toEqual([extras?.guid.toLowerCase()]);
+  });
+
   it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
     const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
     const chapters = await ownChapters(api);
@@ -4794,6 +4810,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackSet',
       'chapterTrackCreate',
       'chapterCreateOptions',
+      'chapterCreateDefaultSet',
       'chapterFoldersCheck',
       'chapterFoldersRepair',
       'chapterTrackUnlink',

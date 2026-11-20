@@ -117,7 +117,7 @@ export function NewChapterTracks({
         </Checkbox>
       )}
       {pick.voices.length > 0 && (
-        <ul className="m-0 flex max-h-32 min-w-0 list-none flex-col gap-0 overflow-y-auto p-0 pl-6">
+        <ul className={`m-0 flex max-h-32 min-w-0 list-none flex-col gap-0 overflow-y-auto p-0 ${many ? 'pl-6' : ''}`}>
           {pick.voices.map((voice) => (
             <li key={voice.name} className="min-w-0">
               <Checkbox checked={voice.checked} disabled={disabled} onChange={(checked) => setVoice(voice.name, checked)}>

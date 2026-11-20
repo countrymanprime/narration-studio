@@ -141,4 +141,20 @@ describe('the new chapter folder setting (#3748)', () => {
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Mara' }).getAttribute('aria-checked')).toBe('true'));
     expect(screen.getByRole('checkbox', { name: 'Dragon 🐉' }).getAttribute('aria-checked')).toBe('false');
   });
+
+  // Walkthrough: a voice given a character in the Voices row is a known voice at once, and a tick moves the Changed filter without leaving Settings.
+  it('lists a voice the window returns to find, and a tick is Changed at once', async () => {
+    const api = await foldersApi();
+    mount(api);
+    await screen.findByRole('checkbox', { name: 'Mara' });
+    await api.voiceTracksSetCharacters('King', ['king']);
+    window.dispatchEvent(new Event('focus'));
+    expect(await screen.findByRole('checkbox', { name: 'King' })).toBeTruthy();
+    const changed = vi.fn();
+    const { onProjectDataChanged } = await import('../data/projectDataSignal');
+    const stop = onProjectDataChanged(changed);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'King' }));
+    await waitFor(() => expect(changed).toHaveBeenCalled());
+    stop();
+  });
 });
