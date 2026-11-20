@@ -235,3 +235,60 @@ func TestALateAnswerKeepsItsQueueAndReaperSplit(t *testing.T) {
 		t.Fatalf("timings = %+v, want one answered request REAPER read, queue within the wait", got)
 	}
 }
+
+// A command whose take-back failed and that REAPER then read and answered in the late wait is Taken, answered or errored: the failed removal
+// never makes a command REAPER ran look unread.
+func TestAnAnswerAfterAFailedTakeBackIsTaken(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		answer  func(command []string) [][]string
+		outcome string
+	}{
+		{"answered", func(c []string) [][]string { return [][]string{{"ARMED", run(c), testTrack, "0", "1"}} }, "answered"},
+		{"error", func(c []string) [][]string { return [][]string{{"ERROR", run(c), "locked"}} }, "error"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			timings := observeTimings(actions)
+			fake := startFakeReaper(t, client, dir, tc.answer)
+			fake.stall(250 * time.Millisecond) // REAPER reads the command after the timeout, in the late wait
+			actions.SetTimeout(60 * time.Millisecond)
+			actions.SetLateWait(3 * time.Second)
+			client.remove = func(string) error { return &os.PathError{Op: "remove", Path: "x", Err: fs.ErrPermission} }
+
+			_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
+			got := timings()
+			if len(got) != 1 || got[0].Outcome != tc.outcome || !got[0].Taken || got[0].Queue < 0 || got[0].Queue > got[0].Elapsed {
+				t.Fatalf("timings = %+v, want one %s record that is Taken with queue within the wait", got, tc.outcome)
+			}
+		})
+	}
+}
+
+// The take-back that fails is never worded as "already read", whichever command: the file may still be there and the command may still run.
+func TestAFailedTakeBackIsWordedAsOneForEveryCommand(t *testing.T) {
+	for _, command := range []string{"record_stop", "arm_only", "arm_lane", "track_create", "tracks_read", "switch_voice"} {
+		t.Run(command, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
+			fake.stall(700 * time.Millisecond)
+			actions.SetTimeout(50 * time.Millisecond)
+			actions.SetLateWait(80 * time.Millisecond)
+			client.remove = func(string) error { return &os.PathError{Op: "remove", Path: "x", Err: fs.ErrPermission} }
+			var mu sync.Mutex
+			var lines []string
+			client.SetLog(func(kind, message string) {
+				mu.Lock()
+				defer mu.Unlock()
+				lines = append(lines, kind+": "+message)
+			})
+
+			_, _ = actions.request(context.Background(), command, []string{"X"})
+			mu.Lock()
+			defer mu.Unlock()
+			if len(lines) != 1 || !strings.Contains(lines[0], "could not be taken back") || strings.Contains(lines[0], "already read") {
+				t.Errorf("host log = %q, want it to say the command could not be taken back", lines)
+			}
+		})
+	}
+}

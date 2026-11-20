@@ -227,7 +227,7 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 			// REAPER already read this command (or the file could not be taken back), so it is at work on it (a create or an arm in a big
 			// project can take longer than the usual wait): keep waiting for its answer rather than report a failure for a change that is
 			// about to land.
-			return a.waitLate(ctx, command, runID, run, started, watch)
+			return a.waitLate(ctx, command, runID, run, started, watch, back)
 		}
 		a.report(command, "no_answer", started, watch)
 		a.logFailure(command, runID, "no answer within "+timeout.String()+retractNote(back))
@@ -260,7 +260,7 @@ var mayRunLong = map[string]bool{"track_create": true, "arm_only": true, "arm_la
 var ErrAnswerLate = fmt.Errorf("%w: REAPER took the command but has not confirmed it yet", ErrNoAnswer)
 
 // waitLate waits up to LateAnswerWait more for the answer of a command REAPER has read.
-func (a *Actions) waitLate(ctx context.Context, command, runID string, run *actionRun, started time.Time, watch *takenWatch) ([]Event, error) {
+func (a *Actions) waitLate(ctx context.Context, command, runID string, run *actionRun, started time.Time, watch *takenWatch, back retractResult) ([]Event, error) {
 	a.mu.Lock()
 	wait := a.lateWait
 	a.mu.Unlock()
@@ -277,11 +277,11 @@ func (a *Actions) waitLate(ctx context.Context, command, runID string, run *acti
 		return got.events, got.err
 	case <-timer.C:
 		a.report(command, "no_answer", started, watch)
-		a.logFailure(command, runID, "no answer within "+wait.String()+" more (REAPER had already read the command, or the file could not be taken back)")
+		a.logFailure(command, runID, "no answer within "+wait.String()+" more"+retractNote(back))
 		return nil, ErrAnswerLate
 	case <-ctx.Done():
 		a.report(command, "cancelled", started, watch)
-		a.logFailure(command, runID, "cancelled (REAPER had already read the command, or the file could not be taken back)")
+		a.logFailure(command, runID, "cancelled"+retractNote(back))
 		return nil, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
 	}
 }
@@ -600,9 +600,11 @@ func (w *takenWatch) queue(started time.Time, elapsed time.Duration, outcome str
 	w.mu.Lock()
 	back := w.taken
 	w.mu.Unlock()
-	if back == takenBackByUs || back == takeBackFailed {
+	if back == takenBackByUs {
 		return elapsed, false
 	}
+	// A take-back that failed leaves the file where it was: REAPER may read it later, in the late wait of a command that may run long, and
+	// then the watch sees it go and the command is read like any other.
 	if w.seen() {
 		w.mu.Lock()
 		defer w.mu.Unlock()
