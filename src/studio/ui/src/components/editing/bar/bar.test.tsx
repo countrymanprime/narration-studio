@@ -191,7 +191,7 @@ describe('play the selection', () => {
     expect(audio().volume).toBe(1);
     expect(state().playT).toBeNull();
     expect(state().sel).not.toBeNull();
-    expect(screen.getByText('/ 14:03', { exact: false }).parentElement?.textContent).toBe(`${clock(start)} / 14:03`);
+    expect(screen.getByText('/ 14:03', { exact: false }).parentElement?.textContent).toBe(`${clock(start, { full: true })} / 14:03`);
     vi.useRealTimers();
   });
   it('writes one line to the host log about how the play of words ended', () => {
@@ -334,7 +334,7 @@ describe('the selection summary', () => {
     dispatch({ type: 'select', anchor: 'p-1:0', head: 'p-1:1' });
     const live = screen.getByText('2 words').closest('[aria-live]');
     expect(live?.getAttribute('aria-live')).toBe('polite');
-    expect(live?.textContent).toMatch(/0:\d\d to 0:\d\d · \d\.\d s/);
+    expect(live?.textContent).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3} · \d\.\d s/);
     expect(live?.textContent).toContain('In the script');
   });
 

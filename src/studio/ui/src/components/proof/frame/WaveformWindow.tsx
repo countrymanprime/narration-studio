@@ -10,7 +10,7 @@ import { clock } from '../../../clock';
 import { plural } from '../../../plural';
 
 /** The ruler's clock: minutes always two digits, as the mock draws it. */
-const at = (seconds: number): string => clock(seconds, { minuteDigits: 2 });
+const at = (seconds: number): string => clock(seconds, { full: true });
 
 const WAVE_HEIGHT = 84;
 const OVERVIEW_HEIGHT = 34;

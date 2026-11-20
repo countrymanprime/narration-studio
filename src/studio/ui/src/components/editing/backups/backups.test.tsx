@@ -108,7 +108,7 @@ describe('the Backups tab', () => {
     await flush();
     const [first, second] = rows();
     expect(first!.textContent).toContain('Roll at ¶ 3');
-    expect(first!.textContent).toContain('1:20–5:31');
+    expect(first!.textContent).toContain('00:01:20.000–00:05:31.000');
     expect(first!.textContent).toContain('Oct 12');
     expect(first!.textContent).toContain('Kept');
     expect(second!.textContent).toContain('Delete words');
@@ -299,7 +299,7 @@ describe('a backup before each edit', () => {
     const sent = vi.spyOn(daw, 'backupAround');
     installBackupSteps(daw, places);
     await cut(daw).run();
-    expect(sent).toHaveBeenLastCalledWith({ chapterId: CHAPTER, firstToken: 0, lastToken: 1, label: 'Deleted 2 words and their audio at 0:00' });
+    expect(sent).toHaveBeenLastCalledWith({ chapterId: CHAPTER, firstToken: 0, lastToken: 1, label: 'Deleted 2 words and their audio at 00:00:00.650' });
     await stack(daw).run();
     expect(sent).toHaveBeenLastCalledWith({ chapterId: CHAPTER, firstToken: 10, lastToken: 65, label: 'Stack retries as takes' });
     const [row] = await daw.backups();

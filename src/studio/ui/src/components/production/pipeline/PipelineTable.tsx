@@ -4,6 +4,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { badgeClass, badgeStyle, toneColors } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../../primitives/Table';
+import { SpokenFigure } from '../../primitives/SpokenFigure';
 import { TitleSubtitle } from '../../primitives/TitleSubtitle';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { Notify } from '../../primitives/Toast';
@@ -34,7 +35,7 @@ const cellStatus = (cell: PipelineCell): StatusId => {
 };
 /**
  * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge. Rec.
- * holds "10:42" or a two-word state on one line and Est. its "0:14" (owner report, #2251: two columns, not one stacked), each with its
+ * holds "1h 12m" (or "<0h 01m", or a two-word state) on one line and Est. its "0h 14m" (owner report, #2251: two columns, not one stacked), each with its
  * info mark under a centred header. The mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter names to
  * two to five lines (alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
@@ -241,7 +242,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                   <RecordedCell figure={row.recorded} />
                 </TableCell>
                 <TableCell numeric align="center">
-                  {row.estimate}
+                  <SpokenFigure text={row.estimate} />
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {
                   const chip = recommendation && row.current === column && column !== 'prep';

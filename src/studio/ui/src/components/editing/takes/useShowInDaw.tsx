@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ShowInDawButton } from '../../engine/ShowInDaw';
+import { noteTime } from '../../proof/findingFormat';
 import { registerTakeControl } from './takeControls';
 
 /**
@@ -14,7 +15,9 @@ export function useShowInDawTakeControl(chapterId: string): void {
       registerTakeControl({
         id: 'show-in-daw',
         order: 1,
-        render: ({ passage }) => <ShowInDawButton size="sm" target={{ kind: 'passage', chapterId: latest.current, token: passage.firstToken }} />,
+        render: ({ passage }) => (
+          <ShowInDawButton size="sm" target={{ kind: 'passage', chapterId: latest.current, token: passage.firstToken }} when={noteTime} />
+        ),
       }),
     [],
   );

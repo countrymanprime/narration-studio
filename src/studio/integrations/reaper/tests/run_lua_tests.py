@@ -51,12 +51,21 @@ def build_host(lua: LuaRuntime, reaper_dir: Path, scratch: Path) -> object:
         Path(path).mkdir(parents=True, exist_ok=True)
         return 1
 
+    def removedir(path: str) -> bool:
+        # C's remove() (Lua's os.remove) does not remove a folder on Windows, so a test that frees a folder it made uses this.
+        try:
+            Path(path).rmdir()
+        except OSError:
+            return False
+        return True
+
     return lua.table_from(
         {
             "tmpdir": tmpdir,
             "listdir": listdir,
             "listsubdirs": listsubdirs,
             "makedirs": makedirs,
+            "removedir": removedir,
             "reaper_dir": str(reaper_dir),
             "is_windows": sys.platform == "win32",
         }

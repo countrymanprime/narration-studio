@@ -265,3 +265,39 @@ func TestReachabilityKnowsTheTimingSwitchFromAFreshHeartbeat(t *testing.T) {
 		t.Fatal("TimingOn() = true after a heartbeat without the field")
 	}
 }
+
+// The epoch counts the times the bridge may have started over: a heartbeat after a gap, for another project, or with an edit counter that went
+// down. A heartbeat that goes on as before does not move it (#3647: a consumer that holds something read from REAPER keeps the epoch it read in).
+func TestReachabilityEpochMovesOnlyWhenTheBridgeMayHaveStartedOver(t *testing.T) {
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	reach := NewReachabilityWithClock(nil, func() time.Time { return now })
+	beat := func(rpp, count string) {
+		reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", rpp, "0", count}})
+	}
+	beat("C:/p/Book.rpp", "7")
+	first := reach.Epoch()
+	now = now.Add(1500 * time.Millisecond)
+	beat("C:/p/Book.rpp", "7")
+	now = now.Add(1500 * time.Millisecond)
+	beat("C:/p/Book.rpp", "9") // an edit: the counter rises
+	if got := reach.Epoch(); got != first {
+		t.Fatalf("epoch %d after ordinary heartbeats, want %d", got, first)
+	}
+	now = now.Add(heartbeatTimeout + time.Second) // REAPER went quiet for longer than the timeout and came back
+	beat("C:/p/Book.rpp", "9")
+	gap := reach.Epoch()
+	if gap <= first {
+		t.Fatalf("epoch %d after a gap, want it moved past %d", gap, first)
+	}
+	now = now.Add(time.Second)
+	beat("C:/p/Other.rpp", "9") // another project
+	other := reach.Epoch()
+	if other <= gap {
+		t.Fatalf("epoch %d for another project, want it moved past %d", other, gap)
+	}
+	now = now.Add(time.Second)
+	beat("C:/p/Other.rpp", "2") // the counter went down: the project was reopened
+	if got := reach.Epoch(); got <= other {
+		t.Fatalf("epoch %d after the counter went down, want it moved past %d", got, other)
+	}
+}

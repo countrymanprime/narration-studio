@@ -60,7 +60,7 @@ func TestArmAnsweredAfterTheUsualWaitIsStillAnswered(t *testing.T) {
 			if command == "arm_only" {
 				_, err = actions.ArmOnly(context.Background(), testTrack)
 			} else {
-				_, err = actions.ArmLane(context.Background(), testTrack)
+				_, err = actions.ArmLane(context.Background(), testTrack, false)
 			}
 			if err != nil {
 				t.Fatalf("%s answered late failed: %v", command, err)

@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
@@ -8,13 +9,12 @@ import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
-import { changedButUnread } from '../chapterTracks/useChapterLinkActions';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
-import { chapterTrackButtonState, followLiveTracks, showableTrackGuid } from './chapterTrackButtonState';
+import { followLiveTracks, noShowableTrackReason, showableTrackGuid } from './chapterTrackButtonState';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
@@ -107,7 +107,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   // renamed in REAPER since the save reads Track missing / the new name here too, on the board, in the row menu and in the track panel (#3415).
   const liveTracks = useChapterTrackState({ enabled: true, when: active }).project?.tracks;
   const trackLinks = useMemo(
-    () => (savedLinks && liveTracks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
+    // Without the live list (loading, or it failed) the links still follow it as far as they can: several links are several, as in the panel.
+    () => (savedLinks ? { ...savedLinks, chapters: savedLinks.chapters.map((link) => followLiveTracks(link, liveTracks)) } : savedLinks),
     [savedLinks, liveTracks],
   );
   const [open, setOpen] = useState<Open>();
@@ -130,7 +131,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       try {
         await refreshLinks();
       } catch (error) {
-        notify(afterWrite ? changedButUnread(error) : describeApiError(error), 'error');
+        notify(afterWrite ? linkFailureSentence('unread', error) : describeApiError(error), 'error');
       }
     },
     [notify, refreshLinks],
@@ -254,11 +255,9 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         const linked = links?.chapters.some((entry) => entry.chapterId === row.id);
         const entry = links?.chapters.find((candidate) => candidate.chapterId === row.id);
         const trackGuid = showableTrackGuid(entry);
-        // A linked track REAPER no longer has is said to be missing, not "not linked" (the panel and the Engine row say so).
-        const noTrack =
-          entry && chapterTrackButtonState(entry).kind === 'missing'
-            ? 'The track linked to this chapter is missing from the project: choose another from the audio engine panel'
-            : 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
+        // Why Show in REAPER is off says what the link is (missing, several, only suggested, none), as the panel and the Engine row say.
+        // Links not read yet is not "nothing linked": the menu says it does not know yet (the board's Rec. cell still reads Not linked then, as before).
+        const noTrack = links ? noShowableTrackReason(entry) : 'The chapter links are still loading';
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
           { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },

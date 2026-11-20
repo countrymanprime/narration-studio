@@ -69,7 +69,7 @@ describe('useBoothLeaveGuard', () => {
       const running = setup({ recording: true, endUnconfirmed: () => true });
       act(() => void running.hook.result.current.leave('/script', running.go));
       expect(running.dialog()?.spec.title).toBe('Stop recording?');
-      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it.');
+      expect(running.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Script stops it and saves the take.');
       act(() => running.dialog()!.answer(false));
     });
 
@@ -130,7 +130,7 @@ describe('useBoothLeaveGuard', () => {
 
     it('Keep recording works while the end check hangs', async () => {
       const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: () => new Promise<boolean>(() => {}) });
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = t.hook.result.current.leave('/script', t.go);
       });
@@ -142,7 +142,7 @@ describe('useBoothLeaveGuard', () => {
 
     it('an end check that fails is not a confirmed end: one stop, and it leaves when that succeeds', async () => {
       const t = setup({ recording: false, endUnconfirmed: () => true, endConfirmed: async () => Promise.reject(new Error('no answer')) });
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = t.hook.result.current.leave('/script', t.go);
       });
@@ -177,7 +177,7 @@ describe('useBoothLeaveGuard', () => {
       decide: expect.any(Function),
       ask: {
         title: 'Stop recording?',
-        body: 'Audacity is recording. Leaving the Booth for Proof stops it.',
+        body: 'Audacity is recording. Leaving the Booth for Proof stops it and saves the take.',
         confirmLabel: 'Stop and leave',
         cancelLabel: 'Keep recording',
         safeDefault: true,
@@ -196,30 +196,32 @@ describe('useBoothLeaveGuard', () => {
     ['/somewhere-else', ''],
   ])('names where leaving goes: %s', (to, named) => {
     const { store } = setup();
-    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it.` } });
+    expect(store.checkLeave(to)).toMatchObject({ ask: { body: `REAPER is recording. Leaving the Booth${named} stops it and saves the take.` } });
   });
 
   // #3529 (ux-reviewer): a chapter link into the Booth during a take is a move within the Booth: the take stops, the narrator does not leave, and the question says so.
   it('a destination that is the Booth itself reads as opening another chapter, not as leaving', () => {
     const { store } = setup();
-    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({ ask: { body: 'REAPER is recording. Opening another chapter stops it.' } });
+    expect(store.checkLeave('/booth?chapter=chapter-3')).toMatchObject({
+      ask: { body: 'REAPER is recording. Opening another chapter stops it and saves the take.' },
+    });
   });
 
   it('the question the Booth asks for its own exit names the destination too', () => {
     const t = setup();
     act(() => void t.hook.result.current.leave('/proof', t.go));
-    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+    expect(t.dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it and saves the take.');
     act(() => t.dialog()!.answer(false));
   });
 
   it('names the built-in recorder', () => {
     const { store } = setup({ daw: { name: 'the built-in recorder' } });
-    expect(store.checkLeave('/x')).toMatchObject({ ask: { body: 'The built-in recorder is recording. Leaving the Booth stops it.' } });
+    expect(store.checkLeave('/x')).toMatchObject({ ask: { body: 'The built-in recorder is recording. Leaving the Booth stops it and saves the take.' } });
   });
 
   it('keep-recording-stays-and-changes-nothing; the-take-is-held-while-the-question-is-open', async () => {
     const { overlay, stopRecording, go, hook, dialog } = setup();
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/proof', go);
     });
@@ -241,7 +243,7 @@ describe('useBoothLeaveGuard', () => {
       return ok;
     });
     go.mockImplementation(() => order.push('go'));
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/script', go);
     });
@@ -262,7 +264,7 @@ describe('useBoothLeaveGuard', () => {
       return ok;
     });
     go.mockImplementation(() => order.push('go'));
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/script', go);
     });
@@ -288,7 +290,7 @@ describe('useBoothLeaveGuard', () => {
       stop,
     );
     go.mockImplementation(() => order.push('go'));
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/script', go);
     });
@@ -301,7 +303,7 @@ describe('useBoothLeaveGuard', () => {
   it('a-leave-mid-take-flushes-the-run: nothing is flushed when the stop is refused, the question is declined, or the app did not start the take', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' };
     const refused = setup({ flush: vi.fn(async () => {}) }, async () => refusal);
-    let a: Promise<void> = Promise.resolve();
+    let a: Promise<unknown> = Promise.resolve();
     act(() => {
       a = refused.hook.result.current.leave('/script', refused.go);
     });
@@ -313,7 +315,7 @@ describe('useBoothLeaveGuard', () => {
     expect(refused.session.flush).not.toHaveBeenCalled();
 
     const foreign = setup({ startedByApp: false, flush: vi.fn(async () => {}) });
-    let b: Promise<void> = Promise.resolve();
+    let b: Promise<unknown> = Promise.resolve();
     act(() => {
       b = foreign.hook.result.current.leave('/script', foreign.go);
     });
@@ -326,7 +328,7 @@ describe('useBoothLeaveGuard', () => {
   it('a refused stop keeps the question open with the host sentence and does not leave', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'REAPER would not stop.', undoSteps: 0, refused: 'REAPER would not stop.' };
     const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/script', go);
     });
@@ -342,10 +344,113 @@ describe('useBoothLeaveGuard', () => {
     expect(go).not.toHaveBeenCalled();
   });
 
+  // #3555 item 2: the open question follows the DAW, and a take the DAW records is stopped before the narrator leaves.
+  describe('the question follows the DAW', () => {
+    it('is asked again as the quiet DAW\'s question when the DAW goes quiet while "Stop recording?" is open', async () => {
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Leave for Script?', cancelLabel: 'Stay', confirmLabel: 'Stop and leave' });
+      expect(dialog()?.spec.body).toBe('REAPER may still be recording. Leaving tries to stop the take.');
+      act(() => dialog()!.answer(false));
+    });
+
+    // Every end is unconfirmed until the DAW has been read once: a take that ends with the DAW answering keeps "Stop recording?", it is not rewritten to "may still be recording".
+    it('keeps the running question when the take ends and the DAW answers the read that follows', async () => {
+      let unconfirmed = true;
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => unconfirmed, endConfirmed: async () => true });
+      await flush();
+      await flush();
+      unconfirmed = false;
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => unconfirmed, endConfirmed: async () => true });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Stop recording?', cancelLabel: 'Keep recording' });
+      act(() => dialog()!.answer(false));
+    });
+
+    it('is not asked again when the take merely ends with the DAW answering: Stop and leave then leaves (#3342)', async () => {
+      const { go, hook, dialog, session } = setup({});
+      act(() => void hook.result.current.leave('/script', go));
+      hook.rerender({ ...session, recording: false });
+      await flush();
+      expect(dialog()?.spec.title).toBe('Stop recording?');
+      act(() => dialog()!.answer(false));
+    });
+
+    it('a refusal after the DAW went quiet offers Stay, not Keep recording', async () => {
+      let refuse: (result: DawResult) => void = () => undefined;
+      const { go, hook, dialog, session } = setup({}, () => new Promise<DawResult>((resolve) => (refuse = resolve)));
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true, endConfirmed: async () => false });
+      refuse({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' });
+      await flush();
+      await flush();
+      expect(dialog()?.spec).toMatchObject({ title: 'Could not stop the take', cancelLabel: 'Stay', confirmLabel: 'Leave anyway' });
+      act(() => dialog()!.answer(false));
+    });
+
+    it('a refusal is not asked again when the DAW goes quiet while it is open', async () => {
+      const refusal: DawResult = { ok: false, changed: false, message: 'Disk full.', undoSteps: 0, refused: 'Disk full.' };
+      const { go, hook, dialog, session } = setup({}, async () => refusal);
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(dialog()?.spec.title).toBe('Could not stop the take');
+      hook.rerender({ ...session, recording: false, endUnconfirmed: () => true });
+      await flush();
+      expect(dialog()?.spec.title).toBe('Could not stop the take');
+      act(() => dialog()!.answer(false));
+    });
+
+    it('stops a take the DAW records although the end was believed over, and leaves once it is stopped', async () => {
+      const { go, hook, dialog, stopRecording } = setup({ recording: false, endUnconfirmed: () => true, dawRecordingNow: async () => true });
+      act(() => void hook.result.current.leave('/script', go));
+      act(() => dialog()!.answer(true));
+      await flush();
+      await flush();
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(go).toHaveBeenCalledWith('/script'));
+    });
+
+    it('with the DAW not recording, or the read failing, leaves without a stop as before', async () => {
+      for (const dawRecordingNow of [async () => false, () => Promise.reject(new Error('no answer'))]) {
+        const { go, hook, dialog, stopRecording } = setup({ recording: false, endUnconfirmed: () => true, dawRecordingNow });
+        act(() => void hook.result.current.leave('/script', go));
+        act(() => dialog()!.answer(true));
+        await flush();
+        await flush();
+        expect(stopRecording).not.toHaveBeenCalled();
+        await waitFor(() => expect(go).toHaveBeenCalledWith('/script'));
+      }
+    });
+  });
+
+  it('a refused stop on a chapter question says it opens: Open anyway, and "open it anyway" in the sentence', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'Disk full.', undoSteps: 0, refused: 'Disk full.' };
+    const { go, hook, dialog } = setup({}, async () => refusal);
+    act(() => void hook.result.current.leave('/booth?chapter=chapter-2', go));
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    expect(dialog()?.spec.confirmLabel).toBe('Open anyway');
+    expect(dialog()?.spec.body).toContain('You can open it anyway, but it may keep recording.');
+    expect(dialog()?.spec.body).not.toContain('leave');
+    act(() => dialog()!.answer(false));
+  });
+
   it('a refused stop does not trap the narrator: Leave anyway goes without a second stop', async () => {
     const refusal: DawResult = { ok: false, changed: false, message: 'REAPER is not answering.', undoSteps: 0, refused: 'REAPER is not answering.' };
     const { go, hook, dialog, stopRecording } = setup({}, async () => refusal);
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/script', go);
     });
@@ -360,8 +465,8 @@ describe('useBoothLeaveGuard', () => {
 
   it('asked-once: a second exit does not stack a dialog', async () => {
     const { overlay, go, hook, dialog } = setup();
-    let a: Promise<void> = Promise.resolve();
-    let b: Promise<void> = Promise.resolve();
+    let a: Promise<unknown> = Promise.resolve();
+    let b: Promise<unknown> = Promise.resolve();
     act(() => {
       a = hook.result.current.leave('/proof', go);
       b = hook.result.current.leave('/proof', go);
@@ -396,7 +501,7 @@ describe('useBoothLeaveGuard', () => {
   it('only-the-app-started-recording-is-stopped', async () => {
     const { store, stopRecording, go, hook, dialog } = setup({ startedByApp: false });
     expect(store.checkLeave('/x')).toMatchObject({ ask: { body: expect.stringContaining('keeps recording') } });
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = hook.result.current.leave('/x', go);
     });
@@ -460,7 +565,7 @@ describe('useBoothLeaveGuard', () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => (release = resolve));
     const { store, hook, dialog, go, session } = setup({ flush: () => gate });
-    let first: Promise<void> = Promise.resolve();
+    let first: Promise<unknown> = Promise.resolve();
     act(() => {
       first = hook.result.current.leave('/script', go);
     });
@@ -470,7 +575,7 @@ describe('useBoothLeaveGuard', () => {
     // The stop landed (the Booth reads no take) and the run is still being written.
     hook.rerender({ ...session, recording: false });
     const second = vi.fn();
-    let secondDone: Promise<void> = Promise.resolve();
+    let secondDone: Promise<unknown> = Promise.resolve();
     act(() => {
       secondDone = hook.result.current.leave('/settings', second);
     });
@@ -478,7 +583,7 @@ describe('useBoothLeaveGuard', () => {
     const verdict = store.checkLeave('/settings');
     expect(verdict).not.toBe('allow');
     let shellMoved: boolean | undefined;
-    let shellDone: Promise<void> = Promise.resolve();
+    let shellDone: Promise<unknown> = Promise.resolve();
     if (verdict !== 'allow')
       act(() => {
         shellDone = verdict.decide!().then((value) => void (shellMoved = value));
@@ -497,7 +602,7 @@ describe('useBoothLeaveGuard', () => {
     let landed!: (took: boolean) => void;
     const settle = vi.fn(() => new Promise<boolean>((resolve) => (landed = resolve)));
     const a = setup({ settle });
-    let done: Promise<void> = Promise.resolve();
+    let done: Promise<unknown> = Promise.resolve();
     act(() => {
       done = a.hook.result.current.leave('/script', a.go);
     });
@@ -524,7 +629,7 @@ describe('useBoothLeaveGuard', () => {
     const yesAndWait = async (over: Partial<BoothLeaveSession>, stop?: () => Promise<DawResult>) => {
       vi.useFakeTimers();
       const t = setup(over, stop);
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = t.hook.result.current.leave('/script', t.go);
       });
@@ -629,7 +734,7 @@ describe('useBoothLeaveGuard', () => {
         vi.useFakeTimers();
         const t = setup({ endConfirmed: async () => true }, never);
         render(<OverlayHost service={t.overlay} />);
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -656,7 +761,7 @@ describe('useBoothLeaveGuard', () => {
         vi.useFakeTimers();
         const arrived = vi.fn();
         const t = setup({ endConfirmed: async () => true, arrived }, never);
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -689,7 +794,7 @@ describe('useBoothLeaveGuard', () => {
 
       it('a take already over when the narrator says yes (the DAW answering) is not stopped, and they leave', async () => {
         const t = setup({ endConfirmed: async () => true });
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -710,7 +815,7 @@ describe('useBoothLeaveGuard', () => {
           () => new Promise<DawResult>((resolve) => setTimeout(() => (order.push('reply'), resolve(ok)), 500)),
         );
         t.go.mockImplementation(() => order.push('go'));
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -727,7 +832,7 @@ describe('useBoothLeaveGuard', () => {
       it('a refusal that arrives as the take ends leaves without the refusal question', async () => {
         let refuse: (result: DawResult) => void = () => {};
         const t = setup({ endConfirmed: async () => true }, () => new Promise<DawResult>((resolve) => (refuse = resolve)));
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -747,7 +852,7 @@ describe('useBoothLeaveGuard', () => {
         vi.useFakeTimers();
         const t = setup({ endConfirmed: async () => false }, never);
         render(<OverlayHost service={t.overlay} />);
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -789,7 +894,7 @@ describe('useBoothLeaveGuard', () => {
           { endConfirmed: async () => false },
           async () => ({ ok: false, changed: false, message: 'No answer.', undoSteps: 0, refused: 'No answer.' }) as DawResult,
         );
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -806,7 +911,7 @@ describe('useBoothLeaveGuard', () => {
 
       it('a take that ended during the question is not stopped again when the narrator says yes', async () => {
         const t = setup();
-        let done: Promise<void> = Promise.resolve();
+        let done: Promise<unknown> = Promise.resolve();
         act(() => {
           done = t.hook.result.current.leave('/script', t.go);
         });
@@ -877,7 +982,7 @@ describe('useBoothLeaveGuard', () => {
 
     it('the question closes by itself, and the narrator stays, when the start ends at its limit with no take', async () => {
       const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = hook.result.current.leave('/proof', go);
       });
@@ -891,7 +996,7 @@ describe('useBoothLeaveGuard', () => {
 
     it('a question about a real take stays when that take ends by itself: Stop and leave still leaves', async () => {
       const { overlay, go, hook, session, dialog } = setup({ recording: true });
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = hook.result.current.leave('/proof', go);
       });
@@ -916,14 +1021,14 @@ describe('useBoothLeaveGuard', () => {
 
     it('the question stays when the start lands as a take: Stop and leave still stops it', async () => {
       const { overlay, stopRecording, go, hook, session, dialog } = setup({ startPending: true });
-      let done: Promise<void> = Promise.resolve();
+      let done: Promise<unknown> = Promise.resolve();
       act(() => {
         done = hook.result.current.leave('/proof', go);
       });
       hook.rerender({ ...session, recording: true, startPending: false });
       // The question is asked again as the recording question once the start has landed (REAPER is recording, Stop is behind it).
       await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
-      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it.');
+      expect(dialog()?.spec.body).toBe('REAPER is recording. Leaving the Booth for Proof stops it and saves the take.');
       expect(overlay.getSnapshot().dialogs).toHaveLength(1);
       act(() => dialog()!.answer(true));
       await act(() => done);

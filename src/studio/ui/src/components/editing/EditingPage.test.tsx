@@ -443,7 +443,7 @@ describe('EditingPage', () => {
       expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
     });
 
-    it('shows a refused link in the dialog and keeps it open', async () => {
+    it('says a refused link as a toast and keeps the dialog open', async () => {
       mount({
         api: {
           ...unlinked,
@@ -455,7 +455,10 @@ describe('EditingPage', () => {
       const open = await dialog();
       await within(open).findByRole('combobox');
       fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
-      expect((await within(open).findByRole('alert')).textContent).toContain('The chapter is not in the manuscript.');
+      await waitFor(() =>
+        expect(overlay.getSnapshot().toasts.some((t) => /The link could not be made: .*The chapter is not in the manuscript\./.test(t.text))).toBe(true),
+      );
+      expect(within(open).queryByRole('alert')).toBeNull();
     });
 
     it('says when the saved project has no tracks, and a failed read of them, each with Check again', async () => {
@@ -1102,7 +1105,7 @@ describe('EditingPage', () => {
     const bar = () => screen.getByRole('toolbar', { name: 'Playback and selection' });
     // A card open on the finding's word, and the playhead where the link put it.
     await waitFor(() => expect(document.querySelector('[data-flagcard]')).not.toBeNull());
-    expect(bar().textContent).toContain(`${clock(1.1)} /`);
+    expect(bar().textContent).toContain('00:00:01.800 /');
     press('ArrowDown', { altKey: true });
     expect(onChapter).toHaveBeenLastCalledWith('c2');
     expect(await screen.findByText('This chapter has no text yet.')).toBeTruthy();
@@ -1113,7 +1116,7 @@ describe('EditingPage', () => {
     // Cursor, card and playhead are gone; the old chapter's keys did not come back with it.
     expect(cursorKey()).toBeNull();
     expect(document.querySelector('[data-flagcard]')).toBeNull();
-    expect(bar().textContent).toContain('0:00 /');
+    expect(bar().textContent).toContain('00:00:00.000 /');
     // A selection does not survive a step either.
     fireEvent.mouseDown(word('p1:1'), { button: 0 });
     fireEvent.mouseDown(word('p1:3'), { button: 0, shiftKey: true });
@@ -1272,7 +1275,7 @@ describe('EditingPage', () => {
       });
       fireEvent.click(await within(footer).findByRole('button', { name: /^Show in / }));
       await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
-      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to 1:05 in /)));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 00:01:05.000 in REAPER.'));
     });
 
     it("the Clean up tab starts with the chapter's retry bar", async () => {
@@ -1440,7 +1443,7 @@ describe('EditingPage loading state', () => {
   it('draws the skeleton in the script’s own columns, with the bar’s band under it', async () => {
     mount({ api: { manuscriptChapters: never } });
     const busy = await screen.findByRole('group', { name: 'Loading the editor' });
-    expect([...busy.querySelectorAll('div')].some((node) => node.className.includes('grid-cols-[76px_minmax(0,1fr)]'))).toBe(true);
+    expect([...busy.querySelectorAll('div')].some((node) => node.className.includes('grid-cols-[6.75rem_minmax(0,1fr)]'))).toBe(true);
     expect([...busy.children].some((node) => node.className.includes('border-t'))).toBe(true);
   });
 

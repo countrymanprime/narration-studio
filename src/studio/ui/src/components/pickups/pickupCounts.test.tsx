@@ -96,7 +96,7 @@ describe('every pickup count comes from the Pickups list', () => {
       </Page>,
     );
     const term = await screen.findByText('Pickups', { selector: 'dt' });
-    await waitFor(() => expect(term.parentElement?.querySelector('dd')?.textContent).toBe(hm(OPEN * PICKUP_HOURS)));
+    await waitFor(() => expect(term.parentElement?.querySelector('dd [aria-hidden="true"]')?.textContent).toBe(hm(OPEN * PICKUP_HOURS)));
   });
 
   it("the Pickups page's chapter groups add up to the same count", async () => {

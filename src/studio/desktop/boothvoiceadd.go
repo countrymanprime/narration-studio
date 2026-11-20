@@ -106,7 +106,8 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	var created bridge.CreatedTrack
 	adopted := false
 	if svc.boothVoices.isPending(link, name) {
-		// An earlier create of this name was not confirmed: look before sending another (#3645).
+		// An earlier create of this name was not confirmed: look before sending another (#3645). The list is read again, never the cached one.
+		svc.tracksCache.Invalidate()
 		if found, ok := h.adoptCreatedVoice(svc, link, name, voices); ok {
 			created, adopted = found, true
 			svc.boothVoices.clearPending(link, name)
@@ -116,6 +117,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 	}
 	if !adopted {
 		created, err = child.CreateChildTrack(ctx, name, link)
+		svc.tracksCache.Invalidate() // a create that timed out may still have made the track: the read-back below reads REAPER again
 	}
 	if errors.Is(err, bridge.ErrNoAnswer) || errors.Is(err, context.DeadlineExceeded) {
 		// REAPER did not confirm in time (#3645; ErrAnswerLate: it had read the command): the track may well exist. Read the folder back and

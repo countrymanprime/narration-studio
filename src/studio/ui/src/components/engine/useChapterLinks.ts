@@ -6,7 +6,8 @@ import { usePort } from '../../ports/usePort';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
-import { changedButUnread, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -91,13 +92,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
-  // A change was written and the list could not be read again since: the next failed read says so too.
-  const staleAfterChange = useRef(false);
-  // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes the "change was made but not read" line away: the list
-  // under it is current again.
+  // Any later read of the links that answers (the timer, a window focus, the Refresh button) takes a failed read's line away: the list under it is current again.
   useEffect(() => {
-    if (!staleAfterChange.current) return;
-    staleAfterChange.current = false;
     setError('');
   }, [linksReadAt]);
 
@@ -126,12 +122,11 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     reload().then(
       () => {
         // A later read that answers takes the failure of an earlier one away (a host that recovered).
-        staleAfterChange.current = false;
         if (active) setError('');
       },
       (reason) => {
-        // After a change that was made, a list that still cannot be read says so, not just the host's error.
-        if (active) setError(staleAfterChange.current ? changedButUnread(reason) : apiErrorMessage(reason));
+        // Nothing was written by this read: the host's own words, in the page.
+        if (active) setError(apiErrorMessage(reason));
       },
     );
     return () => {
@@ -140,7 +135,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // refreshKey has no meaning of its own: it only asks this effect to run again after a change made elsewhere (chapter sync's panel).
   }, [reload, refreshKey, enabled]);
 
-  const change = (chapterId: string, write: () => Promise<unknown>, quietAfter = false) => {
+  const change = (chapterId: string, kind: 'set' | 'unlink', write: () => Promise<unknown>, quietAfter = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusyChapterId(chapterId);
@@ -158,18 +153,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       .then(() =>
         // The links only: a link change moves no chapter (its title, kind or order), and the chapter list is the measured one, every chapter of the
         // book (#3272). The write answered with the links that remain; this is the reconcile.
-        refreshLinks().then(
-          () => {
-            staleAfterChange.current = false;
-          },
-          (reason: unknown) => {
-            staleAfterChange.current = true;
-            setError(changedButUnread(reason));
-          },
-        ),
+        refreshLinks().catch((reason: unknown) => {
+          // The change was made: said once, as a toast like every failed link write (#3365), never as a line in the page.
+          overlay.toast(linkFailureSentence('unread', reason), { tone: 'error' });
+        }),
       )
       .then(() => onChanged())
-      .catch((reason) => setError(written ? changedButUnread(reason) : apiErrorMessage(reason)))
+      .catch((reason) => overlay.toast(linkFailureSentence(written ? 'unread' : kind, reason), { tone: 'error' }))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
@@ -183,12 +173,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // A chapter with several links is not linked to one track: choosing one of them replaces the rest, so it reaches the host.
     const link = chapterLink(mappings, chapterId);
     if (link.state === 'linked' && link.trackGuid === trackGuid) return;
-    change(chapterId, () => actions.set(chapterId, trackGuid, nameOf));
+    change(chapterId, 'set', () => actions.set(chapterId, trackGuid, nameOf));
   };
   // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
   const unlink = (chapterId: string) =>
     change(
       chapterId,
+      'unlink',
       async () => {
         const result = await actions.unlink(chapterId);
         applyMappings(result.mappings);
@@ -206,7 +197,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     const settled = () => {
       if (!active) return;
       setCreatingChapterId('');
-      reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
+      reload().then(onChanged, (reason: unknown) => overlay.toast(linkFailureSentence('unread', reason), { tone: 'error' }));
     };
     pending.done.then(settled, settled);
     return () => {
@@ -229,7 +220,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       if (result.outcome === 'created') {
         setAdded((previous) => [...previous, ...createdTracks(result, Date.now())]);
         // The track was added and linked: a re-read that fails is the table's error, never a failed create.
-        await reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
+        await reload().then(onChanged, (reason: unknown) => overlay.toast(linkFailureSentence('unread', reason), { tone: 'error' }));
       }
       return result;
     } finally {

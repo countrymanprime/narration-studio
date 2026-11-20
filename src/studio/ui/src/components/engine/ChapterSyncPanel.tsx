@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
@@ -126,14 +127,16 @@ export function ChapterSyncPanel({
   const link = async (chapterId: string, trackGuid: string) => {
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
+    let written = false;
     try {
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
+      written = true;
       notify(linkedNotice);
       await loadPreview();
       onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'set', error), 'error');
     } finally {
       setLinkingChapterId('');
     }

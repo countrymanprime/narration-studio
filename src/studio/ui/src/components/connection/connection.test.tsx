@@ -10,7 +10,7 @@ import { WIRE_CHAPTERS } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
-import { createOverlayService } from '../../overlay/overlayService';
+import { createOverlayService, overlay as appOverlay } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
@@ -487,9 +487,11 @@ describe('the not-linked dialog', () => {
       chapterTrackCreate,
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Create a new track' }));
-    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    // A refusal and a failed call are both said as an error toast (#3365): the dialog holds no line for them.
+    await waitFor(() => expect(appOverlay.getSnapshot().toasts.map((t) => t.text)).toContain(message));
+    expect(screen.queryByRole('alert')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Create a new track' }));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be added: .*timed out/));
+    await waitFor(() => expect(appOverlay.getSnapshot().toasts.some((t) => /could not be added: .*timed out/.test(t.text))).toBe(true));
     expect(onLinked).not.toHaveBeenCalled();
   });
 
@@ -499,9 +501,12 @@ describe('the not-linked dialog', () => {
       chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
       chapterTrackCreate,
     });
-    expect(await screen.findByText('Audacity cannot add a track from this app.')).toBeTruthy();
-    const button = screen.getByRole('button', { name: 'Create a new track' });
+    const button = await screen.findByRole('button', { name: 'Create a new track' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
+    // The reason is on the tooltip, not a line in the dialog (#3365).
+    expect(screen.queryByText('Audacity cannot add a track from this app.')).toBeNull();
+    await userEvent.hover(button);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Audacity cannot add a track from this app.');
     await userEvent.click(button);
     expect(chapterTrackCreate).not.toHaveBeenCalled();
   });

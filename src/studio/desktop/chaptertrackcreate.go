@@ -249,6 +249,7 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return trackCreateUnavailable(name, title, support, noun), nil
 	}
 	created, voice, err := createChapterTrack(ctx, creator, title, folders)
+	svc.tracksCache.Invalidate() // a create that timed out may still have made the track: the next list is read again
 	if err != nil {
 		return trackCreateError(name, title, err, noun), nil
 	}

@@ -208,6 +208,31 @@ export const boothDrivers: Record<string, Driver> = {
       .getByText(/has no track to record on/)
       .waitFor();
   },
+  // The DAW cannot add a track from the app: Create is off and its reason is on its tooltip, not a line in the dialog (#3365).
+  'record-unlinked-create-off': async (page) => {
+    await openBooth(page, `${UNLINKED}&mockDawCreate=off`);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    const create = dialog.getByRole('button', { name: 'Create a new track' });
+    await create.waitFor();
+    await create.hover();
+    await page
+      .getByRole('tooltip')
+      .getByText(/cannot add a track from this app/)
+      .waitFor();
+  },
+  // The host refuses the link: an error toast over the open dialog, which stays for a retry (#3365).
+  'record-unlinked-link-refused': async (page) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterTrackSet: () => Promise.reject(new Error('That chapter is not in the manuscript.')),
+      };
+    });
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
+    await dialog.getByRole('button', { name: 'Link track' }).click();
+    await page.getByText('The link could not be made: That chapter is not in the manuscript.').waitFor();
+  },
   // The chapter's linked track was deleted in the DAW: the host answers track_missing and the dialog says the track is not in the project.
   'record-track-missing': async (page) => {
     await openBoothTrackMissing(page);

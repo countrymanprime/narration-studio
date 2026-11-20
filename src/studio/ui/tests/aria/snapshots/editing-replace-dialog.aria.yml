@@ -4,8 +4,8 @@
 # overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
 - main:
   - region "Script editor":
-    - toolbar "Playback and selection": /4 words 0:\d+ to 0:\d+ · 1\.5 s In the script/
-- status: /4 words selected, 0:\d+ to 0:\d+/
+    - toolbar "Playback and selection": /4 words \d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3} · 1\.5 s In the script/
+- status: /4 words selected, \d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3}/
 - alert
 - status
 - dialog "Replace 4 words with another narrator's audio":
@@ -19,7 +19,7 @@
     - textbox "Name another narrator"
     - button "Add"
   - region "Their stretch":
-    - img /Their file, \d+:\d+ long, with 0:\d+ to 0:\d+ chosen/
+    - img /Their file, \d+:\d+ long, with \d{2}:\d{2}:\d{2}\.\d{3} to \d{2}:\d{2}:\d{2}\.\d{3} chosen/
     - textbox "From (seconds)"
     - textbox "To (seconds)"
   - region "Level and length":

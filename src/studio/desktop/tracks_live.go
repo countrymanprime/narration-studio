@@ -76,7 +76,7 @@ func trackListerFrom(svc hostServices) (dawport.TrackLister, dawport.Support) {
 		}
 		return nil, dawport.Support{Reason: dawport.ReasonFailed, Message: err.Error()}
 	}
-	return lister, dawport.Support{Available: true}
+	return withTracksCache(svc, lister), dawport.Support{Available: true}
 }
 
 // tracksLiveIn reads the project's tracks from lister when the engine has the selected project file open, else from that file.

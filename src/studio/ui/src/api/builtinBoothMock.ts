@@ -51,7 +51,7 @@ export function createBuiltinBoothRecordMock(deps: Deps): Pick<TeleprompterApi, 
       const picked = await microphone();
       if ('outcome' in picked) return picked;
       // A refusal the mock DAW was scripted to give (control.refuseNext) and the transport that the Booth hears.
-      const gate = deps.control.record('start');
+      const gate = deps.control.record('start', chapterId);
       if (gate) return refused('failed', gate.message);
       try {
         await deps.recorder.startTake(picked.device);

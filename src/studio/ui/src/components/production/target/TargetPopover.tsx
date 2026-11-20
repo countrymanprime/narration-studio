@@ -1,5 +1,6 @@
 import type { ProductionRateBasis } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
+import { SpokenFigure } from '../../primitives/SpokenFigure';
 import { hm, num } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
@@ -22,7 +23,10 @@ function Cell({ name, rate, target, on }: { name: string; rate: string; target: 
         <b>{rate}</b> <small>w/h</small>
       </span>
       <span className="text-xs text-[var(--text-muted)]">
-        Target <b className="font-mono text-[var(--text)]">{target}</b>
+        Target{' '}
+        <b className="font-mono text-[var(--text)]">
+          <SpokenFigure text={target} />
+        </b>
       </span>
     </div>
   );
