@@ -194,7 +194,7 @@ describe('an unlinked chapter in the Booth', () => {
 
   // #3670: the entry arm found no track for the unlinked chapter; the track just created is armed and monitored now, without a second press.
   it('asks the DAW to arm the voice of the track it just created', async () => {
-    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '' }));
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
     renderUnlinked({ dawArmBoothVoice } as Partial<NarrationApi>);
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
     const before = dawArmBoothVoice.mock.calls.length;

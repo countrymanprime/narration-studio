@@ -154,7 +154,10 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, recorder 
 	svc.boothVoices.clearPending(link, name) // only now: a refusal after the lane was found (a take, no creator) leaves the mark for the next press
 	if _, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder, Reporter: h.persist}).AddTrackCharacters(added, characterIDs); err != nil {
 		// The track is in the DAW: the narrator is told the assignment did not save, and the voice is still chosen.
-		h.chooseAndArmAddedVoice(svc, recorder, engine, chapterID, before, created.GUID)
+		armed := h.chooseAndArmAddedVoice(svc, recorder, engine, chapterID, before, created.GUID)
+		if armed.Message != "" {
+			return BoothVoiceAdded{}, fmt.Errorf("the track “%s” was added, but its characters were not saved (%w), and it was not armed: %s", added, err, armed.Message)
+		}
 		return BoothVoiceAdded{}, fmt.Errorf("the track “%s” was added, but its characters were not saved: %w", added, err)
 	}
 	result := BoothVoiceAdded{Outcome: "added", TrackGUID: created.GUID, Name: added}
