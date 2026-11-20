@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -73,7 +74,7 @@ func (a *Actions) CreateFolderTrack(ctx context.Context, name string, children .
 	}
 	cleaned := make([]string, 0, len(children))
 	for _, child := range children {
-		child = strings.TrimSpace(lineBreaks.Replace(child))
+		child = strings.TrimSpace(lineBreaks.ReplaceAllString(child, " "))
 		if child == "" {
 			return CreatedFolder{}, ErrTrackNameEmpty
 		}
@@ -86,8 +87,8 @@ func (a *Actions) CreateFolderTrack(ctx context.Context, name string, children .
 	return a.create(ctx, name, rest...)
 }
 
-// lineBreaks is what the script turns into a space inside a track name (narration_track_create.lua, clean_name).
-var lineBreaks = strings.NewReplacer("\r", " ", "\n", " ", "\t", " ")
+// lineBreaks is what the script turns into one space inside a track name: a run of them (narration_track_create.lua, clean_name).
+var lineBreaks = regexp.MustCompile(`[\r\n\t]+`)
 
 func (a *Actions) createTrack(ctx context.Context, name string, parent ...string) (CreatedTrack, error) {
 	created, err := a.create(ctx, name, parent...)

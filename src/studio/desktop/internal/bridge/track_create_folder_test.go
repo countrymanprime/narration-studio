@@ -80,7 +80,7 @@ const (
 )
 
 func TestCreateFolderTrackSendsEveryChildInOrderAndReadsThemBack(t *testing.T) {
-	// The folder, then the children in the order asked for (#3748): track_create|run|name||Narrator|Mara|Extras. The script answers every child
+	// The folder, then the children in the order asked for (#3748): track_create|run|name||Narrator|Mara\nExtras (the children after the first in one field). The script answers every child
 	// after the first as TRACK_CHILD before TRACK_CREATED, which carries the folder and the first child.
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
@@ -162,7 +162,7 @@ func TestCreateFolderTrackSendsEveryChildAfterTheFirstInOneFieldWhateverTheirNum
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		return [][]string{{"TRACK_CREATED", run(command), createdTrack, "2", command[3], createdChild, "3", command[5]}}
 	})
-	if _, err := actions.CreateFolderTrack(context.Background(), "Chapter 2", "Narrator", "Mara", "Extras", "Dragon", "King\nGuard", "Page"); err != nil {
+	if _, err := actions.CreateFolderTrack(context.Background(), "Chapter 2", "Narrator", "Mara", "Extras", "Dragon", "King\r\n\nGuard", "Page"); err != nil {
 		t.Fatal(err)
 	}
 	commands := fake.commands()
