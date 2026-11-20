@@ -39,6 +39,7 @@ export function StudioProvider({
   const system = usePort('system');
   const nameRef = useRef('the DAW');
   nameRef.current = daw ? dawShortName(daw) : 'the DAW';
+  const chapterSync = usePort('chapterSync');
   const dawPort = usePort('daw');
   const dawRef = useRef(dawPort);
   dawRef.current = dawPort;
@@ -55,7 +56,11 @@ export function StudioProvider({
   const [createdStore] = useState(() =>
     createStudioStore({
       registry: createSlots(manuscript, bookmarks),
-      subscribe: createHostEvents(system),
+      subscribe: createHostEvents({
+        subscribeJobEnded: system.subscribeJobEnded,
+        subscribeRecordEnded: (handler) => dawRef.current.subscribeRecordEnded?.(handler) ?? (() => undefined),
+        subscribeChapterSync: (handler) => chapterSync.subscribeChapterSync(handler),
+      }),
       // The failure is recorded in the slot's `errors` for the page that reads it; a warning, because a slot that cannot be read is handled, not a crash.
       onError: (slot, error) => console.warn(`studio slot ${slot}:`, error),
     }),

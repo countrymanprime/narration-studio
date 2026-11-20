@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { announceChapterListWritten } from '../api/chapterListWrites';
 import { createHostEvents, createSlots } from './slots';
 
 afterEach(() => vi.restoreAllMocks());
@@ -7,7 +8,7 @@ describe('slots-registry-has-chapters', () => {
   it('reads chapters through the port, is stale on job:ended and reloads on focus', async () => {
     const manuscriptChapters = vi.fn().mockResolvedValue([]);
     const { chapters } = createSlots({ manuscriptChapters }, { bookmarksList: vi.fn() });
-    expect(chapters.events).toEqual(['job:ended']);
+    expect(chapters.events).toEqual(['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync']);
     expect(chapters.refreshOnFocus).toBe(true);
     await chapters.load();
     expect(manuscriptChapters).toHaveBeenCalledOnce();
@@ -49,5 +50,50 @@ describe('slots-registry-has-bookmarks', () => {
     await bookmarks.load();
     expect(bookmarksList).toHaveBeenCalledOnce();
     expect(bookmarks.schema['~standard'].validate([])).toMatchObject({ value: [] });
+  });
+});
+
+describe('the chapter list is stale on what changes its recorded fields (#3658)', () => {
+  it('maps chapters:written, daw:record-ended and chapter-sync to their subscriptions and returns each unsubscribe', () => {
+    const stops = { record: vi.fn(), sync: vi.fn() };
+    const handlers: Record<string, (event: unknown) => void> = {};
+    const api = {
+      subscribeJobEnded: vi.fn(() => () => undefined),
+      subscribeRecordEnded: vi.fn((cb: () => void) => {
+        handlers.record = cb;
+        return stops.record;
+      }),
+      subscribeChapterSync: vi.fn((cb: (state: unknown) => void) => {
+        handlers.sync = cb;
+        return stops.sync;
+      }),
+    };
+    const subscribe = createHostEvents(api as never);
+    const heard = vi.fn();
+    const offRecord = subscribe('daw:record-ended', heard);
+    const offSync = subscribe('chapter-sync', heard);
+    handlers.record!({});
+    handlers.sync!({});
+    expect(heard).toHaveBeenCalledTimes(2);
+    offRecord();
+    offSync();
+    expect(stops.record).toHaveBeenCalledOnce();
+    expect(stops.sync).toHaveBeenCalledOnce();
+  });
+
+  it('hears a settled chapter-list write through chapters:written, and stops hearing after the unsubscribe', () => {
+    const subscribe = createHostEvents({ subscribeJobEnded: vi.fn(), subscribeChapterSync: vi.fn() } as never);
+    const heard = vi.fn();
+    const off = subscribe('chapters:written', heard);
+    announceChapterListWritten();
+    expect(heard).toHaveBeenCalledOnce();
+    off();
+    announceChapterListWritten();
+    expect(heard).toHaveBeenCalledOnce();
+  });
+
+  it('a DAW port without a record-ended subscription gives a no-op', () => {
+    const subscribe = createHostEvents({ subscribeJobEnded: vi.fn(), subscribeChapterSync: vi.fn() } as never);
+    expect(() => subscribe('daw:record-ended', vi.fn())()).not.toThrow();
   });
 });

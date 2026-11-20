@@ -12,6 +12,7 @@ import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
 import { withCallLog } from './api/withCallLog';
+import { withChapterListWrites } from './api/chapterListWrites';
 import { withCoalescedReads } from './api/withCoalescedReads';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
@@ -739,7 +740,8 @@ if (hostApi === wailsClient) {
   installTracing(wailsClient);
 }
 // Identical reads that are in flight together are one host call (#3560). The call log (mock builds) sits under it, so it counts the calls that reach the host.
-const coalesced = withCoalescedReads(mockCallLog ? withCallLog(hostApi) : hostApi);
+// The calls that change what the chapter list holds announce themselves, so the store's chapter list reads again (#3658).
+const coalesced = withCoalescedReads(withChapterListWrites(mockCallLog ? withCallLog(hostApi) : hostApi));
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
 const api = hostApi === wailsClient ? withTracing(coalesced) : (appExtension().wrapApi?.(coalesced) ?? coalesced);
 appExtension().start?.(api);

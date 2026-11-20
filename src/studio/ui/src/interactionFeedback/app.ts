@@ -33,6 +33,8 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::subscribeProjectAttach#1': subscription('A project attach refreshes the bootstrap or shows why it was refused.'),
   'src/studio/slots.ts::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The jump menu\'s "Go to <chapter>" list, the store\'s chapters slot, loaded from App when a manuscript arrives: a failed read leaves the chapter rows out while every page still shows, and the pages that need the chapters report the real error.'),
   'src/studio/slots.ts::subscribeJobEnded#1': subscription('A job that ends marks the store\'s chapters slot stale, so the jump menu\'s chapter list reloads after an import or a re-split.'),
+  'src/studio/slots.ts::subscribeChapterSync#1': subscription('A chapter sync update (an automatic link made or undone) marks the store\'s chapters slot stale: the list carries each chapter\'s recorded length, which follows its link.'),
+  'src/studio/StudioProvider.tsx::subscribeChapterSync#1': subscription('Hands the chapter-sync port\'s subscription to the store\'s host events, so the chapters slot hears a sync (see slots.ts).'),
   'src/studio/StudioProvider.tsx::subscribeProjectAttach#1': subscription('A project attach resets the store and clears the journal, so no slot shows the previous project\'s data.'),
   // ports/measurements.ts: no screen reads the port yet; the screen that does owns the failure path of its own read.
   'src/ports/measurements.ts::productionOverview#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'The chapter-length reading of the measurements port; a rejection reaches the caller, and the first screen to read the port shows it.', '#1119'),

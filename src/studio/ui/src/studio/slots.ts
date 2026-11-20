@@ -1,7 +1,9 @@
 // The slot registry of the read-model store and the hooks typed over it. The chapter list is the first slot; the
 // bookmarks list is the second. A slot reads through a port, so this file names no `useApi()`.
 
+import { onChapterListWritten } from '../api/chapterListWrites';
 import type { BookmarksApi } from '../api/contracts/bookmarks';
+import type { ChapterSyncApi } from '../api/contracts/chapterSync';
 import type { ManuscriptApi } from '../api/contracts/manuscript';
 import type { SystemApi } from '../api/contracts/system';
 import { bookmarksSchema } from '../api/schemas/bookmarks';
@@ -15,7 +17,10 @@ import { bindStudio } from './store/react';
  */
 export const MANUSCRIPT_CHANGED = 'manuscript:changed';
 
-export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'>;
+export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'> & { subscribeRecordEnded?: (onEnded: () => void) => () => void } & Pick<
+    ChapterSyncApi,
+    'subscribeChapterSync'
+  >;
 
 /**
  * The chapter list: stale when a job ends (an import, a re-split) or a page publishes `MANUSCRIPT_CHANGED`, and reloaded when the window regains focus. The bookmarks:
@@ -23,7 +28,13 @@ export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'>;
  */
 export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, bookmarks: Pick<BookmarksApi, 'bookmarksList'>) {
   return {
-    chapters: { schema: chaptersSchema, load: () => api.manuscriptChapters(), events: ['job:ended'], topics: [MANUSCRIPT_CHANGED], refreshOnFocus: true },
+    chapters: {
+      schema: chaptersSchema,
+      load: () => api.manuscriptChapters(),
+      events: ['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync'],
+      topics: [MANUSCRIPT_CHANGED],
+      refreshOnFocus: true,
+    },
     bookmarks: { schema: bookmarksSchema, load: () => bookmarks.bookmarksList(), refreshOnFocus: true },
   };
 }
@@ -35,6 +46,9 @@ export function createHostEvents(api: HostEventApi): (event: string, handler: ()
   const warned = new Set<string>();
   return (event, handler) => {
     if (event === 'job:ended') return api.subscribeJobEnded(() => handler());
+    if (event === 'chapters:written') return onChapterListWritten(handler);
+    if (event === 'daw:record-ended') return api.subscribeRecordEnded?.(() => handler()) ?? (() => undefined);
+    if (event === 'chapter-sync') return api.subscribeChapterSync(() => handler());
     if (import.meta.env.DEV && !warned.has(event)) {
       warned.add(event);
       console.warn(`studio: no host subscription for the event "${event}"`);
