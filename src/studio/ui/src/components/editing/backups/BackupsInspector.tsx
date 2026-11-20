@@ -86,7 +86,7 @@ export function BackupsInspector({
             <Fact name="What">{backup.label ?? ''}</Fact>
             <Fact name="Covers">
               <span className={MONO}>
-                {clock(backup.start)}–{clock(backup.end)} of {clock(total)}
+                {clock(backup.start, { full: true })}–{clock(backup.end, { full: true })} of {clock(total)}
               </span>
             </Fact>
             <Fact name="Made">

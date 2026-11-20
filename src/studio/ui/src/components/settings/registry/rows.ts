@@ -667,7 +667,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'computer',
     def: 'true',
     field: { tool: 'Booth', key: 'follow_chapter_in_daw' },
-    desc: 'Selects the chapter you are working on in the DAW.',
+    desc: 'Selects your chapter in the DAW and arms its voice.',
     more: FOLLOW_CHAPTER_NOTE,
     used: ['booth', 'editing', 'pickups'],
     needs: 'daw',

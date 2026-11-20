@@ -207,6 +207,8 @@ export type DawMockSeed = {
   depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
   /** What the DAW's meters show (`dawMeters`): a record-armed track hearing the room, the default, or no track armed. */
   meters?: 'armed' | 'unarmed';
+  /** The DAW cannot add a track for a chapter from the app (`track_create` answers unsupported), so the link dialog's Create is off with its reason (`?mockDawCreate=off`). */
+  noTrackCreate?: boolean;
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
@@ -300,6 +302,8 @@ function permitted(m: Mock, key: DawCapabilityKey, trail: DawCapabilityKey[]): D
   const { daw } = m;
   const pipe = m.connected;
   const level = declarationFor(daw)[key] ?? 'unsupported';
+  if (key === 'track_create' && m.seed.noTrackCreate)
+    return { level, available: false, reason: 'unsupported', message: `${daw} cannot add a track from this app. Add one in ${daw}, then check again.` };
   if (level === 'unsupported') {
     // No engine at all (resolver.go's Adapter == nil) is 'standalone'; a launched engine that simply cannot do this (macro_render
     // for REAPER) is 'unsupported', checked before connection state, the same order the declaration check runs in.
@@ -431,10 +435,14 @@ export interface DawMockControl {
   stopInDaw(): void;
   /** The next monitor-level call fails with this sentence (the DAW did not take the change), as a bridge that answers an error would. */
   refuseNextLevel(sentence: string): void;
+  /** The next put-back of the Booth's monitoring (`dawReleaseBoothMonitor`) fails with this sentence, as the host says it only when a monitoring is owed. */
+  refuseNextRelease(sentence: string): void;
   /** Where the narrator is in the DAW: the chapter whose track is selected ('' for none or several) and the cursor in project seconds. */
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: DawGoToWhere; seconds: number }[];
+  /** The chapters the Booth asked the DAW to arm (`dawArmBoothVoice`), oldest first, and how many times it asked to put the monitoring back (`dawReleaseBoothMonitor`). */
+  armed(): { chapterIds: string[]; releases: number };
   /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
   syncCalls(): { action: string; seconds: number; until?: number; chapterId?: string }[];
   /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease.
@@ -469,8 +477,8 @@ export interface DawMockControl {
   };
   /** The project's recording engine changed (`dawChoose`). */
   engineChosen(engine: 'daw' | 'builtin'): void;
-  /** A record start or stop as the host answers it: a refusal sentence and its reason, or null once the transport changed. */
-  record(kind: 'start' | 'stop'): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
+  /** A record start or stop as the host answers it (a start names the chapter being recorded, when the caller knows it): a refusal sentence and its reason, or null once the transport changed. */
+  record(kind: 'start' | 'stop', chapterId?: string): { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
   /** The facts the host puts in bootstrap. */
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
@@ -487,14 +495,21 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const home: DawKind = seed.daw ?? 'REAPER';
   let open: 'linked' | 'other' = script === 'different' ? 'other' : 'linked';
   const isRecording = () => !!live.transport?.recording;
+  // The chapter of the take this app started (`record('start')`; '' when the caller did not say), or null: the host answers OK and arms nothing for that chapter,
+  // and refuses another chapter's arm, as it does a take started by hand.
+  let appTake: string | null = null;
   let dropped = false;
   let refuseRecord: { sentence: string; kind: 'start' | 'stop' } | null = null;
   // The monitor level the DAW holds, on the page's 0 to 100 scale (the mock's own starting value for its slider).
   let monitorLevel = 60;
   let refuseLevel: string | null = null;
+  let refuseRelease: string | null = null;
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
+  // What the Booth asked of the DAW's armed tracks and input monitoring (dawArmBoothVoice, dawReleaseBoothMonitor).
+  const armedChapters: string[] = [];
+  let monitorReleases = 0;
   // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
   const sync: {
     playing: boolean;
@@ -658,6 +673,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       for (const on of editSubs) on({ changeCount: sync.changeCount });
     },
     startInDaw: () => {
+      appTake = null;
       live.transport = { playing: true, recording: true, position: 0 };
       publish();
     },
@@ -670,6 +686,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     refuseNextLevel: (sentence) => {
       refuseLevel = sentence;
+    },
+    refuseNextRelease: (sentence) => {
+      refuseRelease = sentence;
     },
     syncCalls: () => sync.calls.map((call) => ({ ...call })),
     moveInDaw: ({ cursor, head, playing, recording }) => {
@@ -690,6 +709,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       place = { chapterId, cursor };
     },
     moves: () => moved.map((move) => ({ ...move })),
+    armed: () => ({ chapterIds: [...armedChapters], releases: monitorReleases }),
     state: () => ({
       daw: live.daw ?? home,
       bridge: bridgeOpen(),
@@ -703,7 +723,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       live.transport = { playing: false, recording: false };
       publish();
     },
-    record: (kind) => {
+    record: (kind, chapterId = '') => {
       const caps = currentCapabilities(live);
       const record = caps.capabilities.record;
       if (refuseRecord?.kind === kind) {
@@ -721,6 +741,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         const reason = record?.reason === 'standalone' ? 'standalone' : 'unavailable';
         return { reason, message: record?.message ?? MESSAGE_NO_ENGINE };
       }
+      appTake = chapterId;
       live.transport = { playing: true, recording: true, position: 0 };
       // The transport is pushed on the change, not at the next heartbeat: a screen that subscribes once the take has begun still hears it.
       publish();
@@ -774,6 +795,30 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       moved.push({ chapterId, where, seconds: where === 'at' ? seconds : 0 });
       place = { chapterId, cursor: where === 'at' ? seconds : where === 'start' ? 0 : place.cursor };
       return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    // The host's answers (bindings_booth_arming.go): a DAW with no record capability is left alone without a word; a refusal carries its sentence.
+    dawArmBoothVoice: async (chapterId) => {
+      const support = currentCapabilities(live).capabilities.record;
+      if (!support?.available) return { ok: true, changed: false, message: '', undoSteps: 0 };
+      if (currentTransport(live, currentCapabilities(live)).recording) {
+        // The app's own take: the host asks nothing and answers done. A take started in the DAW by hand is refused.
+        return appTake !== null && (appTake === '' || appTake === chapterId)
+          ? { ok: true, changed: false, message: '', undoSteps: 0 }
+          : refusedMove('REAPER is recording. Stop recording first.');
+      }
+      armedChapters.push(chapterId);
+      return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    dawReleaseBoothMonitor: async () => {
+      monitorReleases += 1;
+      const owed = armedChapters.length > 0;
+      if (refuseRelease !== null) {
+        const sentence = refuseRelease;
+        refuseRelease = null;
+        // The host (bindings_booth_arming.go) refuses only when a monitoring is owed; with nothing owed a failed release answers done, silently.
+        if (owed) return { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence };
+      }
+      return { ok: true, changed: owed, message: '', undoSteps: 0 };
     },
     // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
     // and, while a watch lease is held, streams the position as the bridge would.

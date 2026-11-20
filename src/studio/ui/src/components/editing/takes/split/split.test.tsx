@@ -221,7 +221,7 @@ describe('the-page-passes-the-ports-splitter', () => {
     fireEvent.click(stack());
     await waitFor(() => expect(splitTake).toHaveBeenCalledTimes(1));
     expect(splitTake).toHaveBeenCalledWith('5', 't-12', 621.2);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Split T-12 at 10:21\./)));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Split T-12 at 00:10:21\.200\./)));
     const entries = await journal.entries();
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ label: 'Split T-12 at the second read', daw: true, undoable: false, refusal: 'Undo the split in REAPER.' });

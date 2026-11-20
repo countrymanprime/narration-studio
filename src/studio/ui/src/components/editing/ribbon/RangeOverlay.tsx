@@ -1,6 +1,6 @@
 import { MIN_RANGE, rangeLabel, type Span } from './rangeMath';
 import type { RangeInteraction } from './useRangeInteraction';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 
 /** The width of a handle, in pixels. It hangs outside the edge it moves, so the two never cover each other. */
 const HANDLE = 6;
@@ -46,7 +46,7 @@ export function RangeOverlay({
         aria-valuemin={edge === 'start' ? bounds.start : Math.min(bounds.end, shown.start + MIN_RANGE)}
         aria-valuemax={edge === 'start' ? Math.max(bounds.start, shown.end - MIN_RANGE) : bounds.end}
         aria-valuenow={Math.round(here * 1000) / 1000}
-        aria-valuetext={`${edge === 'start' ? 'Start' : 'End'} ${clockTenths(here, { decimals: 2 })}, range ${label}`}
+        aria-valuetext={`${edge === 'start' ? 'Start' : 'End'} ${clock(here, { full: true })}, range ${label}`}
         data-handle={edge}
         data-offscreen={off || undefined}
         className={`absolute top-0 h-full w-1.5 cursor-ew-resize touch-none bg-[var(--accent)] opacity-70 hover:opacity-100 focus-visible:opacity-100 ${edge === 'start' ? 'rounded-l' : 'rounded-r'} ${off ? 'opacity-30' : ''}`}

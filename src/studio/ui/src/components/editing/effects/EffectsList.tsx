@@ -53,7 +53,7 @@ export function EffectsList({
                   >
                     <TableCell numeric align="left">
                       <Button variant="link" data-fxr={f.id} aria-pressed={f.id === selectedId} onClick={() => onSelect(f.id)}>
-                        {clock(at.start)}–{clock(at.end)}
+                        {clock(at.start, { full: true })}–{clock(at.end, { full: true })}
                       </Button>
                     </TableCell>
                     <TableCell>

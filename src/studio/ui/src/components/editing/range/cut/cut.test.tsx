@@ -245,11 +245,11 @@ describe('Delete words and audio', () => {
     await flush();
     await select('p-1:0', 'p-1:1');
     act(() => cut.remove());
-    await waitFor(() => expect(dialogText('data-cut-range')).toMatch(/^0:0\d to 0:0\d · 0\.\d s$/));
+    await waitFor(() => expect(dialogText('data-cut-range')).toBe('00:00:00.650 to 00:00:01.250 · 0.6 s'));
     expect(dialogText('data-cut-words')).toBe('Alice was');
     expect(dialog().querySelectorAll('[data-cut-strips] svg')).toHaveLength(2);
     expect(dialogText('data-cut-in')).toBe('Chapter 1 · track “Chapter 1”');
-    expect(dialogText('data-cut-later')).toMatch(/^moves 0\.\d s earlier in this chapter \(0:0\d becomes 0:0\d\)$/);
+    expect(dialogText('data-cut-later')).toBe('moves 0.6 s earlier in this chapter (00:00:01.250 becomes 00:00:00.650)');
     expect(dialogText('data-cut-plan')).toBe(cutPlanText({ kind: 'daw', dawName: 'REAPER' }, false));
     fireEvent.click(within(dialog()).getByRole('radio', { name: /Leave .* of room tone/ }));
     expect(dialogText('data-cut-later')).toMatch(/^does not move; room tone fills 0\.\d s$/);
@@ -320,7 +320,7 @@ describe('Delete words and audio', () => {
     expect(calls[0].mode).toBe('gap');
     expect(log.cuts[0].mode).toBe('gap');
     expect(item('p-1:4').t0).toBe(before);
-    expect((await journal.entries())[0].label).toMatch(/^Muted 2 words at 0:0\d$/);
+    expect((await journal.entries())[0].label).toBe('Muted 2 words at 00:00:00.650');
   });
 
   it('crossfade-and-pad-reach-the-daw: the chosen fade is in the call', async () => {
@@ -385,7 +385,7 @@ describe('Delete words and audio', () => {
     ]);
     const rows = await journal.entries();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ label: expect.stringMatching(/^Deleted \d words and their audio at 0:0\d$/), daw: true });
+    expect(rows[0]).toMatchObject({ label: expect.stringMatching(/^Deleted \d words and their audio at 00:00:02\.450$/), daw: true });
     expect(log.cuts).toHaveLength(2);
 
     last = 'this';

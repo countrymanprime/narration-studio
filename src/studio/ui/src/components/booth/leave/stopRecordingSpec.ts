@@ -3,6 +3,10 @@ import type { ConfirmSpec } from '../../../studio/journal/leaveGuard';
 /** The cancel label the mock's question uses; the shell's `ConfirmSpec` carries it as `cancelLabel`. */
 const KEEP_RECORDING = 'Keep recording';
 
+/** The label of the stop on a question about opening another chapter, and of its refusal's way out. */
+export const CHAPTER_STOP_LABEL = 'Stop and open';
+export const CHAPTER_OPEN_ANYWAY = 'Open anyway';
+
 /** The second Enter of a double Enter on a jump menu row lands on the question that row raised; it must not answer it (#3349). */
 export const IGNORE_ENTER_MS = 400;
 
@@ -17,6 +21,10 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
   // Where the move goes, when a page of the rail owns it: "Leaving the Booth for Script ..." (#3529).
   // A destination that is the Booth itself is another chapter of it: the take stops, but the narrator does not leave.
   const leaving = destination === 'Booth' ? 'Opening another chapter' : destination ? `Leaving the Booth for ${destination}` : 'Leaving the Booth';
+  // A chapter question opens a chapter: the narrator stays in the Booth, so "Stop and leave" would say the opposite (#3555). Staying hands focus back to the picker the question was asked from.
+  const opens = destination === 'Booth';
+  const stopLabel = opens ? CHAPTER_STOP_LABEL : 'Stop and leave';
+  const returnFocus = opens ? () => document.querySelector<HTMLElement>('[data-chapter-picker]') : undefined;
   if (!startedByApp) {
     return {
       title: 'Leave the Booth?',
@@ -25,17 +33,19 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
       cancelLabel: KEEP_RECORDING,
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
+      returnFocus,
     };
   }
   if (startPending) {
     // The DAW has not said it records: the question never claims it does. It closes by itself if the start ends with no take.
     return {
-      title: 'Leave while a take is starting?',
+      title: opens ? 'Open while a take is starting?' : 'Leave while a take is starting?',
       body: `${subject} is starting a take. ${leaving} stops it once it has started.`,
-      confirmLabel: 'Stop and leave',
+      confirmLabel: stopLabel,
       cancelLabel: 'Stay',
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
+      returnFocus,
     };
   }
   if (endUnconfirmed) {
@@ -45,18 +55,20 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     return {
       title: destination === 'Booth' ? 'Open another chapter?' : destination ? `Leave for ${destination}?` : 'Leave the Booth?',
       body: `${subject} may still be recording. ${destination === 'Booth' ? 'Opening another chapter' : 'Leaving'} tries to stop the take.`,
-      confirmLabel: 'Stop and leave',
+      confirmLabel: stopLabel,
       cancelLabel: 'Stay',
       safeDefault: true,
       ignoreEnterAfterMs: IGNORE_ENTER_MS,
+      returnFocus,
     };
   }
   return {
     title: 'Stop recording?',
-    body: `${subject} is recording. ${leaving} stops it.`,
-    confirmLabel: 'Stop and leave',
+    body: `${subject} is recording. ${leaving} stops it and saves the take.`,
+    confirmLabel: stopLabel,
     cancelLabel: KEEP_RECORDING,
     safeDefault: true,
     ignoreEnterAfterMs: IGNORE_ENTER_MS,
+    returnFocus,
   };
 }

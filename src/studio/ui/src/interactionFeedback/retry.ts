@@ -97,6 +97,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/leave/useBoothLeaveGuard.ts#1': no(RC),
   'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
+  'src/components/booth/page/BoothNextPage.tsx#5': no(
+    "Says that the DAW would not arm the chapter's voice on entry or put its monitoring back on leaving: the voice list's own press arms again and the setup notice's Check again reads the DAW afresh, so a retry here would repeat a call the narrator has already moved past (#3428).",
+  ),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
   'src/components/booth/page/useBoothPage.ts#3': no(RF),
@@ -226,6 +229,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
   ),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
+  'src/components/engine/useChapterLinks.ts#1': no(ED),
+  'src/components/engine/useChapterLinks.ts#2': no(ED),
+  'src/components/engine/useChapterLinks.ts#3': no(ED),
+  'src/components/engine/useChapterLinks.ts#4': no(ED),
   'src/components/engine/useChapterFolders.ts#1': no(
     'Moves tracks out of folders in REAPER (a DAW edit): a blind repeat could apply a move that half-happened again, and the folders are checked again after the failure, so Move them out is offered afresh from what REAPER holds now.',
   ),

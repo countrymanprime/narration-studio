@@ -453,3 +453,24 @@ func TestReplaceTargetLUFSReadsTheSettingOrItsDefault(t *testing.T) {
 		t.Errorf("no settings = %v", got)
 	}
 }
+
+// #3647: the live track list is cached while REAPER's edit counter holds; a track this app asked the DAW to add (the other narrator's file) must
+// show at once, not within a heartbeat.
+func TestReplaceAddFileDropsTheCachedTrackList(t *testing.T) {
+	f := newReplaceFixture(t)
+	if _, err := f.deps.log.NarratorAdd("Eric"); err != nil {
+		t.Fatal(err)
+	}
+	changed := 0
+	f.deps.tracksChanged = func() { changed++ }
+	path := filepath.Join(t.TempDir(), "a.flac")
+	if err := os.WriteFile(path, []byte("fLaC audio"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if answer, err := replaceAddFileIn(t.Context(), f.deps, "n-2", path); err != nil || !answer.Result.OK {
+		t.Fatalf("add = %+v, %v", answer, err)
+	}
+	if changed != 1 {
+		t.Fatalf("the track list was dropped %d times, want once", changed)
+	}
+}

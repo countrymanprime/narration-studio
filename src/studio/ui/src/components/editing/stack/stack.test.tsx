@@ -175,7 +175,7 @@ describe('the plan dialog', () => {
     fireEvent.click(chapterStack());
     expect(dialog().getAttribute('aria-label') ?? within(document.body).getByRole('dialog', { name: STACK_TEXT.action })).toBeTruthy();
     expect(text('data-stack-summary')).toBe('3 takes in 2 passages move onto the first read’s spot. The audio that follows moves 30.0 s earlier.');
-    expect(dialog().querySelector('[data-stack-group="p-1"] [data-stack-span]')?.textContent).toBe('0:10–0:34 → 0:10–0:14');
+    expect(dialog().querySelector('[data-stack-group="p-1"] [data-stack-span]')?.textContent).toBe('00:00:10.000–00:00:34.000 → 00:00:10.000–00:00:14.000');
     expect(text('data-stack-undo')).toContain('one undo step');
     expect(dawCalls).toEqual([]);
     expect(document.activeElement).toBe(within(dialog()).getByRole('button', { name: 'Cancel' }));
@@ -189,9 +189,9 @@ describe('the plan dialog', () => {
     mount(chapterLines());
     await flush();
     fireEvent.click(chapterStack());
-    expect(dialog().querySelector('[data-stack-move="t-2"]')?.textContent).toBe('t-2 · 0:20–0:24 → 0:10–0:14');
-    expect(dialog().querySelector('[data-stack-move="t-5"]')?.textContent).toBe('t-5 · 0:40–0:45 → 0:30–0:35');
-    expect(dialog().querySelector('[data-stack-group="p-2"] [data-stack-span]')?.textContent).toBe('0:30–0:45 → 0:30–0:35');
+    expect(dialog().querySelector('[data-stack-move="t-2"]')?.textContent).toBe('t-2 · 00:00:20.000–00:00:24.000 → 00:00:10.000–00:00:14.000');
+    expect(dialog().querySelector('[data-stack-move="t-5"]')?.textContent).toBe('t-5 · 00:00:40.000–00:00:45.000 → 00:00:30.000–00:00:35.000');
+    expect(dialog().querySelector('[data-stack-group="p-2"] [data-stack-span]')?.textContent).toBe('00:00:30.000–00:00:45.000 → 00:00:30.000–00:00:35.000');
     await go('Stack takes');
     expect(dawCalls).toEqual(['stack p-1,p-2 shift=-30']);
     const rows = await journal.entries();
@@ -241,8 +241,8 @@ describe('stack and un-stack', () => {
     await flush();
     expect(dialog()).toBeTruthy();
     expect(text('data-stack-summary')).toBe('2 takes in 1 passage go back to where they were recorded. The audio that follows moves 20.0 s later.');
-    expect(dialog().querySelector('[data-stack-move="t-2"]')?.textContent).toBe('t-2 · 0:10–0:14 → 0:20–0:24');
-    expect(dialog().querySelector('[data-stack-move="t-3"]')?.textContent).toBe('t-3 · 0:10–0:14 → 0:30–0:34');
+    expect(dialog().querySelector('[data-stack-move="t-2"]')?.textContent).toBe('t-2 · 00:00:10.000–00:00:14.000 → 00:00:20.000–00:00:24.000');
+    expect(dialog().querySelector('[data-stack-move="t-3"]')?.textContent).toBe('t-3 · 00:00:10.000–00:00:14.000 → 00:00:30.000–00:00:34.000');
     expect(dawCalls).toEqual([]);
     await go('Put them back');
     expect(dawCalls).toEqual(['unstack p-1']);
@@ -319,7 +319,7 @@ describe('what the DAW can do', () => {
       'Shift the audio that follows to close the gap',
       'Mute the reads that are not on top',
     ]);
-    expect(text('data-stack-backup')).toBe('Backup first: 0:10–1:05');
+    expect(text('data-stack-backup')).toBe('Backup first: 00:00:10.000–00:01:05.000');
     expect(text('data-stack-undo')).toContain('5 undo steps');
   });
 

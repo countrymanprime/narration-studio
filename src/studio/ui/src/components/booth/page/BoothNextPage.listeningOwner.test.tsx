@@ -1206,7 +1206,7 @@ describe('a press the narrator left behind by changing chapter, whose take still
     await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
     if (stop === 'refused') {
       await waitFor(() =>
-        expect((page.overlay.getSnapshot().dialogs[0] as { spec: { confirmLabel: string } } | undefined)?.spec.confirmLabel).toBe('Leave anyway'),
+        expect((page.overlay.getSnapshot().dialogs[0] as { spec: { confirmLabel: string } } | undefined)?.spec.confirmLabel).toBe('Open anyway'),
       );
       await act(async () => (page.overlay.getSnapshot().dialogs[0] as { answer: (yes: boolean) => void }).answer(true));
     }

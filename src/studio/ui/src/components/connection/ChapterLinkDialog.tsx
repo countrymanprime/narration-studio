@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ChapterTrackCreateResult, ChapterTrackMatch, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { Button } from '../primitives/Button';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -138,14 +139,6 @@ export function ChapterLinkDialog({
   }, [projectNow, onClose]);
   const linksRef = useRef(links);
   linksRef.current = links;
-  // An action that outlives the dialog (Escape while it is pending) still says why it failed, as a toast, since the dialog's own line is gone.
-  const open = useRef(true);
-  useEffect(
-    () => () => {
-      open.current = false;
-    },
-    [],
-  );
   const checkAgain = useCallback(() => {
     // Presses while a check is out are ignored: five presses would start five reads and five page re-reads.
     if (readingRef.current) return;
@@ -174,9 +167,7 @@ export function ChapterLinkDialog({
       },
       (error: unknown) => {
         setLinking(false);
-        const text = `The link could not be made: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('set', error), { tone: 'error' });
       },
     );
   };
@@ -192,14 +183,11 @@ export function ChapterLinkDialog({
         if (result.outcome === 'created') {
           applyMappings(result.mappings);
           onLinked(result, result);
-        } else if (open.current) setRefused(result.message);
-        else overlay.toast(result.message, { tone: 'error' });
+        } else overlay.toast(result.message, { tone: 'error' });
       },
       (error: unknown) => {
         setCreating(false);
-        const text = `The ${dest.noun} could not be added: ${apiErrorMessage(error)}`;
-        if (open.current) setRefused(text);
-        else overlay.toast(text, { tone: 'error' });
+        overlay.toast(linkFailureSentence('create', error, dest.noun), { tone: 'error' });
       },
     );
   };
@@ -211,7 +199,15 @@ export function ChapterLinkDialog({
   const createWhat = dest.noun;
   const withNarrator = folders ? ', with a Narrator track in it,' : '';
   const createOff = create?.available === false;
-  const createAction = { label: createLabel, onPress: createTrack, pending: creating, disabled: createOff || linking };
+  // Why Create is off sits on its tooltip, not in the page (#3365); while a link is out it is off with no reason of its own.
+  const createOffWhy = create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`;
+  const createAction = {
+    label: createLabel,
+    onPress: createTrack,
+    pending: creating,
+    disabled: createOff || linking,
+    disabledReason: createOff ? createOffWhy : '',
+  };
   const title = missing ? dest.missingTitle(chapterName) : several ? dest.severalTitle(chapterName) : dest.notLinkedTitle(chapterName);
   return (
     <ResolveShell
@@ -245,25 +241,23 @@ export function ChapterLinkDialog({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-            <span className="text-[var(--text-muted)]">
-              Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
-            </span>
+            {!createOff && (
+              <span className="text-[var(--text-muted)]">
+                Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
+              </span>
+            )}
             <Button
               variant="secondary"
               size="sm"
               pending={creating}
-              {...(createAction.disabled ? { 'aria-disabled': true } : {})}
+              disabledReason={createAction.disabled ? createAction.disabledReason : ''}
+              {...(createAction.disabled && !createAction.disabledReason ? { 'aria-disabled': true } : {})}
               onClick={createAction.disabled ? undefined : createTrack}
             >
               {createLabel}
             </Button>
           </div>
         </>
-      )}
-      {createOff && (
-        <p className="text-[var(--text-muted)]">
-          {create?.message || `${dawName} cannot add a ${dest.noun} from this app. Add one in ${dawName}, then check again.`}
-        </p>
       )}
       {refused && (
         <p role="alert" className="text-[var(--danger-text)]">

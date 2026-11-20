@@ -1,5 +1,5 @@
 import type { DocItem } from '../../model';
-import { clockTenths } from '../../../../clock';
+import { clock } from '../../../../clock';
 import { EDGE_EPSILON, spanOfKeys, type Span } from '../../ribbon/rangeMath';
 
 /**
@@ -10,7 +10,7 @@ import { EDGE_EPSILON, spanOfKeys, type Span } from '../../ribbon/rangeMath';
 export function subWordNote(exact: Span, applied: Span | null): string {
   if (!applied) return '';
   if (Math.abs(exact.start - applied.start) <= EDGE_EPSILON && Math.abs(exact.end - applied.end) <= EDGE_EPSILON) return '';
-  return `Sub-word edge, shown as a preview: your range runs ${clockTenths(exact.start, { decimals: 2 })} to ${clockTenths(exact.end, { decimals: 2 })}, and the DAW acts on the whole words, ${clockTenths(applied.start, { decimals: 2 })} to ${clockTenths(applied.end, { decimals: 2 })}.`;
+  return `Sub-word edge, shown as a preview: your range runs ${clock(exact.start, { full: true })} to ${clock(exact.end, { full: true })}, and the DAW acts on the whole words, ${clock(applied.start, { full: true })} to ${clock(applied.end, { full: true })}.`;
 }
 
 /** The span of the whole words a cut or an effect works on: the first start to the last end of `items`. Null with no heard word. */

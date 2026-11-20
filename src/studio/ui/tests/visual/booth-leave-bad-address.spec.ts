@@ -140,7 +140,7 @@ test('agreeing to the question for a chapter that is not there saves the take, a
   await recording(page);
   await arrive(page, '/booth?chapter=nope');
   await expect(question(page)).toBeVisible();
-  await question(page).getByRole('button', { name: 'Stop and leave' }).click();
+  await question(page).getByRole('button', { name: 'Stop and open' }).click();
   await expect.poll(() => stops(page)).toBeGreaterThan(0);
   await expect(page.getByText(/link points to a chapter that is not in this manuscript/)).toBeVisible();
   expect(await dawRecording(page)).toBe(false);
