@@ -131,10 +131,30 @@ func (s Source) Extractor() (extractionport.Extractor, error) {
 	return s, nil
 }
 
-// Extract asks the model about each question, up to MaxQuotes, and returns the answers that pass the checks above. It writes
+// Answered is one suggestion and the place, in the list Questions gave, of the question it answers: what ties a suggestion
+// back to its quote when two quotes read the same.
+type Answered struct {
+	Question int
+	Raw      extractionport.Raw
+}
+
+// Extract is Answer without the questions' places.
+func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
+	answered, err := s.Answer(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	raws := make([]extractionport.Raw, len(answered))
+	for i, a := range answered {
+		raws[i] = a.Raw
+	}
+	return raws, nil
+}
+
+// Answer asks the model about each question, up to MaxQuotes, and returns the answers that pass the checks above. It writes
 // nothing. A model that fails ends the run early and says so through in.Note; what it had answered is kept, and the run does
 // not fail, so the rules' result stands. A cancelled ctx returns ctx.Err(), also when it is cancelled during the last question.
-func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
+func (s Source) Answer(ctx context.Context, in extractionport.Input) ([]Answered, error) {
 	if _, err := s.Extractor(); err != nil {
 		return nil, err
 	}
@@ -149,7 +169,7 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 	if s.MaxQuotes != nil {
 		limit = s.MaxQuotes()
 	}
-	raws := []extractionport.Raw{}
+	answered := []Answered{}
 	for i, q := range questions {
 		if i >= limit {
 			break
@@ -169,13 +189,13 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 			break
 		}
 		if raw, ok := accept(q, answer); ok {
-			raws = append(raws, raw)
+			answered = append(answered, Answered{Question: i, Raw: raw})
 		}
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return raws, nil
+	return answered, nil
 }
 
 func (s Source) log(line string) {

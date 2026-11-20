@@ -108,6 +108,15 @@ func contractGuideServiceWithDialogueCues(t *testing.T) *guide.Service {
 				"evidence":  map[string]any{"chapterId": "chapter-6", "paragraphId": "p-25", "excerpt": "No room! Alice frowned.", "tag": ""},
 				"corrected": false,
 			},
+			map[string]any{
+				"id": "cue-4", "chapterId": "chapter-6", "paragraphId": "p-26", "quote_start": 0, "quote_end": 21,
+				"quote_text": "Your hair wants cutting.", "speaker_entity_id": "hatter", "speaker_source": "local-model",
+				"evidence": map[string]any{
+					"chapterId": "chapter-6", "paragraphId": "p-26", "excerpt": "Your hair wants cutting.", "tag": "",
+					"reason": "The Hatter is the last character named before this line.",
+				},
+				"corrected": false,
+			},
 		},
 	}
 	bytes, err := json.Marshal(document)
@@ -148,8 +157,10 @@ func TestContractGuideAttributeSpeakers(t *testing.T) {
 	write(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), map[string]any{
 		"schemaVersion": 1, "documentId": "d", "chapters": []any{map[string]any{"id": "c1", "title": "One"}},
 		"paragraphs": []any{
-			map[string]any{"id": "p1", "index": 0, "chapterId": "c1", "chapterTitle": "One", "text": `"Hello," Ada said.`},
-			map[string]any{"id": "p2", "index": 1, "chapterId": "c1", "chapterTitle": "One", "text": `"Wait," Bo said.`},
+			map[string]any{"id": "p1", "index": 0, "chapterId": "c1", "chapterTitle": "One", "text": `Bo came into the kitchen and sat down.`},
+			map[string]any{"id": "p2", "index": 1, "chapterId": "c1", "chapterTitle": "One", "text": `"Well?"`},
+			map[string]any{"id": "p3", "index": 2, "chapterId": "c1", "chapterTitle": "One", "text": `"Hello," Ada said.`},
+			map[string]any{"id": "p4", "index": 3, "chapterId": "c1", "chapterTitle": "One", "text": `"Wait," Bo said.`},
 		},
 	})
 	write(filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json"), map[string]any{
@@ -159,6 +170,8 @@ func TestContractGuideAttributeSpeakers(t *testing.T) {
 			map[string]any{"id": "bo", "canonical_name": "Bo", "category": "Character", "aliases": []any{}},
 		},
 	})
+	// The first line is one the rules leave unknown; the deterministic fake model suggests its speaker, so the payload carries a model's fill.
+	svc.SetSpeakerFallback(localModelSpeakerFallback(fakeLocalModel(10)))
 	host := &Host{guide: svc}
 	result, err := host.GuideAttributeSpeakers()
 	if err != nil {

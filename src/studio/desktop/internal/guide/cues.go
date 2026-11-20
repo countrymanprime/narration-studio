@@ -3,6 +3,7 @@ package guide
 import (
 	"context"
 	"errors"
+	"maps"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -88,7 +89,7 @@ func refreshCues(ctx context.Context, manuscriptPath, guidePath string, chapterI
 	if err != nil {
 		return CueCounts{}, err
 	}
-	cues, err := mergeDialogueCues(fresh, previous)
+	cues, err := mergeDialogueCues(fresh, previous, index)
 	if err != nil {
 		return CueCounts{}, err
 	}
@@ -306,10 +307,13 @@ func cueNameKeys(entity *pyObject) ([]string, error) {
 }
 
 // mergeDialogueCues is manuscript_guide.py merge_dialogue_cues: a fresh cue whose id a corrected cue of the file has takes that cue's
-// speaker (and its source, "correction" when it has none) and stays corrected; every other fresh cue is as found. The file's cues are
+// speaker (and its source, "correction" when it has none) and stays corrected; every other fresh cue is as found, with one case the
+// sidecar never had: a fresh cue with no speaker whose id a "local-model" cue of the file has keeps that cue's speaker, source and
+// reason while that speaker is still in speakers (cueSpeakerIndex), so a refresh does not wipe what the model suggested, and a
+// speaker the rules find always wins. The file's cues are
 // read first, all of them: one that is not an object, has no id or an id that is a list or an object is errCuesShape, as the sidecar
 // crashed on it.
-func mergeDialogueCues(fresh []*pyObject, previous any) ([]*pyObject, error) {
+func mergeDialogueCues(fresh []*pyObject, previous any, speakers map[string]any) ([]*pyObject, error) {
 	walked, err := pyIter(previous)
 	if err != nil {
 		return nil, errCuesShape
@@ -344,10 +348,45 @@ func mergeDialogueCues(fresh []*pyObject, previous any) ([]*pyObject, error) {
 			copied.set("speaker_source", source)
 			copied.set("corrected", true)
 			cue = copied
+		} else if prior != nil && !pyTruthy(cue.values["speaker_entity_id"]) && modelSuggested(prior, speakers) {
+			copied := &pyObject{keys: slices.Clone(cue.keys), values: maps.Clone(cue.values)}
+			copied.set("speaker_entity_id", prior.values["speaker_entity_id"])
+			copied.set("speaker_source", cueSourceLocalModel)
+			if evidence, ok := cue.values["evidence"].(*pyObject); ok {
+				kept := &pyObject{keys: slices.Clone(evidence.keys), values: maps.Clone(evidence.values)}
+				kept.set("reason", prior.values["evidence"].(*pyObject).values["reason"])
+				copied.set("evidence", kept)
+			}
+			cue = copied
 		}
 		merged = append(merged, cue)
 	}
 	return merged, nil
+}
+
+// modelSuggested reports whether prior is a local model's suggestion a refresh may carry: its source says so, it has a reason, and
+// its speaker is still an entry that speaks.
+func modelSuggested(prior *pyObject, speakers map[string]any) bool {
+	if prior.values["speaker_source"] != cueSourceLocalModel {
+		return false
+	}
+	evidence, ok := prior.values["evidence"].(*pyObject)
+	if !ok {
+		return false
+	}
+	if reason, _ := evidence.values["reason"].(string); reason == "" {
+		return false
+	}
+	speaker, ok := prior.values["speaker_entity_id"].(string)
+	if !ok || speaker == "" {
+		return false
+	}
+	for _, id := range speakers {
+		if id == speaker {
+			return true
+		}
+	}
+	return false
 }
 
 // keepOtherChapters is refresh_cues with --chapter-id: the file's cues of every other chapter are kept, and all of them sorted (stably)
