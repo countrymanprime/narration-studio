@@ -32,8 +32,8 @@ export const notWhileRecording = (daw: DawKind | undefined, followedInDaw: boole
   followedInDaw ? heldInDawSentence(daw, 'stop it') : NOT_WHILE_RECORDING;
 /** The topic of the sentence above: gone when the take ends. */
 export const HELD_TOPIC = 'daw-held';
-/** The topic of the message a refused press of Record leaves up (with Check again): it is about this Booth, so it goes when the Booth does. */
-export const RECORD_BLOCKED_TOPIC = 'record-blocked';
+/** The topic a refused Record's message used before it joined the press's (`PRESS_TOPIC`, which also goes when the Booth does); still dismissed on leaving. */
+const RECORD_BLOCKED_TOPIC = 'record-blocked';
 /** The topic of "the Booth stopped listening" (another lane or project mid-take): up while it has stopped, gone when it follows the take again. */
 const STOPPED_LISTENING_TOPIC = 'daw-stopped-listening';
 /** The topic of the notice that the lane has not been read yet: gone once it is. */
