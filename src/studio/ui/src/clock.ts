@@ -45,16 +45,16 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
 }
 
 /**
- * "5h 40m" (see `ClockOptions.marked`): floored to the whole minute; under a minute (but not zero) "<0h 01m"; negative and non-finite input read "0h 00m", as the default reads "0:00";
- * capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. A value that is a whole number of minutes in hours
- * (4 + 35/60 h) is not read one short for the double's sake (a relative 1e-9 of error is forgiven, no more: 59.99994 s is still under a minute).
- */
-/**
  * How far below a whole minute a value may be, as a share of the value, and still read as that minute: only a double's own error (a few units of 1.1e-16, from
  * minutes written in hours and back). Anything a real length could be short by (one 48 kHz sample is 21 microseconds) is far above it.
  */
 const WHOLE_MINUTE_SLACK = 1e-15;
 
+/**
+ * "5h 40m" (see `ClockOptions.marked`): floored to the whole minute; under a minute (but not zero) "<0h 01m"; negative and non-finite input read "0h 00m", as the default reads "0:00";
+ * capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. A value that is a whole number of minutes in hours
+ * (4 + 35/60 h) is not read one short for the double's sake (a relative 1e-15 of error is forgiven, no more: 59.99994 s is still under a minute, and a length one 48 kHz sample short of a whole minute never reads as it).
+ */
 function clockMarked(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0h 00m';
   const exact = seconds / 60;

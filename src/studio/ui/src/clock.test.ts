@@ -100,7 +100,7 @@ describe('clock, marked', () => {
     expect(clock(59.99994, { marked: true })).toBe('<0h 01m');
     expect(clock(3599.99995, { marked: true })).toBe('0h 59m');
     expect(clock(7199.9999, { marked: true })).toBe('1h 59m');
-    // The slack is a fixed 6 microseconds, not a share of the value: a tenth of a millisecond short of 100 h is still 99h 59m.
+    // The slack is 1e-15 of the value (a double's own error), so a tenth of a millisecond short of 100 h is still 99h 59m.
     expect(clock(359999.9999, { marked: true })).toBe('99h 59m');
   });
   it('a length one sample short of a whole minute never reads as that minute, to 2000 hours (48 kHz)', () => {
