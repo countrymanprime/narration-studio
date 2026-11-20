@@ -2,7 +2,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { wireSettings } from '../../../api/mockFixtures';
+import { CUSTOM, WIDE_BODIES } from '../controls/registry';
+import { changedIsCovered } from '../data/customChanged';
+import { RESETTABLE_ROWS } from '../data/rowResets';
 import { CATEGORIES } from './categories';
+import { PANEL_ROWS } from './panelFields';
 import { choiceLabel } from '../data/values';
 import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
@@ -209,5 +214,36 @@ describe('the background check rows (#2251)', () => {
 describe('the Models folder row is found by the words a narrator uses for moving it', () => {
   it.each(['move', 'keep', 'bigger drive', 'location', 'download location', 'drive', 'change location'])('"%s" lists it first', (words) => {
     expect(search(words)[0]?.row?.id).toBe('models.folder');
+  });
+});
+
+describe('settings a page reads are filed under their topic (#3673)', () => {
+  const panelRows = Object.keys(PANEL_ROWS);
+
+  it('has no category that groups settings by where else they are set', () => {
+    expect(CATEGORIES.map((category) => category.id)).not.toContain('pages');
+    expect(ROWS.every((row) => CATEGORIES.some((category) => category.id === row.cat))).toBe(true);
+  });
+
+  it('gives each panel row a body, a place in Changed and in Reset, and a category of its own', () => {
+    for (const id of panelRows) {
+      const row = ROWS.find((candidate) => candidate.id === id);
+      expect(row, `${id} is a row`).toBeTruthy();
+      expect(row!.field, `${id} draws a panel, not one field`).toBeUndefined();
+      expect(CUSTOM[id], `${id} has a body`).toBeTruthy();
+      expect(WIDE_BODIES.has(id), `${id} is drawn under its label`).toBe(true);
+      expect(changedIsCovered(row!), `${id} is read by Changed`).toBe(true);
+      expect((RESETTABLE_ROWS as readonly string[]).includes(id), `${id} is reset by the header`).toBe(true);
+    }
+  });
+
+  it('draws no host key twice: a key a row of its own edits is never also in a panel', () => {
+    const rowKeys = new Set(ROWS.flatMap((row) => (row.field ? [`${row.field.tool}.${row.field.key}`] : [])));
+    for (const id of panelRows) {
+      const { tool, wanted } = PANEL_ROWS[id]!;
+      for (const { key } of wireSettings()[tool] ?? []) {
+        if (wanted(key)) expect(rowKeys.has(`${tool}.${key}`), `${tool}.${key} is drawn by ${id} and by a row`).toBe(false);
+      }
+    }
   });
 });

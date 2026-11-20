@@ -855,7 +855,7 @@ describe('Settings: search and filters', () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
     const punch = await waitForRow('daw.punchPreroll');
-    expect(within(punch).getByText(/Used by Booth/)).toBeTruthy();
+    expect(within(punch).getByRole('button', { name: /Go to Booth/ })).toBeTruthy();
     expect(within(punch).getByText(/Also set in Booth/)).toBeTruthy();
     await userEvent.clear(screen.getByRole('textbox', { name: 'Search settings' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), 'retention');
