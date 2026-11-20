@@ -42,7 +42,8 @@ it('keeps an edit typed before the panel has copied the settings it just read', 
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = previous;
   const field = firstField();
   expect(field).toBeDefined();
-  fireEvent.change(field!, { target: { value: '7' } });
+  // In the range of the first Cleanup field (the pad, 0 to 2 s): a number past it is held in the box until the box is left.
+  fireEvent.change(field!, { target: { value: '1' } });
   fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
   await act(async () => undefined);
   expect(saved).toHaveBeenCalledTimes(1);

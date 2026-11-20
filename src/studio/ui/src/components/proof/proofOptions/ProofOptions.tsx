@@ -3,9 +3,10 @@ import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
 import { ColourField } from '../../primitives/ColourField';
 import { Dialog } from '../../primitives/Dialog';
-import { NumberInput } from '../../primitives/NumberInput';
+import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
+import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
@@ -14,18 +15,15 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
-      <span className="flex items-center gap-2">
-        <NumberInput
-          label={field.label}
-          className="max-w-[8rem]"
-          value={Number(field.effectiveValue)}
-          min={range.min ?? undefined}
-          max={range.max ?? undefined}
-          step={range.step ?? undefined}
-          onValueChange={(n) => void onSet(field.key, String(n))}
-        />
-        {range.unit ? <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{range.unit}</span> : null}
-      </span>
+      // Saved when the narrator settles on it, never per key; an emptied box hands the setting back, as Reset does.
+      <SettingNumber
+        label={field.label}
+        className="max-w-[8rem]"
+        value={field.effectiveValue}
+        range={range}
+        commit="settle"
+        onChange={(value) => onSet(field.key, value === '' ? null : value)}
+      />
     ) : field.kind === 'choice' ? (
       <Select
         label={field.label}
@@ -39,9 +37,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
       <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
-    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => void onSet(field.key, null)}>
-      Reset
-    </Button>
+    <IconButton action="undo" label={`Reset ${field.label}`} className="border-transparent" onClick={() => void onSet(field.key, null)} />
   ) : null;
   // A switch is its own label, so its row has no label column. Only the stored text "true" is on, as in Settings.
   if (field.kind === 'bool')

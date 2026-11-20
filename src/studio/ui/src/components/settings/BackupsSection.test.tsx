@@ -101,17 +101,19 @@ describe('BackupsSection', () => {
     await waitFor(() => expect(project.saveSettings).toHaveBeenCalledWith('DAW', 'project', { 'backups.retention_days': '30' }));
   });
 
-  it("edits-save-through-scoped-settings: a value outside the store's bounds shows the store's sentence and is not saved", async () => {
+  it("edits-save-through-scoped-settings: a value outside the store's bounds is saved as the nearest limit when the box is left", async () => {
     const { saveSettings } = renderSection();
     const box = await windowBox();
     fireEvent.change(box, { target: { value: '600' } });
-    fireEvent.blur(box);
-    expect(screen.getByText('Enter a value from 10 to 300 s.')).toBeTruthy();
-    const days = await retentionBox();
-    fireEvent.change(days, { target: { value: '400' } });
-    fireEvent.blur(days);
-    expect(screen.getByText('Enter a value from 1 to 365 days.')).toBeTruthy();
     expect(saveSettings).not.toHaveBeenCalled();
+    fireEvent.blur(box);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.window_seconds': '300' }));
+    expect(screen.getByText('From 10 to 300 s')).toBeTruthy();
+    const days = await retentionBox();
+    fireEvent.change(days, { target: { value: '0' } });
+    fireEvent.blur(days);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.retention_days': '1' }));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it("edits-save-through-scoped-settings: a refused save shows the host's reason", async () => {

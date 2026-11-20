@@ -94,9 +94,14 @@ describe('Proof options', () => {
     const { save, open } = mount();
     await open();
     const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    // Nothing is saved while typing: "6" and "60" are in range and were once saved on the way to 600 (#3681).
+    fireEvent.change(box, { target: { value: '6' } });
+    fireEvent.change(box, { target: { value: '60' } });
     fireEvent.change(box, { target: { value: '600' } });
+    expect(save).not.toHaveBeenCalled();
     fireEvent.blur(box);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '600' }));
+    expect(save).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { preset: 'spot_check' }));
   });
@@ -165,7 +170,7 @@ describe('Proof options', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { suggest: 'false' }));
   });
 
-  it('offers Reset only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
+  it('offers Reset, an icon button named for the setting, only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
     const { save, open } = mount();
     await open();
     await screen.findByRole('textbox', { name: 'Tint hex' });

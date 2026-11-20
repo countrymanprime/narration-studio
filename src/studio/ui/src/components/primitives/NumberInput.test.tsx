@@ -125,4 +125,134 @@ describe('NumberInput', () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(box().value).toBe('99');
   });
+
+  describe('allowEmpty', () => {
+    function Emptiable({ onChange, start = null, commit }: { onChange: (value: number | null) => void; start?: number | null; commit?: 'input' | 'settle' }) {
+      const [value, setValue] = useState<number | null>(start);
+      return (
+        <NumberInput
+          allowEmpty
+          label="Count"
+          min={1}
+          max={12}
+          commit={commit}
+          value={value}
+          onValueChange={(next) => {
+            setValue(next);
+            onChange(next);
+          }}
+        />
+      );
+    }
+
+    it('shows an unset value as an empty box, not 0', () => {
+      render(<Emptiable onChange={() => undefined} />);
+      expect(box().value).toBe('');
+    });
+
+    it('reports an emptied box as null at once and leaves it empty on blur', () => {
+      const onChange = vi.fn();
+      render(<Emptiable onChange={onChange} start={4} />);
+      fireEvent.change(box(), { target: { value: '' } });
+      expect(onChange).toHaveBeenLastCalledWith(null);
+      fireEvent.blur(box());
+      expect(box().value).toBe('');
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('still reverts junk to the last value, and to empty when there was none', () => {
+      const onChange = vi.fn();
+      render(<Emptiable onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: 'abc' } });
+      fireEvent.blur(box());
+      expect(box().value).toBe('');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('steps from an empty box to the minimum', async () => {
+      const onChange = vi.fn();
+      render(<Emptiable onChange={onChange} />);
+      await userEvent.click(box());
+      await userEvent.keyboard('{ArrowUp}');
+      expect(onChange).toHaveBeenLastCalledWith(1);
+      expect(box().value).toBe('1');
+    });
+
+    it('reports nothing for a box left empty that was empty', () => {
+      const onChange = vi.fn();
+      render(<Emptiable onChange={onChange} commit="settle" />);
+      fireEvent.change(box(), { target: { value: '  ' } });
+      fireEvent.blur(box());
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('commit="settle"', () => {
+    function Settled({ onChange }: { onChange: (value: number) => void }) {
+      const [value, setValue] = useState(3);
+      return (
+        <NumberInput
+          label="Count"
+          min={1}
+          max={12}
+          commit="settle"
+          value={value}
+          onValueChange={(next) => {
+            setValue(next);
+            onChange(next);
+          }}
+        />
+      );
+    }
+
+    it('reports nothing while typing, then the value once on Enter', () => {
+      const onChange = vi.fn();
+      render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '1' } });
+      fireEvent.change(box(), { target: { value: '12' } });
+      expect(onChange).not.toHaveBeenCalled();
+      fireEvent.keyDown(box(), { key: 'Enter' });
+      fireEvent.keyDown(box(), { key: 'Enter' });
+      fireEvent.blur(box());
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenLastCalledWith(12);
+    });
+
+    it('reports a clamped value on blur', () => {
+      const onChange = vi.fn();
+      render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '99' } });
+      fireEvent.blur(box());
+      expect(onChange).toHaveBeenLastCalledWith(12);
+      expect(box().value).toBe('12');
+    });
+
+    it('Escape drops the draft and reports nothing', () => {
+      const onChange = vi.fn();
+      render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '7' } });
+      fireEvent.keyDown(box(), { key: 'Escape' });
+      expect(box().value).toBe('3');
+      fireEvent.blur(box());
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('an arrow step reports at once, from the draft', async () => {
+      const onChange = vi.fn();
+      render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '7' } });
+      fireEvent.keyDown(box(), { key: 'ArrowUp' });
+      expect(onChange).toHaveBeenLastCalledWith(8);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('without allowEmpty an emptied box reverts', () => {
+      const onChange = vi.fn();
+      render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '' } });
+      fireEvent.blur(box());
+      expect(box().value).toBe('3');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
 });

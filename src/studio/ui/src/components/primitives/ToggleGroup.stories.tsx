@@ -50,6 +50,25 @@ export const ChoosingMovesThePress: Story = {
   },
 };
 
+// One tab stop (docs/design/component-selection.md CS-K6): Tab lands on the chosen chip, the arrows move focus without
+// choosing and wrap past the disabled chip, and Enter chooses.
+export const ArrowKeysMoveFocusAndEnterChooses: Story = {
+  args: { value: 'small' },
+  play: async ({ args, canvasElement }) => {
+    const group = within(canvasElement).getByRole('group', { name: 'Whisper model' });
+    const tiny = within(group).getByRole('button', { name: 'Tiny' });
+    const small = within(group).getByRole('button', { name: 'Small' });
+    await userEvent.tab();
+    await expect(small).toHaveFocus();
+    await userEvent.keyboard('{ArrowRight}');
+    await expect(tiny).toHaveFocus();
+    await expect(args.onChange).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
+    await expect(args.onChange).toHaveBeenLastCalledWith('tiny');
+    await expect(tiny).toHaveAttribute('aria-pressed', 'true');
+  },
+};
+
 // A chip the caller has turned off cannot be pressed.
 export const DisabledChipIsNotChosen: Story = {
   play: async ({ args, canvasElement }) => {
@@ -60,7 +79,7 @@ export const DisabledChipIsNotChosen: Story = {
   },
 };
 
-// A chip off with a reason (`disabledReason`) stays focusable and says why on focus; a press does nothing and the choice does not move.
+// A chip off with a reason (`disabledReason`) stays in the arrow-key rotation and says why on focus; a press does nothing and the choice does not move.
 export const ChipDisabledWithReason: Story = {
   args: {
     look: 'segmented',
@@ -74,7 +93,7 @@ export const ChipDisabledWithReason: Story = {
     await expect(chip).toHaveAttribute('aria-disabled', 'true');
     await expect(chip).not.toBeDisabled();
     await userEvent.tab();
-    await userEvent.tab();
+    await userEvent.keyboard('{ArrowRight}');
     await expect(chip).toHaveFocus();
     await waitFor(() => expect(within(document.body).getByRole('tooltip')).toHaveTextContent('Open a project to see what it sets'));
     await userEvent.click(chip);
