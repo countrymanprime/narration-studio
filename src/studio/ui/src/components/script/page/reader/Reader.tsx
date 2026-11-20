@@ -56,8 +56,12 @@ export type ReaderProps = {
   activeMarkId?: string | null;
   /** The bookmark ribbons of a paragraph (the ribbon comes in through this slot). Keep the function the same between renders. */
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
-  /** The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so the title shows once; without it, a bare heading. */
-  renderChapterCard?: (chapter: ManuscriptChapter) => ReactNode;
+  /**
+   * The chapter's card (the previous chapter's end marker, title, facts, prep state, record). With it the reader draws no heading of its own, so
+   * the title shows once; without it, a bare heading. `near` is false for a chapter away from the view, whose text is not drawn either: the
+   * owner draws its heading alone in a block of the card's height, so a long book does not draw a card for every chapter.
+   */
+  renderChapterCard?: (chapter: ManuscriptChapter, near: boolean) => ReactNode;
   /** Drawn before the first chapter: the opening credits. */
   before?: ReactNode;
   /** Drawn after the last chapter's text: the closing credits. */
@@ -81,8 +85,6 @@ export type ReaderProps = {
 /** How many chapters either side of the one in view have their text drawn; the rest are a block of the estimated height. */
 const REACH = 2;
 const EST_PX_PER_WORD = 0.6;
-/** The height held for the card of a chapter that is not drawn: a card is 188 to 284 px from a 1440 px window down to a 420 px one. */
-const CARD_EST_PX = 200;
 const SAVE_DELAY_MS = 250;
 const NO_PARAS: readonly ManuscriptParagraph[] = [];
 
@@ -161,8 +163,9 @@ type SectionProps = {
 
 /**
  * One chapter: its card (the end of the chapter before, the title and facts), or a bare heading without one, then its paragraphs. Until
- * the chapter is near the reader, the card is its heading in a block of the estimated height and so is the text: a card is about 30
- * elements with a prep control and a button, and one for every chapter was most of the Script page's load on a long book (#3766).
+ * the chapter is near the reader, the card slot is asked for the held form (`near` false) and the text is a block of the estimated
+ * height: a card is about 30 elements with a prep control and a button, and one for every chapter was most of the Script page's load
+ * on a long book (#3766).
  */
 const Section = memo(function Section(props: SectionProps) {
   const { chapter, paragraphs, drawn } = props;
@@ -170,18 +173,8 @@ const Section = memo(function Section(props: SectionProps) {
   return (
     <Fragment>
       <div data-bound="" data-ch={chapter.id} id={`ch-${chapter.id}`} className="mt-12 mb-3 first:mt-3">
-        {props.renderChapterCard && !drawn ? (
-          // The heading alone, so the chapter keeps its place, its name for a search of the page and its heading for a screen reader.
-          <div data-pending-card="" style={{ minHeight: CARD_EST_PX }}>
-            <h2
-              aria-label={headingName(chapter).trim() ? undefined : 'Untitled chapter'}
-              className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere]"
-            >
-              {headingName(chapter)}
-            </h2>
-          </div>
-        ) : props.renderChapterCard ? (
-          props.renderChapterCard(chapter)
+        {props.renderChapterCard ? (
+          props.renderChapterCard(chapter, drawn)
         ) : (
           <>
             <h2

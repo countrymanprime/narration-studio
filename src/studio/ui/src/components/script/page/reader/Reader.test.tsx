@@ -437,7 +437,8 @@ describe('a long book', () => {
 
   // A card is the page's (a prep control, a Record button, the facts): one for each of 300 chapters was most of the Script page's load (#3766).
   it("draws the cards of the chapters near the reader only, and a far chapter's when the reader goes to it", () => {
-    const renderChapterCard = vi.fn((c: ManuscriptChapter) => <h2 data-card={c.id}>{`Card ${c.title}`}</h2>);
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) =>
+      near ? <h2 data-card={c.id}>{`Card ${c.title}`}</h2> : <h2 data-pending-card="">{c.title}</h2>;
     const view = (extra: Partial<ComponentProps<typeof Reader>> = {}) => (
       <Reader chapters={many} paragraphsOf={(id) => bodies.get(id)} sources={sources} renderChapterCard={renderChapterCard} {...extra} />
     );
@@ -447,6 +448,7 @@ describe('a long book', () => {
     expect(document.querySelectorAll('[data-bound]')).toHaveLength(CHAPTERS);
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
     expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k0"] [data-pending-card]')).toBeNull();
 
     rerender(view({ pendingJump: 'k200' }));
     expect(document.querySelector('[data-bound][data-ch="k200"] [data-card]')).not.toBeNull();
@@ -457,13 +459,6 @@ describe('a long book', () => {
 });
 
 describe('the chapter card slot', () => {
-  it('names the heading of a far chapter with no title, as its card does', () => {
-    const blank = Array.from({ length: 8 }, (_, i) => ({ ...chapter(`u${i}`, i), title: ' ', label: undefined }));
-    render(<Reader chapters={blank} paragraphsOf={() => []} sources={sources} renderChapterCard={(c) => <h2>{`Card ${c.id}`}</h2>} />);
-    const far = document.querySelector('[data-bound][data-ch="u7"] [data-pending-card] h2');
-    expect(far?.getAttribute('aria-label')).toBe('Untitled chapter');
-  });
-
   it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
     const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);
