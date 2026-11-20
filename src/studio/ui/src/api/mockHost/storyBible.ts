@@ -365,6 +365,9 @@ export function createStoryBibleMock(
         changed,
         keptConfirmed: s.dialogueCues.filter((cue) => cue.corrected || cue.speaker_source === 'correction').length,
         previous,
+        // No local model is switched on here, as in the app by default: the rules' answer is the whole result.
+        modelFilled: 0,
+        modelNote: '',
       };
     },
     guideRestoreSpeakers: async (previous) => {

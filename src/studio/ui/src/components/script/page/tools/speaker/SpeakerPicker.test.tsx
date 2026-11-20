@@ -30,8 +30,9 @@ const entries = [duchess, hatter, gardener];
 const everyone = speakerChoices(entries, TYPES);
 const here = everyone.filter((choice) => choice.entryId !== 'e1');
 
-const suggested: Pick<Phrase, 'speaker' | 'state'> = { speaker: hatter, state: 'suggested' };
-const unknown: Pick<Phrase, 'speaker' | 'state'> = { speaker: null, state: 'unknown' };
+type Picked = Pick<Phrase, 'speaker' | 'state' | 'reason'>;
+const suggested: Picked = { speaker: hatter, state: 'suggested' };
+const unknown: Picked = { speaker: null, state: 'unknown' };
 
 function picker(phrase = suggested, handlers: { onChoose?: (id: string) => void; onClose?: () => void } = {}) {
   const onChoose = handlers.onChoose ?? vi.fn();
@@ -80,6 +81,16 @@ describe('speaker-picker-suggests-this-chapters-people-first', () => {
     expect(screen.queryByRole('option', { name: /Confirm/ })).toBeNull();
     picker(unknown);
     expect(screen.queryAllByRole('option', { name: /Confirm/ })).toHaveLength(0);
+  });
+
+  it("shows a local model's reason beneath Confirm “X” as plain text, and nothing for a rule's suggestion", () => {
+    picker({ ...suggested, reason: 'The Hatter <b>spoke</b> just before.' });
+    const confirm = screen.getAllByRole('option')[0];
+    expect(confirm?.textContent).toContain('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    expect(confirm?.querySelector('b')).toBeNull();
+    cleanup();
+    picker();
+    expect(screen.queryByText(/Suggested by the local model/)).toBeNull();
   });
 
   it("gives each row the swatch of its entry's colour, a chosen colour winning", async () => {

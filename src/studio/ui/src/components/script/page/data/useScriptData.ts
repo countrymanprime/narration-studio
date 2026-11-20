@@ -405,11 +405,12 @@ export function useScriptCommands() {
       async attributeSpeakers() {
         const done = said(await commands.attributeSpeakers(env));
         if (!done) return false;
-        const { filled, changed, keptConfirmed } = done.value;
+        const { filled, changed, keptConfirmed, modelFilled, modelNote } = done.value;
         const moved = filled + changed;
         const kept = keptConfirmed ? ` ${formatCount(keptConfirmed)} confirmed ${pluralWord(keptConfirmed, 'line')} left as they were.` : '';
-        if (moved === 0) overlay.toast(`No new speakers found.${kept}`);
-        else undoOffer(`Attributed ${plural(moved, 'line')}.${kept}`, done.entryId);
+        const model = `${modelFilled ? ` The local model suggested ${formatCount(modelFilled)} of them.` : ''}${modelNote ? ` ${modelNote}` : ''}`;
+        if (moved === 0) overlay.toast(`No new speakers found.${kept}${model}`);
+        else undoOffer(`Attributed ${plural(moved, 'line')}.${kept}${model}`, done.entryId);
         return true;
       },
       confirmSpeaker: async (cueId: string, entryId: string) => said(await commands.confirmSpeaker(env, cueId, entryId)) !== null,

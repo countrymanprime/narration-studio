@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
+import { cueSuggestionReason } from '../manuscript/dialogueCues.selectors';
 import { attributeCue, UNKNOWN_SPEAKER } from '../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../studio/StudioProvider';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -102,6 +103,11 @@ export function DialogueCueAttribution({
                 />
               )}
             </div>
+            {cueSuggestionReason(cue) && (
+              <p className="mt-1 text-xs break-words" style={{ color: 'var(--text-muted)' }}>
+                Suggested by the local model: {cueSuggestionReason(cue)}
+              </p>
+            )}
           </InsetCard>
         ))}
       </ul>

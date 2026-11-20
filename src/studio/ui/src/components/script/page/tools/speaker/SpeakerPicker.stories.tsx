@@ -47,6 +47,21 @@ export const Suggested: Story = {
   },
 };
 
+/** A speaker the local model suggested: its reason sits beneath Confirm, as long as the model made it. */
+export const SuggestedByTheLocalModel: Story = {
+  args: {
+    phrase: {
+      speaker: hatter,
+      state: 'suggested',
+      reason:
+        'The Hatter is the last character named before this line, and the March Hare has only just finished speaking, so the reply that follows the remark about the wine is most likely his.',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('option', { name: /Confirm “The Hatter”.*Suggested by the local model/ })).toBeVisible();
+  },
+};
+
 export const Searching: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
