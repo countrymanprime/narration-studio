@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"desktop/internal/bridge"
 	"desktop/internal/daw"
 	"desktop/internal/dawport"
 )
@@ -27,8 +26,9 @@ const liveTracksMaxAge = 10 * time.Second
 // heartbeat must still vouch for the answer (the same counter, project and epoch); only its age is forgiven, and never beyond this.
 const liveTracksStaleAge = 30 * time.Second
 
-// liveTracksRefreshTimeout bounds the read made behind a stale answer: the usual wait and the late wait of a list REAPER has read.
-const liveTracksRefreshTimeout = bridge.DefaultAnswerTimeout + bridge.LateAnswerWait + time.Second
+// liveTracksRefreshTimeout bounds the read made behind a stale answer as a caller's own read is bounded (tracksLiveTimeout): a caller that
+// arrives past the stale age joins a read in flight, and must not be held by one that outlasts its own wait.
+const liveTracksRefreshTimeout = tracksLiveTimeout
 
 // liveTracksCache holds the last live track list and the one read in flight. It belongs to a project (a project switch makes a new one, as for
 // boothVoices), so another project's list is never served.
@@ -153,6 +153,9 @@ func (l cachedTrackLister) refresh(c *liveTracksCache) {
 	c.flight = flight
 	generation := c.generation
 	go func() {
+		// lead wakes the waiters when a read panics and lets the panic go on to its caller; here that is this goroutine, and nobody is
+		// owed the answer, so the panic ends here instead of ending the app.
+		defer func() { _ = recover() }()
 		ctx, cancel := context.WithTimeout(context.Background(), liveTracksRefreshTimeout)
 		defer cancel()
 		// A failed refresh leaves the stale answer to run out of age; the next caller past it reads for itself and gets the error.

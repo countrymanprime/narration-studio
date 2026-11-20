@@ -728,3 +728,93 @@ func TestAListReadAcrossAGapIsNotReusedAfterwards(t *testing.T) {
 		t.Fatalf("%d requests, want 2: a list read while the bridge restarted was kept for the new epoch", calls)
 	}
 }
+
+// panicOnSecond answers its first request and panics on its second.
+type panicOnSecond struct{ calls atomic.Int32 }
+
+func (l *panicOnSecond) ReadTracks(context.Context) (dawport.LiveTracks, error) {
+	if l.calls.Add(1) == 2 {
+		panic("the bridge broke")
+	}
+	return twoTracks(9), nil
+}
+
+// The read behind a stale answer runs on a goroutine of its own: a read that panics there must not end the app, and the cache stays usable.
+func TestARefreshThatPanicsEndsNothing(t *testing.T) {
+	inner, b := &panicOnSecond{}, newBeat(9)
+	strict, cache := cachedFor(inner, b)
+	cached := servingStale(strict)
+	read(t, cached)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	read(t, cached) // served stale; the refresh panics behind it
+	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(time.Millisecond) {
+		cache.mu.Lock()
+		over := inner.calls.Load() == 2 && cache.flight == nil
+		cache.mu.Unlock()
+		if over {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the refresh that panicked never let go of the cache")
+		}
+	}
+	tickBeat(b, 9, liveTracksStaleAge)
+	if got := read(t, cached); len(got.Tracks) != 2 || inner.calls.Load() != 3 {
+		t.Fatalf("after the panic: %d tracks, %d requests; want a third request answered", len(got.Tracks), inner.calls.Load())
+	}
+}
+
+// A track this app made while a refresh was out: the refresh's answer may predate it, so it is neither kept nor handed to the next caller,
+// who reads REAPER for itself (the rule Invalidate already holds for a caller's own read).
+func TestARefreshInFlightWhenTheListWasInvalidatedIsNotKept(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	strict, _ := cachedFor(inner, b)
+	cached := servingStale(strict)
+	read(t, cached)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	gate := make(chan struct{})
+	inner.gate = gate
+	read(t, cached) // served stale; the refresh is held
+	waitForCalls(t, inner, 2)
+	strict.cache.Invalidate()
+	withNew := twoTracks(9)
+	withNew.Total, withNew.Tracks = 3, append(withNew.Tracks, dawport.LiveTrack{Index: 2, GUID: "{33333333-3333-3333-3333-333333333333}", Name: "Chapter III"})
+	inner.set(withNew, nil)
+	got := make(chan dawport.LiveTracks, 1)
+	go func() {
+		answer, _ := cached.ReadTracks(context.Background())
+		got <- answer
+	}()
+	waitForCalls(t, inner, 3) // the caller after the invalidation sent its own request and did not join the refresh
+	close(gate)
+	if answer := <-got; len(answer.Tracks) != 3 {
+		t.Fatalf("the read after the invalidation got %d tracks; want REAPER's 3", len(answer.Tracks))
+	}
+}
+
+// Many of the host's reads past the max age at once start one read behind the stale answer, not one each.
+func TestStaleCallersAtTheSameTimeStartOneRefresh(t *testing.T) {
+	inner, b := &countedLister{answer: twoTracks(9)}, newBeat(9)
+	strict, _ := cachedFor(inner, b)
+	cached := servingStale(strict)
+	read(t, cached)
+	tickBeat(b, 9, liveTracksMaxAge+time.Second)
+	inner.gate = make(chan struct{})
+	var group sync.WaitGroup
+	for range 20 {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			if got, err := cached.ReadTracks(context.Background()); err != nil || len(got.Tracks) != 2 {
+				t.Errorf("a stale caller got %d tracks, err %v", len(got.Tracks), err)
+			}
+		}()
+	}
+	group.Wait()
+	waitForCalls(t, inner, 2)
+	time.Sleep(20 * time.Millisecond)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests; want the first read and one refresh", calls)
+	}
+	close(inner.gate)
+}
