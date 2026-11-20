@@ -48,6 +48,10 @@ type Service struct {
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
 	// +checklocks:editMu
 	held *heldDocument
+	// read is the Story Bible as the last read split it (readDocument), reused while the file holds the same bytes; splits counts
+	// the splits, for the tests that guard it.
+	read   atomic.Pointer[readDocument]
+	splits atomic.Int64
 	// searchManuscript opens the project's manuscript for the name search a create and an aliases edit make (occurrenceSearch); New sets it
 	// to the host's own (searchNarration), and a test sets one that records what is searched for.
 	searchManuscript func(path string) (occurrenceSearch, error)
@@ -167,28 +171,58 @@ func (s *Service) SaveFindings() error {
 // mutateInHost: an edit, a create, a merge, an unmerge, a split and a rescan among them), and refuses a newer file instead of rewriting it.
 const schemaVersion = 2
 
-// document reads and version-checks the Story Bible file, returning its raw
-// JSON object - a missing file reads as an empty object, exactly the shape
-// Entities and DialogueCues both build their own key's default from. The
-// entries carry the narrator's edits and locks, so a file that cannot be
-// read is kept aside and the narrator told, and a file from a newer version
-// is refused with a message and left exactly as it is.
-func (s *Service) document() (map[string]any, error) {
-	var document map[string]any
+// readDocument is the Story Bible file as its readers take it: the file's top-level members, each still JSON text, so a reader decodes
+// only its own (the types are a few hundred bytes of a file that is megabytes of dialogue cues). It is kept for as long as the file
+// holds the same bytes (sum), so what a reader answers is always what the file says now.
+type readDocument struct {
+	sum     [sha256.Size]byte
+	members map[string]json.RawMessage
+	// cues is the dialogue cues decoded once per file content; nobody writes into what DialogueCues hands out.
+	cuesOnce sync.Once
+	cues     []DialogueCue
+	cuesErr  error
+}
+
+// member is the JSON text of a top-level member; false when the file has none or holds null there.
+func (d *readDocument) member(key string) (json.RawMessage, bool) {
+	raw, present := d.members[key]
+	return raw, present && string(raw) != "null"
+}
+
+// document reads and version-checks the Story Bible file - a missing file
+// reads as one with no members, exactly the shape Entities and DialogueCues
+// both build their own key's default from. The entries carry the narrator's
+// edits and locks, so a file that cannot be read is kept aside and the
+// narrator told, and a file from a newer version is refused with a message
+// and left exactly as it is. The file is read on every call and split into
+// its members only when its bytes differ from the last read's: the Script
+// page asks for the entries, the types and the cues on every load, and each
+// used to parse the whole file (issue 3766).
+func (s *Service) document() (*readDocument, error) {
+	var document *readDocument
 	var versionErr error
 	outcome := s.persist.Load().ReadJSON(s.guidePath(), "Story Bible", persist.NarratorData, func(bytes []byte) error {
-		var decoded map[string]any
+		sum := sha256.Sum256(bytes)
+		if kept := s.read.Load(); kept != nil && kept.sum == sum {
+			document = kept
+			return nil
+		}
+		var decoded map[string]json.RawMessage
 		if err := json.Unmarshal(bytes, &decoded); err != nil {
 			return err
 		}
 		if decoded == nil {
 			return fmt.Errorf("not a JSON object")
 		}
-		version, _ := decoded["schema_version"].(float64)
+		// A version that is not a number reads as 0, as a missing one does.
+		var version float64
+		_ = json.Unmarshal(decoded["schema_version"], &version)
 		if versionErr = persist.CheckVersion(int(version), schemaVersion, "Story Bible"); versionErr != nil {
 			return nil
 		}
-		document = decoded
+		document = &readDocument{sum: sum, members: decoded}
+		s.splits.Add(1)
+		s.read.Store(document)
 		return nil
 	})
 	if versionErr != nil {
@@ -198,7 +232,7 @@ func (s *Service) document() (map[string]any, error) {
 		return nil, fmt.Errorf("the Story Bible file could not be read")
 	}
 	if document == nil {
-		return map[string]any{}, nil
+		return &readDocument{}, nil
 	}
 	return document, nil
 }
@@ -209,12 +243,13 @@ func (s *Service) Entities() ([]map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["entities"]
-	if !present || raw == nil {
+	raw, present := document.member("entities")
+	if !present {
 		return []map[string]any{}, nil
 	}
-	items, ok := raw.([]any)
-	if !ok {
+	// Decoded afresh for each caller: normalizeEntity and the callers write into these maps.
+	var items []any
+	if err := json.Unmarshal(raw, &items); err != nil {
 		return nil, fmt.Errorf("the Story Bible entities data is invalid")
 	}
 	out := []map[string]any{}
@@ -357,22 +392,20 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["dialogue_cues"]
-	if !present || raw == nil {
+	raw, present := document.member("dialogue_cues")
+	if !present {
 		return []DialogueCue{}, nil
 	}
-	encoded, err := json.Marshal(raw)
-	if err != nil {
-		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+	document.cuesOnce.Do(func() {
+		if err := json.Unmarshal(raw, &document.cues); err != nil {
+			document.cues, document.cuesErr = nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+		}
+	})
+	if document.cuesErr != nil {
+		return nil, document.cuesErr
 	}
-	var cues []DialogueCue
-	if err := json.Unmarshal(encoded, &cues); err != nil {
-		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
-	}
-	if cues == nil {
-		cues = []DialogueCue{}
-	}
-	return cues, nil
+	// The caller's own list (never nil) over the kept cues.
+	return append([]DialogueCue{}, document.cues...), nil
 }
 
 // CorrectCue records the narrator's own attribution for one dialogue cue

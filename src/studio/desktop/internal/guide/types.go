@@ -41,16 +41,12 @@ func (s *Service) Types() ([]Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	raw, present := document["types"]
-	if !present || raw == nil {
+	raw, present := document.member("types")
+	if !present {
 		return DefaultTypes(), nil
 	}
-	encoded, err := json.Marshal(raw)
-	if err != nil {
-		return nil, fmt.Errorf("the Story Bible types data is invalid")
-	}
 	var types []Type
-	if err := json.Unmarshal(encoded, &types); err != nil || len(types) == 0 {
+	if err := json.Unmarshal(raw, &types); err != nil || len(types) == 0 {
 		return nil, fmt.Errorf("the Story Bible types data is invalid")
 	}
 	for _, row := range types {

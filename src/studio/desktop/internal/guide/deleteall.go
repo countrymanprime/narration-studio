@@ -1,6 +1,7 @@
 package guide
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,9 +16,11 @@ func (s *Service) DeleteAll() (int, error) {
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
 	s.held = nil
+	s.read.Store(nil)
 	entries := 0
 	if document, err := s.document(); err == nil {
-		if list, ok := document["entities"].([]any); ok {
+		var list []json.RawMessage
+		if raw, present := document.member("entities"); present && json.Unmarshal(raw, &list) == nil {
 			entries = len(list)
 		}
 	}
