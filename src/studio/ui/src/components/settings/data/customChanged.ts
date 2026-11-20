@@ -118,7 +118,6 @@ export const CHANGED_EXEMPT: Readonly<Record<string, { kind: ExemptKind; reason:
     reason: 'The Merriam-Webster key is a secret the narrator pasted, with no default to differ from; it is removed in its own row, which asks first.',
   },
   'daw.capabilities': { kind: 'report', reason: 'A report of what the linked tool can do; nothing here is set.' },
-  'daw.syncActivity': { kind: 'report', reason: 'A log of chapter syncs; nothing here is set.' },
   'project.manuscript': { kind: 'action', reason: 'The import and replace action for the manuscript, which is project data and not a setting.' },
   'project.bibleData': { kind: 'action', reason: 'Deletes Story Bible data; an action, not a setting.' },
   'project.data': { kind: 'action', reason: 'Deletes project data; an action, not a setting.' },

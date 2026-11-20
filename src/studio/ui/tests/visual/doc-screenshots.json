@@ -505,13 +505,6 @@
   },
   {
     "page": "settings",
-    "state": "recording-sync-activity",
-    "viewport": "desktop",
-    "docName": "settings-sync-activity",
-    "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
-  },
-  {
-    "page": "settings",
     "state": "recording-chapter-layout",
     "viewport": "desktop",
     "docName": "settings-chapter-layout",

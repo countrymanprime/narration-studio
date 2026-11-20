@@ -55,11 +55,10 @@ describe('the settings registry', () => {
   });
 });
 
-describe('the Sync activity row', () => {
-  it('is an advanced Recording & DAW row for REAPER, found by search', () => {
-    const row = ROWS.find((candidate) => candidate.id === 'daw.syncActivity');
-    expect(row).toMatchObject({ cat: 'recording', section: 'Chapter sync', advanced: true, needs: 'reaper' });
-    expect(search('chapter sync log').some((hit) => hit.row?.id === 'daw.syncActivity')).toBe(true);
+describe('the removed Sync activity row (#3671)', () => {
+  it('is not in Settings or its search: the chapter sync log is kept in the project folder for diagnostics only', () => {
+    expect(ROWS.some((candidate) => candidate.id === 'daw.syncActivity')).toBe(false);
+    expect(search('chapter sync log').some((hit) => hit.row?.id === 'daw.syncActivity')).toBe(false);
   });
 });
 

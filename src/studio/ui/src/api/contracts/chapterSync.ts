@@ -55,7 +55,7 @@ export type ChapterSyncChapter = {
 /**
  * What one sync just did, for the toast (one toast per batch, "Linked track 'Ch. 7' to Chapter 7" with Undo through
  * `chapterSyncUndo(link.trackGuid)`). `newTracks` are tracks new since the last sync that match no chapter: list them
- * quietly, never in a toast. The same shape is one row of the Sync activity list (`ChapterSyncState.activity`). A batch whose
+ * quietly, never in a toast. The same shape is one entry of the stored list (`ChapterSyncState.activity`), which no screen draws any more (#3671). A batch whose
  * trigger is `watch` arrived while the narrator was in REAPER: also raise it through `systemNotify` when the window is not
  * focused (the host never knows focus).
  */
@@ -67,7 +67,7 @@ export type ChapterSyncBatch = { at: string; trigger: ChapterSyncTrigger; linked
  * `lastSync`: the last sync's time, or null before the first. `batch`: set only on the answer or event of a sync that linked
  * something or found a new unmatched track. `unsavedEdits`: REAPER, running this project, has edits the saved file does not
  * have yet ("Unsaved changes in REAPER": sync reads the saved file, so they are picked up on the next save). `activity`: the
- * stored batches, newest first, at most 20 (the audio engine panel's Sync activity).
+ * stored batches, newest first, at most 20; kept for diagnostics, not drawn (#3671).
  */
 export type ChapterSyncState = {
   consent: ChapterSyncConsent;
