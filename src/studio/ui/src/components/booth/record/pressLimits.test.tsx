@@ -296,6 +296,21 @@ describe('a late start of an abandoned press (#3320)', () => {
 });
 
 describe('the Record control stop (#3320)', () => {
+  it('names the built-in recorder in words, in the sentence and in what to check', async () => {
+    const view = mount({ setup: 'builtin', start: () => Promise.resolve(OK) });
+    await ready(view);
+    await act(async () => void (await view.result.current.toggle()));
+    view.stops.mockImplementationOnce(() => new Promise(() => {}));
+    skipStartGuard();
+    act(() => void view.result.current.toggle());
+    await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
+    expect(view.onBlocked).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: 'Stop did not go through: The built-in recorder did not answer in time. Check the built-in recorder before pressing again.',
+      }),
+    );
+  });
+
   it('never answers: the press ends at its limit with the failure sentence, and the next press can ask again', async () => {
     const view = mount({ start: () => Promise.resolve(OK) });
     await ready(view);
@@ -309,7 +324,7 @@ describe('the Record control stop (#3320)', () => {
     await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.recordStop + 5));
     await expect(pressed).resolves.toBe(false);
     expect(view.onBlocked).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: expect.stringMatching(/Stop did not go through: the stop did not answer in time/) }),
+      expect.objectContaining({ reason: expect.stringMatching(/Stop did not go through: REAPER did not answer in time/) }),
     );
     // The take may still run; Stop asks once more and goes through.
     expect(view.result.current.recording).toBe(true);

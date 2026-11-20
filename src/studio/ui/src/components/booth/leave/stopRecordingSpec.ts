@@ -12,7 +12,7 @@ export const IGNORE_ENTER_MS = 400;
 
 /**
  * The question asked when the narrator leaves the Booth while a take records. `dawName` comes from the capability report
- * ("REAPER", "Audacity", "the built-in recorder"), never hard-coded. A recording the app did not start is never stopped
+ * (the name `recorderName` gives), never hard-coded. A recording the app did not start is never stopped
  * so that question says the DAW keeps recording and offers no stop. `destination` is the rail page the move goes to, named in the sentence when there is one. `endUnconfirmed`: the
  * take is over as far as the Booth can tell, but the DAW went quiet before it said so, so the question says it may still be recording and names the page in its title.
  */
