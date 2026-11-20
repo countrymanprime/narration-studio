@@ -23,7 +23,9 @@ export function useDawConnecting(off: boolean, graceMs = DAW_CONNECT_GRACE_MS): 
   const choice = useDawState((state) => state.choice);
   const offSince = useDawState((state) => state.offSince);
   const [now, setNow] = useState(() => Date.now());
-  const left = off && offSince !== null ? Math.max(0, offSince + graceMs - now) : 0;
+  // A caller that knows the DAW is off before the session has seen it off (a page working from its own facts) is given the grace from when it asked.
+  const [askedAt] = useState(() => Date.now());
+  const left = off ? Math.max(0, (offSince ?? askedAt) + graceMs - now) : 0;
   useEffect(() => {
     if (left <= 0) return;
     const timer = setTimeout(() => setNow(Date.now()), left);
