@@ -1,3 +1,4 @@
+import { recordedPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
@@ -200,7 +201,7 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   if (through && words) {
     // The one value the Booth resumes at, so the board's percent and the Booth's agree.
     const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
-    const percent = through.complete ? 100 : Math.min(99, Math.max(1, through.percent));
+    const percent = recordedPercent(chapter, wph) ?? 0;
     return cell('record', 'booth', 'progress', `${percent}%`, `${percent}% recorded`, withCheck(`${words.tip}${length ? ` · ${length}` : ''}${stageNote}`));
   }
   // Audio on the linked track means recording is under way, even while the chapter's stage still says not started.
@@ -210,7 +211,7 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
     const finished = (chapter.wordCount / wph) * 3600;
     // A percent only from a measured length against the chapter's finished length; never one made up.
     if (chapter.recordedSeconds !== null && finished > 0) {
-      const percent = Math.min(99, Math.max(1, Math.floor((chapter.recordedSeconds / finished) * 100)));
+      const percent = recordedPercent(chapter, wph) ?? 1;
       return cell(
         'record',
         'booth',

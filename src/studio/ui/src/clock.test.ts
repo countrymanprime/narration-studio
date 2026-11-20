@@ -100,6 +100,17 @@ describe('clock, marked', () => {
     expect(clock(59.99994, { marked: true })).toBe('<0h 01m');
     expect(clock(3599.99995, { marked: true })).toBe('0h 59m');
     expect(clock(7199.9999, { marked: true })).toBe('1h 59m');
+    // The slack is a fixed 6 microseconds, not a share of the value: a tenth of a millisecond short of 100 h is still 99h 59m.
+    expect(clock(359999.9999, { marked: true })).toBe('99h 59m');
+  });
+  it('a length one sample short of a whole minute never reads as that minute, to 2000 hours (48 kHz)', () => {
+    const sample = 1 / 48000;
+    for (let minutes = 1; minutes <= 120000; minutes += 1) {
+      const short = clock(minutes * 60 - sample, { marked: true });
+      const before = minutes - 1;
+      const expected = before < 1 ? '<0h 01m' : `${Math.floor(before / 60)}h ${String(before % 60).padStart(2, '0')}m`;
+      if (short !== expected) throw new Error(`${minutes} min less a sample read ${short}, not ${expected}`);
+    }
   });
   it('reads back every whole minute up to 2000 hours written in hours, exactly', () => {
     for (let minutes = 1; minutes <= 120000; minutes += 1) {

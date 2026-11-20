@@ -18,7 +18,7 @@ export type ClockOptions = {
   full?: true;
   /**
    * Hours and minutes with their units, "5h 40m" ("0h 10m", "100h 30m"), always marked, so a length of hours beside lengths in minutes and seconds ("10:12") cannot be
-   * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It FLOORS to the whole minute like every other reading (the coordinator's reading of the owner's floor rule on #3443, owner to confirm): 61 s, 89 s,
+   * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It FLOORS to the whole minute like every other reading (the floor rule of #3443, whose owner confirmation is still open there): 61 s, 89 s,
    * 90 s and 119 s read "0h 01m", 120 s reads "0h 02m", and under a minute (0 < s < 60) it reads "<0h 01m", never "0h 01m", so a figure is never ahead of the time it stands for.
    * Overrides the other options except `full`.
    */
@@ -49,12 +49,19 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
  * capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. A value that is a whole number of minutes in hours
  * (4 + 35/60 h) is not read one short for the double's sake (a relative 1e-9 of error is forgiven, no more: 59.99994 s is still under a minute).
  */
+/**
+ * How far below a whole minute a value may be, as a share of the value, and still read as that minute: only a double's own error (a few units of 1.1e-16, from
+ * minutes written in hours and back). Anything a real length could be short by (one 48 kHz sample is 21 microseconds) is far above it.
+ */
+const WHOLE_MINUTE_SLACK = 1e-15;
+
 function clockMarked(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0h 00m';
   const exact = seconds / 60;
-  // Only the double's own error is forgiven (a whole number of minutes written in hours, 4 + 35/60 h, can land a hair below it): 59.99994 s is still under a minute.
+  // Only the double's own error is forgiven (a whole number of minutes written in hours, 4 + 35/60 h, can land a hair below it): 59.99994 s is still under a minute,
+  // and a length one sample short of a whole minute never reads as it, however large the value.
   const nearest = Math.round(exact);
-  const whole = Math.abs(exact - nearest) <= 1e-9 * Math.max(1, exact) ? nearest : Math.floor(exact);
+  const whole = Math.abs(exact - nearest) <= WHOLE_MINUTE_SLACK * Math.max(1, exact) ? nearest : Math.floor(exact);
   const minutes = Math.min(whole, Math.floor(MAX_FULL_MILLIS / 1000 / 60));
   if (minutes < 1) return '<0h 01m';
   return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m`;

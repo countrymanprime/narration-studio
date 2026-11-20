@@ -18,7 +18,7 @@ import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton'
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
-import { recordedShare } from '../../recordedThrough';
+import { recordedPercent, recordedShare } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { useVoiceLayout } from '../engine/voiceLayout';
 import { calc, scheduleChapters } from '../schedule/progress';
@@ -457,6 +457,7 @@ export function ProductionPage({
                           name: headingName(recordingChapter),
                           words: recordingChapter.wordCount,
                           share: recordedShare(recordingChapter, wph),
+                          percent: recordedPercent(recordingChapter, wph),
                         }
                       : null,
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,

@@ -43,18 +43,18 @@ function Item({ icon, status, title, sub, children }: { icon: string; status: ke
   );
 }
 
-/** The share recorded as the pipeline's Record cell says it: floored, never 100 before the chapter is whole (99.5% reads 99%, as the cell does). */
-const recordedPercent = (share: number | null): number => ((share ?? 0) >= 1 ? 100 : Math.min(99, Math.floor((share ?? 0) * 100 + 1e-9)));
-
 function Rendered({ item, onGo, timer }: Omit<Props, 'inputs'> & { item: NextItem }) {
   switch (item.kind) {
     case 'rec': {
+      // "about" belongs before a figure, not before "<": under a minute reads "<0h 01m of finished audio left".
+      const leftText = item.hoursLeft === null ? '' : hm(item.hoursLeft);
       const left =
         item.hoursLeft === null ? (
           'recording in progress'
         ) : (
           <>
-            {recordedPercent(item.share)}% recorded · about <SpokenFigure text={hm(item.hoursLeft)} /> of finished audio left
+            {item.percent ?? 0}% recorded · {leftText === '<0h 01m' ? '' : 'about '}
+            <SpokenFigure text={leftText} /> of finished audio left
           </>
         );
       return (

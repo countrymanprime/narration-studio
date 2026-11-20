@@ -43,6 +43,18 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
   return Math.min(1, chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600));
 }
 
+/**
+ * The percent a chapter shows as recorded, one rule for every page (the Record cell and Next up): the host's `recordedThrough` when it sent one (100 only when it says
+ * complete, else 1 to 99), else the measured length against the finished length, floored and kept to 1 to 99 (a chapter whose audio has reached its estimate is not "done":
+ * only the host says so). Null when nothing is measured.
+ */
+export function recordedPercent(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
+  const clamp = (percent: number): number => Math.min(99, Math.max(1, percent));
+  if (chapter.recordedThrough) return chapter.recordedThrough.complete ? 100 : clamp(chapter.recordedThrough.percent);
+  if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
+  return clamp(Math.floor((chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600)) * 100));
+}
+
 /** The note a chapter list draws after a chapter's name (`ChapterStepper`'s `detail`): "45%", "~30%", "Complete"; none with nothing recorded. */
 export function chapterRecordedDetail(chapter: Pick<ManuscriptChapter, 'recordedThrough'>): string | undefined {
   return recordedThroughLabel(chapter.recordedThrough, [])?.short;
