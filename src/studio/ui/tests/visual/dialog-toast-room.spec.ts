@@ -1,4 +1,4 @@
-// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window 400 px tall or less (#3605 item 2, #3601, #3549).
+// A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, in a window 400 px tall or less or 440 px wide or less (#3605 items 1 and 2, #3601, #3549).
 // In that window the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem while
 // a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
 // wide and the sampled heights at 275, 360 and 400 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
@@ -115,6 +115,8 @@ const SIZES: [number, number][] = [
   [400, 261],
   [400, 340],
   [400, 400],
+  // #3605: above 400 px of height a narrow window (up to 440 px wide) has the same rule; the toast was taller than the dialog's static 4.75rem room (401-800 px tall at 275-400 wide).
+  ...[275, 320, 360, 400].flatMap((width) => Array.from({ length: 20 }, (_, step): [number, number] => [width, 401 + step * 20])),
   ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
 ];
 
@@ -184,7 +186,7 @@ test('the whole stack shows in a taller window and when no dialog is open', asyn
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
   const first = await shown(page).first().innerText();
-  await page.setViewportSize({ width: 320, height: 500 });
+  await page.setViewportSize({ width: 600, height: 500 });
   await expect(shown(page)).toHaveCount(2);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);

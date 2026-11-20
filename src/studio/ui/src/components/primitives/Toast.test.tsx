@@ -719,7 +719,7 @@ describe('ToastRegion in a window 400 px tall or less with a dialog open', () =>
     document.documentElement.setAttribute('data-modal-open', '');
     window.matchMedia = ((query: string) => ({
       get matches() {
-        return query === '(max-height: 400px)' && short;
+        return query.includes('max-height: 400px') && short;
       },
       media: query,
       addEventListener: (_: string, listener: () => void) => listeners.push(listener),
