@@ -60,18 +60,18 @@ Guards that hold rules 1, 7, 8 and 9 over the whole app. All but `mixedButtons` 
 
 All in `src/studio/ui/src/components/primitives/`. Read the file for props.
 
-| Need        | Primitive                                                                                                                                     |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Buttons     | `Button`, `IconButton`, `NavButton`, `Pill`, `ToggleGroup`, `HelpButton`                                                                      |
-| Command bar | `Toolbar`, `ToolbarButton` (roving tab stop)                                                                                                  |
-| Icons       | `Icon` with the catalogue `icons.catalog.ts`                                                                                                  |
-| Overlays    | `Dialog`, `ConfirmDialog`, `WorkDialog`, `SlideOver`, `NavDrawer`, `Popover`, `Menu`, `ContextMenu`, `Tooltip` and `TooltipTarget`, `Listbox` |
-| Messages    | `Toast` (the only error surface besides a dialog), `StatusBadge`, `HeaderChip`, `ProgressBar`, `Skeleton`                                     |
-| Inputs      | `TextField`, `Field`, `DateField`, `NumberInput`, `SearchField`, `Select`, `Slider`, `Checkbox`, `Switch`, `RadioGroup`, `TagInput`, `Tabs`   |
-| Text        | `Heading`, `TitleSubtitle`, `SectionLabel`, `Highlight`, `KindMark`, `KindChip`, `SpeakerTag`, `Kbd`, `KeyCap`, `KeyHint`, `KeyHints`         |
-| Containers  | `Panel`, `InsetCard`, `Collapsible`, `Disclosure`, `FocusShell`, `CompactShell`                                                               |
-| Data        | `Table`, `StageGrid`, `StatTile`, `StatStrip`, `Timeline`, `LevelMeter`, `ChapterStepper`                                                     |
-| Gating      | `CapabilityGate`                                                                                                                              |
+| Need        | Primitive                                                                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buttons     | `Button`, `IconButton`, `SplitButton`, `NavButton`, `Pill`, `ToggleGroup`, `HelpButton`                                                                                               |
+| Command bar | `Toolbar`, `ToolbarButton` (roving tab stop)                                                                                                                                          |
+| Icons       | `Icon` with the catalogue `icons.catalog.ts`                                                                                                                                          |
+| Overlays    | `Dialog`, `ConfirmDialog`, `WorkDialog`, `SlideOver`, `NavDrawer`, `Popover`, `Menu`, `ContextMenu`, `Tooltip` and `TooltipTarget`, `Listbox`                                         |
+| Messages    | `Toast` (the only error surface besides a dialog), `StatusBadge`, `HeaderChip`, `CheckedStamp` (when a check last ran), `ProgressBar`, `Skeleton`                                     |
+| Inputs      | `TextField`, `Field`, `DateField`, `NumberInput`, `SearchField`, `SearchList`, `Select`, `TreeSelect`, `Slider`, `Checkbox`, `Switch`, `RadioGroup` and `Radio`, `TagInput`, `Tabs`   |
+| Text        | `Heading`, `TitleSubtitle`, `SectionLabel`, `Highlight`, `KindMark`, `KindChip`, `SpeakerTag`, `Swatch`, `Kbd`, `KeyCap`, `KeyHint`, `KeyHints`                                       |
+| Containers  | `Panel`, `InsetCard`, `Collapsible`, `Disclosure`, `FocusShell`, `CompactShell`, `ReaderColumn` (the reading column the Script and the Booth share)                                   |
+| Data        | `Table`, `StageGrid`, `StatTile`, `StatStrip`, `Timeline`, `LevelMeter`, `ChapterStepper`, `BoundaryMarker` (the dashed rule and label at a chapter end or page break in the reading) |
+| Gating      | `CapabilityGate`                                                                                                                                                                      |
 
 ## Done means
 

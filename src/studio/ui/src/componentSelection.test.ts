@@ -11,6 +11,7 @@ import { describe, expect, test } from 'vitest';
 //   and a Proposed name is not written yet (the PR that extracts it removes the mark);
 // - every backticked `.ts`, `.tsx` or `.go` path exists, from `src/studio/ui/src/` or from the repository root;
 // - every relative link resolves, with its anchor;
+// - each prop in PROPS, which the page names in a code span, is still written in the primitives' source;
 // - `docs/design/design-system.md` links to the page.
 const srcDir = __dirname;
 const repoRoot = join(srcDir, '..', '..', '..', '..');
@@ -30,6 +31,32 @@ const primitiveNames = new Set(
     .filter((file) => /\.tsx?$/.test(file) && !/\.(test|stories)\.tsx?$/.test(file))
     .flatMap((file) => [file.replace(/\.tsx?$/, ''), ...exportsOf(join(primitivesDir, file))]),
 );
+
+const primitivesSource = readdirSync(primitivesDir)
+  .filter((file) => /\.tsx?$/.test(file) && !/\.(test|stories)\.tsx?$/.test(file))
+  .map((file) => readFileSync(join(primitivesDir, file), 'utf8'))
+  .join('\n');
+
+// Props the page tells a reader to pass, by name and (where it has one) value. Not every prop on the page: the ones a rule turns on.
+const PROPS = [
+  'look="segmented"',
+  'look="filter"',
+  'focusCancel',
+  'closeOnSelect',
+  'select="one"',
+  'valueText',
+  'confirmVariant',
+  'focusableWhenDisabled',
+  'disabledReason',
+  'unavailable',
+];
+
+/** Whether the primitives declare the prop, and its value as a string literal in either quote. */
+function inPrimitives(prop: string): boolean {
+  const [name, value] = prop.split('=');
+  if (!new RegExp(`\\b${name}\\b`).test(primitivesSource)) return false;
+  return value === undefined || primitivesSource.includes(value) || primitivesSource.includes(value.replaceAll('"', "'"));
+}
 
 /** The text of every inline code span. */
 const spans = [...page.matchAll(/`([^`\n]+)`/g)].map((match) => match[1]);
@@ -112,6 +139,17 @@ describe('docs/design/component-selection.md', () => {
     expect(broken).toEqual([]);
   });
 
+  test('every-prop-the-page-turns-on-is-in-the-primitives', () => {
+    expect(
+      PROPS.filter((prop) => !spans.some((span) => span.includes(prop))),
+      'the page no longer names it: drop it from PROPS',
+    ).toEqual([]);
+    expect(
+      PROPS.filter((prop) => !inPrimitives(prop)),
+      'renamed or removed in components/primitives: fix the page',
+    ).toEqual([]);
+  });
+
   test('the-design-system-links-to-the-page', () => {
     expect(readFileSync(join(repoRoot, 'docs', 'design', 'design-system.md'), 'utf8')).toContain('](component-selection.md');
   });
@@ -120,6 +158,9 @@ describe('docs/design/component-selection.md', () => {
     expect(primitiveNames.has('TooltipTarget')).toBe(true);
     expect(componentNames.has('Switch')).toBe(true);
     expect(proposed.has('ColourField')).toBe(true);
+    expect(inPrimitives('look="segmented"')).toBe(true);
+    expect(inPrimitives('look="nope"')).toBe(false);
+    expect(inPrimitives('noSuchProp')).toBe(false);
     expect(anchors('## Where the code departs from this page (2026-11-20)').has('where-the-code-departs-from-this-page-2026-11-20')).toBe(true);
   });
 });
