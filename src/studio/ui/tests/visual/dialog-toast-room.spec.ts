@@ -1,5 +1,5 @@
 // A toast over an open dialog never covers the dialog's title, focused field or buttons, and never hides them, at any window size (#3605 items 1 and 2, #3601, #3549).
-// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem (a quarter of the window less 4rem where that is more) while
+// Over a dialog the toast region shows only the newest toast (older ones stay queued and appear as the newest goes), a long message scrolls inside a toast capped at 2.5rem (over 400 px of height: 4rem, or a quarter of the window less 4rem where that is more) while
 // a dialog is open, `ToastRegion` publishes `--toast-h` and `Dialog` takes what is left above it. Each case opens a dialog under toasts the way the narrator meets them (one and two stacked Undo toasts over New project with its Name field focused; one long error over the status report), then walks the window's heights from 261 to 299 px at 320 px
 // wide and the sampled heights at 275, 360 and 400 px wide: exactly one toast shows, and the title, every button and the focused field are inside the popup, inside the window, and at five points
 // not under the toast. With no toast the dialog's size is the sweep's (`dialog-height-sweep.spec.ts`).
@@ -137,12 +137,11 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside 2.5rem (40 px; a quarter of the window less 4rem where that is more) over a dialog, so it never takes the dialog's room.
-      const cap = Math.max(40, height / 4 - 64);
+      // A long message scrolls inside 2.5rem (40 px; over 400 px of height 4rem, or a quarter of the window less 4rem where that is more) over a dialog, so it never takes the dialog's room.
+      const cap = height > 400 ? Math.max(64, height / 4 - 64) : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
       if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
-      // A wider window fits the long error in two lines.
-      if (c.longText && cap === 40 && width <= 400) {
+      if (c.longText && cap === 40) {
         const scrolls = await page.evaluate(() => {
           const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
           return el.scrollHeight > el.clientHeight + 1;

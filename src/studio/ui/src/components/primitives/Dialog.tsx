@@ -106,9 +106,9 @@ const DIALOG_MAX_HEIGHT = 'max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(
 const DIALOG_TOAST_ROOM_SHORT =
   '[@media(max-height:400px)]:max-h-[min(calc(100dvh_-_0.5rem),calc(min(80dvh,calc(92dvh_-_4.75rem))_+_clamp(0px,calc(2.26*(300px_-_100dvh)),6rem)),calc(100dvh_-_var(--toast-h,0px)_-_0.5rem))]';
 const DIALOG_TOAST_ROOM = {
-  top: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.01px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(92dvh_-_var(--toast-h,0px)))]`,
-  palette: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.01px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(88dvh_-_var(--toast-h,0px)))]`,
-  center: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.01px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(100dvh_-_2*var(--toast-h,0px)))]`,
+  top: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(92dvh_-_var(--toast-h,0px)))]`,
+  palette: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(88dvh_-_var(--toast-h,0px)))]`,
+  center: `${DIALOG_TOAST_ROOM_SHORT} [@media(min-height:400.1px)]:max-h-[min(80dvh,calc(92dvh_-_4.75rem),calc(100dvh_-_2*var(--toast-h,0px)))]`,
 };
 const DIALOG_SHORT_ALIGN = '[@media(max-height:400px)]:[:root[style*=--toast-h]_&]:items-start';
 
