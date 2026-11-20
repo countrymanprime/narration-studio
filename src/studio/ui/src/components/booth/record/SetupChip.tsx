@@ -44,7 +44,11 @@ function stateDetail(choice: DawChoice): string {
 /** Why the Booth does not follow a take the DAW holds (`notFollowed` of the record control). */
 export type { NotFollowedWhy };
 const NOT_FOLLOWED = (why: NotFollowedWhy, name: string) =>
-  why === 'unread' ? `${name} is recording a take the Booth could not match to this chapter yet` : `${name} is recording ${NOT_FOLLOWED_CLAUSE[why]}`;
+  why === 'unread'
+    ? `${name} is recording a take the Booth could not match to this chapter yet`
+    : why === 'no_project'
+      ? `${name} is recording, and the Booth is not following it`
+      : `${name} is recording ${NOT_FOLLOWED_CLAUSE[why]}`;
 export type SetupProblem = 'no_track' | 'several_tracks' | 'track_missing' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
 const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks' | 'track_missing'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
@@ -102,6 +106,8 @@ export function SetupChip({
         ? 'Recording happens in the app'
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
+  // With no project file linked here the detail would say "linked"; it says what is true.
+  const noProject = issue === 'recording_elsewhere' && notFollowed === 'no_project';
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
   const dawShort = choice && !standalone && choice.state !== 'connected' ? (choice.state === 'linked' ? 'not running' : choice.state.replace('_', ' ')) : '';
   const stateWords = otherProject ? 'other project' : dawShort || (issue ? problemOf(issue, dest).words : '');
@@ -111,7 +117,7 @@ export function SetupChip({
     : !dawShort && issue
       ? ` · ${issue === 'recording_elsewhere' && notFollowed ? NOT_FOLLOWED(notFollowed, name) : problemOf(issue, dest).sentence(name)}`
       : '';
-  const tooltip = `${detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
+  const tooltip = `${noProject ? `${name} not linked` : detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
   // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.
   const destination = standalone ? 'recording-settings' : 'engine-panel';

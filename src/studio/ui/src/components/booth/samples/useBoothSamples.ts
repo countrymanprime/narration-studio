@@ -16,6 +16,8 @@ export type BoothSamplesOptions = {
   inChapter: ReadonlySet<string>;
   /** `control.recording`: a take is recording. */
   recording: boolean;
+  /** Why a play is refused while a take records, when it is not "Not while recording": a take the DAW started is stopped there. */
+  recordingWhy?: string;
   /** Whether the DAW has gone quiet, so the page cannot tell if a take is recording, and when it was last heard. */
   recorder: { unknown: boolean; checkedAt: number | null; checkAgain: () => void };
   /** The teleprompter session: whether one is running, whether its listening is paused, and how to pause it or resume it. */
@@ -67,7 +69,11 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
   const { read } = useVoiceSamples();
   const list = read.status === 'ready' ? read.samples : read.status === 'failed' ? read.samples : undefined;
   const player = useSamplePlayer({
-    guard: { recording, ...(recorder.unknown ? { cantTell: cantTellSentence(recorder.checkedAt, Date.now()) } : {}) },
+    guard: {
+      recording,
+      ...(options.recordingWhy ? { recordingWhy: options.recordingWhy } : {}),
+      ...(recorder.unknown ? { cantTell: cantTellSentence(recorder.checkedAt, Date.now()) } : {}),
+    },
     notify: options.notify,
   });
   const live = useRef({ ...options, player });
@@ -96,7 +102,7 @@ export function useBoothSamples(options: BoothSamplesOptions): BoothSamples {
     [samplesOf],
   );
 
-  const refusal = recording ? NOT_WHILE_RECORDING : recorder.unknown ? cantTellSentence(recorder.checkedAt, Date.now()) : undefined;
+  const refusal = recording ? (options.recordingWhy ?? NOT_WHILE_RECORDING) : recorder.unknown ? cantTellSentence(recorder.checkedAt, Date.now()) : undefined;
 
   // The pause of a listening session. `pausedByUs` is the page's own pause; `pauseSentAt` when it was asked; `seenPaused` that the host's state has said so.
   const [waiting, setWaiting] = useState<string | null>(null);

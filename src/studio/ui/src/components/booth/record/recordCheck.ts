@@ -20,7 +20,7 @@ export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, stri
   other_track: 'on another track, so the Booth is not following it',
   several_tracks: 'with several tracks armed, so the Booth is not following it',
   no_track_armed: 'with no track armed, so the Booth is not following it',
-  no_project: 'while no project file is linked here, so the Booth cannot tell which chapter it is for and is not following it',
+  no_project: 'while no project file is linked here',
 };
 
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
@@ -50,7 +50,9 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   if (chapter.elsewhere) {
     const name = recorderNameCapital(capabilities.daw);
     const why = chapter.notFollowed && chapter.notFollowed !== 'unread' ? ` ${NOT_FOLLOWED_CLAUSE[chapter.notFollowed]}` : '';
-    return { code: 'recording_elsewhere', reason: `${name} is already recording${why}. Stop it in ${name} before recording here.` };
+    // With no project file linked, stopping the take does not make Record ready: linking does.
+    const next = chapter.notFollowed === 'no_project' ? 'Link a project file, then record here.' : `Stop it in ${name} before recording here.`;
+    return { code: 'recording_elsewhere', reason: `${name} is already recording${why}. ${next}` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };

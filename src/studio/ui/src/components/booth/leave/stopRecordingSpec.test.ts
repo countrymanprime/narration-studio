@@ -27,6 +27,12 @@ describe('stopRecordingSpec', () => {
     );
   });
 
+  it('a take REAPER started whose end is not confirmed is not said to be recording (QA A3)', () => {
+    expect(stopRecordingSpec('REAPER', false, false, 'Script', true).body).toBe(
+      'REAPER may still be recording, and keeps recording after you leave if it is. The app did not start this take, so it will not stop it; stop it in REAPER.',
+    );
+  });
+
   it('a chapter question opens a chapter: its stop says so, and staying hands focus back to the picker', () => {
     for (const unconfirmed of [false, true]) {
       const spec = stopRecordingSpec('REAPER', true, false, 'Booth', unconfirmed);

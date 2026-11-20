@@ -30,7 +30,7 @@ import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useSt
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
 const ROLL_LANDED_TOPIC = 'booth-roll-landed';
-import { appTakeChapter, useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { appTakeChapter, notWhileRecording, TAKE_TOPIC, useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -58,7 +58,6 @@ const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
 const STAYED_MS = 500;
 /** Why Cold read is off during a take (the toggle and its jump-menu entry). */
-const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
 /** The question for a session that only listens: it names the page the move goes to, as the recording question does (#3529). */
 const stopReading = (destination: string | undefined) => ({
   title: 'Stop reading?',
@@ -934,7 +933,9 @@ export function useBoothPage(options: BoothPageOptions) {
     // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setPunchAt(null);
-    setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
+    // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
+    const followed = takeByDaw.current;
+    setTakeNote(followed ? `The take ended in ${recorderLabel}.` : `Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     // A take ended by "Stop and leave" ends its listening for the same leave: retried after this page is gone, and said on the next page if refused twice.
     if (now.session.active) {
@@ -947,8 +948,12 @@ export function useBoothPage(options: BoothPageOptions) {
     const seconds = now.elapsed();
     void tellStopped(false).then(({ marked, take }) => {
       setTakes((all) => [...all, { seconds, entry: take.entry ?? null }]);
-      // A take that marked or added pickups says it was saved in that toast, with its Undo; else the take says so here.
-      if (marked > 0) return;
+      // A take that marked or added pickups says so in that toast, with its Undo; else the take says so here. For a take the DAW started that toast says it ended, so the
+      // record control's own sentence that it ended goes: one message, not two saying the same.
+      if (marked > 0) {
+        if (followed) overlay.dismissTopic(TAKE_TOPIC);
+        return;
+      }
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
       // One low-key offer once the take has stopped, never while one runs (#2833): the same Check recordings the other pages open, off for the same reasons.
@@ -961,7 +966,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;
@@ -1142,7 +1147,7 @@ export function useBoothPage(options: BoothPageOptions) {
         void onGone.current.flush();
         return;
       }
-      // A take REAPER started is never the app's to stop, however the page goes (#3666): only what this page saw of it is written.
+      // A take the DAW started is never the app's to stop, however the page goes (#3666): only what this page saw of it is written.
       if (!latest.current.startedByApp) {
         void onGone.current.flush();
         return;
@@ -1187,13 +1192,16 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Cold read (#2251 item 13): listen and follow with the ghost, record nothing. Off by default, unavailable during a take; only this
   // toggle, a take or leaving the Booth ends it (it never stops itself).
-  const coldReadReason = recording ? COLD_READ_WHILE_RECORDING : undefined;
+  const coldWhy = notWhileRecording(control.capabilities?.daw, recording && !control.startedByApp);
+  const coldWhyRef = useRef(coldWhy);
+  coldWhyRef.current = coldWhy;
+  const coldReadReason = recording ? coldWhy : undefined;
   const coldReadStarting = useRef(false);
   // The same fact as a state, so the Main button choice locks from the press, not only once the listening is up.
   const [coldStarting, setColdStarting] = useState(false);
   const toggleColdRead = useCallback(async () => {
     const now = latest.current;
-    if (now.recording) return notify(COLD_READ_WHILE_RECORDING);
+    if (now.recording) return notify(coldWhyRef.current);
     if (now.coldRead) {
       setEndingColdRead(true);
       // The cold read's own stop: its claim ends with it.

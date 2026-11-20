@@ -31,6 +31,9 @@ export type PickupSessionOptions = {
  * `survivesMoves`: the stop is the narrator's Stop and leave, so the sentence that says the take is saved is still shown, as a plain toast with no Undo, which the move does not take away (#3529). `undoTake` and
  * `entry`: the take's history entry, when a DAW stopped it; the toast's Undo takes the take back in the DAW before the marks.
  */
+/** What a toast that says what a take left behind opens with: the app saved a take it stopped, and only saw a take the DAW started end. */
+export const takeToastOpener = (byDaw: boolean): string => (byDaw ? 'The take ended' : 'Take saved');
+
 export type StoppedTake = {
   began: number;
   stopped: number;
@@ -155,7 +158,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         return 0;
       }
       if (!quiet || survivesMoves) {
-        const text = `${byDaw ? 'The take ended' : 'Take saved'} · ${plural(targets.length, 'pickup')} marked recorded`;
+        const text = `${takeToastOpener(byDaw)} · ${plural(targets.length, 'pickup')} marked recorded`;
         // Stop and leave: the sentence is shown on the page landed on, with no Undo (an Undo toast goes at the next move, and this one's Undo is #3545's to get right).
         if (quiet) {
           const say = () => overlay.toast(text);

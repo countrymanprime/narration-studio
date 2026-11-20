@@ -496,6 +496,8 @@ export function useBoothVoices({
   const standInFor = useCallback(
     (character: WhoCharacter) => {
       if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
+      // A take the DAW started switches no voice, a stand-in included: the control would say a voice the take does not use.
+      if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
         notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');

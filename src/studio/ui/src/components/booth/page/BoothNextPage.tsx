@@ -49,7 +49,7 @@ import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
-import { heldInDawSentence, RECORD_BLOCKED_TOPIC, type RecordBlock } from '../record/useRecordControl';
+import { heldInDawSentence, notWhileRecording, RECORD_BLOCKED_TOPIC, type RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -390,6 +390,8 @@ function BoothSession({
     onRecordBlocked: (block) => parts.current.recordBlocked?.(block),
   });
   const { control, at, units } = page;
+  // Why a change that waits for the take to end is off: a take REAPER started is stopped there, not here.
+  const whileRecording = notWhileRecording(control.capabilities?.daw, control.recording && !control.startedByApp);
 
   const chapterLabels = useMemo(() => (data.chapters ?? []).map((item) => ({ id: item.id, name: chapterName(item, 'short') })), [data.chapters]);
   const chapterLabel = useCallback((id: string) => chapterLabels.find((item) => item.id === id)?.name ?? id, [chapterLabels]);
@@ -523,6 +525,7 @@ function BoothSession({
     characters,
     inChapter,
     recording: control.recording,
+    recordingWhy: whileRecording,
     recorder: { unknown: control.readFailed, checkedAt: control.checkedAt, checkAgain: control.checkAgain },
     listening: { active: session.active, paused: session.paused, pause: session.pause },
     notify: (text, tone) => overlay.toast(text, tone ? { tone } : undefined),
@@ -606,7 +609,7 @@ function BoothSession({
           keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
           speaks: (id: string) => (lines.get(id) ?? 0) > 0,
           add: (id: string) => askFor(id, 'new'),
-          addWhy: control.recording ? 'Not while recording. Stop the take first.' : undefined,
+          addWhy: control.recording ? whileRecording : undefined,
         }
       : undefined;
   useCommand('booth.voice.0', () => voices.byKey(0));
@@ -635,9 +638,6 @@ function BoothSession({
     return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
   });
   const pickerValue = chapterId;
-  // Why a change that waits for the take to end is off: a take REAPER started is stopped there, not here.
-  const whileRecording =
-    control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'stop it') : 'Not while recording. Stop the take first.';
   const { changeChapter, step } = useChapterNavigation({
     requested,
     chapterId,

@@ -3,7 +3,7 @@ import type { CommandId } from '../../../input/commands.catalog';
 import type { Keymap } from '../../../input/keymap';
 import { usePageCommands, type PageItem } from '../../../input/pageCommands';
 
-const WHILE_RECORDING = 'Not while recording. Stop the take first.';
+import { NOT_WHILE_RECORDING as WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
 
 export interface BoothCommands {
   /** The picker's rows: the chapters, and the opening and closing credits when there are any. */

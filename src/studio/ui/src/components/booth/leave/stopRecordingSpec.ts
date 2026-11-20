@@ -29,7 +29,10 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
     return {
       // Another chapter is not leaving the Booth, and the take is one only REAPER can stop.
       title: opens ? 'Open another chapter?' : 'Leave the Booth?',
-      body: `${subject} is recording and keeps recording after you ${opens ? 'open another chapter' : 'leave'}. The app did not start this take, so it will not stop it; stop it in ${dawName}.`,
+      // A take whose end was not confirmed (REAPER went quiet after it) is not known to run: the question says so.
+      body: endUnconfirmed
+        ? `${subject} may still be recording, and keeps recording after you ${opens ? 'open another chapter' : 'leave'} if it is. The app did not start this take, so it will not stop it; stop it in ${dawName}.`
+        : `${subject} is recording and keeps recording after you ${opens ? 'open another chapter' : 'leave'}. The app did not start this take, so it will not stop it; stop it in ${dawName}.`,
       confirmLabel: opens ? 'Open' : 'Leave',
       // Both answers leave REAPER recording, so "Keep recording" would promise something Stay does not.
       cancelLabel: 'Stay',

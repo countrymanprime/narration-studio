@@ -1232,6 +1232,12 @@ describe('a voice key during a take the DAW started (#3666)', () => {
     expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, 'daw-held');
     await act(async () => hook.current.choose(hook.current.voices[1]));
     expect(set).not.toHaveBeenCalled();
+    // A character with no track is no exception: the stand-in switches the take's voice to the Narrator, which REAPER's take does not allow either (UX 7).
+    notify.mockClear();
+    await act(async () => hook.current.standInFor({ id: 'alice', name: 'Alice' } as never));
+    expect(set).not.toHaveBeenCalled();
+    expect(hook.current.standIn).toBeUndefined();
+    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, 'daw-held');
   });
 });
 

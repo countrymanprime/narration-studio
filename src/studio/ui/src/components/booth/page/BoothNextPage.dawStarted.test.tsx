@@ -15,7 +15,7 @@ import { createOverlayService } from '../../../overlay/overlayService';
 import type { TeleprompterEvent, TeleprompterState } from '../../../api/contracts/teleprompter';
 import type { NarrationApi } from '../../../types';
 import { forgetListeningClaims } from '../listening/listeningClaims';
-import { forgetAppTake } from '../record/useRecordControl';
+import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
 
@@ -37,7 +37,17 @@ function Driver() {
   return null;
 }
 
-function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, sameProject = true, holdStart = false, projectFails = false } = {}) {
+function mount(
+  status: ReadAloudReaperStatus,
+  {
+    alreadyRecording = false,
+    sameProject = true,
+    holdStart = false,
+    projectFails = false,
+    search,
+    hereFor,
+  }: { alreadyRecording?: boolean; sameProject?: boolean; holdStart?: boolean; projectFails?: boolean; search?: string; hereFor?: string } = {},
+) {
   const armRefusal = 'REAPER is recording. Stop recording first.';
   let recording = alreadyRecording;
   const listeners = new Set<(next: DawTransport) => void>();
@@ -80,14 +90,21 @@ function mount(status: ReadAloudReaperStatus, { alreadyRecording = false, samePr
     dawArmBoothVoice,
     dawReleaseBoothMonitor,
     dawGoToChapter,
-    readAloudReaperState: async () => ({ status: recording ? status : 'ready', message: '', trackGuid: '{T}', armedCount: 1, playing: recording, recording }),
+    readAloudReaperState: async (chapterId: string) => ({
+      status: recording ? (hereFor && chapterId !== hereFor ? 'recording_elsewhere' : status) : 'ready',
+      message: '',
+      trackGuid: '{T}',
+      armedCount: 1,
+      playing: recording,
+      recording,
+    }),
     bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: sameProject }),
   } as Partial<NarrationApi>);
   const navigate = vi.fn();
   const overlay = createOverlayService();
   const dismissUndo = vi.spyOn(overlay, 'dismissUndo');
   render(
-    <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
+    <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay} search={search}>
       <BoothNextPage hasManuscript navigate={navigate} />
       <Driver />
     </BoothHost>,
@@ -132,6 +149,29 @@ describe("a take pressed in the app leaves the last take's message alone (intent
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
     await stopShown();
     expect(dismissUndo).not.toHaveBeenCalled();
+  });
+});
+
+describe('a page for another chapter does not drop the claim of the chapter the take began in (QA B3)', () => {
+  it("the app's own take on c1: c2 sees REAPER recording elsewhere and cannot stop it; back on c1 it is the app's and Stop reaches REAPER", async () => {
+    const first = mount('recording_here', { hereFor: 'c1' });
+    await ready();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
+    await stopShown();
+    cleanup();
+
+    const other = mount('recording_here', { alreadyRecording: true, hereFor: 'c1', search: '?chapter=c2' });
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 150))));
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+    expect(other.recordStop).not.toHaveBeenCalled();
+    cleanup();
+
+    const back = mount('recording_here', { alreadyRecording: true, hereFor: 'c1', search: '?chapter=c1' });
+    await stopShown();
+    skipStartGuard();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
+    await waitFor(() => expect(back.recordStop).toHaveBeenCalledTimes(1));
+    expect(first.recordStop).not.toHaveBeenCalled();
   });
 });
 
@@ -238,6 +278,9 @@ describe('a take started in the DAW', () => {
     await inDaw(false);
     await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
     expect(recordStop).not.toHaveBeenCalled();
+    // The status for a take the Booth only followed says it ended there, not that this window recorded it (UX 8).
+    expect(screen.queryByText(/Stopped\. Recorded/)).toBeNull();
+    expect(screen.getAllByText('The take ended in REAPER.').length).toBeGreaterThan(0);
   });
 
   it('is not listened to when another lane is armed: Record says REAPER is recording elsewhere, and says why', async () => {

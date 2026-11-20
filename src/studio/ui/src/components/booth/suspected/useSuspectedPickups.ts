@@ -7,6 +7,7 @@ import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 import { pluralWord, formatCount } from '../../../plural';
+import { takeToastOpener } from '../pickups/usePickupSession';
 
 /**
  * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast unless `survivesMoves` is set (Stop and leave: the sentence is shown with no Undo, and the move does not take it
@@ -92,7 +93,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       if (refused) overlay.toast(refused, { tone: 'error' });
       if (changed.length === 0 || (quiet && !survivesMoves)) return changed.length;
       const withTake = !saidSaved && undoTake;
-      const text = saidSaved ? lines(changed.length) : `${byDaw ? 'The take ended' : 'Take saved'} · ${lines(changed.length)}`;
+      const text = saidSaved ? lines(changed.length) : `${takeToastOpener(byDaw)} · ${lines(changed.length)}`;
       // Stop and leave: the sentence is shown on the page landed on, with no Undo (see #3545 for the Undo path).
       if (quiet) {
         const say = () => overlay.toast(text);

@@ -150,7 +150,8 @@ async function open(init: Partial<World> = {}, chapterId = 'c1') {
     act(() => capabilityListeners.forEach((listener) => listener(on ? QUIET : available)));
     await settle();
   };
-  return { world, hook, notify, onStarted, recordStop, recordStart, dawTake, quiet, reads, overlay, wrapper, api, renders, sendTransport };
+  const sendCaps = (picture: DawCapabilities) => act(() => capabilityListeners.forEach((listener) => listener(picture)));
+  return { world, hook, notify, onStarted, recordStop, recordStart, dawTake, quiet, reads, overlay, wrapper, api, renders, sendTransport, sendCaps };
 }
 
 describe('a take started in the DAW (#3666)', () => {
@@ -216,9 +217,7 @@ describe('a take started in the DAW (#3666)', () => {
     await tick();
     expect(hook.result.current.recording).toBe(false);
     expect(hook.result.current.notFollowed).toBe('no_project');
-    expect(hook.result.current.reason).toBe(
-      'REAPER is already recording while no project file is linked here, so the Booth cannot tell which chapter it is for and is not following it. Stop it in REAPER before recording here.',
-    );
+    expect(hook.result.current.reason).toBe('REAPER is already recording while no project file is linked here. Link a project file, then record here.');
   });
 
   it('is not adopted when the read of the lane fails, and is on the next read that answers', async () => {
@@ -802,5 +801,133 @@ describe("a claim is taken back only on the chapter's lane in the linked project
     await settle();
     expect(broken.result.current.project).toBeNull();
     expect(broken.result.current.projectFailed).toBe(true);
+  });
+});
+
+describe("the app's claim on its own take is dropped only on a positive answer; every non-answer keeps it (QA round 4)", () => {
+  const NO_TRACKS: DawCapabilities = {
+    ...QUIET,
+    capabilities: { ...QUIET.capabilities, track_state: { level: 'experimental', available: false, reason: 'not_running', message: '' } },
+  };
+  /** The app's own take, the Booth left with it running, and a Booth opened again over a DAW that still records it. */
+  const reopened = async ({ linkFails, ...init }: Partial<World> & { linkFails?: boolean }) => {
+    const first = await open();
+    await appRecords(first);
+    first.hook.unmount();
+    if (linkFails) {
+      const failing = Promise.reject(new Error('no answer'));
+      failing.catch(() => {});
+      init.bootstrapGate = failing;
+    }
+    return open({ recording: true, ...init });
+  };
+  const takenBack = async (view: Awaited<ReturnType<typeof open>>) => {
+    await tick();
+    await tick();
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.startedByApp, "the app's own take was read as REAPER's").toBe(true);
+    skipGuard();
+    await act(async () => void (await view.hook.result.current.toggle()));
+    expect(view.recordStop).toHaveBeenCalledTimes(1);
+  };
+
+  it.each<[string, (view: Awaited<ReturnType<typeof open>>) => Promise<void>, Partial<World> & { linkFails?: boolean }]>([
+    ['a lane read that fails', async (view) => void (await tick(), (view.world.lane = 'live')), { lane: 'fail' }],
+    ['a lane read that answers unavailable', async (view) => void (await tick(), (view.world.status = 'recording_here')), { status: 'unavailable' }],
+    ['a link read that fails', async () => undefined, { linkFails: true }],
+    [
+      'a quiet event that keeps the track state, while the lane is still being read',
+      async (view) => {
+        await view.quiet(true);
+        view.world.lane = 'live';
+        await view.quiet(false);
+      },
+      { lane: 'hang' },
+    ],
+    [
+      'a quiet event that takes the track state away, while the lane is still being read',
+      async (view) => {
+        view.world.quiet = true;
+        await view.sendCaps(NO_TRACKS);
+        await settle();
+        view.world.lane = 'live';
+        await view.quiet(false);
+      },
+      { lane: 'hang' },
+    ],
+  ])('the claim survives %s: the next read that answers takes it back and Stop reaches REAPER', async (_name, then, init) => {
+    const view = await reopened(init);
+    await then(view);
+    await takenBack(view);
+  });
+
+  it('a stopped transport from a DAW going quiet, before the capability read answers, keeps the claim', async () => {
+    const view = await open();
+    await appRecords(view);
+    await view.dawTake(true);
+    view.world.quiet = true;
+    act(() => view.sendTransport({ playing: false, recording: false }));
+    await settle();
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.hook.result.current.endUnconfirmed()).toBe(true);
+    await view.quiet(false);
+    act(() => view.sendTransport({ playing: true, recording: true, position: 50 }));
+    await takenBack(view);
+  });
+
+  it('the late end confirmation of the previous take does not drop the claim of a take pressed since', async () => {
+    const view = await open();
+    await view.dawTake(true);
+    let answer: () => void = () => {};
+    view.world.capsGate = new Promise<void>((resolve) => (answer = resolve));
+    await view.dawTake(false);
+    await appRecords(view);
+    view.world.capsGate = null;
+    answer();
+    await settle();
+    expect(view.hook.result.current.recording).toBe(true);
+    view.hook.unmount();
+    const second = await open({ recording: true });
+    await takenBack(second);
+  });
+
+  it('a page for another chapter looking at the take does not drop the claim of the chapter it began in', async () => {
+    const first = await open();
+    await appRecords(first);
+    first.hook.unmount();
+    const other = await open({ recording: true, status: 'recording_elsewhere' }, 'c2');
+    await tick();
+    expect(other.hook.result.current.recording).toBe(false);
+    await act(async () => void (await other.hook.result.current.toggle()));
+    expect(other.recordStop).not.toHaveBeenCalled();
+    other.hook.unmount();
+    const back = await open({ recording: true }, 'c1');
+    await takenBack(back);
+  });
+
+  it("a lane that says recording elsewhere for the claim's own chapter ends the claim: that take is REAPER's and gets no stop", async () => {
+    const view = await reopened({ status: 'recording_elsewhere' });
+    await tick();
+    expect(view.hook.result.current.recording).toBe(false);
+    view.world.status = 'recording_here';
+    await tick();
+    await tick();
+    expect(view.hook.result.current.startedByApp).toBe(false);
+    await act(async () => void (await view.hook.result.current.toggle()));
+    expect(view.recordStop).not.toHaveBeenCalled();
+  });
+
+  it('a press waiting on its project check, overtaken by a REAPER take whose lane is not read yet, sends no start (R2)', async () => {
+    const view = await open();
+    let release: () => void = () => {};
+    view.world.bootstrapGate = new Promise<void>((resolve) => (release = resolve));
+    let press: Promise<boolean> = Promise.resolve(false);
+    act(() => void (press = view.hook.result.current.toggle()));
+    view.world.lane = 'hang';
+    await view.dawTake(true);
+    expect(view.hook.result.current.recording).toBe(false);
+    release();
+    await act(async () => void (await press));
+    expect(view.recordStart).not.toHaveBeenCalled();
   });
 });
