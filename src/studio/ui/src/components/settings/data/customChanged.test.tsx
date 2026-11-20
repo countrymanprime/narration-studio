@@ -95,6 +95,20 @@ describe('a scope being read does not start the probes again (#3658)', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(zoom).toHaveBeenCalledTimes(2);
   });
+  it('asks the probes again when the settings are read after a probe that never answered', async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    vi.spyOn(api, 'creditsChanged').mockImplementationOnce(() => new Promise(() => undefined));
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
+    const { rerender } = render(view({}));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+    rerender(view({ global: {} }));
+    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+  });
 });
 
 describe('saving the types, the marks or the credits asks the probes again', () => {

@@ -248,6 +248,22 @@ describe('useZoom', () => {
     expect(result.current.version).toBe(before + 1);
   });
 
+  it('announces a zoom the window took even when saving it failed', async () => {
+    vi.useFakeTimers();
+    const api = fakeApi(1.0);
+    api.windowSaveZoom.mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => ({ zoom: useZoom(api), version: useBrowserSettingsVersion() }));
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+    const before = result.current.version;
+    await act(async () => result.current.zoom.zoomIn());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(result.current.version).toBe(before + 1);
+  });
+
   it('a run of wheel notches saves only the level the narrator settles on (SAVE #3)', async () => {
     vi.useFakeTimers();
     const api = fakeApi(1.0);

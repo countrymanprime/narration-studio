@@ -163,8 +163,10 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
   const latestSettings = useRef(settings);
   latestSettings.current = settings;
-  // A probe that failed (the host did not answer) is asked again when the settings are read next: the page's Retry reads them.
-  const [probeFailed, setProbeFailed] = useState(false);
+  // Whether the last pass of the probes answered every probe, and the settings it started with: a pass that did not (a probe failed or never
+  // answered) is asked again when the settings are read next, which is what the page's Retry does.
+  const passDone = useRef(true);
+  const passSettings = useRef(settings);
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
@@ -187,6 +189,8 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     let current = true;
     let profiles: Promise<DeliveryProfilesState> | undefined;
     let failed = false;
+    passDone.current = false;
+    passSettings.current = latestSettings.current;
     const readDelivery = () => (profiles ??= api.deliveryProfiles());
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
@@ -200,7 +204,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
       }),
     ).then((ids) => {
       if (!current) return;
-      setProbeFailed(failed);
+      passDone.current = !failed;
       const next = new Set(ids.filter((id): id is string => id !== undefined));
       setChanged((previous) => (sameSet(previous, next) ? previous : next));
     });
@@ -209,11 +213,9 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     };
   }, [api, keymapSet, version, again, hasProject]);
 
-  // Reading a scope again after a probe failed asks the probes again once (a pass that answers leaves nothing to ask).
+  // A new read of the settings while the last pass has not answered every probe asks the probes again (a pass that answered leaves nothing to ask).
   useEffect(() => {
-    if (probeFailed) setAgain((n) => n + 1);
-    // Only a new read of the settings asks; the failure flag itself must not.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!passDone.current && passSettings.current !== settings) setAgain((n) => n + 1);
   }, [settings]);
 
   const live = useMemo(
