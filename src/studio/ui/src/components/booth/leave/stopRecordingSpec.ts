@@ -27,9 +27,10 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean, startP
   const returnFocus = opens ? () => document.querySelector<HTMLElement>('[data-chapter-picker]') : undefined;
   if (!startedByApp) {
     return {
-      title: 'Leave the Booth?',
-      body: `${subject} is recording and keeps recording after you leave. The app did not start this take, so it will not stop it.`,
-      confirmLabel: 'Leave',
+      // Another chapter is not leaving the Booth, and the take is one only REAPER can stop.
+      title: opens ? 'Open another chapter?' : 'Leave the Booth?',
+      body: `${subject} is recording and keeps recording after you ${opens ? 'open another chapter' : 'leave'}. The app did not start this take, so it will not stop it; stop it in ${dawName}.`,
+      confirmLabel: opens ? 'Open' : 'Leave',
       // Both answers leave REAPER recording, so "Keep recording" would promise something Stay does not.
       cancelLabel: 'Stay',
       safeDefault: true,

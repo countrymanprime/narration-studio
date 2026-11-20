@@ -64,7 +64,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/booth/record/RecordSetup.tsx',
-    text: 'A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
+    text: '…A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
     class: 'error',
   },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },

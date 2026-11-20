@@ -30,7 +30,7 @@ async function recording(page: Page): Promise<void> {
   await pastStartGuard(page);
 }
 
-test('Stop and leave on the question for a take that may still run asks the DAW to stop a take it recorded, and says so when the DAW refuses one it did not start', async ({
+test('a take that may still run, then REAPER records a take of its own: the question is asked again as the take the app does not stop, and leaving stops nothing', async ({
   page,
 }) => {
   await recording(page);
@@ -40,17 +40,16 @@ test('Stop and leave on the question for a take that may still run asks the DAW 
   await expect(unconfirmed).toBeVisible();
   await expect(unconfirmed).toContainText('may still be recording');
   await daw(page).heartbeat();
-  // REAPER records again after the quiet, with nothing the bridge started: the app still claims its own take and asks for the stop, which the DAW refuses (#3666).
+  // REAPER answered that it was not recording, so the claim on the app's own take is over (#3666); the take it records now is REAPER's.
   await daw(page).startInDaw();
   await expect.poll(() => daw(page).recording()).toBe(true);
-  // The question is asked again with what is true now (the app's take records again).
-  const question = page.getByRole('alertdialog');
-  await expect(question.getByRole('button', { name: 'Stop and leave' })).toBeVisible();
+  const question = page.getByRole('alertdialog', { name: 'Leave the Booth?' });
+  await expect(question.getByRole('button', { name: 'Stay' })).toBeVisible();
+  await expect(question).toContainText('The app did not start this take');
   await enterHoldOver(question);
-  await question.getByRole('button', { name: 'Stop and leave' }).click();
-  await expect(page.getByRole('alertdialog', { name: 'Could not stop the take' })).toBeVisible();
-  expect(await stops(page)).toBeGreaterThan(0);
-  expect(await page.evaluate(() => window.location.pathname)).not.toBe('/script');
+  await question.getByRole('button', { name: 'Leave', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.location.pathname)).toBe('/script');
+  expect(await stops(page)).toBe(0);
   expect(await daw(page).recording()).toBe(true);
 });
 

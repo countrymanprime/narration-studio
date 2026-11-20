@@ -484,6 +484,8 @@ function BoothSession({
   const followChapterInDaw = useFollowChapterInDaw();
   // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
   const dawRecording = useIsRecording() || control.recording || control.project === null || control.project.playState === 'recording';
+  // A take the DAW holds that the app did not start (the narrator pressed Record there) is not armed over: the host refuses, and the arm is sent once it ends.
+  const dawHoldsOthersTake = (control.project === null || control.project.playState === 'recording') && !(control.recording && control.startedByApp);
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
@@ -530,7 +532,8 @@ function BoothSession({
   // The chapter's voices, when it is linked to a folder holding tracks of its own (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
   const voiceToast = useCallback(
-    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    (text: string, tone?: 'error' | 'info', action?: ToastAction, topic?: string) =>
+      overlay.toast(text, tone === 'error' || topic ? { ...(tone === 'error' ? { tone, action } : {}), ...(topic ? { topic } : {}) } : undefined),
     [overlay],
   );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
@@ -555,7 +558,7 @@ function BoothSession({
     enabled: !coldMode && source.kind === 'chapter',
     follow: followChapterInDaw,
     chapterId,
-    canArm: !!control.capabilities?.capabilities.record?.available,
+    canArm: !!control.capabilities?.capabilities.record?.available && !dawHoldsOthersTake,
     recording: control.recording,
     voice: voices.current?.guid ?? '',
     say: (sentence) => sayDawArming(overlay, sentence),
@@ -630,7 +633,8 @@ function BoothSession({
     adopt,
     choose,
     chapters: pickerChapters,
-    toast: (text) => overlay.toast(text),
+    toast: (text, topic) => overlay.toast(text, topic ? { topic } : undefined),
+    heldInDaw: control.recording && !control.startedByApp ? heldInDawSentence(control.capabilities?.daw, 'stop it') : undefined,
   });
 
   useBoothPageCommands({

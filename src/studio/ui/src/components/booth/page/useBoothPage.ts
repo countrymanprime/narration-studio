@@ -296,6 +296,7 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    startedByApp: true,
     takeOut: recording,
     elapsed: takeClock.read,
   });
@@ -312,6 +313,7 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    startedByApp: control.startedByApp,
     takeOut: recording || control.starting,
     elapsed: takeClock.read,
   };
@@ -1128,6 +1130,8 @@ export function useBoothPage(options: BoothPageOptions) {
       // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
       // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
       if (!latest.current.recording || handled()) return;
+      // A take REAPER started is never the app's to stop, however the page goes (#3666).
+      if (!latest.current.startedByApp) return;
       if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },

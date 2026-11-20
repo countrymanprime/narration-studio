@@ -127,7 +127,7 @@ function OtherProject({
 }) {
   const link = useLinkDawFile();
   const [busy, run] = useBusy();
-  const { dawName } = plan;
+  const { dawName, recording } = plan;
   const Name = dawName === 'the DAW' ? 'The DAW' : dawName;
   // A take would land in the wrong project: that is news, so the dialog opens by itself once, and on every press of Record.
   const dialog = useOpenOnce(`other-project:${dawName}`, false, { forgetOnUnmount: true });
@@ -149,7 +149,7 @@ function OtherProject({
       {dialog.open && (
         <ResolveShell
           title={`${Name} has a different project open`}
-          description={`A take would not land in the project linked here. Open the linked project in ${dawName}, or link the one that is open now.`}
+          description={`${recording ? `${Name} is recording a take now. ` : ''}A take would not land in the project linked here. Open the linked project in ${dawName}, or link the one that is open now.`}
           onClose={dialog.close}
           primary={{ label: 'Link the open project', onPress: () => void linkOpen(), pending: busy }}
           secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}

@@ -1183,6 +1183,6 @@ describe('R on a take the DAW started (#3666)', () => {
     expect(actions.roll).not.toHaveBeenCalled();
     expect(actions.logPunch).not.toHaveBeenCalled();
     expect(dialog()).toBeUndefined();
-    expect(actions.notify).toHaveBeenCalledWith('REAPER started this take, so roll again in REAPER.');
+    expect(actions.notify).toHaveBeenCalledWith('REAPER started this take, so roll again in REAPER.', 'daw-held');
   });
 });

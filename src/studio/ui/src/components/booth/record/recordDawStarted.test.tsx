@@ -7,7 +7,7 @@ import type { DawCapabilities, DawProjectState, DawTransport } from '../../../ap
 import type { ReadAloudReaperState, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
-import type { DawClient } from '../../../ports/daw';
+import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { createOverlayService } from '../../../overlay/overlayService';
@@ -42,6 +42,8 @@ type World = {
   quiet: boolean;
   /** Reads of the chapter's lane never answer / fail / repeat the last answer. */
   lane: 'live' | 'hang' | 'fail' | 'stale';
+  /** Where the play head is while REAPER records (the take began at 42). */
+  head?: number;
 };
 
 const QUIET: DawCapabilities = {
@@ -68,7 +70,12 @@ async function open(init: Partial<World> = {}, chapterId = 'c1') {
     subscribeTransport: (listener) => (transportListeners.add(listener), () => void transportListeners.delete(listener)),
     projectState: async (): Promise<DawProjectState> => {
       if (world.quiet) throw new Error('no answer');
-      return { savedAt: null, unsavedChanges: false, playState: world.recording ? 'recording' : 'stopped', playPosition: world.recording ? 42 : 0 };
+      return {
+        savedAt: null,
+        unsavedChanges: false,
+        playState: world.recording ? 'recording' : 'stopped',
+        playPosition: world.recording ? (world.head ?? 42) : 0,
+      };
     },
     recordStart,
     recordStop,
@@ -103,7 +110,16 @@ async function open(init: Partial<World> = {}, chapterId = 'c1') {
   );
   const notify = vi.fn();
   const onStarted = vi.fn();
-  const hook = renderHook(() => useRecordControl({ chapterId, notify, onStarted }), { wrapper });
+  // What every committed render said, not only the last: a state that is wrong for one render is wrong for the narrator who sees it.
+  const renders: { notFollowed: string | null; gate: string | null }[] = [];
+  const hook = renderHook(
+    () => {
+      const control = useRecordControl({ chapterId, notify, onStarted });
+      renders.push({ notFollowed: control.notFollowed, gate: control.gate?.cause ?? null });
+      return control;
+    },
+    { wrapper },
+  );
   await settle();
   /** The narrator presses Record (or Stop) in the DAW itself: the DAW's truth changes and says so. */
   const dawTake = async (on: boolean) => {
@@ -116,7 +132,7 @@ async function open(init: Partial<World> = {}, chapterId = 'c1') {
     act(() => capabilityListeners.forEach((listener) => listener(on ? QUIET : available)));
     await settle();
   };
-  return { world, hook, notify, onStarted, recordStop, recordStart, dawTake, quiet, reads, overlay, wrapper, api };
+  return { world, hook, notify, onStarted, recordStop, recordStart, dawTake, quiet, reads, overlay, wrapper, api, renders };
 }
 
 describe('a take started in the DAW (#3666)', () => {
@@ -152,6 +168,7 @@ describe('a take started in the DAW (#3666)', () => {
     expect(hook.result.current.disabled).toBe(true);
     expect(hook.result.current.reason).toMatch(/different project open/);
     expect(hook.result.current.reason).toMatch(/is recording a take now/);
+    expect(hook.result.current.facts).toMatchObject({ openProject: 'different', dawRecording: true });
   });
 
   it.each<[ReadAloudReaperStatus, number, string]>([
@@ -166,6 +183,13 @@ describe('a take started in the DAW (#3666)', () => {
     await tick();
     expect(hook.result.current.recording).toBe(false);
     expect(hook.result.current.notFollowed).toBe(why);
+    // The footer and the press say it too, not only the chip's tooltip.
+    const clause = { other_track: 'on another track', several_tracks: 'with several tracks armed', no_track_armed: 'with no track armed' }[why];
+    if (clause)
+      expect(hook.result.current.reason).toBe(
+        `REAPER is already recording ${clause}, so the Booth is not following it. Stop it in REAPER before recording here.`,
+      );
+    else expect(hook.result.current.reason).toBe('REAPER is already recording. Stop it in REAPER before recording here.');
   });
 
   it('is not adopted when the read of the lane fails, and is on the next read that answers', async () => {
@@ -377,7 +401,8 @@ describe('a take being followed is read again (QA B4, B8)', () => {
     expect(hook.result.current.startedByApp).toBe(false);
     await dawTake(false);
     expect(hook.result.current.recording).toBe(false);
-    expect(hook.result.current.startedByApp).toBe(false);
+    // Nothing runs now, so nothing is the DAW's: the flag is the app's again (QA B4).
+    expect(hook.result.current.startedByApp).toBe(true);
   });
 });
 
@@ -385,3 +410,184 @@ function skipGuard() {
   // The press just made ended the start guard's window in a real session.
   vi.setSystemTime(Date.now() + 2000);
 }
+
+/** The app presses Record and REAPER starts the take. */
+const appRecords = async (view: Awaited<ReturnType<typeof open>>) => {
+  view.recordStart.mockImplementation(async () => {
+    view.world.recording = true;
+    return { ok: true, changed: true, undoSteps: 0, message: 'started' };
+  });
+  await act(async () => void (await view.hook.result.current.toggle()));
+  expect(view.hook.result.current.startedByApp).toBe(true);
+};
+
+describe("a claim on the app's own take is dropped once the DAW says it is not recording (QA B1, B2)", () => {
+  async function endedWhileQuiet() {
+    const view = await open();
+    await appRecords(view);
+    await view.dawTake(true);
+    await view.quiet(true);
+    await tick();
+    // The take ends in REAPER while it is not answering; the Booth stops showing it, and the claim is kept, as its take may still run.
+    await view.dawTake(false);
+    expect(view.hook.result.current.recording).toBe(false);
+    await view.quiet(false);
+    await tick();
+    await tick();
+    return view;
+  }
+
+  it("a claim kept through a quiet is dropped once the DAW answers that it is not recording: the next take in REAPER is the DAW's, and is followed only on the chapter's lane", async () => {
+    const view = await endedWhileQuiet();
+    expect(view.hook.result.current.recording).toBe(false);
+    view.world.status = 'recording_elsewhere';
+    view.world.armedCount = 2;
+    await view.dawTake(true);
+    await tick();
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.hook.result.current.notFollowed).toBe('several_tracks');
+  });
+
+  it("the next take in REAPER on the chapter's lane after that is followed, and is not the app's", async () => {
+    const view = await endedWhileQuiet();
+    await view.dawTake(true);
+    await tick();
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.startedByApp).toBe(false);
+  });
+
+  it('the claim is kept while the DAW still answers that it records after a quiet: Stop reaches the DAW (the existing quiet case)', async () => {
+    const view = await open();
+    await appRecords(view);
+    await view.quiet(true);
+    await view.quiet(false);
+    await tick();
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.startedByApp).toBe(true);
+  });
+
+  it.each<[string, Partial<World>]>([
+    ['another lane armed', { status: 'recording_elsewhere' }],
+    ['another project open', { sameProject: false }],
+  ])("a Booth opened again with the DAW stopped forgets the app's take: a later REAPER take on %s is never startedByApp", async (_name, change) => {
+    const first = await open();
+    await appRecords(first);
+    first.hook.unmount();
+    // The narrator stops the take in REAPER, and the Booth is opened again.
+    first.world.recording = false;
+    const second = await open();
+    await tick();
+    Object.assign(second.world, change);
+    await second.dawTake(true);
+    await tick();
+    expect(second.hook.result.current.recording).toBe(false);
+    expect(second.hook.result.current.startedByApp).toBe(true);
+  });
+});
+
+describe('who started the take (QA B4, B5)', () => {
+  it("startedByApp is true again once a REAPER take has ended, and while the app's own start is out", async () => {
+    const view = await open();
+    await view.dawTake(true);
+    expect(view.hook.result.current.startedByApp).toBe(false);
+    await view.dawTake(false);
+    expect(view.hook.result.current.startedByApp).toBe(true);
+
+    let answer: (result: DawRecordStart) => void = () => {};
+    view.recordStart.mockImplementation(() => new Promise<DawRecordStart>((resolve) => (answer = resolve)));
+    let press: Promise<boolean> = Promise.resolve(false);
+    act(() => void (press = view.hook.result.current.toggle()));
+    await settle();
+    expect(view.hook.result.current.starting).toBe(true);
+    expect(view.hook.result.current.startedByApp).toBe(true);
+    await act(async () => {
+      answer({ ok: true, changed: true, undoSteps: 0, message: '' });
+      await press;
+    });
+  });
+
+  it("a start the press gave up on, answered after REAPER already shows the take, is the app's: the next Stop reaches REAPER (QA B5)", async () => {
+    const view = await open();
+    let answer: (result: DawRecordStart) => void = () => {};
+    view.recordStart.mockImplementation(() => new Promise<DawRecordStart>((resolve) => (answer = resolve)));
+    let press: Promise<boolean> = Promise.resolve(false);
+    act(() => void (press = view.hook.result.current.toggle()));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)));
+    await act(async () => void (await press));
+    expect(view.hook.result.current.recording).toBe(false);
+
+    // REAPER shows the take the app sent, before the late answer.
+    await view.dawTake(true);
+    expect(view.hook.result.current.startedByApp).toBe(false);
+    await act(async () => answer({ ok: true, changed: true, undoSteps: 0, message: 'started' }));
+    await settle();
+
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.hook.result.current.startedByApp).toBe(true);
+    expect(view.recordStop).not.toHaveBeenCalled();
+    vi.setSystemTime(Date.now() + 2000);
+    await act(async () => void (await view.hook.result.current.toggle()));
+    expect(view.recordStop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a take is followed only on a read made after it was seen (QA B6, B7, B8, B9)', () => {
+  it("no committed render says 'elsewhere' for a take on the chapter's own lane (B6)", async () => {
+    const view = await open();
+    await tick();
+    view.renders.length = 0;
+    await view.dawTake(true);
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.renders.filter((render) => render.notFollowed !== null || render.gate === 'recording_elsewhere')).toEqual([]);
+  });
+
+  it("a second take in REAPER is not adopted on the first take's stale answer (B7)", async () => {
+    const view = await open();
+    await view.dawTake(true);
+    expect(view.onStarted).toHaveBeenCalledTimes(1);
+    view.world.lane = 'hang';
+    await view.dawTake(false);
+    view.world.status = 'recording_elsewhere';
+    await view.dawTake(true);
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.onStarted).toHaveBeenCalledTimes(1);
+    view.world.lane = 'live';
+    act(() => view.hook.result.current.checkAgain());
+    await settle();
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.hook.result.current.notFollowed).toBe('other_track');
+  });
+
+  it("the take begins where REAPER's transport said it began, not where the play head is when the reads answer (B8)", async () => {
+    const view = await open({ lane: 'hang' });
+    await view.dawTake(true);
+    view.world.head = 43.2;
+    view.world.lane = 'live';
+    act(() => view.hook.result.current.checkAgain());
+    await settle();
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.onStarted).toHaveBeenCalledTimes(1);
+    expect(view.onStarted).toHaveBeenCalledWith(expect.objectContaining({ position: 42 }));
+  });
+
+  it('a take the Booth stopped following is not begun a second time when its lane is armed alone again; the next take is (B9)', async () => {
+    const view = await open();
+    await view.dawTake(true);
+    view.world.status = 'recording_elsewhere';
+    view.world.armedCount = 2;
+    await tick();
+    expect(view.hook.result.current.recording).toBe(false);
+
+    view.world.status = 'recording_here';
+    view.world.armedCount = 1;
+    await tick();
+    await tick();
+    expect(view.hook.result.current.recording).toBe(false);
+    expect(view.onStarted).toHaveBeenCalledTimes(1);
+
+    await view.dawTake(false);
+    await view.dawTake(true);
+    expect(view.hook.result.current.recording).toBe(true);
+    expect(view.onStarted).toHaveBeenCalledTimes(2);
+  });
+});

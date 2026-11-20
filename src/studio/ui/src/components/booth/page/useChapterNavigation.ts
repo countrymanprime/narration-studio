@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { HELD_TOPIC } from '../record/useRecordControl';
 import { boothQuery, type BoothChapterTarget } from './boothQuery';
 
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
@@ -24,7 +25,9 @@ type Args = {
   choose: (target: BoothChapterTarget) => void;
   /** The chapter list in order, the credits included. */
   chapters: readonly { id: string }[];
-  toast: (text: string) => void;
+  toast: (text: string, topic?: string) => void;
+  /** With a take the DAW started that the Booth follows: what to say instead of "Stop recording first.", which this app cannot do for it. */
+  heldInDaw?: string;
 };
 
 /**
@@ -32,7 +35,19 @@ type Args = {
  * back), and the picker and Next/Previous go through `changeChapter`. The picker is disabled during a take, so a request in the address is a link
  * from elsewhere (a Script card, a bookmark, a pickup).
  */
-export function useChapterNavigation({ requested, chapterId, recording, starting = false, endUnconfirmed, leave, adopt, choose, chapters, toast }: Args): {
+export function useChapterNavigation({
+  requested,
+  chapterId,
+  recording,
+  starting = false,
+  endUnconfirmed,
+  leave,
+  adopt,
+  choose,
+  chapters,
+  toast,
+  heldInDaw,
+}: Args): {
   changeChapter: (target: BoothChapterTarget) => void;
   step: (direction: -1 | 1) => void;
 } {
@@ -95,7 +110,8 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
     // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
     if (sameSource(target, current) && !asked.current) return;
     if (recording) {
-      toast('Stop recording first.');
+      if (heldInDaw) toast(heldInDaw, HELD_TOPIC);
+      else toast('Stop recording first.');
       return;
     }
     if (starting) {

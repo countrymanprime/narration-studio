@@ -2,6 +2,7 @@ import type { DawCapabilities, DawChoice, DawProjectState } from '../../../api/c
 import { recordsInApp } from '../../../studio/dawNames';
 import { destinationFor } from '../../engine/destination';
 import { EngineChipButton } from '../../engine/EngineChipButton';
+import { NOT_FOLLOWED_CLAUSE, type NotFollowedWhy } from './recordCheck';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 
 const UNSAVED = 'unsaved changes in the project';
@@ -41,13 +42,9 @@ function stateDetail(choice: DawChoice): string {
  * (another track armed, say) is not one of them.
  */
 /** Why the Booth does not follow a take the DAW holds (`notFollowed` of the record control). */
-export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'unread';
-const NOT_FOLLOWED: Record<NotFollowedWhy, (name: string) => string> = {
-  other_track: (name) => `${name} is recording on another track, so the Booth is not following it`,
-  several_tracks: (name) => `${name} is recording with several tracks armed, so the Booth is not following it`,
-  no_track_armed: (name) => `${name} is recording with no track armed, so the Booth is not following it`,
-  unread: (name) => `${name} is recording a take the Booth could not match to this chapter yet`,
-};
+export type { NotFollowedWhy };
+const NOT_FOLLOWED = (why: NotFollowedWhy, name: string) =>
+  why === 'unread' ? `${name} is recording a take the Booth could not match to this chapter yet` : `${name} is recording ${NOT_FOLLOWED_CLAUSE[why]}`;
 export type SetupProblem = 'no_track' | 'several_tracks' | 'track_missing' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
 const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks' | 'track_missing'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
@@ -112,7 +109,7 @@ export function SetupChip({
   const problemText = otherProject
     ? ` · ${name} has a different project open`
     : !dawShort && issue
-      ? ` · ${issue === 'recording_elsewhere' && notFollowed ? NOT_FOLLOWED[notFollowed](name) : problemOf(issue, dest).sentence(name)}`
+      ? ` · ${issue === 'recording_elsewhere' && notFollowed ? NOT_FOLLOWED(notFollowed, name) : problemOf(issue, dest).sentence(name)}`
       : '';
   const tooltip = `${detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;

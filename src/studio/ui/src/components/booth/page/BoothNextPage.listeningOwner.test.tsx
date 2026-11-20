@@ -1191,7 +1191,22 @@ describe('a press the narrator left behind by changing chapter, whose take still
       listeners.add(listener);
       return () => listeners.delete(listener);
     }) as unknown as typeof daw.subscribeTransport;
-    const page = mountBooth(host, daw);
+    // A page that finds the DAW stopped forgets the app's claim on the take (#3666): a take it reports recording after that is REAPER's, and is followed when the
+    // linked project is the open one and the chapter's lane is the one armed, which this DAW says.
+    const asREAPERs: Partial<NarrationApi> = adoptLate
+      ? {
+          readAloudReaperState: async () => ({
+            status: dawRecording ? 'recording_here' : 'ready',
+            message: '',
+            trackGuid: '{T}',
+            armedCount: 1,
+            playing: dawRecording,
+            recording: dawRecording,
+          }),
+          bootstrap: async () => ({ ...(await pageApi().bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true }),
+        }
+      : {};
+    const page = mountBooth(host, daw, asREAPERs);
     if (stop === 'refused') page.recordStop.mockResolvedValueOnce(stopRefused as never);
     await ready();
     await space();
@@ -1471,11 +1486,13 @@ describe('a press the narrator left behind by changing chapter, whose take still
       }
     });
 
-    it('Stop pressed while the page waits for the cold read to end starts no session', async () => {
-      const { host } = await adoptWithSlowColdStop();
+    it('Stop pressed on a take REAPER started while the page waits for the cold read to end stops nothing: it says to stop it in REAPER (#3666)', async () => {
+      const { page } = await adoptWithSlowColdStop();
+      const stops = page.recordStop.mock.calls.length;
       skipStartGuard();
       await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Stop$/ })));
-      await noSessionStarted(host);
+      await waitFor(() => expect(screen.getByText('REAPER started this take, so stop it in REAPER.')).toBeTruthy());
+      expect(page.recordStop).toHaveBeenCalledTimes(stops);
     });
 
     it('does not say the take is unheard when the page ends the cold read and its own listening for the take comes up', async () => {

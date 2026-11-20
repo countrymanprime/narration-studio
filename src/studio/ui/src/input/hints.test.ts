@@ -81,9 +81,19 @@ describe('footerHints', () => {
   it('the-record-and-roll-hints-are-struck-for-a-take-the-DAW-started (#3666): Space and R cannot stop or roll it from here, and the tooltip says where', () => {
     const held = footerHints('booth', keymap, undefined, undefined, new Set(['takeInDaw' as const]));
     for (const id of ['hint-reading.toggle', 'hint-booth.roll']) {
-      expect(held.find((hint) => hint.id === id)).toMatchObject({ off: true, offReason: 'This take was started in the DAW, so it stops and rolls there' });
+      expect(held.find((hint) => hint.id === id)).toMatchObject({ off: true, offReason: 'This take was started in REAPER, so it stops and rolls there' });
     }
     expect(footerHints('booth', keymap).filter((hint) => hint.off)).toEqual([]);
+  });
+
+  it('the voice hints are struck for a take REAPER started too, as their keys refuse it (#3666)', () => {
+    const held = footerHints('booth', keymap, undefined, undefined, new Set(['voiceFolders' as const, 'takeInDaw' as const]));
+    const voice = held.filter((hint) => hint.id?.startsWith('hint-booth.voice'));
+    expect(voice).toHaveLength(3);
+    for (const hint of voice) expect(hint).toMatchObject({ off: true, offReason: 'This take was started in REAPER, so the voice is changed there' });
+    // A cold read says its own reason, and wins when both hold: it is the first condition listed.
+    const both = footerHints('booth', keymap, undefined, undefined, new Set(['voiceFolders' as const, 'takeInDaw' as const, 'coldRead' as const]));
+    expect(both.find((hint) => hint.id === 'hint-booth.voice.0')).toMatchObject({ offReason: COLD_READ_NO_VOICE_REASON });
   });
 
   it('the-bookmark-keys-list-in-the-footer: B, and the previous and next keys as one chord that names a shared modifier once', () => {

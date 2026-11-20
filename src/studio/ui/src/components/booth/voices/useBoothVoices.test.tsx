@@ -1103,7 +1103,7 @@ describe('a voice key during a take the DAW started (#3666)', () => {
     await act(async () => hook.current.byKey(2));
     await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(set).not.toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info');
+    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, 'daw-held');
     await act(async () => hook.current.choose(hook.current.voices[1]));
     expect(set).not.toHaveBeenCalled();
   });

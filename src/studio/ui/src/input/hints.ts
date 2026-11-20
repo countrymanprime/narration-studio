@@ -45,15 +45,15 @@ type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldR
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
- * ("↑ ↓"), and the short word beside them. A `when` hint shows only while that condition is active; an `offWhen` hint is drawn struck through (`off`) while its condition is active.
+ * ("↑ ↓"), and the short word beside them. A `when` hint shows only while that condition is active; an `off` hint is drawn struck through while one of its conditions is active.
  */
 export type FooterSpec = readonly {
   id: CommandId;
   with?: readonly CommandId[];
   label: string;
   when?: FooterCondition;
-  offWhen?: FooterCondition;
-  offReason?: string;
+  /** The hint is drawn struck through while the first of these conditions that is active holds, with its reason as the tooltip. */
+  off?: readonly { when: FooterCondition; reason: string }[];
 }[];
 
 /** A hint that is not a key ("Right-click"), drawn right after the hint of the command it names. */
@@ -71,21 +71,25 @@ export type FooterSurface = 'booth' | 'proof';
 export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';
 
 /** Why Space and R do nothing to a take the DAW started: the hints' tooltip. */
-const TAKE_IN_DAW_REASON = 'This take was started in the DAW, so it stops and rolls there';
+const TAKE_IN_DAW_REASON = 'This take was started in REAPER, so it stops and rolls there';
+const TAKE_IN_DAW = { when: 'takeInDaw', reason: TAKE_IN_DAW_REASON } as const;
+const COLD_READ = { when: 'coldRead', reason: COLD_READ_NO_VOICE_REASON } as const;
+/** Why the voice keys do nothing to a take the DAW started: the tooltip of their struck hints. */
+const VOICE_IN_DAW = { when: 'takeInDaw', reason: 'This take was started in REAPER, so the voice is changed there' } as const;
 
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
-    { id: 'reading.toggle', label: 'Record / stop', offWhen: 'takeInDaw', offReason: TAKE_IN_DAW_REASON },
-    { id: 'booth.roll', label: 'Punch and roll from here', offWhen: 'takeInDaw', offReason: TAKE_IN_DAW_REASON },
+    { id: 'reading.toggle', label: 'Record / stop', off: [TAKE_IN_DAW] },
+    { id: 'booth.roll', label: 'Punch and roll from here', off: [TAKE_IN_DAW] },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
     { id: 'bookmark.here', label: 'Bookmark' },
     { id: 'bookmark.prev', with: ['bookmark.next'], label: 'Bookmarks' },
     { id: 'booth.pickup.next', label: 'Next pickup', when: 'pickupSession' },
     // A chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md): the keys 1 to 9 are on the voice list.
-    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
-    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
-    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', offWhen: 'coldRead', offReason: COLD_READ_NO_VOICE_REASON },
+    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
+    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
+    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders', off: [COLD_READ, VOICE_IN_DAW] },
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],
@@ -136,11 +140,12 @@ export function footerHints(
   active: ReadonlySet<FooterCondition> = new Set(),
 ): KeyHintItem[] {
   const hints: KeyHintItem[] = [];
-  for (const { id, with: more = [], label, when, offWhen, offReason } of spec) {
+  for (const { id, with: more = [], label, when, off } of spec) {
     if (when && !active.has(when)) continue;
     const gestures = [id, ...more].map((commandId) => keymap[commandId]?.[0]);
     if (gestures.every((gesture) => gesture)) {
-      hints.push({ keys: chordKeys(gestures as Gesture[]), label, id: `hint-${id}`, ...(offWhen && active.has(offWhen) ? { off: true, offReason } : {}) });
+      const struck = off?.find((each) => active.has(each.when));
+      hints.push({ keys: chordKeys(gestures as Gesture[]), label, id: `hint-${id}`, ...(struck ? { off: true, offReason: struck.reason } : {}) });
     }
     for (const hint of extra) if (hint.after === id) hints.push({ keys: hint.keys, label: hint.label });
   }

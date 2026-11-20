@@ -242,6 +242,24 @@ describe('SetupChip with the project DAW choice', () => {
     expect(await tooltipOf()).toBe(`REAPER linked: Book.rpp · ${sentence} · Opens the Audio engine panel`);
   });
 
+  it.each([
+    ['other_track', 'REAPER is recording on another track, so the Booth is not following it'],
+    ['several_tracks', 'REAPER is recording with several tracks armed, so the Booth is not following it'],
+    ['no_track_armed', 'REAPER is recording with no track armed, so the Booth is not following it'],
+    ['unread', 'REAPER is recording a take the Booth could not match to this chapter yet'],
+  ] as const)('a take REAPER holds that the Booth does not follow (%s): the tooltip says why', async (notFollowed, sentence) => {
+    render(
+      <SetupChip
+        capabilities={setupCapabilities('reaper')}
+        standaloneName="Recorder"
+        problem="recording_elsewhere"
+        notFollowed={notFollowed}
+        choice={{ ...base, state: 'connected', reachable: true, linkedFile: 'Book.rpp' }}
+      />,
+    );
+    expect(await tooltipOf()).toBe(`REAPER linked: Book.rpp · ${sentence} · Opens the Audio engine panel`);
+  });
+
   it('the app’s own recorder has no track, connection or arming to warn about', () => {
     render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" problem="no_track" />);
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: Recorder');

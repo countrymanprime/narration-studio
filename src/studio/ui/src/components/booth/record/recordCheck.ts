@@ -9,6 +9,17 @@ export type ChapterRecordState = {
   message: string;
   /** The DAW is already recording a take this app did not start (`recording_elsewhere`): a second start would fight it, so Record says so first. */
   elsewhere?: boolean;
+  /** With `elsewhere`: why the take is not followed, which the sentence says. */
+  notFollowed?: NotFollowedWhy | null;
+};
+
+/** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
+export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'unread';
+/** The reason the Booth is not following the take, after "the DAW is recording"; the one place these words are written (the footer, the chip's tooltip). */
+export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, string> = {
+  other_track: 'on another track, so the Booth is not following it',
+  several_tracks: 'with several tracks armed, so the Booth is not following it',
+  no_track_armed: 'with no track armed, so the Booth is not following it',
 };
 
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
@@ -37,7 +48,8 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   }
   if (chapter.elsewhere) {
     const name = recorderNameCapital(capabilities.daw);
-    return { code: 'recording_elsewhere', reason: `${name} is already recording. Stop it in ${name} before recording here.` };
+    const why = chapter.notFollowed && chapter.notFollowed !== 'unread' ? ` ${NOT_FOLLOWED_CLAUSE[chapter.notFollowed]}` : '';
+    return { code: 'recording_elsewhere', reason: `${name} is already recording${why}. Stop it in ${name} before recording here.` };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };

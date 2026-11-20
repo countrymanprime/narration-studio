@@ -7,10 +7,12 @@ export function recorderName(daw: DawKind | undefined): string {
   return daw && daw !== 'none' ? daw : 'the DAW';
 }
 
+/** A recorder's name for the start of a sentence: the one place the capital is made. */
+const capital = (name: string): string => `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+
 /** `recorderName` for the start of a sentence. */
 export function recorderNameCapital(daw: DawKind | undefined): string {
-  const name = recorderName(daw);
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+  return capital(recorderName(daw));
 }
 
 /**
@@ -18,12 +20,12 @@ export function recorderNameCapital(daw: DawKind | undefined): string {
  * (the take may still run) is said by the question or the toast around it. `name` is the recorder as the page writes it (`recorderName`).
  */
 export function noAnswerSentence(name: string): string {
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)} did not answer in time.`;
+  return `${capital(name)} did not answer in time.`;
 }
 
 /** What the Booth says when a stop or an undo threw (the bridge is down): the recorder, not "the stop", is who could not be reached. Same `name` as `noAnswerSentence`. */
 export function unreachedSentence(name: string): string {
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)} could not be reached.`;
+  return `${capital(name)} could not be reached.`;
 }
 
 /** Whether the app's own recorder is what records: nothing else can start or end its take, so a take it reports is the app's. */
