@@ -18,8 +18,8 @@ export type RingPrefetch = {
   read: (id: string) => Promise<unknown>;
   /** True for an id whose data is already kept: it is passed over without a read or a wait. Without it every run reads every id. */
   kept?: (id: string) => boolean;
-  /** False when the caller has no room for `id`'s data (its memory budget is spent): the ring stops there, since every later id is
-   * further away, and starts again from the next `current`. */
+  /** False when the caller has no room for `id`'s data (its memory budget is spent): it is passed over without a read or a wait, and
+   * asked about again on the next run. */
   room?: (id: string) => boolean;
   /** The wait after each read, so a read the narrator is waiting for is never queued behind a run of these. */
   gapMs?: number;
@@ -49,14 +49,15 @@ export function useRingPrefetch(ids: readonly string[], current: string | undefi
     if (current === undefined || ids.length < 2) return;
     let live = true;
     void (async () => {
+      // Once a run: the read an earlier run left out.
+      await Promise.race([flight.current, new Promise((resolve) => setTimeout(resolve, latest.current.stallMs ?? RING_STALL_MS))]);
       const asked = new Set<string>();
       for (const id of ringOrder(ids, current)) {
-        await Promise.race([flight.current, new Promise((resolve) => setTimeout(resolve, latest.current.stallMs ?? RING_STALL_MS))]);
         if (!live) return;
         const { read, kept, room, gapMs = RING_GAP_MS } = latest.current;
         if (asked.has(id) || kept?.(id)) continue;
         asked.add(id);
-        if (id !== current && room && !room(id)) return;
+        if (id !== current && room && !room(id)) continue;
         flight.current = read(id).catch(() => undefined);
         await flight.current;
         if (live) await new Promise((resolve) => setTimeout(resolve, gapMs));

@@ -124,12 +124,12 @@ describe('usePrefetchPeaks', () => {
     const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, 6));
     const api = { ...createMockApi(), workspacePeaks };
     const view = renderHook(({ at }) => usePrefetchPeaks(book, at), { wrapper: withApi(api), initialProps: { at: 'p-5' } });
-    // 6 + 6 + 6 MB is past 16 MB: the third read puts a neighbour out, and nothing further out is read.
+    // Beside the open chapter 6 + 6 MB are kept; a third 6 MB would pass 16 MB, so nothing further out is read.
     await waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(3), { timeout: 3000 });
     await settle();
     expect(workspacePeaks.mock.calls.map(([id]) => id)).toEqual(['p-5', 'p-6', 'p-4']);
     view.unmount();
-    expect(keptOf(api, ['p-4', 'p-5']).sort()).toEqual(['p-4', 'p-5']);
+    expect(keptOf(api, book).sort()).toEqual(['p-4', 'p-5', 'p-6']);
   });
 
   it('walking the whole book never keeps more than the budget, and the chapter the narrator is on is always kept', async () => {
@@ -151,8 +151,8 @@ describe('usePrefetchPeaks', () => {
     view.unmount();
     const calls = workspacePeaks.mock.calls.length;
     const kept = keptOf(api, book);
-    // 5 MB a chapter under 16 MB: three chapters at most, the first chapter (where the walk ended) among them.
-    expect(kept.length).toBeLessThanOrEqual(3);
+    // 5 MB a chapter under 16 MB: three chapters beside the open one at most, the first chapter (where the walk ended) among them.
+    expect(kept.length).toBeLessThanOrEqual(4);
     expect(kept).toContain('p-1');
     expect(calls).toBeGreaterThan(9); // chapters that left were read again on the way back
   });
@@ -170,6 +170,23 @@ describe('usePrefetchPeaks', () => {
     expect(kept).toContain('p-8');
     expect(kept.some((id) => id === 'p-7' || id === 'p-9')).toBe(true);
     expect(kept).not.toContain('p-1');
+  });
+
+  it('never reads in the background a chapter that cannot stay, and reads no chapter twice while the narrator stays put', async () => {
+    // One 20 MB chapter among 1 MB ones: walking towards it, it is read once (its size was not known), and never again until it is opened.
+    const workspacePeaks = vi.fn(async (chapterId: string) => heavy(chapterId, chapterId === 'p-6' ? 20 : 1));
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(({ at }) => usePrefetchPeaks(book, at), { wrapper: withApi(api), initialProps: { at: 'p-2' } });
+    for (const at of ['p-2', 'p-3', 'p-4', 'p-5']) {
+      view.rerender({ at });
+      await settle();
+      await settle();
+    }
+    view.unmount();
+    const reads = workspacePeaks.mock.calls.map(([id]) => id);
+    expect(reads.filter((id) => id === 'p-6')).toHaveLength(1);
+    expect(new Set(reads).size).toBe(reads.length); // no chapter read twice
+    expect(keptOf(api, ['p-1', 'p-2', 'p-3', 'p-4', 'p-5', 'p-7', 'p-8', 'p-9'])).toHaveLength(8);
   });
 
   it('with no page list, a chapter the page opens past the budget puts out the longest kept, never the one just opened', async () => {
