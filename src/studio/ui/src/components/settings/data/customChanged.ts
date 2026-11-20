@@ -131,8 +131,9 @@ export const changedIsCovered = (row: { id: string; field?: unknown }): boolean 
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((id) => b.has(id));
 
 /**
- * The ids of the custom rows whose value differs from the default, read again when the host's fields change, when a window-kept setting is
- * written (the zoom body announces its change too), and on the events the bodies already raise for the engine, the delivery profiles and the
+ * The ids of the custom rows whose value differs from the default, read again when a command's keys change in the host's fields (the only fact the
+ * probes read from them), when a settings read follows a probe that failed, when a window-kept setting is written (the zoom body and the zoom
+ * keys announce their change too), and on the events the bodies already raise for the engine, the delivery profiles and the
  * Merriam-Webster key. A probe that fails counts as "not changed", so a host that cannot answer lists nothing wrongly. The set keeps its
  * identity when a pass finds the same ids. `usePort` answers the same object for the same api, so `api` below changes only with the api.
  * With no project open the probes of rows that need one are not run: they would read a project that is not there, and such a row cannot be
@@ -162,6 +163,8 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
   const latestSettings = useRef(settings);
   latestSettings.current = settings;
+  // A probe that failed (the host did not answer) is asked again when the settings are read next: the page's Retry reads them.
+  const [probeFailed, setProbeFailed] = useState(false);
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
@@ -183,6 +186,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   useEffect(() => {
     let current = true;
     let profiles: Promise<DeliveryProfilesState> | undefined;
+    let failed = false;
     const readDelivery = () => (profiles ??= api.deliveryProfiles());
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
@@ -190,11 +194,13 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
         try {
           return (await probe({ api, settings: latestSettings.current, delivery: readDelivery })) ? id : undefined;
         } catch {
+          failed = true;
           return undefined;
         }
       }),
     ).then((ids) => {
       if (!current) return;
+      setProbeFailed(failed);
       const next = new Set(ids.filter((id): id is string => id !== undefined));
       setChanged((previous) => (sameSet(previous, next) ? previous : next));
     });
@@ -202,6 +208,13 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
       current = false;
     };
   }, [api, keymapSet, version, again, hasProject]);
+
+  // Reading a scope again after a probe failed asks the probes again once (a pass that answers leaves nothing to ask).
+  useEffect(() => {
+    if (probeFailed) setAgain((n) => n + 1);
+    // Only a new read of the settings asks; the failure flag itself must not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
 
   const live = useMemo(
     () =>

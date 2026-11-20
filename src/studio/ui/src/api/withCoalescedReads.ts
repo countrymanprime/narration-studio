@@ -82,8 +82,8 @@ function copyOf(answer: unknown): unknown {
  *
  * What invalidates a shared answer is anything that may have changed the host's state: every call that is not one of these reads bumps an epoch when
  * it starts and again when it answers, and so does every event a `subscribe*` handler receives (a host event is the host saying its state changed)
- * and the window being focused or shown again. A read joins only a read that began in the same epoch, so a read asked after a write, an event or
- * a return to the window always goes to the host. Nothing is kept once the call answers, except what
+ * and the window being focused or shown again. A read joins only a read that began in the same epoch (a kept read: the same kept epoch, and one
+ * out less than `KEPT_REVALIDATE_MS`), so a read asked after a write, an event or a return to the window goes to the host. Nothing is kept once the call answers, except what
  * `KEPT_READS` names: the next call is a fresh one. A kept read is the one exception to "a read asked after a write goes to the host": it is dropped by
  * the writers in `KEPT_WRITERS` only, so a call that changes settings and is not listed there would leave a kept answer in place (the host's settings
  * written outside `saveSettings` belong to tools `settingsForScope` does not answer). Each extra caller gets its own copy of the answer, so one that sorts or edits its list does not change another's.

@@ -465,6 +465,36 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     expect(calls).toEqual(['settingsForScope', 'saveSettings', 'settingsForScope']);
   });
 
+  it.each(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded'] as const)(
+    'does not share a settings read with one that began before %s fired',
+    (event) => {
+      const handlers: ((event: unknown) => void)[] = [];
+      const settingsForScope = vi.fn(() => new Promise(() => undefined));
+      const api = {
+        settingsForScope,
+        [event]: vi.fn((handler: (event: unknown) => void) => {
+          handlers.push(handler);
+          return () => undefined;
+        }),
+      } as unknown as NarrationApi;
+      const wrapped = withCoalescedReads(api);
+      (wrapped[event] as (handler: () => void) => unknown)(() => undefined);
+      void wrapped.settingsForScope('project');
+      handlers[0]!({});
+      void wrapped.settingsForScope('project');
+      expect(settingsForScope).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('does not share a settings read with one that began before the window was focused again', () => {
+    const { api, calls } = gated();
+    const wrapped = withCoalescedReads(api);
+    void wrapped.settingsForScope('global');
+    window.dispatchEvent(new Event('focus'));
+    void wrapped.settingsForScope('global');
+    expect(calls).toEqual(['settingsForScope', 'settingsForScope']);
+  });
+
   it.each(['switchProject', 'createProject'] as const)('drops the kept answer when %s answers, with no event delivered', async (writer) => {
     const { api, reads } = counting();
     (api as unknown as Record<string, unknown>)[writer] = vi.fn(async () => ({}));
