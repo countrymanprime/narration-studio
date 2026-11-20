@@ -127,6 +127,11 @@ const lostInDaw = (daw: DawKind | undefined) => {
 // reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. A take the app
 // never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should.
 let appTakeRunning = false;
+// The chapter that take began in, claimed by the first page that records it: a page for another chapter that adopts the take (the narrator opened it with the take still
+// running) is not the take's, and writes no passage-map run of its own for it (#3712).
+let appTakeChapterId: string | undefined;
+/** The chapter the take this app started and has not seen end began in; undefined when there is none. */
+export const appTakeChapter = (): string | undefined => appTakeChapterId;
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
 // The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take
@@ -139,6 +144,7 @@ export const forgetAppTake = (): void => {
   startsSent = 0;
   runningStart = 0;
   appTakeRunning = false;
+  appTakeChapterId = undefined;
   lastStartAt = 0;
 };
 /** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
@@ -319,10 +325,14 @@ export function useRecordControl({
   useEffect(() => {
     if (recording) {
       appTakeRunning = true;
+      appTakeChapterId ??= chapterId;
       recordedHere.current = true;
-    } else if (wasRecording.current) appTakeRunning = false;
+    } else if (wasRecording.current) {
+      appTakeRunning = false;
+      appTakeChapterId = undefined;
+    }
     wasRecording.current = recording;
-  }, [recording]);
+  }, [recording, chapterId]);
   useEffect(() => {
     // Read here, after the effect above has run: a take that just ended has cleared its flag by now.
     if (!recording && (appTakeRunning || (inApp && !recordedHere.current)) && project?.playState === 'recording') {
