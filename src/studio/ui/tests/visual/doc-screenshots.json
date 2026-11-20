@@ -736,6 +736,13 @@
   },
   {
     "page": "settings",
+    "state": "project-type-colour",
+    "viewport": "desktop",
+    "docName": "settings-entry-type-colour",
+    "caption": "Settings - Entry types with the colour box of Place opened: six swatches, Blue ringed and checked"
+  },
+  {
+    "page": "settings",
     "state": "manuscript",
     "viewport": "desktop",
     "docName": "settings-manuscript",

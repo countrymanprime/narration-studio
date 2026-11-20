@@ -144,7 +144,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 ### Colour
 
 - **CS-C1** Colour data is always chosen with the app's colour selector, never with a `Select`, a `RadioGroup` of colour names, or a bare text box. **New**.
-- **CS-C2** The colour selector is one primitive, `ColourField`. Every site that picks a colour uses it; [Where the code departs](#where-the-code-departs-from-this-page-2026-11-20) lists the six. **New**.
+- **CS-C2** The colour selector is one primitive, `ColourField`. Every site that picks a colour uses it, and `colourControls.guard.test.ts` fails one that does not. **New**.
 - **CS-C3** `ColourField` has two modes. **New**.
   - `palette` mode: `RadioGroup` semantics over `Swatch` buttons, one per colour token the caller passes (speaker hues, entry-type colours and mark colours are three token sets), plus "Automatic" when the value can be unset. Each has the hue's name as its accessible name and tooltip; arrow keys move between swatches; the chosen one shows a check mark and a ring. It has two forms: the inline row, and, for a dense row or table cell (CS-E9), one swatch button that opens the same row in a `Popover`.
   - `free` mode: a swatch-square picker (`TextField type="color"`) plus a mono hex box, one accessible name pattern ("<label> colour" / "<label> hex"), the hex settled on Enter or blur and refused (not saved) when invalid.
@@ -313,7 +313,6 @@ The audit lists every site with its file and line; this table names the larger c
 
 | Rule | Departure | Audit rows |
 | --- | --- | --- |
-| CS-C1, CS-C2 | `ColourField` is written and no site uses it yet. Six sites pick a colour by hand: three swatch-plus-hex pairs (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`) and three `Select`s of colour names (`components/storybible/SpeakerColourField.tsx`, `components/settings/page/StoryBibleTypesPanel.tsx`, `components/script/page/tools/select/MarksDialog.tsx`) | S3, S4, S5, B1, C1, C2, F6 |
 | CS-E6 | Three renderers draw every host `choice` as a `Select` (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`), as [Settings rows](design-system.md#settings-rows) records; the registry has no control declaration | S1, S2, F7 |
 | CS-K6 | `ToggleGroup` makes every chip a tab stop | R10 |
 | CS-E13 | `ToggleGroup` has no `look="filter"`. Three one-of-N list filters are `ToggleGroup`s in a value look: two segmented (`components/settings/page/SettingsPage.tsx`, `components/settings/page/ModelsPane.tsx`) and one in the default `chip` look (`components/editing/cleanup/CleanupHeader.tsx`) | S19, E8, R4 |

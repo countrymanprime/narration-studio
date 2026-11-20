@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactEleme
 import { isStoredHex, normaliseHex, toPickerValue } from './colourHex';
 import { Icon } from './Icon';
 import { Popover } from './Popover';
-import { SELECT_BOX_CLASSES } from './selectBox';
+import { COLOUR_BOX_CLASSES } from './selectBox';
 import { useSettledDraft } from './settledDraft';
 import { Swatch, type SwatchColour } from './Swatch';
 import { TextField } from './TextField';
@@ -119,7 +119,7 @@ function Palette<V extends string>({
       aria-busy={pending || undefined}
       title={shownName}
       disabled={disabled}
-      className={`${SELECT_BOX_CLASSES} flex items-center gap-2 overflow-hidden text-left ${className}`}
+      className={`${COLOUR_BOX_CLASSES} flex items-center gap-1.5 overflow-hidden text-left ${className}`}
     >
       {chosen && <Swatch colour={chosen.token} />}
       <span className={`min-w-0 flex-1 truncate ${chosen ? '' : 'text-[var(--text-muted)]'}`}>{shownName}</span>
